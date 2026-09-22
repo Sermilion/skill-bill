@@ -36,22 +36,24 @@ class InternalSkillStagingRepoTest {
     val home = Files.createTempDirectory("skillbill-kmp-companion-home").also(tempDirs::add)
     val parentDir = repoRoot.resolve("skills/bill-code-review")
     val uiDir = repoRoot.resolve("platform-packs/kmp/code-review/bill-kmp-code-review-ui")
-    val uiSkill = InstallPlanSkill(
-      name = "bill-kmp-code-review-ui",
-      sourceDir = uiDir.toFileLocation(),
-      kind = InstallPlanSkillKind.PLATFORM_PACK,
-      platformSlug = "kmp",
-      internalFor = "bill-code-review",
-    )
+    val uiSkill =
+      InstallPlanSkill(
+        name = "bill-kmp-code-review-ui",
+        sourceDir = uiDir.toFileLocation(),
+        kind = InstallPlanSkillKind.PLATFORM_PACK,
+        platformSlug = "kmp",
+        internalFor = "bill-code-review",
+      )
 
-    val rendered = stageInstalledSkill(
-      StageInstalledSkillInput(
-        repoRoot = repoRoot,
-        sourceSkillDir = parentDir,
-        home = home,
-        selectedPackSkills = listOf(uiSkill),
-      ),
-    )
+    val rendered =
+      stageInstalledSkill(
+        StageInstalledSkillInput(
+          repoRoot = repoRoot,
+          sourceSkillDir = parentDir,
+          home = home,
+          selectedPackSkills = listOf(uiSkill),
+        ),
+      )
 
     val wrapper = rendered.stagingDir.resolve("bill-kmp-code-review-ui.md")
     val companion = rendered.stagingDir.resolve("compose-guidelines.md")

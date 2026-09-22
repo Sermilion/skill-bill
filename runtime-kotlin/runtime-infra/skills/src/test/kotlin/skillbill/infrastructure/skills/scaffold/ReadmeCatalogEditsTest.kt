@@ -8,9 +8,12 @@ import org.junit.jupiter.api.io.TempDir
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.ReadmeCatalogEdits
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.ReadmeEditOutcome
 import java.nio.file.Path
+
 class ReadmeCatalogEditsTest {
   @Test
-  fun `removeCatalogRow removes table row and reports Applied`(@TempDir tempDir: Path) {
+  fun `removeCatalogRow removes table row and reports Applied`(
+    @TempDir tempDir: Path,
+  ) {
     val readme = tempDir.resolve("README.md")
     readme.toFile().writeText(
       """
@@ -35,7 +38,9 @@ class ReadmeCatalogEditsTest {
   }
 
   @Test
-  fun `removeCatalogRow reports LandmarksMissing when row absent`(@TempDir tempDir: Path) {
+  fun `removeCatalogRow reports LandmarksMissing when row absent`(
+    @TempDir tempDir: Path,
+  ) {
     val readme = tempDir.resolve("README.md")
     readme.toFile().writeText("# Header\nNo table here.\n")
     val outcome = ReadmeCatalogEdits.removeCatalogRow(readme, "bill-foo")
@@ -43,7 +48,9 @@ class ReadmeCatalogEditsTest {
   }
 
   @Test
-  fun `decrementSectionCount decrements and uses singular when N=1`(@TempDir tempDir: Path) {
+  fun `decrementSectionCount decrements and uses singular when N=1`(
+    @TempDir tempDir: Path,
+  ) {
     val readme = tempDir.resolve("README.md")
     readme.toFile().writeText("### Canonical Skills (2 skills)\n")
     assertEquals(ReadmeEditOutcome.Applied, ReadmeCatalogEdits.decrementSectionCount(readme))
@@ -51,7 +58,9 @@ class ReadmeCatalogEditsTest {
   }
 
   @Test
-  fun `decrementSectionCount reports LandmarksMissing when heading absent`(@TempDir tempDir: Path) {
+  fun `decrementSectionCount reports LandmarksMissing when heading absent`(
+    @TempDir tempDir: Path,
+  ) {
     val readme = tempDir.resolve("README.md")
     readme.toFile().writeText("nothing here\n")
     val outcome = ReadmeCatalogEdits.decrementSectionCount(readme)

@@ -34,22 +34,26 @@ internal class GoalRunnerObservabilityEmitter(
     }
   }
 
-  internal fun record(subject: GoalRunnerObservabilitySubject, signal: GoalRunnerObservabilitySignal) {
+  internal fun record(
+    subject: GoalRunnerObservabilitySubject,
+    signal: GoalRunnerObservabilitySignal,
+  ) {
     GoalRunnerBestEffortEmission.record(
       diagnostics = diagnostics,
       write = {
         outcomeStore.recordObservabilityEvent(
-          request = GoalRunnerObservabilityRecordRequest(
-            workflowId = subject.workflowId,
-            issueKey = subject.issueKey,
-            subtaskId = subject.subtaskId,
-            workflowPhase = signal.workflowPhase.takeIf(String::isNotBlank) ?: "goal_runner_supervision",
-            workerRole = signal.workerRole.wireValue,
-            livenessClass = signal.livenessClass.wireValue,
-            activitySummary = signal.activitySummary.takeIf(String::isNotBlank) ?: signal.livenessClass.wireValue,
-            sequenceNumber = sequence++,
-            timestamp = clock.instant().toString(),
-          ),
+          request =
+            GoalRunnerObservabilityRecordRequest(
+              workflowId = subject.workflowId,
+              issueKey = subject.issueKey,
+              subtaskId = subject.subtaskId,
+              workflowPhase = signal.workflowPhase.takeIf(String::isNotBlank) ?: "goal_runner_supervision",
+              workerRole = signal.workerRole.wireValue,
+              livenessClass = signal.livenessClass.wireValue,
+              activitySummary = signal.activitySummary.takeIf(String::isNotBlank) ?: signal.livenessClass.wireValue,
+              sequenceNumber = sequence++,
+              timestamp = clock.instant().toString(),
+            ),
         )
       },
       missingMessage = {
@@ -71,35 +75,42 @@ internal class GoalRunnerObservabilityEmitter(
   ) {
     record(
       subject = subject,
-      signal = GoalRunnerObservabilitySignal(
-        workflowPhase = progress?.currentStepId?.takeIf(String::isNotBlank) ?: "preplan",
-        livenessClass = if (action == "resume") {
-          GoalRunnerObservabilityLivenessClass.RESUME
-        } else {
-          GoalRunnerObservabilityLivenessClass.SUBTASK_START
-        },
-        activitySummary = "Goal runner ${action}s subtask ${subject.subtaskId}.",
-      ),
+      signal =
+        GoalRunnerObservabilitySignal(
+          workflowPhase = progress?.currentStepId?.takeIf(String::isNotBlank) ?: "preplan",
+          livenessClass =
+            if (action == "resume") {
+              GoalRunnerObservabilityLivenessClass.RESUME
+            } else {
+              GoalRunnerObservabilityLivenessClass.SUBTASK_START
+            },
+          activitySummary = "Goal runner ${action}s subtask ${subject.subtaskId}.",
+        ),
     )
   }
 
-  private fun recordProgress(subject: GoalRunnerObservabilitySubject, child: GoalRunnerWorkflowProgress) {
+  private fun recordProgress(
+    subject: GoalRunnerObservabilitySubject,
+    child: GoalRunnerWorkflowProgress,
+  ) {
     record(
       subject = subject,
-      signal = GoalRunnerObservabilitySignal(
-        workflowPhase = child.currentStepId,
-        livenessClass = GoalRunnerObservabilityLivenessClass.PHASE_CHANGE,
-        activitySummary = "Child workflow is at step ${child.currentStepId}.",
-      ),
+      signal =
+        GoalRunnerObservabilitySignal(
+          workflowPhase = child.currentStepId,
+          livenessClass = GoalRunnerObservabilityLivenessClass.PHASE_CHANGE,
+          activitySummary = "Child workflow is at step ${child.currentStepId}.",
+        ),
     )
     child.latestLivenessSignal?.takeIf(String::isNotBlank)?.let { signal ->
       record(
         subject = subject,
-        signal = GoalRunnerObservabilitySignal(
-          workflowPhase = child.currentStepId,
-          livenessClass = GoalRunnerObservabilityLivenessClass.HEARTBEAT,
-          activitySummary = signal,
-        ),
+        signal =
+          GoalRunnerObservabilitySignal(
+            workflowPhase = child.currentStepId,
+            livenessClass = GoalRunnerObservabilityLivenessClass.HEARTBEAT,
+            activitySummary = signal,
+          ),
       )
     }
   }
@@ -113,20 +124,22 @@ internal class GoalRunnerObservabilityEmitter(
     val phase = liveness.workflowStep ?: progress?.currentStepId ?: liveness.phase
     record(
       subject = subject,
-      signal = GoalRunnerObservabilitySignal(
-        workflowPhase = phase,
-        livenessClass = GoalRunnerObservabilityLivenessClass.HEARTBEAT,
-        activitySummary = "process_state=${liveness.processState.wireValue}; reason=${liveness.reason}",
-      ),
+      signal =
+        GoalRunnerObservabilitySignal(
+          workflowPhase = phase,
+          livenessClass = GoalRunnerObservabilityLivenessClass.HEARTBEAT,
+          activitySummary = "process_state=${liveness.processState.wireValue}; reason=${liveness.reason}",
+        ),
     )
     liveness.lastFileActivityAt?.takeIf(String::isNotBlank)?.let { at ->
       record(
         subject = subject,
-        signal = GoalRunnerObservabilitySignal(
-          workflowPhase = phase,
-          livenessClass = GoalRunnerObservabilityLivenessClass.FILE_ACTIVITY,
-          activitySummary = liveness.lastFileActivityLabel ?: "file activity observed at $at",
-        ),
+        signal =
+          GoalRunnerObservabilitySignal(
+            workflowPhase = phase,
+            livenessClass = GoalRunnerObservabilityLivenessClass.FILE_ACTIVITY,
+            activitySummary = liveness.lastFileActivityLabel ?: "file activity observed at $at",
+          ),
       )
     }
   }
@@ -136,17 +149,20 @@ internal class GoalRunnerObservabilityEmitter(
     progress: GoalRunnerWorkflowProgress?,
     facts: AgentRunLaunchFacts,
   ) {
-    val stderrDetail = stderrExcerpt(facts.stderr, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS)
-      ?.let { excerpt -> "; stderr_excerpt=$excerpt" }
-      .orEmpty()
+    val stderrDetail =
+      stderrExcerpt(facts.stderr, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS)
+        ?.let { excerpt -> "; stderr_excerpt=$excerpt" }
+        .orEmpty()
     record(
       subject = subject,
-      signal = GoalRunnerObservabilitySignal(
-        workflowPhase = progress?.currentStepId ?: facts.liveness?.workflowStep ?: "goal_runner_supervision",
-        livenessClass = GoalRunnerObservabilityLivenessClass.WORKER_OUTPUT_SUMMARY,
-        activitySummary = "stdout_chars=${facts.stdout.length}; stderr_chars=${facts.stderr.length}; " +
-          "exit_status=${facts.exitStatus ?: "none"}$stderrDetail",
-      ),
+      signal =
+        GoalRunnerObservabilitySignal(
+          workflowPhase = progress?.currentStepId ?: facts.liveness?.workflowStep ?: "goal_runner_supervision",
+          livenessClass = GoalRunnerObservabilityLivenessClass.WORKER_OUTPUT_SUMMARY,
+          activitySummary =
+            "stdout_chars=${facts.stdout.length}; stderr_chars=${facts.stderr.length}; " +
+              "exit_status=${facts.exitStatus ?: "none"}$stderrDetail",
+        ),
     )
   }
 }

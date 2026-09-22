@@ -8,26 +8,29 @@ import skillbill.review.plan.ReviewStackRouting
 import skillbill.review.plan.model.ReviewRoutingChangedFile
 import skillbill.review.plan.model.ReviewStackRoutingResult
 import skillbill.scaffold.model.PlatformManifest
+
 @Inject
 class ValidationGateResolver(
   private val installedCatalog: InstalledPlatformPackCatalogPort,
 ) {
   fun resolve(changedPaths: List<String>): ValidationGateResolution {
-    val manifests = try {
-      installedCatalog.manifests()
-    } catch (e: ShellContentContractException) {
-      return ValidationGateResolution.Incompatible(
-        "Installed platform pack discovery failed: ${e.message ?: e.javaClass.simpleName}. " +
-          "Repair the installed platform packs before running validation.",
-      )
-    }
+    val manifests =
+      try {
+        installedCatalog.manifests()
+      } catch (e: ShellContentContractException) {
+        return ValidationGateResolution.Incompatible(
+          "Installed platform pack discovery failed: ${e.message ?: e.javaClass.simpleName}. " +
+            "Repair the installed platform packs before running validation.",
+        )
+      }
     if (manifests.isEmpty()) {
       return ValidationGateResolution.Absent(null)
     }
-    val routing = ReviewStackRouting.route(
-      manifests,
-      changedPaths.map { ReviewRoutingChangedFile(it, "") },
-    )
+    val routing =
+      ReviewStackRouting.route(
+        manifests,
+        changedPaths.map { ReviewRoutingChangedFile(it, "") },
+      )
     val dominant = selectDominantPack(manifests, routing)
     val declaration = dominant?.validationGate
     return if (dominant != null && declaration != null) {

@@ -29,11 +29,12 @@ class WorkflowServiceRuntimeComponentTest {
     val service =
       RuntimeComponent::class.create(
         RuntimeContext(
-          environment = EnvironmentContext(
-            environment = emptyMap(),
-            userHome = tempDir,
-            repositoryRoot = tempDir,
-          ),
+          environment =
+            EnvironmentContext(
+              environment = emptyMap(),
+              userHome = tempDir,
+              repositoryRoot = tempDir,
+            ),
           transport = TransportContext(),
           workflowOps = WorkflowOpsContext(),
           callbacks = OptionalCallbacks(),
@@ -51,11 +52,12 @@ class WorkflowServiceRuntimeComponentTest {
             workflowId = workflowId,
             workflowStatus = WorkflowStatus.RUNNING.wireValue,
             currentStepId = "plan",
-            stepUpdates = WorkflowStepUpdates.from(
-              listOf(
-                mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+                ),
               ),
-            ),
             artifactsPatch = artifactsPatch,
             planningResult = decompositionPlanningResultFromPatch(artifactsPatch),
           ),
@@ -68,23 +70,28 @@ class WorkflowServiceRuntimeComponentTest {
     assertTrue(Files.readString(manifest).contains("same_branch_commit_per_subtask"))
   }
 
-  private fun decompositionPlanPatch(parentSpec: Path, subtaskSpec: Path): WorkflowArtifactPatch =
+  private fun decompositionPlanPatch(
+    parentSpec: Path,
+    subtaskSpec: Path,
+  ): WorkflowArtifactPatch =
     WorkflowArtifactPatch.from(
       mapOf(
         "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
-        "plan" to linkedMapOf(
-          "mode" to "decompose",
-          "parent_spec_path" to parentSpec.toString(),
-          "recommended_first_subtask_id" to 1,
-          "subtasks" to listOf(
-            mapOf(
-              "id" to 1,
-              "name" to "foundation",
-              "spec_path" to subtaskSpec.toString(),
-              "depends_on" to emptyList<Int>(),
-            ),
+        "plan" to
+          linkedMapOf(
+            "mode" to "decompose",
+            "parent_spec_path" to parentSpec.toString(),
+            "recommended_first_subtask_id" to 1,
+            "subtasks" to
+              listOf(
+                mapOf(
+                  "id" to 1,
+                  "name" to "foundation",
+                  "spec_path" to subtaskSpec.toString(),
+                  "depends_on" to emptyList<Int>(),
+                ),
+              ),
           ),
-        ),
       ),
     )!!
 }

@@ -11,12 +11,13 @@ class FileSystemReviewInputSourceTest {
     val reviewFile = userHome.resolve("review.md")
     Files.writeString(reviewFile, "Review body")
 
-    val (text, sourcePath) = FileSystemReviewInputSource(
-      EnvironmentContext(
-        environment = emptyMap(),
-        userHome = userHome,
-      ),
-    ).readInput("~/review.md")
+    val (text, sourcePath) =
+      FileSystemReviewInputSource(
+        EnvironmentContext(
+          environment = emptyMap(),
+          userHome = userHome,
+        ),
+      ).readInput("~/review.md")
 
     assertEquals("Review body", text)
     assertEquals(reviewFile.toString(), sourcePath)

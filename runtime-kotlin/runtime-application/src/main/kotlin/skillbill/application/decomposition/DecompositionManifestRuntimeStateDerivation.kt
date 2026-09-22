@@ -16,6 +16,7 @@ import skillbill.workflow.model.decompositionStatus
 import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.model.workflowStepStatus
 import java.nio.file.Path
+
 private val statusTrackedSteps =
   setOf("implement", "simplify", "review", "audit", "validate", "pr", "pr_description", "finish")
 private val completionSteps = setOf("pr", "pr_description", "finish")
@@ -29,35 +30,43 @@ fun DecompositionSubtask.withRuntimeFields(
   val artifacts = mergedArtifacts(update)
   val nextStatus = status ?: this.status
 
-  val terminalOutcome = (artifacts["goal_continuation_outcome"] as? Map<*, *>)
-    ?.takeIf { nextStatus.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.BLOCKED) }
-  val rolledParticipants = (terminalOutcome?.get(DecompositionManifestPayloadKeys.PARTICIPATING_AGENT_IDS) as? List<*>)
-    ?.mapNotNull { it?.toString()?.takeIf(String::isNotBlank) }
-    .orEmpty()
+  val terminalOutcome =
+    (artifacts["goal_continuation_outcome"] as? Map<*, *>)
+      ?.takeIf { nextStatus.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.BLOCKED) }
+  val rolledParticipants =
+    (terminalOutcome?.get(DecompositionManifestPayloadKeys.PARTICIPATING_AGENT_IDS) as? List<*>)
+      ?.mapNotNull { it?.toString()?.takeIf(String::isNotBlank) }
+      .orEmpty()
   return copy(
     status = nextStatus,
-    branch = branchName(artifacts[DecompositionPlanningPayloadKeys.BRANCH]).ifBlank {
-      when (manifest.executionModel) {
-        DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK -> manifest.featureBranch
-        DecompositionExecutionModel.STACKED_BRANCHES ->
-          manifest.stackBranches.firstOrNull { it.subtaskId == id }?.branch
-      } ?: branch
-    },
+    branch =
+      branchName(artifacts[DecompositionPlanningPayloadKeys.BRANCH]).ifBlank {
+        when (manifest.executionModel) {
+          DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK -> manifest.featureBranch
+          DecompositionExecutionModel.STACKED_BRANCHES ->
+            manifest.stackBranches.firstOrNull { it.subtaskId == id }?.branch
+        } ?: branch
+      },
     workflowId = update.workflowId.ifBlank { workflowId },
     commitSha = commitShaFrom(artifacts) ?: commitSha,
-    blockedReason = blockedReasonFrom(update, nextStatus) ?: blockedReason.takeUnless {
-      nextStatus.decompositionStatus() != DecompositionStatus.BLOCKED
-    },
+    blockedReason =
+      blockedReasonFrom(update, nextStatus) ?: blockedReason.takeUnless {
+        nextStatus.decompositionStatus() != DecompositionStatus.BLOCKED
+      },
     lastResumableStep = update.currentStepId.takeIf(String::isNotBlank) ?: lastResumableStep,
-    finalizingAgentId = terminalOutcome?.get(
-      DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID,
-    )?.toString()?.takeIf(String::isNotBlank)
-      ?: finalizingAgentId,
+    finalizingAgentId =
+      terminalOutcome?.get(
+        DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID,
+      )?.toString()?.takeIf(String::isNotBlank)
+        ?: finalizingAgentId,
     participatingAgentIds = rolledParticipants.ifEmpty { participatingAgentIds },
   )
 }
 
-fun DecompositionManifest.currentSubtaskIdForUpdate(repoRoot: Path, update: DecompositionManifestRuntimeUpdate): Int? {
+fun DecompositionManifest.currentSubtaskIdForUpdate(
+  repoRoot: Path,
+  update: DecompositionManifestRuntimeUpdate,
+): Int? {
   val assessment = mergedArtifacts(update)["assessment"] as? Map<*, *>
   val specPath = assessment?.get(DecompositionPlanningPayloadKeys.SPEC_PATH)?.toString()?.takeIf(String::isNotBlank)
   val matchedId = specPath?.let { matchingSubtaskId(repoRoot, it) }
@@ -93,34 +102,43 @@ fun statusFromUpdate(update: DecompositionManifestRuntimeUpdate): String? {
   }
 }
 
-fun intentFor(subtaskId: Int, status: String?): CurrentSubtaskIntent = when (status.decompositionStatus()) {
-  DecompositionStatus.BLOCKED -> CurrentSubtaskIntent(subtaskId = subtaskId, action = "blocked")
-  DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED ->
-    CurrentSubtaskIntent(subtaskId = 0, action = "complete")
-  DecompositionStatus.IN_PROGRESS -> CurrentSubtaskIntent(subtaskId = subtaskId, action = "resume")
-  else -> CurrentSubtaskIntent(subtaskId = subtaskId, action = "start")
-}
+fun intentFor(
+  subtaskId: Int,
+  status: String?,
+): CurrentSubtaskIntent =
+  when (status.decompositionStatus()) {
+    DecompositionStatus.BLOCKED -> CurrentSubtaskIntent(subtaskId = subtaskId, action = "blocked")
+    DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED ->
+      CurrentSubtaskIntent(subtaskId = 0, action = "complete")
+    DecompositionStatus.IN_PROGRESS -> CurrentSubtaskIntent(subtaskId = subtaskId, action = "resume")
+    else -> CurrentSubtaskIntent(subtaskId = subtaskId, action = "start")
+  }
 
 fun DecompositionManifest.withParentStatus(): DecompositionManifest {
-  val parentStatus = when {
-    subtasks.all {
-      it.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED)
-    } -> DecompositionStatus.COMPLETE.wireValue
-    subtasks.any { it.status.decompositionStatus() == DecompositionStatus.BLOCKED } ->
-      DecompositionStatus.BLOCKED.wireValue
-    subtasks.any {
-      it.status.decompositionStatus() in setOf(
-        DecompositionStatus.IN_PROGRESS,
-        DecompositionStatus.COMPLETE,
-        DecompositionStatus.SKIPPED,
-      ) || it.hasStarted()
-    } -> DecompositionStatus.IN_PROGRESS.wireValue
-    else -> DecompositionStatus.PENDING.wireValue
-  }
+  val parentStatus =
+    when {
+      subtasks.all {
+        it.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED)
+      } -> DecompositionStatus.COMPLETE.wireValue
+      subtasks.any { it.status.decompositionStatus() == DecompositionStatus.BLOCKED } ->
+        DecompositionStatus.BLOCKED.wireValue
+      subtasks.any {
+        it.status.decompositionStatus() in
+          setOf(
+            DecompositionStatus.IN_PROGRESS,
+            DecompositionStatus.COMPLETE,
+            DecompositionStatus.SKIPPED,
+          ) || it.hasStarted()
+      } -> DecompositionStatus.IN_PROGRESS.wireValue
+      else -> DecompositionStatus.PENDING.wireValue
+    }
   return copy(status = parentStatus)
 }
 
-private fun DecompositionManifest.matchingSubtaskId(repoRoot: Path, specPath: String): Int? {
+private fun DecompositionManifest.matchingSubtaskId(
+  repoRoot: Path,
+  specPath: String,
+): Int? {
   val absoluteSpecPath = resolvedParentSpecPath(repoRoot, Path.of(specPath)).normalize()
   return subtasks.firstOrNull { subtask ->
     resolvedParentSpecPath(repoRoot, Path.of(subtask.specPath)).normalize() == absoluteSpecPath
@@ -130,26 +148,32 @@ private fun DecompositionManifest.matchingSubtaskId(repoRoot: Path, specPath: St
 private fun mergedArtifacts(update: DecompositionManifestRuntimeUpdate): Map<String, Any?> =
   LinkedHashMap(update.existingArtifacts).apply { update.artifactsPatch?.let(::putAll) }
 
-private fun blockedReasonFrom(update: DecompositionManifestRuntimeUpdate, status: String): String? =
+private fun blockedReasonFrom(
+  update: DecompositionManifestRuntimeUpdate,
+  status: String,
+): String? =
   if (status.decompositionStatus() == DecompositionStatus.BLOCKED) {
     val artifacts = mergedArtifacts(update)
     val rawReason = artifacts[DecompositionManifestPayloadKeys.BLOCKED_REASON]?.toString()?.takeIf(String::isNotBlank)
     when {
-      rawReason != null -> normalizedBlockedReason(
-        reason = rawReason,
-        category = "runtime",
-        fallback = "Workflow step '${update.currentStepId.ifBlank { "unknown" }}' is blocked.",
-      )
-      prSuppressedCommitStatus(update) == DecompositionStatus.BLOCKED -> normalizedBlockedReason(
-        reason = null,
-        category = "git",
-        fallback = "Goal-continuation commit_push completed without commit_push_result.commit_sha.",
-      )
-      else -> normalizedBlockedReason(
-        reason = null,
-        category = "runtime",
-        fallback = "Workflow step '${update.currentStepId.ifBlank { "unknown" }}' is blocked.",
-      )
+      rawReason != null ->
+        normalizedBlockedReason(
+          reason = rawReason,
+          category = "runtime",
+          fallback = "Workflow step '${update.currentStepId.ifBlank { "unknown" }}' is blocked.",
+        )
+      prSuppressedCommitStatus(update) == DecompositionStatus.BLOCKED ->
+        normalizedBlockedReason(
+          reason = null,
+          category = "git",
+          fallback = "Goal-continuation commit_push completed without commit_push_result.commit_sha.",
+        )
+      else ->
+        normalizedBlockedReason(
+          reason = null,
+          category = "runtime",
+          fallback = "Workflow step '${update.currentStepId.ifBlank { "unknown" }}' is blocked.",
+        )
     }
   } else {
     null
@@ -160,11 +184,13 @@ private fun prSuppressedCommitStatus(update: DecompositionManifestRuntimeUpdate)
   val goalContinuation = artifacts["goal_continuation"] as? Map<*, *> ?: return null
   val suppressPr = goalContinuation["suppress_pr"] == true
   val commitPushResult = artifacts["commit_push_result"] as? Map<*, *>
-  val commitPushActive = update.currentStepId == "commit_push" ||
-    update.stepUpdates?.asEntries().orEmpty().any { it[SharedPayloadKeys.STEP_ID] == "commit_push" }
-  val preCommitProjection = commitPushActive &&
-    commitPushResult?.get("pre_commit_projection") == true &&
-    commitShaFrom(artifacts) == null
+  val commitPushActive =
+    update.currentStepId == "commit_push" ||
+      update.stepUpdates?.asEntries().orEmpty().any { it[SharedPayloadKeys.STEP_ID] == "commit_push" }
+  val preCommitProjection =
+    commitPushActive &&
+      commitPushResult?.get("pre_commit_projection") == true &&
+      commitShaFrom(artifacts) == null
   val commitPushCompleted =
     update.stepUpdates?.asEntries().orEmpty().any {
       it[SharedPayloadKeys.STEP_ID] == "commit_push" &&
@@ -180,13 +206,16 @@ private fun prSuppressedCommitStatus(update: DecompositionManifestRuntimeUpdate)
 }
 
 private fun commitShaFrom(artifacts: Map<String, Any?>): String? {
-  val fromCommitPush = (artifacts["commit_push_result"] as? Map<*, *>)
-    ?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.trim()?.takeIf(String::isNotBlank)
-  val fromOutcome = (artifacts["goal_continuation_outcome"] as? Map<*, *>)
-    ?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.trim()?.takeIf(String::isNotBlank)
+  val fromCommitPush =
+    (artifacts["commit_push_result"] as? Map<*, *>)
+      ?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.trim()?.takeIf(String::isNotBlank)
+  val fromOutcome =
+    (artifacts["goal_continuation_outcome"] as? Map<*, *>)
+      ?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.trim()?.takeIf(String::isNotBlank)
   if (fromCommitPush != null && fromOutcome != null && fromCommitPush != fromOutcome) {
-    val subtaskId = (artifacts["goal_continuation_outcome"] as? Map<*, *>)?.get(SharedPayloadKeys.SUBTASK_ID)
-      ?: (artifacts["goal_continuation"] as? Map<*, *>)?.get(SharedPayloadKeys.SUBTASK_ID)
+    val subtaskId =
+      (artifacts["goal_continuation_outcome"] as? Map<*, *>)?.get(SharedPayloadKeys.SUBTASK_ID)
+        ?: (artifacts["goal_continuation"] as? Map<*, *>)?.get(SharedPayloadKeys.SUBTASK_ID)
     error(
       "Conflicting completing commit SHAs for subtask $subtaskId: " +
         "commit_push_result.commit_sha=$fromCommitPush vs goal_continuation_outcome.commit_sha=$fromOutcome.",

@@ -10,6 +10,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeQuarantineRegenerateTest {
   private val legacyImplement =
     """{"contract_version":"0.4","phase_id":"implement","status":"completed","summary":"Legacy implement.",""" +
@@ -42,23 +43,27 @@ class FeatureTaskRuntimeQuarantineRegenerateTest {
 
   @Test
   fun `a rejected record whose producer the pipeline dropped blocks durably with a value-required reason`() {
-    val surviving = listOf(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH,
-    )
-    val truncated = FeatureTaskRuntimeTransitionDeclaration(
-      forwardPhaseIds = surviving,
-      backwardEdges = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.backwardEdges
-        .filter { it.fromPhaseId in surviving && it.destinationPhaseId in surviving },
-      loopOnlyPhaseIds = emptySet(),
-      entryGates = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.entryGates
-        .filter { it.phaseId in surviving && it.requiredPhaseId in surviving },
-    )
+    val surviving =
+      listOf(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH,
+      )
+    val truncated =
+      FeatureTaskRuntimeTransitionDeclaration(
+        forwardPhaseIds = surviving,
+        backwardEdges =
+          FeatureTaskRuntimePhaseWorkflowDefinition.transitions.backwardEdges
+            .filter { it.fromPhaseId in surviving && it.destinationPhaseId in surviving },
+        loopOnlyPhaseIds = emptySet(),
+        entryGates =
+          FeatureTaskRuntimePhaseWorkflowDefinition.transitions.entryGates
+            .filter { it.phaseId in surviving && it.requiredPhaseId in surviving },
+      )
     val harness = runnerHarness(RuntimeHarnessConfig(agentAssignment = phasePerAgentAssignment()))
     harness.seedPhase("preplan", "completed", 1, phaseAgent("preplan"), validJsonOutput("preplan"))
     harness.seedPhase("plan", "completed", 1, phaseAgent("plan"), validJsonOutput("plan"))
@@ -80,24 +85,26 @@ class FeatureTaskRuntimeQuarantineRegenerateTest {
   fun `quarantine evidence is append-only retrievable in order and crash-replay idempotent`() {
     val harness = runnerHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
-    val first = FeatureTaskRuntimeQuarantineEntry(
-      producingPhaseId = "implement",
-      consumingPhaseId = "audit",
-      producingIteration = 1,
-      rejectionClass = "planning_projection_schema",
-      rejectionDetail = "implement#produced_outputs: projection_kind is missing",
-      regenerationAttempt = 1,
-      quarantinedAtIteration = 1,
-      diagnosticIdentity = "rod_one",
-      rejectedRecordByteSize = 11,
-      rejectedRecordSha256 = "a".repeat(64),
-    )
-    val second = first.copy(
-      producingIteration = 2,
-      regenerationAttempt = 2,
-      diagnosticIdentity = "rod_two",
-      rejectedRecordSha256 = "b".repeat(64),
-    )
+    val first =
+      FeatureTaskRuntimeQuarantineEntry(
+        producingPhaseId = "implement",
+        consumingPhaseId = "audit",
+        producingIteration = 1,
+        rejectionClass = "planning_projection_schema",
+        rejectionDetail = "implement#produced_outputs: projection_kind is missing",
+        regenerationAttempt = 1,
+        quarantinedAtIteration = 1,
+        diagnosticIdentity = "rod_one",
+        rejectedRecordByteSize = 11,
+        rejectedRecordSha256 = "a".repeat(64),
+      )
+    val second =
+      first.copy(
+        producingIteration = 2,
+        regenerationAttempt = 2,
+        diagnosticIdentity = "rod_two",
+        rejectedRecordSha256 = "b".repeat(64),
+      )
     harness.recorder.appendQuarantineEntry(WORKFLOW_ID, first)
     harness.recorder.appendQuarantineEntry(WORKFLOW_ID, second)
 
@@ -116,23 +123,25 @@ class FeatureTaskRuntimeQuarantineRegenerateTest {
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
     val identity = "rod_prechange_identity"
     val artifacts = harness.repository.taskRuntimeArtifacts(WORKFLOW_ID).toMutableMap()
-    artifacts[FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY] = mapOf(
-      "contract_version" to "0.3",
-      "entries" to listOf(
-        mapOf(
-          "producing_phase_id" to "implement",
-          "consuming_phase_id" to "audit",
-          "producing_iteration" to 1,
-          "rejection_class" to "planning_projection_schema",
-          "rejection_detail" to "implement#produced_outputs: projection_kind is missing",
-          "regeneration_attempt" to 1,
-          "quarantined_at_iteration" to 1,
-          "diagnostic_identity" to identity,
-          "rejected_record_byte_size" to 11,
-          "rejected_record_sha256" to "a".repeat(64),
-        ),
-      ),
-    )
+    artifacts[FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY] =
+      mapOf(
+        "contract_version" to "0.3",
+        "entries" to
+          listOf(
+            mapOf(
+              "producing_phase_id" to "implement",
+              "consuming_phase_id" to "audit",
+              "producing_iteration" to 1,
+              "rejection_class" to "planning_projection_schema",
+              "rejection_detail" to "implement#produced_outputs: projection_kind is missing",
+              "regeneration_attempt" to 1,
+              "quarantined_at_iteration" to 1,
+              "diagnostic_identity" to identity,
+              "rejected_record_byte_size" to 11,
+              "rejected_record_sha256" to "a".repeat(64),
+            ),
+          ),
+      )
     harness.repository.replaceTaskRuntimeArtifacts(WORKFLOW_ID, artifacts)
 
     val loaded = requireNotNull(harness.recorder.loadQuarantinedRecords(WORKFLOW_ID))

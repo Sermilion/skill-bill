@@ -114,7 +114,10 @@ private class FindingSummaryAccumulator {
   }
 }
 
-internal fun queryLatestFindingOutcomes(connection: Connection, reviewRunId: String?): List<FindingOutcomeRow> {
+internal fun queryLatestFindingOutcomes(
+  connection: Connection,
+  reviewRunId: String?,
+): List<FindingOutcomeRow> {
   val filter = buildFindingOutcomeFilters(reviewRunId)
   return connection.prepareStatement(latestFindingOutcomesSql(filter)).use { statement ->
     statement.bindAll(filter.parameters)
@@ -159,17 +162,19 @@ internal fun shouldSkipReviewFinishedTelemetry(
 
 internal fun emptySeverityCounts(): Map<String, Int> = mapOf("Blocker" to 0, "Major" to 0, "Minor" to 0)
 
-private fun buildFindingOutcomeFilters(reviewRunId: String?): FindingQueryFilter = if (reviewRunId == null) {
-  FindingQueryFilter(latestFeedbackFilter = "", findingsFilter = "", parameters = emptyList())
-} else {
-  FindingQueryFilter(
-    latestFeedbackFilter = "WHERE review_run_id = ?",
-    findingsFilter = "WHERE f.review_run_id = ?",
-    parameters = listOf(reviewRunId, reviewRunId),
-  )
-}
+private fun buildFindingOutcomeFilters(reviewRunId: String?): FindingQueryFilter =
+  if (reviewRunId == null) {
+    FindingQueryFilter(latestFeedbackFilter = "", findingsFilter = "", parameters = emptyList())
+  } else {
+    FindingQueryFilter(
+      latestFeedbackFilter = "WHERE review_run_id = ?",
+      findingsFilter = "WHERE f.review_run_id = ?",
+      parameters = listOf(reviewRunId, reviewRunId),
+    )
+  }
 
-private fun latestFindingOutcomesSql(filter: FindingQueryFilter): String = """
+private fun latestFindingOutcomesSql(filter: FindingQueryFilter): String =
+  """
   WITH latest_feedback AS (
     SELECT review_run_id, finding_id, MAX(id) AS latest_id
     FROM feedback_events
@@ -211,4 +216,4 @@ private fun latestFindingOutcomesSql(filter: FindingQueryFilter): String = """
     ON rfo.rowid = llo.latest_rowid
   ${filter.findingsFilter}
   ORDER BY f.review_run_id, f.finding_id
-""".trimIndent()
+  """.trimIndent()

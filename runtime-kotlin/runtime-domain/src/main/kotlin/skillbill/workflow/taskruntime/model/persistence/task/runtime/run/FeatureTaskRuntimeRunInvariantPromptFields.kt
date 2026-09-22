@@ -1,5 +1,6 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.run
 import skillbill.workflow.taskruntime.model.handoff.task.unrecognizedHandoffWireValue
+
 enum class FeatureTaskRuntimeRunInvariantFieldCategory {
   IDENTITY,
   ACCEPTANCE_CONTRACT,

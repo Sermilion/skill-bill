@@ -8,17 +8,21 @@ import java.nio.file.LinkOption
 import java.nio.file.Path
 import kotlin.io.path.isRegularFile
 
-internal fun validateInternalSidecarCollisions(skills: Map<String, Path>, issues: MutableList<String>) {
-  val internalByParent = skills.entries
-    .mapNotNull { (skillName, contentFile) ->
-      val declaredParent = parseInternalForFrontmatter(contentFile)?.takeIf(String::isNotBlank)
-      if (declaredParent != null && declaredParent != skillName && declaredParent in skills) {
-        declaredParent to skillName
-      } else {
-        null
+internal fun validateInternalSidecarCollisions(
+  skills: Map<String, Path>,
+  issues: MutableList<String>,
+) {
+  val internalByParent =
+    skills.entries
+      .mapNotNull { (skillName, contentFile) ->
+        val declaredParent = parseInternalForFrontmatter(contentFile)?.takeIf(String::isNotBlank)
+        if (declaredParent != null && declaredParent != skillName && declaredParent in skills) {
+          declaredParent to skillName
+        } else {
+          null
+        }
       }
-    }
-    .groupBy({ it.first }, { it.second })
+      .groupBy({ it.first }, { it.second })
   internalByParent.forEach { (parentName, children) ->
     val parentFile = skills[parentName] ?: return@forEach
     val parentDir = parentFile.parent
@@ -49,33 +53,40 @@ internal fun validatePortableReviewWording(
     }
   }
 }
+
 internal fun validateInternalSkillClassification(
   baseSkillFiles: Map<String, Path>,
   platformSkillFiles: Map<String, Path>,
   issues: MutableList<String>,
 ) {
-  val declarations = baseSkillFiles.entries.map { (skillName, contentFile) ->
-    InternalSkillDeclaration(
-      skillName = skillName,
-      contentFile = contentFile,
-      declaredParent = parseInternalForFrontmatter(contentFile),
-      isBaseSkill = true,
-    )
-  } + platformSkillFiles.entries.map { (skillName, contentFile) ->
-    InternalSkillDeclaration(
-      skillName = skillName,
-      contentFile = contentFile,
-      declaredParent = parseInternalForFrontmatter(contentFile),
-      isBaseSkill = false,
-    )
-  }
+  val declarations =
+    baseSkillFiles.entries.map { (skillName, contentFile) ->
+      InternalSkillDeclaration(
+        skillName = skillName,
+        contentFile = contentFile,
+        declaredParent = parseInternalForFrontmatter(contentFile),
+        isBaseSkill = true,
+      )
+    } +
+      platformSkillFiles.entries.map { (skillName, contentFile) ->
+        InternalSkillDeclaration(
+          skillName = skillName,
+          contentFile = contentFile,
+          declaredParent = parseInternalForFrontmatter(contentFile),
+          isBaseSkill = false,
+        )
+      }
   issues += internalSkillClassificationViolations(declarations)
 }
 
-internal fun validateInternalSidecarReferences(skillFiles: Map<String, Path>, issues: MutableList<String>) {
-  val declaredParents = skillFiles.mapValues { (_, contentFile) ->
-    parseInternalForFrontmatter(contentFile)?.takeIf(String::isNotBlank)
-  }
+internal fun validateInternalSidecarReferences(
+  skillFiles: Map<String, Path>,
+  issues: MutableList<String>,
+) {
+  val declaredParents =
+    skillFiles.mapValues { (_, contentFile) ->
+      parseInternalForFrontmatter(contentFile)?.takeIf(String::isNotBlank)
+    }
   skillFiles.forEach { (skillName, contentFile) ->
     val effectiveParent = declaredParents[skillName] ?: skillName
     repoValidationSidecarReferencePattern.findAll(Files.readString(contentFile)).forEach { match ->

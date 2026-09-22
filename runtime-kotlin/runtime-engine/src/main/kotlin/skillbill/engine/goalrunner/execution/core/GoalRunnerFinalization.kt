@@ -36,6 +36,7 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
+
 @Inject
 class GoalRunnerFinalization(
   boundaries: GoalRunnerFinalizationBoundaries,
@@ -49,6 +50,7 @@ class GoalRunnerFinalization(
   val diagnostics = boundaries.diagnostics
   val unaddressedFindingsLedgerService = boundaries.unaddressedFindingsLedgerService
   val progressReader = progressReader
+
   fun finalizeGoal(
     state: GoalRunnerManifestState,
     request: GoalRunnerRunRequest,
@@ -111,18 +113,20 @@ class GoalRunnerFinalization(
           findingsLedger,
         )
       }
-      is GoalPullRequestResult.Failed -> stopped(
-        StoppedReportArgs(
-          issueKey = finalState.manifest.issueKey,
-          attempted = attempted,
-          subtaskId = finalState.manifest.currentSubtaskIntent.subtaskId.takeIf { it > 0 }
-            ?: finalState.manifest.subtasks.last().id,
-          reason = GoalRunnerStopReason.PULL_REQUEST_FAILED,
-          blockedReason = result.reason,
-          workflowId = null,
-          lastResumableStep = "pr_description",
-        ),
-      )
+      is GoalPullRequestResult.Failed ->
+        stopped(
+          StoppedReportArgs(
+            issueKey = finalState.manifest.issueKey,
+            attempted = attempted,
+            subtaskId =
+              finalState.manifest.currentSubtaskIntent.subtaskId.takeIf { it > 0 }
+                ?: finalState.manifest.subtasks.last().id,
+            reason = GoalRunnerStopReason.PULL_REQUEST_FAILED,
+            blockedReason = result.reason,
+            workflowId = null,
+            lastResumableStep = "pr_description",
+          ),
+        )
     }
   }
 
@@ -132,8 +136,9 @@ class GoalRunnerFinalization(
     request: GoalRunnerRunRequest,
   ) {
     if (manifest.specSource != SpecSource.LINEAR) return
-    val specPath = manifest.subtasks.firstOrNull { it.id == subtaskId }?.specPath?.takeIf(String::isNotBlank)
-      ?: return
+    val specPath =
+      manifest.subtasks.firstOrNull { it.id == subtaskId }?.specPath?.takeIf(String::isNotBlank)
+        ?: return
     val resolved = resolvedParentSpecPath(request.repoRoot, Path.of(specPath))
     runCatching { specScratchStore.deleteFileIfExists(resolved) }
       .onFailure { error ->
@@ -156,12 +161,13 @@ class GoalRunnerFinalization(
     pruneCompletedSubtaskCheckpointRefs(
       gitOperations = gitOperations,
       repoRoot = request.repoRoot,
-      request = FeatureTaskRuntimeCheckpointRefPruneRequest(
-        issueKey = completed.manifest.issueKey,
-        subtaskId = subtaskId.toString(),
-        manifestCommitSha = reconciled.commitSha,
-        featureBranch = completed.manifest.featureBranch,
-      ),
+      request =
+        FeatureTaskRuntimeCheckpointRefPruneRequest(
+          issueKey = completed.manifest.issueKey,
+          subtaskId = subtaskId.toString(),
+          manifestCommitSha = reconciled.commitSha,
+          featureBranch = completed.manifest.featureBranch,
+        ),
       record = { message ->
         observability.record(
           GoalRunnerObservabilitySubject(reconciled.workflowId, completed.manifest.issueKey, subtaskId),
@@ -239,11 +245,12 @@ internal fun GoalRunnerFinalization.commitAndPushDirtyWorktree(
 ): String? {
   if (manifest.executionModel == DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK) {
     val sample = implementationPaths.take(MAX_REPORTED_FINALIZE_DIRTY_PATHS).joinToString(", ")
-    val suffix = if (implementationPaths.size > MAX_REPORTED_FINALIZE_DIRTY_PATHS) {
-      " (+${implementationPaths.size - MAX_REPORTED_FINALIZE_DIRTY_PATHS} more)"
-    } else {
-      ""
-    }
+    val suffix =
+      if (implementationPaths.size > MAX_REPORTED_FINALIZE_DIRTY_PATHS) {
+        " (+${implementationPaths.size - MAX_REPORTED_FINALIZE_DIRTY_PATHS} more)"
+      } else {
+        ""
+      }
     return "Goal finalization in same-branch mode refuses to commit leftover implementation paths " +
       "($sample$suffix); route each through subtask commit_push finalization."
   }
@@ -302,7 +309,10 @@ internal fun GoalRunnerFinalization.verifyWorktreeCleanAfterCommitAll(request: G
   }
 }
 
-internal fun GoalRunnerFinalization.pushUnpushedFeatureBranchIfNeeded(featureBranch: String, repoRoot: Path): String? {
+internal fun GoalRunnerFinalization.pushUnpushedFeatureBranchIfNeeded(
+  featureBranch: String,
+  repoRoot: Path,
+): String? {
   if (featureBranch.isBlank()) return null
   val unpushed = gitOperations.localBranchHasUnpushedCommits(repoRoot, featureBranch)
   if (unpushed !is WorkflowGitOperationResult.Ok) {
@@ -316,7 +326,10 @@ internal fun GoalRunnerFinalization.pushUnpushedFeatureBranchIfNeeded(featureBra
       ?.let { "Goal finalization found unpushed commits on '$featureBranch' but could not push: ${it.error}" }
 }
 
-internal fun GoalRunnerFinalization.requireFeatureBranchForFinalize(featureBranch: String, repoRoot: Path): String? {
+internal fun GoalRunnerFinalization.requireFeatureBranchForFinalize(
+  featureBranch: String,
+  repoRoot: Path,
+): String? {
   protectedBranchName(featureBranch)?.let { protected ->
     return "Goal finalization commit-all refuses protected branch '$protected'."
   }

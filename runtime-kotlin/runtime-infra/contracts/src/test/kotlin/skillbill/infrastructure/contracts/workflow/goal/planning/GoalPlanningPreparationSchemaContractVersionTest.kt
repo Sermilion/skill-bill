@@ -63,8 +63,9 @@ class GoalPlanningPreparationSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = GoalPlanningPreparationSchemaValidator::class.java.classLoader
-      .getResourceAsStream(GoalPlanningPreparationSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      GoalPlanningPreparationSchemaValidator::class.java.classLoader
+        .getResourceAsStream(GoalPlanningPreparationSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical goal planning preparation schema is missing from the classpath at " +

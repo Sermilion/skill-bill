@@ -10,14 +10,18 @@ import skillbill.review.model.TriageDecision
 import java.sql.Connection
 
 internal object TriageRuntime {
-  fun expandBulkDecisions(rawDecisions: List<String>, numberedFindings: List<NumberedFinding>): List<String> =
-    TriageDecisionParser.expandBulkDecisions(rawDecisions, numberedFindings)
+  fun expandBulkDecisions(
+    rawDecisions: List<String>,
+    numberedFindings: List<NumberedFinding>,
+  ): List<String> = TriageDecisionParser.expandBulkDecisions(rawDecisions, numberedFindings)
 
   fun expandStructuredDecision(rawDecision: String): List<String>? =
     TriageDecisionParser.expandStructuredDecision(rawDecision)
 
-  fun parseTriageDecisions(rawDecisions: List<String>, numberedFindings: List<NumberedFinding>): List<TriageDecision> =
-    TriageDecisionParser.parseTriageDecisions(rawDecisions, numberedFindings)
+  fun parseTriageDecisions(
+    rawDecisions: List<String>,
+    numberedFindings: List<NumberedFinding>,
+  ): List<TriageDecision> = TriageDecisionParser.parseTriageDecisions(rawDecisions, numberedFindings)
 
   fun normalizeTriageAction(rawAction: String): String = TriageDecisionParser.normalizeTriageAction(rawAction)
 
@@ -42,7 +46,10 @@ internal object TriageRuntime {
   }
 }
 
-private fun validateFeedbackRequest(connection: Connection, request: FeedbackRequest) {
+private fun validateFeedbackRequest(
+  connection: Connection,
+  request: FeedbackRequest,
+) {
   require(ReviewRuntime.reviewExists(connection, request.reviewRunId)) {
     "Unknown review run id '${request.reviewRunId}'. Import the review first."
   }

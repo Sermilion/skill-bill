@@ -13,6 +13,7 @@ import skillbill.review.context.model.hunk.ReviewEvidenceTarget
 import skillbill.review.context.model.hunk.ReviewLearningsReference
 import skillbill.review.context.model.hunk.ReviewRevision
 import skillbill.review.context.model.hunk.ReviewRuleReference
+
 data class ReviewContextPacket(
   val reviewId: String,
   val repositoryIdentity: String,
@@ -118,41 +119,43 @@ data class ReviewContextPacket(
   val digest: String get() = sha256(canonicalValue())
 
   val expansionLedgerDigest: String
-    get() = sha256(
-      expansionLedger.sortedWith(compareBy({ it.sequence }, { it.expansionId }))
-        .joinToString("\n") { it.canonical },
-    )
+    get() =
+      sha256(
+        expansionLedger.sortedWith(compareBy({ it.sequence }, { it.expansionId }))
+          .joinToString("\n") { it.canonical },
+      )
 
   val canonicalBytes: Long
-    get() = (canonicalValue() + expansionLedgerDigest + expansionLedger.joinToString("\n") { it.canonical })
-      .toByteArray(Charsets.UTF_8).size.toLong()
+    get() =
+      (canonicalValue() + expansionLedgerDigest + expansionLedger.joinToString("\n") { it.canonical })
+        .toByteArray(Charsets.UTF_8).size.toLong()
 
-  private fun canonicalValue(): String = listOf(
-    reviewId,
-    reviewRevision.canonical,
-    repositoryIdentity,
-    baseRevision,
-    headRevision,
-    status.replace("\r\n", "\n"),
-    stack.orEmpty(),
-    pack.orEmpty(),
-    canonicalFieldList(addOns.sorted()),
-    canonicalFieldList(composedLayers),
-    canonicalFieldList(selectedLanes),
-    laneDecisions.sortedWith(compareBy(ReviewLaneDecision::orderIndex, ReviewLaneDecision::lane))
-      .map { it.canonical }.let { canonicalFieldList(it) },
-    changedHunks.sortedBy { it.packetCanonical() }
-      .map { it.packetCanonical() }.let { canonicalFieldList(it) },
-
-    commitUnits.sortedBy { it.orderIndex }
-      .map { it.canonicalValue() }.let { canonicalFieldList(it) },
-    coverageFact.canonical,
-    routingMatrix.canonical,
-    canonicalFieldList(matchedRules.map { it.canonical }.sorted()),
-    canonicalFieldList(learningsReferences.map { it.canonical }.sorted()),
-    canonicalFieldList(buildTestFacts.map { it.canonical }.sorted()),
-    dependencyAllowlist.canonical,
-    baselineUntrackedPolicy.canonical,
-    canonicalFieldList(evidenceTargets.map { it.canonical }.sorted()),
-  ).let { canonicalFieldList(it) }
+  private fun canonicalValue(): String =
+    listOf(
+      reviewId,
+      reviewRevision.canonical,
+      repositoryIdentity,
+      baseRevision,
+      headRevision,
+      status.replace("\r\n", "\n"),
+      stack.orEmpty(),
+      pack.orEmpty(),
+      canonicalFieldList(addOns.sorted()),
+      canonicalFieldList(composedLayers),
+      canonicalFieldList(selectedLanes),
+      laneDecisions.sortedWith(compareBy(ReviewLaneDecision::orderIndex, ReviewLaneDecision::lane))
+        .map { it.canonical }.let { canonicalFieldList(it) },
+      changedHunks.sortedBy { it.packetCanonical() }
+        .map { it.packetCanonical() }.let { canonicalFieldList(it) },
+      commitUnits.sortedBy { it.orderIndex }
+        .map { it.canonicalValue() }.let { canonicalFieldList(it) },
+      coverageFact.canonical,
+      routingMatrix.canonical,
+      canonicalFieldList(matchedRules.map { it.canonical }.sorted()),
+      canonicalFieldList(learningsReferences.map { it.canonical }.sorted()),
+      canonicalFieldList(buildTestFacts.map { it.canonical }.sorted()),
+      dependencyAllowlist.canonical,
+      baselineUntrackedPolicy.canonical,
+      canonicalFieldList(evidenceTargets.map { it.canonical }.sorted()),
+    ).let { canonicalFieldList(it) }
 }

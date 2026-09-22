@@ -77,7 +77,7 @@ internal object DatabaseSchema {
         DatabaseReviewLedgerSchema.reviewRunLaneStatements +
         DatabaseReviewLedgerSchema.reviewFindingOutcomeStatements +
         DatabaseReviewLedgerSchema.reviewStageStateStatements
-      ).forEach { statementSql ->
+    ).forEach { statementSql ->
       connection.createStatement().use { statement ->
         statement.execute(statementSql)
       }

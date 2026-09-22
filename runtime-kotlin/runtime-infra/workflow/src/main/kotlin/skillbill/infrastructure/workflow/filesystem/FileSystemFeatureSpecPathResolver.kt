@@ -16,15 +16,16 @@ class FileSystemFeatureSpecPathResolver : FeatureSpecPathResolverPort {
     if (!Files.isDirectory(specsRoot)) {
       return FeatureSpecPathResolveResult.NoMatch(input.issueKey, specsRoot)
     }
-    val matches = Files.list(specsRoot).use { stream ->
-      stream
-        .filter { candidate -> Files.isDirectory(candidate) }
-        .filter { candidate -> candidate.fileName.toString().startsWith("${input.issueKey}-") }
-        .map { candidate -> candidate.resolve("spec.md") }
-        .filter { specPath -> Files.isRegularFile(specPath) }
-        .toList()
-        .sorted()
-    }
+    val matches =
+      Files.list(specsRoot).use { stream ->
+        stream
+          .filter { candidate -> Files.isDirectory(candidate) }
+          .filter { candidate -> candidate.fileName.toString().startsWith("${input.issueKey}-") }
+          .map { candidate -> candidate.resolve("spec.md") }
+          .filter { specPath -> Files.isRegularFile(specPath) }
+          .toList()
+          .sorted()
+      }
     return when (matches.size) {
       0 -> FeatureSpecPathResolveResult.NoMatch(input.issueKey, specsRoot)
       1 -> FeatureSpecPathResolveResult.SingleMatch(matches.single().toString())

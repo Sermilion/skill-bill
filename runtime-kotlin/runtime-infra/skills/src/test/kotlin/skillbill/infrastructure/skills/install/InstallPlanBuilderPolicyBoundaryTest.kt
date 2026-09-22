@@ -54,14 +54,16 @@ class InstallPlanBuilderPolicyBoundaryTest {
       ),
     )
 
-    val plan = planInstallForTest(
-      fixture.request(
-        platformPackSelection = PlatformPackSelection(
-          mode = PlatformPackSelectionMode.SELECTED,
-          selectedSlugs = setOf("kotlin"),
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          platformPackSelection =
+            PlatformPackSelection(
+              mode = PlatformPackSelectionMode.SELECTED,
+              selectedSlugs = setOf("kotlin"),
+            ),
         ),
-      ),
-    )
+      )
 
     assertTrue(plan.discoveredPlatformPacks.any { pack -> pack.slug == "experimental" && !pack.selected })
     assertEquals(listOf("kotlin"), plan.selectedPlatformSlugs)
@@ -77,27 +79,37 @@ class InstallPlanBuilderPolicyBoundaryTest {
     return PlanFixture(repoRoot = repoRoot, home = home)
   }
 
-  private fun seedBaseSkill(repoRoot: Path, skillName: String) {
+  private fun seedBaseSkill(
+    repoRoot: Path,
+    skillName: String,
+  ) {
     val skillDir = repoRoot.resolve("skills").resolve(skillName)
     Files.createDirectories(skillDir)
     Files.writeString(skillDir.resolve("content.md"), content(skillName))
   }
 
-  private fun seedPlatformPack(repoRoot: Path, slug: String) {
+  private fun seedPlatformPack(
+    repoRoot: Path,
+    slug: String,
+  ) {
     seedConformingPlatformPack(repoRoot, slug)
   }
 
-  private fun content(name: String, internalFor: String? = null): String = buildString {
-    appendLine("---")
-    appendLine("name: $name")
-    appendLine("description: Test skill.")
-    internalFor?.let { parent -> appendLine("internal-for: $parent") }
-    appendLine("---")
-    appendLine()
-    appendLine("# $name")
-    appendLine()
-    appendLine("Test body.")
-  }
+  private fun content(
+    name: String,
+    internalFor: String? = null,
+  ): String =
+    buildString {
+      appendLine("---")
+      appendLine("name: $name")
+      appendLine("description: Test skill.")
+      internalFor?.let { parent -> appendLine("internal-for: $parent") }
+      appendLine("---")
+      appendLine()
+      appendLine("# $name")
+      appendLine()
+      appendLine("Test body.")
+    }
 
   private data class PlanFixture(
     val repoRoot: Path,
@@ -107,29 +119,34 @@ class InstallPlanBuilderPolicyBoundaryTest {
 
     fun request(
       platformPackSelection: PlatformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.NONE),
-    ): InstallPlanRequest = InstallPlanRequest(
-      repoRoot = repoRoot.toFileLocation(),
-      home = home.toFileLocation(),
-      agentSelection = InstallAgentSelection(
-        mode = InstallAgentSelectionMode.MANUAL,
-        manualAgents = setOf(InstallAgent.CODEX),
-      ),
-      platformPackSelection = platformPackSelection,
-      telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
-      mcpRegistrationChoice = McpRegistrationChoice(
-        register = true,
-        runtimeMcpBin = runtimeInstallRoot.resolve("runtime-mcp/bin/runtime-mcp").toFileLocation(),
-      ),
-      runtimeDistributionInputs = RuntimeDistributionInputs(runtimeInstallRoot = runtimeInstallRoot.toFileLocation()),
-      targetPaths = InstallationTargetPaths(
-        skillsRoot = repoRoot.resolve("skills").toFileLocation(),
-        platformPacksRoot = repoRoot.resolve("platform-packs").toFileLocation(),
-      ),
-      windowsSymlinkPreflight = WindowsSymlinkPreflight(
-        state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-        decision = WindowsSymlinkDecision.NOT_REQUIRED,
-      ),
-      environment = installTestEnvironment(home),
-    )
+    ): InstallPlanRequest =
+      InstallPlanRequest(
+        repoRoot = repoRoot.toFileLocation(),
+        home = home.toFileLocation(),
+        agentSelection =
+          InstallAgentSelection(
+            mode = InstallAgentSelectionMode.MANUAL,
+            manualAgents = setOf(InstallAgent.CODEX),
+          ),
+        platformPackSelection = platformPackSelection,
+        telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
+        mcpRegistrationChoice =
+          McpRegistrationChoice(
+            register = true,
+            runtimeMcpBin = runtimeInstallRoot.resolve("runtime-mcp/bin/runtime-mcp").toFileLocation(),
+          ),
+        runtimeDistributionInputs = RuntimeDistributionInputs(runtimeInstallRoot = runtimeInstallRoot.toFileLocation()),
+        targetPaths =
+          InstallationTargetPaths(
+            skillsRoot = repoRoot.resolve("skills").toFileLocation(),
+            platformPacksRoot = repoRoot.resolve("platform-packs").toFileLocation(),
+          ),
+        windowsSymlinkPreflight =
+          WindowsSymlinkPreflight(
+            state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+            decision = WindowsSymlinkDecision.NOT_REQUIRED,
+          ),
+        environment = installTestEnvironment(home),
+      )
   }
 }

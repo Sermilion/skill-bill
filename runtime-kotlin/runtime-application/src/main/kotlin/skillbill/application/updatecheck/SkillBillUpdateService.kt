@@ -55,9 +55,10 @@ class SkillBillUpdateService(
           )
         is InstallerScriptFetchResult.Ready -> {
           fetchedScriptPath = fetched.scriptPath
-          val environment = request.environment.toMutableMap().apply {
-            put("HOME", request.userHome.toString())
-          }
+          val environment =
+            request.environment.toMutableMap().apply {
+              put("HOME", request.userHome.toString())
+            }
           val processResult =
             installerProcessPort.run(
               InstallerProcessRequest(
@@ -81,38 +82,42 @@ class SkillBillUpdateService(
   }
 
   private fun buildPlan(request: UpdateRunRequest): UpdateRunPlan {
-    val installerArgs = buildList {
-      add("--reuse-last-selection")
-      request.releaseTag?.let {
-        add("--release")
-        add(it)
+    val installerArgs =
+      buildList {
+        add("--reuse-last-selection")
+        request.releaseTag?.let {
+          add("--release")
+          add(it)
+        }
+        if (request.clean) add("--clean")
       }
-      if (request.clean) add("--clean")
-    }
-    val command = buildString {
-      append("fetch ")
-      append(INSTALL_SCRIPT_URL)
-      append(" then bash <script>")
-      installerArgs.forEach { arg ->
-        append(' ')
-        append(shellQuote(arg))
+    val command =
+      buildString {
+        append("fetch ")
+        append(INSTALL_SCRIPT_URL)
+        append(" then bash <script>")
+        installerArgs.forEach { arg ->
+          append(' ')
+          append(shellQuote(arg))
+        }
       }
-    }
     return UpdateRunPlan(command = command, installerArgs = installerArgs, scriptUrl = INSTALL_SCRIPT_URL)
   }
 }
 
-private fun updateSkipReason(updateCheck: UpdateCheckResult): String = when (updateCheck.status) {
-  UpdateCheckStatus.UP_TO_DATE -> "installed version is already the latest release"
-  UpdateCheckStatus.AHEAD_OF_RELEASE -> "installed version is newer than the latest release"
-  UpdateCheckStatus.UNKNOWN -> "could not determine the latest release"
-  UpdateCheckStatus.UPDATE_AVAILABLE -> "update is available"
-}
+private fun updateSkipReason(updateCheck: UpdateCheckResult): String =
+  when (updateCheck.status) {
+    UpdateCheckStatus.UP_TO_DATE -> "installed version is already the latest release"
+    UpdateCheckStatus.AHEAD_OF_RELEASE -> "installed version is newer than the latest release"
+    UpdateCheckStatus.UNKNOWN -> "could not determine the latest release"
+    UpdateCheckStatus.UPDATE_AVAILABLE -> "update is available"
+  }
 
 private val SHELL_SAFE_PATTERN = Regex("[A-Za-z0-9_./:=@%+-]+")
 
-private fun shellQuote(value: String): String = if (SHELL_SAFE_PATTERN.matches(value)) {
-  value
-} else {
-  "'${value.replace("'", "'\"'\"'")}'"
-}
+private fun shellQuote(value: String): String =
+  if (SHELL_SAFE_PATTERN.matches(value)) {
+    value
+  } else {
+    "'${value.replace("'", "'\"'\"'")}'"
+  }

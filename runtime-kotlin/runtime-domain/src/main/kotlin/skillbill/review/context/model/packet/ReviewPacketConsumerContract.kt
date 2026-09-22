@@ -7,32 +7,33 @@ object ReviewPacketConsumerContract {
   const val SECTION_HEADING: String = "## Packet Consumer Contract"
   const val REPORT_STRUCTURE_HEADING: String = "## Shared Report Structure"
 
-  val FORBIDDEN_REDISCOVERY: List<String> = listOf(
-    "review_status",
-    "review_scope",
-    "base_head_revision_discovery",
-    "diff_recomputation",
-    "dominant_stack_routing",
-    "platform_pack_and_addon_resolution",
-    "project_guidance_traversal",
-    "learnings_resolution",
-    "build_test_fact_discovery",
-    "telemetry_ownership_determination",
-    "broad_repository_search",
-    "unrelated_rubric_read",
-    "rubric_rediscovery",
-    "unassigned_file_access",
-    "unselected_mcp_tool_call",
-    "unscoped_shell_command",
-    "diff_artifact_rediscovery",
-    "scratch_path_rediscovery",
-    "contract_rediscovery",
-    "rules_rediscovery",
-    "evidence_scope_expansion_repeat",
-    "per_commit_stepping",
-    "worker_relevance_redecision",
-    "aggregate_diff_restart",
-  )
+  val FORBIDDEN_REDISCOVERY: List<String> =
+    listOf(
+      "review_status",
+      "review_scope",
+      "base_head_revision_discovery",
+      "diff_recomputation",
+      "dominant_stack_routing",
+      "platform_pack_and_addon_resolution",
+      "project_guidance_traversal",
+      "learnings_resolution",
+      "build_test_fact_discovery",
+      "telemetry_ownership_determination",
+      "broad_repository_search",
+      "unrelated_rubric_read",
+      "rubric_rediscovery",
+      "unassigned_file_access",
+      "unselected_mcp_tool_call",
+      "unscoped_shell_command",
+      "diff_artifact_rediscovery",
+      "scratch_path_rediscovery",
+      "contract_rediscovery",
+      "rules_rediscovery",
+      "evidence_scope_expansion_repeat",
+      "per_commit_stepping",
+      "worker_relevance_redecision",
+      "aggregate_diff_restart",
+    )
 
   const val AUTHORITATIVE_LAUNCH_CONTRACT: String =
     "Consume only the immutable lane projection supplied at launch. Do not rediscover, widen, " +

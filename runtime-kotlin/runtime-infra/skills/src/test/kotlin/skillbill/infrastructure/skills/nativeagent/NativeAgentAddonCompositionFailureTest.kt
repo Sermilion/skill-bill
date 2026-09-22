@@ -30,15 +30,17 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class NativeAgentAddonCompositionFailureTest {
   @Test
   fun `missing entrypoint target names slug slot and absolute path and writes no agent`() {
     val pack = seedHarborAddonPack()
     val missingPath = pack.entrypointPath.toAbsolutePath().normalize()
     Files.delete(pack.entrypointPath)
-    val error = assertFailsWith<MissingContentFileError> {
-      testComposeNativeAgentSource(pack.repoRoot, architectureSource(pack.repoRoot))
-    }
+    val error =
+      assertFailsWith<MissingContentFileError> {
+        testComposeNativeAgentSource(pack.repoRoot, architectureSource(pack.repoRoot))
+      }
     assertContains(error.message.orEmpty(), "add-on '$HARBOR_ADDON_SLUG'")
     assertContains(error.message.orEmpty(), "slot 'entrypoint'")
     assertContains(error.message.orEmpty(), missingPath.toString())
@@ -50,17 +52,18 @@ class NativeAgentAddonCompositionFailureTest {
     val pack = seedHarborAddonPack()
     val mutated = withGhostCompanion(loadPlatformPack(pack.packRoot))
     val manifestPath = pack.packRoot.resolve("platform.yaml").toAbsolutePath().normalize()
-    val error = assertFailsWith<MissingContentFileError> {
-      composeGovernedAgentBody(
-        pack.repoRoot,
-        NativeAgentCompositionTarget(
-          contentPath = pack.architectureContent,
-          source = NativeAgentCompositionTargetSource.PlatformManifest,
-          manifest = mutated.toNativeAgentPlatformPack(),
-        ),
-        HARBOR_AREA_MARKER,
-      )
-    }
+    val error =
+      assertFailsWith<MissingContentFileError> {
+        composeGovernedAgentBody(
+          pack.repoRoot,
+          NativeAgentCompositionTarget(
+            contentPath = pack.architectureContent,
+            source = NativeAgentCompositionTargetSource.PlatformManifest,
+            manifest = mutated.toNativeAgentPlatformPack(),
+          ),
+          HARBOR_AREA_MARKER,
+        )
+      }
     assertContains(error.message.orEmpty(), "add-on '$HARBOR_ADDON_SLUG'")
     assertContains(error.message.orEmpty(), "slot 'ghost-companion.md'")
     assertContains(error.message.orEmpty(), manifestPath.toString())
@@ -73,9 +76,10 @@ class NativeAgentAddonCompositionFailureTest {
     val unreadable = pack.entrypointPath.toAbsolutePath().normalize()
     Files.setPosixFilePermissions(pack.entrypointPath, emptySet())
     try {
-      val error = assertFailsWith<MissingContentFileError> {
-        testComposeNativeAgentSource(pack.repoRoot, architectureSource(pack.repoRoot))
-      }
+      val error =
+        assertFailsWith<MissingContentFileError> {
+          testComposeNativeAgentSource(pack.repoRoot, architectureSource(pack.repoRoot))
+        }
       assertContains(error.message.orEmpty(), "add-on '$HARBOR_ADDON_SLUG'")
       assertContains(error.message.orEmpty(), "slot 'entrypoint'")
       assertContains(error.message.orEmpty(), unreadable.toString())
@@ -98,9 +102,10 @@ class NativeAgentAddonCompositionFailureTest {
         max_lane_launch_bytes: 2000
       """.trimIndent() + "\n",
     )
-    val error = assertFailsWith<ComposedNativeAgentBudgetExceededError> {
-      testComposeNativeAgentSource(pack.repoRoot, architectureSource(pack.repoRoot))
-    }
+    val error =
+      assertFailsWith<ComposedNativeAgentBudgetExceededError> {
+        testComposeNativeAgentSource(pack.repoRoot, architectureSource(pack.repoRoot))
+      }
     val message = error.message.orEmpty()
     assertContains(message, "pack '$HARBOR_PACK_SLUG'")
     assertContains(message, "skill directory '$HARBOR_ARCHITECTURE_DIR'")
@@ -111,11 +116,12 @@ class NativeAgentAddonCompositionFailureTest {
     assertNoRenderedAgent(pack.repoRoot)
   }
 
-  private fun architectureSource(repoRoot: Path) = discoverNativeAgentSourceEntries(
-    repoRoot.resolve("platform-packs"),
-    null,
-    listOf(HARBOR_PACK_SLUG),
-  ).single { source -> source.name == HARBOR_ARCHITECTURE_WORKER }
+  private fun architectureSource(repoRoot: Path) =
+    discoverNativeAgentSourceEntries(
+      repoRoot.resolve("platform-packs"),
+      null,
+      listOf(HARBOR_PACK_SLUG),
+    ).single { source -> source.name == HARBOR_ARCHITECTURE_WORKER }
 
   private fun assertNoRenderedAgent(repoRoot: Path) {
     val home = Files.createTempDirectory("skillbill-harbor-fail-home")
@@ -134,11 +140,12 @@ class NativeAgentAddonCompositionFailureTest {
       }.isFailure,
     )
     NativeAgentProvider.entries.forEach { provider ->
-      val cacheRoot = NativeAgentOperations.installCacheRoot(
-        home,
-        repoRoot.resolve("platform-packs"),
-        null,
-      )
+      val cacheRoot =
+        NativeAgentOperations.installCacheRoot(
+          home,
+          repoRoot.resolve("platform-packs"),
+          null,
+        )
       assertFalse(
         Files.exists(provider.cacheArtifactPath(cacheRoot, HARBOR_ARCHITECTURE_WORKER)),
         "${provider.directoryName} wrote ${HARBOR_ARCHITECTURE_WORKER} after a composition failure",
@@ -146,15 +153,18 @@ class NativeAgentAddonCompositionFailureTest {
     }
   }
 
-  private fun withGhostCompanion(loaded: PlatformManifest): PlatformManifest = loaded.copy(
-    addonUsage = loaded.addonUsage.map { usage ->
-      usage.copy(
-        addons = usage.addons.map { addon ->
-          addon.copy(companionPointers = addon.companionPointers + "ghost-companion.md")
+  private fun withGhostCompanion(loaded: PlatformManifest): PlatformManifest =
+    loaded.copy(
+      addonUsage =
+        loaded.addonUsage.map { usage ->
+          usage.copy(
+            addons =
+              usage.addons.map { addon ->
+                addon.copy(companionPointers = addon.companionPointers + "ghost-companion.md")
+              },
+          )
         },
-      )
-    },
-  )
+    )
 
   private fun assertGhostCompanionRejectedAtLoadAndRender(pack: HarborAddonPack) {
     val manifest = pack.packRoot.resolve("platform.yaml")
@@ -179,31 +189,36 @@ class NativeAgentAddonCompositionFailureTest {
     }
   }
 
-  private fun assertProviderRejectsGhostCompanion(pack: HarborAddonPack, provider: NativeAgentProvider) {
+  private fun assertProviderRejectsGhostCompanion(
+    pack: HarborAddonPack,
+    provider: NativeAgentProvider,
+  ) {
     val home = Files.createTempDirectory("skillbill-harbor-undeclared-home")
-    val thrown = runCatching {
-      NativeAgentOperations.renderInstallArtifacts(
-        NativeAgentInstallRenderRequest(
-          platformPacksRoot = pack.repoRoot.resolve("platform-packs"),
-          skillsRoot = null,
-          selectedPlatforms = listOf(HARBOR_PACK_SLUG),
-          provider = provider,
-          home = home,
-          compositionContext = testNativeAgentCompositionContext(pack.repoRoot),
-        ),
-      )
-    }.exceptionOrNull()
+    val thrown =
+      runCatching {
+        NativeAgentOperations.renderInstallArtifacts(
+          NativeAgentInstallRenderRequest(
+            platformPacksRoot = pack.repoRoot.resolve("platform-packs"),
+            skillsRoot = null,
+            selectedPlatforms = listOf(HARBOR_PACK_SLUG),
+            provider = provider,
+            home = home,
+            compositionContext = testNativeAgentCompositionContext(pack.repoRoot),
+          ),
+        )
+      }.exceptionOrNull()
     assertTrue(
       thrown is InvalidManifestSchemaError ||
         thrown is MissingContentFileError ||
         (thrown is IllegalArgumentException && thrown.message.orEmpty().contains("ghost-companion.md")),
       "${provider.directoryName} failed with ${thrown?.javaClass?.name}: ${thrown?.message}",
     )
-    val cacheRoot = NativeAgentOperations.installCacheRoot(
-      home,
-      pack.repoRoot.resolve("platform-packs"),
-      null,
-    )
+    val cacheRoot =
+      NativeAgentOperations.installCacheRoot(
+        home,
+        pack.repoRoot.resolve("platform-packs"),
+        null,
+      )
     assertFalse(
       Files.exists(provider.cacheArtifactPath(cacheRoot, HARBOR_ARCHITECTURE_WORKER)),
       "${provider.directoryName} wrote ${HARBOR_ARCHITECTURE_WORKER} after an undeclared companion",

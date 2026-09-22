@@ -18,15 +18,17 @@ fun resolveHostRuntimeToken(
   return "$osFamily-$arch".takeIf { it in runtimeTargetTokens }
 }
 
-private fun resolveOsFamily(normalizedName: String): String? = when {
-  normalizedName.contains("mac") || normalizedName.contains("darwin") -> "macos"
-  normalizedName.contains("windows") -> "windows"
-  normalizedName.contains("linux") -> "linux"
-  else -> null
-}
+private fun resolveOsFamily(normalizedName: String): String? =
+  when {
+    normalizedName.contains("mac") || normalizedName.contains("darwin") -> "macos"
+    normalizedName.contains("windows") -> "windows"
+    normalizedName.contains("linux") -> "linux"
+    else -> null
+  }
 
-private fun resolveArch(normalizedArch: String): String? = when {
-  normalizedArch.contains("aarch64") || normalizedArch.contains("arm64") -> "arm64"
-  normalizedArch.contains("x86_64") || normalizedArch.contains("amd64") -> "x64"
-  else -> null
-}
+private fun resolveArch(normalizedArch: String): String? =
+  when {
+    normalizedArch.contains("aarch64") || normalizedArch.contains("arm64") -> "arm64"
+    normalizedArch.contains("x86_64") || normalizedArch.contains("amd64") -> "x64"
+    else -> null
+  }

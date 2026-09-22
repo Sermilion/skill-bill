@@ -36,22 +36,24 @@ internal fun resolveStandaloneCodeReviewTarget(
   return StandaloneCodeReviewTarget(ParallelReviewScope.BRANCH, lastCommitRevision(positionalToken))
 }
 
-internal fun parsedReviewScope(scope: String): ParallelReviewScope = when (scope) {
-  "staged" -> ParallelReviewScope.STAGED
-  "unstaged" -> ParallelReviewScope.UNSTAGED
-  "uncommitted" -> ParallelReviewScope.UNCOMMITTED
-  DEFAULT_CODE_REVIEW_SCOPE -> ParallelReviewScope.BRANCH
-  "pr" -> ParallelReviewScope.PR
-  else -> throw UsageError("Invalid scope: $scope")
-}
+internal fun parsedReviewScope(scope: String): ParallelReviewScope =
+  when (scope) {
+    "staged" -> ParallelReviewScope.STAGED
+    "unstaged" -> ParallelReviewScope.UNSTAGED
+    "uncommitted" -> ParallelReviewScope.UNCOMMITTED
+    DEFAULT_CODE_REVIEW_SCOPE -> ParallelReviewScope.BRANCH
+    "pr" -> ParallelReviewScope.PR
+    else -> throw UsageError("Invalid scope: $scope")
+  }
 
-private fun namedStandaloneScope(token: String): ParallelReviewScope? = when (token.lowercase()) {
-  "pr" -> ParallelReviewScope.PR
-  "uncommitted" -> ParallelReviewScope.UNCOMMITTED
-  "staged" -> ParallelReviewScope.STAGED
-  "unstaged" -> ParallelReviewScope.UNSTAGED
-  else -> null
-}
+private fun namedStandaloneScope(token: String): ParallelReviewScope? =
+  when (token.lowercase()) {
+    "pr" -> ParallelReviewScope.PR
+    "uncommitted" -> ParallelReviewScope.UNCOMMITTED
+    "staged" -> ParallelReviewScope.STAGED
+    "unstaged" -> ParallelReviewScope.UNSTAGED
+    else -> null
+  }
 
 private fun lastCommitRevision(token: String): String =
   if (token.equals("last", ignoreCase = true) || token.equals("HEAD", ignoreCase = true)) {

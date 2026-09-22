@@ -26,11 +26,13 @@ data class FeatureTaskRuntimeValidationGateExecutionEvidence(
   }
 
   val zeroWork: Boolean
-    get() = gateRuns.isNotEmpty() &&
-      gateRuns.all { it.executedWorkUnits == 0 && it.executedChecks.isEmpty() }
+    get() =
+      gateRuns.isNotEmpty() &&
+        gateRuns.all { it.executedWorkUnits == 0 && it.executedChecks.isEmpty() }
 
   val evidenceRecorded: Boolean
     get() = gateRuns.isNotEmpty() && gateRuns.all { it.executedChecksRecorded }
+
   internal fun toArtifactMap(repositoryCheckpoint: String): Map<String, Any?> {
     require(repositoryCheckpoint.isNotBlank()) {
       "FeatureTaskRuntimeValidationGateExecutionEvidence.repositoryCheckpoint must be non-blank."
@@ -49,32 +51,37 @@ data class FeatureTaskRuntimeValidationGateExecutionEvidence(
     fun fromGateMeasurements(
       measurements: List<FeatureTaskRuntimeValidationGateRunRecord>,
       validationStatus: String = "passed",
-    ): FeatureTaskRuntimeValidationGateExecutionEvidence = FeatureTaskRuntimeValidationGateExecutionEvidence(
-      validationStatus = validationStatus,
-      checks = aggregateChecks(measurements),
-      gateRunCount = measurements.size,
-      gateRuns = measurements,
-    )
+    ): FeatureTaskRuntimeValidationGateExecutionEvidence =
+      FeatureTaskRuntimeValidationGateExecutionEvidence(
+        validationStatus = validationStatus,
+        checks = aggregateChecks(measurements),
+        gateRunCount = measurements.size,
+        gateRuns = measurements,
+      )
 
     fun aggregateChecks(measurements: List<FeatureTaskRuntimeValidationGateRunRecord>): List<String> =
       measurements.flatMap { it.executedChecks }.distinct().sorted()
+
     internal fun fromArtifactMap(
       raw: Map<String, Any?>,
       sourceLabel: String,
     ): FeatureTaskRuntimeValidationGateExecutionEvidence {
-      val validationStatus = raw[ValidationEvidencePayloadKeys.VALIDATION_STATUS] as? String
-        ?: invalid(sourceLabel, "validation_status is missing.")
+      val validationStatus =
+        raw[ValidationEvidencePayloadKeys.VALIDATION_STATUS] as? String
+          ?: invalid(sourceLabel, "validation_status is missing.")
       val checks = decodeChecks(raw, sourceLabel)
       decodeRepositoryCheckpoint(raw[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT], sourceLabel)
-      val gateRunCount = raw[ValidationEvidencePayloadKeys.GATE_RUN_COUNT].asIntegerOrNull()
-        ?: invalid(sourceLabel, "gate_run_count must be an integer.")
-      val gateRuns = try {
-        decodeGateRuns(raw[ValidationEvidencePayloadKeys.GATE_RUNS], sourceLabel)
-      } catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
-        throw error
-      } catch (error: IllegalArgumentException) {
-        invalid(sourceLabel, error.message.orEmpty())
-      }
+      val gateRunCount =
+        raw[ValidationEvidencePayloadKeys.GATE_RUN_COUNT].asIntegerOrNull()
+          ?: invalid(sourceLabel, "gate_run_count must be an integer.")
+      val gateRuns =
+        try {
+          decodeGateRuns(raw[ValidationEvidencePayloadKeys.GATE_RUNS], sourceLabel)
+        } catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
+          throw error
+        } catch (error: IllegalArgumentException) {
+          invalid(sourceLabel, error.message.orEmpty())
+        }
       val aggregateChecks = aggregateChecks(gateRuns)
       if (checks != aggregateChecks) {
         invalid(
@@ -94,36 +101,47 @@ data class FeatureTaskRuntimeValidationGateExecutionEvidence(
       }
     }
 
-    private fun decodeChecks(raw: Map<String, Any?>, sourceLabel: String): List<String> {
+    private fun decodeChecks(
+      raw: Map<String, Any?>,
+      sourceLabel: String,
+    ): List<String> {
       if (!raw.containsKey(ValidationEvidencePayloadKeys.CHECKS)) {
         invalid(sourceLabel, "checks is missing.")
       }
       val checksRaw = raw[ValidationEvidencePayloadKeys.CHECKS]
-      val list = checksRaw as? List<*>
-        ?: invalid(sourceLabel, "checks must be a list.")
+      val list =
+        checksRaw as? List<*>
+          ?: invalid(sourceLabel, "checks must be a list.")
       return list.mapIndexed { index, entry ->
         entry as? String ?: invalid(sourceLabel, "checks[$index] must be a string.")
       }
     }
 
-    private fun decodeGateRuns(raw: Any?, sourceLabel: String): List<FeatureTaskRuntimeValidationGateRunRecord> {
-      val runsRaw = raw as? List<*>
-        ?: invalid(sourceLabel, "gate_runs must be a list.")
+    private fun decodeGateRuns(
+      raw: Any?,
+      sourceLabel: String,
+    ): List<FeatureTaskRuntimeValidationGateRunRecord> {
+      val runsRaw =
+        raw as? List<*>
+          ?: invalid(sourceLabel, "gate_runs must be a list.")
       return runsRaw.mapIndexed { index, entry ->
-        val map = entry as? Map<*, *>
-          ?: invalid(sourceLabel, "gate_runs[$index] must be a mapping.")
+        val map =
+          entry as? Map<*, *>
+            ?: invalid(sourceLabel, "gate_runs[$index] must be a mapping.")
         FeatureTaskRuntimeValidationGateRunRecord(
           durationMs = map.gateProgressLong(ValidationEvidencePayloadKeys.DURATION_MS),
-          outcome = requireNotNull(
-            ValidationGateRunOutcome.fromWire(map.gateProgressString(ValidationEvidencePayloadKeys.OUTCOME)),
-          ) {
-            "Unknown validation gate outcome."
-          },
-          cacheMode = requireNotNull(
-            ValidationGateCacheMode.fromWire(map.gateProgressString(ValidationEvidencePayloadKeys.CACHE_MODE)),
-          ) {
-            "Unknown validation gate cache mode."
-          },
+          outcome =
+            requireNotNull(
+              ValidationGateRunOutcome.fromWire(map.gateProgressString(ValidationEvidencePayloadKeys.OUTCOME)),
+            ) {
+              "Unknown validation gate outcome."
+            },
+          cacheMode =
+            requireNotNull(
+              ValidationGateCacheMode.fromWire(map.gateProgressString(ValidationEvidencePayloadKeys.CACHE_MODE)),
+            ) {
+              "Unknown validation gate cache mode."
+            },
           executedWorkUnits = map.gateProgressInt(ValidationEvidencePayloadKeys.EXECUTED_WORK_UNITS),
           executedChecks = decodeGateRunExecutedChecks(map, sourceLabel, index),
           command = map.gateProgressOptionalString(ValidationEvidencePayloadKeys.COMMAND),
@@ -133,11 +151,16 @@ data class FeatureTaskRuntimeValidationGateExecutionEvidence(
       }
     }
 
-    private fun decodeGateRunExecutedChecks(map: Map<*, *>, sourceLabel: String, index: Int): List<String> {
+    private fun decodeGateRunExecutedChecks(
+      map: Map<*, *>,
+      sourceLabel: String,
+      index: Int,
+    ): List<String> {
       if (!map.containsKey(ValidationEvidencePayloadKeys.EXECUTED_CHECKS)) return emptyList()
       val raw = map[ValidationEvidencePayloadKeys.EXECUTED_CHECKS]
-      val list = raw as? List<*>
-        ?: invalid(sourceLabel, "gate_runs[$index].executed_checks must be a list.")
+      val list =
+        raw as? List<*>
+          ?: invalid(sourceLabel, "gate_runs[$index].executed_checks must be a list.")
       return list.mapIndexed { checkIndex, entry ->
         entry as? String ?: invalid(
           sourceLabel,
@@ -146,24 +169,31 @@ data class FeatureTaskRuntimeValidationGateExecutionEvidence(
       }
     }
 
-    private fun decodeRepositoryCheckpoint(raw: Any?, sourceLabel: String) {
-      val checkpoint = raw as? Map<*, *>
-        ?: invalid(sourceLabel, "repository_checkpoint must be a mapping.")
+    private fun decodeRepositoryCheckpoint(
+      raw: Any?,
+      sourceLabel: String,
+    ) {
+      val checkpoint =
+        raw as? Map<*, *>
+          ?: invalid(sourceLabel, "repository_checkpoint must be a mapping.")
       val fingerprint = checkpoint[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT] as? String
       if (fingerprint.isNullOrBlank()) {
         invalid(sourceLabel, "repository_checkpoint.fingerprint must be non-blank.")
       }
     }
 
-    private fun invalid(sourceLabel: String, reason: String): Nothing =
-      throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(sourceLabel, reason)
+    private fun invalid(
+      sourceLabel: String,
+      reason: String,
+    ): Nothing = throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(sourceLabel, reason)
   }
 }
 
-private fun Any?.asIntegerOrNull(): Int? = when (this) {
-  is Int -> this
-  is Long -> toInt().takeIf { it.toLong() == this }
-  is Short -> toInt()
-  is Byte -> toInt()
-  else -> null
-}
+private fun Any?.asIntegerOrNull(): Int? =
+  when (this) {
+    is Int -> this
+    is Long -> toInt().takeIf { it.toLong() == this }
+    is Short -> toInt()
+    is Byte -> toInt()
+    else -> null
+  }

@@ -60,15 +60,17 @@ class GoalRunnerResetReplanCoordinator(
     if (coordination is GoalRunnerHardResetBranchCoordination.Refused) {
       return refusedResetResult(latest, coordination)
     }
-    val branchActionTaken = (coordination as? GoalRunnerHardResetBranchCoordination.Documented)
-      ?.branchActionTaken
+    val branchActionTaken =
+      (coordination as? GoalRunnerHardResetBranchCoordination.Documented)
+        ?.branchActionTaken
     val before = latest.manifest.toResetSnapshot()
     val saved = saveResetState(request, latest, before, hardResetRepoRoot)
-    val staleChild = if (!request.hard) {
-      currentChildRecoveryDiagnostic(saved.manifest)
-    } else {
-      null
-    }
+    val staleChild =
+      if (!request.hard) {
+        currentChildRecoveryDiagnostic(saved.manifest)
+      } else {
+        null
+      }
     return GoalRunnerResetResult(
       issueKey = saved.manifest.issueKey,
       mode = if (request.hard) "hard" else "soft",
@@ -138,11 +140,12 @@ class GoalRunnerResetReplanCoordinator(
     repoRoot: Path?,
   ): GoalRunnerManifestState {
     val resetState = latest.copy(manifest = latest.manifest.resetManifest(request.hard))
-    val saved = if (request.hard) {
-      manifestStore.saveHardReset(resetState, request.preservePlanning)
-    } else {
-      manifestStore.save(resetState)
-    }
+    val saved =
+      if (request.hard) {
+        manifestStore.saveHardReset(resetState, request.preservePlanning)
+      } else {
+        manifestStore.save(resetState)
+      }
     if (request.hard) {
       pruneResetSubtaskCheckpointRefs(
         gitOperations = gitOperations,
@@ -156,41 +159,48 @@ class GoalRunnerResetReplanCoordinator(
   }
 
   fun replan(request: GoalRunnerReplanRequest): GoalRunnerReplanResult? {
-    val loaded = manifestStore.loadDurableByIssueKey(request.issueKey)
-      ?: return null
+    val loaded =
+      manifestStore.loadDurableByIssueKey(request.issueKey)
+        ?: return null
     val selected = requireReplanTarget(loaded.manifest, request)
     requireIdleForScopedReplan(loaded, request)
     val beforeSubtasks = loaded.manifest.toResetSnapshot().subtasks
-    val expectedSharedDigest = if (request.includeSharedPreplan) {
-      manifestStore.sharedPreplanPayloadSha256(loaded.parentWorkflowId)
-    } else {
-      null
-    }
-    val planningIdentity = if (request.includeSharedPreplan && expectedSharedDigest != null) {
-      GoalPlanningIdentity(
-        parentGoalWorkflowId = loaded.parentWorkflowId,
-        normalizedIssueKey = loaded.manifest.issueKey.trim().uppercase(),
-        repositoryIdentity = goalRepositoryIdentity(
-          request.repoRoot ?: repositoryRoot.path,
-          repositoryEnclosingRootPort,
-        ),
+    val expectedSharedDigest =
+      if (request.includeSharedPreplan) {
+        manifestStore.sharedPreplanPayloadSha256(loaded.parentWorkflowId)
+      } else {
+        null
+      }
+    val planningIdentity =
+      if (request.includeSharedPreplan && expectedSharedDigest != null) {
+        GoalPlanningIdentity(
+          parentGoalWorkflowId = loaded.parentWorkflowId,
+          normalizedIssueKey = loaded.manifest.issueKey.trim().uppercase(),
+          repositoryIdentity =
+            goalRepositoryIdentity(
+              request.repoRoot ?: repositoryRoot.path,
+              repositoryEnclosingRootPort,
+            ),
+        )
+      } else {
+        null
+      }
+    val retargeted =
+      loaded.copy(
+        manifest = loaded.manifest.copy(currentSubtaskIntent = replanIntent(selected)),
+        repoRoot = request.repoRoot,
       )
-    } else {
-      null
-    }
-    val retargeted = loaded.copy(
-      manifest = loaded.manifest.copy(currentSubtaskIntent = replanIntent(selected)),
-      repoRoot = request.repoRoot,
-    )
-    val written = manifestStore.saveScopedReplan(
-      state = retargeted,
-      subtaskId = request.subtaskId,
-      options = GoalRunnerScopedReplanOptions(
-        includeSharedPreplan = request.includeSharedPreplan,
-        expectedSharedPayloadSha256 = expectedSharedDigest,
-        planningIdentity = planningIdentity,
-      ),
-    )
+    val written =
+      manifestStore.saveScopedReplan(
+        state = retargeted,
+        subtaskId = request.subtaskId,
+        options =
+          GoalRunnerScopedReplanOptions(
+            includeSharedPreplan = request.includeSharedPreplan,
+            expectedSharedPayloadSha256 = expectedSharedDigest,
+            planningIdentity = planningIdentity,
+          ),
+      )
     return toReplanResult(request, loaded, written, beforeSubtasks)
   }
 
@@ -201,9 +211,10 @@ class GoalRunnerResetReplanCoordinator(
 
   private fun GoalRunnerResetRequest.takeHardResetRepositoryRoot(latest: GoalRunnerManifestState): Path? {
     if (!hard) return null
-    val repoRoot = requireNotNull(repoRoot) {
-      "A repository root is required for a hard reset so checkpoint refs are pruned from the correct repository."
-    }
+    val repoRoot =
+      requireNotNull(repoRoot) {
+        "A repository root is required for a hard reset so checkpoint refs are pruned from the correct repository."
+      }
     manifestStore.bindRepositoryIdentity(
       latest.parentWorkflowId,
       goalRepositoryIdentity(repoRoot, repositoryEnclosingRootPort),
@@ -226,15 +237,20 @@ class GoalRunnerResetReplanCoordinator(
     return selected
   }
 
-  private fun requireIdleForScopedReplan(loaded: GoalRunnerManifestState, request: GoalRunnerReplanRequest) {
-    val currentSubtask = loaded.manifest.subtasks.firstOrNull { subtask ->
-      subtask.id == loaded.manifest.currentSubtaskIntent.subtaskId
-    }
-    val liveness = projectionAssembler.resolveExecutionLiveness(
-      parentWorkflowId = loaded.parentWorkflowId,
-      currentSubtask = currentSubtask,
-      durableRead = GoalRunnerStatusDurableReadTracker(diagnostics),
-    )
+  private fun requireIdleForScopedReplan(
+    loaded: GoalRunnerManifestState,
+    request: GoalRunnerReplanRequest,
+  ) {
+    val currentSubtask =
+      loaded.manifest.subtasks.firstOrNull { subtask ->
+        subtask.id == loaded.manifest.currentSubtaskIntent.subtaskId
+      }
+    val liveness =
+      projectionAssembler.resolveExecutionLiveness(
+        parentWorkflowId = loaded.parentWorkflowId,
+        currentSubtask = currentSubtask,
+        durableRead = GoalRunnerStatusDurableReadTracker(diagnostics),
+      )
     require(liveness == ExecutionLiveness.IDLE) {
       when (liveness) {
         ExecutionLiveness.LIVE ->
@@ -251,31 +267,34 @@ class GoalRunnerResetReplanCoordinator(
     before: GoalRunnerManifestState,
     written: GoalRunnerScopedReplanWriteResult,
     beforeSubtasks: List<GoalRunnerResetSubtaskSnapshot>,
-  ): GoalRunnerReplanResult = GoalRunnerReplanResult(
-    issueKey = written.state.manifest.issueKey,
-    parentWorkflowId = written.state.parentWorkflowId,
-    subtaskId = request.subtaskId,
-    discardedPlan = written.deletedPlanCount > 0,
-    discardedSharedPreplan = written.discardedSharedPreplan,
-    cascadedPlanSubtaskIds = written.cascadedPlanSubtaskIds,
-    clearedChildSubtaskIds = written.clearedChildSubtaskIds,
-    before = GoalRunnerReplanSnapshot(
-      status = before.manifest.status,
-      currentSubtaskId = before.manifest.currentSubtaskIntent.subtaskId.takeIf { it > 0 },
-      currentAction = before.manifest.currentSubtaskIntent.action,
-      sharedPreplanPrepared = written.sharedPreplanPreparedBefore,
-      plannedSubtaskIds = written.plannedSubtaskIdsBefore,
-      subtasks = beforeSubtasks,
-    ),
-    after = GoalRunnerReplanSnapshot(
-      status = written.state.manifest.status,
-      currentSubtaskId = written.state.manifest.currentSubtaskIntent.subtaskId.takeIf { it > 0 },
-      currentAction = written.state.manifest.currentSubtaskIntent.action,
-      sharedPreplanPrepared = written.sharedPreplanPrepared,
-      plannedSubtaskIds = written.plannedSubtaskIdsAfter,
-      subtasks = written.state.manifest.toResetSnapshot().subtasks,
-    ),
-  )
+  ): GoalRunnerReplanResult =
+    GoalRunnerReplanResult(
+      issueKey = written.state.manifest.issueKey,
+      parentWorkflowId = written.state.parentWorkflowId,
+      subtaskId = request.subtaskId,
+      discardedPlan = written.deletedPlanCount > 0,
+      discardedSharedPreplan = written.discardedSharedPreplan,
+      cascadedPlanSubtaskIds = written.cascadedPlanSubtaskIds,
+      clearedChildSubtaskIds = written.clearedChildSubtaskIds,
+      before =
+        GoalRunnerReplanSnapshot(
+          status = before.manifest.status,
+          currentSubtaskId = before.manifest.currentSubtaskIntent.subtaskId.takeIf { it > 0 },
+          currentAction = before.manifest.currentSubtaskIntent.action,
+          sharedPreplanPrepared = written.sharedPreplanPreparedBefore,
+          plannedSubtaskIds = written.plannedSubtaskIdsBefore,
+          subtasks = beforeSubtasks,
+        ),
+      after =
+        GoalRunnerReplanSnapshot(
+          status = written.state.manifest.status,
+          currentSubtaskId = written.state.manifest.currentSubtaskIntent.subtaskId.takeIf { it > 0 },
+          currentAction = written.state.manifest.currentSubtaskIntent.action,
+          sharedPreplanPrepared = written.sharedPreplanPrepared,
+          plannedSubtaskIds = written.plannedSubtaskIdsAfter,
+          subtasks = written.state.manifest.toResetSnapshot().subtasks,
+        ),
+    )
 
   private fun currentChildRecoveryDiagnostic(manifest: DecompositionManifest): GoalRunnerChildRecoveryDiagnostic? {
     val subtask = manifest.subtasks.firstOrNull { it.id == manifest.currentSubtaskIntent.subtaskId } ?: return null
@@ -286,12 +305,13 @@ class GoalRunnerResetReplanCoordinator(
         subtaskId = subtask.id,
         workflowId = workflowId,
         classification = it.wireValue,
-        recoveryCommand = recommendedDurableChildRecoveryCommand(
-          manifest.issueKey,
-          subtask.id,
-          subtask.status.decompositionStatus(),
-          outcomeStore.progress(workflowId),
-        ),
+        recoveryCommand =
+          recommendedDurableChildRecoveryCommand(
+            manifest.issueKey,
+            subtask.id,
+            subtask.status.decompositionStatus(),
+            outcomeStore.progress(workflowId),
+          ),
       )
     }
   }
@@ -301,23 +321,26 @@ class GoalRunnerResetReplanCoordinator(
     authoritativeState: GoalRunnerManifestState,
   ): GoalRunnerResetResult {
     val subtaskId = requireNotNull(request.subtaskId)
-    val selected = authoritativeState.manifest.subtasks.singleOrNull { it.id == subtaskId }
-      ?: error("Unknown or ambiguous goal subtask '$subtaskId'.")
+    val selected =
+      authoritativeState.manifest.subtasks.singleOrNull { it.id == subtaskId }
+        ?: error("Unknown or ambiguous goal subtask '$subtaskId'.")
     require(selected.status.decompositionStatus() == DecompositionStatus.BLOCKED) {
       "Subtask '$subtaskId' is '${selected.status}'; scoped child deletion requires a blocked subtask."
     }
-    val workflowId = selected.workflowId?.takeIf(String::isNotBlank)
-      ?: error("Subtask '$subtaskId' has no durable child workflow to delete.")
+    val workflowId =
+      selected.workflowId?.takeIf(String::isNotBlank)
+        ?: error("Subtask '$subtaskId' has no durable child workflow to delete.")
     val classification = classifyDurableChild(outcomeStore.progress(workflowId))
     require(classification == DurableChildRecoveryClass.INCOMPATIBLE_TERMINAL) {
       "Child workflow '$workflowId' is ${classification.wireValue}; scoped deletion requires an incompatible " +
         "terminal child."
     }
-    val saved = manifestStore.deleteIncompatibleChildWorkflow(
-      authoritativeState,
-      subtaskId,
-      workflowId,
-    )
+    val saved =
+      manifestStore.deleteIncompatibleChildWorkflow(
+        authoritativeState,
+        subtaskId,
+        workflowId,
+      )
     pruneResetSubtaskCheckpointRefs(
       gitOperations = gitOperations,
       repoRoot = request.repoRoot ?: repositoryRoot.path,
@@ -331,12 +354,13 @@ class GoalRunnerResetReplanCoordinator(
       parentWorkflowId = saved.parentWorkflowId,
       before = authoritativeState.manifest.toResetSnapshot(),
       after = saved.manifest.toResetSnapshot(),
-      recovery = GoalRunnerChildRecoveryDiagnostic(
-        subtaskId = subtaskId,
-        workflowId = workflowId,
-        classification = classification.wireValue,
-        recoveryCommand = null,
-      ),
+      recovery =
+        GoalRunnerChildRecoveryDiagnostic(
+          subtaskId = subtaskId,
+          workflowId = workflowId,
+          classification = classification.wireValue,
+          recoveryCommand = null,
+        ),
     )
   }
 }

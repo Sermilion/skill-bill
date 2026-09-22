@@ -62,6 +62,7 @@ import skillbill.review.model.ReviewFinishedTelemetry
 import java.nio.file.Path
 import java.sql.Connection
 import java.time.Clock
+
 internal class SQLiteUnitOfWork(
   private val connection: Connection,
   override val dbPath: Path,
@@ -78,9 +79,10 @@ internal class SQLiteUnitOfWork(
   override val reviews: ReviewRepository = SQLiteReviewRepository(connection, clock)
   override val learnings: LearningRepository = SQLiteLearningRepository(connection)
   override val lifecycleTelemetry: LifecycleTelemetryRepository = LifecycleTelemetryStore(connection)
-  override val telemetryReconciliation: TelemetryReconciliationRepository = SQLiteTelemetryReconciliationRepository(
-    connection,
-  )
+  override val telemetryReconciliation: TelemetryReconciliationRepository =
+    SQLiteTelemetryReconciliationRepository(
+      connection,
+    )
   override val telemetryOutbox: TelemetryOutboxRepository = TelemetryOutboxStore(connection)
   override val workflowStates: WorkflowStateRepository = WorkflowStateStore(connection, clock)
   override val workList: WorkListRepository = SQLiteWorkListRepository(connection)
@@ -100,10 +102,11 @@ internal class SQLiteUnitOfWork(
 
   override fun purgeDecomposedGoal(parentWorkflowId: String) {
     val childIds = workflowStates.listGoalChildWorkflowIdsByParent(parentWorkflowId)
-    val workflowIds = buildList {
-      add(parentWorkflowId)
-      addAll(childIds)
-    }
+    val workflowIds =
+      buildList {
+        add(parentWorkflowId)
+        addAll(childIds)
+      }
     goalPlanningPreparations.deleteByGoal(parentWorkflowId)
     experimentPairStore.deletePairsForWorkflowIds(workflowIds)
     connection.prepareStatement(
@@ -130,7 +133,10 @@ internal class SQLiteUnitOfWork(
     }
   }
 
-  private fun deleteByWorkflowIds(table: String, workflowIds: List<String>) {
+  private fun deleteByWorkflowIds(
+    table: String,
+    workflowIds: List<String>,
+  ) {
     if (workflowIds.isEmpty()) return
     val placeholders = workflowIds.joinToString(", ") { "?" }
     connection.prepareStatement(
@@ -145,8 +151,11 @@ internal class SQLiteUnitOfWork(
 internal class SQLiteUnaddressedFindingsRepository(connection: Connection) : UnaddressedFindingsRepository {
   private val runtime = UnaddressedFindingsRuntime(connection)
 
-  override fun replaceLedgerForPass(workflowId: String, reviewPassNumber: Int, findings: List<UnaddressedFinding>) =
-    runtime.replaceLedgerForPass(workflowId, reviewPassNumber, findings)
+  override fun replaceLedgerForPass(
+    workflowId: String,
+    reviewPassNumber: Int,
+    findings: List<UnaddressedFinding>,
+  ) = runtime.replaceLedgerForPass(workflowId, reviewPassNumber, findings)
 
   override fun clearWorkflowLedger(workflowId: String) = runtime.clearWorkflowLedger(workflowId)
 
@@ -188,13 +197,14 @@ internal class SQLiteReviewRepository(
 ) : ReviewRepository,
   WorkflowStatsRepository by SQLiteWorkflowStatsRepository(connection),
   ReviewRunCompletenessRepository by SQLiteReviewRunCompletenessRepository(connection, clock) {
-
   override fun saveAccounting(record: ReviewAccountingRecord) = upsertReviewAccounting(connection, record)
 
   override fun loadAccounting(reviewId: String): ReviewAccountingRecord? = loadReviewAccounting(connection, reviewId)
 
-  override fun saveImportedReview(review: ImportedReview, sourcePath: String?) =
-    persistImportedReview(connection, review, sourcePath)
+  override fun saveImportedReview(
+    review: ImportedReview,
+    sourcePath: String?,
+  ) = persistImportedReview(connection, review, sourcePath)
 
   override fun markOrchestrated(runId: String) {
     connection.prepareStatement(
@@ -210,31 +220,38 @@ internal class SQLiteReviewRepository(
     enabled: Boolean,
     level: String,
     routedSkillPlatformSlugs: Map<String, String>,
-  ): ReviewFinishedTelemetry? = ReviewStatsRuntime.updateReviewFinishedTelemetryState(
-    connection = connection,
-    reviewRunId = runId,
-    enabled = enabled,
-    level = level,
-    routedSkillPlatformSlugs = routedSkillPlatformSlugs,
-  )
+  ): ReviewFinishedTelemetry? =
+    ReviewStatsRuntime.updateReviewFinishedTelemetryState(
+      connection = connection,
+      reviewRunId = runId,
+      enabled = enabled,
+      level = level,
+      routedSkillPlatformSlugs = routedSkillPlatformSlugs,
+    )
 
   override fun recordFeedback(
     request: FeedbackRequest,
     telemetryOptions: FeedbackTelemetryOptions,
     routedSkillPlatformSlugs: Map<String, String>,
-  ): ReviewFinishedTelemetry? = TriageRuntime.recordFeedbackWithoutTransaction(
-    connection,
-    request,
-    telemetryOptions.copy(routedSkillPlatformSlugs = routedSkillPlatformSlugs),
-  )
+  ): ReviewFinishedTelemetry? =
+    TriageRuntime.recordFeedbackWithoutTransaction(
+      connection,
+      request,
+      telemetryOptions.copy(routedSkillPlatformSlugs = routedSkillPlatformSlugs),
+    )
 
   override fun fetchNumberedFindings(runId: String): List<NumberedFinding> =
     ReviewRuntime.fetchNumberedFindings(connection, runId)
 
-  override fun findingExists(runId: String, findingId: String): Boolean =
-    ReviewRuntime.findingExists(connection, runId, findingId)
+  override fun findingExists(
+    runId: String,
+    findingId: String,
+  ): Boolean = ReviewRuntime.findingExists(connection, runId, findingId)
 
-  override fun latestRejectedLearningSourceOutcome(runId: String, findingId: String): RejectedLearningSourceOutcome? {
+  override fun latestRejectedLearningSourceOutcome(
+    runId: String,
+    findingId: String,
+  ): RejectedLearningSourceOutcome? {
     val placeholders = LearningsRuntime.rejectedFindingOutcomeTypes.joinToString(", ") { "?" }
     return connection.prepareStatement(
       """
@@ -272,7 +289,10 @@ internal class SQLiteLearningRepository(
 
   override fun get(id: Int): LearningRecord = SQLiteLearningStore.getLearning(connection, id)
 
-  override fun resolve(repoScopeKey: String?, skillName: String?): LearningResolution {
+  override fun resolve(
+    repoScopeKey: String?,
+    skillName: String?,
+  ): LearningResolution {
     val (resolvedRepoScopeKey, resolvedSkillName, rows) =
       SQLiteLearningStore.resolveLearnings(connection, repoScopeKey, skillName)
     return LearningResolution(
@@ -282,18 +302,25 @@ internal class SQLiteLearningRepository(
     )
   }
 
-  override fun saveSessionLearnings(reviewSessionId: String, learningsJson: String) {
+  override fun saveSessionLearnings(
+    reviewSessionId: String,
+    learningsJson: String,
+  ) {
     SQLiteLearningStore.saveSessionLearnings(connection, reviewSessionId, learningsJson)
   }
 
-  override fun add(request: CreateLearningRequest, sourceValidation: LearningSourceValidation): Int =
-    SQLiteLearningStore.addLearning(connection, request, sourceValidation)
+  override fun add(
+    request: CreateLearningRequest,
+    sourceValidation: LearningSourceValidation,
+  ): Int = SQLiteLearningStore.addLearning(connection, request, sourceValidation)
 
   override fun edit(request: UpdateLearningRequest): LearningRecord =
     SQLiteLearningStore.editLearning(connection, request)
 
-  override fun setStatus(id: Int, status: String): LearningRecord =
-    SQLiteLearningStore.setLearningStatus(connection, id, status)
+  override fun setStatus(
+    id: Int,
+    status: String,
+  ): LearningRecord = SQLiteLearningStore.setLearningStatus(connection, id, status)
 
   override fun delete(id: Int) {
     SQLiteLearningStore.deleteLearning(connection, id)

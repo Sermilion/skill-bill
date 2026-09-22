@@ -37,55 +37,61 @@ internal data class FillSkillRunArgs(
   val format: CliFormat,
 )
 
-internal fun resolveRenderSkillName(positionalSkillName: String?, optionSkillName: String?): String = when {
-  positionalSkillName != null && optionSkillName != null ->
-    throw UsageError("Provide the skill name either as an argument or with --skill-name, not both.")
-  positionalSkillName != null -> requireNotNull(positionalSkillName)
-  optionSkillName != null -> requireNotNull(optionSkillName)
-  else -> throw UsageError("Provide a skill name as an argument or with --skill-name.")
-}
+internal fun resolveRenderSkillName(
+  positionalSkillName: String?,
+  optionSkillName: String?,
+): String =
+  when {
+    positionalSkillName != null && optionSkillName != null ->
+      throw UsageError("Provide the skill name either as an argument or with --skill-name, not both.")
+    positionalSkillName != null -> requireNotNull(positionalSkillName)
+    optionSkillName != null -> requireNotNull(optionSkillName)
+    else -> throw UsageError("Provide a skill name as an argument or with --skill-name.")
+  }
 
-internal fun editSkillResult(args: EditSkillRunArgs): CliExecutionResult = when {
-  args.editor ->
-    unsupportedNativeScaffoldResult(
-      args.unsupportedScaffoldGateway.retiredUnsupportedMessage(
-        "edit --editor",
-        "skill-bill fill ${args.skillName} --body-file <file>",
-        editor = true,
-      ),
-      args.format,
-    )
-  args.bodyFile != null ->
-    authoringResult(args.format) {
-      args.scaffoldGateway.editWithBodyFile(
-        Path.of(args.repoRoot),
-        args.skillName,
-        readCliTextFile(args.bodyFile, args.state),
-        args.section,
-      ).toCliMap()
-    }
-  else ->
-    unsupportedNativeScaffoldResult(
-      args.unsupportedScaffoldGateway.retiredUnsupportedMessage(
-        "edit",
-        "skill-bill fill ${args.skillName} --body-file <file>",
-        editor = false,
-      ),
-      args.format,
-    )
-}
+internal fun editSkillResult(args: EditSkillRunArgs): CliExecutionResult =
+  when {
+    args.editor ->
+      unsupportedNativeScaffoldResult(
+        args.unsupportedScaffoldGateway.retiredUnsupportedMessage(
+          "edit --editor",
+          "skill-bill fill ${args.skillName} --body-file <file>",
+          editor = true,
+        ),
+        args.format,
+      )
+    args.bodyFile != null ->
+      authoringResult(args.format) {
+        args.scaffoldGateway.editWithBodyFile(
+          Path.of(args.repoRoot),
+          args.skillName,
+          readCliTextFile(args.bodyFile, args.state),
+          args.section,
+        ).toCliMap()
+      }
+    else ->
+      unsupportedNativeScaffoldResult(
+        args.unsupportedScaffoldGateway.retiredUnsupportedMessage(
+          "edit",
+          "skill-bill fill ${args.skillName} --body-file <file>",
+          editor = false,
+        ),
+        args.format,
+      )
+  }
 
-internal fun fillSkillResult(args: FillSkillRunArgs): CliExecutionResult = when {
-  args.body != null && args.bodyFile != null ->
-    errorResult("--body and --body-file are mutually exclusive.", args.format)
-  args.body == null && args.bodyFile == null -> errorResult("Either --body or --body-file is required.", args.format)
-  else ->
-    authoringResult(args.format) {
-      args.scaffoldGateway.fill(
-        Path.of(args.repoRoot),
-        args.skillName,
-        args.body ?: readCliTextFile(args.bodyFile.orEmpty(), args.state),
-        args.section,
-      ).toCliMap()
-    }
-}
+internal fun fillSkillResult(args: FillSkillRunArgs): CliExecutionResult =
+  when {
+    args.body != null && args.bodyFile != null ->
+      errorResult("--body and --body-file are mutually exclusive.", args.format)
+    args.body == null && args.bodyFile == null -> errorResult("Either --body or --body-file is required.", args.format)
+    else ->
+      authoringResult(args.format) {
+        args.scaffoldGateway.fill(
+          Path.of(args.repoRoot),
+          args.skillName,
+          args.body ?: readCliTextFile(args.bodyFile.orEmpty(), args.state),
+          args.section,
+        ).toCliMap()
+      }
+  }

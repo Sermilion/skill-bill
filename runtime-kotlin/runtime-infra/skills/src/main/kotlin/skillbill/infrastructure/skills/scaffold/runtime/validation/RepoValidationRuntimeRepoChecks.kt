@@ -21,24 +21,30 @@ internal val repoValidationSkillReferencePattern = Regex("""(?<![A-Za-z0-9.-])(b
 internal val repoValidationOrchestrationPathPattern = Regex("""orchestration/[\w/.-]+""")
 internal val repoValidationReadmeSkillRowPattern = Regex("""^\| `/(bill-[a-z0-9-]+)` \|""")
 internal val repoValidationOverrideSectionPattern = Regex("""^## (bill-[a-z0-9-]+)$""")
-internal val repoValidationExternalPlaybookReferencePatterns = listOf(
-  Regex("""\.bill-shared/orchestration/""") to
-    "must reference skill-local supporting files instead of install-local playbook paths",
-)
-internal val repoValidationInlineTelemetryContractMarkers = listOf(
-  "Standalone-first contract",
-  "child_steps aggregation",
-  "Graceful degradation",
-  "Routers never emit",
-)
+internal val repoValidationExternalPlaybookReferencePatterns =
+  listOf(
+    Regex("""\.bill-shared/orchestration/""") to
+      "must reference skill-local supporting files instead of install-local playbook paths",
+  )
+internal val repoValidationInlineTelemetryContractMarkers =
+  listOf(
+    "Standalone-first contract",
+    "child_steps aggregation",
+    "Graceful degradation",
+    "Routers never emit",
+  )
 
-internal fun validateAgentAddons(root: Path, issues: MutableList<String>) {
+internal fun validateAgentAddons(
+  root: Path,
+  issues: MutableList<String>,
+) {
   try {
     discoverAgentAddons(root)
   } catch (error: ShellContentContractException) {
     issues += "agent-addons: ${error.message}"
   }
 }
+
 internal fun validateReadme(
   readme: Path,
   skillNames: Set<String>,
@@ -49,9 +55,10 @@ internal fun validateReadme(
     issues += "README.md is missing"
     return
   }
-  val catalogSkills = Files.readAllLines(readme)
-    .mapNotNull { line -> repoValidationReadmeSkillRowPattern.find(line)?.groupValues?.get(1) }
-    .toSet()
+  val catalogSkills =
+    Files.readAllLines(readme)
+      .mapNotNull { line -> repoValidationReadmeSkillRowPattern.find(line)?.groupValues?.get(1) }
+      .toSet()
   val missing = (skillNames - internalSkills) - catalogSkills
   if (missing.isNotEmpty()) {
     issues += "README.md catalog is missing skills: ${missing.sorted()}"
@@ -63,7 +70,11 @@ internal fun internalSkillNames(skillFiles: Map<String, Path>): Set<String> =
     if (parseInternalForFrontmatter(contentFile)?.isNotBlank() == true) skillName else null
   }.toSet()
 
-internal fun validateSkillReferences(root: Path, skillNames: Set<String>, issues: MutableList<String>) {
+internal fun validateSkillReferences(
+  root: Path,
+  skillNames: Set<String>,
+  issues: MutableList<String>,
+) {
   val scanRoots = listOf("skills", "platform-packs", "orchestration", ".agents").map(root::resolve)
   scanRoots.filter(Path::isDirectory).forEach { scanRoot ->
     Files.walk(scanRoot).use { stream ->
@@ -124,7 +135,11 @@ internal fun validateSkillOverrides(
   }
 }
 
-internal fun validateSupportingTargets(root: Path, skillNames: Set<String>, issues: MutableList<String>) {
+internal fun validateSupportingTargets(
+  root: Path,
+  skillNames: Set<String>,
+  issues: MutableList<String>,
+) {
   skillNames.flatMap { name -> requiredSupportingFilesForSkill(name, root) }.toSet().forEach { fileName ->
     val target = supportingFileTargets(root)[fileName]
     if (target == null || !Files.exists(target)) {
@@ -133,24 +148,29 @@ internal fun validateSupportingTargets(root: Path, skillNames: Set<String>, issu
   }
 }
 
-internal fun validateFeatureAddonDeclarations(root: Path, issues: MutableList<String>) {
+internal fun validateFeatureAddonDeclarations(
+  root: Path,
+  issues: MutableList<String>,
+) {
   val staticTargets = supportingFileTargets(root).keys
   val classes = runCatching { discoverSkillClasses(root) }.getOrDefault(emptyList())
-  val featureClassPointers = resolveSkillClass("bill-feature", classes)
-    ?.pointers
-    ?.map { pointer -> "$pointer.md" }
-    .orEmpty()
-    .filter { pointer -> pointer !in staticTargets }
+  val featureClassPointers =
+    resolveSkillClass("bill-feature", classes)
+      ?.pointers
+      ?.map { pointer -> "$pointer.md" }
+      .orEmpty()
+      .filter { pointer -> pointer !in staticTargets }
   featureClassPointers.forEach { pointer ->
     issues += "orchestration/skill-classes/feature-task.yaml: feature-task support pointer '$pointer' " +
       "must be declared by a selected platform pack's feature_addon_usage instead of the global skill class."
   }
 
   loadFeatureAddonValidationPacks(root).forEach { pack ->
-    val declaredPointers = pack.featureAddonUsage
-      .filter { usage -> usage.consumer == "feature-task" }
-      .flatMap { usage -> usage.addons.flatMap { addon -> listOf(addon.entrypoint) + addon.companionPointers } }
-      .toSet()
+    val declaredPointers =
+      pack.featureAddonUsage
+        .filter { usage -> usage.consumer == "feature-task" }
+        .flatMap { usage -> usage.addons.flatMap { addon -> listOf(addon.entrypoint) + addon.companionPointers } }
+        .toSet()
     pack.pointers
       .filter { pointer ->
         pointer.skillRelativeDir == "feature-task" &&

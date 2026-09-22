@@ -19,25 +19,28 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ParallelCodeReviewIntegrationPassTest {
-  private val pack = sparseReviewPack(
-    slug = "kotlin",
-    requiredArea = "architecture",
-    pathAreas = mapOf(
-      "persistence" to listOf("src/db/"),
-      "security" to listOf("src/api/", "src/contract/"),
-      "testing" to listOf("src/test/"),
-      "ui" to listOf("src/ui/"),
-    ),
-  )
+  private val pack =
+    sparseReviewPack(
+      slug = "kotlin",
+      requiredArea = "architecture",
+      pathAreas =
+        mapOf(
+          "persistence" to listOf("src/db/"),
+          "security" to listOf("src/api/", "src/contract/"),
+          "testing" to listOf("src/test/"),
+          "ui" to listOf("src/ui/"),
+        ),
+    )
 
-  private val sixCommitPaths = listOf(
-    "src/ui/View.kt",
-    "src/db/Repo.kt",
-    "src/api/Auth.kt",
-    "src/test/AppTest.kt",
-    "src/contract/Api.kt",
-    "src/contract/ApiV2.kt",
-  )
+  private val sixCommitPaths =
+    listOf(
+      "src/ui/View.kt",
+      "src/db/Repo.kt",
+      "src/api/Auth.kt",
+      "src/test/AppTest.kt",
+      "src/contract/Api.kt",
+      "src/contract/ApiV2.kt",
+    )
 
   @Test fun `one bounded integration pass runs after the lanes and re-launches no specialist rubric`() {
     val recorder = ReviewRecorder()
@@ -82,19 +85,21 @@ class ParallelCodeReviewIntegrationPassTest {
   @Test fun `a cross-commit integration finding is reported with the commits it relates`() {
     val recorder = ReviewRecorder()
 
-    val result = reviewHarness(
-      delegatedConfig(sixCommitPaths) { request ->
-        if (request.skillRunRequest.issueKey == INTEGRATION_ISSUE_KEY) {
-          RecordedWorkerResponse(
-            stdout = "- [F-001] Major | High | commits=c4,head-revision | " +
-              "path=\"src/contract/ApiV2.kt\" | line=1 | contract drift across commits",
-          )
-        } else {
-          RecordedWorkerResponse()
-        }
-      },
-      recorder,
-    ).run(delegatedRequest())
+    val result =
+      reviewHarness(
+        delegatedConfig(sixCommitPaths) { request ->
+          if (request.skillRunRequest.issueKey == INTEGRATION_ISSUE_KEY) {
+            RecordedWorkerResponse(
+              stdout =
+                "- [F-001] Major | High | commits=c4,head-revision | " +
+                  "path=\"src/contract/ApiV2.kt\" | line=1 | contract drift across commits",
+            )
+          } else {
+            RecordedWorkerResponse()
+          }
+        },
+        recorder,
+      ).run(delegatedRequest())
 
     val integration = assertNotNull(result.integration)
     assertEquals(ReviewIntegrationTerminalOutcome.COMPLETED, integration.terminalOutcome)
@@ -109,21 +114,23 @@ class ParallelCodeReviewIntegrationPassTest {
   @Test fun `a finding naming an unknown commit is dropped instead of failing the finished review`() {
     val recorder = ReviewRecorder()
 
-    val result = reviewHarness(
-      delegatedConfig(sixCommitPaths) { request ->
-        if (request.skillRunRequest.issueKey == INTEGRATION_ISSUE_KEY) {
-          RecordedWorkerResponse(
-            stdout = "- [F-001] Major | High | commits=c4,deadbeefdeadbeef | " +
-              "path=\"src/contract/ApiV2.kt\" | line=1 | cites a commit that does not exist\n" +
-              "- [F-002] Major | High | commits=c4,head-revision | " +
-              "path=\"src/contract/Api.kt\" | line=1 | contract drift across commits",
-          )
-        } else {
-          RecordedWorkerResponse()
-        }
-      },
-      recorder,
-    ).run(delegatedRequest())
+    val result =
+      reviewHarness(
+        delegatedConfig(sixCommitPaths) { request ->
+          if (request.skillRunRequest.issueKey == INTEGRATION_ISSUE_KEY) {
+            RecordedWorkerResponse(
+              stdout =
+                "- [F-001] Major | High | commits=c4,deadbeefdeadbeef | " +
+                  "path=\"src/contract/ApiV2.kt\" | line=1 | cites a commit that does not exist\n" +
+                  "- [F-002] Major | High | commits=c4,head-revision | " +
+                  "path=\"src/contract/Api.kt\" | line=1 | contract drift across commits",
+            )
+          } else {
+            RecordedWorkerResponse()
+          }
+        },
+        recorder,
+      ).run(delegatedRequest())
 
     val integration = assertNotNull(result.integration)
     assertEquals(ReviewIntegrationTerminalOutcome.COMPLETED, integration.terminalOutcome)
@@ -152,8 +159,9 @@ class ParallelCodeReviewIntegrationPassTest {
   @Test fun `an inline review reports commit-focused sequencing as not applicable`() {
     val recorder = ReviewRecorder()
 
-    val result = reviewHarness(delegatedConfig(sixCommitPaths), recorder)
-      .run(delegatedRequest(mode = CodeReviewExecutionMode.INLINE))
+    val result =
+      reviewHarness(delegatedConfig(sixCommitPaths), recorder)
+        .run(delegatedRequest(mode = CodeReviewExecutionMode.INLINE))
 
     val integration = assertNotNull(result.integration)
     assertEquals(ReviewIntegrationTerminalOutcome.SKIPPED_NOT_APPLICABLE, integration.terminalOutcome)
@@ -209,8 +217,9 @@ class ParallelCodeReviewIntegrationPassTest {
     ).run(delegatedRequest(reviewRunId = RUN_ID))
     val afterFirst = recorder.specialistLaunches.size
 
-    val resumed = reviewHarness(delegatedConfig(narrow + "src/db/Repo.kt"), recorder)
-      .run(delegatedRequest(reviewRunId = RUN_ID))
+    val resumed =
+      reviewHarness(delegatedConfig(narrow + "src/db/Repo.kt"), recorder)
+        .run(delegatedRequest(reviewRunId = RUN_ID))
 
     val relaunched = recorder.specialistLaunches.drop(afterFirst)
     assertTrue(
@@ -223,12 +232,13 @@ class ParallelCodeReviewIntegrationPassTest {
   @Test fun `an integration pass that times out is not a durable boundary`() {
     val recorder = ReviewRecorder()
 
-    val result = reviewHarness(
-      delegatedConfig(sixCommitPaths) { request ->
-        RecordedWorkerResponse(timedOut = request.skillRunRequest.issueKey == INTEGRATION_ISSUE_KEY)
-      },
-      recorder,
-    ).run(delegatedRequest(reviewRunId = RUN_ID))
+    val result =
+      reviewHarness(
+        delegatedConfig(sixCommitPaths) { request ->
+          RecordedWorkerResponse(timedOut = request.skillRunRequest.issueKey == INTEGRATION_ISSUE_KEY)
+        },
+        recorder,
+      ).run(delegatedRequest(reviewRunId = RUN_ID))
 
     val integration = assertNotNull(result.integration)
     assertEquals(ReviewIntegrationTerminalOutcome.TIMEOUT, integration.terminalOutcome)
@@ -245,16 +255,18 @@ class ParallelCodeReviewIntegrationPassTest {
     paths: List<String>,
     response: (GoalRunnerSubtaskLaunchRequest) -> RecordedWorkerResponse = { RecordedWorkerResponse() },
   ): ReviewHarnessConfig {
-    val shas = paths.indices.map { index ->
-      if (index == paths.lastIndex) HARNESS_HEAD_REVISION else "c$index"
-    }
+    val shas =
+      paths.indices.map { index ->
+        if (index == paths.lastIndex) HARNESS_HEAD_REVISION else "c$index"
+      }
     return ReviewHarnessConfig(
       manifests = listOf(pack),
       diff = diffForPaths(*paths.toTypedArray()),
       response = response,
-      commits = paths.mapIndexed { index, path ->
-        RecordedCommit(shas[index], "commit touching $path", diffForPaths(path))
-      },
+      commits =
+        paths.mapIndexed { index, path ->
+          RecordedCommit(shas[index], "commit touching $path", diffForPaths(path))
+        },
     )
   }
 

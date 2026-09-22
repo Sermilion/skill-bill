@@ -91,14 +91,15 @@ class WorkflowWireProjectionsWireMapTest {
 
   @Test
   fun `continue wire map preserves fixed session summary after extra-field collision`() {
-    val wire = WorkflowWireProjections.continueMap(
-      continueView(
-        mapOf(
-          WorkflowWirePayloadKeys.SESSION_SUMMARY to mapOf("shadow" to true),
-          "marker_key" to "from_extra",
+    val wire =
+      WorkflowWireProjections.continueMap(
+        continueView(
+          mapOf(
+            WorkflowWirePayloadKeys.SESSION_SUMMARY to mapOf("shadow" to true),
+            "marker_key" to "from_extra",
+          ),
         ),
-      ),
-    ).toPayload()
+      ).toPayload()
     val keys = wire.keys.toList()
     val extraIndex = keys.indexOf("marker_key")
     val sessionSummaryIndex = keys.indexOf(WorkflowWirePayloadKeys.SESSION_SUMMARY)
@@ -115,82 +116,88 @@ class WorkflowWireProjectionsWireMapTest {
     assertEquals("resume_existing_workflow", wire[WorkflowWirePayloadKeys.CONTINUATION_MODE])
   }
 
-  private fun snapshotView(): WorkflowSnapshotView = WorkflowSnapshotView(
-    workflowId = "wf-1",
-    sessionId = "sess",
-    workflowName = "bill-feature",
-    contractVersion = "0.1",
-    workflowStatus = WorkflowStatus.RUNNING,
-    currentStepId = "implement",
-    steps = listOf(WorkflowStepState("implement", WorkflowStepStatus.RUNNING, 1)),
-    artifacts = DurableWorkflowArtifacts.EMPTY,
-    startedAt = "1970-01-01T00:00:00Z",
-    updatedAt = "1970-01-01T00:00:00Z",
-    finishedAt = "",
-  )
-
-  private fun summaryView(): WorkflowSummaryView = WorkflowSummaryView(
-    workflowId = "wf-1",
-    sessionId = "sess",
-    workflowName = "bill-feature",
-    contractVersion = "0.1",
-    workflowStatus = WorkflowStatus.RUNNING,
-    currentStepId = "implement",
-    startedAt = "1970-01-01T00:00:00Z",
-    updatedAt = "1970-01-01T00:00:00Z",
-    finishedAt = "",
-  )
-
-  private fun resumeView(): WorkflowResumeView = WorkflowResumeView(
-    snapshot = snapshotView(),
-    resumeMode = WorkflowResumeMode.RESUME,
-    resumeStepId = "implement",
-    lastCompletedStepId = "plan",
-    availableArtifacts = emptyList(),
-    requiredArtifacts = emptyList(),
-    missingArtifacts = emptyList(),
-    canResume = true,
-    nextAction = "continue",
-  )
-
-  private fun continueView(extraFields: Map<String, Any?>): WorkflowContinueView = WorkflowContinueView(
-    resume = resumeView(),
-    skillName = "bill-feature",
-    workflowStatusBeforeContinue = WorkflowStatus.RUNNING,
-    continueStatus = WorkflowContinueStatus.REOPENED,
-    continueStepId = "implement",
-    continueStepLabel = "Implement",
-    continueStepDirective = "do work",
-    referenceSections = emptyList(),
-    stepArtifactKeys = emptyList(),
-    stepArtifacts = WorkflowStepArtifactMap.EMPTY,
-    extraFields = WorkflowContinuationFieldMap.from(extraFields),
-    sessionSummary = WorkflowContinueSessionSummary(
-      acceptanceCriteriaCount = 2,
-      rolloutRelevant = true,
-      specSummary = "summary",
-    ),
-    continuationBrief = "brief",
-    continuationEntryPrompt = "prompt",
-    compact = WorkflowCompactContinueView(
+  private fun snapshotView(): WorkflowSnapshotView =
+    WorkflowSnapshotView(
       workflowId = "wf-1",
-      skillName = "bill-feature",
-      continueStatus = WorkflowContinueStatus.REOPENED,
-      workflowStatusBeforeContinue = WorkflowStatus.RUNNING,
+      sessionId = "sess",
+      workflowName = "bill-feature",
+      contractVersion = "0.1",
+      workflowStatus = WorkflowStatus.RUNNING,
+      currentStepId = "implement",
+      steps = listOf(WorkflowStepState("implement", WorkflowStepStatus.RUNNING, 1)),
+      artifacts = DurableWorkflowArtifacts.EMPTY,
       startedAt = "1970-01-01T00:00:00Z",
       updatedAt = "1970-01-01T00:00:00Z",
+      finishedAt = "",
+    )
+
+  private fun summaryView(): WorkflowSummaryView =
+    WorkflowSummaryView(
+      workflowId = "wf-1",
+      sessionId = "sess",
+      workflowName = "bill-feature",
+      contractVersion = "0.1",
+      workflowStatus = WorkflowStatus.RUNNING,
+      currentStepId = "implement",
+      startedAt = "1970-01-01T00:00:00Z",
+      updatedAt = "1970-01-01T00:00:00Z",
+      finishedAt = "",
+    )
+
+  private fun resumeView(): WorkflowResumeView =
+    WorkflowResumeView(
+      snapshot = snapshotView(),
+      resumeMode = WorkflowResumeMode.RESUME,
       resumeStepId = "implement",
-      resumeStepLabel = "Implement",
+      lastCompletedStepId = "plan",
+      availableArtifacts = emptyList(),
+      requiredArtifacts = emptyList(),
+      missingArtifacts = emptyList(),
+      canResume = true,
+      nextAction = "continue",
+    )
+
+  private fun continueView(extraFields: Map<String, Any?>): WorkflowContinueView =
+    WorkflowContinueView(
+      resume = resumeView(),
+      skillName = "bill-feature",
+      workflowStatusBeforeContinue = WorkflowStatus.RUNNING,
+      continueStatus = WorkflowContinueStatus.REOPENED,
+      continueStepId = "implement",
+      continueStepLabel = "Implement",
       continueStepDirective = "do work",
       referenceSections = emptyList(),
-      requiredArtifactKeys = emptyList(),
-      availableArtifactKeys = emptyList(),
-      missingArtifactKeys = emptyList(),
-      currentStepArtifacts = emptyList(),
-      omittedArtifactKeys = emptyList(),
+      stepArtifactKeys = emptyList(),
+      stepArtifacts = WorkflowStepArtifactMap.EMPTY,
+      extraFields = WorkflowContinuationFieldMap.from(extraFields),
+      sessionSummary =
+        WorkflowContinueSessionSummary(
+          acceptanceCriteriaCount = 2,
+          rolloutRelevant = true,
+          specSummary = "summary",
+        ),
       continuationBrief = "brief",
       continuationEntryPrompt = "prompt",
-      readOnlyFullStateGuidance = "read only",
-    ),
-  )
+      compact =
+        WorkflowCompactContinueView(
+          workflowId = "wf-1",
+          skillName = "bill-feature",
+          continueStatus = WorkflowContinueStatus.REOPENED,
+          workflowStatusBeforeContinue = WorkflowStatus.RUNNING,
+          startedAt = "1970-01-01T00:00:00Z",
+          updatedAt = "1970-01-01T00:00:00Z",
+          resumeStepId = "implement",
+          resumeStepLabel = "Implement",
+          continueStepDirective = "do work",
+          referenceSections = emptyList(),
+          requiredArtifactKeys = emptyList(),
+          availableArtifactKeys = emptyList(),
+          missingArtifactKeys = emptyList(),
+          currentStepArtifacts = emptyList(),
+          omittedArtifactKeys = emptyList(),
+          continuationBrief = "brief",
+          continuationEntryPrompt = "prompt",
+          readOnlyFullStateGuidance = "read only",
+        ),
+    )
 }

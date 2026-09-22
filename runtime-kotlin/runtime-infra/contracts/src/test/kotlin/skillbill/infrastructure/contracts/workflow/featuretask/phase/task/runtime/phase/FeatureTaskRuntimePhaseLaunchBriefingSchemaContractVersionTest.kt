@@ -40,8 +40,9 @@ class FeatureTaskRuntimePhaseLaunchBriefingSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader
-      .getResourceAsStream(FeatureTaskRuntimePhaseLaunchBriefingSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader
+        .getResourceAsStream(FeatureTaskRuntimePhaseLaunchBriefingSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical feature-task-runtime phase launch briefing schema is missing from the classpath at " +

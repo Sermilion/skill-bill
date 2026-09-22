@@ -2,6 +2,7 @@ package skillbill.review.context.model.commit
 import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.canonicalFields
 import skillbill.review.context.model.execution.sha256
+
 const val REVIEW_ROUTING_REASON_MAX_CHARS: Int = 600
 
 enum class ReviewCommitLaneDisposition { FOCUSED, SKIPPED }
@@ -30,14 +31,15 @@ data class ReviewCommitLaneDecision(
 
   val focused: Boolean get() = disposition == ReviewCommitLaneDisposition.FOCUSED
 
-  val canonical: String get() = canonicalFields(
-    commitSha,
-    orderIndex,
-    lane,
-    disposition.name,
-    reason.replace("\r\n", "\n"),
-    canonicalFieldList(signals.sorted()),
-  )
+  val canonical: String get() =
+    canonicalFields(
+      commitSha,
+      orderIndex,
+      lane,
+      disposition.name,
+      reason.replace("\r\n", "\n"),
+      canonicalFieldList(signals.sorted()),
+    )
 }
 
 data class ReviewCommitLaneRoutingMatrix(
@@ -65,25 +67,28 @@ data class ReviewCommitLaneRoutingMatrix(
     }
   }
 
-  fun focusedCommits(lane: String): List<String> = decisions
-    .filter { it.lane == lane && it.focused }
-    .sortedBy { it.orderIndex }
-    .map { it.commitSha }
+  fun focusedCommits(lane: String): List<String> =
+    decisions
+      .filter { it.lane == lane && it.focused }
+      .sortedBy { it.orderIndex }
+      .map { it.commitSha }
 
-  fun decisionsFor(lane: String): List<ReviewCommitLaneDecision> = decisions
-    .filter { it.lane == lane }
-    .sortedBy { it.orderIndex }
+  fun decisionsFor(lane: String): List<ReviewCommitLaneDecision> =
+    decisions
+      .filter { it.lane == lane }
+      .sortedBy { it.orderIndex }
 
   val focusedPairCount: Int get() = decisions.count { it.focused }
   val analyzedPairCount: Int get() = decisions.size
 
-  val canonical: String get() = canonicalFields(
-    canonicalFieldList(commitShas),
-    canonicalFieldList(lanes),
-    canonicalFieldList(
-      decisions.sortedWith(compareBy({ it.orderIndex }, { it.lane })).map { it.canonical },
-    ),
-  )
+  val canonical: String get() =
+    canonicalFields(
+      canonicalFieldList(commitShas),
+      canonicalFieldList(lanes),
+      canonicalFieldList(
+        decisions.sortedWith(compareBy({ it.orderIndex }, { it.lane })).map { it.canonical },
+      ),
+    )
 
   val routingDigest: String get() = sha256(canonical)
 }

@@ -36,20 +36,23 @@ class WorkflowServiceFeatureTaskAbandon(
       )
     }
     val abandonedAt = clock.instant().atOffset(ZoneOffset.UTC).toString()
-    val input = WorkflowUpdateInput(
-      workflowStatus = WorkflowStatus.ABANDONED,
-      currentStepId = existing.currentStepId.orEmpty(),
-      stepUpdates = null,
-      artifactsPatch = WorkflowArtifactPatch.from(
-        mapOf(
-          FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY to mapOf(
-            "reason" to normalizedReason,
-            "abandoned_at" to abandonedAt,
+    val input =
+      WorkflowUpdateInput(
+        workflowStatus = WorkflowStatus.ABANDONED,
+        currentStepId = existing.currentStepId.orEmpty(),
+        stepUpdates = null,
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            mapOf(
+              FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY to
+                mapOf(
+                  "reason" to normalizedReason,
+                  "abandoned_at" to abandonedAt,
+                ),
+            ),
           ),
-        ),
-      ),
-      sessionId = "",
-    )
+        sessionId = "",
+      )
     val updated = engine.updateRecord(family.definition, existing, input)
     family.save(unitOfWork.workflowStates, updated)
     return buildUpdateOk(engine, family.definition, updated, input, unitOfWork.dbPath.toString())
@@ -69,31 +72,34 @@ class WorkflowServiceFeatureTaskAbandon(
     }
     val abandonedAt = clock.instant().atOffset(ZoneOffset.UTC).toString()
     val artifacts = LinkedHashMap(decodeWorkflowArtifacts(existing.artifactsJson))
-    artifacts[FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY] = mapOf(
-      "reason" to normalizedReason,
-      "abandoned_at" to abandonedAt,
-    )
-    val updated = existing.copy(
-      workflowStatus = WorkflowStatus.ABANDONED.wireValue,
-      artifactsJson = JsonCodec.mapToJsonString(artifacts),
-      finishedAt = abandonedAt,
-    )
+    artifacts[FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY] =
+      mapOf(
+        "reason" to normalizedReason,
+        "abandoned_at" to abandonedAt,
+      )
+    val updated =
+      existing.copy(
+        workflowStatus = WorkflowStatus.ABANDONED.wireValue,
+        artifactsJson = JsonCodec.mapToJsonString(artifacts),
+        finishedAt = abandonedAt,
+      )
     unitOfWork.workflowStates.terminalizeLegacyProseFeatureTaskWorkflow(updated)
     return WorkflowUpdateResult.Ok(
       workflowId = updated.workflowId,
       dbPath = unitOfWork.dbPath.toString(),
-      acknowledgement = WorkflowUpdateAcknowledgementView(
-        status = "ok",
-        workflowId = updated.workflowId,
-        workflowName = updated.workflowName,
-        workflowStatus = WorkflowStatus.ABANDONED,
-        currentStepId = updated.currentStepId,
-        updatedStepIds = emptyList(),
-        updatedArtifactKeys = listOf(FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY),
-        readOnlyFullStateGuidance =
-        "Update returns a compact acknowledgement. Use explicit read-only workflow get/show for full state, " +
-          "including steps and the complete durable artifacts map.",
-      ),
+      acknowledgement =
+        WorkflowUpdateAcknowledgementView(
+          status = "ok",
+          workflowId = updated.workflowId,
+          workflowName = updated.workflowName,
+          workflowStatus = WorkflowStatus.ABANDONED,
+          currentStepId = updated.currentStepId,
+          updatedStepIds = emptyList(),
+          updatedArtifactKeys = listOf(FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY),
+          readOnlyFullStateGuidance =
+            "Update returns a compact acknowledgement. Use explicit read-only workflow get/show for full state, " +
+              "including steps and the complete durable artifacts map.",
+        ),
       launchProjection = null,
     )
   }

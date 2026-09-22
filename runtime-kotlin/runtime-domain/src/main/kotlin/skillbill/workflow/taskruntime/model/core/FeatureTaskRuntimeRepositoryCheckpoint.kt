@@ -35,6 +35,7 @@ data class FeatureTaskRuntimeRepositoryCheckpoint(
       "FeatureTaskRuntimeRepositoryCheckpoint.workingTreeOwnedPaths must not contain blank entries."
     }
   }
+
   internal fun toEnvelopeMap(): Map<String, Any?> =
     linkedMapOf<String, Any?>(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT to fingerprint).apply {
       baseRef?.let { put("base_ref", it) }

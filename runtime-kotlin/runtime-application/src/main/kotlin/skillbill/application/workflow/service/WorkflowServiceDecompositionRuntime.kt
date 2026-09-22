@@ -27,26 +27,29 @@ internal fun WorkflowFamily.withDecompositionRuntime(args: DecompositionRuntimeW
         validator = args.validator,
         planningResult = args.planningResult,
         artifactsPatch = args.input.artifactsPatch,
-        runtimeUpdate = DecompositionManifestRuntimeUpdate(
-          workflowId = args.workflowId,
-          workflowStatus = args.input.workflowStatus.wireValue,
-          currentStepId = args.input.currentStepId,
-          stepUpdates = args.input.stepUpdates,
-        ),
+        runtimeUpdate =
+          DecompositionManifestRuntimeUpdate(
+            workflowId = args.workflowId,
+            workflowStatus = args.input.workflowStatus.wireValue,
+            currentStepId = args.input.currentStepId,
+            stepUpdates = args.input.stepUpdates,
+          ),
         fileStore = args.fileStore,
       ),
     )?.let { manifest ->
       DecompositionRuntimeInput(
-        input = args.input.copy(
-          artifactsPatch = WorkflowArtifactPatch.from(
-            LinkedHashMap(args.input.artifactsPatch.orEmpty()).apply {
-              put(
-                DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-                args.validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
-              )
-            },
+        input =
+          args.input.copy(
+            artifactsPatch =
+              WorkflowArtifactPatch.from(
+                LinkedHashMap(args.input.artifactsPatch.orEmpty()).apply {
+                  put(
+                    DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+                    args.validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+                  )
+                },
+              ),
           ),
-        ),
         updated = true,
       )
     } ?: DecompositionRuntimeInput(input = args.input, updated = false)

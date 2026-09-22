@@ -35,10 +35,11 @@ class CursorAgentRunTransportTest {
 
   @Test
   fun `the decoder harvests the buffered single-object form and ignores usage`() {
-    val decoded = AgentRunOutputDecoder.CURSOR_STREAM_JSON.decode(
-      """{"type":"result","subtype":"success","is_error":false,"result":"PONG",""" +
-        """"usage":{"inputTokens":14154,"outputTokens":14,"cacheReadTokens":896}}""",
-    )
+    val decoded =
+      AgentRunOutputDecoder.CURSOR_STREAM_JSON.decode(
+        """{"type":"result","subtype":"success","is_error":false,"result":"PONG",""" +
+          """"usage":{"inputTokens":14154,"outputTokens":14,"cacheReadTokens":896}}""",
+      )
 
     assertEquals("PONG", decoded.text)
   }
@@ -47,10 +48,11 @@ class CursorAgentRunTransportTest {
   fun `buffered result with progress glued onto NO_FINDINGS harvests the register`() {
     val glued =
       "I'll fetch the bound evidence then score the parse return type is the core change.reachaNO_FINDINGS"
-    val decoded = AgentRunOutputDecoder.CURSOR_STREAM_JSON.decode(
-      """{"type":"result","subtype":"success","is_error":false,"result":"$glued",""" +
-        """"usage":{"inputTokens":134323,"outputTokens":21191}}""",
-    )
+    val decoded =
+      AgentRunOutputDecoder.CURSOR_STREAM_JSON.decode(
+        """{"type":"result","subtype":"success","is_error":false,"result":"$glued",""" +
+          """"usage":{"inputTokens":134323,"outputTokens":21191}}""",
+      )
 
     assertEquals("NO_FINDINGS", decoded.text)
   }
@@ -70,9 +72,10 @@ class CursorAgentRunTransportTest {
   @Test
   fun `glued finding lines are harvested and trailing NO_FINDINGS is dropped`() {
     val glued = "progress[F-001] Major | High | path.kt:1 | bugNO_FINDINGS"
-    val decoded = AgentRunOutputDecoder.CURSOR_STREAM_JSON.decode(
-      """{"type":"result","result":"$glued"}""",
-    )
+    val decoded =
+      AgentRunOutputDecoder.CURSOR_STREAM_JSON.decode(
+        """{"type":"result","result":"$glued"}""",
+      )
 
     assertEquals("[F-001] Major | High | path.kt:1 | bug", decoded.text)
   }
@@ -84,9 +87,10 @@ class CursorAgentRunTransportTest {
         "MCP read_evidence is still blocked. I'll read the assigned files from there." +
         "[F-001] Major | High | specialist=bill-kotlin-code-review-architecture | " +
         "path=\\\"runtime-kotlin/Foo.kt\\\" | line=12 | endpoint close leaks on spawn failure"
-    val decoded = AgentRunOutputDecoder.CURSOR_STREAM_JSON.decode(
-      """{"type":"result","subtype":"success","is_error":false,"result":"$glued"}""",
-    )
+    val decoded =
+      AgentRunOutputDecoder.CURSOR_STREAM_JSON.decode(
+        """{"type":"result","subtype":"success","is_error":false,"result":"$glued"}""",
+      )
 
     assertEquals(
       "[F-001] Major | High | specialist=bill-kotlin-code-review-architecture | " +
@@ -95,11 +99,12 @@ class CursorAgentRunTransportTest {
     )
   }
 
-  private fun request(): SkillRunRequest = SkillRunRequest(
-    issueKey = "SKILL-113",
-    repoRoot = Path.of("/tmp/skillbill-agent-run"),
-    subtaskId = 1,
-    timeout = 3.seconds,
-    promptOverride = "Phase: implement",
-  )
+  private fun request(): SkillRunRequest =
+    SkillRunRequest(
+      issueKey = "SKILL-113",
+      repoRoot = Path.of("/tmp/skillbill-agent-run"),
+      subtaskId = 1,
+      timeout = 3.seconds,
+      promptOverride = "Phase: implement",
+    )
 }

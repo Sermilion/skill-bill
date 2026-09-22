@@ -102,12 +102,13 @@ class ExperimentNavigationPairCoordinator(
     val source = request.source
     validateSpec(source)
     val persisted = pairOwner.load(pairId)
-    val selection = selectionPort.resolveForLaunch(
-      repoRoot = source.repoRoot,
-      parameter = source.name,
-      mode = ExperimentExecutionMode.NAVIGATION,
-      savedSelection = persisted?.selectedNames,
-    )
+    val selection =
+      selectionPort.resolveForLaunch(
+        repoRoot = source.repoRoot,
+        parameter = source.name,
+        mode = ExperimentExecutionMode.NAVIGATION,
+        savedSelection = persisted?.selectedNames,
+      )
     validateSelection(source, selection.normalizedNames)
     val resolvedRevision = resolveRevision(source)
     val repositoryIdentity = resolveRepositoryIdentity(source)
@@ -126,14 +127,16 @@ class ExperimentNavigationPairCoordinator(
     telemetryRecorder?.record(
       pairId = prepared.pairId,
       cohort = ExperimentExecutionMode.NAVIGATION.wireValue,
-      metrics = mapOf(
-        ExperimentTelemetryPayloadKeys.PAIR_STATUS to pairOwner.load(prepared.pairId)
-          ?.pairPayload?.get(ExperimentPairPayloadKeys.PAIR_STATUS),
-        ExperimentTelemetryPayloadKeys.ARM_COUNT to
-          pairOwner.load(prepared.pairId)?.pairPayload?.get(ExperimentPairPayloadKeys.ARM_OUTCOMES)
-            .let { (it as? List<*>)?.size ?: 0 },
-        ExperimentTelemetryPayloadKeys.DELIVERED_FEATURE_COUNT to 0,
-      ),
+      metrics =
+        mapOf(
+          ExperimentTelemetryPayloadKeys.PAIR_STATUS to
+            pairOwner.load(prepared.pairId)
+              ?.pairPayload?.get(ExperimentPairPayloadKeys.PAIR_STATUS),
+          ExperimentTelemetryPayloadKeys.ARM_COUNT to
+            pairOwner.load(prepared.pairId)?.pairPayload?.get(ExperimentPairPayloadKeys.ARM_OUTCOMES)
+              .let { (it as? List<*>)?.size ?: 0 },
+          ExperimentTelemetryPayloadKeys.DELIVERED_FEATURE_COUNT to 0,
+        ),
     )
     return prepared.pairId
   }
@@ -143,12 +146,13 @@ class ExperimentNavigationPairCoordinator(
     val source = request.source
     validateSpec(source)
     val persisted = pairOwner.load(pairId)
-    val selection = selectionPort.resolveForLaunch(
-      source.repoRoot,
-      source.name,
-      ExperimentExecutionMode.NAVIGATION,
-      persisted?.selectedNames,
-    )
+    val selection =
+      selectionPort.resolveForLaunch(
+        source.repoRoot,
+        source.name,
+        ExperimentExecutionMode.NAVIGATION,
+        persisted?.selectedNames,
+      )
     validateSelection(source, selection.normalizedNames)
     val resolvedRevision = resolveRevision(source)
     val repositoryIdentity = resolveRepositoryIdentity(source)
@@ -171,7 +175,10 @@ class ExperimentNavigationPairCoordinator(
     }
   }
 
-  private fun validateSelection(source: ExperimentNavigationPairSource, names: List<String>) {
+  private fun validateSelection(
+    source: ExperimentNavigationPairSource,
+    names: List<String>,
+  ) {
     if (names != listOf(source.name)) {
       throw ExperimentNavigationSpecError(
         source.repoRoot.toString(),
@@ -206,13 +213,14 @@ class ExperimentNavigationPairCoordinator(
         selectedNames = selectedNames,
         armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
         randomSeed = pairId,
-        pairPayload = navigationPairPayload(
-          pairId,
-          request.source.name,
-          repositoryIdentity,
-          revision,
-          request.source.specBytes,
-        ),
+        pairPayload =
+          navigationPairPayload(
+            pairId,
+            request.source.name,
+            repositoryIdentity,
+            revision,
+            request.source.specBytes,
+          ),
       ),
     )
   }
@@ -223,20 +231,22 @@ class ExperimentNavigationPairCoordinator(
       recordArmObservation(
         pairId = prepared.pairId,
         arm = arm,
-        workflowId = outcome[ExperimentPairPayloadKeys.WORKFLOW_ID]?.toString()
-          ?: "${prepared.pairId}:${arm.wireValue}",
+        workflowId =
+          outcome[ExperimentPairPayloadKeys.WORKFLOW_ID]?.toString()
+            ?: "${prepared.pairId}:${arm.wireValue}",
       )
     }
   }
 
-  private fun completedArms(persisted: ExperimentPairPersistedState?): Set<ExperimentArmId> = persisted?.pairPayload
-    ?.get(ExperimentPairPayloadKeys.ARM_OUTCOMES)
-    ?.let { it as? List<*> }
-    ?.filterIsInstance<Map<*, *>>()
-    ?.filter { it[ExperimentPairPayloadKeys.TERMINAL_STATUS] == "completed" }
-    ?.mapNotNull { it[ExperimentPairPayloadKeys.ARM_ID]?.toString()?.let(ExperimentArmId::fromWire) }
-    ?.toSet()
-    .orEmpty()
+  private fun completedArms(persisted: ExperimentPairPersistedState?): Set<ExperimentArmId> =
+    persisted?.pairPayload
+      ?.get(ExperimentPairPayloadKeys.ARM_OUTCOMES)
+      ?.let { it as? List<*> }
+      ?.filterIsInstance<Map<*, *>>()
+      ?.filter { it[ExperimentPairPayloadKeys.TERMINAL_STATUS] == "completed" }
+      ?.mapNotNull { it[ExperimentPairPayloadKeys.ARM_ID]?.toString()?.let(ExperimentArmId::fromWire) }
+      ?.toSet()
+      .orEmpty()
 
   private fun runPendingArms(prepared: PreparedNavigationPair) {
     val completed = completedArms(prepared.persisted)
@@ -246,7 +256,10 @@ class ExperimentNavigationPairCoordinator(
     }
   }
 
-  private fun runArm(prepared: PreparedNavigationPair, arm: ExperimentArmId): ExperimentNavigationSessionResult {
+  private fun runArm(
+    prepared: PreparedNavigationPair,
+    arm: ExperimentArmId,
+  ): ExperimentNavigationSessionResult {
     verifyCurrentInputs(prepared.request.source.repoRoot, prepared.resolvedRevision, prepared.repositoryIdentity)
     pairOwner.save(
       updateNavigationLifecycle(
@@ -281,32 +294,38 @@ class ExperimentNavigationPairCoordinator(
     return result
   }
 
-  private fun executeArm(prepared: PreparedNavigationPair, arm: ExperimentArmId): ExperimentNavigationSessionResult {
+  private fun executeArm(
+    prepared: PreparedNavigationPair,
+    arm: ExperimentArmId,
+  ): ExperimentNavigationSessionResult {
     var snapshot: Path? = null
-    val result = runCatching {
-      snapshot = createNavigationSnapshot(
-        prepared.request.source.repoRoot,
-        prepared.pairId,
-        arm,
-        prepared.resolvedRevision,
-      )
-      sessionRunner.runSession(
-        ExperimentNavigationSessionRequest(
-          pairId = prepared.pairId,
-          armId = arm.wireValue,
-          repoRoot = requireNotNull(snapshot),
-          revision = prepared.resolvedRevision,
-          frozenSpecBytes = prepared.specBytes.copyOf(),
-          acceptanceCriteria = prepared.criteria.toList(),
-          treatmentEnabled = arm == ExperimentArmId.TREATMENT,
-        ),
-      )
-    }
-    val cleanupFailure = snapshot?.let { snapshotPath ->
+    val result =
       runCatching {
-        removeNavigationSnapshot(prepared.request.source.repoRoot, snapshotPath)
-      }.exceptionOrNull()
-    }
+        snapshot =
+          createNavigationSnapshot(
+            prepared.request.source.repoRoot,
+            prepared.pairId,
+            arm,
+            prepared.resolvedRevision,
+          )
+        sessionRunner.runSession(
+          ExperimentNavigationSessionRequest(
+            pairId = prepared.pairId,
+            armId = arm.wireValue,
+            repoRoot = requireNotNull(snapshot),
+            revision = prepared.resolvedRevision,
+            frozenSpecBytes = prepared.specBytes.copyOf(),
+            acceptanceCriteria = prepared.criteria.toList(),
+            treatmentEnabled = arm == ExperimentArmId.TREATMENT,
+          ),
+        )
+      }
+    val cleanupFailure =
+      snapshot?.let { snapshotPath ->
+        runCatching {
+          removeNavigationSnapshot(prepared.request.source.repoRoot, snapshotPath)
+        }.exceptionOrNull()
+      }
     val primaryFailure = result.exceptionOrNull()
     if (primaryFailure != null) {
       cleanupFailure?.let(primaryFailure::addSuppressed)
@@ -316,8 +335,9 @@ class ExperimentNavigationPairCoordinator(
           pairId = prepared.pairId,
           arm = arm,
           terminalStatus = "failed",
-          failureReason = primaryFailure.message.orEmpty()
-            .ifBlank { primaryFailure::class.simpleName.orEmpty() },
+          failureReason =
+            primaryFailure.message.orEmpty()
+              .ifBlank { primaryFailure::class.simpleName.orEmpty() },
         ),
       )
       throw primaryFailure
@@ -333,14 +353,16 @@ class ExperimentNavigationPairCoordinator(
     specBytes: ByteArray,
   ) {
     if (persisted == null) return
-    val frozen = persisted.pairPayload[ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY] as? Map<*, *>
-      ?: throw ExperimentNavigationRevisionError(
-        revision = revision,
-        reason = "the persisted navigation pair has no frozen input identity",
-      )
-    val matches = frozen[ExperimentPairPayloadKeys.REPOSITORY_IDENTITY]?.toString() == repositoryIdentity &&
-      frozen[ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA]?.toString() == revision &&
-      frozen[ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH]?.toString() == sha256Hex(specBytes)
+    val frozen =
+      persisted.pairPayload[ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY] as? Map<*, *>
+        ?: throw ExperimentNavigationRevisionError(
+          revision = revision,
+          reason = "the persisted navigation pair has no frozen input identity",
+        )
+    val matches =
+      frozen[ExperimentPairPayloadKeys.REPOSITORY_IDENTITY]?.toString() == repositoryIdentity &&
+        frozen[ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA]?.toString() == revision &&
+        frozen[ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH]?.toString() == sha256Hex(specBytes)
     if (!matches) {
       throw ExperimentNavigationRevisionError(
         revision = revision,
@@ -349,7 +371,11 @@ class ExperimentNavigationPairCoordinator(
     }
   }
 
-  private fun verifyCurrentInputs(repoRoot: Path, revision: String, repositoryIdentity: String) {
+  private fun verifyCurrentInputs(
+    repoRoot: Path,
+    revision: String,
+    repositoryIdentity: String,
+  ) {
     val currentRevision = currentRevision(repoRoot, revision)
     val currentRepositoryIdentity = currentRepositoryIdentity(repoRoot, revision)
     val status = currentWorktreeStatus(repoRoot, revision)
@@ -357,30 +383,40 @@ class ExperimentNavigationPairCoordinator(
     if (currentRevision != revision || currentRepositoryIdentity != repositoryIdentity || dirty) {
       throw ExperimentNavigationRevisionError(
         revision = revision,
-        reason = if (dirty) {
-          "the source worktree is not clean after the navigation pair was frozen"
-        } else {
-          "the source changed after the navigation pair was frozen"
-        },
+        reason =
+          if (dirty) {
+            "the source worktree is not clean after the navigation pair was frozen"
+          } else {
+            "the source changed after the navigation pair was frozen"
+          },
       )
     }
   }
 
-  private fun currentRevision(repoRoot: Path, revision: String): String =
+  private fun currentRevision(
+    repoRoot: Path,
+    revision: String,
+  ): String =
     when (val result = gitOperations.resolveCommit(repoRoot, revision)) {
       is WorkflowGitOperationResult.Ok -> result.value.trim()
       is WorkflowGitOperationResult.Failed ->
         throw ExperimentNavigationRevisionError(revision, "the revision could not be revalidated")
     }
 
-  private fun currentRepositoryIdentity(repoRoot: Path, revision: String): String =
+  private fun currentRepositoryIdentity(
+    repoRoot: Path,
+    revision: String,
+  ): String =
     when (val result = gitOperations.repositoryFingerprint(repoRoot)) {
       is WorkflowGitOperationResult.Ok -> result.value.trim()
       is WorkflowGitOperationResult.Failed ->
         throw ExperimentNavigationRevisionError(revision, "the repository identity could not be revalidated")
     }
 
-  private fun currentWorktreeStatus(repoRoot: Path, revision: String): String =
+  private fun currentWorktreeStatus(
+    repoRoot: Path,
+    revision: String,
+  ): String =
     when (val result = gitOperations.worktreeStatus(repoRoot)) {
       is WorkflowGitOperationResult.Ok -> result.value.orEmpty()
       is WorkflowGitOperationResult.Failed ->
@@ -393,29 +429,32 @@ class ExperimentNavigationPairCoordinator(
     repositoryIdentity: String,
     revision: String,
     specBytes: ByteArray,
-  ): Map<String, Any?> = linkedMapOf(
-    ExperimentPairPayloadKeys.CONTRACT_VERSION to EXPERIMENT_PAIR_CONTRACT_VERSION,
-    ExperimentPairPayloadKeys.PAIR_ID to pairId,
-    ExperimentPairPayloadKeys.EXECUTION_MODE to ExperimentExecutionMode.NAVIGATION.wireValue,
-    ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf(name),
-    ExperimentPairPayloadKeys.ARM_ORDER to listOf(
-      ExperimentArmId.CONTROL.wireValue,
-      ExperimentArmId.TREATMENT.wireValue,
-    ),
-    ExperimentPairPayloadKeys.RANDOM_SEED to pairId,
-    ExperimentPairPayloadKeys.DELIVERY_ARM to "undecided",
-    ExperimentPairPayloadKeys.PAIR_STATUS to "running",
-    ExperimentPairPayloadKeys.DELIVERY_STATUS to "not_applicable",
-    ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to mapOf(
-      ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to repositoryIdentity,
-      ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to revision,
-      ExperimentPairPayloadKeys.SOURCE_TREE_SHA to revision,
-      ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to sha256Hex(specBytes),
-      ExperimentPairPayloadKeys.EFFECTIVE_CONFIG_HASH to name,
-      ExperimentPairPayloadKeys.SKILL_BILL_VERSION to "runtime",
-    ),
-    ExperimentPairPayloadKeys.ARM_OUTCOMES to emptyList<Any>(),
-  )
+  ): Map<String, Any?> =
+    linkedMapOf(
+      ExperimentPairPayloadKeys.CONTRACT_VERSION to EXPERIMENT_PAIR_CONTRACT_VERSION,
+      ExperimentPairPayloadKeys.PAIR_ID to pairId,
+      ExperimentPairPayloadKeys.EXECUTION_MODE to ExperimentExecutionMode.NAVIGATION.wireValue,
+      ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf(name),
+      ExperimentPairPayloadKeys.ARM_ORDER to
+        listOf(
+          ExperimentArmId.CONTROL.wireValue,
+          ExperimentArmId.TREATMENT.wireValue,
+        ),
+      ExperimentPairPayloadKeys.RANDOM_SEED to pairId,
+      ExperimentPairPayloadKeys.DELIVERY_ARM to "undecided",
+      ExperimentPairPayloadKeys.PAIR_STATUS to "running",
+      ExperimentPairPayloadKeys.DELIVERY_STATUS to "not_applicable",
+      ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to
+        mapOf(
+          ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to repositoryIdentity,
+          ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to revision,
+          ExperimentPairPayloadKeys.SOURCE_TREE_SHA to revision,
+          ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to sha256Hex(specBytes),
+          ExperimentPairPayloadKeys.EFFECTIVE_CONFIG_HASH to name,
+          ExperimentPairPayloadKeys.SKILL_BILL_VERSION to "runtime",
+        ),
+      ExperimentPairPayloadKeys.ARM_OUTCOMES to emptyList<Any>(),
+    )
 
   private fun sha256Hex(bytes: ByteArray): String =
     MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { byte ->
@@ -435,54 +474,64 @@ class ExperimentNavigationPairCoordinator(
         ?.filterNot { it[ExperimentPairPayloadKeys.ARM_ID] == arm.wireValue }
         ?.map { it.entries.associate { entry -> entry.key.toString() to entry.value } }
         ?.toMutableList() ?: mutableListOf()
-      )
-    outcomes += mapOf(
-      ExperimentPairPayloadKeys.ARM_ID to arm.wireValue,
-      ExperimentPairPayloadKeys.TERMINAL_STATUS to terminalStatus(result.outcome),
-      ExperimentPairPayloadKeys.DELIVERED_PATHS to result.deliveredPaths,
-      ExperimentPairPayloadKeys.SHORTLISTED_PATHS to result.shortlistedPaths,
-      ExperimentPairPayloadKeys.READ_RECEIPTS to result.readReceipts.map { receipt ->
-        mapOf(ExperimentPairPayloadKeys.PATH to receipt.path, ExperimentPairPayloadKeys.PURPOSE to receipt.purpose)
-      },
-      ExperimentPairPayloadKeys.ATTEMPT_COUNT to result.attemptCount,
-      ExperimentPairPayloadKeys.LABELLED_CRITERIA to result.labelCoverage.labelledCriteria,
-      ExperimentPairPayloadKeys.TOTAL_CRITERIA to result.labelCoverage.totalCriteria,
-      ExperimentPairPayloadKeys.PRECISION_AVAILABLE to result.labelCoverage.precisionAvailable,
-      ExperimentPairPayloadKeys.EXCLUDED_PATHS to result.excludedPaths,
-      ExperimentPairPayloadKeys.RESTRICTED_BASELINE to result.restrictedBaseline,
-      ExperimentPairPayloadKeys.DELIVERED_CRITERIA to hiddenScore.deliveredCriteria,
-      ExperimentPairPayloadKeys.RELEVANT_READS to hiddenScore.relevantReads,
-      ExperimentPairPayloadKeys.PRECISION to hiddenScore.precision,
-    ).filterValues { it != null }
+    )
+    outcomes +=
+      mapOf(
+        ExperimentPairPayloadKeys.ARM_ID to arm.wireValue,
+        ExperimentPairPayloadKeys.TERMINAL_STATUS to terminalStatus(result.outcome),
+        ExperimentPairPayloadKeys.DELIVERED_PATHS to result.deliveredPaths,
+        ExperimentPairPayloadKeys.SHORTLISTED_PATHS to result.shortlistedPaths,
+        ExperimentPairPayloadKeys.READ_RECEIPTS to
+          result.readReceipts.map { receipt ->
+            mapOf(ExperimentPairPayloadKeys.PATH to receipt.path, ExperimentPairPayloadKeys.PURPOSE to receipt.purpose)
+          },
+        ExperimentPairPayloadKeys.ATTEMPT_COUNT to result.attemptCount,
+        ExperimentPairPayloadKeys.LABELLED_CRITERIA to result.labelCoverage.labelledCriteria,
+        ExperimentPairPayloadKeys.TOTAL_CRITERIA to result.labelCoverage.totalCriteria,
+        ExperimentPairPayloadKeys.PRECISION_AVAILABLE to result.labelCoverage.precisionAvailable,
+        ExperimentPairPayloadKeys.EXCLUDED_PATHS to result.excludedPaths,
+        ExperimentPairPayloadKeys.RESTRICTED_BASELINE to result.restrictedBaseline,
+        ExperimentPairPayloadKeys.DELIVERED_CRITERIA to hiddenScore.deliveredCriteria,
+        ExperimentPairPayloadKeys.RELEVANT_READS to hiddenScore.relevantReads,
+        ExperimentPairPayloadKeys.PRECISION to hiddenScore.precision,
+      ).filterValues { it != null }
     val updated = payload.toMutableMap()
     updated[ExperimentPairPayloadKeys.ARM_OUTCOMES] = outcomes
-    updated[ExperimentPairPayloadKeys.PAIR_STATUS] = when {
-      result.outcome == ExperimentNavigationTerminalOutcome.CANCELLED -> "cancelled"
-      outcomes.any { it[ExperimentPairPayloadKeys.TERMINAL_STATUS] == "failed" } -> "failed"
-      outcomes.size == 2 -> "completed"
-      else -> "running"
-    }
+    updated[ExperimentPairPayloadKeys.PAIR_STATUS] =
+      when {
+        result.outcome == ExperimentNavigationTerminalOutcome.CANCELLED -> "cancelled"
+        outcomes.any { it[ExperimentPairPayloadKeys.TERMINAL_STATUS] == "failed" } -> "failed"
+        outcomes.size == 2 -> "completed"
+        else -> "running"
+      }
     return ExperimentPairPersistedState(
       pairId = pairId,
       executionMode = ExperimentExecutionMode.NAVIGATION,
-      selectedNames = (updated[ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES] as? List<*>)
-        ?.map { it.toString() }.orEmpty(),
+      selectedNames =
+        (updated[ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES] as? List<*>)
+          ?.map { it.toString() }.orEmpty(),
       armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
       randomSeed = updated[ExperimentPairPayloadKeys.RANDOM_SEED].toString(),
       pairPayload = updated,
     )
   }
 
-  private fun terminalStatus(outcome: ExperimentNavigationTerminalOutcome): String = when (outcome) {
-    ExperimentNavigationTerminalOutcome.SEARCH_COMPLETED -> "completed"
-    ExperimentNavigationTerminalOutcome.BUDGET_EXHAUSTED,
-    ExperimentNavigationTerminalOutcome.INSUFFICIENT_EVIDENCE,
-    ExperimentNavigationTerminalOutcome.FAILED,
-    -> "failed"
-    ExperimentNavigationTerminalOutcome.CANCELLED -> "skipped"
-  }
+  private fun terminalStatus(outcome: ExperimentNavigationTerminalOutcome): String =
+    when (outcome) {
+      ExperimentNavigationTerminalOutcome.SEARCH_COMPLETED -> "completed"
+      ExperimentNavigationTerminalOutcome.BUDGET_EXHAUSTED,
+      ExperimentNavigationTerminalOutcome.INSUFFICIENT_EVIDENCE,
+      ExperimentNavigationTerminalOutcome.FAILED,
+      -> "failed"
+      ExperimentNavigationTerminalOutcome.CANCELLED -> "skipped"
+    }
 
-  private fun createNavigationSnapshot(repoRoot: Path, pairId: String, arm: ExperimentArmId, revision: String): Path {
+  private fun createNavigationSnapshot(
+    repoRoot: Path,
+    pairId: String,
+    arm: ExperimentArmId,
+    revision: String,
+  ): Path {
     val parent = Files.createTempDirectory("skill-bill-navigation-${safePath(pairId)}-${arm.wireValue}")
     val snapshot = parent.resolve("snapshot")
     gitOperations.linkedWorktreeOperations.addLinkedWorktree(
@@ -496,7 +545,10 @@ class ExperimentNavigationPairCoordinator(
     return snapshot
   }
 
-  private fun removeNavigationSnapshot(repoRoot: Path, snapshot: Path) {
+  private fun removeNavigationSnapshot(
+    repoRoot: Path,
+    snapshot: Path,
+  ) {
     gitOperations.linkedWorktreeOperations.removeLinkedWorktree(
       LinkedWorktreeRemoveRequest(repositoryRoot = repoRoot, worktreePath = snapshot),
     )
@@ -506,41 +558,42 @@ class ExperimentNavigationPairCoordinator(
   private fun navigationMeasurements(
     result: ExperimentNavigationSessionResult?,
     provider: ExperimentArmMeasurement,
-  ): List<ExperimentObservationMeasurement> = buildList {
-    result?.let {
+  ): List<ExperimentObservationMeasurement> =
+    buildList {
+      result?.let {
+        add(
+          ExperimentObservationMeasurement(
+            metricId = "attempt_count",
+            quantity = it.attemptCount.toDouble(),
+            availability = TelemetryMeasurementAvailability.MEASURED.wireValue,
+          ),
+        )
+      }
       add(
         ExperimentObservationMeasurement(
-          metricId = "attempt_count",
-          quantity = it.attemptCount.toDouble(),
-          availability = TelemetryMeasurementAvailability.MEASURED.wireValue,
+          metricId = "usage",
+          quantity = provider.usage.quantity,
+          availability = provider.usage.availability,
+          reason = provider.usage.reason,
+        ),
+      )
+      add(
+        ExperimentObservationMeasurement(
+          metricId = "setup_cost",
+          quantity = provider.setupCost.quantity,
+          availability = provider.setupCost.availability,
+          reason = provider.setupCost.reason,
+        ),
+      )
+      add(
+        ExperimentObservationMeasurement(
+          metricId = "cost",
+          quantity = provider.cost.quantity,
+          availability = provider.cost.availability,
+          reason = provider.cost.reason,
         ),
       )
     }
-    add(
-      ExperimentObservationMeasurement(
-        metricId = "usage",
-        quantity = provider.usage.quantity,
-        availability = provider.usage.availability,
-        reason = provider.usage.reason,
-      ),
-    )
-    add(
-      ExperimentObservationMeasurement(
-        metricId = "setup_cost",
-        quantity = provider.setupCost.quantity,
-        availability = provider.setupCost.availability,
-        reason = provider.setupCost.reason,
-      ),
-    )
-    add(
-      ExperimentObservationMeasurement(
-        metricId = "cost",
-        quantity = provider.cost.quantity,
-        availability = provider.cost.availability,
-        reason = provider.cost.reason,
-      ),
-    )
-  }
 
   private fun recordArmObservation(
     pairId: String,
@@ -562,18 +615,23 @@ class ExperimentNavigationPairCoordinator(
     )
   }
 
-  private fun unavailableMeasurement(): ExperimentArmMeasurement = ExperimentArmMeasurement(
-    setupCost = unavailableValue("provider setup cost was not recorded"),
-    usage = unavailableValue("provider usage was not recorded"),
-    cost = unavailableValue("provider cost was not recorded"),
-  )
+  private fun unavailableMeasurement(): ExperimentArmMeasurement =
+    ExperimentArmMeasurement(
+      setupCost = unavailableValue("provider setup cost was not recorded"),
+      usage = unavailableValue("provider usage was not recorded"),
+      cost = unavailableValue("provider cost was not recorded"),
+    )
 
-  private fun unavailableValue(reason: String): ExperimentMeasuredValue = ExperimentMeasuredValue(
-    availability = TelemetryMeasurementAvailability.UNAVAILABLE_INCOMPLETE.wireValue,
-    reason = reason,
-  )
+  private fun unavailableValue(reason: String): ExperimentMeasuredValue =
+    ExperimentMeasuredValue(
+      availability = TelemetryMeasurementAvailability.UNAVAILABLE_INCOMPLETE.wireValue,
+      reason = reason,
+    )
 
-  private fun armOutcome(payload: Map<String, Any?>?, arm: ExperimentArmId): Map<String, Any?>? =
+  private fun armOutcome(
+    payload: Map<String, Any?>?,
+    arm: ExperimentArmId,
+  ): Map<String, Any?>? =
     (payload?.get(ExperimentPairPayloadKeys.ARM_OUTCOMES) as? List<*>)
       ?.filterIsInstance<Map<*, *>>()
       ?.map { outcome -> outcome.entries.associate { entry -> entry.key.toString() to entry.value } }
@@ -586,17 +644,19 @@ class ExperimentNavigationPairCoordinator(
     terminalStatus: String,
     failureReason: String? = null,
   ): ExperimentPairPersistedState {
-    val outcomes = (payload[ExperimentPairPayloadKeys.ARM_OUTCOMES] as? List<*>)
-      ?.filterIsInstance<Map<*, *>>()
-      ?.map { it.entries.associate { entry -> entry.key.toString() to entry.value } }
-      ?.filterNot { it[ExperimentPairPayloadKeys.ARM_ID] == arm.wireValue }
-      ?.toMutableList()
-      ?: mutableListOf()
-    outcomes += mapOf(
-      ExperimentPairPayloadKeys.ARM_ID to arm.wireValue,
-      ExperimentPairPayloadKeys.TERMINAL_STATUS to terminalStatus,
-      ExperimentPairPayloadKeys.FAILURE_REASON to failureReason,
-    ).filterValues { it != null }
+    val outcomes =
+      (payload[ExperimentPairPayloadKeys.ARM_OUTCOMES] as? List<*>)
+        ?.filterIsInstance<Map<*, *>>()
+        ?.map { it.entries.associate { entry -> entry.key.toString() to entry.value } }
+        ?.filterNot { it[ExperimentPairPayloadKeys.ARM_ID] == arm.wireValue }
+        ?.toMutableList()
+        ?: mutableListOf()
+    outcomes +=
+      mapOf(
+        ExperimentPairPayloadKeys.ARM_ID to arm.wireValue,
+        ExperimentPairPayloadKeys.TERMINAL_STATUS to terminalStatus,
+        ExperimentPairPayloadKeys.FAILURE_REASON to failureReason,
+      ).filterValues { it != null }
     val updated = payload.toMutableMap()
     updated[ExperimentPairPayloadKeys.ARM_OUTCOMES] = outcomes
     updated[ExperimentPairPayloadKeys.PAIR_STATUS] =
@@ -604,8 +664,9 @@ class ExperimentNavigationPairCoordinator(
     return ExperimentPairPersistedState(
       pairId = pairId,
       executionMode = ExperimentExecutionMode.NAVIGATION,
-      selectedNames = (updated[ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES] as? List<*>)
-        ?.map { it.toString() }.orEmpty(),
+      selectedNames =
+        (updated[ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES] as? List<*>)
+          ?.map { it.toString() }.orEmpty(),
       armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
       randomSeed = updated[ExperimentPairPayloadKeys.RANDOM_SEED]?.toString().orEmpty(),
       pairPayload = updated,

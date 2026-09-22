@@ -1,5 +1,6 @@
 package skillbill.workflow.taskruntime.model.phase
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+
 sealed interface FeatureTaskRuntimeNextPhase {
   /** Re-enter or advance to [phaseId]. A backward re-entry additionally carries its loop context. */
   data class Next(
@@ -95,15 +96,18 @@ data class FeatureTaskRuntimeTransitionDeclaration(
   val entryGates: List<FeatureTaskRuntimePhaseEntryGate> = emptyList(),
   val loopOnlySuccessors: Map<String, String> = emptyMap(),
 ) {
-
   fun entryGateViolation(
     phaseId: String,
     settledVerdictsByPhaseId: Map<String, FeatureTaskRuntimeVerdict>,
-  ): FeatureTaskRuntimePhaseEntryGate? = entryGates.firstOrNull { gate ->
-    gate.phaseId == phaseId && settledVerdictsByPhaseId[gate.requiredPhaseId] != gate.requiredVerdict
-  }
+  ): FeatureTaskRuntimePhaseEntryGate? =
+    entryGates.firstOrNull { gate ->
+      gate.phaseId == phaseId && settledVerdictsByPhaseId[gate.requiredPhaseId] != gate.requiredVerdict
+    }
 
-  fun spanBetween(destinationPhaseId: String, sourcePhaseId: String): List<String> {
+  fun spanBetween(
+    destinationPhaseId: String,
+    sourcePhaseId: String,
+  ): List<String> {
     val destinationIndex = forwardPhaseIds.indexOf(destinationPhaseId)
     val sourceIndex = forwardPhaseIds.indexOf(sourcePhaseId)
     return if (destinationIndex in 0..sourceIndex) {

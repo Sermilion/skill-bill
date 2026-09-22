@@ -33,9 +33,15 @@ interface SharedGoalPreplanRepository {
 
   fun findSharedPreplan(expectedIdentity: GoalPlanningIdentity): SharedGoalPreplanCheckpoint?
 
-  fun deleteSharedPreplan(identity: GoalPlanningIdentity, expectedPayloadSha256: String): Int
+  fun deleteSharedPreplan(
+    identity: GoalPlanningIdentity,
+    expectedPayloadSha256: String,
+  ): Int
 
-  fun invalidateSharedPreplan(identity: GoalPlanningIdentity, expectedPayloadSha256: String): Int
+  fun invalidateSharedPreplan(
+    identity: GoalPlanningIdentity,
+    expectedPayloadSha256: String,
+  ): Int
 
   fun listPreparedPlanSubtaskIds(parentGoalWorkflowId: String): List<Int>
 
@@ -50,24 +56,29 @@ interface GoalSubtaskPlanRepository {
     orderedSubtaskIds: List<Int>,
     blockedSubtaskId: Int? = null,
     blockedReason: String? = null,
-  ): GoalPlanningStatusSnapshot = GoalPlanningStatusSnapshot(
-    state = if (blockedReason == null) {
-      NOT_STARTED
-    } else {
-      BLOCKED
-    },
-    sharedPreplanPrepared = false,
-    plannedSubtaskCount = 0,
-    totalSubtaskCount = orderedSubtaskIds.size,
-    currentPlanningSubtaskId = blockedSubtaskId ?: orderedSubtaskIds.firstOrNull(),
-    reason = blockedReason ?: "Goal planning has not started.",
-  )
+  ): GoalPlanningStatusSnapshot =
+    GoalPlanningStatusSnapshot(
+      state =
+        if (blockedReason == null) {
+          NOT_STARTED
+        } else {
+          BLOCKED
+        },
+      sharedPreplanPrepared = false,
+      plannedSubtaskCount = 0,
+      totalSubtaskCount = orderedSubtaskIds.size,
+      currentPlanningSubtaskId = blockedSubtaskId ?: orderedSubtaskIds.firstOrNull(),
+      reason = blockedReason ?: "Goal planning has not started.",
+    )
 
   fun checkpointSubtaskPlan(checkpoint: GoalSubtaskPlanCheckpoint)
 
   fun replaceSubtaskPlan(checkpoint: GoalSubtaskPlanCheckpoint)
 
-  fun deleteSubtaskPlan(parentGoalWorkflowId: String, subtaskId: Int): Int
+  fun deleteSubtaskPlan(
+    parentGoalWorkflowId: String,
+    subtaskId: Int,
+  ): Int
 
   fun findSubtaskPlan(
     expectedIdentity: GoalPlanningIdentity,
@@ -101,15 +112,24 @@ interface NormalizedGoalPlanningPreparationRepository :
 interface LegacyGoalPlanningPreparationRepository {
   fun markPrepared(record: GoalPlanningPreparationRecord)
 
-  fun findByGoalAndSubtask(parentGoalWorkflowId: String, subtaskId: Int): GoalPlanningPreparationRecord?
+  fun findByGoalAndSubtask(
+    parentGoalWorkflowId: String,
+    subtaskId: Int,
+  ): GoalPlanningPreparationRecord?
 
   fun listPreparedByGoalOrdered(parentGoalWorkflowId: String): List<GoalPlanningPreparationRecord>
 
   fun preparedCount(parentGoalWorkflowId: String): Int
 
-  fun firstMissingOrIncompleteSubtask(parentGoalWorkflowId: String, orderedSubtaskIds: List<Int>): Int?
+  fun firstMissingOrIncompleteSubtask(
+    parentGoalWorkflowId: String,
+    orderedSubtaskIds: List<Int>,
+  ): Int?
 
-  fun preparedStatus(parentGoalWorkflowId: String, subtaskId: Int): GoalPlanningPreparationStatus?
+  fun preparedStatus(
+    parentGoalWorkflowId: String,
+    subtaskId: Int,
+  ): GoalPlanningPreparationStatus?
 
   fun deleteByGoal(parentGoalWorkflowId: String): Int
 }

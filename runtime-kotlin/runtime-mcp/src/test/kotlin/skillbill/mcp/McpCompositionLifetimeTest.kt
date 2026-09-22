@@ -17,13 +17,15 @@ class McpCompositionLifetimeTest {
       config,
       """{"install_id":"test","telemetry":{"level":"off","proxy_url":"","batch_size":50}}""",
     )
-    val context = McpRuntimeContext(
-      environment = mapOf(
-        "SKILL_BILL_REVIEW_DB" to root.resolve("metrics.db").toString(),
-        CONFIG_ENVIRONMENT_KEY to config.toString(),
-      ),
-      userHome = root,
-    )
+    val context =
+      McpRuntimeContext(
+        environment =
+          mapOf(
+            "SKILL_BILL_REVIEW_DB" to root.resolve("metrics.db").toString(),
+            CONFIG_ENVIRONMENT_KEY to config.toString(),
+          ),
+        userHome = root,
+      )
     val component: McpComponent = context.mcpComponent()
     val firstFactory = component.databaseSessionFactory
     val request = """{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"version","arguments":{}}}"""

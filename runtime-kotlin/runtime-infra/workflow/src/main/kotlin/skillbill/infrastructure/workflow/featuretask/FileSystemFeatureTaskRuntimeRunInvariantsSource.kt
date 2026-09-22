@@ -20,16 +20,18 @@ class FileSystemFeatureTaskRuntimeRunInvariantsSource : FeatureTaskRuntimeRunInv
     return FeatureTaskRuntimeRunInvariants(
       specReference = normalizedPath.toString(),
       featureSize = parseFeatureSize(specText),
-      acceptanceCriteria = GovernedSpecSectionParser.parseListSection(specText) {
-        it.startsWith(ACCEPTANCE_CRITERIA_PREFIX)
-      },
+      acceptanceCriteria =
+        GovernedSpecSectionParser.parseListSection(specText) {
+          it.startsWith(ACCEPTANCE_CRITERIA_PREFIX)
+        },
       mandatesAndOverrides = GovernedSpecSectionParser.parseListSection(specText) { it in MANDATES_HEADINGS },
     )
   }
 
   private fun parseFeatureSize(specText: String): FeatureTaskRuntimeFeatureSize {
-    val rawValue = FEATURE_SIZE_LINE.find(specText)?.groupValues?.get(1)
-      ?: return FeatureTaskRuntimeFeatureSize.DEFAULT
+    val rawValue =
+      FEATURE_SIZE_LINE.find(specText)?.groupValues?.get(1)
+        ?: return FeatureTaskRuntimeFeatureSize.DEFAULT
     return FeatureTaskRuntimeFeatureSize.fromWire(rawValue)
   }
 

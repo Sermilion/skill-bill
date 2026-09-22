@@ -11,12 +11,18 @@ private const val CODEX_PROFILE_PREFIX: String = ".codex-"
 private val CODEX_PROFILE_MARKERS: List<String> =
   listOf("config.toml", "history.jsonl", "installation_id", "router.config.toml")
 
-internal fun codexConfigRoot(home: Path, environment: Map<String, String>): Path =
+internal fun codexConfigRoot(
+  home: Path,
+  environment: Map<String, String>,
+): Path =
   environment[CODEX_HOME_ENV]?.takeIf { it.isNotBlank() }
     ?.let { Path.of(it).toAbsolutePath().normalize() }
     ?: defaultCodexRoot(home)
 
-internal fun codexConfigRoots(home: Path, environment: Map<String, String>): List<Path> {
+internal fun codexConfigRoots(
+  home: Path,
+  environment: Map<String, String>,
+): List<Path> {
   val ordered = mutableListOf<Path>()
   val seen = mutableSetOf<Path>()
 
@@ -52,7 +58,10 @@ internal fun codexConfigRoots(home: Path, environment: Map<String, String>): Lis
   return ordered
 }
 
-internal fun codexSkillTargets(home: Path, environment: Map<String, String>): List<Path> {
+internal fun codexSkillTargets(
+  home: Path,
+  environment: Map<String, String>,
+): List<Path> {
   val resolvedHome = home
   val ordered = mutableListOf<Path>()
   val seen = mutableSetOf<Path>()

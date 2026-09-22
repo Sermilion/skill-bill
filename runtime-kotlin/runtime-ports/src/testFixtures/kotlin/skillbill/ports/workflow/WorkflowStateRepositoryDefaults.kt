@@ -27,11 +27,17 @@ abstract class WorkflowStateRepositoryDefaults : WorkflowStateRepository {
 
   open override fun countGoalChildIdentities(normalizedIssueKey: String): Int = 0
 
-  open override fun claimFeatureTaskContinuation(workflowId: String, expectedUpdatedAt: String?): Boolean = false
+  open override fun claimFeatureTaskContinuation(
+    workflowId: String,
+    expectedUpdatedAt: String?,
+  ): Boolean = false
 
   open override fun terminalizeLegacyProseFeatureTaskWorkflow(row: WorkflowStateRecord) = Unit
 
-  open override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) {
+  open override fun saveFeatureTaskWorkflow(
+    row: WorkflowStateRecord,
+    mode: FeatureTaskWorkflowMode,
+  ) {
     when (mode) {
       FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
       FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
@@ -44,12 +50,16 @@ abstract class WorkflowStateRepositoryDefaults : WorkflowStateRepository {
   open override fun getFeatureTaskWorkflowAsMode(
     workflowId: String,
     mode: FeatureTaskWorkflowMode,
-  ): WorkflowStateRecord? = when (mode) {
-    FeatureTaskWorkflowMode.RUNTIME -> getFeatureTaskRuntimeWorkflow(workflowId)
-    FeatureTaskWorkflowMode.PROSE -> getFeatureImplementWorkflow(workflowId)
-  }
+  ): WorkflowStateRecord? =
+    when (mode) {
+      FeatureTaskWorkflowMode.RUNTIME -> getFeatureTaskRuntimeWorkflow(workflowId)
+      FeatureTaskWorkflowMode.PROSE -> getFeatureImplementWorkflow(workflowId)
+    }
 
-  open override fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int): List<WorkflowStateRecord> =
+  open override fun listFeatureTaskWorkflows(
+    mode: FeatureTaskWorkflowMode,
+    limit: Int,
+  ): List<WorkflowStateRecord> =
     when (mode) {
       FeatureTaskWorkflowMode.RUNTIME -> listFeatureTaskRuntimeWorkflows(limit)
       FeatureTaskWorkflowMode.PROSE -> listFeatureImplementWorkflows(limit)
@@ -90,8 +100,11 @@ abstract class WorkflowStateRepositoryDefaults : WorkflowStateRepository {
 
   open override fun heartbeatFeatureTaskRuntimeWorker(ownership: FeatureTaskRuntimeWorkerOwnership): Boolean = false
 
-  open override fun releaseFeatureTaskRuntimeWorker(workflowId: String, ownerToken: String, generation: Long): Boolean =
-    false
+  open override fun releaseFeatureTaskRuntimeWorker(
+    workflowId: String,
+    ownerToken: String,
+    generation: Long,
+  ): Boolean = false
 
   open override fun findFeatureTaskRuntimeCrashReconciliationCandidates(
     nowInstant: String,

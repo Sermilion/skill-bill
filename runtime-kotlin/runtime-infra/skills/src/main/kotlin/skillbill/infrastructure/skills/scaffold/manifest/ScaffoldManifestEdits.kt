@@ -3,7 +3,13 @@ package skillbill.infrastructure.skills.scaffold.manifest
 
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import java.nio.file.Path
-internal fun appendCodeReviewArea(manifestPath: Path, area: String, relativeContentPath: String, areaFocus: String) {
+
+internal fun appendCodeReviewArea(
+  manifestPath: Path,
+  area: String,
+  relativeContentPath: String,
+  areaFocus: String,
+) {
   val original = manifestPath.toFile().readText()
   var updated = original
   updated = appendAreaToList(updated, area)
@@ -14,7 +20,10 @@ internal fun appendCodeReviewArea(manifestPath: Path, area: String, relativeCont
   }
 }
 
-internal fun setDeclaredQualityCheckFile(manifestPath: Path, relativeContentPath: String) {
+internal fun setDeclaredQualityCheckFile(
+  manifestPath: Path,
+  relativeContentPath: String,
+) {
   val original = manifestPath.toFile().readText()
   val updated = updateDeclaredQualityCheckFileText(original, relativeContentPath)
   if (updated != original) {
@@ -73,7 +82,11 @@ internal fun renderExternalAddonManifestRegistration(
   }
 }
 
-internal fun appendReadmeCatalogRow(readmePath: Path, skillName: String, description: String) {
+internal fun appendReadmeCatalogRow(
+  readmePath: Path,
+  skillName: String,
+  description: String,
+) {
   val original = readmePath.toFile().readText()
   val updated = renderReadmeCatalogRow(original, skillName, description)
   if (updated != original) {
@@ -81,7 +94,11 @@ internal fun appendReadmeCatalogRow(readmePath: Path, skillName: String, descrip
   }
 }
 
-internal fun renderReadmeCatalogRow(text: String, skillName: String, description: String): String {
+internal fun renderReadmeCatalogRow(
+  text: String,
+  skillName: String,
+  description: String,
+): String {
   val rows = findReadmeCatalogRows(text)
   if (rows.isEmpty()) {
     throw InvalidScaffoldPayloadError(
@@ -93,8 +110,9 @@ internal fun renderReadmeCatalogRow(text: String, skillName: String, description
   }
   val safeDescription = sanitizeCatalogDescription(description)
   val newRow = "| `/$skillName` | $safeDescription |"
-  val insertAfter = rows
-    .lastOrNull { match -> match.groupValues[1].compareTo(skillName) < 0 }
+  val insertAfter =
+    rows
+      .lastOrNull { match -> match.groupValues[1].compareTo(skillName) < 0 }
   return if (insertAfter != null) {
     val anchor = insertAfter.range.last + 1
     text.substring(0, anchor) + "\n" + newRow + text.substring(anchor)

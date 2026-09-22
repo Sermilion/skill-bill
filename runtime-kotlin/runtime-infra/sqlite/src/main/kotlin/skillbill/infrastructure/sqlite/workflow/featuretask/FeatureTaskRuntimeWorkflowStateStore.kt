@@ -19,9 +19,10 @@ internal class FeatureTaskRuntimeWorkflowStateStore(
     connection.upsertFeatureTaskWorkflowRow(
       row = row,
       mode = FeatureTaskWorkflowMode.RUNTIME,
-      implementationSkill = row.implementationSkill.orEmpty().ifBlank {
-        FeatureTaskWorkflowMode.RUNTIME.defaultImplementationSkill
-      },
+      implementationSkill =
+        row.implementationSkill.orEmpty().ifBlank {
+          FeatureTaskWorkflowMode.RUNTIME.defaultImplementationSkill
+        },
       defaultContractVersion = FeatureTaskWorkflowMode.RUNTIME.defaultContractVersion,
       clock = clock,
     )

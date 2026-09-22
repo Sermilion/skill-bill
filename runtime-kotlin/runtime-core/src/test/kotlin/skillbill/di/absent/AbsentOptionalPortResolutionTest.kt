@@ -21,14 +21,15 @@ class AbsentOptionalPortResolutionTest {
 
   @Test
   fun `an absent requester resolves to the JDK transport`() {
-    val resolved = RuntimeBootstrapBindings.runtimeContext(
-      RuntimeContext(
-        environment = EnvironmentContext(),
-        transport = TransportContext(),
-        workflowOps = WorkflowOpsContext(),
-        callbacks = OptionalCallbacks(),
-      ),
-    )
+    val resolved =
+      RuntimeBootstrapBindings.runtimeContext(
+        RuntimeContext(
+          environment = EnvironmentContext(),
+          transport = TransportContext(),
+          workflowOps = WorkflowOpsContext(),
+          callbacks = OptionalCallbacks(),
+        ),
+      )
 
     assertSame(JdkHttpRequester, resolved.transport.requester)
   }
@@ -37,14 +38,15 @@ class AbsentOptionalPortResolutionTest {
   fun `a caller-supplied requester survives bootstrap`() {
     val supplied = RemoteTransportPort { _, _, _, _ -> RemoteTransportResponse(200, "") }
 
-    val resolved = RuntimeBootstrapBindings.runtimeContext(
-      RuntimeContext(
-        environment = EnvironmentContext(),
-        transport = TransportContext(requester = supplied),
-        workflowOps = WorkflowOpsContext(),
-        callbacks = OptionalCallbacks(),
-      ),
-    )
+    val resolved =
+      RuntimeBootstrapBindings.runtimeContext(
+        RuntimeContext(
+          environment = EnvironmentContext(),
+          transport = TransportContext(requester = supplied),
+          workflowOps = WorkflowOpsContext(),
+          callbacks = OptionalCallbacks(),
+        ),
+      )
 
     assertSame(supplied, resolved.transport.requester)
   }

@@ -1,4 +1,5 @@
 package skillbill.cli.goal.run
+
 internal const val DEFAULT_GOAL_PROGRESS_IDLE_TIMEOUT_MINUTES = 10
 
 internal const val DEFAULT_GOAL_WATCH_INTERVAL_SECONDS = 5

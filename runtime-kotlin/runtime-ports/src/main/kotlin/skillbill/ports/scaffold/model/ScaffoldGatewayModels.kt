@@ -31,14 +31,15 @@ data class ScaffoldRenderResult(
   val skillName: String,
   val blocks: List<ScaffoldRenderBlock>,
 ) {
-  val stdout: String = buildString {
-    blocks.forEachIndexed { index, block ->
-      if (index > 0) {
+  val stdout: String =
+    buildString {
+      blocks.forEachIndexed { index, block ->
+        if (index > 0) {
+          appendLine()
+        }
+        appendLine(block.header)
+        append(block.content.trimEnd('\r', '\n'))
         appendLine()
       }
-      appendLine(block.header)
-      append(block.content.trimEnd('\r', '\n'))
-      appendLine()
     }
-  }
 }

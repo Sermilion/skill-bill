@@ -9,6 +9,7 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import kotlin.coroutines.cancellation.CancellationException
+
 internal enum class FeatureTaskRuntimeContinuationKind(val wireValue: String) {
   IMPLEMENTATION_CONTINUATION("implementation_continuation"),
   SCHEMA_CORRECTION("schema_correction"),
@@ -24,11 +25,12 @@ internal enum class FeatureTaskRuntimeContinuationKind(val wireValue: String) {
   companion object {
     const val LEDGER_DETAIL_PREFIX: String = "continuation:"
 
-    fun fromLedgerDetail(detail: String?): FeatureTaskRuntimeContinuationKind? = detail
-      ?.takeIf { it.startsWith(LEDGER_DETAIL_PREFIX) }
-      ?.removePrefix(LEDGER_DETAIL_PREFIX)
-      ?.substringBefore(' ')
-      ?.let { value -> entries.firstOrNull { it.wireValue == value } }
+    fun fromLedgerDetail(detail: String?): FeatureTaskRuntimeContinuationKind? =
+      detail
+        ?.takeIf { it.startsWith(LEDGER_DETAIL_PREFIX) }
+        ?.removePrefix(LEDGER_DETAIL_PREFIX)
+        ?.substringBefore(' ')
+        ?.let { value -> entries.firstOrNull { it.wireValue == value } }
   }
 }
 
@@ -42,7 +44,11 @@ internal data class FeatureTaskRuntimePhaseStartReentry(
   }
 }
 
-fun emitFeatureTaskRuntimeEventSafely(diagnostics: RuntimeDiagnostics, seam: String, emit: () -> Unit) {
+fun emitFeatureTaskRuntimeEventSafely(
+  diagnostics: RuntimeDiagnostics,
+  seam: String,
+  emit: () -> Unit,
+) {
   runCatching { emit() }
     .exceptionOrNull()
     ?.let { error ->
@@ -60,7 +66,12 @@ class FeatureTaskRuntimeRunObservability(
   val request: FeatureTaskRuntimeRunRequest,
   val diagnostics: RuntimeDiagnostics,
 ) {
-  fun branchResolved(phaseId: String, branch: String, created: Boolean, reused: Boolean) {
+  fun branchResolved(
+    phaseId: String,
+    branch: String,
+    created: Boolean,
+    reused: Boolean,
+  ) {
     emitSafely(
       FeatureTaskRuntimeRunEvent.BranchResolved(
         workflowId = request.workflowId,
@@ -72,7 +83,11 @@ class FeatureTaskRuntimeRunObservability(
     )
   }
 
-  fun branchSetupBlocked(phaseId: String, resolvedAgentId: String, blockedReason: String) {
+  fun branchSetupBlocked(
+    phaseId: String,
+    resolvedAgentId: String,
+    blockedReason: String,
+  ) {
     emitSafely(
       FeatureTaskRuntimeRunEvent.BranchSetupBlocked(
         workflowId = request.workflowId,
@@ -116,11 +131,12 @@ class FeatureTaskRuntimeRunObservability(
     appendLedger(
       FeatureTaskRuntimePhaseLedgerRequest(
         workflowId = request.workflowId,
-        action = if (resumed) {
-          FeatureTaskRuntimePhaseLedgerAction.RESUME
-        } else {
-          FeatureTaskRuntimePhaseLedgerAction.START
-        },
+        action =
+          if (resumed) {
+            FeatureTaskRuntimePhaseLedgerAction.RESUME
+          } else {
+            FeatureTaskRuntimePhaseLedgerAction.START
+          },
         phaseId = phaseId,
         attemptCount = attemptCount,
         resolvedAgentId = resolvedAgentId,
@@ -129,7 +145,11 @@ class FeatureTaskRuntimeRunObservability(
     )
   }
 
-  fun completed(phaseId: String, resolvedAgentId: String, attemptCount: Int) {
+  fun completed(
+    phaseId: String,
+    resolvedAgentId: String,
+    attemptCount: Int,
+  ) {
     completedEvent(phaseId, resolvedAgentId, attemptCount)
     appendLedger(
       FeatureTaskRuntimePhaseLedgerRequest(
@@ -149,9 +169,10 @@ internal fun featureTaskRuntimeStartContinuationKind(
   crashResumed: Boolean,
   verifierReentry: Boolean,
   attemptCount: Int,
-): FeatureTaskRuntimeContinuationKind? = when {
-  crashResumed -> FeatureTaskRuntimeContinuationKind.CRASH_RESUME
-  verifierReentry -> null
-  attemptCount > 1 -> FeatureTaskRuntimeContinuationKind.PROCESS_RETRY
-  else -> null
-}
+): FeatureTaskRuntimeContinuationKind? =
+  when {
+    crashResumed -> FeatureTaskRuntimeContinuationKind.CRASH_RESUME
+    verifierReentry -> null
+    attemptCount > 1 -> FeatureTaskRuntimeContinuationKind.PROCESS_RETRY
+    else -> null
+  }

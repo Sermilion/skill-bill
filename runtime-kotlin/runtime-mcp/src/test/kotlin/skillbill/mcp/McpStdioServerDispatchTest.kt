@@ -11,6 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class McpStdioServerDispatchTest {
   @Test
   fun `canonical leaves carry no deprecation language and legacy families are absent from the registry`() {
@@ -29,11 +30,12 @@ class McpStdioServerDispatchTest {
   fun `SKILL-175 the advertised surface carries no prose family name`() {
     val advertised = toolsList().map { tool -> requireNotNull(JsonCodec.anyToStringAnyMap(tool))["name"].toString() }
 
-    val retired = advertised.filter { name ->
-      name.startsWith("feature_task_prose_") ||
-        name.startsWith("feature_implement_") ||
-        name.startsWith("goal_prose_")
-    }
+    val retired =
+      advertised.filter { name ->
+        name.startsWith("feature_task_prose_") ||
+          name.startsWith("feature_implement_") ||
+          name.startsWith("goal_prose_")
+      }
     assertEquals(emptyList(), retired, advertised.toString())
   }
 
@@ -49,9 +51,10 @@ class McpStdioServerDispatchTest {
   @Test
   fun `SKILL-132 removed tools report the typed unknown-tool error on dispatch`() {
     removedToolNames.forEach { removed ->
-      val response = decodeResponse(
-        McpStdioServer.handleLine(toolCallRequest(id = 1, name = removed, arguments = emptyMap())),
-      )
+      val response =
+        decodeResponse(
+          McpStdioServer.handleLine(toolCallRequest(id = 1, name = removed, arguments = emptyMap())),
+        )
       val result = response.fieldMap("result")
       val content = result["content"] as List<*>
       val textContent = requireNotNull(JsonCodec.anyToStringAnyMap(content.first()))
@@ -105,10 +108,11 @@ class McpStdioServerDispatchTest {
       toolCallRequest(
         id = 2,
         name = "triage_findings",
-        arguments = mapOf(
-          "review_run_id" to "rvw-20260402-001",
-          "decisions" to listOf("1 fix", "2 reject"),
-        ),
+        arguments =
+          mapOf(
+            "review_run_id" to "rvw-20260402-001",
+            "decisions" to listOf("1 fix", "2 reject"),
+          ),
       )
     val decodedTriageArguments = decodeToolArguments(triageRequest)
     assertEquals(
@@ -139,12 +143,13 @@ class McpStdioServerDispatchTest {
     val context = McpRuntimeContext(environment = enabledStdioTelemetryEnvironment(tempDir), userHome = tempDir)
     seedGoalBlockedRun(tempDir.resolve("metrics.db"), workflowId = "wf-stdio-1")
 
-    val response = decodeResponse(
-      McpStdioServer.handleLine(
-        toolCallRequest(id = 1, name = "goal_stats", arguments = emptyMap()),
-        context,
-      ),
-    )
+    val response =
+      decodeResponse(
+        McpStdioServer.handleLine(
+          toolCallRequest(id = 1, name = "goal_stats", arguments = emptyMap()),
+          context,
+        ),
+      )
     val result = response.fieldMap("result")
     val payload = toolPayload(result)
 
@@ -163,12 +168,13 @@ class McpStdioServerDispatchTest {
     val tempDir = Files.createTempDirectory("skillbill-stdio-goal-stats-empty")
     val context = McpRuntimeContext(environment = enabledStdioTelemetryEnvironment(tempDir), userHome = tempDir)
 
-    val response = decodeResponse(
-      McpStdioServer.handleLine(
-        toolCallRequest(id = 1, name = "goal_stats", arguments = emptyMap()),
-        context,
-      ),
-    )
+    val response =
+      decodeResponse(
+        McpStdioServer.handleLine(
+          toolCallRequest(id = 1, name = "goal_stats", arguments = emptyMap()),
+          context,
+        ),
+      )
     val result = response.fieldMap("result")
     val payload = toolPayload(result)
 

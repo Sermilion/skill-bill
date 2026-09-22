@@ -21,22 +21,27 @@ internal data class FreshInstallStagingArtifacts(
   val sidecarFilesInTemp: List<Path>,
 )
 
-internal fun populateFreshInstallStagingTemp(inputs: FreshInstallInputs, tempDir: Path): FreshInstallStagingArtifacts {
+internal fun populateFreshInstallStagingTemp(
+  inputs: FreshInstallInputs,
+  tempDir: Path,
+): FreshInstallStagingArtifacts {
   val copiedInTemp = copyAuthoredIntoStaging(inputs.sourceSkillDir, tempDir, inputs.authored)
   val skillFileInTemp = writeRenderedSkillFile(tempDir, inputs.target)
   val pointerFilesInTemp = writeRenderedPointerFiles(inputs.repoRoot, tempDir, inputs.platformPointers)
-  val supportPointerFilesInTemp = writeRenderedSupportPointerFiles(
-    repoRoot = inputs.repoRoot,
-    sourceSkillDir = inputs.sourceSkillDir,
-    tempDir = tempDir,
-    pointers = inputs.supportPointers,
-  )
+  val supportPointerFilesInTemp =
+    writeRenderedSupportPointerFiles(
+      repoRoot = inputs.repoRoot,
+      sourceSkillDir = inputs.sourceSkillDir,
+      tempDir = tempDir,
+      pointers = inputs.supportPointers,
+    )
   val agentAddonFilesInTemp = writeAgentAddonPointerFiles(tempDir, inputs.agentAddonPointers)
-  val sidecarFilesInTemp = writeInternalSidecarFiles(
-    tempDir = tempDir,
-    parentSourceDir = inputs.sourceSkillDir,
-    children = inputs.internalChildren,
-  )
+  val sidecarFilesInTemp =
+    writeInternalSidecarFiles(
+      tempDir = tempDir,
+      parentSourceDir = inputs.sourceSkillDir,
+      children = inputs.internalChildren,
+    )
   val packsRoot = inputs.repoRoot.resolve("platform-packs")
   if (Files.isDirectory(packsRoot)) {
     Files.createSymbolicLink(tempDir.resolve("platform-packs"), packsRoot)
@@ -58,14 +63,16 @@ internal fun finalizeFreshInstallStaging(
   staged: FreshInstallStagingArtifacts,
 ): RenderedSkill {
   val finalSkillFile = inputs.finalStagingDir.resolve(tempDir.relativize(staged.skillFileInTemp))
-  val finalPointerFiles = (
-    staged.pointerFilesInTemp + staged.supportPointerFilesInTemp + staged.agentAddonFilesInTemp
+  val finalPointerFiles =
+    (
+      staged.pointerFilesInTemp + staged.supportPointerFilesInTemp + staged.agentAddonFilesInTemp
     )
-    .map { path -> inputs.finalStagingDir.resolve(tempDir.relativize(path)) }
+      .map { path -> inputs.finalStagingDir.resolve(tempDir.relativize(path)) }
   val finalCopied = staged.copiedInTemp.map { path -> inputs.finalStagingDir.resolve(tempDir.relativize(path)) }
-  val finalSidecars = staged.sidecarFilesInTemp.map { path ->
-    inputs.finalStagingDir.resolve(tempDir.relativize(path))
-  }
+  val finalSidecars =
+    staged.sidecarFilesInTemp.map { path ->
+      inputs.finalStagingDir.resolve(tempDir.relativize(path))
+    }
   pruneStaleStagingDirs(inputs.home, inputs.sourceSkillDir, inputs.contentHash)
   return RenderedSkill(
     skillName = inputs.sourceSkillDir.fileName.toString(),

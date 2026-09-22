@@ -1,7 +1,10 @@
 package skillbill.review.plan
 
 object ReviewPathMatcher {
-  fun matches(path: String, signal: String): Boolean {
+  fun matches(
+    path: String,
+    signal: String,
+  ): Boolean {
     val normalizedPath = path.lowercase()
     val normalizedSignal = signal.lowercase()
     if ('*' !in normalizedSignal) return normalizedPath.contains(normalizedSignal)

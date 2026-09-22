@@ -9,10 +9,14 @@ import skillbill.install.model.SharedInstallSelection
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Path
 
-internal fun parseInstallSelectionPayload(path: Path, rawPayload: String): SharedInstallSelection {
-  val payload = JsonCodec.anyToStringAnyMap(
-    JsonCodec.parseObjectOrNull(rawPayload)?.let(JsonCodec::jsonElementToValue),
-  ) ?: throw malformedInstallSelection(path, "Root value must be a JSON object.")
+internal fun parseInstallSelectionPayload(
+  path: Path,
+  rawPayload: String,
+): SharedInstallSelection {
+  val payload =
+    JsonCodec.anyToStringAnyMap(
+      JsonCodec.parseObjectOrNull(rawPayload)?.let(JsonCodec::jsonElementToValue),
+    ) ?: throw malformedInstallSelection(path, "Root value must be a JSON object.")
   return runCatching { payload.toInstallSelection(path) }
     .getOrElse { error -> throw error.toMalformedInstallSelection(path) }
 }
@@ -28,7 +32,10 @@ private fun Map<String, Any?>.toInstallSelection(path: Path): SharedInstallSelec
   )
 }
 
-private fun requireContractVersion(path: Path, version: String) {
+private fun requireContractVersion(
+  path: Path,
+  version: String,
+) {
   if (version != INSTALL_SELECTION_CONTRACT_VERSION) {
     throw malformedInstallSelection(
       path = path,
@@ -39,12 +46,13 @@ private fun requireContractVersion(path: Path, version: String) {
 
 private fun Map<String, Any?>.toPlatformPackSelection(path: Path): PlatformPackSelection {
   requireExactKeys(path, keys, PLATFORM_PACK_SELECTION_KEYS, "platform_pack_selection")
-  val mode = when (val rawMode = requireString(path, "mode")) {
-    "none" -> PlatformPackSelectionMode.NONE
-    "selected" -> PlatformPackSelectionMode.SELECTED
-    "all" -> PlatformPackSelectionMode.ALL
-    else -> throw malformedInstallSelection(path, "Unknown platform pack selection mode '$rawMode'.")
-  }
+  val mode =
+    when (val rawMode = requireString(path, "mode")) {
+      "none" -> PlatformPackSelectionMode.NONE
+      "selected" -> PlatformPackSelectionMode.SELECTED
+      "all" -> PlatformPackSelectionMode.ALL
+      else -> throw malformedInstallSelection(path, "Unknown platform pack selection mode '$rawMode'.")
+    }
   val selectedSlugs = requireStringList(path, "selected_slugs").toSet()
   if (selectedSlugs.any(String::isBlank)) {
     throw malformedInstallSelection(path, "Field 'platform_pack_selection.selected_slugs' must not contain blanks.")
@@ -58,23 +66,27 @@ private fun Map<String, Any?>.toPlatformPackSelection(path: Path): PlatformPackS
 
 private fun Map<String, Any?>.toMcpRegistrationChoice(path: Path): McpRegistrationChoice {
   requireExactKeys(path, keys, MCP_REGISTRATION_KEYS, "mcp_registration")
-  val runtimeMcpBin = when (val rawPath = get("runtime_mcp_bin")) {
-    null -> null
-    is String ->
-      if (rawPath.isBlank()) {
-        throw malformedInstallSelection(path, "Field 'runtime_mcp_bin' must not be blank.")
-      } else {
-        Path.of(rawPath)
-      }
-    else -> throw malformedInstallSelection(path, "Field 'runtime_mcp_bin' must be a string or null.")
-  }
+  val runtimeMcpBin =
+    when (val rawPath = get("runtime_mcp_bin")) {
+      null -> null
+      is String ->
+        if (rawPath.isBlank()) {
+          throw malformedInstallSelection(path, "Field 'runtime_mcp_bin' must not be blank.")
+        } else {
+          Path.of(rawPath)
+        }
+      else -> throw malformedInstallSelection(path, "Field 'runtime_mcp_bin' must be a string or null.")
+    }
   return McpRegistrationChoice(
     register = requireBoolean(path, "register"),
     runtimeMcpBin = runtimeMcpBin?.toFileLocation(),
   )
 }
 
-private fun requireTelemetryLevel(path: Path, rawLevel: String): InstallTelemetryLevel =
+private fun requireTelemetryLevel(
+  path: Path,
+  rawLevel: String,
+): InstallTelemetryLevel =
   InstallTelemetryLevel.entries.firstOrNull { level -> level.id == rawLevel }
     ?: throw malformedInstallSelection(path, "Unknown telemetry level '$rawLevel'.")
 

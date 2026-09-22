@@ -21,23 +21,31 @@ class FileSystemDiffResolver : DiffResolverPort {
   ): Map<String, ReviewCheckpointFileIdentity> =
     root.toRealPath().let { realRoot -> paths.associateWith { checkpointFileIdentity(realRoot, it) } }
 
-  override fun readDiff(path: Path, maxBytes: Long): String? = path.takeIf(Files::isRegularFile)
-    ?.takeIf { Files.size(it) <= maxBytes }
-    ?.let(Files::readString)
-    ?.takeIf(String::isNotBlank)
+  override fun readDiff(
+    path: Path,
+    maxBytes: Long,
+  ): String? =
+    path.takeIf(Files::isRegularFile)
+      ?.takeIf { Files.size(it) <= maxBytes }
+      ?.let(Files::readString)
+      ?.takeIf(String::isNotBlank)
 
-  override fun runProcess(args: List<String>, workDir: Path): String? {
+  override fun runProcess(
+    args: List<String>,
+    workDir: Path,
+  ): String? {
     val outputFile = Files.createTempFile("skillbill-diff", ".out")
     return try {
-      val result = BoundedExternalProcessRunner.run(
-        BoundedExternalProcessRequest(
-          argv = args,
-          workingDirectory = workDir,
-          redirectOutputFile = outputFile,
-          deadlineSeconds = PROCESS_TIMEOUT_SECONDS,
-          outputCapBytes = null,
-        ),
-      )
+      val result =
+        BoundedExternalProcessRunner.run(
+          BoundedExternalProcessRequest(
+            argv = args,
+            workingDirectory = workDir,
+            redirectOutputFile = outputFile,
+            deadlineSeconds = PROCESS_TIMEOUT_SECONDS,
+            outputCapBytes = null,
+          ),
+        )
       if (result.timedOut || result.launchFailure) {
         null
       } else if (result.exitCode in setOf(0, 1)) {

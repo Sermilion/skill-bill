@@ -9,7 +9,10 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import java.nio.file.Path
 
 internal object NoopGoalSubtaskReviewGitOperations : GoalSubtaskReviewGitOperations {
-  override fun captureBaseline(repoRoot: Path, expectedBranch: String): GoalSubtaskReviewBaselineResult {
+  override fun captureBaseline(
+    repoRoot: Path,
+    expectedBranch: String,
+  ): GoalSubtaskReviewBaselineResult {
     return if (expectedBranch.isBlank()) {
       GoalSubtaskReviewBaselineResult(
         status = WorkflowGitOperationStatus.ERROR,
@@ -18,10 +21,11 @@ internal object NoopGoalSubtaskReviewGitOperations : GoalSubtaskReviewGitOperati
     } else {
       GoalSubtaskReviewBaselineResult(
         status = WorkflowGitOperationStatus.OK,
-        baseline = GoalSubtaskReviewBaseline(
-          reviewBaseSha = "0".repeat(NOOP_REVIEW_BASE_SHA_LENGTH),
-          baselineUntrackedPaths = emptyList(),
-        ),
+        baseline =
+          GoalSubtaskReviewBaseline(
+            reviewBaseSha = "0".repeat(NOOP_REVIEW_BASE_SHA_LENGTH),
+            baselineUntrackedPaths = emptyList(),
+          ),
       )
     }
   }
@@ -33,12 +37,13 @@ internal object NoopGoalSubtaskReviewGitOperations : GoalSubtaskReviewGitOperati
   ): GoalSubtaskReviewInputResult {
     return GoalSubtaskReviewInputResult(
       status = WorkflowGitOperationStatus.OK,
-      input = GoalSubtaskReviewInput(
-        reviewBaseSha = baseline.reviewBaseSha,
-        currentHeadSha = baseline.reviewBaseSha,
-        trackedDelta = "",
-        ownedUntrackedPatches = "",
-      ),
+      input =
+        GoalSubtaskReviewInput(
+          reviewBaseSha = baseline.reviewBaseSha,
+          currentHeadSha = baseline.reviewBaseSha,
+          trackedDelta = "",
+          ownedUntrackedPatches = "",
+        ),
     )
   }
 

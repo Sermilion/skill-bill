@@ -16,10 +16,11 @@ class CliRuntimeGoalStatsTest {
     val tempDir = Files.createTempDirectory("skillbill-cli-goal-stats-json")
     val dbPath = tempDir.resolve("metrics.db")
     seedGoalStatsDb(dbPath)
-    val result = CliRuntime.run(
-      listOf("--db", dbPath.toString(), "goal-stats", "--format", "json"),
-      CliRuntimeContext(),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--db", dbPath.toString(), "goal-stats", "--format", "json"),
+        CliRuntimeContext(),
+      )
     val payload = decodeJsonObject(result.stdout)
     assertEquals(0, result.exitCode)
     assertEquals("bill-goal-run", payload["workflow"])
@@ -64,10 +65,11 @@ class CliRuntimeGoalStatsTest {
       )
     }
 
-    val result = CliRuntime.run(
-      listOf("--db", dbPath.toString(), "goal-stats"),
-      CliRuntimeContext(),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--db", dbPath.toString(), "goal-stats"),
+        CliRuntimeContext(),
+      )
 
     assertEquals(0, result.exitCode)
     assertContains(result.stdout, "total_runs")
@@ -79,10 +81,11 @@ class CliRuntimeGoalStatsTest {
     val tempDir = Files.createTempDirectory("skillbill-cli-goal-stats-empty")
     val dbPath = tempDir.resolve("metrics.db")
 
-    val result = CliRuntime.run(
-      listOf("--db", dbPath.toString(), "goal-stats", "--format", "json"),
-      CliRuntimeContext(),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--db", dbPath.toString(), "goal-stats", "--format", "json"),
+        CliRuntimeContext(),
+      )
     val payload = decodeJsonObject(result.stdout)
 
     assertEquals(0, result.exitCode)

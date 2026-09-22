@@ -5,6 +5,7 @@ import skillbill.review.context.model.hunk.ReviewEvidenceTarget
 import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.context.model.packet.ReviewLaneCompletionState
 import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
+
 data class ReviewSpecialistSummary(
   val lane: String,
   val assignmentDigest: String,
@@ -40,17 +41,18 @@ data class ReviewSpecialistSummary(
       assignmentDigest: String,
       completion: ReviewLaneCompletionState,
       coverage: ReviewSpecialistSummaryCoverage,
-    ): ReviewSpecialistSummary = ReviewSpecialistSummary(
-      lane = lane,
-      assignmentDigest = assignmentDigest,
-      disposition = completion.disposition,
-      assignedPaths = coverage.assignedPaths.distinct().sorted(),
-      commitShas = coverage.commitShas.distinct(),
-      findingCount = coverage.findingCount,
-      unreviewedSegmentIds = completion.unreviewedSegmentIds,
-      unreviewedUnits = completion.unreviewedUnits,
-      summary = coverage.summary.replace("\r\n", "\n").take(MAX_SUMMARY_LENGTH),
-    )
+    ): ReviewSpecialistSummary =
+      ReviewSpecialistSummary(
+        lane = lane,
+        assignmentDigest = assignmentDigest,
+        disposition = completion.disposition,
+        assignedPaths = coverage.assignedPaths.distinct().sorted(),
+        commitShas = coverage.commitShas.distinct(),
+        findingCount = coverage.findingCount,
+        unreviewedSegmentIds = completion.unreviewedSegmentIds,
+        unreviewedUnits = completion.unreviewedUnits,
+        summary = coverage.summary.replace("\r\n", "\n").take(MAX_SUMMARY_LENGTH),
+      )
   }
 }
 

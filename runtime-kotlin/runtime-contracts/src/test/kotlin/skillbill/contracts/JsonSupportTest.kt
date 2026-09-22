@@ -6,9 +6,10 @@ import kotlin.test.assertEquals
 class JsonSupportTest {
   @Test
   fun `json strings that start with numbers remain strings`() {
-    val parsed = requireNotNull(
-      JsonCodec.parseObjectOrNull("""{"decisions":["1 fix","2 reject"],"count":2}"""),
-    )
+    val parsed =
+      requireNotNull(
+        JsonCodec.parseObjectOrNull("""{"decisions":["1 fix","2 reject"],"count":2}"""),
+      )
     val decoded = requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(parsed)))
 
     assertEquals(listOf("1 fix", "2 reject"), decoded["decisions"])

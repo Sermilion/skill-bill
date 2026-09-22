@@ -21,6 +21,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+
 private const val GIT_TIMEOUT_SECONDS = 60L
 
 class FeatureTaskRuntimeSubtaskFinalisationTest {
@@ -75,9 +76,10 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     Files.writeString(repo.root.resolve("owned.txt"), "final\n")
     records.clear()
 
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = checkpointSha, paths = listOf("owned.txt")),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = checkpointSha, paths = listOf("owned.txt")),
+      )
 
     assertTrue(records.any { it.contains("foreign occupant") && it.contains("swept") })
     assertEquals(
@@ -104,9 +106,10 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     val baseSha = git(repo.root, "rev-parse", "HEAD")
     Files.writeString(repo.root.resolve("owned.txt"), "only-work\n")
 
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = null, paths = listOf("owned.txt")),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = null, paths = listOf("owned.txt")),
+      )
 
     assertEquals(baseSha, git(repo.root, "rev-parse", "HEAD~1"))
     assertEquals(agentSubject, git(repo.root, "log", "-1", "--format=%s"))
@@ -120,14 +123,15 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     Files.writeString(repo.root.resolve("owned.txt"), "local-only\n")
     records.clear()
 
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(
-        repo,
-        durableCommitSha = null,
-        paths = listOf("owned.txt"),
-        deferRemotePublication = true,
-      ),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(
+          repo,
+          durableCommitSha = null,
+          paths = listOf("owned.txt"),
+          deferRemotePublication = true,
+        ),
+      )
 
     assertEquals(finalised.commitSha, git(repo.root, "rev-parse", "HEAD"))
     assertEquals("", remoteBranchTip(repo.remote))
@@ -144,12 +148,14 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     Files.writeString(repo.root.resolve(".feature-specs/$issueKey/spec.md"), "spec edited by the run\n")
     Files.writeString(repo.root.resolve("owned.txt"), "work\n")
 
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = null, paths = listOf("owned.txt", ".feature-specs/$issueKey/spec.md")),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = null, paths = listOf("owned.txt", ".feature-specs/$issueKey/spec.md")),
+      )
 
-    val committed = git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
-      .lines().filter { it.isNotBlank() }.sorted()
+    val committed =
+      git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
+        .lines().filter { it.isNotBlank() }.sorted()
     assertEquals(listOf(".feature-specs/$issueKey/spec.md", "owned.txt"), committed)
     assertEquals(committed, finalised.stagedPaths.sorted())
     assertEquals("", git(repo.root, "diff", "--name-only"), "no deliverable dirt may remain")
@@ -162,14 +168,16 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     val repo = repoWithRemote()
     Files.writeString(repo.root.resolve("owned.txt"), "owned\n")
     Files.writeString(repo.root.resolve("appeared.txt"), "also this subtask\n")
-    val result = finalise(
-      repo,
-      durableCommitSha = null,
-      paths = listOf("owned.txt"),
-    )
+    val result =
+      finalise(
+        repo,
+        durableCommitSha = null,
+        paths = listOf("owned.txt"),
+      )
     val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(result)
-    val committed = git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
-      .lines().filter { it.isNotBlank() }.sorted()
+    val committed =
+      git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
+        .lines().filter { it.isNotBlank() }.sorted()
     assertEquals(listOf("appeared.txt", "owned.txt"), committed)
     assertEquals(finalised.commitSha, git(repo.remote, "rev-parse", branch))
   }
@@ -181,14 +189,16 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     Files.createDirectories(history.parent)
     Files.writeString(history, "engine history\n")
     Files.writeString(repo.root.resolve("owned.txt"), "owned\n")
-    val result = finalise(
-      repo,
-      durableCommitSha = null,
-      paths = listOf("owned.txt"),
-    )
+    val result =
+      finalise(
+        repo,
+        durableCommitSha = null,
+        paths = listOf("owned.txt"),
+      )
     val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(result)
-    val committed = git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
-      .lines().filter { it.isNotBlank() }.sorted()
+    val committed =
+      git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
+        .lines().filter { it.isNotBlank() }.sorted()
     assertEquals(
       listOf("owned.txt", "runtime-kotlin/runtime-engine/agent/history.md"),
       committed,
@@ -206,9 +216,10 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     val humanTree = git(repo.root, "cat-file", "-p", humanSha)
     Files.writeString(repo.root.resolve("owned.txt"), "work\n")
 
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = null, paths = listOf("owned.txt")),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = null, paths = listOf("owned.txt")),
+      )
 
     assertEquals(humanSha, git(repo.root, "rev-parse", "HEAD~1"))
     assertEquals(humanTree, git(repo.root, "cat-file", "-p", humanSha), "the human commit must be byte-identical")
@@ -231,9 +242,10 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     git(clone, "push", "-u", "origin", branch)
     val remoteTip = git(repo.remote, "rev-parse", branch)
 
-    val blocked = assertIs<FeatureTaskRuntimeSubtaskFinalisationBlocked>(
-      finalise(repo, durableCommitSha = null, paths = listOf("owned.txt")),
-    )
+    val blocked =
+      assertIs<FeatureTaskRuntimeSubtaskFinalisationBlocked>(
+        finalise(repo, durableCommitSha = null, paths = listOf("owned.txt")),
+      )
 
     assertContains(blocked.reason, "could not be pushed")
     assertEquals(remoteTip, git(repo.remote, "rev-parse", branch), "a rejected normal push must not move the remote")
@@ -250,9 +262,10 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     val commitsBefore = commitCount(repo.root)
 
     Files.writeString(repo.root.resolve("owned.txt"), "reopened\n")
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = publishedSha, paths = listOf("owned.txt")),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = publishedSha, paths = listOf("owned.txt")),
+      )
 
     assertTrue(finalised.forcedWithLease)
     assertEquals(commitsBefore, commitCount(repo.root), "a reopened published subtask still ends with one commit")
@@ -264,14 +277,15 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     records.clear()
     Files.writeString(staleRepo.root.resolve("owned.txt"), "reopened again\n")
     val remoteTipBefore = git(staleRepo.remote, "rev-parse", branch)
-    val overwritten = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(
-        staleRepo,
-        durableCommitSha = git(staleRepo.root, "rev-parse", "HEAD"),
-        paths = listOf("owned.txt"),
-        sequenceNumber = 1,
-      ),
-    )
+    val overwritten =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(
+          staleRepo,
+          durableCommitSha = git(staleRepo.root, "rev-parse", "HEAD"),
+          paths = listOf("owned.txt"),
+          sequenceNumber = 1,
+        ),
+      )
 
     assertTrue(overwritten.forcedWithLease)
     assertEquals(overwritten.commitSha, git(staleRepo.remote, "rev-parse", branch))
@@ -294,9 +308,10 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     atRecordTime = { remoteTipsSeenWhileRecording += remoteBranchTip(repo.remote) }
 
     Files.writeString(repo.root.resolve("owned.txt"), "final\n")
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = checkpointSha, paths = listOf("owned.txt")),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = checkpointSha, paths = listOf("owned.txt")),
+      )
 
     assertEquals(listOf(finalised.commitSha), recordedCommits)
     assertEquals(listOf(""), remoteTipsSeenWhileRecording, "the pointer must be durable before the push")
@@ -307,9 +322,10 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     atRecordTime = {}
     recordFailure = "needs_human: the workflow row was absent"
 
-    val blocked = assertIs<FeatureTaskRuntimeSubtaskFinalisationBlocked>(
-      finalise(second, durableCommitSha = null, paths = listOf("owned.txt")),
-    )
+    val blocked =
+      assertIs<FeatureTaskRuntimeSubtaskFinalisationBlocked>(
+        finalise(second, durableCommitSha = null, paths = listOf("owned.txt")),
+      )
 
     assertEquals("needs_human: the workflow row was absent", blocked.reason)
     assertEquals(recordedCommits.single(), git(second.root, "rev-parse", "HEAD"), "the commit must stand")
@@ -331,9 +347,10 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     val commitsBefore = commitCount(repo.root)
 
     Files.writeString(repo.root.resolve("owned.txt"), "reopened final\n")
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = checkpointSha, paths = listOf("owned.txt"), sequenceNumber = 1),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = checkpointSha, paths = listOf("owned.txt"), sequenceNumber = 1),
+      )
 
     assertTrue(finalised.forcedWithLease, "the remote still carries the pre-checkpoint commit")
     assertEquals(commitsBefore, commitCount(repo.root), "the subtask must still end with one commit")
@@ -358,9 +375,10 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     Files.createDirectories(repo.root.resolve(".feature-specs/$issueKey"))
     Files.writeString(repo.root.resolve(".feature-specs/$issueKey/spec.md"), "spec only\n")
 
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = checkpointSha, paths = listOf(".feature-specs/$issueKey/spec.md")),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = checkpointSha, paths = listOf(".feature-specs/$issueKey/spec.md")),
+      )
 
     assertEquals(listOf(".feature-specs/$issueKey/spec.md"), finalised.stagedPaths)
     assertEquals(agentSubject, git(repo.root, "log", "-1", "--format=%s"))
@@ -382,9 +400,10 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     val checkpointSha = git(repo.root, "rev-parse", "HEAD")
     Files.writeString(repo.root.resolve(".feature-specs/$issueKey/spec.md"), "spec only\n")
 
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = checkpointSha, paths = listOf(".feature-specs/$issueKey/spec.md")),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = checkpointSha, paths = listOf(".feature-specs/$issueKey/spec.md")),
+      )
 
     assertEquals(listOf(".feature-specs/$issueKey/spec.md"), finalised.stagedPaths)
     assertEquals("checkpoint\n", git(repo.root, "show", "HEAD:owned.txt") + "\n")
@@ -409,23 +428,25 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     git(repo.root, "commit", "-m", "$issueKey: subtask $subtaskId\n\nprovisional\n\n${identity.trailer}")
     val checkpointSha = git(repo.root, "rev-parse", "HEAD")
     Files.writeString(repo.root.resolve("owned.txt"), "final\n")
-    val published = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = checkpointSha, paths = listOf("owned.txt")),
-    )
+    val published =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = checkpointSha, paths = listOf("owned.txt")),
+      )
 
     Files.writeString(
       repo.root.resolve(".feature-specs/$issueKey/decomposition-manifest.yaml"),
       "status: blocked\n",
     )
     records.clear()
-    val pushed = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(
-        repo,
-        durableCommitSha = published.commitSha,
-        paths = listOf(".feature-specs/$issueKey/decomposition-manifest.yaml"),
-        sequenceNumber = 1,
-      ),
-    )
+    val pushed =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(
+          repo,
+          durableCommitSha = published.commitSha,
+          paths = listOf(".feature-specs/$issueKey/decomposition-manifest.yaml"),
+          sequenceNumber = 1,
+        ),
+      )
 
     assertEquals(pushed.commitSha, git(repo.remote, "rev-parse", branch))
     assertEquals("final\n", git(repo.root, "show", "HEAD:owned.txt") + "\n")
@@ -451,23 +472,25 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     git(repo.root, "commit", "-m", "$issueKey: subtask $subtaskId\n\nprovisional\n\n${identity.trailer}")
     val checkpointSha = git(repo.root, "rev-parse", "HEAD")
     Files.writeString(repo.root.resolve("owned.txt"), "final\n")
-    val published = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = checkpointSha, paths = listOf("owned.txt")),
-    )
+    val published =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = checkpointSha, paths = listOf("owned.txt")),
+      )
 
     git(repo.remote, "update-ref", "-d", "refs/heads/$branch")
     assertEquals(published.commitSha, git(repo.root, "rev-parse", "origin/$branch"))
     assertEquals("", remoteBranchTip(repo.remote))
     Files.writeString(repo.root.resolve("owned.txt"), "recreated\n")
     records.clear()
-    val recreated = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(
-        repo,
-        durableCommitSha = published.commitSha,
-        paths = listOf("owned.txt"),
-        sequenceNumber = 1,
-      ),
-    )
+    val recreated =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(
+          repo,
+          durableCommitSha = published.commitSha,
+          paths = listOf("owned.txt"),
+          sequenceNumber = 1,
+        ),
+      )
 
     assertEquals(recreated.commitSha, git(repo.remote, "rev-parse", branch))
     assertEquals("recreated\n", git(repo.root, "show", "HEAD:owned.txt") + "\n")
@@ -488,12 +511,14 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     Files.writeString(repo.root.resolve("owned.txt"), "enumerated\n")
     Files.writeString(repo.root.resolve("leftover.txt"), "validate repair\n")
 
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = null, paths = listOf("owned.txt")),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = null, paths = listOf("owned.txt")),
+      )
 
-    val committed = git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
-      .lines().filter { it.isNotBlank() }.sorted()
+    val committed =
+      git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
+        .lines().filter { it.isNotBlank() }.sorted()
     assertEquals(
       listOf(".feature-specs/$issueKey/spec.md", "leftover.txt", "owned.txt"),
       committed,
@@ -509,12 +534,14 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     Files.writeString(repo.root.resolve("owned/nested/One.kt"), "one\n")
     Files.writeString(repo.root.resolve("owned/nested/Two.kt"), "two\n")
 
-    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-      finalise(repo, durableCommitSha = null, paths = emptyList()),
-    )
+    val finalised =
+      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+        finalise(repo, durableCommitSha = null, paths = emptyList()),
+      )
 
-    val committed = git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
-      .lines().filter { it.isNotBlank() }.sorted()
+    val committed =
+      git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
+        .lines().filter { it.isNotBlank() }.sorted()
     assertEquals(listOf("owned/nested/One.kt", "owned/nested/Two.kt"), committed)
     assertEquals(finalised.commitSha, remoteBranchTip(repo.remote))
     assertEquals("", git(repo.root, "status", "--porcelain"), "no deliverable dirt may remain")
@@ -522,16 +549,19 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
 
   @Test
   fun `a blank outcome message is rejected before any git write`() {
-    val blank = FeatureTaskRuntimeSubtaskFinalisation.readHandoff(
-      envelope(message = "   ", paths = listOf("owned.txt")),
-    )
-    val absentPaths = FeatureTaskRuntimeSubtaskFinalisation.readHandoff(
-      mapOf(
-        "produced_outputs" to mapOf(
-          "commit_push_result" to mapOf("message" to agentSubject),
+    val blank =
+      FeatureTaskRuntimeSubtaskFinalisation.readHandoff(
+        envelope(message = "   ", paths = listOf("owned.txt")),
+      )
+    val absentPaths =
+      FeatureTaskRuntimeSubtaskFinalisation.readHandoff(
+        mapOf(
+          "produced_outputs" to
+            mapOf(
+              "commit_push_result" to mapOf("message" to agentSubject),
+            ),
         ),
-      ),
-    )
+      )
 
     assertContains(
       assertIs<FeatureTaskRuntimeCommitPushHandoffInvalid>(blank).reason,
@@ -542,10 +572,11 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
 
   @Test
   fun `the captured sha is the value every commit_sha reader resolves`() {
-    val withSha = FeatureTaskRuntimeSubtaskFinalisation.withCommitSha(
-      envelope(message = agentSubject, paths = listOf("owned.txt")),
-      commitSha = "b".repeat(40),
-    )
+    val withSha =
+      FeatureTaskRuntimeSubtaskFinalisation.withCommitSha(
+        envelope(message = agentSubject, paths = listOf("owned.txt")),
+        commitSha = "b".repeat(40),
+      )
 
     assertEquals("b".repeat(40), withSha.commitShaFromPhasePayload())
   }
@@ -563,31 +594,33 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     paths: List<String>,
     sequenceNumber: Int = 0,
     deferRemotePublication: Boolean = false,
-  ): FeatureTaskRuntimeSubtaskFinalisationResult = FeatureTaskRuntimeSubtaskFinalisation(
-    gitOperations = realGitOps(),
-    repoRoot = fixture.root,
-    record = { records += it },
-    recordCommit = { sha, _ ->
-      recordedCommits += sha
-      atRecordTime(sha)
-      recordFailure
-    },
-  ).finalise(
-    FeatureTaskRuntimeSubtaskFinaliseRequest(
-      identity = identity,
-      durableCommitSha = durableCommitSha,
-      sequenceNumber = sequenceNumber,
-      handoff = FeatureTaskRuntimeCommitPushHandoff(outcomeMessage = agentSubject, changedPaths = paths),
-      metadata = FeatureTaskRuntimeCheckpointMetadata(
-        phaseId = "commit_push",
-        loopId = null,
-        generation = 0,
-        branch = branch,
-        intent = FeatureTaskRuntimeCheckpointMessage.INTENT_FINALISED_SUBTASK,
+  ): FeatureTaskRuntimeSubtaskFinalisationResult =
+    FeatureTaskRuntimeSubtaskFinalisation(
+      gitOperations = realGitOps(),
+      repoRoot = fixture.root,
+      record = { records += it },
+      recordCommit = { sha, _ ->
+        recordedCommits += sha
+        atRecordTime(sha)
+        recordFailure
+      },
+    ).finalise(
+      FeatureTaskRuntimeSubtaskFinaliseRequest(
+        identity = identity,
+        durableCommitSha = durableCommitSha,
+        sequenceNumber = sequenceNumber,
+        handoff = FeatureTaskRuntimeCommitPushHandoff(outcomeMessage = agentSubject, changedPaths = paths),
+        metadata =
+          FeatureTaskRuntimeCheckpointMetadata(
+            phaseId = "commit_push",
+            loopId = null,
+            generation = 0,
+            branch = branch,
+            intent = FeatureTaskRuntimeCheckpointMessage.INTENT_FINALISED_SUBTASK,
+          ),
+        deferRemotePublication = deferRemotePublication,
       ),
-      deferRemotePublication = deferRemotePublication,
-    ),
-  )
+    )
 
   private fun staleLease(fixture: Fixture): Fixture {
     val clone = tempRoot("skillbill-finalisation-stale").resolve("clone")
@@ -645,9 +678,13 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
   private fun remoteBranchTip(remote: Path): String =
     git(remote, "for-each-ref", "--format=%(objectname)", "refs/heads/$branch")
 
-  private fun git(repoRoot: Path, vararg args: String): String {
-    val builder = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args.toList())
-      .redirectErrorStream(true)
+  private fun git(
+    repoRoot: Path,
+    vararg args: String,
+  ): String {
+    val builder =
+      ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args.toList())
+        .redirectErrorStream(true)
     builder.environment()["GIT_CONFIG_GLOBAL"] = "/dev/null"
     builder.environment()["GIT_CONFIG_SYSTEM"] = "/dev/null"
     val process = builder.start()
@@ -662,11 +699,16 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     return output
   }
 
-  private fun envelope(message: String, paths: List<String>): Map<String, Any?> = mapOf(
-    "produced_outputs" to mapOf(
-      "commit_push_result" to mapOf("message" to message, "changed_paths" to paths),
-    ),
-  )
+  private fun envelope(
+    message: String,
+    paths: List<String>,
+  ): Map<String, Any?> =
+    mapOf(
+      "produced_outputs" to
+        mapOf(
+          "commit_push_result" to mapOf("message" to message, "changed_paths" to paths),
+        ),
+    )
 
   private fun realGitOps(): WorkflowGitOperations = GitWorkflowGitOperations()
 }

@@ -10,6 +10,7 @@ import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.workflow.goal.model.goalObservabilityHistoryFromArtifacts
 import skillbill.workflow.taskruntime.artifact.validateGoalObservabilityEvent
+
 object GoalObservabilityArtifacts {
   private data class RequiredProgressFields(
     val progressEvent: Map<*, *>,
@@ -18,7 +19,10 @@ object GoalObservabilityArtifacts {
     val timestamp: String,
   )
 
-  fun patchForProgressEvent(input: GoalObservabilityProgressInput, validator: GoalObservabilityEventValidator): Any? =
+  fun patchForProgressEvent(
+    input: GoalObservabilityProgressInput,
+    validator: GoalObservabilityEventValidator,
+  ): Any? =
     eventFrom(input)?.let { event ->
       patchForEvent(
         input.artifacts.asGoalWorkflowArtifactMap("goal observability progress input"),
@@ -30,21 +34,23 @@ object GoalObservabilityArtifacts {
   fun patchForRuntimeEvent(
     input: GoalObservabilityRuntimeEventInput,
     validator: GoalObservabilityEventValidator,
-  ): Any = patchForEvent(
-    artifacts = input.artifacts.asGoalWorkflowArtifactMap("goal observability runtime event input"),
-    event = GoalObservabilityEvent(
-      issueKey = input.request.issueKey,
-      subtaskId = input.request.subtaskId,
-      workflowId = input.request.workflowId,
-      workflowPhase = input.request.workflowPhase,
-      workerRole = input.request.workerRole,
-      livenessClass = input.request.livenessClass,
-      activitySummary = input.request.activitySummary,
-      timestamp = input.request.timestamp,
-      sequenceNumber = input.request.sequenceNumber,
-    ),
-    validator = validator,
-  )
+  ): Any =
+    patchForEvent(
+      artifacts = input.artifacts.asGoalWorkflowArtifactMap("goal observability runtime event input"),
+      event =
+        GoalObservabilityEvent(
+          issueKey = input.request.issueKey,
+          subtaskId = input.request.subtaskId,
+          workflowId = input.request.workflowId,
+          workflowPhase = input.request.workflowPhase,
+          workerRole = input.request.workerRole,
+          livenessClass = input.request.livenessClass,
+          activitySummary = input.request.activitySummary,
+          timestamp = input.request.timestamp,
+          sequenceNumber = input.request.sequenceNumber,
+        ),
+      validator = validator,
+    )
 
   private fun patchForEvent(
     artifacts: Map<String, Any?>,
@@ -96,13 +102,15 @@ object GoalObservabilityArtifacts {
       issueKey = issueKey,
       subtaskId = subtaskId,
       workflowId = input.workflowId,
-      workflowPhase = progressEvent[SharedPayloadKeys.STEP_ID]?.toString()?.takeIf(String::isNotBlank)
-        ?: input.currentStepId.takeIf(String::isNotBlank)
-        ?: "unknown",
+      workflowPhase =
+        progressEvent[SharedPayloadKeys.STEP_ID]?.toString()?.takeIf(String::isNotBlank)
+          ?: input.currentStepId.takeIf(String::isNotBlank)
+          ?: "unknown",
       workerRole = progressEvent["source"]?.toString()?.takeIf(String::isNotBlank) ?: "unknown",
       livenessClass = kind,
-      activitySummary = progressEvent["message"]?.toString()?.takeIf(String::isNotBlank)
-        ?: "workflow_status=${input.workflowStatus}; progress_kind=$kind",
+      activitySummary =
+        progressEvent["message"]?.toString()?.takeIf(String::isNotBlank)
+          ?: "workflow_status=${input.workflowStatus}; progress_kind=$kind",
       timestamp = timestamp,
       sequenceNumber = progressEvent["sequence"].asGoalObservabilityIntOrNull() ?: 0,
       changedFileSummary = input.worktreeActivity?.changedFileSummary,
@@ -110,10 +118,11 @@ object GoalObservabilityArtifacts {
     )
   }
 
-  private fun Any?.asGoalObservabilityIntOrNull(): Int? = when (this) {
-    is Int -> this
-    is Number -> toInt()
-    is String -> toIntOrNull()
-    else -> null
-  }
+  private fun Any?.asGoalObservabilityIntOrNull(): Int? =
+    when (this) {
+      is Int -> this
+      is Number -> toInt()
+      is String -> toIntOrNull()
+      else -> null
+    }
 }

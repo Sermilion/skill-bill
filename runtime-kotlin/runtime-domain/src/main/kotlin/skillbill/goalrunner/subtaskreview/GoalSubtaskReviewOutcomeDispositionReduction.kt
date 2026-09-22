@@ -13,6 +13,7 @@ import skillbill.review.model.ReviewFindingVerdict
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDispositionVerdict
 import skillbill.workflow.goal.model.reviewStateError
+
 object GoalSubtaskReviewOutcomeDispositionReduction {
   fun reviewFindingOutcomes(
     supersededFindings: List<UnaddressedFinding>,
@@ -21,9 +22,11 @@ object GoalSubtaskReviewOutcomeDispositionReduction {
   ): List<ReviewFindingOutcomeRecord> {
     val dispositionsByFindingId = blockerDispositions.associateBy(GoalSubtaskBlockerDisposition::findingId)
     val stillReported = currentFindings.mapTo(mutableSetOf(), UnaddressedFinding::findingKey)
-    val dispositionVerdictsByKey = supersededFindings.mapNotNull { finding ->
-      dispositionsByFindingId[finding.findingId]?.let { finding.findingKey to it.verdict }
-    }.toMap()
+    val dispositionVerdictsByKey =
+      supersededFindings.mapNotNull { finding ->
+        dispositionsByFindingId[finding.findingId]?.let { finding.findingKey to it.verdict }
+      }.toMap()
+
     fun supersededOutcome(finding: UnaddressedFinding): ReviewFindingOutcome =
       when (dispositionVerdictsByKey[finding.findingKey]) {
         GoalSubtaskBlockerDispositionVerdict.RESOLVED -> ReviewFindingOutcome.ADDRESSED
@@ -31,11 +34,13 @@ object GoalSubtaskReviewOutcomeDispositionReduction {
         null -> ReviewFindingOutcome.ADDRESSED
       }
 
-    val supersededOutcomes = supersededFindings
-      .filter { finding -> finding.findingKey !in stillReported }
-      .map { finding -> finding.toOutcomeRecord(supersededOutcome(finding)) }
-    val currentOutcomes = currentFindings
-      .map { finding -> finding.toOutcomeRecord(ReviewFindingOutcome.CARRIED) }
+    val supersededOutcomes =
+      supersededFindings
+        .filter { finding -> finding.findingKey !in stillReported }
+        .map { finding -> finding.toOutcomeRecord(supersededOutcome(finding)) }
+    val currentOutcomes =
+      currentFindings
+        .map { finding -> finding.toOutcomeRecord(ReviewFindingOutcome.CARRIED) }
     return supersededOutcomes + currentOutcomes
   }
 
@@ -43,12 +48,13 @@ object GoalSubtaskReviewOutcomeDispositionReduction {
     output: Any,
     priorBlockerFindingIds: List<String> = emptyList(),
   ): List<GoalSubtaskBlockerDisposition> {
-    val dispositions = output.asGoalSubtaskReviewPhaseOutputMap()[SharedPayloadKeys.PRODUCED_OUTPUTS]
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?.get("blocker_dispositions")
-      ?.let { it as? List<*> }
-      ?.mapIndexed(::blockerDisposition)
-      .orEmpty()
+    val dispositions =
+      output.asGoalSubtaskReviewPhaseOutputMap()[SharedPayloadKeys.PRODUCED_OUTPUTS]
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?.get("blocker_dispositions")
+        ?.let { it as? List<*> }
+        ?.mapIndexed(::blockerDisposition)
+        .orEmpty()
     if (priorBlockerFindingIds.isEmpty()) return dispositions
     val expected = priorBlockerFindingIds.toSet()
     val emitted = dispositions.map(GoalSubtaskBlockerDisposition::findingId).toSet()
@@ -75,8 +81,9 @@ object GoalSubtaskReviewOutcomeDispositionReduction {
       val current = currentByKey[prior.findingKey] ?: return@mapNotNull null
       val findingId = prior.findingId ?: return@mapNotNull null
       val currentId = current.findingId ?: return@mapNotNull null
-      val verification = ReviewFindingActionability.verificationVerdict(byRef[currentId].orEmpty())
-        ?: ReviewFindingActionability.verificationVerdict(byRef[findingId].orEmpty())
+      val verification =
+        ReviewFindingActionability.verificationVerdict(byRef[currentId].orEmpty())
+          ?: ReviewFindingActionability.verificationVerdict(byRef[findingId].orEmpty())
       if (verification?.claimVerdict != ReviewClaimVerdict.REFUTED) return@mapNotNull null
       val evidence = verification.citations.map { citation -> "${citation.path}:${citation.line}" }
       if (evidence.isEmpty()) return@mapNotNull null
@@ -89,25 +96,32 @@ object GoalSubtaskReviewOutcomeDispositionReduction {
   }
 }
 
-private fun blockerDisposition(index: Int, entry: Any?): GoalSubtaskBlockerDisposition {
+private fun blockerDisposition(
+  index: Int,
+  entry: Any?,
+): GoalSubtaskBlockerDisposition {
   val path = "produced_outputs.blocker_dispositions[$index]"
-  val disposition = JsonCodec.anyToStringAnyMap(entry)
-    ?: reviewStateError(path, "must be an object.")
-  val evidence = (disposition["evidence"] as? List<*>)
-    ?.mapNotNull { it as? String }
-    ?.map(String::trim)
-    ?.filter(String::isNotBlank)
-    .orEmpty()
+  val disposition =
+    JsonCodec.anyToStringAnyMap(entry)
+      ?: reviewStateError(path, "must be an object.")
+  val evidence =
+    (disposition["evidence"] as? List<*>)
+      ?.mapNotNull { it as? String }
+      ?.map(String::trim)
+      ?.filter(String::isNotBlank)
+      .orEmpty()
   if (evidence.isEmpty()) {
     reviewStateError("$path.evidence", "must cite the specific changed lines that settle the Blocker.")
   }
   return GoalSubtaskBlockerDisposition(
-    findingId = (disposition[ReviewFindingPayloadKeys.FINDING_ID] as? String)?.trim()?.takeIf(String::isNotBlank)
-      ?: reviewStateError("$path.finding_id", "must be a non-blank prior Blocker finding id."),
-    verdict = GoalSubtaskBlockerDispositionVerdict.fromWire(
-      (disposition[SharedPayloadKeys.VERDICT] as? String)?.trim()
-        ?: reviewStateError("$path.verdict", "must be resolved or unresolved."),
-    ),
+    findingId =
+      (disposition[ReviewFindingPayloadKeys.FINDING_ID] as? String)?.trim()?.takeIf(String::isNotBlank)
+        ?: reviewStateError("$path.finding_id", "must be a non-blank prior Blocker finding id."),
+    verdict =
+      GoalSubtaskBlockerDispositionVerdict.fromWire(
+        (disposition[SharedPayloadKeys.VERDICT] as? String)?.trim()
+          ?: reviewStateError("$path.verdict", "must be resolved or unresolved."),
+      ),
     evidence = evidence,
   )
 }

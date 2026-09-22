@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.checkpoint
+
 internal data class CheckpointScopePreparation(
   val worktreeDelta: List<String>,
   val stagedPaths: List<String>,

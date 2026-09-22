@@ -19,21 +19,22 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `only the prune gateway may delete review-metrics snapshots`() {
-    val deletionSites = runtimeArchitectureSourceRoots
-      .filter { root -> Files.isDirectory(root) }
-      .flatMap { root ->
-        Files.walk(root).use { paths ->
-          paths.filter { path -> Files.isRegularFile(path) && path.toString().endsWith(".kt") }
-            .toList()
+    val deletionSites =
+      runtimeArchitectureSourceRoots
+        .filter { root -> Files.isDirectory(root) }
+        .flatMap { root ->
+          Files.walk(root).use { paths ->
+            paths.filter { path -> Files.isRegularFile(path) && path.toString().endsWith(".kt") }
+              .toList()
+          }
         }
-      }
-      .filter { path -> path.fileName.toString() != "FileSystemReviewSnapshotGateway.kt" }
-      .filter { path ->
-        val text = Files.readString(path)
-        "review-metrics" in text && Regex("""Files\.delete\w*\(|toFile\(\)\.delete\w*\(""").containsMatchIn(text)
-      }
-      .map { path -> runtimeArchitectureRoot.relativize(path).toString() }
-      .sorted()
+        .filter { path -> path.fileName.toString() != "FileSystemReviewSnapshotGateway.kt" }
+        .filter { path ->
+          val text = Files.readString(path)
+          "review-metrics" in text && Regex("""Files\.delete\w*\(|toFile\(\)\.delete\w*\(""").containsMatchIn(text)
+        }
+        .map { path -> runtimeArchitectureRoot.relativize(path).toString() }
+        .sorted()
 
     assertEquals(
       emptyList(),
@@ -44,9 +45,10 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `runtime cli check task depends on validate agent configs`() {
-    val buildFile = Files.readString(
-      runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-cli/build.gradle.kts"),
-    )
+    val buildFile =
+      Files.readString(
+        runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-cli/build.gradle.kts"),
+      )
     assertContains(buildFile, "val validateAgentConfigs by tasks.registering(JavaExec::class)")
     val validateAgentConfigsBlock =
       Regex(
@@ -61,8 +63,9 @@ class RuntimeLayerBoundaryArchitectureTest {
       validateAgentConfigsBody,
       "args(\"validate-agent-configs\", \"--repo-root\", rootProject.projectDir.parentFile.absolutePath)",
     )
-    val checkBlock = Regex("""tasks\.named\("check"\)\s*\{(?<body>.*?)\}""", RegexOption.DOT_MATCHES_ALL)
-      .find(buildFile)
+    val checkBlock =
+      Regex("""tasks\.named\("check"\)\s*\{(?<body>.*?)\}""", RegexOption.DOT_MATCHES_ALL)
+        .find(buildFile)
     assertTrue(checkBlock != null, "runtime-cli check task configuration is missing")
     assertContains(checkBlock.groups["body"]?.value.orEmpty(), "dependsOn(validateAgentConfigs)")
   }
@@ -72,20 +75,21 @@ class RuntimeLayerBoundaryArchitectureTest {
     assertNoBannedImports(
       files = sourceFiles().filter { it.packageName.startsWith("skillbill.application") },
       bannedImports =
-      listOf(
-        "androidx.compose",
-        "com.github.ajalt.clikt",
-        "org.jetbrains.compose",
-        "skillbill.cli",
-        "skillbill.mcp",
-      ),
+        listOf(
+          "androidx.compose",
+          "com.github.ajalt.clikt",
+          "org.jetbrains.compose",
+          "skillbill.cli",
+          "skillbill.mcp",
+        ),
     )
   }
 
   @Test
   fun `application services use persistence ports instead of sqlite infrastructure`() {
-    val applicationFiles = sourceFiles()
-      .filter { it.packageName.startsWith("skillbill.application") }
+    val applicationFiles =
+      sourceFiles()
+        .filter { it.packageName.startsWith("skillbill.application") }
     val applicationPersistenceBannedImports =
       listOf(
         "java.sql",
@@ -102,62 +106,69 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `runtime ports avoid concrete thread interrupt restoration`() {
-    val portMainFiles = sourceFilesIn(
-      runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-ports/src/main/kotlin"),
-    )
+    val portMainFiles =
+      sourceFilesIn(
+        runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-ports/src/main/kotlin"),
+      )
     assertNoBannedSourceReferences(
       files = portMainFiles,
-      bannedReferences = listOf(
-        "Thread.currentThread",
-        ".interrupt()",
-      ),
+      bannedReferences =
+        listOf(
+          "Thread.currentThread",
+          ".interrupt()",
+        ),
       description = "concrete thread interrupt restoration",
     )
   }
 
   @Test
   fun `runtime application does not select the JVM interrupt adapter`() {
-    val applicationMainFiles = sourceFilesIn(
-      runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-application/src/main/kotlin"),
-    )
+    val applicationMainFiles =
+      sourceFilesIn(
+        runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-application/src/main/kotlin"),
+      )
     assertNoBannedImports(
       files = applicationMainFiles,
-      bannedImports = listOf(
-        "skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort",
-        "skillbill.ports.concurrency.JvmInterruptSignalPort",
-      ),
+      bannedImports =
+        listOf(
+          "skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort",
+          "skillbill.ports.concurrency.JvmInterruptSignalPort",
+        ),
     )
   }
 
   @Test
   fun `runtime application owns no direct timing logging or threading environment APIs`() {
-    val applicationMainFiles = sourceFilesIn(
-      runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-application/src/main/kotlin"),
-    )
+    val applicationMainFiles =
+      sourceFilesIn(
+        runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-application/src/main/kotlin"),
+      )
     assertTrue(applicationMainFiles.isNotEmpty(), "runtime-application main source scan must be non-vacuous.")
     assertNoBannedImports(
       files = applicationMainFiles,
-      bannedImports = listOf(
-        "java.util.logging",
-        "java.util.concurrent",
-      ),
+      bannedImports =
+        listOf(
+          "java.util.logging",
+          "java.util.concurrent",
+        ),
     )
     assertNoBannedSourceReferences(
       files = applicationMainFiles,
-      bannedReferences = listOf(
-        "Thread.sleep",
-        "Thread.currentThread",
-        "Thread(",
-        ".interrupt()",
-        ".getLogger(",
-        "java.util.logging",
-        "java.util.concurrent",
-        "Executors",
-        "Executor",
-        "Future",
-        "Callable",
-        "TimeUnit",
-      ),
+      bannedReferences =
+        listOf(
+          "Thread.sleep",
+          "Thread.currentThread",
+          "Thread(",
+          ".interrupt()",
+          ".getLogger(",
+          "java.util.logging",
+          "java.util.concurrent",
+          "Executors",
+          "Executor",
+          "Future",
+          "Callable",
+          "TimeUnit",
+        ),
       description = "environment API reference",
     )
   }
@@ -205,14 +216,15 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `no main source unions declaredCodeReviewAreas across all installed manifests`() {
-    val unionSites = sourceFiles()
-      .filter { file -> file.relativePath.contains("/src/main/kotlin/") }
-      .flatMap { file ->
-        Files.readString(runtimeArchitectureRoot.resolve(file.relativePath)).lines()
-          .withIndex()
-          .filter { (_, line) -> "declaredCodeReviewAreas" in line && "flatMap" in line }
-          .map { (index, _) -> "${file.relativePath}:${index + 1}" }
-      }
+    val unionSites =
+      sourceFiles()
+        .filter { file -> file.relativePath.contains("/src/main/kotlin/") }
+        .flatMap { file ->
+          Files.readString(runtimeArchitectureRoot.resolve(file.relativePath)).lines()
+            .withIndex()
+            .filter { (_, line) -> "declaredCodeReviewAreas" in line && "flatMap" in line }
+            .map { (index, _) -> "${file.relativePath}:${index + 1}" }
+        }
 
     assertEquals(
       emptyList(),
@@ -285,12 +297,12 @@ class RuntimeLayerBoundaryArchitectureTest {
     assertNoBannedImports(
       files = sourceFiles().filter { it.packageName.startsWith("skillbill.learnings") },
       bannedImports =
-      listOf(
-        "java.sql",
-        "skillbill.db",
-        "skillbill.infrastructure",
-        "skillbill.review",
-      ),
+        listOf(
+          "java.sql",
+          "skillbill.db",
+          "skillbill.infrastructure",
+          "skillbill.review",
+        ),
     )
 
     val reviewModels = Files.readString(sourcePath("skillbill/review/model/ReviewModels.kt"))
@@ -315,8 +327,9 @@ class RuntimeLayerBoundaryArchitectureTest {
           val tracker = ScopeTracker()
           lines.mapIndexedNotNull { index, line ->
             tracker.consume(line)
-            val match = RuntimeArchitectureScanConstants.publicModelDeclarationPattern.find(line)
-              ?: return@mapIndexedNotNull null
+            val match =
+              RuntimeArchitectureScanConstants.publicModelDeclarationPattern.find(line)
+                ?: return@mapIndexedNotNull null
             val trimmed = line.trim()
             if (Regex("""^(?:private|internal)\s+""").containsMatchIn(trimmed)) return@mapIndexedNotNull null
             if (tracker.insideNonPublicScope) return@mapIndexedNotNull null
@@ -331,19 +344,21 @@ class RuntimeLayerBoundaryArchitectureTest {
   @Test
   fun `review package is separated from sqlite runtime support`() {
     assertNoBannedImports(
-      files = sourceFiles().filter {
-        it.packageName == "skillbill.review" || it.packageName.startsWith(
-          "skillbill.review.",
-        )
-      },
+      files =
+        sourceFiles().filter {
+          it.packageName == "skillbill.review" ||
+            it.packageName.startsWith(
+              "skillbill.review.",
+            )
+        },
       bannedImports =
-      listOf(
-        "java.sql",
-        "skillbill.db",
-        "skillbill.infrastructure",
-        "skillbill.ports",
-        "skillbill.telemetry",
-      ),
+        listOf(
+          "java.sql",
+          "skillbill.db",
+          "skillbill.infrastructure",
+          "skillbill.ports",
+          "skillbill.telemetry",
+        ),
     )
 
     val sqliteReviewRuntime = sourcePath("skillbill/infrastructure/sqlite/review/stage/runtime/ReviewRuntime.kt")
@@ -358,19 +373,19 @@ class RuntimeLayerBoundaryArchitectureTest {
   fun `cli workflow commands delegate to application instead of low level runtimes`() {
     assertNoBannedImports(
       files =
-      sourceFiles().filter { file ->
-        file.packageName.startsWith("skillbill.cli") &&
-          !file.packageName.startsWith("skillbill.cli.model")
-      },
+        sourceFiles().filter { file ->
+          file.packageName.startsWith("skillbill.cli") &&
+            !file.packageName.startsWith("skillbill.cli.model")
+        },
       bannedImports =
-      listOf(
-        "skillbill.db",
-        "skillbill.review",
-        "skillbill.application.telemetry.config.TelemetryConfigRuntime",
-        "skillbill.application.telemetry.sync.TelemetrySyncRuntime",
-        "skillbill.learnings.LearningStore",
-        "skillbill.learnings.LearningsRuntime",
-      ),
+        listOf(
+          "skillbill.db",
+          "skillbill.review",
+          "skillbill.application.telemetry.config.TelemetryConfigRuntime",
+          "skillbill.application.telemetry.sync.TelemetrySyncRuntime",
+          "skillbill.learnings.LearningStore",
+          "skillbill.learnings.LearningsRuntime",
+        ),
     )
   }
 
@@ -379,13 +394,13 @@ class RuntimeLayerBoundaryArchitectureTest {
     assertNoBannedImports(
       files = sourceFiles().filter { file -> file.packageName.startsWith("skillbill.mcp") },
       bannedImports =
-      listOf(
-        "skillbill.db",
-        "skillbill.review",
-        "skillbill.learnings.LearningStore",
-        "skillbill.learnings.LearningsRuntime",
-        "skillbill.application.telemetry.config.TelemetryConfigRuntime",
-      ),
+        listOf(
+          "skillbill.db",
+          "skillbill.review",
+          "skillbill.learnings.LearningStore",
+          "skillbill.learnings.LearningsRuntime",
+          "skillbill.application.telemetry.config.TelemetryConfigRuntime",
+        ),
     )
   }
 
@@ -439,34 +454,37 @@ class RuntimeLayerBoundaryArchitectureTest {
     assertNoBannedImports(
       files = sourceFiles().filter { it.packageName.startsWith("skillbill.domain") },
       bannedImports =
-      listOf(
-        "com.github.ajalt.clikt",
-        "java.net.http",
-        "java.sql",
-        "java.nio.file.Files",
-        "skillbill.cli",
-        "skillbill.db",
-        "skillbill.mcp",
-      ),
+        listOf(
+          "com.github.ajalt.clikt",
+          "java.net.http",
+          "java.sql",
+          "java.nio.file.Files",
+          "skillbill.cli",
+          "skillbill.db",
+          "skillbill.mcp",
+        ),
     )
   }
 
   @Test
   fun `parallel review composition root owns collaborator wiring`() {
-    val runnerSource = Files.readString(
-      sourcePath("skillbill/application/review/parallel/core/code/review/runner/ParallelCodeReviewRunner.kt"),
-    )
-    val compositionSource = Files.readString(
-      sourcePath(
-        "skillbill/application/review/parallel/core/code/review/runner/ParallelCodeReviewRunnerComposition.kt",
-      ),
-    )
-    val boundariesSource = Files.readString(
-      sourcePath(
-        "skillbill/application/review/parallel/core/code/review/runner/model/" +
-          "ParallelCodeReviewRunnerBoundaries.kt",
-      ),
-    )
+    val runnerSource =
+      Files.readString(
+        sourcePath("skillbill/application/review/parallel/core/code/review/runner/ParallelCodeReviewRunner.kt"),
+      )
+    val compositionSource =
+      Files.readString(
+        sourcePath(
+          "skillbill/application/review/parallel/core/code/review/runner/ParallelCodeReviewRunnerComposition.kt",
+        ),
+      )
+    val boundariesSource =
+      Files.readString(
+        sourcePath(
+          "skillbill/application/review/parallel/core/code/review/runner/model/" +
+            "ParallelCodeReviewRunnerBoundaries.kt",
+        ),
+      )
     assertTrue(
       !runnerSource.contains("ParallelCodeReviewRunnerBoundaries"),
       "ParallelCodeReviewRunner must not unwrap boundary bags or rebuild the collaborator graph.",
@@ -489,14 +507,16 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `retired review and telemetry adapters stay absent from production main`() {
-    val retiredProductionPaths = listOf(
-      "runtime-application/src/main/kotlin/skillbill/application/review/ReviewCommitSequenceResolver.kt",
-      "runtime-application/src/main/kotlin/skillbill/application/telemetry/config/TelemetryConfigMutationRuntime.kt",
-      "runtime-application/src/main/kotlin/skillbill/application/telemetry/config/TelemetryConfigRuntime.kt",
-    )
-    val survivors = retiredProductionPaths.filter { relativePath ->
-      Files.exists(runtimeArchitectureRoot.resolve(relativePath))
-    }
+    val retiredProductionPaths =
+      listOf(
+        "runtime-application/src/main/kotlin/skillbill/application/review/ReviewCommitSequenceResolver.kt",
+        "runtime-application/src/main/kotlin/skillbill/application/telemetry/config/TelemetryConfigMutationRuntime.kt",
+        "runtime-application/src/main/kotlin/skillbill/application/telemetry/config/TelemetryConfigRuntime.kt",
+      )
+    val survivors =
+      retiredProductionPaths.filter { relativePath ->
+        Files.exists(runtimeArchitectureRoot.resolve(relativePath))
+      }
     assertEquals(
       emptyList(),
       survivors,
@@ -506,9 +526,10 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `update check service keeps parser state invocation local`() {
-    val source = Files.readString(
-      sourcePath("skillbill/application/updatecheck/UpdateCheckService.kt"),
-    )
+    val source =
+      Files.readString(
+        sourcePath("skillbill/application/updatecheck/UpdateCheckService.kt"),
+      )
     assertTrue(!source.contains("lastUnknown"), "UpdateCheckService must not cache last UNKNOWN results.")
     assertTrue(!source.contains("releasePayloadMalformed"), "Malformed payload flags must stay invocation-local.")
     assertTrue(!source.contains("releaseEntryMalformed"), "Malformed entry flags must stay invocation-local.")

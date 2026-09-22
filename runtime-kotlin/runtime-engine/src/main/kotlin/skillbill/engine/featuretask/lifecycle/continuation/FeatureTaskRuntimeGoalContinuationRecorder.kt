@@ -26,6 +26,7 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Featur
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import java.nio.file.Path
 import java.time.Clock
+
 @Inject
 class FeatureTaskRuntimeGoalContinuationRecorder(
   private val database: DatabaseSessionFactory,
@@ -38,11 +39,12 @@ class FeatureTaskRuntimeGoalContinuationRecorder(
   private val runtimeOwnedPersistence = RuntimeOwnedPersistenceBoundary(database, diagnostics)
   val reviewStateRecorder = FeatureTaskRuntimeGoalContinuationStateRecorder(database, engine)
   val reviewPassRecorder = FeatureTaskRuntimeGoalReviewPassRecorder(database, patcher, runtimeOwnedPersistence)
-  private val inputBuilder = FeatureTaskRuntimeGoalReviewInputBuilder(
-    database,
-    patcher,
-    reviewPassRecorder::persistGoalReviewInput,
-  )
+  private val inputBuilder =
+    FeatureTaskRuntimeGoalReviewInputBuilder(
+      database,
+      patcher,
+      reviewPassRecorder::persistGoalReviewInput,
+    )
   val remediationReconciler = FeatureTaskRuntimeRemediationBaseReconciler(database, patcher, clock)
 
   internal fun recordGoalContinuationState(request: GoalContinuationStateRecordRequest): Boolean =
@@ -51,8 +53,10 @@ class FeatureTaskRuntimeGoalContinuationRecorder(
   fun reserveGoalReviewPass(workflowId: String): GoalSubtaskReviewPassReservation =
     reviewPassRecorder.reserveGoalReviewPass(workflowId)
 
-  fun persistGoalReviewInput(workflowId: String, input: GoalSubtaskReviewInput): GoalSubtaskReviewState? =
-    reviewPassRecorder.persistGoalReviewInput(workflowId, input)
+  fun persistGoalReviewInput(
+    workflowId: String,
+    input: GoalSubtaskReviewInput,
+  ): GoalSubtaskReviewState? = reviewPassRecorder.persistGoalReviewInput(workflowId, input)
 
   fun updateReviewState(
     workflowId: String,

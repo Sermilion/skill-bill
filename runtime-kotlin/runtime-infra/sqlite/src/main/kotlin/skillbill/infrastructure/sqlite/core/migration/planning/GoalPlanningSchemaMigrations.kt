@@ -25,11 +25,12 @@ internal fun rebuildGoalPlanningPlansForPhaseOutputVersion2(connection: Connecti
 
 internal fun requireGoalPlanningPhaseOutputVersion2(connection: Connection) {
   connection.createStatement().use { statement ->
-    val incompatibleTable = listOf("goal_shared_preplans", "goal_subtask_plans").firstOrNull { table ->
-      statement.executeQuery(
-        "SELECT 1 FROM $table WHERE phase_output_contract_version != '0.2' LIMIT 1",
-      ).use { rows -> rows.next() }
-    }
+    val incompatibleTable =
+      listOf("goal_shared_preplans", "goal_subtask_plans").firstOrNull { table ->
+        statement.executeQuery(
+          "SELECT 1 FROM $table WHERE phase_output_contract_version != '0.2' LIMIT 1",
+        ).use { rows -> rows.next() }
+      }
     if (incompatibleTable != null) {
       throw InvalidGoalPlanningPreparationSchemaError(
         sourceLabel = incompatibleTable,
@@ -122,7 +123,11 @@ private const val ORDERED_SUBTASK_PLANS_INDEX =
   "CREATE INDEX IF NOT EXISTS idx_goal_subtask_plans_ordered " +
     "ON goal_subtask_plans(parent_goal_workflow_id, manifest_order)"
 
-private fun Connection.sharedPreplansDdl(legacyTable: String, phaseOutputCheck: String): String = """
+private fun Connection.sharedPreplansDdl(
+  legacyTable: String,
+  phaseOutputCheck: String,
+): String =
+  """
   CREATE TABLE goal_shared_preplans (
     parent_goal_workflow_id TEXT PRIMARY KEY,
     normalized_issue_key TEXT NOT NULL,
@@ -140,9 +145,13 @@ private fun Connection.sharedPreplansDdl(legacyTable: String, phaseOutputCheck: 
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP${optionalRepairEvidenceColumn(legacyTable)},
     UNIQUE(normalized_issue_key, repository_identity)
   )
-""".trimIndent()
+  """.trimIndent()
 
-private fun Connection.subtaskPlansDdl(legacyTable: String, phaseOutputCheck: String): String = """
+private fun Connection.subtaskPlansDdl(
+  legacyTable: String,
+  phaseOutputCheck: String,
+): String =
+  """
   CREATE TABLE goal_subtask_plans (
     parent_goal_workflow_id TEXT NOT NULL,
     normalized_issue_key TEXT NOT NULL,
@@ -167,14 +176,15 @@ private fun Connection.subtaskPlansDdl(legacyTable: String, phaseOutputCheck: St
     UNIQUE(parent_goal_workflow_id, manifest_order),
     FOREIGN KEY(parent_goal_workflow_id) REFERENCES goal_shared_preplans(parent_goal_workflow_id) ON DELETE CASCADE
   )
-""".trimIndent()
+  """.trimIndent()
 
 internal fun Connection.optionalRepairEvidenceColumn(table: String): String {
-  val hasRepairEvidence = prepareStatement(
-    "SELECT 1 FROM pragma_table_info(?) WHERE name = 'repair_evidence_json'",
-  ).use { statement ->
-    statement.bindAll(table)
-    statement.executeQuery().use { rows -> rows.next() }
-  }
+  val hasRepairEvidence =
+    prepareStatement(
+      "SELECT 1 FROM pragma_table_info(?) WHERE name = 'repair_evidence_json'",
+    ).use { statement ->
+      statement.bindAll(table)
+      statement.executeQuery().use { rows -> rows.next() }
+    }
   return if (hasRepairEvidence) ",\n                repair_evidence_json TEXT" else ""
 }

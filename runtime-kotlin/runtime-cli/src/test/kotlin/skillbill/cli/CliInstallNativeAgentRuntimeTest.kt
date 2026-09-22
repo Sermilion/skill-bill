@@ -41,10 +41,11 @@ class CliInstallNativeAgentRuntimeTest {
   fun `cursor agents path prints the cursor agents directory`() {
     val fixture = installFixture()
 
-    val result = CliRuntime.run(
-      listOf("install", "cursor-agents-path"),
-      installCliContext(fixture.home),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("install", "cursor-agents-path"),
+        installCliContext(fixture.home),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, fixture.home.resolve(".cursor/agents").toString())
@@ -96,8 +97,9 @@ class CliInstallNativeAgentRuntimeTest {
   @Test
   fun `claude native subagent commands link and unlink authored agent files`() {
     val fixture = installFixture()
-    val sourcePath = fixture.codexToml.parent.parent
-      .resolve("native-agents/${fixture.codexToml.fileName.toString().removeSuffix(".toml")}.md")
+    val sourcePath =
+      fixture.codexToml.parent.parent
+        .resolve("native-agents/${fixture.codexToml.fileName.toString().removeSuffix(".toml")}.md")
     val source = parseNativeAgentSource(sourcePath)
     val target = fixture.home.resolve(".claude/agents/${source.name}.md")
 

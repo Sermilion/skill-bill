@@ -9,8 +9,9 @@ private const val EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b93
 class Sha256SidecarTest {
   @Test
   fun `sidecar carries lowercase hex two spaces the archive name and a trailing newline`() {
-    val archive = Files.createTempDirectory("skillbill-sidecar")
-      .resolve("runtime-cli-1.2.3-macos-arm64.zip")
+    val archive =
+      Files.createTempDirectory("skillbill-sidecar")
+        .resolve("runtime-cli-1.2.3-macos-arm64.zip")
     Files.createFile(archive)
 
     assertEquals(

@@ -21,10 +21,11 @@ internal data class ContinuationStepResult(
     manifest: DecompositionManifest,
     validator: DecompositionManifestValidator,
     ownerWorkflowId: String,
-  ): ContinuationStepResult = withPendingProjection(
-    ownerWorkflowId = ownerWorkflowId,
-    artifactsJson = decompositionRuntimeArtifactsJson(manifest, validator),
-  )
+  ): ContinuationStepResult =
+    withPendingProjection(
+      ownerWorkflowId = ownerWorkflowId,
+      artifactsJson = decompositionRuntimeArtifactsJson(manifest, validator),
+    )
 
   fun withProjectionArtifactsIfMissing(artifactsJson: String?): ContinuationStepResult =
     if (projectionArtifactsJson == null && artifactsJson != null) {
@@ -39,34 +40,38 @@ internal data class ContinuationStepResult(
     specPath: String,
     outcome: GoalContinuationOutcome,
   ): ContinuationStepResult {
-    val decorated: WorkflowContinueResult = when (val current = result) {
-      is WorkflowContinueResult.Standard -> WorkflowContinueResult.DecompositionStandard(
-        dbPath = current.dbPath,
-        view = current.view,
-        decompositionSubtaskId = subtaskId,
-        decompositionSubtaskSpecPath = specPath,
-        issueKey = issueKey,
-        outcome = outcome,
-      )
-      is WorkflowContinueResult.DecompositionStandard -> current.copy(
-        decompositionSubtaskId = subtaskId,
-        decompositionSubtaskSpecPath = specPath,
-        issueKey = issueKey,
-        outcome = outcome,
-      )
-      is WorkflowContinueResult.UnknownWorkflow,
-      is WorkflowContinueResult.DecompositionMissingSubtaskWorkflow,
-      is WorkflowContinueResult.DecompositionBlockedSubtask,
-      is WorkflowContinueResult.DecompositionBlockedBranchStart,
-      is WorkflowContinueResult.DecompositionDone,
-      is WorkflowContinueResult.DecompositionSubtaskOutcome,
-      is WorkflowContinueResult.DecompositionBlockedGit,
-      is WorkflowContinueResult.Error,
-      -> error(
-        "withDecompositionFields can only decorate Standard or " +
-          "DecompositionStandard continuations; got ${current::class.simpleName}",
-      )
-    }
+    val decorated: WorkflowContinueResult =
+      when (val current = result) {
+        is WorkflowContinueResult.Standard ->
+          WorkflowContinueResult.DecompositionStandard(
+            dbPath = current.dbPath,
+            view = current.view,
+            decompositionSubtaskId = subtaskId,
+            decompositionSubtaskSpecPath = specPath,
+            issueKey = issueKey,
+            outcome = outcome,
+          )
+        is WorkflowContinueResult.DecompositionStandard ->
+          current.copy(
+            decompositionSubtaskId = subtaskId,
+            decompositionSubtaskSpecPath = specPath,
+            issueKey = issueKey,
+            outcome = outcome,
+          )
+        is WorkflowContinueResult.UnknownWorkflow,
+        is WorkflowContinueResult.DecompositionMissingSubtaskWorkflow,
+        is WorkflowContinueResult.DecompositionBlockedSubtask,
+        is WorkflowContinueResult.DecompositionBlockedBranchStart,
+        is WorkflowContinueResult.DecompositionDone,
+        is WorkflowContinueResult.DecompositionSubtaskOutcome,
+        is WorkflowContinueResult.DecompositionBlockedGit,
+        is WorkflowContinueResult.Error,
+        ->
+          error(
+            "withDecompositionFields can only decorate Standard or " +
+              "DecompositionStandard continuations; got ${current::class.simpleName}",
+          )
+      }
     return copy(result = decorated)
   }
 }
@@ -74,64 +79,71 @@ internal data class ContinuationStepResult(
 internal fun missingSubtaskWorkflowResult(
   selection: DecompositionContinuationSelection.Resume,
   unitOfWork: UnitOfWork,
-): ContinuationStepResult = ContinuationStepResult(
-  WorkflowContinueResult.DecompositionMissingSubtaskWorkflow(
-    dbPath = unitOfWork.dbPath.toString(),
-    subtaskId = selection.subtask.id,
-    blockedReason = "Subtask ${selection.subtask.id} is in progress but has no workflow_id.",
-  ),
-)
+): ContinuationStepResult =
+  ContinuationStepResult(
+    WorkflowContinueResult.DecompositionMissingSubtaskWorkflow(
+      dbPath = unitOfWork.dbPath.toString(),
+      subtaskId = selection.subtask.id,
+      blockedReason = "Subtask ${selection.subtask.id} is in progress but has no workflow_id.",
+    ),
+  )
 
 fun blockedSubtaskResult(
   parentRecord: WorkflowStateSnapshot,
   manifest: DecompositionManifest,
   selection: DecompositionContinuationSelection.Blocked,
   dbPath: String,
-): WorkflowContinueResult = WorkflowContinueResult.DecompositionBlockedSubtask(
-  dbPath = dbPath,
-  workflowId = parentRecord.workflowId,
-  issueKey = manifest.issueKey,
-  subtaskId = selection.subtask.id,
-  subtaskSpecPath = selection.subtask.specPath,
-  blockedReason = selection.reason,
-)
+): WorkflowContinueResult =
+  WorkflowContinueResult.DecompositionBlockedSubtask(
+    dbPath = dbPath,
+    workflowId = parentRecord.workflowId,
+    issueKey = manifest.issueKey,
+    subtaskId = selection.subtask.id,
+    subtaskSpecPath = selection.subtask.specPath,
+    blockedReason = selection.reason,
+  )
 
 fun doneDecompositionResult(
   parentRecord: WorkflowStateSnapshot,
   manifest: DecompositionManifest,
   dbPath: String,
-): WorkflowContinueResult = WorkflowContinueResult.DecompositionDone(
-  dbPath = dbPath,
-  workflowId = parentRecord.workflowId,
-  issueKey = manifest.issueKey,
-  decompositionStatus = manifest.status,
-)
+): WorkflowContinueResult =
+  WorkflowContinueResult.DecompositionDone(
+    dbPath = dbPath,
+    workflowId = parentRecord.workflowId,
+    issueKey = manifest.issueKey,
+    decompositionStatus = manifest.status,
+  )
 
 fun blockedGitResult(
   parentWorkflowId: String,
   issueKey: String,
   dbPath: String,
   reason: String,
-): WorkflowContinueResult = WorkflowContinueResult.DecompositionBlockedGit(
-  dbPath = dbPath,
-  workflowId = parentWorkflowId,
-  issueKey = issueKey,
-  blockedReason = reason.ifBlank { "Subtask advancement failed." },
-)
+): WorkflowContinueResult =
+  WorkflowContinueResult.DecompositionBlockedGit(
+    dbPath = dbPath,
+    workflowId = parentWorkflowId,
+    issueKey = issueKey,
+    blockedReason = reason.ifBlank { "Subtask advancement failed." },
+  )
 
 fun decompositionRuntimeArtifactsJson(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
-): String = jsonString(
-  mapOf(
-    DECOMPOSITION_RUNTIME_ARTIFACT_KEY to validator.encodeManifestWireMap(
-      manifest,
-      DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+): String =
+  jsonString(
+    mapOf(
+      DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+        validator.encodeManifestWireMap(
+          manifest,
+          DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+        ),
     ),
-  ),
-)
+  )
 
-private fun jsonString(value: Any?): String = JsonCodec.json.encodeToString(
-  JsonElement.serializer(),
-  JsonCodec.valueToJsonElement(value),
-)
+private fun jsonString(value: Any?): String =
+  JsonCodec.json.encodeToString(
+    JsonElement.serializer(),
+    JsonCodec.valueToJsonElement(value),
+  )

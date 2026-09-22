@@ -4,17 +4,24 @@ import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
 import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import java.nio.file.Files
 import java.nio.file.Path
+
 internal fun goalPlanningCanonicalRoot(repoRoot: Path): Path =
   repoRoot.toRealPathOrNull() ?: repoRoot.toAbsolutePath().normalize()
 
-internal fun goalPlanningIncluded(repoRoot: Path, candidate: Path): Pair<Path, String>? {
+internal fun goalPlanningIncluded(
+  repoRoot: Path,
+  candidate: Path,
+): Pair<Path, String>? {
   val canonical = candidate.toRealPathOrNull()?.takeIf { path -> path.startsWith(repoRoot) } ?: return null
   val relative = repoRoot.relativize(canonical).joinToString("/")
   if (relative.isEmpty() || GoalPlanningDiscoveryExclusions.isExcluded(relative)) return null
   return canonical to relative
 }
 
-internal fun goalPlanningIncludedRegularFile(repoRoot: Path, relativePath: String): Path? {
+internal fun goalPlanningIncludedRegularFile(
+  repoRoot: Path,
+  relativePath: String,
+): Path? {
   if (relativePath.isBlank() || GoalPlanningDiscoveryExclusions.isExcluded(relativePath)) return null
   val (canonical, canonicalRelative) = goalPlanningIncluded(repoRoot, repoRoot.resolve(relativePath)) ?: return null
   if (canonicalRelative != relativePath) return null
@@ -56,17 +63,21 @@ internal fun goalPlanningAgentDirectories(repoRoot: Path): AgentDirectoryWalk {
   )
 }
 
-internal fun goalPlanningOwningAgentDirectory(repoRoot: Path, findingPath: String): Path? {
+internal fun goalPlanningOwningAgentDirectory(
+  repoRoot: Path,
+  findingPath: String,
+): Path? {
   val normalized = goalPlanningNormalizeFindingPath(findingPath) ?: return null
   if (GoalPlanningDiscoveryExclusions.isExcluded(normalized)) return null
   val segments = normalized.split("/")
   for (segmentCount in segments.size downTo 0) {
     val prefix = segments.take(segmentCount).joinToString("/")
-    val agentRelative = if (prefix.isEmpty()) {
-      GoalPlanningRepositoryScope.AGENT_DIRECTORY
-    } else {
-      "$prefix/${GoalPlanningRepositoryScope.AGENT_DIRECTORY}"
-    }
+    val agentRelative =
+      if (prefix.isEmpty()) {
+        GoalPlanningRepositoryScope.AGENT_DIRECTORY
+      } else {
+        "$prefix/${GoalPlanningRepositoryScope.AGENT_DIRECTORY}"
+      }
     val agentDir = repoRoot.resolve(agentRelative)
     val includedAgent = goalPlanningIncluded(repoRoot, agentDir) ?: continue
     if (GoalPlanningRepositoryScope.BOUNDARY_MEMORY_FILES.any { fileName ->
@@ -79,7 +90,10 @@ internal fun goalPlanningOwningAgentDirectory(repoRoot: Path, findingPath: Strin
   return null
 }
 
-internal fun goalPlanningOwningAgentDirectories(repoRoot: Path, findingPaths: List<String>): List<Path> =
+internal fun goalPlanningOwningAgentDirectories(
+  repoRoot: Path,
+  findingPaths: List<String>,
+): List<Path> =
   findingPaths.mapNotNull { path -> goalPlanningOwningAgentDirectory(repoRoot, path) }
     .distinct()
     .sortedBy { agentDir -> repoRoot.relativize(agentDir).joinToString("/") }
@@ -93,12 +107,13 @@ internal fun goalPlanningNormalizeFindingPath(findingPath: String): String? {
   }.getOrNull()
 }
 
-private fun goalPlanningSortedChildDirectories(directory: Path): List<Path>? = runCatching {
-  Files.list(directory).use { entries ->
-    entries.filter { path -> Files.isDirectory(path) }
-      .sorted()
-      .toList()
-  }
-}.getOrNull()
+private fun goalPlanningSortedChildDirectories(directory: Path): List<Path>? =
+  runCatching {
+    Files.list(directory).use { entries ->
+      entries.filter { path -> Files.isDirectory(path) }
+        .sorted()
+        .toList()
+    }
+  }.getOrNull()
 
 private fun Path.toRealPathOrNull(): Path? = runCatching { toRealPath() }.getOrNull()

@@ -88,26 +88,26 @@ abstract class RuntimeComponent(
   private val inputRuntimeContext: RuntimeContext,
 ) :
   RuntimeInstallTargetProvides,
-  RuntimeInstallPlanProvides,
-  RuntimeTelemetryProvides,
-  RuntimeGoalPlanningProvides,
-  RuntimeGoalPlanningSweepProvides,
-  RuntimeGoalRunnerStoreProvides,
-  RuntimeGoalRunnerLaunchProvides,
-  RuntimeReviewLaunchProvides,
-  RuntimeReviewAddonCatalogProvides,
-  RuntimeReviewEvidenceProvides,
-  RuntimeFeatureTaskProvides,
-  RuntimeFeatureSpecProvides,
-  RuntimeWorkflowProvides,
-  RuntimeWorkflowValidatorProvides,
-  RuntimeFeatureTaskValidatorProvides,
-  RuntimeScaffoldProvides,
-  RuntimeScaffoldValidationProvides,
-  RuntimeInstallerProvides,
-  RuntimeExperimentProvides,
-  RuntimeExperimentTelemetryProvides,
-  RuntimeDiagnosticsProvides {
+    RuntimeInstallPlanProvides,
+    RuntimeTelemetryProvides,
+    RuntimeGoalPlanningProvides,
+    RuntimeGoalPlanningSweepProvides,
+    RuntimeGoalRunnerStoreProvides,
+    RuntimeGoalRunnerLaunchProvides,
+    RuntimeReviewLaunchProvides,
+    RuntimeReviewAddonCatalogProvides,
+    RuntimeReviewEvidenceProvides,
+    RuntimeFeatureTaskProvides,
+    RuntimeFeatureSpecProvides,
+    RuntimeWorkflowProvides,
+    RuntimeWorkflowValidatorProvides,
+    RuntimeFeatureTaskValidatorProvides,
+    RuntimeScaffoldProvides,
+    RuntimeScaffoldValidationProvides,
+    RuntimeInstallerProvides,
+    RuntimeExperimentProvides,
+    RuntimeExperimentTelemetryProvides,
+    RuntimeDiagnosticsProvides {
   private val resolvedRuntimeContext: RuntimeContext by lazy {
     RuntimeBootstrapBindings.runtimeContext(inputRuntimeContext)
   }
@@ -116,10 +116,11 @@ abstract class RuntimeComponent(
   fun runtimeContext(): RuntimeContext = resolvedRuntimeContext
 
   @Provides @JvmSynthetic
-  fun experimentGoalRunnerFactory(): ExperimentGoalRunnerFactory = ExperimentGoalRunnerFactory { context ->
-    val component = RuntimeComponent::class.create(context)
-    ExperimentGoalRunnerPort { request -> component.goalRunner.run(request) }
-  }
+  fun experimentGoalRunnerFactory(): ExperimentGoalRunnerFactory =
+    ExperimentGoalRunnerFactory { context ->
+      val component = RuntimeComponent::class.create(context)
+      ExperimentGoalRunnerPort { request -> component.goalRunner.run(request) }
+    }
 
   @Provides @JvmSynthetic
   fun environmentContext(ctx: RuntimeContext): EnvironmentContext = ctx.environment

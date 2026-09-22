@@ -22,6 +22,7 @@ import java.nio.file.Path
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 internal const val PROMPT_COMPOSER_ISSUE_KEY = "SKILL-66"
 internal const val TEST_VALUE_DISCIPLINE_TITLE = "## Test-value discipline"
 internal const val PROMPT_COMPOSER_SPEC_REFERENCE = ".feature-specs/SKILL-66/spec.md"
@@ -35,20 +36,28 @@ internal val promptComposerPhasePreplan = FeatureTaskRuntimePhaseWorkflowDefinit
 internal val promptComposerPhasePlan = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
 internal val promptComposerImplementPhase = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT
 
-internal fun promptComposerProjectionEnvelope(phaseId: String, producedOutputs: String): String =
+internal fun promptComposerProjectionEnvelope(
+  phaseId: String,
+  producedOutputs: String,
+): String =
   """{"contract_version":"0.6","phase_id":"$phaseId","status":"completed",""" +
     """"summary":"Phase produced a validated output.","produced_outputs":$producedOutputs}"""
 
-internal fun composePromptForPhase(phaseId: String) = composePhasePrompt(
-  PROMPT_COMPOSER_ISSUE_KEY,
-  promptComposerBriefingFor(phaseId),
-)
+internal fun composePromptForPhase(phaseId: String) =
+  composePhasePrompt(
+    PROMPT_COMPOSER_ISSUE_KEY,
+    promptComposerBriefingFor(phaseId),
+  )
 
-internal fun promptComposerProjectionExampleCases() = listOf(
-  Pair(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN, promptComposerBriefingFor(promptComposerPhasePreplan)),
-  Pair(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN, promptComposerBriefingFor(promptComposerPhasePlan)),
-  Pair(promptComposerImplementPhase, promptComposerBriefingFor(promptComposerImplementPhase)),
-)
+internal fun promptComposerProjectionExampleCases() =
+  listOf(
+    Pair(
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
+      promptComposerBriefingFor(promptComposerPhasePreplan),
+    ),
+    Pair(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN, promptComposerBriefingFor(promptComposerPhasePlan)),
+    Pair(promptComposerImplementPhase, promptComposerBriefingFor(promptComposerImplementPhase)),
+  )
 
 internal data class PromptComposerBriefingOptions(
   val featureSize: FeatureTaskRuntimeFeatureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
@@ -72,24 +81,26 @@ internal fun promptComposerBriefingFor(
     FeatureTaskRuntimeHandoffContract.assembleHandoff(
       FeatureTaskRuntimeHandoffAssemblyRequest(
         declaration = declaration,
-        runInvariants = FeatureTaskRuntimeRunInvariants(
-          specReference = PROMPT_COMPOSER_SPEC_REFERENCE,
-          featureSize = options.featureSize,
-          acceptanceCriteria = options.acceptanceCriteria,
-          mandatesAndOverrides = emptyList(),
-        ),
-        recordedOutputs = listOf(
-          FeatureTaskRuntimePhaseOutput("preplan", 1, PROMPT_COMPOSER_PREPLAN_OUTPUT),
-          FeatureTaskRuntimePhaseOutput("plan", 1, PROMPT_COMPOSER_PLAN_OUTPUT),
-          FeatureTaskRuntimePhaseOutput("implement", 1, IMPLEMENT_OUTPUT),
-          FeatureTaskRuntimePhaseOutput("simplify", 1, SIMPLIFY_OUTPUT),
-          FeatureTaskRuntimePhaseOutput("audit", 1, options.auditOutput),
-          FeatureTaskRuntimePhaseOutput("review", 1, validJsonOutput("review")),
-          verifyFindingsPhaseOutput(),
-          FeatureTaskRuntimePhaseOutput("validate", 1, validJsonOutput("validate")),
-          FeatureTaskRuntimePhaseOutput("write_history", 1, validJsonOutput("write_history")),
-          FeatureTaskRuntimePhaseOutput("commit_push", 1, FINALISED_COMMIT_PUSH_OUTPUT),
-        ),
+        runInvariants =
+          FeatureTaskRuntimeRunInvariants(
+            specReference = PROMPT_COMPOSER_SPEC_REFERENCE,
+            featureSize = options.featureSize,
+            acceptanceCriteria = options.acceptanceCriteria,
+            mandatesAndOverrides = emptyList(),
+          ),
+        recordedOutputs =
+          listOf(
+            FeatureTaskRuntimePhaseOutput("preplan", 1, PROMPT_COMPOSER_PREPLAN_OUTPUT),
+            FeatureTaskRuntimePhaseOutput("plan", 1, PROMPT_COMPOSER_PLAN_OUTPUT),
+            FeatureTaskRuntimePhaseOutput("implement", 1, IMPLEMENT_OUTPUT),
+            FeatureTaskRuntimePhaseOutput("simplify", 1, SIMPLIFY_OUTPUT),
+            FeatureTaskRuntimePhaseOutput("audit", 1, options.auditOutput),
+            FeatureTaskRuntimePhaseOutput("review", 1, validJsonOutput("review")),
+            verifyFindingsPhaseOutput(),
+            FeatureTaskRuntimePhaseOutput("validate", 1, validJsonOutput("validate")),
+            FeatureTaskRuntimePhaseOutput("write_history", 1, validJsonOutput("write_history")),
+            FeatureTaskRuntimePhaseOutput("commit_push", 1, FINALISED_COMMIT_PUSH_OUTPUT),
+          ),
         repositoryCheckpoint = checkpoint,
         expectedRepositoryCheckpoint = checkpoint,
         validationDepth = ValidationDepth.DEFAULT,
@@ -99,21 +110,26 @@ internal fun promptComposerBriefingFor(
   )
 }
 
-internal fun assertAuditPromptNamesSignal(auditPrompt: String, fragment: String, what: String) {
+internal fun assertAuditPromptNamesSignal(
+  auditPrompt: String,
+  fragment: String,
+  what: String,
+) {
   assertContains(auditPrompt, fragment, false, "audit names $what")
 }
 
 internal fun assertSchemaCorrectionSuppressesContinuation(context: FeatureTaskRuntimeCorrectiveRepairContext) {
-  val prompt = FeatureTaskRuntimePhasePromptComposer.compose(
-    PROMPT_COMPOSER_ISSUE_KEY,
-    promptComposerBriefingFor("implement"),
-  ) {
-    copy(
-      implementationContinuation = promptComposerImplementationContinuation(),
-      priorSchemaFailure = "produced_outputs must be an object.",
-      correctiveRepairContext = context,
-    )
-  }
+  val prompt =
+    FeatureTaskRuntimePhasePromptComposer.compose(
+      PROMPT_COMPOSER_ISSUE_KEY,
+      promptComposerBriefingFor("implement"),
+    ) {
+      copy(
+        implementationContinuation = promptComposerImplementationContinuation(),
+        priorSchemaFailure = "produced_outputs must be an object.",
+        correctiveRepairContext = context,
+      )
+    }
   assertContains(prompt, "Previous attempt was REJECTED by the schema gate")
   assertContains(prompt, "Untrusted prior phase output")
   assertTrue(prompt.contains("SKILL187-SHOULD-NOT-APPEAR"))
@@ -122,32 +138,35 @@ internal fun assertSchemaCorrectionSuppressesContinuation(context: FeatureTaskRu
 }
 
 internal fun assertTerminalAndContinuationRetriesOmitRepairContext() {
-  val terminalOnly = FeatureTaskRuntimePhasePromptComposer.compose(
-    PROMPT_COMPOSER_ISSUE_KEY,
-    promptComposerBriefingFor("implement"),
-  ) {
-    copy(priorTerminalFailure = "blocked: waiting on operator")
-  }
+  val terminalOnly =
+    FeatureTaskRuntimePhasePromptComposer.compose(
+      PROMPT_COMPOSER_ISSUE_KEY,
+      promptComposerBriefingFor("implement"),
+    ) {
+      copy(priorTerminalFailure = "blocked: waiting on operator")
+    }
   assertFalse(terminalOnly.contains("Untrusted prior phase output"))
   assertFalse(terminalOnly.contains("SKILL187-SHOULD-NOT-APPEAR"))
 
-  val continuationOnly = FeatureTaskRuntimePhasePromptComposer.compose(
-    PROMPT_COMPOSER_ISSUE_KEY,
-    promptComposerBriefingFor("implement"),
-  ) {
-    copy(implementationContinuation = promptComposerImplementationContinuation())
-  }
+  val continuationOnly =
+    FeatureTaskRuntimePhasePromptComposer.compose(
+      PROMPT_COMPOSER_ISSUE_KEY,
+      promptComposerBriefingFor("implement"),
+    ) {
+      copy(implementationContinuation = promptComposerImplementationContinuation())
+    }
   assertFalse(continuationOnly.contains("Untrusted prior phase output"))
   assertFalse(continuationOnly.contains("SKILL187-SHOULD-NOT-APPEAR"))
 }
 
-internal fun promptComposerImplementationContinuation() = FeatureTaskRuntimeImplementationContinuation(
-  phaseId = "implement",
-  segmentNumber = 2,
-  priorValueSegments = listOf("segment one prose"),
-  latestPrompt = "optional directive",
-  failureDisposition = null,
-)
+internal fun promptComposerImplementationContinuation() =
+  FeatureTaskRuntimeImplementationContinuation(
+    phaseId = "implement",
+    segmentNumber = 2,
+    priorValueSegments = listOf("segment one prose"),
+    latestPrompt = "optional directive",
+    failureDisposition = null,
+  )
 
 internal fun shippedPlatformPackSlugs(): List<String> {
   val packs = locateAncestorDirectory("platform-packs")

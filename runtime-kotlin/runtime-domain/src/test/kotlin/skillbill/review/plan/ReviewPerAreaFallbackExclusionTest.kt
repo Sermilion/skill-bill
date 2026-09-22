@@ -12,16 +12,18 @@ import skillbill.scaffold.model.RoutingSignals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
 class ReviewPerAreaFallbackExclusionTest {
   @Test
   fun `a fallback-only area keeps its lane when no native routed pack contributes a candidate`() {
     val generic = fallbackPack("generic", listOf("fallback-only", "shared"))
     val kotlin = nativePack("kotlin", listOf("shared"))
-    val roots = listOf(
-      root(0, lane("generic", "fallback-only", ownedPaths = listOf("orphan.py"))),
-      root(0, lane("kotlin", "shared", ownedPaths = listOf("App.kt"))),
-      root(0, lane("generic", "shared", ownedPaths = listOf("orphan.py"))),
-    )
+    val roots =
+      listOf(
+        root(0, lane("generic", "fallback-only", ownedPaths = listOf("orphan.py"))),
+        root(0, lane("kotlin", "shared", ownedPaths = listOf("App.kt"))),
+        root(0, lane("generic", "shared", ownedPaths = listOf("orphan.py"))),
+      )
 
     val partition = ReviewPerAreaFallbackExclusion.partition(roots, listOf(generic, kotlin))
 
@@ -38,11 +40,12 @@ class ReviewPerAreaFallbackExclusionTest {
   fun `a native candidate for an area drops the fallback candidate for that area only`() {
     val generic = fallbackPack("generic", listOf("architecture", "fallback-only"))
     val kotlin = nativePack("kotlin", listOf("architecture"))
-    val roots = listOf(
-      root(0, lane("generic", "architecture", ownedPaths = listOf("orphan.py"))),
-      root(0, lane("generic", "fallback-only", ownedPaths = listOf("orphan.py"))),
-      root(0, lane("kotlin", "architecture", ownedPaths = listOf("App.kt"))),
-    )
+    val roots =
+      listOf(
+        root(0, lane("generic", "architecture", ownedPaths = listOf("orphan.py"))),
+        root(0, lane("generic", "fallback-only", ownedPaths = listOf("orphan.py"))),
+        root(0, lane("kotlin", "architecture", ownedPaths = listOf("App.kt"))),
+      )
 
     val partition = ReviewPerAreaFallbackExclusion.partition(roots, listOf(generic, kotlin))
 
@@ -67,9 +70,10 @@ class ReviewPerAreaFallbackExclusionTest {
 
   @Test
   fun `a fallback owner without a code-review baseline still raises`() {
-    val owner = fallbackPack("generic", listOf("architecture")).copy(
-      declaredFiles = DeclaredFiles(baseline = null, areas = emptyMap()),
-    )
+    val owner =
+      fallbackPack("generic", listOf("architecture")).copy(
+        declaredFiles = DeclaredFiles(baseline = null, areas = emptyMap()),
+      )
 
     assertFailsWith<InvalidFallbackCapabilityError> {
       ReviewPerAreaFallbackExclusion.partition(emptyList(), listOf(owner))
@@ -80,10 +84,11 @@ class ReviewPerAreaFallbackExclusionTest {
   fun `partition order is independent of routed-root input order`() {
     val generic = fallbackPack("generic", listOf("architecture", "fallback-only"))
     val kotlin = nativePack("kotlin", listOf("architecture"))
-    val roots = listOf(
-      root(0, lane("generic", "architecture"), lane("generic", "fallback-only")),
-      root(0, lane("kotlin", "architecture")),
-    )
+    val roots =
+      listOf(
+        root(0, lane("generic", "architecture"), lane("generic", "fallback-only")),
+        root(0, lane("kotlin", "architecture")),
+      )
 
     val first = ReviewPerAreaFallbackExclusion.partition(roots, listOf(generic, kotlin))
     val second = ReviewPerAreaFallbackExclusion.partition(roots.reversed(), listOf(kotlin, generic))
@@ -91,9 +96,16 @@ class ReviewPerAreaFallbackExclusionTest {
     assertEquals(first, second)
   }
 
-  private fun root(depthOffset: Int, vararg lanes: ReviewLaunchLane) = ReviewRootLanes(depthOffset, lanes.toList())
+  private fun root(
+    depthOffset: Int,
+    vararg lanes: ReviewLaunchLane,
+  ) = ReviewRootLanes(depthOffset, lanes.toList())
 
-  private fun lane(packSlug: String, area: String, ownedPaths: List<String> = listOf("a.kt")) = ReviewLaunchLane(
+  private fun lane(
+    packSlug: String,
+    area: String,
+    ownedPaths: List<String> = listOf("a.kt"),
+  ) = ReviewLaunchLane(
     skillName = "bill-$packSlug-code-review-$area",
     packSlug = packSlug,
     area = area,
@@ -107,23 +119,31 @@ class ReviewPerAreaFallbackExclusionTest {
     changedHunkIds = ownedPaths.map { "hunk-$it" },
   )
 
-  private fun fallbackPack(slug: String, areas: List<String>) = nativePack(slug, areas).copy(
+  private fun fallbackPack(
+    slug: String,
+    areas: List<String>,
+  ) = nativePack(slug, areas).copy(
     fallbackCapabilities = setOf("code-review"),
     routingSignals = RoutingSignals(emptyList(), emptyList()),
   )
 
-  private fun nativePack(slug: String, areas: List<String>) = PlatformManifest(
+  private fun nativePack(
+    slug: String,
+    areas: List<String>,
+  ) = PlatformManifest(
     slug = slug,
     packRoot = FileLocation("platform-packs/$slug"),
     contractVersion = "1.3",
     routingSignals = RoutingSignals(listOf("*.kt"), emptyList(), path = listOf("*.kt")),
     declaredCodeReviewAreas = areas,
-    declaredFiles = DeclaredFiles(
-      baseline = FileLocation("platform-packs/$slug/code-review/bill-$slug-code-review/content.md"),
-      areas = areas.associateWith {
-        FileLocation("platform-packs/$slug/code-review/bill-$slug-code-review-$it/content.md")
-      },
-    ),
+    declaredFiles =
+      DeclaredFiles(
+        baseline = FileLocation("platform-packs/$slug/code-review/bill-$slug-code-review/content.md"),
+        areas =
+          areas.associateWith {
+            FileLocation("platform-packs/$slug/code-review/bill-$slug-code-review-$it/content.md")
+          },
+      ),
     areaMetadata = emptyMap(),
     laneConditions = areas.associateWith { ReviewLaneCondition(required = true) },
     codeReviewComposition = null,

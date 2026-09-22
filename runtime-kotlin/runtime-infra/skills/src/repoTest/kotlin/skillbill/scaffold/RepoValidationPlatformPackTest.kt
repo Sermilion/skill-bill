@@ -5,6 +5,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class RepoValidationPlatformPackTest {
   @Test
   fun `repo validation rejects generated wrapper boilerplate headings in content_md`() {

@@ -1,4 +1,5 @@
 package skillbill.contracts.workflow.identity.implementationreturn
+
 object ImplementationReturnContractPayloadKeys {
   const val TASKS_COMPLETED: String = "tasks_completed"
   const val FILES_CREATED: String = "files_created"

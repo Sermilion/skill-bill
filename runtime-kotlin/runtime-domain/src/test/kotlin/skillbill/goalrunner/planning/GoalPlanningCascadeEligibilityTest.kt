@@ -22,14 +22,15 @@ class GoalPlanningCascadeEligibilityTest {
 
   @Test
   fun `pending blocked in-progress and complete without commit remain eligible`() {
-    val subtasks = listOf(
-      DecompositionSubtask(1, "a", "a.md", status = "complete", commitSha = "sha-1"),
-      DecompositionSubtask(2, "b", "b.md", status = "pending"),
-      DecompositionSubtask(3, "c", "c.md", status = "blocked"),
-      DecompositionSubtask(4, "d", "d.md", status = "in_progress"),
-      DecompositionSubtask(5, "e", "e.md", status = "complete", commitSha = null),
-      DecompositionSubtask(6, "f", "f.md", status = "complete", commitSha = "  "),
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(1, "a", "a.md", status = "complete", commitSha = "sha-1"),
+        DecompositionSubtask(2, "b", "b.md", status = "pending"),
+        DecompositionSubtask(3, "c", "c.md", status = "blocked"),
+        DecompositionSubtask(4, "d", "d.md", status = "in_progress"),
+        DecompositionSubtask(5, "e", "e.md", status = "complete", commitSha = null),
+        DecompositionSubtask(6, "f", "f.md", status = "complete", commitSha = "  "),
+      )
     assertEquals(
       listOf(2, 3, 4, 5, 6),
       cascadeEligiblePlanSubtaskIds(plannedIds = listOf(1, 2, 3, 4, 5, 6), subtasks = subtasks),
@@ -38,15 +39,17 @@ class GoalPlanningCascadeEligibilityTest {
 
   @Test
   fun `named replan target filtering is independent of eligibility helper`() {
-    val subtasks = listOf(
-      DecompositionSubtask(1, "a", "a.md", status = "complete", commitSha = "sha-1"),
-      DecompositionSubtask(2, "b", "b.md", status = "pending"),
-      DecompositionSubtask(3, "c", "c.md", status = "pending"),
-    )
-    val siblings = cascadeEligiblePlanSubtaskIds(
-      plannedIds = listOf(1, 2, 3).filter { it != 3 },
-      subtasks = subtasks,
-    )
+    val subtasks =
+      listOf(
+        DecompositionSubtask(1, "a", "a.md", status = "complete", commitSha = "sha-1"),
+        DecompositionSubtask(2, "b", "b.md", status = "pending"),
+        DecompositionSubtask(3, "c", "c.md", status = "pending"),
+      )
+    val siblings =
+      cascadeEligiblePlanSubtaskIds(
+        plannedIds = listOf(1, 2, 3).filter { it != 3 },
+        subtasks = subtasks,
+      )
     assertEquals(listOf(2), siblings)
   }
 

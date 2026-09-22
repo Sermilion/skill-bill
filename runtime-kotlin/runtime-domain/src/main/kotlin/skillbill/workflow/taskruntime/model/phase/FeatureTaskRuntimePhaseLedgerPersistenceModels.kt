@@ -46,11 +46,12 @@ enum class FeatureTaskRuntimePhaseLedgerAction(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): FeatureTaskRuntimePhaseLedgerAction = entries.firstOrNull { it.wireValue == value }
-      ?: throw InvalidWorkflowStateSchemaError(
-        "Unknown feature-task-runtime phase ledger action '$value'. " +
-          "Allowed: ${entries.joinToString { it.wireValue }}.",
-      )
+    fun fromWire(value: String): FeatureTaskRuntimePhaseLedgerAction =
+      entries.firstOrNull { it.wireValue == value }
+        ?: throw InvalidWorkflowStateSchemaError(
+          "Unknown feature-task-runtime phase ledger action '$value'. " +
+            "Allowed: ${entries.joinToString { it.wireValue }}.",
+        )
   }
 }
 
@@ -65,7 +66,6 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
     FeatureTaskRuntimePhaseExecutionOrigin.AGENT_EXECUTED,
   val fixLoopIteration: Int? = null,
   val blockedReason: String? = null,
-
   val loopId: String? = null,
   val edgeIteration: Int? = null,
 ) {
@@ -89,23 +89,24 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
       }
     }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    DecompositionManifestPayloadKeys.ACTION to action.wireValue,
-    "sequence_number" to sequenceNumber,
-    "timestamp" to timestamp,
-    SharedPayloadKeys.PHASE_ID to phaseId,
-    "attempt_count" to attemptCount,
-  ).apply {
-    resolvedAgentId?.let { put("resolved_agent_id", it) }
-    put("execution_origin", executionOrigin.wireValue)
-    fixLoopIteration?.let { put("fix_loop_iteration", it) }
-    blockedReason?.let { put(DecompositionManifestPayloadKeys.BLOCKED_REASON, it) }
-    loopId?.let { put("loop_id", it) }
-    edgeIteration?.let { put("edge_iteration", it) }
-  }
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      DecompositionManifestPayloadKeys.ACTION to action.wireValue,
+      "sequence_number" to sequenceNumber,
+      "timestamp" to timestamp,
+      SharedPayloadKeys.PHASE_ID to phaseId,
+      "attempt_count" to attemptCount,
+    ).apply {
+      resolvedAgentId?.let { put("resolved_agent_id", it) }
+      put("execution_origin", executionOrigin.wireValue)
+      fixLoopIteration?.let { put("fix_loop_iteration", it) }
+      blockedReason?.let { put(DecompositionManifestPayloadKeys.BLOCKED_REASON, it) }
+      loopId?.let { put("loop_id", it) }
+      edgeIteration?.let { put("edge_iteration", it) }
+    }
 
   companion object {
-
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLedgerEntry {
       val reader = durableArtifactMapReader(raw)
       val attemptCount = reader.requiredInt("attempt_count")
@@ -116,20 +117,23 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
       }
       return try {
         FeatureTaskRuntimePhaseLedgerEntry(
-          action = FeatureTaskRuntimePhaseLedgerAction.fromWire(
-            reader.requiredString(DecompositionManifestPayloadKeys.ACTION),
-          ),
+          action =
+            FeatureTaskRuntimePhaseLedgerAction.fromWire(
+              reader.requiredString(DecompositionManifestPayloadKeys.ACTION),
+            ),
           sequenceNumber = reader.requiredInt("sequence_number"),
           timestamp = reader.requiredString("timestamp"),
-          phaseId = requireKnownFeatureTaskRuntimePhaseId(
-            reader.requiredString(SharedPayloadKeys.PHASE_ID),
-            SharedPayloadKeys.PHASE_ID,
-          ),
+          phaseId =
+            requireKnownFeatureTaskRuntimePhaseId(
+              reader.requiredString(SharedPayloadKeys.PHASE_ID),
+              SharedPayloadKeys.PHASE_ID,
+            ),
           attemptCount = attemptCount,
           resolvedAgentId = reader.optionalString("resolved_agent_id"),
-          executionOrigin = reader.optionalString("execution_origin")?.let(
-            FeatureTaskRuntimePhaseExecutionOrigin::fromWireValue,
-          ) ?: FeatureTaskRuntimePhaseExecutionOrigin.AGENT_EXECUTED,
+          executionOrigin =
+            reader.optionalString("execution_origin")?.let(
+              FeatureTaskRuntimePhaseExecutionOrigin::fromWireValue,
+            ) ?: FeatureTaskRuntimePhaseExecutionOrigin.AGENT_EXECUTED,
           fixLoopIteration = reader.optionalInt("fix_loop_iteration"),
           blockedReason = reader.optionalString(DecompositionManifestPayloadKeys.BLOCKED_REASON),
           loopId = reader.optionalString("loop_id"),

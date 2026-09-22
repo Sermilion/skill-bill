@@ -48,31 +48,37 @@ internal fun readInstallSelectionRecord(path: Path): SharedInstallSelection {
   return parseInstallSelectionPayload(path, readInstallSelectionPayload(path))
 }
 
-private fun writeInstallSelectionRecord(path: Path, payload: String) {
+private fun writeInstallSelectionRecord(
+  path: Path,
+  payload: String,
+) {
   atomicWriteString(path, payload)
 }
 
-private fun installSelectionRecordSize(path: Path): Long = try {
-  Files.size(path)
-} catch (error: IOException) {
-  throw UnreadableInstallSelectionRecordError(path.toString(), error)
-} catch (error: SecurityException) {
-  throw UnreadableInstallSelectionRecordError(path.toString(), error)
-}
+private fun installSelectionRecordSize(path: Path): Long =
+  try {
+    Files.size(path)
+  } catch (error: IOException) {
+    throw UnreadableInstallSelectionRecordError(path.toString(), error)
+  } catch (error: SecurityException) {
+    throw UnreadableInstallSelectionRecordError(path.toString(), error)
+  }
 
-private fun readInstallSelectionPayload(path: Path): String = try {
-  Files.readString(path)
-} catch (error: IOException) {
-  throw UnreadableInstallSelectionRecordError(path.toString(), error)
-} catch (error: SecurityException) {
-  throw UnreadableInstallSelectionRecordError(path.toString(), error)
-}
+private fun readInstallSelectionPayload(path: Path): String =
+  try {
+    Files.readString(path)
+  } catch (error: IOException) {
+    throw UnreadableInstallSelectionRecordError(path.toString(), error)
+  } catch (error: SecurityException) {
+    throw UnreadableInstallSelectionRecordError(path.toString(), error)
+  }
 
-private fun selectionPath(installHome: Path): Path = installHome
-  .resolve(".skill-bill")
-  .resolve(INSTALL_SELECTION_FILE_NAME)
-  .toAbsolutePath()
-  .normalize()
+private fun selectionPath(installHome: Path): Path =
+  installHome
+    .resolve(".skill-bill")
+    .resolve(INSTALL_SELECTION_FILE_NAME)
+    .toAbsolutePath()
+    .normalize()
 
 private const val INSTALL_SELECTION_FILE_NAME = "install-selection.json"
 private const val MAX_INSTALL_SELECTION_RECORD_BYTES = 64 * 1024

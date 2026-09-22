@@ -51,17 +51,18 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
 
   fun isMutatingPhase(phaseId: String): Boolean = phaseId in MUTATING_PHASES
 
-  private val OUTPUT_RETRY_PHASES: Set<String> = setOf(
-    PHASE_PREPLAN,
-    PHASE_PLAN,
-    PHASE_IMPLEMENT,
-    PHASE_SIMPLIFY,
-    PHASE_IMPLEMENT_FIX,
-    PHASE_REVIEW,
-    PHASE_VERIFY_FINDINGS,
-    PHASE_BUILD,
-    PHASE_VALIDATE,
-  )
+  private val OUTPUT_RETRY_PHASES: Set<String> =
+    setOf(
+      PHASE_PREPLAN,
+      PHASE_PLAN,
+      PHASE_IMPLEMENT,
+      PHASE_SIMPLIFY,
+      PHASE_IMPLEMENT_FIX,
+      PHASE_REVIEW,
+      PHASE_VERIFY_FINDINGS,
+      PHASE_BUILD,
+      PHASE_VALIDATE,
+    )
 
   fun retriesOnInvalidOutput(phaseId: String): Boolean = phaseId in OUTPUT_RETRY_PHASES
 
@@ -101,11 +102,12 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
     producingPhaseId: String = PHASE_PREPLAN,
     checkpointPolicy: FeatureTaskRuntimeRepositoryCheckpointPolicy =
       FeatureTaskRuntimeRepositoryCheckpointPolicy.NOT_REQUIRED,
-  ): PhaseHandoffProjectionDeclaration = FeatureTaskRuntimePhaseWorkflowProjectionDeclarations.phaseProseDeclaration(
-    consumerPhaseId,
-    producingPhaseId,
-    checkpointPolicy,
-  )
+  ): PhaseHandoffProjectionDeclaration =
+    FeatureTaskRuntimePhaseWorkflowProjectionDeclarations.phaseProseDeclaration(
+      consumerPhaseId,
+      producingPhaseId,
+      checkpointPolicy,
+    )
 
   fun sharedReviewEvidenceDeclaration(consumerPhaseId: String): PhaseHandoffProjectionDeclaration =
     FeatureTaskRuntimePhaseWorkflowProjectionDeclarations.sharedReviewEvidenceDeclaration(consumerPhaseId)

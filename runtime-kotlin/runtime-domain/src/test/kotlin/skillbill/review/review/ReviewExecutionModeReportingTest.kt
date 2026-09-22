@@ -7,17 +7,18 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class ReviewExecutionModeReportingTest {
-  private fun review(executionModeLine: String?) = ReviewParser.parseReview(
-    buildString {
-      appendLine("Review session ID: rvs-1")
-      appendLine("Review run ID: rvw-1")
-      appendLine("Routed to: bill-code-review")
-      executionModeLine?.let { appendLine(it) }
-      appendLine()
-      appendLine("### 2. Risk Register")
-      appendLine("No findings.")
-    },
-  )
+  private fun review(executionModeLine: String?) =
+    ReviewParser.parseReview(
+      buildString {
+        appendLine("Review session ID: rvs-1")
+        appendLine("Review run ID: rvw-1")
+        appendLine("Routed to: bill-code-review")
+        executionModeLine?.let { appendLine(it) }
+        appendLine()
+        appendLine("### 2. Risk Register")
+        appendLine("No findings.")
+      },
+    )
 
   @Test
   fun `each accepted token round trips onto the reported execution mode`() {

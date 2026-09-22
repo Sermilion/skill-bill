@@ -13,5 +13,5 @@ class GovernedReviewLaunchCapabilityError(
   val provider: String,
   val capability: String,
 ) : ShellContentContractException(
-  "Agent '$provider' cannot launch a governed review: missing capability '$capability'.",
-)
+    "Agent '$provider' cannot launch a governed review: missing capability '$capability'.",
+  )

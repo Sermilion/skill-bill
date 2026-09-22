@@ -18,7 +18,6 @@ data class RejectedOutputDiagnostic(
   val byteSize: Long,
   val sha256: String,
   val lifecycle: RejectedOutputLifecycle,
-
   val repairTurn: Int = 0,
 ) {
   init {
@@ -30,7 +29,6 @@ data class RejectedOutputDiagnosticSelector(
   val workflowId: String,
   val phaseId: String? = null,
   val attempt: Int? = null,
-
   val repairTurn: Int? = null,
 )
 
@@ -52,7 +50,6 @@ data class ProducerOutputEvidence(
   val sha256: String,
   val payload: ByteArray?,
   val generation: Int = 0,
-
   val repairTurn: Int = 0,
 ) {
   init {
@@ -60,8 +57,9 @@ data class ProducerOutputEvidence(
     require(repairTurn >= 0) { "Producer output evidence repair turn must not be negative." }
   }
 
-  override fun toString(): String = "ProducerOutputEvidence(workflowId=$workflowId, phaseId=$phaseId, " +
-    "generation=$generation, attempt=$attempt, repairTurn=$repairTurn, payload=<hidden>)"
+  override fun toString(): String =
+    "ProducerOutputEvidence(workflowId=$workflowId, phaseId=$phaseId, " +
+      "generation=$generation, attempt=$attempt, repairTurn=$repairTurn, payload=<hidden>)"
 }
 
 fun ProducerOutputEvidence.evidenceKey(): String = "$workflowId:$phaseId:$generation:$attempt:$repairTurn:$agentId"

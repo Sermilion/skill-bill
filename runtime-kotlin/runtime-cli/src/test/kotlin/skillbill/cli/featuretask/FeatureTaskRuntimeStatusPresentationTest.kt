@@ -10,38 +10,43 @@ import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeStatusPresentationTest {
   @Test
   fun `runtime status cli map preserves settled gate checks and work evidence`() {
-    val evidence = FeatureTaskRuntimeValidationGateExecutionEvidence.fromGateMeasurements(
-      measurements = listOf(
-        FeatureTaskRuntimeValidationGateRunRecord(
-          durationMs = 1,
-          outcome = ValidationGateRunOutcome.PASSED,
-          cacheMode = ValidationGateCacheMode.FORCED_FULL,
-          executedWorkUnits = 2,
-          executedChecks = listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
-        ),
-      ),
-    )
-    val projection = FeatureTaskRuntimeStatusProjection(
-      workflowId = "workflow-1",
-      featureSize = "MEDIUM",
-      phases = listOf(
-        FeatureTaskRuntimePhaseStatus(
-          phaseId = "validate",
-          status = "completed",
-          attemptCount = 1,
-          resolvedAgentId = "claude",
-          finished = true,
-        ),
-      ),
-      completeCount = 1,
-      pendingCount = 0,
-      blockedCount = 0,
-      currentPhaseId = "validate",
-      validationGateExecutionEvidence = evidence,
-    )
+    val evidence =
+      FeatureTaskRuntimeValidationGateExecutionEvidence.fromGateMeasurements(
+        measurements =
+          listOf(
+            FeatureTaskRuntimeValidationGateRunRecord(
+              durationMs = 1,
+              outcome = ValidationGateRunOutcome.PASSED,
+              cacheMode = ValidationGateCacheMode.FORCED_FULL,
+              executedWorkUnits = 2,
+              executedChecks = listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
+            ),
+          ),
+      )
+    val projection =
+      FeatureTaskRuntimeStatusProjection(
+        workflowId = "workflow-1",
+        featureSize = "MEDIUM",
+        phases =
+          listOf(
+            FeatureTaskRuntimePhaseStatus(
+              phaseId = "validate",
+              status = "completed",
+              attemptCount = 1,
+              resolvedAgentId = "claude",
+              finished = true,
+            ),
+          ),
+        completeCount = 1,
+        pendingCount = 0,
+        blockedCount = 0,
+        currentPhaseId = "validate",
+        validationGateExecutionEvidence = evidence,
+      )
 
     val status = projection.toRuntimeStatusCliMap("workflow-1")
     assertEquals(

@@ -3,15 +3,16 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ReviewPlatformSlugSupportTest {
-  private val manifestMappings = mapOf(
-    "bill-go-code-review" to "go",
-    "bill-go-code-review-security" to "go",
-    "bill-ios-code-review" to "ios",
-    "bill-kmp-code-review" to "kmp",
-    "bill-php-code-review" to "php",
-    "bill-python-code-review" to "python",
-    "bill-ruby-code-review" to "ruby",
-  )
+  private val manifestMappings =
+    mapOf(
+      "bill-go-code-review" to "go",
+      "bill-go-code-review-security" to "go",
+      "bill-ios-code-review" to "ios",
+      "bill-kmp-code-review" to "kmp",
+      "bill-php-code-review" to "php",
+      "bill-python-code-review" to "python",
+      "bill-ruby-code-review" to "ruby",
+    )
 
   @Test
   fun `routed review skills map from injected manifest-derived mappings`() {

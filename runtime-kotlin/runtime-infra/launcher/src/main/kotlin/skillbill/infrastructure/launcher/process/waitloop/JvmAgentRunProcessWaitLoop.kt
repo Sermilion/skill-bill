@@ -22,7 +22,12 @@ import java.time.Clock
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.time.DurationUnit
-internal fun writeAndCloseStdin(process: Process, stdinText: String?, degradation: ProcessRunDegradationRecorder) {
+
+internal fun writeAndCloseStdin(
+  process: Process,
+  stdinText: String?,
+  degradation: ProcessRunDegradationRecorder,
+) {
   runCatching {
     process.outputStream.use { output ->
       if (stdinText != null) {
@@ -31,6 +36,7 @@ internal fun writeAndCloseStdin(process: Process, stdinText: String?, degradatio
     }
   }.onFailure { failure -> degradation.recordStdinDeliveryFailure(failure) }
 }
+
 internal data class ProcessWait(
   val finished: Boolean,
   val progressIdleTimedOut: Boolean,
@@ -38,6 +44,7 @@ internal data class ProcessWait(
   val wallClockTimedOut: Boolean,
   val liveness: AgentRunLivenessSnapshot? = null,
 )
+
 internal class ProcessWaitLoop(
   internal val process: Process,
   internal val request: AgentRunProcessRequest,
@@ -46,21 +53,26 @@ internal class ProcessWaitLoop(
   internal val clock: Clock,
   internal val degradation: ProcessRunDegradationRecorder,
 ) {
-  internal val timeoutMillis = request.timeout
-    ?.toLong(DurationUnit.MILLISECONDS)
-    ?.coerceAtLeast(MIN_TIMEOUT_MILLIS)
-  internal val idleTimeoutNanos = request.progressIdleTimeout
-    ?.toLong(DurationUnit.NANOSECONDS)
-    ?.coerceAtLeast(MIN_TIMEOUT_NANOS)
-  internal val fileActivityGraceNanos = request.fileActivityGraceTimeout
-    .toLong(DurationUnit.NANOSECONDS)
-    .coerceAtLeast(MIN_TIMEOUT_NANOS)
-  internal val statusHeartbeatNanos = request.statusHeartbeatInterval
-    .toLong(DurationUnit.NANOSECONDS)
-    .coerceAtLeast(MIN_TIMEOUT_NANOS)
-  internal val operationDeadlineNanos = request.operationDeadline
-    ?.toLong(DurationUnit.NANOSECONDS)
-    ?.coerceAtLeast(MIN_TIMEOUT_NANOS)
+  internal val timeoutMillis =
+    request.timeout
+      ?.toLong(DurationUnit.MILLISECONDS)
+      ?.coerceAtLeast(MIN_TIMEOUT_MILLIS)
+  internal val idleTimeoutNanos =
+    request.progressIdleTimeout
+      ?.toLong(DurationUnit.NANOSECONDS)
+      ?.coerceAtLeast(MIN_TIMEOUT_NANOS)
+  internal val fileActivityGraceNanos =
+    request.fileActivityGraceTimeout
+      .toLong(DurationUnit.NANOSECONDS)
+      .coerceAtLeast(MIN_TIMEOUT_NANOS)
+  internal val statusHeartbeatNanos =
+    request.statusHeartbeatInterval
+      .toLong(DurationUnit.NANOSECONDS)
+      .coerceAtLeast(MIN_TIMEOUT_NANOS)
+  internal val operationDeadlineNanos =
+    request.operationDeadline
+      ?.toLong(DurationUnit.NANOSECONDS)
+      ?.coerceAtLeast(MIN_TIMEOUT_NANOS)
   internal val startNanos = System.nanoTime()
   internal var lastWorkflowProgressNanos = startNanos
   internal var lastStatusHeartbeatNanos = startNanos
@@ -76,6 +88,7 @@ internal class ProcessWaitLoop(
   internal var lastObservedOutputMillis: Long? = null
   internal var lastOutputNanos: Long? = null
   internal var declaredTracker = DeclaredProgressTracker(startNanos)
+
   fun wait(): ProcessWait {
     var wait: ProcessWait? = null
     while (wait == null) {
@@ -86,6 +99,7 @@ internal class ProcessWaitLoop(
     }
     return wait
   }
+
   private fun nextWait(): ProcessWait? {
     if (request.reviewEvidenceBroker?.terminalOutcome() != null) {
       return ProcessWait(
@@ -93,26 +107,29 @@ internal class ProcessWaitLoop(
         progressIdleTimedOut = false,
         fileActivityGraceExhausted = false,
         wallClockTimedOut = false,
-        liveness = declaredLiveness(
-          "review_budget",
-          "review_context_budget_exceeded",
-          GoalRunnerProcessState.KILLED,
-          killLivenessState(),
-        ),
+        liveness =
+          declaredLiveness(
+            "review_budget",
+            "review_context_budget_exceeded",
+            GoalRunnerProcessState.KILLED,
+            killLivenessState(),
+          ),
       )
     }
-    val waitMillis = waitMillisBeforeNextPoll() ?: return ProcessWait(
-      finished = false,
-      progressIdleTimedOut = false,
-      fileActivityGraceExhausted = false,
-      wallClockTimedOut = true,
-      liveness = declaredLiveness(
-        "watchdog",
-        "wall_clock_timeout",
-        GoalRunnerProcessState.KILLED,
-        killLivenessState(),
-      ),
-    )
+    val waitMillis =
+      waitMillisBeforeNextPoll() ?: return ProcessWait(
+        finished = false,
+        progressIdleTimedOut = false,
+        fileActivityGraceExhausted = false,
+        wallClockTimedOut = true,
+        liveness =
+          declaredLiveness(
+            "watchdog",
+            "wall_clock_timeout",
+            GoalRunnerProcessState.KILLED,
+            killLivenessState(),
+          ),
+      )
     return when {
       process.waitFor(waitMillis, TimeUnit.MILLISECONDS) ->
         ProcessWait(
@@ -125,8 +142,13 @@ internal class ProcessWaitLoop(
       else -> pollProgress()
     }
   }
-  private fun liveness(phase: String, reason: String, processState: GoalRunnerProcessState): AgentRunLivenessSnapshot =
-    declaredLiveness(phase, reason, processState, livenessState = null)
+
+  private fun liveness(
+    phase: String,
+    reason: String,
+    processState: GoalRunnerProcessState,
+  ): AgentRunLivenessSnapshot = declaredLiveness(phase, reason, processState, livenessState = null)
+
   private fun killLivenessState(): GoalRunnerLivenessState {
     if (declaredTracker.activeOperationName != null) return GoalRunnerLivenessState.WORKING
     val timeout = idleTimeoutNanos ?: return GoalRunnerLivenessState.IDLE
@@ -137,6 +159,7 @@ internal class ProcessWaitLoop(
       GoalRunnerLivenessState.IDLE
     }
   }
+
   internal fun declaredLiveness(
     phase: String,
     reason: String,
@@ -164,6 +187,7 @@ internal class ProcessWaitLoop(
     )
   }
 }
+
 internal class DeclaredProgressTracker(startNanos: Long) {
   var latestEvent: GoalProgressEvent? = null
     private set
@@ -180,7 +204,11 @@ internal class DeclaredProgressTracker(startNanos: Long) {
     private set
   private var lastSequenceNumber: Int = Int.MIN_VALUE
   val hasDeclaredEvent: Boolean get() = latestEvent != null
-  fun observe(snapshot: AgentRunDeclaredProgressSnapshot, nowNanos: Long) {
+
+  fun observe(
+    snapshot: AgentRunDeclaredProgressSnapshot,
+    nowNanos: Long,
+  ) {
     val event = snapshot.latestEvent
     processAlive = snapshot.processAlive
     if (event.sequenceNumber <= lastSequenceNumber && latestEvent != null) {
@@ -210,13 +238,20 @@ internal class DeclaredProgressTracker(startNanos: Long) {
       GoalProgressEventKind.PHASE_STARTED, GoalProgressEventKind.PHASE_COMPLETED -> Unit
     }
   }
-  fun classify(nowNanos: Long, operationDeadlineNanos: Long?, idleTimeoutNanos: Long?): GoalRunnerLivenessDecision {
-    val deadlineOverrun = operationDeadlineNanos != null &&
-      operationActive &&
-      (nowNanos - operationStartedNanos) >= operationDeadlineNanos
-    val durableAdvanceWithinInterval = idleTimeoutNanos?.let { window ->
-      nowNanos - lastAdvanceNanos < window
-    } ?: true
+
+  fun classify(
+    nowNanos: Long,
+    operationDeadlineNanos: Long?,
+    idleTimeoutNanos: Long?,
+  ): GoalRunnerLivenessDecision {
+    val deadlineOverrun =
+      operationDeadlineNanos != null &&
+        operationActive &&
+        (nowNanos - operationStartedNanos) >= operationDeadlineNanos
+    val durableAdvanceWithinInterval =
+      idleTimeoutNanos?.let { window ->
+        nowNanos - lastAdvanceNanos < window
+      } ?: true
     return GoalRunnerLivenessClassifier.classify(
       GoalRunnerLivenessInputs(
         processAlive = processAlive,
@@ -229,12 +264,14 @@ internal class DeclaredProgressTracker(startNanos: Long) {
     )
   }
 }
+
 internal class ProcessLifecycleEmitter(
   private val request: AgentRunProcessRequest,
   private val degradation: ProcessRunDegradationRecorder,
 ) {
   private var started = false
   private var completed = false
+
   fun emitStarted(processAlive: Boolean) {
     if (started) {
       return
@@ -242,20 +279,30 @@ internal class ProcessLifecycleEmitter(
     started = true
     emit(GoalProgressEventKind.OPERATION_STARTED, processAlive, GoalProgressOutcome.NONE)
   }
+
   fun emitHeartbeat(processAlive: Boolean) {
     if (!started || completed) {
       return
     }
     emit(GoalProgressEventKind.OPERATION_HEARTBEAT, processAlive, GoalProgressOutcome.NONE)
   }
-  fun emitCompleted(processAlive: Boolean, outcome: GoalProgressOutcome) {
+
+  fun emitCompleted(
+    processAlive: Boolean,
+    outcome: GoalProgressOutcome,
+  ) {
     if (completed || !started) {
       return
     }
     completed = true
     emit(GoalProgressEventKind.OPERATION_COMPLETED, processAlive, outcome)
   }
-  private fun emit(kind: GoalProgressEventKind, processAlive: Boolean, outcome: GoalProgressOutcome) {
+
+  private fun emit(
+    kind: GoalProgressEventKind,
+    processAlive: Boolean,
+    outcome: GoalProgressOutcome,
+  ) {
     runCatching {
       request.progressEmitter.emit(
         AgentRunProgressEmission(
@@ -270,6 +317,7 @@ internal class ProcessLifecycleEmitter(
       )
     }.onFailure { failure -> degradation.recordLifecyclePublicationFailure(failure) }
   }
+
   private companion object {
     const val CHILD_OPERATION_NAME = "child_agent_run"
     const val CHILD_OPERATION_KIND = "long_child_run"

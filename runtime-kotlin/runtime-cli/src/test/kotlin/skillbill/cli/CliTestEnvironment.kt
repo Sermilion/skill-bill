@@ -7,9 +7,10 @@ private const val CODEX_HOME_ENV = "CODEX_HOME"
 private const val GOAL_CONTINUATION_ENV = "SKILL_BILL_GOAL_CONTINUATION"
 
 internal fun isolatedCliEnvironment(home: Path? = null): Map<String, String> {
-  val filtered = System.getenv().filterKeys { key ->
-    key != CODEX_HOME_ENV && key != GOAL_CONTINUATION_ENV
-  }
+  val filtered =
+    System.getenv().filterKeys { key ->
+      key != CODEX_HOME_ENV && key != GOAL_CONTINUATION_ENV
+    }
   if (home == null) {
     return filtered
   }

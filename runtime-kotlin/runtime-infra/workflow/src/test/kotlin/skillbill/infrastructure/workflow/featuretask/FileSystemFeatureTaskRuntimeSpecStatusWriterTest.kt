@@ -11,19 +11,20 @@ class FileSystemFeatureTaskRuntimeSpecStatusWriterTest {
 
   @Test
   fun `inserts the Agent line under the Status block adjacent to the Status line`() {
-    val spec = writeSpec(
-      """
-      # SKILL-89 spec
+    val spec =
+      writeSpec(
+        """
+        # SKILL-89 spec
 
-      ## Status
+        ## Status
 
-      - Status: Complete
-      - Issue: `SKILL-89`
+        - Status: Complete
+        - Issue: `SKILL-89`
 
-      ## Acceptance Criteria
-      1. Criterion one.
-      """.trimIndent(),
-    )
+        ## Acceptance Criteria
+        1. Criterion one.
+        """.trimIndent(),
+      )
 
     writer.writeFinalizingAgent(spec, "claude")
 
@@ -39,18 +40,19 @@ class FileSystemFeatureTaskRuntimeSpecStatusWriterTest {
 
   @Test
   fun `re-running updates the Agent line in place rather than duplicating it`() {
-    val spec = writeSpec(
-      """
-      # SKILL-89 spec
+    val spec =
+      writeSpec(
+        """
+        # SKILL-89 spec
 
-      ## Status
+        ## Status
 
-      - Status: Complete
+        - Status: Complete
 
-      ## Acceptance Criteria
-      1. Criterion one.
-      """.trimIndent(),
-    )
+        ## Acceptance Criteria
+        1. Criterion one.
+        """.trimIndent(),
+      )
 
     writer.writeFinalizingAgent(spec, "codex")
     writer.writeFinalizingAgent(spec, "claude")
@@ -63,18 +65,19 @@ class FileSystemFeatureTaskRuntimeSpecStatusWriterTest {
 
   @Test
   fun `re-running with the same agent leaves the file byte-stable`() {
-    val spec = writeSpec(
-      """
-      # SKILL-89 spec
+    val spec =
+      writeSpec(
+        """
+        # SKILL-89 spec
 
-      ## Status
+        ## Status
 
-      - Status: Complete
+        - Status: Complete
 
-      ## Acceptance Criteria
-      1. Criterion one.
-      """.trimIndent(),
-    )
+        ## Acceptance Criteria
+        1. Criterion one.
+        """.trimIndent(),
+      )
 
     writer.writeFinalizingAgent(spec, "claude")
     val afterFirst = Files.readString(spec)
@@ -86,19 +89,20 @@ class FileSystemFeatureTaskRuntimeSpecStatusWriterTest {
 
   @Test
   fun `does not perturb the Acceptance Criteria section`() {
-    val spec = writeSpec(
-      """
-      # SKILL-89 spec
+    val spec =
+      writeSpec(
+        """
+        # SKILL-89 spec
 
-      ## Status
+        ## Status
 
-      - Status: Complete
+        - Status: Complete
 
-      ## Acceptance Criteria
-      1. Criterion one.
-      2. Criterion two.
-      """.trimIndent(),
-    )
+        ## Acceptance Criteria
+        1. Criterion one.
+        2. Criterion two.
+        """.trimIndent(),
+      )
 
     writer.writeFinalizingAgent(spec, "claude")
 
@@ -111,14 +115,15 @@ class FileSystemFeatureTaskRuntimeSpecStatusWriterTest {
 
   @Test
   fun `is a no-op when no Status section exists`() {
-    val spec = writeSpec(
-      """
-      # SKILL-89 spec
+    val spec =
+      writeSpec(
+        """
+        # SKILL-89 spec
 
-      ## Acceptance Criteria
-      1. Criterion one.
-      """.trimIndent(),
-    )
+        ## Acceptance Criteria
+        1. Criterion one.
+        """.trimIndent(),
+      )
     val original = Files.readString(spec)
 
     writer.writeFinalizingAgent(spec, "claude")

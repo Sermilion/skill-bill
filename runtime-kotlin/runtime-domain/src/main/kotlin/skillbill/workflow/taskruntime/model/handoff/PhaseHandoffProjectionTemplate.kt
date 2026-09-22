@@ -1,5 +1,6 @@
 package skillbill.workflow.taskruntime.model.handoff
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
+
 data class PhaseHandoffProjectionTemplate(
   val consumerPhaseId: String,
   val producingPhaseId: String,

@@ -24,7 +24,10 @@ sealed interface ReadinessCheckSelectionResult {
 class ReadinessCheckSelection(
   private val prCheckDiscovery: PrCheckDiscovery,
 ) {
-  fun select(repoRoot: Path, changedPaths: List<String>): ReadinessCheckSelectionResult {
+  fun select(
+    repoRoot: Path,
+    changedPaths: List<String>,
+  ): ReadinessCheckSelectionResult {
     val sourcePaths = changedPaths.filterNot(ReadinessPathRules::isBoundaryHistoryPath)
     val discovery = prCheckDiscovery.discoverPullRequestChecks(repoRoot)
     if (discovery is PrCheckDiscoveryResult.Failed) {
@@ -40,7 +43,10 @@ class ReadinessCheckSelection(
     return ReadinessCheckSelectionResult.Selected(selected.distinctBy(ReadinessSelectedCheck::checkId))
   }
 
-  fun invalidatedCheckIds(selected: List<ReadinessSelectedCheck>, changedPaths: List<String>): Set<String> {
+  fun invalidatedCheckIds(
+    selected: List<ReadinessSelectedCheck>,
+    changedPaths: List<String>,
+  ): Set<String> {
     val sourcePaths = changedPaths.filterNot(ReadinessPathRules::isBoundaryHistoryPath)
     return selected.filter { check ->
       sourcePaths.any { path -> ReadinessPathRules.matchesAnyFilter(path, check.pathPatterns) }
@@ -52,10 +58,15 @@ object ReadinessPathRules {
   fun isBoundaryHistoryPath(path: String): Boolean =
     path.endsWith("agent/history.md") || path.startsWith(".skill-bill/run-evidence/")
 
-  fun matchesAnyFilter(path: String, patterns: List<String>): Boolean =
-    patterns.any { pattern -> matchesFilter(path, pattern) }
+  fun matchesAnyFilter(
+    path: String,
+    patterns: List<String>,
+  ): Boolean = patterns.any { pattern -> matchesFilter(path, pattern) }
 
-  fun matchesFilter(path: String, pattern: String): Boolean {
+  fun matchesFilter(
+    path: String,
+    pattern: String,
+  ): Boolean {
     val normalizedPath = path.replace('\\', '/').trimStart('/')
     val normalizedPattern = pattern.replace('\\', '/').trimStart('/')
     return ReviewPathMatcher.matches(normalizedPath, normalizedPattern)

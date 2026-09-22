@@ -11,7 +11,10 @@ import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
 import java.nio.file.Path
 
-internal fun loadPlatformManifest(packRoot: Path, enforceContractVersion: Boolean = true): PlatformManifest {
+internal fun loadPlatformManifest(
+  packRoot: Path,
+  enforceContractVersion: Boolean = true,
+): PlatformManifest {
   val resolvedPackRoot = packRoot.toAbsolutePath().normalize()
   val slug = resolvedPackRoot.fileName?.toString().orEmpty()
   val manifestPath = resolvedPackRoot.resolve("platform.yaml")
@@ -22,7 +25,10 @@ internal fun loadPlatformManifest(packRoot: Path, enforceContractVersion: Boolea
   return buildPack(slug, resolvedPackRoot, manifestPath, raw, enforceContractVersion)
 }
 
-internal fun loadPlatformPack(packRoot: Path, enforceGovernedReviewStructure: Boolean = false): PlatformManifest {
+internal fun loadPlatformPack(
+  packRoot: Path,
+  enforceGovernedReviewStructure: Boolean = false,
+): PlatformManifest {
   val pack = loadPlatformManifest(packRoot)
   val closure = loadCompositionClosure(pack)
   validatePlatformPackCompositions(closure)
@@ -48,9 +54,10 @@ fun discoverPlatformPackManifests(
   platformPacksRoot: Path,
   enforceContractVersion: Boolean = true,
 ): List<PlatformManifest> {
-  val packs = childDirectories(platformPacksRoot).map { packRoot ->
-    loadPlatformManifest(packRoot, enforceContractVersion)
-  }
+  val packs =
+    childDirectories(platformPacksRoot).map { packRoot ->
+      loadPlatformManifest(packRoot, enforceContractVersion)
+    }
   validatePlatformPackCompositions(packs)
   validatePlatformPackFallbacks(packs)
   return packs

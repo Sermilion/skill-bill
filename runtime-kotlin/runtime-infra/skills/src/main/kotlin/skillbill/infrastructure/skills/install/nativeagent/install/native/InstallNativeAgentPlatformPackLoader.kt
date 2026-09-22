@@ -24,22 +24,25 @@ internal object InstallNativeAgentPlatformPackLoader : NativeAgentPlatformPackLo
     scaffoldDiscoverPlatformPackManifests(platformPacksRoot).map(PlatformManifest::toNativeAgentPlatformPack)
 }
 
-internal fun PlatformManifest.toNativeAgentPlatformPack(): NativeAgentPlatformPack = NativeAgentPlatformPack(
-  slug = slug,
-  packRoot = packRoot.toPath(),
-  declaredFiles = NativeAgentDeclaredFiles(
-    baseline = declaredFiles.baseline?.toPath(),
-    areas = declaredFiles.areas.mapValues { (_, entry) -> entry.toPath() },
-  ),
-  pointers = pointers.map(PointerSpec::toNativeAgentPointerSpec),
-  addonUsage = addonUsage.map(GovernedAddonUsage::toNativeAgentGovernedAddonUsage),
-)
+internal fun PlatformManifest.toNativeAgentPlatformPack(): NativeAgentPlatformPack =
+  NativeAgentPlatformPack(
+    slug = slug,
+    packRoot = packRoot.toPath(),
+    declaredFiles =
+      NativeAgentDeclaredFiles(
+        baseline = declaredFiles.baseline?.toPath(),
+        areas = declaredFiles.areas.mapValues { (_, entry) -> entry.toPath() },
+      ),
+    pointers = pointers.map(PointerSpec::toNativeAgentPointerSpec),
+    addonUsage = addonUsage.map(GovernedAddonUsage::toNativeAgentGovernedAddonUsage),
+  )
 
-private fun PointerSpec.toNativeAgentPointerSpec(): NativeAgentPointerSpec = NativeAgentPointerSpec(
-  skillRelativeDir = skillRelativeDir,
-  name = name,
-  target = target,
-)
+private fun PointerSpec.toNativeAgentPointerSpec(): NativeAgentPointerSpec =
+  NativeAgentPointerSpec(
+    skillRelativeDir = skillRelativeDir,
+    name = name,
+    target = target,
+  )
 
 private fun GovernedAddonUsage.toNativeAgentGovernedAddonUsage(): NativeAgentGovernedAddonUsage =
   NativeAgentGovernedAddonUsage(

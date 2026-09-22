@@ -14,31 +14,42 @@ import skillbill.ports.workflow.gitops.resolveCheckpointRef
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
+
 internal fun latestResolvedReviewFixCheckpointCommit(
   checkpoints: List<FeatureTaskRuntimeCheckpointIdentity>,
   gitOperations: WorkflowGitOperations,
   repoRoot: Path,
-): ResolvedReviewFixCheckpoint? = checkpoints
-  .asReversed()
-  .firstNotNullOfOrNull { identity ->
-    if (identity.loopId != FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID) {
-      return@firstNotNullOfOrNull null
+): ResolvedReviewFixCheckpoint? =
+  checkpoints
+    .asReversed()
+    .firstNotNullOfOrNull { identity ->
+      if (identity.loopId != FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID) {
+        return@firstNotNullOfOrNull null
+      }
+      resolveCheckpointRefCommit(gitOperations, repoRoot, identity.checkpointRef)
+        ?.let { ResolvedReviewFixCheckpoint(identity, it) }
     }
-    resolveCheckpointRefCommit(gitOperations, repoRoot, identity.checkpointRef)
-      ?.let { ResolvedReviewFixCheckpoint(identity, it) }
-  }
 
-fun resolvesCommit(gitOperations: WorkflowGitOperations, repoRoot: Path, sha: String): Boolean {
+fun resolvesCommit(
+  gitOperations: WorkflowGitOperations,
+  repoRoot: Path,
+  sha: String,
+): Boolean {
   val resolved = gitOperations.resolveCommit(repoRoot, sha.trim())
   return resolved is WorkflowGitOperationResult.Ok && resolved.value.orEmpty().trim().isNotBlank()
 }
 
-fun resolveCheckpointRefCommit(gitOperations: WorkflowGitOperations, repoRoot: Path, checkpointRef: String): String? {
-  val resolved = gitOperations.resolveCheckpointRef(
-    repoRoot,
-    ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot),
-    checkpointRef,
-  )
+fun resolveCheckpointRefCommit(
+  gitOperations: WorkflowGitOperations,
+  repoRoot: Path,
+  checkpointRef: String,
+): String? {
+  val resolved =
+    gitOperations.resolveCheckpointRef(
+      repoRoot,
+      ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot),
+      checkpointRef,
+    )
   if (resolved !is WorkflowGitOperationResult.Ok) return null
   return resolved.value.orEmpty().trim().takeIf(String::isNotBlank)
 }
@@ -64,11 +75,12 @@ internal fun remediationBaseRecoveryEvidenceEntry(
   recovery: RemediationBaseRecovery,
   signal: RemediationDegradationSignal = RemediationDegradationSignal(),
 ): LinkedHashMap<String, Any?> {
-  val failureMessage = recovery.failureMessageOverride ?: run {
-    val headDetail = recovery.headSha?.takeIf(String::isNotBlank)?.let { " at HEAD '$it'" }.orEmpty()
-    "Resume reconciled remediation_base_sha (${recovery.reason}) so the recorded base stays reachable " +
-      "from branch '${recovery.goalBranch}'$headDetail."
-  }
+  val failureMessage =
+    recovery.failureMessageOverride ?: run {
+      val headDetail = recovery.headSha?.takeIf(String::isNotBlank)?.let { " at HEAD '$it'" }.orEmpty()
+      "Resume reconciled remediation_base_sha (${recovery.reason}) so the recorded base stays reachable " +
+        "from branch '${recovery.goalBranch}'$headDetail."
+    }
   return linkedMapOf<String, Any?>(
     "original_sha" to recovery.originalSha,
     "replacement_sha" to recovery.replacementSha,

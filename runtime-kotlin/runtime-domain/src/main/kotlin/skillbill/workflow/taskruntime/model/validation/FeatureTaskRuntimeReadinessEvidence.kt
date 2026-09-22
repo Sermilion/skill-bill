@@ -31,12 +31,13 @@ data class FeatureTaskRuntimeReadinessCheckResult(
     require(command.isNotBlank()) { "Readiness command must be non-blank." }
   }
 
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    ReadinessEvidencePayloadKeys.CHECK_ID to checkId,
-    ReadinessEvidencePayloadKeys.COMMAND to command,
-    ReadinessEvidencePayloadKeys.EXIT_CODE to exitCode,
-    ReadinessEvidencePayloadKeys.STATUS to status.wireValue,
-  )
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      ReadinessEvidencePayloadKeys.CHECK_ID to checkId,
+      ReadinessEvidencePayloadKeys.COMMAND to command,
+      ReadinessEvidencePayloadKeys.EXIT_CODE to exitCode,
+      ReadinessEvidencePayloadKeys.STATUS to status.wireValue,
+    )
 }
 
 data class FeatureTaskRuntimeReadinessEvidence(
@@ -67,16 +68,18 @@ data class FeatureTaskRuntimeReadinessEvidence(
     }
   }
 
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    ReadinessEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION,
-    ReadinessEvidencePayloadKeys.SOURCE_TREE_SHA to sourceTreeSha,
-    ReadinessEvidencePayloadKeys.BASE_REF_SHA to baseRefSha,
-    ReadinessEvidencePayloadKeys.HEAD_SHA to headSha,
-    ReadinessEvidencePayloadKeys.SELECTED_CHECKS to selectedChecks,
-    ReadinessEvidencePayloadKeys.CHECK_RESULTS to checkResults.map(
-      FeatureTaskRuntimeReadinessCheckResult::toArtifactMap,
-    ),
-  )
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      ReadinessEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION,
+      ReadinessEvidencePayloadKeys.SOURCE_TREE_SHA to sourceTreeSha,
+      ReadinessEvidencePayloadKeys.BASE_REF_SHA to baseRefSha,
+      ReadinessEvidencePayloadKeys.HEAD_SHA to headSha,
+      ReadinessEvidencePayloadKeys.SELECTED_CHECKS to selectedChecks,
+      ReadinessEvidencePayloadKeys.CHECK_RESULTS to
+        checkResults.map(
+          FeatureTaskRuntimeReadinessCheckResult::toArtifactMap,
+        ),
+    )
 
   fun requireReady(
     sourceLabel: String,
@@ -108,8 +111,9 @@ data class FeatureTaskRuntimeReadinessEvidence(
     }
     val resultsById = checkResults.associateBy(FeatureTaskRuntimeReadinessCheckResult::checkId)
     selectedChecks.forEach { checkId ->
-      val result = resultsById[checkId]
-        ?: invalid(sourceLabel, "selected check '$checkId' has no persisted result.")
+      val result =
+        resultsById[checkId]
+          ?: invalid(sourceLabel, "selected check '$checkId' has no persisted result.")
       when (result.status) {
         FeatureTaskRuntimeReadinessCheckStatus.PASSED ->
           if (result.exitCode != 0) {
@@ -127,22 +131,27 @@ data class FeatureTaskRuntimeReadinessEvidence(
   companion object {
     private const val MAX_READINESS_CHECK_RESULTS = 20
 
-    internal fun fromArtifactMap(raw: Map<String, Any?>, sourceLabel: String): FeatureTaskRuntimeReadinessEvidence {
-      val allowed = setOf(
-        ReadinessEvidencePayloadKeys.CONTRACT_VERSION,
-        ReadinessEvidencePayloadKeys.SOURCE_TREE_SHA,
-        ReadinessEvidencePayloadKeys.BASE_REF_SHA,
-        ReadinessEvidencePayloadKeys.HEAD_SHA,
-        ReadinessEvidencePayloadKeys.SELECTED_CHECKS,
-        ReadinessEvidencePayloadKeys.CHECK_RESULTS,
-      )
+    internal fun fromArtifactMap(
+      raw: Map<String, Any?>,
+      sourceLabel: String,
+    ): FeatureTaskRuntimeReadinessEvidence {
+      val allowed =
+        setOf(
+          ReadinessEvidencePayloadKeys.CONTRACT_VERSION,
+          ReadinessEvidencePayloadKeys.SOURCE_TREE_SHA,
+          ReadinessEvidencePayloadKeys.BASE_REF_SHA,
+          ReadinessEvidencePayloadKeys.HEAD_SHA,
+          ReadinessEvidencePayloadKeys.SELECTED_CHECKS,
+          ReadinessEvidencePayloadKeys.CHECK_RESULTS,
+        )
       val unknown = raw.keys - allowed
       if (unknown.isNotEmpty()) invalid(sourceLabel, "unknown keys ${unknown.sorted()}.")
-      val version = requiredString(
-        raw,
-        ReadinessEvidencePayloadKeys.CONTRACT_VERSION,
-        sourceLabel,
-      )
+      val version =
+        requiredString(
+          raw,
+          ReadinessEvidencePayloadKeys.CONTRACT_VERSION,
+          sourceLabel,
+        )
       if (version != FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION) {
         invalid(
           sourceLabel,
@@ -150,21 +159,24 @@ data class FeatureTaskRuntimeReadinessEvidence(
             "'$FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION'.",
         )
       }
-      val sourceTreeSha = requiredString(
-        raw,
-        ReadinessEvidencePayloadKeys.SOURCE_TREE_SHA,
-        sourceLabel,
-      )
-      val baseRefSha = requiredString(
-        raw,
-        ReadinessEvidencePayloadKeys.BASE_REF_SHA,
-        sourceLabel,
-      )
-      val headSha = requiredString(
-        raw,
-        ReadinessEvidencePayloadKeys.HEAD_SHA,
-        sourceLabel,
-      )
+      val sourceTreeSha =
+        requiredString(
+          raw,
+          ReadinessEvidencePayloadKeys.SOURCE_TREE_SHA,
+          sourceLabel,
+        )
+      val baseRefSha =
+        requiredString(
+          raw,
+          ReadinessEvidencePayloadKeys.BASE_REF_SHA,
+          sourceLabel,
+        )
+      val headSha =
+        requiredString(
+          raw,
+          ReadinessEvidencePayloadKeys.HEAD_SHA,
+          sourceLabel,
+        )
       val selectedChecks = selectedChecks(raw, sourceLabel)
       val checkResults = checkResults(raw, sourceLabel)
       return try {
@@ -174,12 +186,19 @@ data class FeatureTaskRuntimeReadinessEvidence(
       }
     }
 
-    private fun requiredString(raw: Map<String, Any?>, key: String, sourceLabel: String): String =
-      raw[key] as? String ?: invalid(sourceLabel, "$key must be a string.")
+    private fun requiredString(
+      raw: Map<String, Any?>,
+      key: String,
+      sourceLabel: String,
+    ): String = raw[key] as? String ?: invalid(sourceLabel, "$key must be a string.")
 
-    private fun selectedChecks(raw: Map<String, Any?>, sourceLabel: String): List<String> {
-      val selected = raw[ReadinessEvidencePayloadKeys.SELECTED_CHECKS] as? List<*>
-        ?: invalid(sourceLabel, "selected_checks must be a list.")
+    private fun selectedChecks(
+      raw: Map<String, Any?>,
+      sourceLabel: String,
+    ): List<String> {
+      val selected =
+        raw[ReadinessEvidencePayloadKeys.SELECTED_CHECKS] as? List<*>
+          ?: invalid(sourceLabel, "selected_checks must be a list.")
       return selected.mapIndexed { index, item ->
         (item as? String)?.takeIf { it.isNotBlank() }
           ?: invalid(sourceLabel, "selected_checks[$index] must be a non-blank string.")
@@ -190,38 +209,51 @@ data class FeatureTaskRuntimeReadinessEvidence(
       raw: Map<String, Any?>,
       sourceLabel: String,
     ): List<FeatureTaskRuntimeReadinessCheckResult> {
-      val rawResults = raw[ReadinessEvidencePayloadKeys.CHECK_RESULTS] as? List<*>
-        ?: invalid(sourceLabel, "check_results must be a list.")
+      val rawResults =
+        raw[ReadinessEvidencePayloadKeys.CHECK_RESULTS] as? List<*>
+          ?: invalid(sourceLabel, "check_results must be a list.")
       return rawResults.mapIndexed { index, item -> checkResult(item, index, sourceLabel) }
     }
 
-    private fun checkResult(item: Any?, index: Int, sourceLabel: String): FeatureTaskRuntimeReadinessCheckResult {
+    private fun checkResult(
+      item: Any?,
+      index: Int,
+      sourceLabel: String,
+    ): FeatureTaskRuntimeReadinessCheckResult {
       val result = item as? Map<*, *> ?: invalid(sourceLabel, "check_results[$index] must be a mapping.")
       if (result.keys.any { it !is String }) {
         invalid(sourceLabel, "check_results[$index] has a non-string key.")
       }
-      val checkId = result[ReadinessEvidencePayloadKeys.CHECK_ID] as? String
-        ?: invalid(sourceLabel, "check_results[$index].check_id must be a string.")
-      val command = result[ReadinessEvidencePayloadKeys.COMMAND] as? String
-        ?: invalid(sourceLabel, "check_results[$index].command must be a string.")
-      val exitCode = result[ReadinessEvidencePayloadKeys.EXIT_CODE].asIntegerOrNull()
-        ?: invalid(sourceLabel, "check_results[$index].exit_code must be an integer.")
-      val statusWire = result[ReadinessEvidencePayloadKeys.STATUS] as? String
-        ?: invalid(sourceLabel, "check_results[$index].status must be a string.")
-      val status = FeatureTaskRuntimeReadinessCheckStatus.fromWire(statusWire)
-        ?: invalid(sourceLabel, "check_results[$index].status '$statusWire' is unsupported.")
+      val checkId =
+        result[ReadinessEvidencePayloadKeys.CHECK_ID] as? String
+          ?: invalid(sourceLabel, "check_results[$index].check_id must be a string.")
+      val command =
+        result[ReadinessEvidencePayloadKeys.COMMAND] as? String
+          ?: invalid(sourceLabel, "check_results[$index].command must be a string.")
+      val exitCode =
+        result[ReadinessEvidencePayloadKeys.EXIT_CODE].asIntegerOrNull()
+          ?: invalid(sourceLabel, "check_results[$index].exit_code must be an integer.")
+      val statusWire =
+        result[ReadinessEvidencePayloadKeys.STATUS] as? String
+          ?: invalid(sourceLabel, "check_results[$index].status must be a string.")
+      val status =
+        FeatureTaskRuntimeReadinessCheckStatus.fromWire(statusWire)
+          ?: invalid(sourceLabel, "check_results[$index].status '$statusWire' is unsupported.")
       return FeatureTaskRuntimeReadinessCheckResult(checkId, command, exitCode, status)
     }
 
-    private fun invalid(sourceLabel: String, reason: String): Nothing =
-      throw InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError(sourceLabel, reason)
+    private fun invalid(
+      sourceLabel: String,
+      reason: String,
+    ): Nothing = throw InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError(sourceLabel, reason)
   }
 }
 
-private fun Any?.asIntegerOrNull(): Int? = when (this) {
-  is Int -> this
-  is Long -> toInt().takeIf { it.toLong() == this }
-  is Short -> toInt()
-  is Byte -> toInt()
-  else -> null
-}
+private fun Any?.asIntegerOrNull(): Int? =
+  when (this) {
+    is Int -> this
+    is Long -> toInt().takeIf { it.toLong() == this }
+    is Short -> toInt()
+    is Byte -> toInt()
+    else -> null
+  }

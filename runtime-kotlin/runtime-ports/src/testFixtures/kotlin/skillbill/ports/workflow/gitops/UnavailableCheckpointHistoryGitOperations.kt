@@ -21,16 +21,25 @@ object UnavailableCheckpointHistoryGitOperations : CheckpointHistoryGitOperation
     targetSha: String,
   ): WorkflowGitOperationResult = unavailable("write checkpoint ref '$refName'")
 
-  override fun resolveRef(repoRoot: Path, namespacePrefix: String, refName: String): WorkflowGitOperationResult =
-    unavailable("resolve checkpoint ref '$refName'")
+  override fun resolveRef(
+    repoRoot: Path,
+    namespacePrefix: String,
+    refName: String,
+  ): WorkflowGitOperationResult = unavailable("resolve checkpoint ref '$refName'")
 
-  override fun listRefs(repoRoot: Path, namespacePrefix: String): WorkflowGitOperationResult =
-    unavailable("list checkpoint refs under '$namespacePrefix'")
+  override fun listRefs(
+    repoRoot: Path,
+    namespacePrefix: String,
+  ): WorkflowGitOperationResult = unavailable("list checkpoint refs under '$namespacePrefix'")
 
-  override fun deleteRef(repoRoot: Path, namespacePrefix: String, refName: String): WorkflowGitOperationResult =
-    unavailable("delete checkpoint ref '$refName'")
+  override fun deleteRef(
+    repoRoot: Path,
+    namespacePrefix: String,
+    refName: String,
+  ): WorkflowGitOperationResult = unavailable("delete checkpoint ref '$refName'")
 
-  private fun unavailable(capability: String) = WorkflowGitOperationResult.Failed(
-    error = "This git operations implementation cannot $capability; checkpoint history requires a git adapter.",
-  )
+  private fun unavailable(capability: String) =
+    WorkflowGitOperationResult.Failed(
+      error = "This git operations implementation cannot $capability; checkpoint history requires a git adapter.",
+    )
 }

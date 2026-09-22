@@ -1,13 +1,21 @@
 package skillbill.infrastructure.skills.externaladdon
 import skillbill.error.core.ExternalAddonOverlayError
 
-internal fun fragmentFieldMessage(slug: String, field: String, extra: Set<String>, allowed: String): String =
+internal fun fragmentFieldMessage(
+  slug: String,
+  field: String,
+  extra: Set<String>,
+  allowed: String,
+): String =
   "External addon source for platform '$slug': $field has unexpected keys ${extra.sorted()} " +
     "(only $allowed are allowed)."
 
 internal fun isValidPointerName(name: String): Boolean = POINTER_NAME_PATTERN.matches(name) && !name.contains("..")
 
-internal fun requireFlatAddonTarget(slug: String, target: String) {
+internal fun requireFlatAddonTarget(
+  slug: String,
+  target: String,
+) {
   val expectedPrefix = "platform-packs/$slug/$ADDONS_DIR/"
   if (!target.startsWith(expectedPrefix)) {
     throw ExternalAddonOverlayError(
@@ -23,7 +31,10 @@ internal fun requireFlatAddonTarget(slug: String, target: String) {
   }
 }
 
-internal fun validateFragmentFields(fragment: Map<String, Any?>, slug: String) {
+internal fun validateFragmentFields(
+  fragment: Map<String, Any?>,
+  slug: String,
+) {
   validatePointerEntries(fragment, slug)
   validateAddonUsageEntries(fragment, slug)
 }

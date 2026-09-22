@@ -4,6 +4,7 @@ import skillbill.infrastructure.skills.scaffold.runtime.validation.RepoValidatio
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertTrue
+
 class RepoValidationInternalSkillTest {
   @Test
   fun `repo validation rejects internal-for with unknown parent`() {

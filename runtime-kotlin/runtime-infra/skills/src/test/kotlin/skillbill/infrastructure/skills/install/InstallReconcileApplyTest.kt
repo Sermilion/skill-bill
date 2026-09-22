@@ -13,12 +13,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class InstallReconcileApplyTest : InstallApplyTestSupport() {
-  private fun roots(repoRoot: Path) = ReconcileSourceRoots(
-    repoRoot = repoRoot,
-    skillsRoot = repoRoot.resolve("skills"),
-    platformPacksRoot = repoRoot.resolve("platform-packs"),
-  )
+  private fun roots(repoRoot: Path) =
+    ReconcileSourceRoots(
+      repoRoot = repoRoot,
+      skillsRoot = repoRoot.resolve("skills"),
+      platformPacksRoot = repoRoot.resolve("platform-packs"),
+    )
 
   private fun seedRepo(name: String): Path {
     val repoRoot = Files.createTempDirectory(name).also(tempDirs::add)
@@ -30,10 +32,14 @@ class InstallReconcileApplyTest : InstallApplyTestSupport() {
 
   private fun home(): Path = Files.createTempDirectory("skillbill-apply-home").also(tempDirs::add)
 
-  private fun baselineFromUpstream(upstream: Path, home: Path): BaselineManifest = BaselineManifest.of(
-    BaselineManifest.CONTRACT_VERSION,
-    computeReconciliationPlan(roots(upstream), roots(upstream), home, BaselineManifest.empty()).baselineOverlay,
-  )
+  private fun baselineFromUpstream(
+    upstream: Path,
+    home: Path,
+  ): BaselineManifest =
+    BaselineManifest.of(
+      BaselineManifest.CONTRACT_VERSION,
+      computeReconciliationPlan(roots(upstream), roots(upstream), home, BaselineManifest.empty()).baselineOverlay,
+    )
 
   private fun reviewContent(repoRoot: Path): Path = repoRoot.resolve("skills/bill-code-review/content.md")
 
@@ -116,7 +122,11 @@ class InstallReconcileApplyTest : InstallApplyTestSupport() {
     assertFalse(output.prunedPaths.contains("agent-addons/local-helper"))
   }
 
-  private fun seedAgentAddon(repo: Path, slug: String, body: String) {
+  private fun seedAgentAddon(
+    repo: Path,
+    slug: String,
+    body: String,
+  ) {
     val root = repo.resolve("agent-addons/$slug")
     Files.createDirectories(root)
     Files.writeString(

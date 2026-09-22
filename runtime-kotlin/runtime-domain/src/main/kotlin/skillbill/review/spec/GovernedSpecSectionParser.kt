@@ -4,7 +4,10 @@ object GovernedSpecSectionParser {
   const val ACCEPTANCE_CRITERIA_PREFIX: String = "acceptance criteria"
   val MANDATES_HEADINGS: Set<String> = setOf("mandates", "mandates and overrides", "mandates & overrides")
 
-  fun parseListSection(specText: String, headingMatches: (String) -> Boolean): List<String> {
+  fun parseListSection(
+    specText: String,
+    headingMatches: (String) -> Boolean,
+  ): List<String> {
     val body = sectionBody(specText, headingMatches) ?: return emptyList()
     val items = mutableListOf<StringBuilder>()
     var topLevelIndent: Int? = null
@@ -29,7 +32,10 @@ object GovernedSpecSectionParser {
     return items.map { it.toString().trim() }.filter(String::isNotBlank)
   }
 
-  fun parseProseSection(specText: String, headingMatches: (String) -> Boolean): String {
+  fun parseProseSection(
+    specText: String,
+    headingMatches: (String) -> Boolean,
+  ): String {
     val body = sectionBody(specText, headingMatches) ?: return ""
     return body.lineSequence()
       .map { it.trim() }
@@ -37,12 +43,16 @@ object GovernedSpecSectionParser {
       .joinToString(" ")
   }
 
-  fun sectionBody(specText: String, headingMatches: (String) -> Boolean): String? {
+  fun sectionBody(
+    specText: String,
+    headingMatches: (String) -> Boolean,
+  ): String? {
     val lines = specText.lines()
-    val startIndex = lines.indexOfFirst { line ->
-      val title = line.headingTitle()?.lowercase() ?: return@indexOfFirst false
-      headingMatches(title)
-    }
+    val startIndex =
+      lines.indexOfFirst { line ->
+        val title = line.headingTitle()?.lowercase() ?: return@indexOfFirst false
+        headingMatches(title)
+      }
     if (startIndex < 0) {
       return null
     }

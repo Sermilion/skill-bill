@@ -10,7 +10,10 @@ import skillbill.telemetry.model.QualityCheckFinishedRecord
 import skillbill.telemetry.model.QualityCheckStartedRecord
 import java.sql.Connection
 
-internal fun saveQualityCheckStarted(connection: Connection, record: QualityCheckStartedRecord) {
+internal fun saveQualityCheckStarted(
+  connection: Connection,
+  record: QualityCheckStartedRecord,
+) {
   connection.prepareStatement(
     """
     INSERT INTO quality_check_sessions (
@@ -31,7 +34,10 @@ internal fun saveQualityCheckStarted(connection: Connection, record: QualityChec
   }
 }
 
-internal fun saveQualityCheckFinished(connection: Connection, record: QualityCheckFinishedRecord): TerminalSaveOutcome {
+internal fun saveQualityCheckFinished(
+  connection: Connection,
+  record: QualityCheckFinishedRecord,
+): TerminalSaveOutcome {
   val failingCheckNamesJson = listJson(record.failingCheckNames)
   if (rowExists(connection, "quality_check_sessions", record.sessionId)) {
     if (lifecycleAlreadyFinished(connection, "quality_check_sessions", record.sessionId)) {

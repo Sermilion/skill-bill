@@ -16,19 +16,22 @@ class GoalContinuationOutcomeDecodingTest {
     assertNull(goalContinuationTerminalStatus(""))
     assertNull(goalContinuationTerminalStatus("unknown"))
 
-    val decoded = goalContinuationOutcome(
-      artifacts = mapOf<String, Any?>(
-        "goal_continuation_outcome" to mapOf(
-          "issue_key" to "SKILL-233",
-          "subtask_id" to 4,
-          "status" to "completed",
-          "workflow_id" to "wf-233-4",
-        ),
-      ),
-      issueKey = "SKILL-233",
-      subtaskId = 4,
-      suppressPr = true,
-    )
+    val decoded =
+      goalContinuationOutcome(
+        artifacts =
+          mapOf<String, Any?>(
+            "goal_continuation_outcome" to
+              mapOf(
+                "issue_key" to "SKILL-233",
+                "subtask_id" to 4,
+                "status" to "completed",
+                "workflow_id" to "wf-233-4",
+              ),
+          ),
+        issueKey = "SKILL-233",
+        subtaskId = 4,
+        suppressPr = true,
+      )
 
     assertEquals(GoalRunnerTerminalStatus.COMPLETE, decoded?.status)
   }

@@ -34,7 +34,10 @@ class ReviewLaneBundleAssemblyTest {
     subject: String = "commit $sha",
   ) = ReviewCommitUnit(sha, parent, subject, order, hunks, ReviewCommitSource.COMMIT_RANGE)
 
-  private fun lane(name: String, paths: List<String>) = ReviewLaneDecision(
+  private fun lane(
+    name: String,
+    paths: List<String>,
+  ) = ReviewLaneDecision(
     name,
     true,
     "routed",
@@ -44,26 +47,29 @@ class ReviewLaneBundleAssemblyTest {
     specialistSkillName = "bill-kotlin-code-review-$name",
   )
 
-  private fun focusedMatrix(units: List<ReviewCommitUnit>, lanes: List<String>, focusedShas: Set<String>) =
-    ReviewCommitLaneRoutingMatrix(
-      units.sortedBy { it.orderIndex }.map { it.commitSha },
-      lanes,
-      units.sortedBy { it.orderIndex }.flatMap { commit ->
-        lanes.map {
-          ReviewCommitLaneDecision(
-            commit.commitSha,
-            commit.orderIndex,
-            it,
-            if (commit.commitSha in focusedShas) {
-              ReviewCommitLaneDisposition.FOCUSED
-            } else {
-              ReviewCommitLaneDisposition.SKIPPED
-            },
-            if (commit.commitSha in focusedShas) "focused" else "skipped for $it",
-          )
-        }
-      },
-    )
+  private fun focusedMatrix(
+    units: List<ReviewCommitUnit>,
+    lanes: List<String>,
+    focusedShas: Set<String>,
+  ) = ReviewCommitLaneRoutingMatrix(
+    units.sortedBy { it.orderIndex }.map { it.commitSha },
+    lanes,
+    units.sortedBy { it.orderIndex }.flatMap { commit ->
+      lanes.map {
+        ReviewCommitLaneDecision(
+          commit.commitSha,
+          commit.orderIndex,
+          it,
+          if (commit.commitSha in focusedShas) {
+            ReviewCommitLaneDisposition.FOCUSED
+          } else {
+            ReviewCommitLaneDisposition.SKIPPED
+          },
+          if (commit.commitSha in focusedShas) "focused" else "skipped for $it",
+        )
+      }
+    },
+  )
 
   private fun packet(
     units: List<ReviewCommitUnit>,
@@ -84,34 +90,37 @@ class ReviewLaneBundleAssemblyTest {
       selectedLanes = lanes,
       changedHunks = hunks,
       commitUnits = units,
-      coverageFact = ReviewCommitCoverageFact(
-        "base",
-        ordered.last().commitSha,
-        units.size,
-        chainVerified = true,
-        pathCoverageVerified = true,
-      ),
+      coverageFact =
+        ReviewCommitCoverageFact(
+          "base",
+          ordered.last().commitSha,
+          units.size,
+          chainVerified = true,
+          pathCoverageVerified = true,
+        ),
       routingMatrix = focusedMatrix(units, lanes, focusedShas),
       reviewRevision = ReviewRevision("rvs", 1),
       laneDecisions = lanes.map { lane(it, hunks.map { hunk -> hunk.path }.distinct()) },
     )
   }
 
-  private fun assignment(built: ReviewContextPacket, bundle: ReviewLaneBundle, hunks: List<String> = bundle.hunkIds) =
-    ReviewAssignment(
-      reviewId = built.reviewId,
-      packetDigest = built.digest,
-      lane = "security",
-      baseRevision = built.baseRevision,
-      headRevision = built.headRevision,
-
-      assignedPaths = built.laneDecisions.single { it.lane == "security" }.normalizedOwnedPaths.sorted(),
-      assignedHunks = hunks,
-      assignedBundle = bundle,
-      laneRouting = built.routingMatrix.decisionsFor("security"),
-      reviewRevision = built.reviewRevision,
-      laneDecision = built.laneDecisions.single { it.lane == "security" },
-    )
+  private fun assignment(
+    built: ReviewContextPacket,
+    bundle: ReviewLaneBundle,
+    hunks: List<String> = bundle.hunkIds,
+  ) = ReviewAssignment(
+    reviewId = built.reviewId,
+    packetDigest = built.digest,
+    lane = "security",
+    baseRevision = built.baseRevision,
+    headRevision = built.headRevision,
+    assignedPaths = built.laneDecisions.single { it.lane == "security" }.normalizedOwnedPaths.sorted(),
+    assignedHunks = hunks,
+    assignedBundle = bundle,
+    laneRouting = built.routingMatrix.decisionsFor("security"),
+    reviewRevision = built.reviewRevision,
+    laneDecision = built.laneDecisions.single { it.lane == "security" },
+  )
 
   private fun launch(
     built: ReviewContextPacket,
@@ -119,17 +128,19 @@ class ReviewLaneBundleAssemblyTest {
     budget: ReviewContextBudgetPolicy = ReviewContextBudgetPolicy.DEFAULT,
   ) = GovernedReviewLaunch(assignment(built, bundle), built, "contract", "rubric", "broker", budget)
 
-  private val twoCommits = listOf(
-    unit("c1", "base", 0, listOf(hunkA)),
-    unit("head", "c1", 1, listOf(hunkB)),
-  )
-
-  private val fullBundle = ReviewLaneBundle(
+  private val twoCommits =
     listOf(
-      ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId)),
-      ReviewLaneBundleEntry("head", 1, listOf(hunkB.hunkId)),
-    ),
-  )
+      unit("c1", "base", 0, listOf(hunkA)),
+      unit("head", "c1", 1, listOf(hunkB)),
+    )
+
+  private val fullBundle =
+    ReviewLaneBundle(
+      listOf(
+        ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId)),
+        ReviewLaneBundleEntry("head", 1, listOf(hunkB.hunkId)),
+      ),
+    )
 
   @Test fun `assembled bundle contains exactly assigned hunk ids and no unassigned hunk body`() {
     val built = packet(twoCommits, focusedShas = setOf("c1"))
@@ -146,17 +157,19 @@ class ReviewLaneBundleAssemblyTest {
     val firstPath = ReviewChangedHunk("src/Z.kt", 1, 1, 1, 2, "+z-first")
     val secondPath = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+a-first")
     val laterLine = ReviewChangedHunk("src/A.kt", 5, 1, 5, 2, "+a-later")
-    val units = listOf(
-      unit("c1", "base", 0, listOf(firstPath, secondPath)),
-      unit("head", "c1", 1, listOf(laterLine)),
-    )
-    val built = packet(units)
-    val bundle = ReviewLaneBundle(
+    val units =
       listOf(
-        ReviewLaneBundleEntry("c1", 0, listOf(firstPath.hunkId, secondPath.hunkId)),
-        ReviewLaneBundleEntry("head", 1, listOf(laterLine.hunkId)),
-      ),
-    )
+        unit("c1", "base", 0, listOf(firstPath, secondPath)),
+        unit("head", "c1", 1, listOf(laterLine)),
+      )
+    val built = packet(units)
+    val bundle =
+      ReviewLaneBundle(
+        listOf(
+          ReviewLaneBundleEntry("c1", 0, listOf(firstPath.hunkId, secondPath.hunkId)),
+          ReviewLaneBundleEntry("head", 1, listOf(laterLine.hunkId)),
+        ),
+      )
     val assembled = ReviewLaneAssembledBundle.assemble(assignment(built, bundle), built)
 
     assertEquals(listOf(0, 0, 1), assembled.entries.map { it.orderIndex })
@@ -172,15 +185,17 @@ class ReviewLaneBundleAssemblyTest {
     val base = ReviewLaneAssembledBundle.assemble(assignment(built, fullBundle), built)
     val partialBundle = ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId))))
     val partial = ReviewLaneAssembledBundle.assemble(assignment(built, partialBundle), built)
-    val alternateCommits = packet(
-      listOf(unit("c1", "base", 0, listOf(hunkC)), unit("head", "c1", 1, listOf(hunkB))),
-    )
-    val alternateBundle = ReviewLaneBundle(
-      listOf(
-        ReviewLaneBundleEntry("c1", 0, listOf(hunkC.hunkId)),
-        ReviewLaneBundleEntry("head", 1, listOf(hunkB.hunkId)),
-      ),
-    )
+    val alternateCommits =
+      packet(
+        listOf(unit("c1", "base", 0, listOf(hunkC)), unit("head", "c1", 1, listOf(hunkB))),
+      )
+    val alternateBundle =
+      ReviewLaneBundle(
+        listOf(
+          ReviewLaneBundleEntry("c1", 0, listOf(hunkC.hunkId)),
+          ReviewLaneBundleEntry("head", 1, listOf(hunkB.hunkId)),
+        ),
+      )
     val alternate = ReviewLaneAssembledBundle.assemble(assignment(alternateCommits, alternateBundle), alternateCommits)
 
     assertNotEquals(base.compositionDigest, partial.compositionDigest)
@@ -193,13 +208,14 @@ class ReviewLaneBundleAssemblyTest {
 
   @Test fun `oversized bundle splits into the minimal segment count for a configured budget`() {
     val built = packet(listOf(unit("c1", "base", 0, listOf(hunkA, hunkB, hunkC))))
-    val bundle = ReviewLaneAssembledBundle.assemble(
-      assignment(
+    val bundle =
+      ReviewLaneAssembledBundle.assemble(
+        assignment(
+          built,
+          ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId, hunkB.hunkId, hunkC.hunkId)))),
+        ),
         built,
-        ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId, hunkB.hunkId, hunkC.hunkId)))),
-      ),
-      built,
-    )
+      )
     val measure: (List<ReviewLaneAssembledEntry>) -> Long = { entries -> entries.size * 10L }
     val segmentation = segmentAssembledBundle(bundle, maxLaneLaunchBytes = 25, measure)
 
@@ -222,13 +238,14 @@ class ReviewLaneBundleAssemblyTest {
 
   @Test fun `size-driven split can place one commit hunks across two segments`() {
     val sharedCommit = unit("c1", "base", 0, listOf(hunkA, hunkB, hunkC))
-    val assembled = ReviewLaneAssembledBundle.assemble(
-      assignment(
+    val assembled =
+      ReviewLaneAssembledBundle.assemble(
+        assignment(
+          packet(listOf(sharedCommit)),
+          ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId, hunkB.hunkId, hunkC.hunkId)))),
+        ),
         packet(listOf(sharedCommit)),
-        ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId, hunkB.hunkId, hunkC.hunkId)))),
-      ),
-      packet(listOf(sharedCommit)),
-    )
+      )
     val segmentation = segmentAssembledBundle(assembled, maxLaneLaunchBytes = 25) { entries -> entries.size * 10L }
 
     assertEquals(2, segmentation.segments.size)
@@ -255,13 +272,14 @@ class ReviewLaneBundleAssemblyTest {
   }
 
   @Test fun `an entry larger than the whole budget is recorded unreviewable rather than dropped`() {
-    val assembled = ReviewLaneAssembledBundle.assemble(
-      assignment(
+    val assembled =
+      ReviewLaneAssembledBundle.assemble(
+        assignment(
+          packet(listOf(unit("c1", "base", 0, listOf(hunkA)))),
+          ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId)))),
+        ),
         packet(listOf(unit("c1", "base", 0, listOf(hunkA)))),
-        ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId)))),
-      ),
-      packet(listOf(unit("c1", "base", 0, listOf(hunkA)))),
-    )
+      )
     val segmentation = segmentAssembledBundle(assembled, maxLaneLaunchBytes = 5) { _ -> 10L }
 
     assertTrue(segmentation.segments.isEmpty())
@@ -271,19 +289,22 @@ class ReviewLaneBundleAssemblyTest {
 
   @Test fun `an incomplete completion state names the concrete units it left unreviewed`() {
     val built = packet(listOf(unit("c1", "base", 0, listOf(hunkA))))
-    val assembled = ReviewLaneAssembledBundle.assemble(
-      assignment(built, ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId))))),
-      built,
-    )
+    val assembled =
+      ReviewLaneAssembledBundle.assemble(
+        assignment(built, ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId))))),
+        built,
+      )
 
-    val incomplete = segmentAssembledBundle(assembled, maxLaneLaunchBytes = 5) { _ -> 10L }
-      .toCompletionState(assembled.compositionDigest)
+    val incomplete =
+      segmentAssembledBundle(assembled, maxLaneLaunchBytes = 5) { _ -> 10L }
+        .toCompletionState(assembled.compositionDigest)
 
     assertEquals(ReviewLaneReviewDisposition.INCOMPLETE, incomplete.disposition)
     assertEquals(listOf("c1@${hunkA.path}"), incomplete.unreviewedUnits)
 
-    val complete = segmentAssembledBundle(assembled, maxLaneLaunchBytes = 10_000) { _ -> 10L }
-      .toCompletionState(assembled.compositionDigest)
+    val complete =
+      segmentAssembledBundle(assembled, maxLaneLaunchBytes = 10_000) { _ -> 10L }
+        .toCompletionState(assembled.compositionDigest)
 
     assertEquals(ReviewLaneReviewDisposition.COMPLETE, complete.disposition)
     assertEquals(emptyList(), complete.unreviewedUnits)
@@ -294,15 +315,16 @@ class ReviewLaneBundleAssemblyTest {
     val bundle = ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId, hunkB.hunkId))))
     val evidenceBudget = hunkA.contentBytes
     require(hunkA.contentBytes + hunkB.contentBytes > evidenceBudget)
-    val governed = launch(
-      built,
-      bundle,
-      ReviewContextBudgetPolicy.DEFAULT.copy(
-        maxLaneEvidenceBytes = evidenceBudget,
-        maxEvidenceResultBytes = evidenceBudget,
-        maxLaneLaunchBytes = 10_000,
-      ),
-    )
+    val governed =
+      launch(
+        built,
+        bundle,
+        ReviewContextBudgetPolicy.DEFAULT.copy(
+          maxLaneEvidenceBytes = evidenceBudget,
+          maxEvidenceResultBytes = evidenceBudget,
+          maxLaneLaunchBytes = 10_000,
+        ),
+      )
 
     assertEquals(ReviewLaneReviewDisposition.COMPLETE, governed.completionState.disposition)
     assertEquals(emptyList(), governed.completionState.unreviewedSegmentIds)
@@ -315,12 +337,14 @@ class ReviewLaneBundleAssemblyTest {
     val middlePath = ReviewChangedHunk("src/M.kt", 4, 1, 4, 1, "+m")
     val latePath = ReviewChangedHunk("src/Z.kt", 7, 1, 7, 1, "+z")
     val built = packet(listOf(unit("c1", "base", 0, listOf(firstPath, middlePath, latePath))))
-    val bundle = ReviewLaneBundle(
-      listOf(ReviewLaneBundleEntry("c1", 0, listOf(firstPath.hunkId, middlePath.hunkId, latePath.hunkId))),
-    )
+    val bundle =
+      ReviewLaneBundle(
+        listOf(ReviewLaneBundleEntry("c1", 0, listOf(firstPath.hunkId, middlePath.hunkId, latePath.hunkId))),
+      )
     val assembled = ReviewLaneAssembledBundle.assemble(assignment(built, bundle), built)
-    val complete = segmentAssembledBundle(assembled, maxLaneLaunchBytes = 10_000) { _ -> 10L }
-      .toCompletionState(assembled.compositionDigest)
+    val complete =
+      segmentAssembledBundle(assembled, maxLaneLaunchBytes = 10_000) { _ -> 10L }
+        .toCompletionState(assembled.compositionDigest)
     val brokerDenied = "c1@src/M.kt"
     val result = complete.withBrokerEvidenceRefusal(listOf(brokerDenied))
 
@@ -333,12 +357,14 @@ class ReviewLaneBundleAssemblyTest {
 
   @Test fun `withBrokerEvidenceRefusal on a complete state yields incomplete with broker denied units`() {
     val built = packet(listOf(unit("c1", "base", 0, listOf(hunkA))))
-    val assembled = ReviewLaneAssembledBundle.assemble(
-      assignment(built, ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId))))),
-      built,
-    )
-    val complete = segmentAssembledBundle(assembled, maxLaneLaunchBytes = 10_000) { _ -> 10L }
-      .toCompletionState(assembled.compositionDigest)
+    val assembled =
+      ReviewLaneAssembledBundle.assemble(
+        assignment(built, ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId))))),
+        built,
+      )
+    val complete =
+      segmentAssembledBundle(assembled, maxLaneLaunchBytes = 10_000) { _ -> 10L }
+        .toCompletionState(assembled.compositionDigest)
     val denied = listOf("c1@${hunkA.path}")
 
     val result = complete.withBrokerEvidenceRefusal(denied)
@@ -351,12 +377,14 @@ class ReviewLaneBundleAssemblyTest {
 
   @Test fun `a failed lane run downgrades a complete state to incomplete naming its whole bundle`() {
     val built = packet(listOf(unit("c1", "base", 0, listOf(hunkA))))
-    val assembled = ReviewLaneAssembledBundle.assemble(
-      assignment(built, ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId))))),
-      built,
-    )
-    val complete = segmentAssembledBundle(assembled, maxLaneLaunchBytes = 10_000) { _ -> 10L }
-      .toCompletionState(assembled.compositionDigest)
+    val assembled =
+      ReviewLaneAssembledBundle.assemble(
+        assignment(built, ReviewLaneBundle(listOf(ReviewLaneBundleEntry("c1", 0, listOf(hunkA.hunkId))))),
+        built,
+      )
+    val complete =
+      segmentAssembledBundle(assembled, maxLaneLaunchBytes = 10_000) { _ -> 10L }
+        .toCompletionState(assembled.compositionDigest)
 
     val failed = complete.asFailedLaneRun(listOf("c1@${hunkA.path}"))
 
@@ -365,8 +393,9 @@ class ReviewLaneBundleAssemblyTest {
     assertEquals(LANE_RUN_OUTCOME_DIMENSION, failed.budgetDimension)
     assertNotEquals(complete, failed)
 
-    val budgetIncomplete = segmentAssembledBundle(assembled, maxLaneLaunchBytes = 5) { _ -> 10L }
-      .toCompletionState(assembled.compositionDigest)
+    val budgetIncomplete =
+      segmentAssembledBundle(assembled, maxLaneLaunchBytes = 5) { _ -> 10L }
+        .toCompletionState(assembled.compositionDigest)
     assertEquals(budgetIncomplete, budgetIncomplete.asFailedLaneRun(listOf("c1@${hunkA.path}")))
   }
 
@@ -410,11 +439,12 @@ class ReviewLaneBundleAssemblyTest {
     val twoEntryBytes = launch(built, bundle).canonicalPayload.toByteArray(Charsets.UTF_8).size.toLong()
     val splitBudget = twoEntryBytes - pad
     assertTrue(splitBudget in 1 until twoEntryBytes)
-    val governed = launch(
-      built,
-      bundle,
-      ReviewContextBudgetPolicy.DEFAULT.copy(maxLaneLaunchBytes = splitBudget),
-    )
+    val governed =
+      launch(
+        built,
+        bundle,
+        ReviewContextBudgetPolicy.DEFAULT.copy(maxLaneLaunchBytes = splitBudget),
+      )
 
     assertTrue(governed.segmentation.segments.size >= 2, "Fixture must force multiple segments.")
     val payload = governed.canonicalPayload
@@ -453,10 +483,11 @@ class ReviewLaneBundleAssemblyTest {
     val assembled = ReviewLaneAssembledBundle.assemble(assignment(packet(twoCommits), fullBundle), packet(twoCommits))
     assertFailsWith<IllegalArgumentException> {
       ReviewLaneBundleSegmentation(
-        segments = listOf(
-          ReviewLaneBundleSegment("seg-000", assembled.entries.take(1), measuredBytes = 1),
-          ReviewLaneBundleSegment("seg-001", assembled.entries, measuredBytes = 2),
-        ),
+        segments =
+          listOf(
+            ReviewLaneBundleSegment("seg-000", assembled.entries.take(1), measuredBytes = 1),
+            ReviewLaneBundleSegment("seg-001", assembled.entries, measuredBytes = 2),
+          ),
         budgetLimitBytes = 100,
       )
     }

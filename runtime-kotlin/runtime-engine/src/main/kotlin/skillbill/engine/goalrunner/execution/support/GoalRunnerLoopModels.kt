@@ -121,9 +121,10 @@ internal fun recordLaunchObservabilityAndLedger(
         subtaskId = subtaskId,
         progress = progress,
         launchOutcome = launchOutcome,
-        diagnosticClass = (launchOutcome as? AgentRunLaunchFacts)?.takeIf {
-          it.spawnFailed || it.interrupted || it.timedOut || (it.exitStatus != null && it.exitStatus != 0)
-        }?.let { "child_process_failed" },
+        diagnosticClass =
+          (launchOutcome as? AgentRunLaunchFacts)?.takeIf {
+            it.spawnFailed || it.interrupted || it.timedOut || (it.exitStatus != null && it.exitStatus != 0)
+          }?.let { "child_process_failed" },
         recoverableJsonPresent = null,
         nextSafeAction = "read_terminal_workflow_state",
         reAttemptCause = context.reAttemptCause,
@@ -136,9 +137,10 @@ internal fun recordLaunchObservabilityAndLedger(
         subtaskId = subtaskId,
         progress = progress,
         launchOutcome = launchOutcome,
-        diagnosticClass = (launchOutcome as? AgentRunLaunchFacts)?.takeIf {
-          it.spawnFailed || it.interrupted || it.timedOut || (it.exitStatus != null && it.exitStatus != 0)
-        }?.let { "child_process_failed" },
+        diagnosticClass =
+          (launchOutcome as? AgentRunLaunchFacts)?.takeIf {
+            it.spawnFailed || it.interrupted || it.timedOut || (it.exitStatus != null && it.exitStatus != 0)
+          }?.let { "child_process_failed" },
         recoverableJsonPresent = null,
         nextSafeAction = "read_terminal_workflow_state",
         reAttemptCause = context.reAttemptCause,

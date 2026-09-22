@@ -9,15 +9,25 @@ import java.util.logging.Logger
 class JdkRuntimeDiagnostics : RuntimeDiagnostics {
   private val log: Logger = Logger.getLogger(JdkRuntimeDiagnostics::class.java.name)
 
-  override fun warning(message: String, error: Throwable?) {
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
     log(Level.WARNING, message, error)
   }
 
-  override fun error(message: String, error: Throwable?) {
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) {
     log(Level.SEVERE, message, error)
   }
 
-  private fun log(level: Level, message: String, error: Throwable?) {
+  private fun log(
+    level: Level,
+    message: String,
+    error: Throwable?,
+  ) {
     if (error == null) {
       log.log(level, message)
     } else {

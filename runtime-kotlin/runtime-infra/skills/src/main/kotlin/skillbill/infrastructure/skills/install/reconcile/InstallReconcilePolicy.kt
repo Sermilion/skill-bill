@@ -39,6 +39,7 @@ import skillbill.scaffold.model.PlatformManifest
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+
 internal const val SKILLS_PREFIX = "skills/"
 internal const val PLATFORM_PACKS_PREFIX = "platform-packs/"
 internal const val AGENT_ADDONS_PREFIX = "agent-addons/"
@@ -84,14 +85,15 @@ internal fun classifyReconciliation(
   baseline: BaselineManifest,
 ): ReconciliationPlan {
   val skillPaths = (upstreamSkills.keys + localSkills.keys).toSortedSet()
-  val outcomes = skillPaths.map { skillRelativePath ->
-    classifySkill(
-      skillRelativePath = skillRelativePath,
-      upstreamHash = upstreamSkills[skillRelativePath]?.hash,
-      localHash = localSkills[skillRelativePath]?.hash,
-      baselineHash = baseline.hashFor(skillRelativePath),
-    )
-  }
+  val outcomes =
+    skillPaths.map { skillRelativePath ->
+      classifySkill(
+        skillRelativePath = skillRelativePath,
+        upstreamHash = upstreamSkills[skillRelativePath]?.hash,
+        localHash = localSkills[skillRelativePath]?.hash,
+        baselineHash = baseline.hashFor(skillRelativePath),
+      )
+    }
   return ReconciliationPlan(outcomes = outcomes)
 }
 
@@ -100,41 +102,42 @@ private fun classifySkill(
   upstreamHash: String?,
   localHash: String?,
   baselineHash: String?,
-): SkillReconciliationOutcome = when {
-  upstreamHash == null && localHash == null -> throw ReconciliationConflictError(
-    skillRelativePath = skillRelativePath,
-    reason = "skill is present in neither the upstream nor the local source tree.",
-  )
-  upstreamHash == null && localHash != null && skillRelativePath.startsWith(AGENT_ADDONS_PREFIX) ->
-    SkillReconciliationOutcome.LocallyAuthored(
+): SkillReconciliationOutcome =
+  when {
+    upstreamHash == null && localHash == null -> throw ReconciliationConflictError(
       skillRelativePath = skillRelativePath,
-      localHash = localHash,
-      baselineHash = baselineHash,
+      reason = "skill is present in neither the upstream nor the local source tree.",
     )
-  upstreamHash == null && localHash != null ->
-    SkillReconciliationOutcome.Prune(
+    upstreamHash == null && localHash != null && skillRelativePath.startsWith(AGENT_ADDONS_PREFIX) ->
+      SkillReconciliationOutcome.LocallyAuthored(
+        skillRelativePath = skillRelativePath,
+        localHash = localHash,
+        baselineHash = baselineHash,
+      )
+    upstreamHash == null && localHash != null ->
+      SkillReconciliationOutcome.Prune(
+        skillRelativePath = skillRelativePath,
+        localHash = localHash,
+        baselineHash = baselineHash,
+      )
+    upstreamHash != null && localHash == upstreamHash ->
+      SkillReconciliationOutcome.Unchanged(
+        skillRelativePath = skillRelativePath,
+        upstreamHash = upstreamHash,
+        baselineHash = baselineHash,
+      )
+    upstreamHash != null ->
+      SkillReconciliationOutcome.Adopt(
+        skillRelativePath = skillRelativePath,
+        upstreamHash = upstreamHash,
+        localHash = localHash,
+        baselineHash = baselineHash,
+      )
+    else -> throw ReconciliationConflictError(
       skillRelativePath = skillRelativePath,
-      localHash = localHash,
-      baselineHash = baselineHash,
+      reason = "skill reconciliation reached an unreachable state.",
     )
-  upstreamHash != null && localHash == upstreamHash ->
-    SkillReconciliationOutcome.Unchanged(
-      skillRelativePath = skillRelativePath,
-      upstreamHash = upstreamHash,
-      baselineHash = baselineHash,
-    )
-  upstreamHash != null ->
-    SkillReconciliationOutcome.Adopt(
-      skillRelativePath = skillRelativePath,
-      upstreamHash = upstreamHash,
-      localHash = localHash,
-      baselineHash = baselineHash,
-    )
-  else -> throw ReconciliationConflictError(
-    skillRelativePath = skillRelativePath,
-    reason = "skill reconciliation reached an unreachable state.",
-  )
-}
+  }
 
 internal fun enumerateSkills(
   roots: ReconcileSourceRoots,
@@ -142,43 +145,51 @@ internal fun enumerateSkills(
   sourceSide: ReconcileSourceSide,
 ): Map<String, ReconcileSkillEntry> {
   val enforceContractVersion = sourceSide.enforcesPlatformPackContractVersion()
-  val skillEntries = if (Files.isDirectory(roots.skillsRoot)) {
-    val request = reconcileEnumerationRequest(roots, home)
-    val platformManifests = discoverPlatformManifests(roots.platformPacksRoot, enforceContractVersion)
+  val skillEntries =
+    if (Files.isDirectory(roots.skillsRoot)) {
+      val request = reconcileEnumerationRequest(roots, home)
+      val platformManifests = discoverPlatformManifests(roots.platformPacksRoot, enforceContractVersion)
 
-    val skills = enumerateInstallPlanSkills(request, enforceContractVersion)
-    val selectedPackSkills = skills.filter { candidate ->
-      candidate.kind == InstallPlanSkillKind.PLATFORM_PACK && candidate.internalFor != null
+      val skills = enumerateInstallPlanSkills(request, enforceContractVersion)
+      val selectedPackSkills =
+        skills.filter { candidate ->
+          candidate.kind == InstallPlanSkillKind.PLATFORM_PACK && candidate.internalFor != null
+        }
+      skills.associate { skill ->
+        skillRelativePath(roots, skill) to
+          ReconcileSkillEntry(
+            hash =
+              reconcileSkillHash(
+                roots,
+                skill,
+                platformManifests,
+                selectedPackSkills,
+                enforceContractVersion,
+              ),
+            sourceDir = skill.sourceDir.toPath().toAbsolutePath().normalize(),
+          )
+      }
+    } else {
+      emptyMap()
     }
-    skills.associate { skill ->
-      skillRelativePath(roots, skill) to ReconcileSkillEntry(
-        hash = reconcileSkillHash(
-          roots,
-          skill,
-          platformManifests,
-          selectedPackSkills,
-          enforceContractVersion,
-        ),
-        sourceDir = skill.sourceDir.toPath().toAbsolutePath().normalize(),
-      )
-    }
-  } else {
-    emptyMap()
-  }
   return skillEntries + agentAddonEntries(roots)
 }
 
 private fun agentAddonEntries(roots: ReconcileSourceRoots): Map<String, ReconcileSkillEntry> =
   discoverAgentAddons(roots.repoRoot).associate { declaration ->
-    "agent-addons/${declaration.slug}" to ReconcileSkillEntry(
-      hash = hashAgentAddonSource(declaration.manifestPath.toPath(), declaration.contentPath.toPath()),
-      sourceDir = declaration.addonRoot.toPath().toAbsolutePath().normalize(),
-    )
+    "agent-addons/${declaration.slug}" to
+      ReconcileSkillEntry(
+        hash = hashAgentAddonSource(declaration.manifestPath.toPath(), declaration.contentPath.toPath()),
+        sourceDir = declaration.addonRoot.toPath().toAbsolutePath().normalize(),
+      )
   }
 
 private const val AGENT_ADDON_HASH_FIELD_SEPARATOR: Byte = 0
 
-private fun hashAgentAddonSource(manifestPath: Path, contentPath: Path): String {
+private fun hashAgentAddonSource(
+  manifestPath: Path,
+  contentPath: Path,
+): String {
   val digest = newSha256Digest()
   listOf("agent-addon.yaml" to manifestPath, "content.md" to contentPath).forEach { (name, path) ->
     digest.update(name.toByteArray(Charsets.UTF_8))
@@ -197,33 +208,36 @@ private fun reconcileSkillHash(
   enforceContractVersion: Boolean,
 ): String {
   val applicablePointers = applicablePointers(roots.repoRoot, skill.sourceDir.toPath(), platformManifests)
-  val supportPointers = generatedSupportPointersFor(
-    repoRoot = roots.repoRoot,
-    sourceSkillDir = skill.sourceDir.toPath(),
-    skillName = skill.name,
-    skillsRoot = roots.skillsRoot,
-    selectedPlatformManifests = platformManifests,
-  )
-  val internal = prepareInternalStaging(
-    InternalStagingPreparation(
+  val supportPointers =
+    generatedSupportPointersFor(
       repoRoot = roots.repoRoot,
-      parentSourceDir = skill.sourceDir.toPath(),
-      parentSkillName = skill.name,
+      sourceSkillDir = skill.sourceDir.toPath(),
+      skillName = skill.name,
       skillsRoot = roots.skillsRoot,
-      selectedPackSkills = selectedPackSkills,
-      platformManifests = platformManifests,
       selectedPlatformManifests = platformManifests,
-      parentSupportPointers = supportPointers,
-      parentPointerNames = applicablePointers.map { it.second.name }.toSet(),
-      enforceContractVersion = enforceContractVersion,
-    ),
-  )
-  val authored = authoredFilesFor(
-    skill.sourceDir.toPath(),
-    applicablePointers,
-    internal.supportPointers,
-    internal.sidecarNames,
-  )
+    )
+  val internal =
+    prepareInternalStaging(
+      InternalStagingPreparation(
+        repoRoot = roots.repoRoot,
+        parentSourceDir = skill.sourceDir.toPath(),
+        parentSkillName = skill.name,
+        skillsRoot = roots.skillsRoot,
+        selectedPackSkills = selectedPackSkills,
+        platformManifests = platformManifests,
+        selectedPlatformManifests = platformManifests,
+        parentSupportPointers = supportPointers,
+        parentPointerNames = applicablePointers.map { it.second.name }.toSet(),
+        enforceContractVersion = enforceContractVersion,
+      ),
+    )
+  val authored =
+    authoredFilesFor(
+      skill.sourceDir.toPath(),
+      applicablePointers,
+      internal.supportPointers,
+      internal.sidecarNames,
+    )
   val agentAddonPointers = agentAddonPointersForSkill(roots.repoRoot, skill.name)
   validateAgentAddonPointerNamespace(
     skill.name,
@@ -244,7 +258,10 @@ private fun reconcileSkillHash(
   )
 }
 
-private fun skillRelativePath(roots: ReconcileSourceRoots, skill: InstallPlanSkill): String {
+private fun skillRelativePath(
+  roots: ReconcileSourceRoots,
+  skill: InstallPlanSkill,
+): String {
   val resolvedSource = skill.sourceDir.toPath().toAbsolutePath().normalize()
   return when (skill.kind) {
     InstallPlanSkillKind.BASE -> {
@@ -258,7 +275,10 @@ private fun skillRelativePath(roots: ReconcileSourceRoots, skill: InstallPlanSki
   }
 }
 
-private fun reconcileEnumerationRequest(roots: ReconcileSourceRoots, home: Path): InstallPlanRequest =
+private fun reconcileEnumerationRequest(
+  roots: ReconcileSourceRoots,
+  home: Path,
+): InstallPlanRequest =
   InstallPlanRequest(
     repoRoot = roots.repoRoot.toAbsolutePath().normalize().toFileLocation(),
     home = home.toFileLocation(),
@@ -266,15 +286,18 @@ private fun reconcileEnumerationRequest(roots: ReconcileSourceRoots, home: Path)
     platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL),
     telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
     mcpRegistrationChoice = McpRegistrationChoice(register = false),
-    runtimeDistributionInputs = RuntimeDistributionInputs(
-      runtimeInstallRoot = home.resolve(".skill-bill/runtime").toFileLocation(),
-    ),
-    targetPaths = InstallationTargetPaths(
-      skillsRoot = roots.skillsRoot.toFileLocation(),
-      platformPacksRoot = roots.platformPacksRoot.toFileLocation(),
-    ),
-    windowsSymlinkPreflight = WindowsSymlinkPreflight(
-      state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-      decision = WindowsSymlinkDecision.NOT_REQUIRED,
-    ),
+    runtimeDistributionInputs =
+      RuntimeDistributionInputs(
+        runtimeInstallRoot = home.resolve(".skill-bill/runtime").toFileLocation(),
+      ),
+    targetPaths =
+      InstallationTargetPaths(
+        skillsRoot = roots.skillsRoot.toFileLocation(),
+        platformPacksRoot = roots.platformPacksRoot.toFileLocation(),
+      ),
+    windowsSymlinkPreflight =
+      WindowsSymlinkPreflight(
+        state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+        decision = WindowsSymlinkDecision.NOT_REQUIRED,
+      ),
   )

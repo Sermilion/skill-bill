@@ -11,14 +11,15 @@ object NoopGoalRunnerChildRepairStore : GoalRunnerChildRepairStore {
     return GoalRunnerChildWedgeDiagnosis(
       subtaskId = request.subtaskId,
       workflowId = request.workflowId,
-      passedChecks = listOf(
-        "validation_depth_present",
-        "quality_gate_selection_present",
-        "review_base_reachable",
-        "remediation_base_reachable_or_absent",
-        "continuation_outcome_corroborated_or_absent",
-        "upstream_output_present",
-      ),
+      passedChecks =
+        listOf(
+          "validation_depth_present",
+          "quality_gate_selection_present",
+          "review_base_reachable",
+          "remediation_base_reachable_or_absent",
+          "continuation_outcome_corroborated_or_absent",
+          "upstream_output_present",
+        ),
     )
   }
 

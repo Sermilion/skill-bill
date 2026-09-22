@@ -9,6 +9,7 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.prior.Featu
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairContext
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
+
 data class FeatureTaskRuntimePhasePromptComposeInputs(
   val issueKey: String,
   val briefing: FeatureTaskRuntimePhaseLaunchBriefing,

@@ -20,6 +20,7 @@ import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewFindi
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 class FeatureTaskRuntimeRunState(
   initialRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
   val transitions: FeatureTaskRuntimeTransitionDeclaration,
@@ -42,9 +43,10 @@ class FeatureTaskRuntimeRunState(
   internal var reviewGeneration: Int = initialReviewGeneration
     private set
 
-  private val hasDurableReviewInvalidationTombstone: Boolean = durableInitialRecords[
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
-  ]?.resolvedAgentId == REVIEW_INVALIDATION_AGENT_ID
+  private val hasDurableReviewInvalidationTombstone: Boolean =
+    durableInitialRecords[
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
+    ]?.resolvedAgentId == REVIEW_INVALIDATION_AGENT_ID
   private val inFlightReentries: MutableMap<String, InFlightReentry> =
     FeatureTaskRuntimeRunStateReconstruction.reconstructInFlightReentries(
       transitions,
@@ -70,12 +72,13 @@ class FeatureTaskRuntimeRunState(
       .toMutableSet()
       .also(::invalidateLegacyPlanWithoutPreplan)
       .also { completed ->
-        val validationState = ValidationSettlementState(
-          completed,
-          this.initialRecords,
-          transitions,
-          gateInvalidatedPhaseIds,
-        )
+        val validationState =
+          ValidationSettlementState(
+            completed,
+            this.initialRecords,
+            transitions,
+            gateInvalidatedPhaseIds,
+          )
         invalidateIncompleteValidationSettlement(
           validationState,
           ValidationSettlementValidation(::validatedRecordToOutput, ::durableVerdictFor),
@@ -106,6 +109,7 @@ class FeatureTaskRuntimeRunState(
           ::durableVerdictFor,
         )
       }
+
   init {
     this.initialRecords.values
       .filterNot { it.phaseId in gateInvalidatedPhaseIds }
@@ -121,12 +125,13 @@ class FeatureTaskRuntimeRunState(
   fun validatedRecordToOutput(record: FeatureTaskRuntimePhaseRecord): FeatureTaskRuntimePhaseOutput? {
     if (FeatureTaskRuntimeRunStateReconstruction.hasLegacyRemovedAuditVerdict(record)) return null
     return record.outputArtifact?.let { artifact ->
-      val accepted = try {
-        outputValidator.validatePhaseOutput(artifact, record.phaseId).requireAcceptedOutput(record.phaseId)
-      } catch (error: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
-        if (record.status.workflowStepStatus() == WorkflowStepStatus.COMPLETED) throw error
-        return@let null
-      }
+      val accepted =
+        try {
+          outputValidator.validatePhaseOutput(artifact, record.phaseId).requireAcceptedOutput(record.phaseId)
+        } catch (error: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
+          if (record.status.workflowStepStatus() == WorkflowStepStatus.COMPLETED) throw error
+          return@let null
+        }
       FeatureTaskRuntimePhaseOutput(
         phaseId = record.phaseId,
         iteration = record.attemptCount,
@@ -139,47 +144,53 @@ class FeatureTaskRuntimeRunState(
 
   private val priorRecords: MutableSet<String> = this.initialRecords.keys.toMutableSet()
   private val phasesLaunchedThisProcess: MutableSet<String> = mutableSetOf()
-  private val initialReviewRecord = this.initialRecords[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW]
-    ?.takeIf { FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW !in gateInvalidatedPhaseIds }
-  internal var currentReviewPassNumber: Int? = initialReviewRecord?.reviewPassNumber
-    ?: initialReviewRecord?.let { 1 }
+  private val initialReviewRecord =
+    this.initialRecords[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW]
+      ?.takeIf { FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW !in gateInvalidatedPhaseIds }
+  internal var currentReviewPassNumber: Int? =
+    initialReviewRecord?.reviewPassNumber
+      ?: initialReviewRecord?.let { 1 }
     private set
-  internal var completedReviewPassNumber: Int? = currentReviewPassNumber
-    ?.takeIf { initialReviewRecord?.status?.workflowStepStatus() == WorkflowStepStatus.COMPLETED }
+  internal var completedReviewPassNumber: Int? =
+    currentReviewPassNumber
+      ?.takeIf { initialReviewRecord?.status?.workflowStepStatus() == WorkflowStepStatus.COMPLETED }
     private set
 
   private val persistedAttemptCounts: MutableMap<String, Int> =
     this.initialRecords.mapValues { (_, record) -> record.attemptCount }.toMutableMap()
 
-  private val blockedRecords: MutableMap<String, String> = this.initialRecords
-    .filterValues { record ->
-      record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED &&
-        record.resolvedAgentId != BRANCH_SETUP_AGENT_ID
-    }
-    .mapValues { (_, record) -> record.blockedReason.orEmpty() }
-    .toMutableMap()
-
-  private val branchSetupBlockedPhases: MutableSet<String> = this.initialRecords
-    .filterValues {
-      it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED && it.resolvedAgentId == BRANCH_SETUP_AGENT_ID
-    }
-    .keys
-    .toMutableSet()
-
-  private val edgeIterationByLoop: MutableMap<String, Int> = (
-    this.initialRecords.values
-      .mapNotNull { record -> record.loopId?.let { loopId -> record.edgeIteration?.let { loopId to it } } } +
-      normalizedInitialLedger.mapNotNull { entry ->
-        entry.takeIf { it.action == FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE }
-          ?.loopId?.let { loopId -> entry.edgeIteration?.let { loopId to it } }
+  private val blockedRecords: MutableMap<String, String> =
+    this.initialRecords
+      .filterValues { record ->
+        record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED &&
+          record.resolvedAgentId != BRANCH_SETUP_AGENT_ID
       }
+      .mapValues { (_, record) -> record.blockedReason.orEmpty() }
+      .toMutableMap()
+
+  private val branchSetupBlockedPhases: MutableSet<String> =
+    this.initialRecords
+      .filterValues {
+        it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED && it.resolvedAgentId == BRANCH_SETUP_AGENT_ID
+      }
+      .keys
+      .toMutableSet()
+
+  private val edgeIterationByLoop: MutableMap<String, Int> =
+    (
+      this.initialRecords.values
+        .mapNotNull { record -> record.loopId?.let { loopId -> record.edgeIteration?.let { loopId to it } } } +
+        normalizedInitialLedger.mapNotNull { entry ->
+          entry.takeIf { it.action == FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE }
+            ?.loopId?.let { loopId -> entry.edgeIteration?.let { loopId to it } }
+        }
     )
-    .groupBy({ it.first }, { it.second })
-    .mapValues { (_, iterations) -> iterations.max() }
-    .toMutableMap()
-    .apply {
-      if (hasDurableReviewInvalidationTombstone) remove(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID)
-    }
+      .groupBy({ it.first }, { it.second })
+      .mapValues { (_, iterations) -> iterations.max() }
+      .toMutableMap()
+      .apply {
+        if (hasDurableReviewInvalidationTombstone) remove(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID)
+      }
 
   private val liveClaimedLoops: MutableSet<String> = inFlightReentries.keys.toMutableSet()
 
@@ -204,21 +215,26 @@ class FeatureTaskRuntimeRunState(
     val inMemory = outputBuffer.toList()
     if (requiredPhaseIds.isEmpty()) return inMemory
     val inMemoryPhaseIds = inMemory.mapTo(mutableSetOf(), FeatureTaskRuntimePhaseOutput::phaseId)
-    val durableOutputs = requiredPhaseIds.asSequence()
-      .filterNot(inMemoryPhaseIds::contains)
-      .mapNotNull { phaseId ->
-        initialRecords[phaseId]
-          ?.takeIf { it.status.workflowStepStatus() == WorkflowStepStatus.COMPLETED }
-          ?.let(::validatedRecordToOutput)
-      }
-      .toList()
+    val durableOutputs =
+      requiredPhaseIds.asSequence()
+        .filterNot(inMemoryPhaseIds::contains)
+        .mapNotNull { phaseId ->
+          initialRecords[phaseId]
+            ?.takeIf { it.status.workflowStepStatus() == WorkflowStepStatus.COMPLETED }
+            ?.let(::validatedRecordToOutput)
+        }
+        .toList()
     return inMemory + durableOutputs
   }
 
   internal val phaseTokenView: Map<String, Pair<Int, Int>>
     get() = phaseTokenUsage.toMap()
 
-  internal fun recordPhaseTokenUsage(phaseId: String, inputTokens: Int, outputTokens: Int) {
+  internal fun recordPhaseTokenUsage(
+    phaseId: String,
+    inputTokens: Int,
+    outputTokens: Int,
+  ) {
     phaseTokenUsage[phaseId] = inputTokens to outputTokens
   }
 
@@ -283,8 +299,10 @@ class FeatureTaskRuntimeRunState(
   fun completedPhaseIds(): List<String> =
     FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds.filter { it in completedPhases }
 
-  fun fixLoopIterationFor(phaseId: String, absoluteIteration: Int): Int =
-    absoluteIteration - (fixLoopBudgetBaseByPhase[phaseId] ?: 0)
+  fun fixLoopIterationFor(
+    phaseId: String,
+    absoluteIteration: Int,
+  ): Int = absoluteIteration - (fixLoopBudgetBaseByPhase[phaseId] ?: 0)
 
   fun restartAttemptBudget(phaseId: String) {
     fixLoopBudgetBaseByPhase[phaseId] = maxOf(nextIteration(phaseId) - 1, 0)
@@ -314,7 +332,10 @@ class FeatureTaskRuntimeRunState(
       }
   }
 
-  fun legacyReviewPreparationRetryConsumedBudget(phaseId: String, currentReason: String): Boolean {
+  fun legacyReviewPreparationRetryConsumedBudget(
+    phaseId: String,
+    currentReason: String,
+  ): Boolean {
     if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ||
       !currentReason.startsWith("Phase 'review' exhausted the bounded fix loop")
     ) {
@@ -326,7 +347,10 @@ class FeatureTaskRuntimeRunState(
         ?.startsWith("Goal-subtask review state or durable raw evidence is malformed: [SQLITE_BUSY]") == true
   }
 
-  fun legacyLaunchSeamRejectionConsumedBudget(phaseId: String, currentReason: String): Boolean {
+  fun legacyLaunchSeamRejectionConsumedBudget(
+    phaseId: String,
+    currentReason: String,
+  ): Boolean {
     if (!currentReason.startsWith("Phase '$phaseId' exhausted the bounded fix loop") ||
       phaseId !in FeatureTaskRuntimePhaseWorkflowDefinition.REGENERATION_PRODUCER_BY_CONSUMER
     ) {
@@ -338,11 +362,12 @@ class FeatureTaskRuntimeRunState(
         ?.contains("rejected an upstream bounded planning projection at the launch seam") == true
   }
 
-  private fun recentBlockedReasons(phaseId: String): List<String?> = normalizedInitialLedger
-    .filter { entry -> entry.phaseId == phaseId && entry.action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED }
-    .sortedByDescending(FeatureTaskRuntimePhaseLedgerEntry::sequenceNumber)
-    .take(2)
-    .map(FeatureTaskRuntimePhaseLedgerEntry::blockedReason)
+  private fun recentBlockedReasons(phaseId: String): List<String?> =
+    normalizedInitialLedger
+      .filter { entry -> entry.phaseId == phaseId && entry.action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED }
+      .sortedByDescending(FeatureTaskRuntimePhaseLedgerEntry::sequenceNumber)
+      .take(2)
+      .map(FeatureTaskRuntimePhaseLedgerEntry::blockedReason)
 
   fun hasPriorRecord(phaseId: String): Boolean = phaseId in priorRecords
 
@@ -368,7 +393,10 @@ class FeatureTaskRuntimeRunState(
 
   fun edgeIterationCount(loopId: String): Int = edgeIterationByLoop[loopId] ?: 0
 
-  fun recordEdgeIteration(loopId: String, edgeIteration: Int) {
+  fun recordEdgeIteration(
+    loopId: String,
+    edgeIteration: Int,
+  ) {
     edgeIterationByLoop[loopId] = edgeIteration
     liveClaimedLoops += loopId
   }
@@ -396,11 +424,12 @@ class FeatureTaskRuntimeRunState(
   internal fun parsedOutput(output: FeatureTaskRuntimePhaseOutput?): FeatureTaskRuntimeWorkflowArtifactMap? {
     val payload = output?.payload ?: return null
     return parsedOutputsByPayloadStorage.getOrPut(payload) {
-      val envelope = output.normalizedOutput?.envelopePayload()
-        ?: outputValidator.validatePhaseOutput(payload, sourceLabel = output.phaseId)
-          .requireAcceptedOutput(output.phaseId)
-          .normalizedOutput
-          .envelopePayload()
+      val envelope =
+        output.normalizedOutput?.envelopePayload()
+          ?: outputValidator.validatePhaseOutput(payload, sourceLabel = output.phaseId)
+            .requireAcceptedOutput(output.phaseId)
+            .normalizedOutput
+            .envelopePayload()
       envelope.toWorkflowArtifactMap()
     }
   }
@@ -439,10 +468,11 @@ class FeatureTaskRuntimeRunState(
 
 internal data class FeatureTaskRuntimeNonOutputAttempt(val paused: Boolean, val reason: String)
 
-val NON_OUTPUT_LEDGER_ACTIONS = setOf(
-  FeatureTaskRuntimePhaseLedgerAction.BLOCKED,
-  FeatureTaskRuntimePhaseLedgerAction.PAUSED,
-)
+val NON_OUTPUT_LEDGER_ACTIONS =
+  setOf(
+    FeatureTaskRuntimePhaseLedgerAction.BLOCKED,
+    FeatureTaskRuntimePhaseLedgerAction.PAUSED,
+  )
 
 const val REVIEW_INVALIDATION_AGENT_ID: String = "audit-gate-migration"
 

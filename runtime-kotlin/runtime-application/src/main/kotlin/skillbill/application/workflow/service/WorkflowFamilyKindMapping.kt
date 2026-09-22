@@ -4,7 +4,8 @@ import skillbill.ports.workflow.model.WorkflowFamily as WorkflowFamilyModel
 
 typealias WorkflowFamily = WorkflowFamilyModel
 
-fun WorkflowFamilyKind.workflowFamily(): WorkflowFamily = when (this) {
-  WorkflowFamilyKind.VERIFY -> WorkflowFamily.VERIFY
-  WorkflowFamilyKind.TASK_RUNTIME -> WorkflowFamily.TASK_RUNTIME
-}
+fun WorkflowFamilyKind.workflowFamily(): WorkflowFamily =
+  when (this) {
+    WorkflowFamilyKind.VERIFY -> WorkflowFamily.VERIFY
+    WorkflowFamilyKind.TASK_RUNTIME -> WorkflowFamily.TASK_RUNTIME
+  }

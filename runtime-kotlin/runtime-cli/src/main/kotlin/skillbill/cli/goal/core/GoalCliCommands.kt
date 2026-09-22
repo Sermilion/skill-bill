@@ -113,9 +113,9 @@ class GoalRunCommand(
   private val hostPlatform: HostPlatformPort,
   goalRunSubcommands: GoalRunSubcommands,
 ) : DocumentedCliCommand(
-  "goal",
-  "Run a decomposed goal in the foreground. Exit codes: complete=0, failed=1, paused=2, blocked=3.",
-) {
+    "goal",
+    "Run a decomposed goal in the foreground. Exit codes: complete=0, failed=1, paused=2, blocked=3.",
+  ) {
   private val issueKey by argument(help = "Parent issue key for the decomposed goal.").optional()
   private val agent by option(
     "--agent",
@@ -128,8 +128,9 @@ class GoalRunCommand(
   private val repoRoot by option("--repo-root", help = "Repository root for child agent runs.")
   private val codeReviewMode by option(
     "--code-review-mode",
-    help = "Review execution mode for every child: inline (default, one review subagent per " +
-      "pass) or auto (also resolves inline).",
+    help =
+      "Review execution mode for every child: inline (default, one review subagent per " +
+        "pass) or auto (also resolves inline).",
   )
   private val agentAddonSelectionJson by option(
     "--agent-addon-selection-json",
@@ -142,21 +143,24 @@ class GoalRunCommand(
   private val maxWallClockMinutes by option(
     "--max-wall-clock-minutes",
     "--timeout-minutes",
-    help = "Per-subtask wall-clock cap in minutes (default " +
-      "$DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES). Hard ceiling even when a child process is still " +
-      "alive (progress-idle spares active work). Pass 0 to disable.",
+    help =
+      "Per-subtask wall-clock cap in minutes (default " +
+        "$DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES). Hard ceiling even when a child process is still " +
+        "alive (progress-idle spares active work). Pass 0 to disable.",
   ).int().default(DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES)
   private val progressIdleTimeoutMinutes by option(
     "--progress-idle-timeout-minutes",
-    help = "Per-subtask durable workflow-progress idle timeout in minutes (default " +
-      "$DEFAULT_GOAL_PROGRESS_IDLE_TIMEOUT_MINUTES). A subtask with no durable progress and no " +
-      "file activity for this long is killed; active work is spared. Pass 0 to disable.",
+    help =
+      "Per-subtask durable workflow-progress idle timeout in minutes (default " +
+        "$DEFAULT_GOAL_PROGRESS_IDLE_TIMEOUT_MINUTES). A subtask with no durable progress and no " +
+        "file activity for this long is killed; active work is spared. Pass 0 to disable.",
   ).int().default(DEFAULT_GOAL_PROGRESS_IDLE_TIMEOUT_MINUTES)
   private val planningBudgetMinutes by option(
     "--planning-budget-minutes",
-    help = "Per-plan wall-clock budget for goal planning in minutes (default " +
-      "${DEFAULT_GOAL_PLANNING_BUDGET.inWholeMinutes}). Planning writes no durable progress, so it is " +
-      "bounded by this budget rather than the progress-idle timeout. Pass 0 to disable.",
+    help =
+      "Per-plan wall-clock budget for goal planning in minutes (default " +
+        "${DEFAULT_GOAL_PLANNING_BUDGET.inWholeMinutes}). Planning writes no durable progress, so it is " +
+        "bounded by this budget rather than the progress-idle timeout. Pass 0 to disable.",
   ).int().default(DEFAULT_GOAL_PLANNING_BUDGET.inWholeMinutes.toInt())
   private val stopAfterSubtask by option(
     "--stop-after-subtask",
@@ -215,34 +219,38 @@ class GoalRunCommand(
       ),
     )
     val runIssueKey = issueKey!!
-    val receivingAgents = listOfNotNull(
-      invokedAgentId,
-      agentOverride?.takeIf(String::isNotBlank),
-    ).distinct()
-    val hydratedSelection = hydrateGoalRunAgentAddonSelection(
-      GoalRunAgentAddonHydrationArgs(
-        agentAddonSlugs = agentAddonSlugs,
-        agentAddonSelectionJson = agentAddonSelectionJson,
-        receivingAgents = receivingAgents,
-        effectiveRepoRoot = effectiveRepoRoot,
+    val receivingAgents =
+      listOfNotNull(
+        invokedAgentId,
+        agentOverride?.takeIf(String::isNotBlank),
+      ).distinct()
+    val hydratedSelection =
+      hydrateGoalRunAgentAddonSelection(
+        GoalRunAgentAddonHydrationArgs(
+          agentAddonSlugs = agentAddonSlugs,
+          agentAddonSelectionJson = agentAddonSelectionJson,
+          receivingAgents = receivingAgents,
+          effectiveRepoRoot = effectiveRepoRoot,
+          inputs = inputs,
+          agentAddonSelectionPort = agentAddonSelectionPort,
+          externalAgentAddonSourceConfigPort = externalAgentAddonSourceConfigPort,
+        ),
+      )
+    val presenter =
+      GoalRunPresenter(
+        issueKey = runIssueKey,
         inputs = inputs,
-        agentAddonSelectionPort = agentAddonSelectionPort,
-        externalAgentAddonSourceConfigPort = externalAgentAddonSourceConfigPort,
-      ),
-    )
-    val presenter = GoalRunPresenter(
-      issueKey = runIssueKey,
-      inputs = inputs,
-      liveOutput = !noLiveOutput,
-      repoRoot = effectiveRepoRoot,
-      dbOverride = inputs.databasePath,
-      runtimeProvenance = runtimeProvenanceService.current(
-        executablePathHint = inputs.environment[RUNTIME_EXECUTABLE_ENV],
-        classPath = inputs.environment[RUNTIME_CLASSPATH_ENV] ?: hostPlatform.jvmClassPath,
-        javaCommand = ProcessHandle.current().info().command().orElse(null),
-        pathSeparator = inputs.environment[RUNTIME_PATH_SEPARATOR_ENV] ?: hostPlatform.pathSeparator,
-      ),
-    )
+        liveOutput = !noLiveOutput,
+        repoRoot = effectiveRepoRoot,
+        dbOverride = inputs.databasePath,
+        runtimeProvenance =
+          runtimeProvenanceService.current(
+            executablePathHint = inputs.environment[RUNTIME_EXECUTABLE_ENV],
+            classPath = inputs.environment[RUNTIME_CLASSPATH_ENV] ?: hostPlatform.jvmClassPath,
+            javaCommand = ProcessHandle.current().info().command().orElse(null),
+            pathSeparator = inputs.environment[RUNTIME_PATH_SEPARATOR_ENV] ?: hostPlatform.pathSeparator,
+          ),
+      )
     presenter.emitStartupProvenance()
     val request = runRequest(runIssueKey, invokedAgentId, hydratedSelection, presenter, effectiveRepoRoot)
     val report = execution.run(request)
@@ -257,19 +265,20 @@ class GoalRunCommand(
     hydratedSelection: HydratedAgentAddonSelection,
     presenter: GoalRunPresenter,
     effectiveRepoRoot: Path,
-  ): GoalRunnerRunRequest = GoalRunnerRunRequest(
-    issueKey = runIssueKey,
-    repoRoot = effectiveRepoRoot,
-    invokedAgentId = invokedAgentId,
-    configuredAgentOverrideId = agentOverride,
-    timeout = maxWallClockMinutes.takeIf { it > 0 }?.minutes,
-    progressIdleTimeout = progressIdleTimeoutMinutes.takeIf { it > 0 }?.minutes,
-    planningBudget = planningBudgetMinutes.takeIf { it > 0 }?.minutes,
-    outputSink = presenter.outputSink(includeRawChildOutput = debugChildOutput),
-    eventSink = presenter.eventSink(),
-    codeReviewMode = parseCodeReviewMode(codeReviewMode),
-    agentAddonSelection = hydratedSelection,
-    stopAfterSubtaskId = stopAfterSubtask,
-    experimentsParameter = experiments,
-  )
+  ): GoalRunnerRunRequest =
+    GoalRunnerRunRequest(
+      issueKey = runIssueKey,
+      repoRoot = effectiveRepoRoot,
+      invokedAgentId = invokedAgentId,
+      configuredAgentOverrideId = agentOverride,
+      timeout = maxWallClockMinutes.takeIf { it > 0 }?.minutes,
+      progressIdleTimeout = progressIdleTimeoutMinutes.takeIf { it > 0 }?.minutes,
+      planningBudget = planningBudgetMinutes.takeIf { it > 0 }?.minutes,
+      outputSink = presenter.outputSink(includeRawChildOutput = debugChildOutput),
+      eventSink = presenter.eventSink(),
+      codeReviewMode = parseCodeReviewMode(codeReviewMode),
+      agentAddonSelection = hydratedSelection,
+      stopAfterSubtaskId = stopAfterSubtask,
+      experimentsParameter = experiments,
+    )
 }

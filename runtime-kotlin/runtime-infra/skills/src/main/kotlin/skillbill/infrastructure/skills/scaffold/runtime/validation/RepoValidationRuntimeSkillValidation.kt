@@ -13,13 +13,14 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.relativeTo
 
-internal val repoValidationNonPortableReviewPatterns = listOf(
-  Regex("""`task`""") to "must not hardcode the `task` tool in shared review orchestration",
-  Regex("""\bspawn_agent\b""") to "must not hardcode the `spawn_agent` tool in shared review orchestration",
-  Regex("""\bsub-agent(s)?\b""") to "must not describe review delegation as sub-agents",
-  Regex("""\bAgent to spawn\b""") to "must use portable specialist-review wording",
-  Regex("""\bAgents spawned\b""") to "must use portable specialist-review summary wording",
-)
+internal val repoValidationNonPortableReviewPatterns =
+  listOf(
+    Regex("""`task`""") to "must not hardcode the `task` tool in shared review orchestration",
+    Regex("""\bspawn_agent\b""") to "must not hardcode the `spawn_agent` tool in shared review orchestration",
+    Regex("""\bsub-agent(s)?\b""") to "must not describe review delegation as sub-agents",
+    Regex("""\bAgent to spawn\b""") to "must use portable specialist-review wording",
+    Regex("""\bAgents spawned\b""") to "must use portable specialist-review summary wording",
+  )
 internal const val REPO_VALIDATION_GOVERNED_ADDON_PATH_PART_COUNT = 4
 internal val repoValidationAddonSlugPattern = Regex("""^[a-z0-9]+(?:-[a-z0-9]+)*$""")
 internal val repoValidationSidecarReferencePattern = Regex("`([a-z0-9][a-z0-9-]*)\\.md`")
@@ -64,7 +65,11 @@ internal fun validateInstallableSkill(args: ValidateInstallableSkillArgs) {
   validateGovernedContentFile(args.contentFile, args.issues)
 }
 
-internal fun validateSkillSourceShape(contentFiles: Collection<Path>, root: Path, issues: MutableList<String>) {
+internal fun validateSkillSourceShape(
+  contentFiles: Collection<Path>,
+  root: Path,
+  issues: MutableList<String>,
+) {
   contentFiles.forEach { contentFile ->
     val skillDir = contentFile.parent
     Files.walk(skillDir).use { stream ->
@@ -95,7 +100,11 @@ internal fun parseFrontmatter(text: String): Map<String, String> {
   }.toMap()
 }
 
-internal fun validateAddonFile(addonFile: Path, root: Path, issues: MutableList<String>) {
+internal fun validateAddonFile(
+  addonFile: Path,
+  root: Path,
+  issues: MutableList<String>,
+) {
   val relative = addonFile.relativeTo(root)
   val parts = relative.map(Path::toString)
   if (
@@ -111,9 +120,10 @@ internal fun validateAddonFile(addonFile: Path, root: Path, issues: MutableList<
   if (!name.endsWith(".md")) {
     issues += "$relative: governed add-on must be markdown"
   }
-  val slug = name.removeSuffix(".md")
-    .removeSuffix("-implementation")
-    .removeSuffix("-review")
+  val slug =
+    name.removeSuffix(".md")
+      .removeSuffix("-implementation")
+      .removeSuffix("-review")
   if (!repoValidationAddonSlugPattern.matches(slug)) {
     issues += "$relative: governed add-on slug '$slug' must be lowercase kebab-case"
   }
@@ -143,7 +153,11 @@ internal fun validateSupportingSidecar(
   }
 }
 
-internal fun isAuthoredSourceSidecar(contentFile: Path, fileName: String, expectedTarget: Path?): Boolean {
+internal fun isAuthoredSourceSidecar(
+  contentFile: Path,
+  fileName: String,
+  expectedTarget: Path?,
+): Boolean {
   if (expectedTarget == null) {
     return false
   }
@@ -152,7 +166,10 @@ internal fun isAuthoredSourceSidecar(contentFile: Path, fileName: String, expect
   return sidecar == expected
 }
 
-internal fun isGitSymlinkPlaceholder(sidecar: Path, expectedTarget: Path): Boolean {
+internal fun isGitSymlinkPlaceholder(
+  sidecar: Path,
+  expectedTarget: Path,
+): Boolean {
   var matches = false
   if (Files.isRegularFile(sidecar, LinkOption.NOFOLLOW_LINKS)) {
     val rawTarget = Files.readString(sidecar).trim()
@@ -182,7 +199,11 @@ internal fun supportingSymlinkTargetIssue(
       "instead of ${expected.relativeTo(realRoot)}"
   }
 }
-internal fun validateGovernedContentFile(contentFile: Path, issues: MutableList<String>) {
+
+internal fun validateGovernedContentFile(
+  contentFile: Path,
+  issues: MutableList<String>,
+) {
   if (!contentFile.isRegularFile()) {
     return
   }

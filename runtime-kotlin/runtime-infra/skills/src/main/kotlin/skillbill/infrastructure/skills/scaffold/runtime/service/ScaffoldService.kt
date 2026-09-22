@@ -101,19 +101,28 @@ internal data class ScaffoldAdapterSeams(
   val performInstall: (ScaffoldTransaction, ScaffoldPlan, Path) -> Pair<List<Path>, List<String>>,
   val rollbackInstallTargets: (ScaffoldTransaction, MutableList<String>) -> Unit,
 )
-internal fun renderDryRunResult(plan: ScaffoldPlan, repoRoot: Path): ScaffoldResult = ScaffoldResult(
-  kind = plan.kind,
-  skillName = plan.skillName,
-  skillPath = plan.skillPath.toFileLocation(),
-  createdFiles = previewCreatedFiles(plan).map { entry -> entry.toFileLocation() },
-  manifestEdits = previewManifestEdits(plan, repoRoot).map { entry -> entry.toFileLocation() },
-  manifestPreviews = previewManifestPreviews(plan, repoRoot).mapKeys { (path, _) -> path.toFileLocation() },
-  symlinks = emptyList(),
-  installTargets = emptyList(),
-  notes = plan.notes + listOf("Dry run - no filesystem changes applied."),
-)
 
-internal fun runScaffold(plan: ScaffoldPlan, repoRoot: Path, adapters: ScaffoldAdapterSeams): ScaffoldResult {
+internal fun renderDryRunResult(
+  plan: ScaffoldPlan,
+  repoRoot: Path,
+): ScaffoldResult =
+  ScaffoldResult(
+    kind = plan.kind,
+    skillName = plan.skillName,
+    skillPath = plan.skillPath.toFileLocation(),
+    createdFiles = previewCreatedFiles(plan).map { entry -> entry.toFileLocation() },
+    manifestEdits = previewManifestEdits(plan, repoRoot).map { entry -> entry.toFileLocation() },
+    manifestPreviews = previewManifestPreviews(plan, repoRoot).mapKeys { (path, _) -> path.toFileLocation() },
+    symlinks = emptyList(),
+    installTargets = emptyList(),
+    notes = plan.notes + listOf("Dry run - no filesystem changes applied."),
+  )
+
+internal fun runScaffold(
+  plan: ScaffoldPlan,
+  repoRoot: Path,
+  adapters: ScaffoldAdapterSeams,
+): ScaffoldResult {
   val txn = ScaffoldTransaction()
   var committed = false
   try {

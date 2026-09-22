@@ -16,6 +16,7 @@ import java.nio.file.Files
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+
 class SqliteValidationGateEvidenceRoundTripTest {
   @Test
   fun `validation gate execution evidence survives sqlite round trip`() {
@@ -59,15 +60,17 @@ class SqliteValidationGateEvidenceRoundTripTest {
     repo: SqliteFeatureTaskPhaseSettlementRepository,
     gateEvidence: FeatureTaskRuntimeValidationGateExecutionEvidence,
   ) {
-    val envelopeJson = JsonCodec.mapToJsonString(
-      mapOf(
-        SharedPayloadKeys.STATUS to "completed",
-        SharedPayloadKeys.PRODUCED_OUTPUTS to mapOf(
-          ValidationEvidencePayloadKeys.VALIDATION_RESULT to
-            gateEvidence.asWorkflowArtifactEntry("checkpoint"),
+    val envelopeJson =
+      JsonCodec.mapToJsonString(
+        mapOf(
+          SharedPayloadKeys.STATUS to "completed",
+          SharedPayloadKeys.PRODUCED_OUTPUTS to
+            mapOf(
+              ValidationEvidencePayloadKeys.VALIDATION_RESULT to
+                gateEvidence.asWorkflowArtifactEntry("checkpoint"),
+            ),
         ),
-      ),
-    )
+      )
     repo.upsert(
       FeatureTaskPhaseSettlement(
         workflowId = "wftr-gate-evidence",
@@ -84,14 +87,15 @@ class SqliteValidationGateEvidenceRoundTripTest {
     repo: SqliteFeatureTaskPhaseSettlementRepository,
   ): FeatureTaskRuntimeValidationGateExecutionEvidence {
     val stored = requireNotNull(repo.find("wftr-gate-evidence", "validate", 1))
-    val validationResult = JsonCodec.anyToStringAnyMap(
+    val validationResult =
       JsonCodec.anyToStringAnyMap(
-        JsonCodec.parseObjectOrNull(stored.envelopeJson)
-          ?.let(JsonCodec::jsonElementToValue)
-          ?.let(JsonCodec::anyToStringAnyMap)
-          ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS),
-      )?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
-    ) ?: error("validation_result missing")
+        JsonCodec.anyToStringAnyMap(
+          JsonCodec.parseObjectOrNull(stored.envelopeJson)
+            ?.let(JsonCodec::jsonElementToValue)
+            ?.let(JsonCodec::anyToStringAnyMap)
+            ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS),
+        )?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
+      ) ?: error("validation_result missing")
     return requireNotNull(decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate"))
   }
 

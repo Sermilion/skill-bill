@@ -12,7 +12,6 @@ private const val ENQUEUE_TIME_VERSION = "7.7.7-enqueue"
 private const val UPLOAD_TIME_VERSION = "8.8.8-upload"
 
 class TelemetryReleaseAttributionTest {
-
   @Test
   fun `an event is uploaded with the version that was running when it was enqueued`() {
     withOutboxDatabase { connection ->

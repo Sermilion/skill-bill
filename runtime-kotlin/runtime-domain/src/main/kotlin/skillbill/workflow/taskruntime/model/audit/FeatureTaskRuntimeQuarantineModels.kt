@@ -14,11 +14,12 @@ const val QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION: String = "planning_pro
 const val QUARANTINE_REJECTION_CLASS_HANDOFF_ENVELOPE: String = "handoff_envelope_schema"
 const val QUARANTINE_REJECTION_CLASS_CHECKPOINT_IDENTITY_VERSION: String = "checkpoint_identity_contract_version"
 
-private val QUARANTINE_REJECTION_CLASSES: Set<String> = setOf(
-  QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION,
-  QUARANTINE_REJECTION_CLASS_HANDOFF_ENVELOPE,
-  QUARANTINE_REJECTION_CLASS_CHECKPOINT_IDENTITY_VERSION,
-)
+private val QUARANTINE_REJECTION_CLASSES: Set<String> =
+  setOf(
+    QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION,
+    QUARANTINE_REJECTION_CLASS_HANDOFF_ENVELOPE,
+    QUARANTINE_REJECTION_CLASS_CHECKPOINT_IDENTITY_VERSION,
+  )
 
 private val QUARANTINE_ENVELOPE_FIELDS: Set<String> = setOf(SharedPayloadKeys.CONTRACT_VERSION, "entries")
 
@@ -56,16 +57,18 @@ data class FeatureTaskRuntimeQuarantineEntry(
       "FeatureTaskRuntimeQuarantineEntry.rejectedRecordSha256 must be a lowercase SHA-256 digest."
     }
   }
+
   internal fun toArtifactMap(): Map<String, Any?> {
-    val map = linkedMapOf<String, Any?>(
-      "producing_phase_id" to producingPhaseId,
-      "consuming_phase_id" to consumingPhaseId,
-      "producing_iteration" to producingIteration,
-      "rejection_class" to rejectionClass,
-      "rejection_detail" to rejectionDetail,
-      "regeneration_attempt" to regenerationAttempt,
-      "quarantined_at_iteration" to quarantinedAtIteration,
-    )
+    val map =
+      linkedMapOf<String, Any?>(
+        "producing_phase_id" to producingPhaseId,
+        "consuming_phase_id" to consumingPhaseId,
+        "producing_iteration" to producingIteration,
+        "rejection_class" to rejectionClass,
+        "rejection_detail" to rejectionDetail,
+        "regeneration_attempt" to regenerationAttempt,
+        "quarantined_at_iteration" to quarantinedAtIteration,
+      )
     if (diagnosticDegraded) {
       map["diagnostic_degraded"] = true
     } else {
@@ -79,19 +82,20 @@ data class FeatureTaskRuntimeQuarantineEntry(
   fun recordIdentifier(): String = "$producingPhaseId#$producingIteration"
 
   companion object {
-    private val ALLOWED_FIELDS: Set<String> = setOf(
-      "producing_phase_id",
-      "consuming_phase_id",
-      "producing_iteration",
-      "rejection_class",
-      "rejection_detail",
-      "regeneration_attempt",
-      "quarantined_at_iteration",
-      "diagnostic_identity",
-      "diagnostic_degraded",
-      "rejected_record_byte_size",
-      "rejected_record_sha256",
-    )
+    private val ALLOWED_FIELDS: Set<String> =
+      setOf(
+        "producing_phase_id",
+        "consuming_phase_id",
+        "producing_iteration",
+        "rejection_class",
+        "rejection_detail",
+        "regeneration_attempt",
+        "quarantined_at_iteration",
+        "diagnostic_identity",
+        "diagnostic_degraded",
+        "rejected_record_byte_size",
+        "rejected_record_sha256",
+      )
 
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeQuarantineEntry {
       val unexpected = raw.keys - ALLOWED_FIELDS
@@ -114,13 +118,15 @@ data class FeatureTaskRuntimeQuarantineEntry(
           diagnosticIdentity = reader.optionalString("diagnostic_identity"),
           rejectedRecordByteSize = reader.requiredInt("rejected_record_byte_size").toLong(),
           rejectedRecordSha256 = reader.requiredString("rejected_record_sha256"),
-          diagnosticDegraded = when (reader.optionalBoolean("diagnostic_degraded")) {
-            null -> false
-            true -> true
-            false -> quarantineSchemaError(
-              "Feature-task-runtime quarantine entry 'diagnostic_degraded' must be true when present.",
-            )
-          },
+          diagnosticDegraded =
+            when (reader.optionalBoolean("diagnostic_degraded")) {
+              null -> false
+              true -> true
+              false ->
+                quarantineSchemaError(
+                  "Feature-task-runtime quarantine entry 'diagnostic_degraded' must be true when present.",
+                )
+            },
         )
       } catch (error: IllegalArgumentException) {
         quarantineSchemaError("Feature-task-runtime quarantine entry is malformed: ${error.message}")
@@ -131,16 +137,18 @@ data class FeatureTaskRuntimeQuarantineEntry(
 
 internal fun featureTaskRuntimeQuarantineRecordToWire(
   entries: List<FeatureTaskRuntimeQuarantineEntry>,
-): Map<String, Any?> = linkedMapOf(
-  SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_QUARANTINE_ARTIFACT_CONTRACT_VERSION,
-  "entries" to entries.map { it.toArtifactMap() },
-)
+): Map<String, Any?> =
+  linkedMapOf(
+    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_QUARANTINE_ARTIFACT_CONTRACT_VERSION,
+    "entries" to entries.map { it.toArtifactMap() },
+  )
 
 private fun quarantineSchemaError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)
 
 internal fun featureTaskRuntimeQuarantineEntriesFromWire(raw: Any?): List<FeatureTaskRuntimeQuarantineEntry> {
-  val map = JsonCodec.anyToStringAnyMap(raw)
-    ?: quarantineSchemaError("Feature-task-runtime quarantine record must be an object.")
+  val map =
+    JsonCodec.anyToStringAnyMap(raw)
+      ?: quarantineSchemaError("Feature-task-runtime quarantine record must be an object.")
   val unexpected = map.keys - QUARANTINE_ENVELOPE_FIELDS
   if (unexpected.isNotEmpty()) {
     quarantineSchemaError(
@@ -155,8 +163,9 @@ internal fun featureTaskRuntimeQuarantineEntriesFromWire(raw: Any?): List<Featur
         "'${version.orEmpty()}'; $FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE.",
     )
   }
-  val entries = map["entries"] as? List<*>
-    ?: quarantineSchemaError("Feature-task-runtime quarantine record must carry an 'entries' array.")
+  val entries =
+    map["entries"] as? List<*>
+      ?: quarantineSchemaError("Feature-task-runtime quarantine record must carry an 'entries' array.")
   return entries.map { entry ->
     FeatureTaskRuntimeQuarantineEntry.fromArtifactMap(
       JsonCodec.anyToStringAnyMap(entry)

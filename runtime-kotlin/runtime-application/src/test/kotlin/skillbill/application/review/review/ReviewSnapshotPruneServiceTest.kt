@@ -13,8 +13,9 @@ class ReviewSnapshotPruneServiceTest {
   @Test
   fun `the default invocation lists candidates and deletes nothing`() {
     val gateway = RecordingSnapshotGateway()
-    val result = ReviewSnapshotPruneService(StubSessionFactory, gateway, NoopRuntimeDiagnostics)
-      .prune(confirmed = false)
+    val result =
+      ReviewSnapshotPruneService(StubSessionFactory, gateway, NoopRuntimeDiagnostics)
+        .prune(confirmed = false)
 
     assertEquals(2, result.candidates.size, "Every snapshot must be listed for the operator to review.")
     assertEquals(emptyList(), result.deleted)
@@ -37,10 +38,11 @@ class ReviewSnapshotPruneServiceTest {
   }
 
   private class RecordingSnapshotGateway : ReviewSnapshotGateway {
-    val snapshots = listOf(
-      ReviewSnapshot(Path.of("/home/u/.skill-bill/review-metrics.a.db"), "a", 100, "2026-07-02T00:00:00Z"),
-      ReviewSnapshot(Path.of("/home/u/.skill-bill/review-metrics.b.db"), "b", 200, "2026-07-01T00:00:00Z"),
-    )
+    val snapshots =
+      listOf(
+        ReviewSnapshot(Path.of("/home/u/.skill-bill/review-metrics.a.db"), "a", 100, "2026-07-02T00:00:00Z"),
+        ReviewSnapshot(Path.of("/home/u/.skill-bill/review-metrics.b.db"), "b", 200, "2026-07-01T00:00:00Z"),
+      )
     val deleted = mutableListOf<ReviewSnapshot>()
 
     override fun listSnapshots(liveDbPath: Path): List<ReviewSnapshot> = snapshots

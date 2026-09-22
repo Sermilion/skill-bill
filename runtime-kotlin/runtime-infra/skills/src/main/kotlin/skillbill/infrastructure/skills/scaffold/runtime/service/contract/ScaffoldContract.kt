@@ -54,32 +54,37 @@ internal val ORCHESTRATION_SIDECARS: Map<String, String> =
     "peak-hours-warner" to "orchestration/shell-content-contract/peak-hours-warner.md",
   )
 
-internal fun supportingFileTargets(repoRoot: Path): Map<String, Path> = mapOf(
-  "review-scope.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("review-scope")),
-  "stack-routing.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("stack-routing")),
-  "review-orchestrator.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("review-orchestrator")),
-  "specialist-contract.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("review-specialist-contract")),
-  "review-delegation.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("review-delegation")),
-  "telemetry-contract.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("telemetry-contract")),
-  "shell-content-contract.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("shell-content-contract")),
-  "shell-ceremony.md" to repoRoot.resolve(ORCHESTRATION_SIDECARS.getValue("shell-ceremony")),
-  "peak-hours-warner.md" to repoRoot.resolve(ORCHESTRATION_SIDECARS.getValue("peak-hours-warner")),
-)
+internal fun supportingFileTargets(repoRoot: Path): Map<String, Path> =
+  mapOf(
+    "review-scope.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("review-scope")),
+    "stack-routing.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("stack-routing")),
+    "review-orchestrator.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("review-orchestrator")),
+    "specialist-contract.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("review-specialist-contract")),
+    "review-delegation.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("review-delegation")),
+    "telemetry-contract.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("telemetry-contract")),
+    "shell-content-contract.md" to repoRoot.resolve(ORCHESTRATION_PLAYBOOKS.getValue("shell-content-contract")),
+    "shell-ceremony.md" to repoRoot.resolve(ORCHESTRATION_SIDECARS.getValue("shell-ceremony")),
+    "peak-hours-warner.md" to repoRoot.resolve(ORCHESTRATION_SIDECARS.getValue("peak-hours-warner")),
+  )
 
 internal fun requireSupportingFileTarget(
   skillName: String,
   fileName: String,
   repoRoot: Path,
   selectedPlatformManifests: List<PlatformManifest> = emptyList(),
-): Path = supportingFileTargets(repoRoot)[fileName]
-  ?: featureAddonPointerSpecsFor(skillName, selectedPlatformManifests)
-    .firstOrNull { spec -> spec.name == fileName }
-    ?.let { spec -> repoRoot.toAbsolutePath().normalize().resolve(spec.target).normalize() }
-  ?: throw MissingSupportingFileTargetError(
-    "Runtime supporting file '$fileName' is not registered for '$skillName'.",
-  )
+): Path =
+  supportingFileTargets(repoRoot)[fileName]
+    ?: featureAddonPointerSpecsFor(skillName, selectedPlatformManifests)
+      .firstOrNull { spec -> spec.name == fileName }
+      ?.let { spec -> repoRoot.toAbsolutePath().normalize().resolve(spec.target).normalize() }
+    ?: throw MissingSupportingFileTargetError(
+      "Runtime supporting file '$fileName' is not registered for '$skillName'.",
+    )
 
-internal fun validatePointerTargetParity(repoRoot: Path, packs: List<PlatformManifest>): List<String> {
+internal fun validatePointerTargetParity(
+  repoRoot: Path,
+  packs: List<PlatformManifest>,
+): List<String> {
   val staticTargets = supportingFileTargets(repoRoot)
   val resolvedRoot = repoRoot.toAbsolutePath().normalize()
   val issues = mutableListOf<String>()

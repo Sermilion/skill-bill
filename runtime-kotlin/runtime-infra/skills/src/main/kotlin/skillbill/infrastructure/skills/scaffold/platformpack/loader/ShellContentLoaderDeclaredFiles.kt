@@ -8,17 +8,20 @@ internal fun parseDeclaredAreaFileEntries(
   declaredAreas: List<String>,
 ): Map<String, Path> {
   val rawAreaFiles = rawFiles["areas"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
-  val areaFiles = rawAreaFiles.entries.associate { (key, value) ->
-    val area = key as? String
-      ?: invalidManifestSchema(
-        "Platform pack '$slug': 'declared_files.areas' entries must be string->string.",
-      )
-    val relativePath = value as? String
-      ?: invalidManifestSchema(
-        "Platform pack '$slug': 'declared_files.areas' entries must be string->string.",
-      )
-    area to packRoot.resolve(relativePath).normalize()
-  }
+  val areaFiles =
+    rawAreaFiles.entries.associate { (key, value) ->
+      val area =
+        key as? String
+          ?: invalidManifestSchema(
+            "Platform pack '$slug': 'declared_files.areas' entries must be string->string.",
+          )
+      val relativePath =
+        value as? String
+          ?: invalidManifestSchema(
+            "Platform pack '$slug': 'declared_files.areas' entries must be string->string.",
+          )
+      area to packRoot.resolve(relativePath).normalize()
+    }
   val extraAreaKeys = areaFiles.keys - declaredAreas.toSet()
   if (extraAreaKeys.isNotEmpty()) {
     invalidManifestSchema(
@@ -35,7 +38,11 @@ internal fun parseDeclaredAreaFileEntries(
   return areaFiles
 }
 
-internal fun parseDeclaredBaselinePath(rawFiles: Map<*, *>, slug: String, packRoot: Path): Path? {
+internal fun parseDeclaredBaselinePath(
+  rawFiles: Map<*, *>,
+  slug: String,
+  packRoot: Path,
+): Path? {
   val baselineRaw = rawFiles["baseline"] as? String ?: return null
   if (baselineRaw.isBlank()) {
     invalidManifestSchema(

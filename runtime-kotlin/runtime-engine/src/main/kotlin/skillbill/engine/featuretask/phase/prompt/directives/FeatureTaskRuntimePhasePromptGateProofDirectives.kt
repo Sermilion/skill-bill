@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.phase.prompt.directives
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 fun nonValidatePhaseValidationOwnershipDirective(phaseId: String): String {
   if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ||
     phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
@@ -15,7 +16,7 @@ fun nonValidatePhaseValidationOwnershipDirective(phaseId: String): String {
     execute tests, or run check to prove the work. Ignore any Validation Strategy, plan note,
     acceptance text, review habit, or prior habit that asks you to run check here — that work waits
     for validate. If a receipt carries `tests_executed`, leave it empty.
-  """.trimIndent()
+    """.trimIndent()
 }
 
 fun nonBuildPhaseBuildOwnershipDirective(phaseId: String): String {
@@ -26,5 +27,5 @@ fun nonBuildPhaseBuildOwnershipDirective(phaseId: String): String {
     ## Build ownership
     Only the build phase may run the pack build_command (`validation_gate.build_command`). This phase
     must not invoke compile-only proof as a substitute for its own work.
-  """.trimIndent()
+    """.trimIndent()
 }

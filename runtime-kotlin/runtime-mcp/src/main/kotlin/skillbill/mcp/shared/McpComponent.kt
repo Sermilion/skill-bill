@@ -13,6 +13,7 @@ import skillbill.engine.featuretask.phase.core.FeatureTaskPhaseSettlementService
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.time.Clock
+
 @Component
 internal abstract class McpComponent(
   @Component val runtimeComponent: RuntimeComponent,

@@ -14,16 +14,20 @@ internal fun skillRemoveExternalSourceRoot(target: SkillRemovalTarget.ExternalAd
 internal fun skillRemoveExternalAddonFile(target: SkillRemovalTarget.ExternalAddOn): Path =
   skillRemoveExternalSourceRoot(target).resolve(target.fileName).normalize()
 
-internal fun skillRemoveUserHome(request: SkillRemovalRequest, home: Path?): Path =
+internal fun skillRemoveUserHome(
+  request: SkillRemovalRequest,
+  home: Path?,
+): Path =
   request.userHomeAbsolutePath?.let { Path.of(it).toAbsolutePath().normalize() }
     ?: home
     ?: resolveUserHome(null).toAbsolutePath().normalize()
 
-internal fun describeTargetForLog(target: SkillRemovalTarget): String = when (target) {
-  is SkillRemovalTarget.HorizontalSkill -> "skill:${target.skillName}"
-  is SkillRemovalTarget.PlatformPack -> "platform:${target.platform}"
-  is SkillRemovalTarget.AddOn -> "addon:${target.relativePath}"
-  is SkillRemovalTarget.ExternalAddOn -> "external-addon:${target.platform}/${target.fileName}"
-}
+internal fun describeTargetForLog(target: SkillRemovalTarget): String =
+  when (target) {
+    is SkillRemovalTarget.HorizontalSkill -> "skill:${target.skillName}"
+    is SkillRemovalTarget.PlatformPack -> "platform:${target.platform}"
+    is SkillRemovalTarget.AddOn -> "addon:${target.relativePath}"
+    is SkillRemovalTarget.ExternalAddOn -> "external-addon:${target.platform}/${target.fileName}"
+  }
 
 internal fun Path.portablePath(): String = toString().replace('\\', '/')

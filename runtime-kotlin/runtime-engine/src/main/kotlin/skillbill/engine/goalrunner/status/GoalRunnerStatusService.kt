@@ -46,30 +46,33 @@ class GoalRunnerStatusService(
   private val resetReplanCoordinator: GoalRunnerResetReplanCoordinator,
   private val purgeCoordinator: GoalRunnerPurgeCoordinator,
 ) {
-  private val controlVerbs = GoalRunnerStatusControlVerbs(
-    manifestStore = manifestStore,
-    clock = clock,
-    workerSupervisor = workerSupervisor,
-    repositoryEnclosingRootPort = repositoryEnclosingRootPort,
-  )
+  private val controlVerbs =
+    GoalRunnerStatusControlVerbs(
+      manifestStore = manifestStore,
+      clock = clock,
+      workerSupervisor = workerSupervisor,
+      repositoryEnclosingRootPort = repositoryEnclosingRootPort,
+    )
 
-  private val repairCoordinator = GoalRunnerRepairCoordinator(
-    manifestStore = manifestStore,
-    phaseRecorder = phaseRecorder,
-    workerSupervisor = workerSupervisor,
-    childRepairStore = childRepairStore,
-    outcomeStore = outcomeStore,
-    repositoryRoot = projectionAssembler.repositoryRoot,
-    repositoryEnclosingRootPort = repositoryEnclosingRootPort,
-    clock = clock,
-    diagnostics = projectionAssembler.diagnostics,
-  )
+  private val repairCoordinator =
+    GoalRunnerRepairCoordinator(
+      manifestStore = manifestStore,
+      phaseRecorder = phaseRecorder,
+      workerSupervisor = workerSupervisor,
+      childRepairStore = childRepairStore,
+      outcomeStore = outcomeStore,
+      repositoryRoot = projectionAssembler.repositoryRoot,
+      repositoryEnclosingRootPort = repositoryEnclosingRootPort,
+      clock = clock,
+      diagnostics = projectionAssembler.diagnostics,
+    )
 
-  private val acceptanceCoordinator = GoalRunnerAcceptanceCoordinator(
-    manifestStore = manifestStore,
-    outcomeStore = outcomeStore,
-    gitOperations = gitOperations,
-  )
+  private val acceptanceCoordinator =
+    GoalRunnerAcceptanceCoordinator(
+      manifestStore = manifestStore,
+      outcomeStore = outcomeStore,
+      gitOperations = gitOperations,
+    )
 
   fun status(request: GoalRunnerStatusRequest): GoalRunnerStatusProjection? {
     return manifestStore.readByIssueKey(request.issueKey, request.repoRoot)
@@ -78,20 +81,30 @@ class GoalRunnerStatusService(
 
   fun statusRefresh(request: GoalRunnerStatusRequest): GoalRunnerStatusProjection? = status(request)
 
-  fun pause(issueKey: String, repoRoot: Path? = null): GoalRunnerPauseResult =
+  fun pause(
+    issueKey: String,
+    repoRoot: Path? = null,
+  ): GoalRunnerPauseResult =
     controlVerbs.pause(issueKey, effectiveGoalRepoRoot(repoRoot, projectionAssembler.repositoryRoot))
 
-  fun stop(issueKey: String, repoRoot: Path? = null): GoalRunnerStopVerbResult =
+  fun stop(
+    issueKey: String,
+    repoRoot: Path? = null,
+  ): GoalRunnerStopVerbResult =
     controlVerbs.stop(issueKey, effectiveGoalRepoRoot(repoRoot, projectionAssembler.repositoryRoot))
 
-  fun resume(issueKey: String, repoRoot: Path? = null): GoalRunnerResumeResult =
+  fun resume(
+    issueKey: String,
+    repoRoot: Path? = null,
+  ): GoalRunnerResumeResult =
     controlVerbs.resume(issueKey, effectiveGoalRepoRoot(repoRoot, projectionAssembler.repositoryRoot))
 
   fun reset(request: GoalRunnerResetRequest): GoalRunnerResetResult? = resetReplanCoordinator.reset(request)
 
-  fun purge(request: GoalRunnerPurgeRequest): GoalRunnerPurgeResult = purgeCoordinator.purge(
-    request.copy(repoRoot = request.repoRoot ?: projectionAssembler.repositoryRoot.path),
-  )
+  fun purge(request: GoalRunnerPurgeRequest): GoalRunnerPurgeResult =
+    purgeCoordinator.purge(
+      request.copy(repoRoot = request.repoRoot ?: projectionAssembler.repositoryRoot.path),
+    )
 
   fun replan(request: GoalRunnerReplanRequest): GoalRunnerReplanResult? = resetReplanCoordinator.replan(request)
 
@@ -103,4 +116,7 @@ class GoalRunnerStatusService(
   fun accept(request: GoalRunnerAcceptRequest): GoalRunnerAcceptResult = acceptanceCoordinator.accept(request)
 }
 
-fun effectiveGoalRepoRoot(repoRoot: Path?, repositoryRoot: RepositoryRoot): Path = repoRoot ?: repositoryRoot.path
+fun effectiveGoalRepoRoot(
+  repoRoot: Path?,
+  repositoryRoot: RepositoryRoot,
+): Path = repoRoot ?: repositoryRoot.path

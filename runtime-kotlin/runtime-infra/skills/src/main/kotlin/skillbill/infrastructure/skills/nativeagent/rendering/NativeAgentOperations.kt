@@ -69,33 +69,36 @@ object NativeAgentOperations {
   internal fun regenerate(request: NativeAgentRegenerationRequest): NativeAgentRegenerationResult {
     val root = request.repoRoot.toAbsolutePath().normalize()
     val selectedSkillNames = request.skillNames.toSet()
-    val sourceFiles = discoverRepoNativeAgentSourceFiles(root)
-      .filter { sourcePath ->
-        selectedSkillNames.isEmpty() || sourcePath.parent?.parent?.name in selectedSkillNames
-      }
+    val sourceFiles =
+      discoverRepoNativeAgentSourceFiles(root)
+        .filter { sourcePath ->
+          selectedSkillNames.isEmpty() || sourcePath.parent?.parent?.name in selectedSkillNames
+        }
     val sources = sourceFiles.flatMap(::parseNativeAgentSourceFile)
     if (sources.isEmpty()) {
       return NativeAgentRegenerationResult(emptyList())
     }
     val cacheRoot = installCacheRoot(request.home, root.resolve("platform-packs"), root.resolve("skills"))
     val written = mutableListOf<Path>()
-    val composedSources = sources.map { source ->
-      composeNativeAgentSource(
-        root,
-        source,
-        request.compositionContext.reviewContextBudgetBytes,
-        request.compositionContext.renderGovernedBody,
-        request.compositionContext.packLoader,
-      )
-    }
-    val byProvider = NativeAgentProvider.entries.associateWith { provider ->
-      composedSources.map { composed ->
-        RegenerationEntry(
-          target = cacheRoot.resolve(provider.directoryName).resolve("${composed.name}.${provider.extension}"),
-          contents = provider.render(composed).toByteArray(Charsets.UTF_8),
+    val composedSources =
+      sources.map { source ->
+        composeNativeAgentSource(
+          root,
+          source,
+          request.compositionContext.reviewContextBudgetBytes,
+          request.compositionContext.renderGovernedBody,
+          request.compositionContext.packLoader,
         )
       }
-    }
+    val byProvider =
+      NativeAgentProvider.entries.associateWith { provider ->
+        composedSources.map { composed ->
+          RegenerationEntry(
+            target = cacheRoot.resolve(provider.directoryName).resolve("${composed.name}.${provider.extension}"),
+            contents = provider.render(composed).toByteArray(Charsets.UTF_8),
+          )
+        }
+      }
     byProvider.forEach { (provider, entries) ->
       val providerRoot = cacheRoot.resolve(provider.directoryName)
       Files.createDirectories(providerRoot)
@@ -120,14 +123,16 @@ object NativeAgentOperations {
 
   private data class RegenerationEntry(val target: Path, val contents: ByteArray) {
     override fun equals(other: Any?): Boolean = this === other
+
     override fun hashCode(): Int = System.identityHashCode(this)
   }
 
   internal fun renderInstallArtifacts(request: NativeAgentInstallRenderRequest): NativeAgentInstallRenderResult {
     val repoRoot = nativeAgentCompositionRepoRoot(request.platformPacksRoot, request.skillsRoot)
     validateNativeAgentInstallSources(request, repoRoot)
-    val cacheRoot = request.overrides.cacheRoot?.toAbsolutePath()?.normalize()
-      ?: installCacheRoot(request.home, request.platformPacksRoot, request.skillsRoot)
+    val cacheRoot =
+      request.overrides.cacheRoot?.toAbsolutePath()?.normalize()
+        ?: installCacheRoot(request.home, request.platformPacksRoot, request.skillsRoot)
     val providerRoot = cacheRoot.resolve(request.provider.directoryName)
     val rendered = composeRenderedAgents(request, repoRoot)
     request.overrides.beforeMutation(cacheRoot)
@@ -139,17 +144,18 @@ object NativeAgentOperations {
     var result: NativeAgentInstallRenderResult? = null
     var initiatingFailure: Throwable? = null
     try {
-      result = stageAndPromoteNativeAgentRenders(
-        NativeAgentRenderPromotionRequest(
-          providerRoot = providerRoot,
-          staging = staging,
-          rendered = rendered,
-          orphanCandidates = orphanCandidates,
-          beforeMutation = request.overrides.beforeMutation,
-          provider = request.provider,
-          cacheRoot = cacheRoot,
-        ),
-      )
+      result =
+        stageAndPromoteNativeAgentRenders(
+          NativeAgentRenderPromotionRequest(
+            providerRoot = providerRoot,
+            staging = staging,
+            rendered = rendered,
+            orphanCandidates = orphanCandidates,
+            beforeMutation = request.overrides.beforeMutation,
+            provider = request.provider,
+            cacheRoot = cacheRoot,
+          ),
+        )
     } catch (error: CancellationException) {
       throw error
     } catch (error: IOException) {
@@ -166,7 +172,10 @@ object NativeAgentOperations {
     return requireNotNull(result)
   }
 
-  private fun validateNativeAgentInstallSources(request: NativeAgentInstallRenderRequest, repoRoot: Path) {
+  private fun validateNativeAgentInstallSources(
+    request: NativeAgentInstallRenderRequest,
+    repoRoot: Path,
+  ) {
     if (request.overrides.sourceRoots == null) {
       validateNativeAgentArtifactsForInstall(
         request.platformPacksRoot,
@@ -183,18 +192,23 @@ object NativeAgentOperations {
     }
   }
 
-  private fun composeRenderedAgents(request: NativeAgentInstallRenderRequest, repoRoot: Path): List<RenderedAgent> {
-    val sources = request.overrides.sourceRoots
-      ?.let(::discoverNativeAgentSourceEntriesInRoots)
-      ?: discoverNativeAgentSourceEntries(request.platformPacksRoot, request.skillsRoot, request.selectedPlatforms)
+  private fun composeRenderedAgents(
+    request: NativeAgentInstallRenderRequest,
+    repoRoot: Path,
+  ): List<RenderedAgent> {
+    val sources =
+      request.overrides.sourceRoots
+        ?.let(::discoverNativeAgentSourceEntriesInRoots)
+        ?: discoverNativeAgentSourceEntries(request.platformPacksRoot, request.skillsRoot, request.selectedPlatforms)
     return sources.map { source ->
-      val composed = composeNativeAgentSource(
-        repoRoot,
-        source,
-        request.compositionContext.reviewContextBudgetBytes,
-        request.compositionContext.renderGovernedBody,
-        request.compositionContext.packLoader,
-      )
+      val composed =
+        composeNativeAgentSource(
+          repoRoot,
+          source,
+          request.compositionContext.reviewContextBudgetBytes,
+          request.compositionContext.renderGovernedBody,
+          request.compositionContext.packLoader,
+        )
       RenderedAgent(
         targetName = "${composed.name}.${request.provider.extension}",
         contents = request.provider.render(composed).toByteArray(Charsets.UTF_8),
@@ -202,7 +216,11 @@ object NativeAgentOperations {
     }
   }
 
-  fun installCacheRoot(home: Path, platformPacksRoot: Path, skillsRoot: Path?): Path {
+  fun installCacheRoot(
+    home: Path,
+    platformPacksRoot: Path,
+    skillsRoot: Path?,
+  ): Path {
     val hash = stableRepoKey(platformPacksRoot, skillsRoot)
     val slug = repoSlug(platformPacksRoot)
     val leaf = if (slug.isEmpty()) hash else "$slug-$hash"
@@ -214,17 +232,22 @@ object NativeAgentOperations {
     if (raw.isEmpty()) {
       return ""
     }
-    val collapsed = raw.lowercase()
-      .replace(Regex("[^a-z0-9-]+"), "-")
-      .trim('-')
+    val collapsed =
+      raw.lowercase()
+        .replace(Regex("[^a-z0-9-]+"), "-")
+        .trim('-')
     return collapsed.take(NATIVE_AGENT_SLUG_MAX_CHARS)
   }
 
-  private fun stableRepoKey(platformPacksRoot: Path, skillsRoot: Path?): String {
-    val input = listOfNotNull(
-      platformPacksRoot.toAbsolutePath().normalize().toString(),
-      skillsRoot?.toAbsolutePath()?.normalize()?.toString(),
-    ).joinToString("|")
+  private fun stableRepoKey(
+    platformPacksRoot: Path,
+    skillsRoot: Path?,
+  ): String {
+    val input =
+      listOfNotNull(
+        platformPacksRoot.toAbsolutePath().normalize().toString(),
+        skillsRoot?.toAbsolutePath()?.normalize()?.toString(),
+      ).joinToString("|")
     val digest = sha256Bytes(input.toByteArray(Charsets.UTF_8))
     return digest.take(NATIVE_AGENT_CACHE_KEY_BYTES).joinToString("") { byte -> "%02x".format(byte) }
   }

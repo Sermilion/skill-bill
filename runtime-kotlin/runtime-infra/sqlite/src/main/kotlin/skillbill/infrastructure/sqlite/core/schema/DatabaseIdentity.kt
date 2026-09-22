@@ -11,10 +11,11 @@ internal data class DatabaseIdentity(
   internal val fileIdentity: String,
   internal val fileSizeBytes: Long,
 ) {
-  fun matches(current: DatabaseIdentity): Boolean = current.absolutePath == absolutePath &&
-    current.userVersion == userVersion &&
-    current.fileIdentity == fileIdentity &&
-    current.fileSizeBytes >= fileSizeBytes
+  fun matches(current: DatabaseIdentity): Boolean =
+    current.absolutePath == absolutePath &&
+      current.userVersion == userVersion &&
+      current.fileIdentity == fileIdentity &&
+      current.fileSizeBytes >= fileSizeBytes
 
   companion object {
     fun read(path: Path): DatabaseIdentity? {
@@ -52,7 +53,8 @@ internal data class DatabaseIdentity(
       }
     }
 
-    private fun fileIdentity(attributes: BasicFileAttributes): String = attributes.fileKey()?.toString()
-      ?: "creation-time:${attributes.creationTime().toMillis()}"
+    private fun fileIdentity(attributes: BasicFileAttributes): String =
+      attributes.fileKey()?.toString()
+        ?: "creation-time:${attributes.creationTime().toMillis()}"
   }
 }

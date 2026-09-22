@@ -27,9 +27,13 @@ import java.lang.reflect.Proxy
 import java.nio.file.Path
 import java.lang.Double.TYPE as DoubleTYPE
 import java.lang.Long.TYPE as LongTYPE
+
 internal val featureTaskGitIntegrationSnapshotValidator: WorkflowSnapshotValidator =
   object : WorkflowSnapshotValidator {
-    override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+    override fun validate(
+      snapshot: WorkflowStateSnapshot,
+      slug: String,
+    ) = Unit
   }
 
 internal class FeatureTaskGitIntegrationWorkflowRepository : WorkflowStateRepositoryDefaults() {
@@ -100,36 +104,39 @@ internal class FeatureTaskGitIntegrationDatabase(
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unitOfWork())
 
-  private fun unitOfWork(): UnitOfWork = object : UnitOfWorkDefaults() {
-    override val dbPath: Path = this@FeatureTaskGitIntegrationDatabase.dbPath
-    override val reviews: ReviewRepository = noopPort(ReviewRepository::class.java)
-    override val learnings: LearningRepository = noopPort(LearningRepository::class.java)
-    override val lifecycleTelemetry: LifecycleTelemetryRepository =
-      noopPort(LifecycleTelemetryRepository::class.java)
-    override val telemetryReconciliation: TelemetryReconciliationRepository =
-      noopPort(TelemetryReconciliationRepository::class.java)
-    override val telemetryOutbox: TelemetryOutboxRepository = noopPort(TelemetryOutboxRepository::class.java)
-    override val workflowStates: WorkflowStateRepository = repository
-    override val workList: WorkListRepository = noopPort(WorkListRepository::class.java)
-    override val goalPlanningPreparations: GoalPlanningPreparationRepository =
-      noopPort(GoalPlanningPreparationRepository::class.java)
-    override val goalRunnerControls: GoalRunnerControlRepository = EmptyGoalRunnerControlRepository
+  private fun unitOfWork(): UnitOfWork =
+    object : UnitOfWorkDefaults() {
+      override val dbPath: Path = this@FeatureTaskGitIntegrationDatabase.dbPath
+      override val reviews: ReviewRepository = noopPort(ReviewRepository::class.java)
+      override val learnings: LearningRepository = noopPort(LearningRepository::class.java)
+      override val lifecycleTelemetry: LifecycleTelemetryRepository =
+        noopPort(LifecycleTelemetryRepository::class.java)
+      override val telemetryReconciliation: TelemetryReconciliationRepository =
+        noopPort(TelemetryReconciliationRepository::class.java)
+      override val telemetryOutbox: TelemetryOutboxRepository = noopPort(TelemetryOutboxRepository::class.java)
+      override val workflowStates: WorkflowStateRepository = repository
+      override val workList: WorkListRepository = noopPort(WorkListRepository::class.java)
+      override val goalPlanningPreparations: GoalPlanningPreparationRepository =
+        noopPort(GoalPlanningPreparationRepository::class.java)
+      override val goalRunnerControls: GoalRunnerControlRepository = EmptyGoalRunnerControlRepository
+    }
+}
+
+private fun <T> noopPort(type: Class<T>): T =
+  type.cast(
+    Proxy.newProxyInstance(type.classLoader, arrayOf(type)) { _, method, _ ->
+      defaultPortReturn(method)
+    },
+  )
+
+private fun defaultPortReturn(method: Method): Any? =
+  when {
+    method.returnType == Void.TYPE -> null
+    List::class.java.isAssignableFrom(method.returnType) -> emptyList<Any>()
+    Map::class.java.isAssignableFrom(method.returnType) -> emptyMap<Any, Any>()
+    method.returnType == TYPE -> false
+    method.returnType == Integer.TYPE -> 0
+    method.returnType == LongTYPE -> 0L
+    method.returnType == DoubleTYPE -> 0.0
+    else -> null
   }
-}
-
-private fun <T> noopPort(type: Class<T>): T = type.cast(
-  Proxy.newProxyInstance(type.classLoader, arrayOf(type)) { _, method, _ ->
-    defaultPortReturn(method)
-  },
-)
-
-private fun defaultPortReturn(method: Method): Any? = when {
-  method.returnType == Void.TYPE -> null
-  List::class.java.isAssignableFrom(method.returnType) -> emptyList<Any>()
-  Map::class.java.isAssignableFrom(method.returnType) -> emptyMap<Any, Any>()
-  method.returnType == TYPE -> false
-  method.returnType == Integer.TYPE -> 0
-  method.returnType == LongTYPE -> 0L
-  method.returnType == DoubleTYPE -> 0.0
-  else -> null
-}

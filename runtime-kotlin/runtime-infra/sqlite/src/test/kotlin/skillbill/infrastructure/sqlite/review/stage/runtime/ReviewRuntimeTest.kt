@@ -56,10 +56,11 @@ class ReviewRuntimeTest {
   fun `canonical attribution round trips and participates in change detection`() {
     val (_, connection) = tempDbConnection("review-canonical")
     connection.use {
-      val review = ReviewParser.parseReview(SAMPLE_REVIEW.trimIndent()).withCanonicalAttribution(
-        knownPackSkillNames = setOf("bill-kotlin-code-review"),
-        knownPlatformSlugs = canonicalPlatformSlugs,
-      )
+      val review =
+        ReviewParser.parseReview(SAMPLE_REVIEW.trimIndent()).withCanonicalAttribution(
+          knownPackSkillNames = setOf("bill-kotlin-code-review"),
+          knownPlatformSlugs = canonicalPlatformSlugs,
+        )
 
       persistImportedReview(connection, review, sourcePath = null)
       val summary = ReviewRuntime.fetchReviewSummary(connection, review.reviewRunId)
@@ -77,19 +78,20 @@ class ReviewRuntimeTest {
 
   @Test
   fun `parseReview assigns fallback classifier category when routing is generic`() {
-    val review = ReviewParser.parseReview(
-      """
-      Routed to: bill-code-review
-      Review session ID: rvs-20260402-security
-      Review run ID: rvw-20260402-security
-      Detected review scope: branch diff
-      Detected stack: unknown
-      Execution mode: inline
+    val review =
+      ReviewParser.parseReview(
+        """
+        Routed to: bill-code-review
+        Review session ID: rvs-20260402-security
+        Review run ID: rvw-20260402-security
+        Detected review scope: branch diff
+        Detected stack: unknown
+        Execution mode: inline
 
-      ### 2. Risk Register
-      - [F-001] Major | High | Auth.kt:12 | Token is logged with sensitive user data.
-      """.trimIndent(),
-    )
+        ### 2. Risk Register
+        - [F-001] Major | High | Auth.kt:12 | Token is logged with sensitive user data.
+        """.trimIndent(),
+      )
 
     assertEquals("security_privacy", review.findings.single().issueCategory)
   }

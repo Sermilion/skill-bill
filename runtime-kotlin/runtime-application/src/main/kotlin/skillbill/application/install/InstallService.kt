@@ -44,41 +44,48 @@ class InstallService(
 ) {
   fun planInstall(request: InstallPlanRequest): InstallPlan {
     val facts = planningPorts.planningFactsPort.collectPlanningFacts(InstallPlanningFactsRequest(request)).facts
-    val resolvedReviewFallback = facts.baseSkills
-      .takeIf { skills -> skills.any { it.name == "bill-code-review" } }
-      ?.let { ReviewFallbackResolver.resolveOptional(facts.platformManifests) }
-    val materializationPlan = InstallPlanPolicy.planPlatformSkillMaterialization(
-      InstallPlatformSkillMaterializationRequest(
-        installRequest = request,
-        platformPacks = facts.platformManifests.map { manifest ->
-          InstallPlatformPackDiscoverySnapshot(
-            slug = manifest.slug,
-            packRoot = manifest.packRoot,
-            baselineLayers = manifest.codeReviewComposition?.baselineLayers.orEmpty(),
-          )
-        },
-      ),
-    )
-    val platformPacks = planningPorts.platformSkillMaterializationPort.materializePlatformSkills(
-      InstallPlatformSkillMaterializationPortRequest(
-        installRequest = request,
-        platformManifests = facts.platformManifests,
-        selectedPlatformSlugs = (
-          materializationPlan.selectedPlatformSlugs +
-            listOfNotNull(resolvedReviewFallback?.slug)
-          ).distinct(),
-      ),
-    ).platformPacks
-    val draft = InstallPlanPolicy.buildPlanDraft(
-      facts.toPolicyInput(request, platformPacks, resolvedReviewFallback?.slug),
-    )
-    val staging = planningPorts.stagingIntentPort.buildStagingIntent(
-      InstallStagingIntentRequest(
-        installRequest = request,
-        draft = draft,
-        platformManifests = facts.platformManifests,
-      ),
-    ).staging
+    val resolvedReviewFallback =
+      facts.baseSkills
+        .takeIf { skills -> skills.any { it.name == "bill-code-review" } }
+        ?.let { ReviewFallbackResolver.resolveOptional(facts.platformManifests) }
+    val materializationPlan =
+      InstallPlanPolicy.planPlatformSkillMaterialization(
+        InstallPlatformSkillMaterializationRequest(
+          installRequest = request,
+          platformPacks =
+            facts.platformManifests.map { manifest ->
+              InstallPlatformPackDiscoverySnapshot(
+                slug = manifest.slug,
+                packRoot = manifest.packRoot,
+                baselineLayers = manifest.codeReviewComposition?.baselineLayers.orEmpty(),
+              )
+            },
+        ),
+      )
+    val platformPacks =
+      planningPorts.platformSkillMaterializationPort.materializePlatformSkills(
+        InstallPlatformSkillMaterializationPortRequest(
+          installRequest = request,
+          platformManifests = facts.platformManifests,
+          selectedPlatformSlugs =
+            (
+              materializationPlan.selectedPlatformSlugs +
+                listOfNotNull(resolvedReviewFallback?.slug)
+            ).distinct(),
+        ),
+      ).platformPacks
+    val draft =
+      InstallPlanPolicy.buildPlanDraft(
+        facts.toPolicyInput(request, platformPacks, resolvedReviewFallback?.slug),
+      )
+    val staging =
+      planningPorts.stagingIntentPort.buildStagingIntent(
+        InstallStagingIntentRequest(
+          installRequest = request,
+          draft = draft,
+          platformManifests = facts.platformManifests,
+        ),
+      ).staging
     return validatedInstallPlan(draft, staging, installPlanWireValidator)
   }
 
@@ -87,9 +94,10 @@ class InstallService(
 
   fun applyReconcile(request: InstallReconcileApplyRequest): InstallReconcileApplyOutcome {
     val applied = reconcilePorts.reconcileApplyPort.apply(request)
-    val before = reconcilePorts.baselineManifestPersistencePort
-      .readBaseline(ReadBaselineManifestRequest(installHome = request.home))
-      .manifest
+    val before =
+      reconcilePorts.baselineManifestPersistencePort
+        .readBaseline(ReadBaselineManifestRequest(installHome = request.home))
+        .manifest
     val updated = refreshBaselineFromPlan(request.home, applied.plan)
     return InstallReconcileApplyOutcome(
       plan = applied.plan,
@@ -99,10 +107,14 @@ class InstallService(
     )
   }
 
-  fun refreshBaselineFromPlan(home: Path, plan: ReconciliationPlan): BaselineManifest {
-    val current = reconcilePorts.baselineManifestPersistencePort
-      .readBaseline(ReadBaselineManifestRequest(installHome = home))
-      .manifest
+  fun refreshBaselineFromPlan(
+    home: Path,
+    plan: ReconciliationPlan,
+  ): BaselineManifest {
+    val current =
+      reconcilePorts.baselineManifestPersistencePort
+        .readBaseline(ReadBaselineManifestRequest(installHome = home))
+        .manifest
     val updated = current.withEntries(plan.baselineOverlay).withoutEntries(plan.prunedPaths)
     if (updated != current) {
       reconcilePorts.baselineManifestPersistencePort.writeBaseline(
@@ -112,13 +124,17 @@ class InstallService(
     return updated
   }
 
-  fun applyInstall(plan: InstallPlan, telemetryLevelMutator: TelemetryLevelMutator? = null): InstallApplyResult {
-    val result = applyExecutionPort.applyInstall(
-      InstallApplyExecutionRequest(
-        plan = plan,
-        telemetryLevelMutator = telemetryLevelMutator,
-      ),
-    ).result
+  fun applyInstall(
+    plan: InstallPlan,
+    telemetryLevelMutator: TelemetryLevelMutator? = null,
+  ): InstallApplyResult {
+    val result =
+      applyExecutionPort.applyInstall(
+        InstallApplyExecutionRequest(
+          plan = plan,
+          telemetryLevelMutator = telemetryLevelMutator,
+        ),
+      ).result
     persistSuccessfulInstallSelection(plan, result)
     return result
   }
@@ -127,13 +143,20 @@ class InstallService(
     InstallPlanPolicy.validateInstallPlanSnapshot(plan, installPlanWireValidator)
   }
 
-  fun discoverPlatformPackSlugs(request: InstallPlanRequest): Set<String> = planningPorts.planningFactsPort
-    .collectPlanningFacts(InstallPlanningFactsRequest(request))
-    .facts
-    .platformManifests
-    .mapTo(mutableSetOf()) { manifest -> manifest.slug }
+  fun discoverPlatformPackSlugs(request: InstallPlanRequest): Set<String> =
+    planningPorts.planningFactsPort
+      .collectPlanningFacts(InstallPlanningFactsRequest(request))
+      .facts
+      .platformManifests
+      .mapTo(mutableSetOf()) { manifest -> manifest.slug }
 
-  fun linkSkill(source: Path, targetDir: Path, agent: String, repoRoot: Path? = null, home: Path? = null): List<Path> =
+  fun linkSkill(
+    source: Path,
+    targetDir: Path,
+    agent: String,
+    repoRoot: Path? = null,
+    home: Path? = null,
+  ): List<Path> =
     skillLinkPort.linkSkill(
       InstallSkillLinkRequest(
         source = source,
@@ -144,31 +167,38 @@ class InstallService(
       ),
     ).linkedPaths
 
-  private fun persistSuccessfulInstallSelection(plan: InstallPlan, result: InstallApplyResult) {
+  private fun persistSuccessfulInstallSelection(
+    plan: InstallPlan,
+    result: InstallApplyResult,
+  ) {
     if (result.status == InstallApplyStatus.FAILURE) {
       return
     }
     installSelectionPersistencePort.writeLatestSuccessfulSelection(
       WriteLatestSuccessfulInstallSelectionRequest(
         installHome = plan.request.home.toPath(),
-        selection = SharedInstallSelection(
-          selectedAgents = result.resolvedInstalledAgents.agents.ifEmpty {
-            plan.agents.mapTo(mutableSetOf()) { target -> target.agent }
-          },
-          platformPackSelection = persistedPlatformPackSelection(plan),
-          telemetryLevel = plan.telemetryLevel,
-          mcpRegistrationChoice = plan.request.mcpRegistrationChoice,
-        ),
+        selection =
+          SharedInstallSelection(
+            selectedAgents =
+              result.resolvedInstalledAgents.agents.ifEmpty {
+                plan.agents.mapTo(mutableSetOf()) { target -> target.agent }
+              },
+            platformPackSelection = persistedPlatformPackSelection(plan),
+            telemetryLevel = plan.telemetryLevel,
+            mcpRegistrationChoice = plan.request.mcpRegistrationChoice,
+          ),
       ),
     )
   }
 
-  private fun persistedPlatformPackSelection(plan: InstallPlan): PlatformPackSelection = PlatformPackSelection(
-    mode = plan.request.platformPackSelection.mode,
-    selectedSlugs = if (plan.request.platformPackSelection.mode == PlatformPackSelectionMode.SELECTED) {
-      plan.selectedPlatformSlugs.toSet()
-    } else {
-      emptySet()
-    },
-  )
+  private fun persistedPlatformPackSelection(plan: InstallPlan): PlatformPackSelection =
+    PlatformPackSelection(
+      mode = plan.request.platformPackSelection.mode,
+      selectedSlugs =
+        if (plan.request.platformPackSelection.mode == PlatformPackSelectionMode.SELECTED) {
+          plan.selectedPlatformSlugs.toSet()
+        } else {
+          emptySet()
+        },
+    )
 }

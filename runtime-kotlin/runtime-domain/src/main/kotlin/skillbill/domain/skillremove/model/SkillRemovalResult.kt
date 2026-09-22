@@ -1,7 +1,6 @@
 package skillbill.domain.skillremove.model
 
 sealed class SkillRemovalResult {
-
   data class Preview(val preview: SkillRemovalPreview) : SkillRemovalResult()
 
   data class Success(
@@ -9,7 +8,6 @@ sealed class SkillRemovalResult {
     val removedPaths: List<String>,
     val editedManifests: List<String>,
     val unlinkedSymlinks: List<String>,
-
     val readmeWarnings: List<ReadmeCatalogWarning> = emptyList(),
   ) : SkillRemovalResult()
 

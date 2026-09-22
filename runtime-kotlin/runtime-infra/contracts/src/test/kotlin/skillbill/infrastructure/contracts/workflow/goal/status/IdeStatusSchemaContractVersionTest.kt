@@ -65,10 +65,11 @@ class IdeStatusSchemaContractVersionTest {
 
   @Test
   fun `planning wave maxItems mirrors GOAL_PLANNING_WAVE_CAP`() {
-    val maxItems = classpathSchema()
-      .path("properties").path("planning")
-      .path("properties").path("planning_wave_subtask_ids")
-      .path("maxItems")
+    val maxItems =
+      classpathSchema()
+        .path("properties").path("planning")
+        .path("properties").path("planning_wave_subtask_ids")
+        .path("maxItems")
 
     assertTrue(maxItems.isInt, "planning_wave_subtask_ids.maxItems must be an integer; found: $maxItems")
     assertEquals(GOAL_PLANNING_WAVE_CAP, maxItems.asInt())
@@ -81,8 +82,9 @@ class IdeStatusSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = IdeStatusSchemaValidator::class.java.classLoader
-      .getResourceAsStream(IdeStatusSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      IdeStatusSchemaValidator::class.java.classLoader
+        .getResourceAsStream(IdeStatusSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical IDE status schema is missing from the classpath at " +

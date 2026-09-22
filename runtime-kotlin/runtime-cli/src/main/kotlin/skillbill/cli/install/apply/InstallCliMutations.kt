@@ -30,18 +30,23 @@ internal fun CliRunState.refuseInstallMutationDuringGoalContinuation(
   return true
 }
 
-internal fun completeNativeAgentLinkOutcome(state: CliRunState, outcome: NativeAgentLinkOutcome) {
-  val text = (
-    outcome.linked.map { path -> "linked\t$path" } +
-      outcome.skipped.map { entry -> "skipped\t${entry.path}\t${entry.reason}" }
+internal fun completeNativeAgentLinkOutcome(
+  state: CliRunState,
+  outcome: NativeAgentLinkOutcome,
+) {
+  val text =
+    (
+      outcome.linked.map { path -> "linked\t$path" } +
+        outcome.skipped.map { entry -> "skipped\t${entry.path}\t${entry.reason}" }
     ).joinToString("\n")
   state.completeText(
     text,
     mapOf(
       "linked" to outcome.linked.map(Path::toString),
-      "skipped" to outcome.skipped.map { skip ->
-        mapOf("path" to skip.path.toString(), "reason" to skip.reason)
-      },
+      "skipped" to
+        outcome.skipped.map { skip ->
+          mapOf("path" to skip.path.toString(), "reason" to skip.reason)
+        },
     ),
   )
 }

@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+
 class UpdateCheckServiceTest {
   private val installedVersion = "0.3.0-SNAPSHOT"
 
@@ -70,15 +71,17 @@ class UpdateCheckServiceTest {
 
   @Test
   fun `an unversioned build is never told to update`() {
-    val result = UpdateCheckService(
-      systemService = SystemService(
-        TestDatabaseSessionFactory(),
-        TestTelemetrySettingsProvider,
-        NoopRuntimeDiagnostics,
-        versionValue = "0.0.0-SNAPSHOT",
-      ),
-      requester = RemoteTransportPort { _, _, _, _ -> error("release list must not be consulted") },
-    ).check(includePrereleases = false)
+    val result =
+      UpdateCheckService(
+        systemService =
+          SystemService(
+            TestDatabaseSessionFactory(),
+            TestTelemetrySettingsProvider,
+            NoopRuntimeDiagnostics,
+            versionValue = "0.0.0-SNAPSHOT",
+          ),
+        requester = RemoteTransportPort { _, _, _, _ -> error("release list must not be consulted") },
+      ).check(includePrereleases = false)
 
     assertEquals(UpdateCheckStatus.UNKNOWN, result.status)
     assertEquals("0.0.0-SNAPSHOT", result.installedVersion)
@@ -118,36 +121,41 @@ class UpdateCheckServiceTest {
     val callCount = AtomicInteger(0)
     val firstEntered = CountDownLatch(1)
     val releaseFirst = CountDownLatch(1)
-    val shared = UpdateCheckService(
-      systemService = SystemService(
-        TestDatabaseSessionFactory(),
-        TestTelemetrySettingsProvider,
-        NoopRuntimeDiagnostics,
-        versionValue = installedVersion,
-      ),
-      requester = RemoteTransportPort { _, _, _, _ ->
-        when (callCount.incrementAndGet()) {
-          1 -> {
-            firstEntered.countDown()
-            releaseFirst.await()
-            RemoteTransportResponse(statusCode = 200, body = malformedBody)
-          }
-          else -> {
-            releaseFirst.countDown()
-            RemoteTransportResponse(statusCode = 200, body = validBody)
-          }
-        }
-      },
-    )
+    val shared =
+      UpdateCheckService(
+        systemService =
+          SystemService(
+            TestDatabaseSessionFactory(),
+            TestTelemetrySettingsProvider,
+            NoopRuntimeDiagnostics,
+            versionValue = installedVersion,
+          ),
+        requester =
+          RemoteTransportPort { _, _, _, _ ->
+            when (callCount.incrementAndGet()) {
+              1 -> {
+                firstEntered.countDown()
+                releaseFirst.await()
+                RemoteTransportResponse(statusCode = 200, body = malformedBody)
+              }
+              else -> {
+                releaseFirst.countDown()
+                RemoteTransportResponse(statusCode = 200, body = validBody)
+              }
+            }
+          },
+      )
     var malformedReason: String? = null
     var validStatus: UpdateCheckStatus? = null
-    val malformedThread = Thread {
-      malformedReason = shared.check(includePrereleases = false).reason
-    }
-    val validThread = Thread {
-      firstEntered.await()
-      validStatus = shared.check(includePrereleases = false).status
-    }
+    val malformedThread =
+      Thread {
+        malformedReason = shared.check(includePrereleases = false).reason
+      }
+    val validThread =
+      Thread {
+        firstEntered.await()
+        validStatus = shared.check(includePrereleases = false).status
+      }
     malformedThread.start()
     validThread.start()
     malformedThread.join()
@@ -160,40 +168,50 @@ class UpdateCheckServiceTest {
     statusCode: Int = 200,
     responseBody: String,
     versionValue: String = installedVersion,
-  ): UpdateCheckService = UpdateCheckService(
-    systemService = SystemService(
-      TestDatabaseSessionFactory(),
-      TestTelemetrySettingsProvider,
-      NoopRuntimeDiagnostics,
-      versionValue = versionValue,
-    ),
-    requester = RemoteTransportPort { method, url, _, headers ->
-      assertEquals("GET", method)
-      assertEquals("https://api.github.com/repos/Sermilion/skill-bill/releases", url)
-      assertEquals("skill-bill-update-check", headers["User-Agent"])
-      RemoteTransportResponse(statusCode = statusCode, body = responseBody)
-    },
-  )
+  ): UpdateCheckService =
+    UpdateCheckService(
+      systemService =
+        SystemService(
+          TestDatabaseSessionFactory(),
+          TestTelemetrySettingsProvider,
+          NoopRuntimeDiagnostics,
+          versionValue = versionValue,
+        ),
+      requester =
+        RemoteTransportPort { method, url, _, headers ->
+          assertEquals("GET", method)
+          assertEquals("https://api.github.com/repos/Sermilion/skill-bill/releases", url)
+          assertEquals("skill-bill-update-check", headers["User-Agent"])
+          RemoteTransportResponse(statusCode = statusCode, body = responseBody)
+        },
+    )
 }
 
 private fun releases(vararg tags: String): String =
   tags.joinToString(prefix = "[", postfix = "]") { tag -> releaseEntry(tag) }
 
-private fun releaseEntry(tag: String, prerelease: Boolean = tag.contains("-")): String = """
-      {
-        "tag_name":"$tag",
-        "prerelease":$prerelease,
-        "draft":false,
-        "html_url":"https://github.com/oila-gmbh/skill-bill/releases/tag/$tag"
-      }
-""".trimIndent()
+private fun releaseEntry(
+  tag: String,
+  prerelease: Boolean = tag.contains("-"),
+): String =
+  """
+  {
+    "tag_name":"$tag",
+    "prerelease":$prerelease,
+    "draft":false,
+    "html_url":"https://github.com/oila-gmbh/skill-bill/releases/tag/$tag"
+  }
+  """.trimIndent()
 
 private class TestDatabaseSessionFactory : DatabaseSessionFactory {
   private val dbPath = Files.createTempDirectory("skillbill-update-check-db").resolve("metrics.db")
 
   override fun resolveDbPath(): Path = dbPath
+
   override fun databaseExists(): Boolean = Files.exists(resolveDbPath())
+
   override fun <T> read(block: (UnitOfWork) -> T): T = error("unused")
+
   override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = transaction(block)
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = error("unused")

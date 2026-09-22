@@ -26,6 +26,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class FeatureSpecPreparationWriterValidationTest {
   private val validator = DecompositionManifestSchemaValidator()
   private val fileStore = FileSystemDecompositionManifestFileStore()
@@ -52,13 +53,14 @@ class FeatureSpecPreparationWriterValidationTest {
     val manifest = loadDecompositionManifest(manifestPath, fileStore, validator)
     assertManifestSupportsGoalRunner(repoRoot, result, manifest)
 
-    val goalStatus = component.goalRunnerStatusService.status(
-      GoalRunnerStatusRequest(
-        issueKey = "SKILL-59",
-        invokedAgentId = "codex",
-        repoRoot = repoRoot,
-      ),
-    )
+    val goalStatus =
+      component.goalRunnerStatusService.status(
+        GoalRunnerStatusRequest(
+          issueKey = "SKILL-59",
+          invokedAgentId = "codex",
+          repoRoot = repoRoot,
+        ),
+      )
     assertNotNull(goalStatus)
     assertEquals("SKILL-59", goalStatus.issueKey)
     assertEquals(0, goalStatus.completeCount)
@@ -67,34 +69,40 @@ class FeatureSpecPreparationWriterValidationTest {
     assertEquals(1, goalStatus.currentSubtaskId)
   }
 
-  private fun decomposedWriteRequest(): FeatureSpecWriteRequest = FeatureSpecWriteRequest(
-    decision = FeatureSpecPreparationDecision(
-      issueKey = "SKILL-59",
-      intendedOutcome = "decomposed",
-      acceptanceCriteria = listOf("Write parent and subtask specs."),
-      constraints = listOf("Reuse decomposition writer/validator seams."),
-      nonGoals = listOf("Do not run implementation."),
-      mode = FeatureSpecPreparationMode.DECOMPOSED,
-    ),
-    featureName = "feature-spec-horizontal-skill",
-    parentSpecOverview = "Prepare runtime-owned decomposition artifacts.",
-    validationStrategy = "bill-code-check",
-    subtasks = listOf(
-      FeatureSpecSubtaskPreparation(
-        id = 1,
-        name = "foundation",
-        scope = "Prepare typed write contracts.",
-        acceptanceCriteria = listOf("Shared writer models exist."),
-        nonGoals = listOf("No skill wiring."),
-        dependencyNotes = "No dependencies.",
-        validationStrategy = "bill-code-check",
-        nextPath = "Run bill-feature-task on spec_subtask_1_foundation.md.",
-        dependsOn = emptyList(),
-      ),
-    ),
-  )
+  private fun decomposedWriteRequest(): FeatureSpecWriteRequest =
+    FeatureSpecWriteRequest(
+      decision =
+        FeatureSpecPreparationDecision(
+          issueKey = "SKILL-59",
+          intendedOutcome = "decomposed",
+          acceptanceCriteria = listOf("Write parent and subtask specs."),
+          constraints = listOf("Reuse decomposition writer/validator seams."),
+          nonGoals = listOf("Do not run implementation."),
+          mode = FeatureSpecPreparationMode.DECOMPOSED,
+        ),
+      featureName = "feature-spec-horizontal-skill",
+      parentSpecOverview = "Prepare runtime-owned decomposition artifacts.",
+      validationStrategy = "bill-code-check",
+      subtasks =
+        listOf(
+          FeatureSpecSubtaskPreparation(
+            id = 1,
+            name = "foundation",
+            scope = "Prepare typed write contracts.",
+            acceptanceCriteria = listOf("Shared writer models exist."),
+            nonGoals = listOf("No skill wiring."),
+            dependencyNotes = "No dependencies.",
+            validationStrategy = "bill-code-check",
+            nextPath = "Run bill-feature-task on spec_subtask_1_foundation.md.",
+            dependsOn = emptyList(),
+          ),
+        ),
+    )
 
-  private fun assertSubtaskSpecsAreRunnable(repoRoot: Path, result: FeatureSpecWriteResult) {
+  private fun assertSubtaskSpecsAreRunnable(
+    repoRoot: Path,
+    result: FeatureSpecWriteResult,
+  ) {
     assertEquals(1, result.subtaskSpecPaths.size)
     result.subtaskSpecPaths.forEach { subtaskSpecPath ->
       val fullPath = repoRoot.resolve(subtaskSpecPath)

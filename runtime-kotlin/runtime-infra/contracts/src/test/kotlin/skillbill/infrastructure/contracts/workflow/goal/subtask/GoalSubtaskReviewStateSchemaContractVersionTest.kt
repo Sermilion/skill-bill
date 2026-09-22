@@ -18,10 +18,11 @@ class GoalSubtaskReviewStateSchemaContractVersionTest {
     assertEquals(GoalSubtaskReviewStateSchemaPaths.EXPECTED_SCHEMA_ID, schema.path("\$id").asText())
   }
 
-  private fun classpathSchema() = GoalSubtaskReviewStateSchemaContractVersionTest::class.java.classLoader
-    .getResourceAsStream(GoalSubtaskReviewStateSchemaPaths.CLASSPATH_RESOURCE)
-    .let { stream ->
-      assertNotNull(stream, "Goal-subtask review state schema is missing from the classpath.")
-      stream.use { YAMLMapper().readTree(it.readBytes().toString(Charsets.UTF_8)) }
-    }
+  private fun classpathSchema() =
+    GoalSubtaskReviewStateSchemaContractVersionTest::class.java.classLoader
+      .getResourceAsStream(GoalSubtaskReviewStateSchemaPaths.CLASSPATH_RESOURCE)
+      .let { stream ->
+        assertNotNull(stream, "Goal-subtask review state schema is missing from the classpath.")
+        stream.use { YAMLMapper().readTree(it.readBytes().toString(Charsets.UTF_8)) }
+      }
 }

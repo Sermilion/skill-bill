@@ -60,16 +60,18 @@ class GitProtectedBranchPushGuardTest {
   }
 
   private fun remoteHead(): String {
-    val process = ProcessBuilder("git", "rev-parse", "HEAD")
-      .directory(remote.toFile()).redirectErrorStream(true).start()
+    val process =
+      ProcessBuilder("git", "rev-parse", "HEAD")
+        .directory(remote.toFile()).redirectErrorStream(true).start()
     val output = process.inputStream.bufferedReader().readText().trim()
     process.waitFor()
     return output
   }
 
   private fun git(vararg args: String) {
-    val process = ProcessBuilder(listOf("git") + args)
-      .directory(repo.toFile()).redirectErrorStream(true).start()
+    val process =
+      ProcessBuilder(listOf("git") + args)
+        .directory(repo.toFile()).redirectErrorStream(true).start()
     process.inputStream.bufferedReader().readText()
     check(process.waitFor() == 0) { "git ${args.joinToString(" ")} failed" }
   }

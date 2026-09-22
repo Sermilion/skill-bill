@@ -6,12 +6,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ReviewIntegrationTerminalOutcomeTest {
-
   @Test fun `integration terminal states match the governed schema enum`() {
     val schema = Files.readString(findRepositoryFile("orchestration/contracts/review-context-schema.yaml"))
-    val enumLine = schema.lines()
-      .dropWhile { !it.contains("integration_accounting:") }
-      .first { it.trimStart().startsWith("enum: [") }
+    val enumLine =
+      schema.lines()
+        .dropWhile { !it.contains("integration_accounting:") }
+        .first { it.trimStart().startsWith("enum: [") }
     val governed = enumLine.substringAfter("[").substringBefore("]").split(",").map { it.trim() }.toSet()
 
     assertEquals(governed, ReviewIntegrationTerminalOutcome.entries.map { it.wireValue }.toSet())

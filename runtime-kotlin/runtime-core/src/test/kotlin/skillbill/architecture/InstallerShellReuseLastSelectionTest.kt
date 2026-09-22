@@ -25,27 +25,30 @@ class InstallerShellReuseLastSelectionTest {
     assertContains(run.output, "Reusing latest successful install selections")
     assertContains(run.output, "Selections:     reused latest successful install selection")
     assertEquals(
-      expectedApplyArgs(run) + listOf(
-        "--agent",
-        "codex",
-        "--agent-target",
-        "codex=${run.home.resolve("agent-targets/codex")}",
-        "--platform",
-        "kotlin",
-      ),
+      expectedApplyArgs(run) +
+        listOf(
+          "--agent",
+          "codex",
+          "--agent-target",
+          "codex=${run.home.resolve("agent-targets/codex")}",
+          "--platform",
+          "kotlin",
+        ),
       run.applyArgs,
     )
   }
 
   @Test
   fun `installer shell reuse preserves current telemetry config over stale saved selection`() {
-    val run = runInstaller(
-      extraArgs = listOf("--reuse-last-selection"),
-      options = InstallerRunOptions(
-        replayTelemetryLevel = "anonymous",
-        currentTelemetryLevel = "full",
-      ),
-    )
+    val run =
+      runInstaller(
+        extraArgs = listOf("--reuse-last-selection"),
+        options =
+          InstallerRunOptions(
+            replayTelemetryLevel = "anonymous",
+            currentTelemetryLevel = "full",
+          ),
+      )
 
     assertEquals(0, run.exitCode, run.output)
     assertContains(run.output, "Preserving current telemetry config level 'full'")
@@ -54,13 +57,15 @@ class InstallerShellReuseLastSelectionTest {
 
   @Test
   fun `installer shell reuse aborts when current telemetry config cannot be read`() {
-    val run = runInstaller(
-      extraArgs = listOf("--reuse-last-selection"),
-      options = InstallerRunOptions(
-        telemetryStatusFails = true,
-        skipPreinstallUninstall = false,
-      ),
-    )
+    val run =
+      runInstaller(
+        extraArgs = listOf("--reuse-last-selection"),
+        options =
+          InstallerRunOptions(
+            telemetryStatusFails = true,
+            skipPreinstallUninstall = false,
+          ),
+      )
 
     assertFalse(run.exitCode == 0, "installer should fail. Output:\n${run.output}")
     assertContains(run.output, "current telemetry configuration could not be read or validated")
@@ -69,13 +74,15 @@ class InstallerShellReuseLastSelectionTest {
 
   @Test
   fun `installer shell reuse failure exits before cleanup`() {
-    val run = runInstaller(
-      extraArgs = listOf("--reuse-last-selection"),
-      options = InstallerRunOptions(
-        reuseSelection = "missing",
-        skipPreinstallUninstall = false,
-      ),
-    )
+    val run =
+      runInstaller(
+        extraArgs = listOf("--reuse-last-selection"),
+        options =
+          InstallerRunOptions(
+            reuseSelection = "missing",
+            skipPreinstallUninstall = false,
+          ),
+      )
 
     assertFalse(run.exitCode == 0, "installer should fail. Output:\n${run.output}")
     assertContains(run.output, "Cannot reuse saved install selections")
@@ -99,26 +106,27 @@ class InstallerShellReuseLastSelectionTest {
     }
 
     val command = mutableListOf("bash", testRepo.resolve("install.sh").toString()).apply { addAll(extraArgs) }
-    val process = ProcessBuilder(command)
-      .directory(testRepo.toFile())
-      .redirectErrorStream(true)
-      .apply {
-        environment()["HOME"] = home.toString()
-        environment()["SKILL_BILL_BIN_DIR"] = binDir.toString()
-        environment()["SKILL_BILL_SKIP_RUNTIME_DISTRIBUTION_BUILD"] = "1"
-        environment()["SKILL_BILL_TEST_RUNTIME_LOG"] = logPath.toString()
-        environment()["SKILL_BILL_TEST_REUSE_SELECTION"] = options.reuseSelection
-        environment()["SKILL_BILL_TEST_REPLAY_TELEMETRY"] = options.replayTelemetryLevel
-        options.currentTelemetryLevel?.let { environment()["SKILL_BILL_TEST_CURRENT_TELEMETRY"] = it }
-        if (options.telemetryStatusFails) environment()["SKILL_BILL_TEST_TELEMETRY_STATUS_FAILS"] = "1"
-        if (options.skipPreinstallUninstall) {
-          environment()["SKILL_BILL_SKIP_PREINSTALL_UNINSTALL"] = "1"
+    val process =
+      ProcessBuilder(command)
+        .directory(testRepo.toFile())
+        .redirectErrorStream(true)
+        .apply {
+          environment()["HOME"] = home.toString()
+          environment()["SKILL_BILL_BIN_DIR"] = binDir.toString()
+          environment()["SKILL_BILL_SKIP_RUNTIME_DISTRIBUTION_BUILD"] = "1"
+          environment()["SKILL_BILL_TEST_RUNTIME_LOG"] = logPath.toString()
+          environment()["SKILL_BILL_TEST_REUSE_SELECTION"] = options.reuseSelection
+          environment()["SKILL_BILL_TEST_REPLAY_TELEMETRY"] = options.replayTelemetryLevel
+          options.currentTelemetryLevel?.let { environment()["SKILL_BILL_TEST_CURRENT_TELEMETRY"] = it }
+          if (options.telemetryStatusFails) environment()["SKILL_BILL_TEST_TELEMETRY_STATUS_FAILS"] = "1"
+          if (options.skipPreinstallUninstall) {
+            environment()["SKILL_BILL_SKIP_PREINSTALL_UNINSTALL"] = "1"
+          }
+          environment().remove("DISPLAY")
+          environment().remove("WAYLAND_DISPLAY")
+          environment().remove("SKILL_BILL_GOAL_CONTINUATION")
         }
-        environment().remove("DISPLAY")
-        environment().remove("WAYLAND_DISPLAY")
-        environment().remove("SKILL_BILL_GOAL_CONTINUATION")
-      }
-      .start()
+        .start()
     process.outputStream.bufferedWriter().use { writer -> writer.write("") }
     val output = process.inputStream.bufferedReader().readText()
     val exitCode = process.waitFor()
@@ -153,7 +161,8 @@ class InstallerShellReuseLastSelectionTest {
     mcpBin.toFile().setExecutable(true)
   }
 
-  private fun runtimeCliStub(): String = """
+  private fun runtimeCliStub(): String =
+    """
     |#!/usr/bin/env bash
     |set -euo pipefail
     |{
@@ -202,7 +211,7 @@ class InstallerShellReuseLastSelectionTest {
     |fi
     |exit 2
     |
-  """.trimMargin()
+    """.trimMargin()
 
   private fun parseApplyArgs(logPath: Path): List<String> {
     if (!Files.exists(logPath)) {
@@ -219,42 +228,42 @@ class InstallerShellReuseLastSelectionTest {
     return calls.singleOrNull { args -> args.drop(2).take(2) == listOf("install", "apply") }.orEmpty()
   }
 
-  private fun expectedApplyArgs(run: InstallerRun): List<String> = listOf(
-    "--home",
-    run.home.toString(),
-    "install",
-    "apply",
-
-    "--repo-root",
-    run.home.resolve(".skill-bill").toString(),
-    "--skills",
-    run.home.resolve(".skill-bill/skills").toString(),
-    "--platform-packs",
-    run.home.resolve(".skill-bill/platform-packs").toString(),
-    "--agent-mode",
-    "manual",
-    "--platform-mode",
-    "selected",
-    "--telemetry",
-    "full",
-    "--mcp",
-    "register",
-    "--replace-existing-skill-bill-links",
-    "--runtime-install-root",
-    run.home.resolve(".skill-bill/runtime").toString(),
-    "--runtime-cli-build-dir",
-    run.repoRoot.resolve("runtime-kotlin/runtime-cli/build/install/runtime-cli").toString(),
-    "--runtime-mcp-build-dir",
-    run.repoRoot.resolve("runtime-kotlin/runtime-mcp/build/install/runtime-mcp").toString(),
-    "--runtime-cli-install-dir",
-    run.home.resolve(".skill-bill/runtime/runtime-cli").toString(),
-    "--runtime-mcp-install-dir",
-    run.home.resolve(".skill-bill/runtime/runtime-mcp").toString(),
-    "--runtime-launcher-bin-dir",
-    run.binDir.toString(),
-    "--runtime-mcp-bin",
-    run.home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp").toString(),
-  )
+  private fun expectedApplyArgs(run: InstallerRun): List<String> =
+    listOf(
+      "--home",
+      run.home.toString(),
+      "install",
+      "apply",
+      "--repo-root",
+      run.home.resolve(".skill-bill").toString(),
+      "--skills",
+      run.home.resolve(".skill-bill/skills").toString(),
+      "--platform-packs",
+      run.home.resolve(".skill-bill/platform-packs").toString(),
+      "--agent-mode",
+      "manual",
+      "--platform-mode",
+      "selected",
+      "--telemetry",
+      "full",
+      "--mcp",
+      "register",
+      "--replace-existing-skill-bill-links",
+      "--runtime-install-root",
+      run.home.resolve(".skill-bill/runtime").toString(),
+      "--runtime-cli-build-dir",
+      run.repoRoot.resolve("runtime-kotlin/runtime-cli/build/install/runtime-cli").toString(),
+      "--runtime-mcp-build-dir",
+      run.repoRoot.resolve("runtime-kotlin/runtime-mcp/build/install/runtime-mcp").toString(),
+      "--runtime-cli-install-dir",
+      run.home.resolve(".skill-bill/runtime/runtime-cli").toString(),
+      "--runtime-mcp-install-dir",
+      run.home.resolve(".skill-bill/runtime/runtime-mcp").toString(),
+      "--runtime-launcher-bin-dir",
+      run.binDir.toString(),
+      "--runtime-mcp-bin",
+      run.home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp").toString(),
+    )
 
   private data class InstallerRun(
     val repoRoot: Path,

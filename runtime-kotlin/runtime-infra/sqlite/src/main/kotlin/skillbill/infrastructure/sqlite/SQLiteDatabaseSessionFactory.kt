@@ -19,6 +19,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.SQLException
 import java.time.Clock
+
 @Inject
 class SQLiteDatabaseSessionFactory(
   context: EnvironmentContext,
@@ -80,22 +81,24 @@ class SQLiteDatabaseSessionFactory(
       }
     }
 
-  override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = withWriteDatabase { openDb ->
-    block(unitOfWork(openDb))
-  }
-
-  override fun <T> transaction(block: (UnitOfWork) -> T): T = withWriteDatabase { openDb ->
-    openDb.connection.inDatabaseTransaction(
-      DatabaseTransactionSpec(
-        dbPath = openDb.dbPath,
-        beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
-        operation = DatabaseAccessOperation.WRITE,
-        diagnostics = diagnostics,
-      ),
-    ) {
+  override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T =
+    withWriteDatabase { openDb ->
       block(unitOfWork(openDb))
     }
-  }
+
+  override fun <T> transaction(block: (UnitOfWork) -> T): T =
+    withWriteDatabase { openDb ->
+      openDb.connection.inDatabaseTransaction(
+        DatabaseTransactionSpec(
+          dbPath = openDb.dbPath,
+          beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
+          operation = DatabaseAccessOperation.WRITE,
+          diagnostics = diagnostics,
+        ),
+      ) {
+        block(unitOfWork(openDb))
+      }
+    }
 
   private fun unitOfWork(openDb: OpenDatabase): SQLiteUnitOfWork =
     SQLiteUnitOfWork(openDb.connection, openDb.dbPath, clock, diagnostics)
@@ -114,7 +117,10 @@ class SQLiteDatabaseSessionFactory(
   }
 }
 
-private fun throwReadFailure(dbPath: Path, error: Throwable): Nothing {
+private fun throwReadFailure(
+  dbPath: Path,
+  error: Throwable,
+): Nothing {
   if (error is SQLException) {
     throw databaseAccessError(dbPath, DatabaseAccessOperation.READ, error)
   }

@@ -6,13 +6,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class IssueKeyShapeTest {
   @Test
   fun `effective issue-key bounds load from the packaged schema document`() {
-    val document = IssueKeyShape::class.java.classLoader
-      .getResourceAsStream(IssueKeyShape.RESOURCE_PATH)
-      ?.use { stream -> stream.readBytes().decodeToString() }
-      ?: error("issue-key schema is missing from the classpath")
+    val document =
+      IssueKeyShape::class.java.classLoader
+        .getResourceAsStream(IssueKeyShape.RESOURCE_PATH)
+        ?.use { stream -> stream.readBytes().decodeToString() }
+        ?: error("issue-key schema is missing from the classpath")
     val parsed = IssueKeyShape.parse(document)
     assertEquals(parsed.maxLength, IssueKeyShape.maxLength)
     assertEquals(parsed.pattern, IssueKeyShape.jsonSchemaPattern)
@@ -21,11 +23,12 @@ class IssueKeyShapeTest {
 
   @Test
   fun `schema loader rejects fractional maxLength values`() {
-    val document = IssueKeyShape::class.java.classLoader
-      .getResourceAsStream(IssueKeyShape.RESOURCE_PATH)
-      ?.use { stream -> stream.readBytes().decodeToString() }
-      ?.replace("maxLength: 128", "maxLength: 1.9")
-      ?: error("issue-key schema is missing from the classpath")
+    val document =
+      IssueKeyShape::class.java.classLoader
+        .getResourceAsStream(IssueKeyShape.RESOURCE_PATH)
+        ?.use { stream -> stream.readBytes().decodeToString() }
+        ?.replace("maxLength: 128", "maxLength: 1.9")
+        ?: error("issue-key schema is missing from the classpath")
     assertFailsWith<InvalidIssueKeySchemaError> {
       IssueKeyShape.parse(document)
     }
@@ -33,11 +36,12 @@ class IssueKeyShapeTest {
 
   @Test
   fun `schema loader rejects maxLength overflow instead of narrowing to Int`() {
-    val document = IssueKeyShape::class.java.classLoader
-      .getResourceAsStream(IssueKeyShape.RESOURCE_PATH)
-      ?.use { stream -> stream.readBytes().decodeToString() }
-      ?.replace("maxLength: 128", "maxLength: 4294967297")
-      ?: error("issue-key schema is missing from the classpath")
+    val document =
+      IssueKeyShape::class.java.classLoader
+        .getResourceAsStream(IssueKeyShape.RESOURCE_PATH)
+        ?.use { stream -> stream.readBytes().decodeToString() }
+        ?.replace("maxLength: 128", "maxLength: 4294967297")
+        ?: error("issue-key schema is missing from the classpath")
 
     assertFailsWith<InvalidIssueKeySchemaError> {
       IssueKeyShape.parse(document)

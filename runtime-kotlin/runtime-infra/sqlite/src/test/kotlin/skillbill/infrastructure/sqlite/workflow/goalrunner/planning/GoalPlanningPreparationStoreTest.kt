@@ -103,9 +103,10 @@ class GoalPlanningPreparationStoreTest {
     DriverManager.getConnection("jdbc:sqlite:$dbPath").use { writer ->
       writer.createStatement().use { it.execute("BEGIN IMMEDIATE") }
       try {
-        val status = database.read { unitOfWork ->
-          unitOfWork.goalPlanningPreparations.boundedStatus("goal-contention", listOf(1, 2))
-        }
+        val status =
+          database.read { unitOfWork ->
+            unitOfWork.goalPlanningPreparations.boundedStatus("goal-contention", listOf(1, 2))
+          }
         assertEquals(GoalPlanningStatusState.NOT_STARTED, status.state)
       } finally {
         writer.createStatement().use { it.execute("ROLLBACK") }
@@ -350,10 +351,11 @@ class GoalPlanningPreparationStoreTest {
       val original = preparationRecord(parentGoalWorkflowId = "goal-1", subtaskId = 1, subSpecHash = "sub-spec-A")
       store.markPrepared(original)
 
-      val conflicting = original.copy(
-        provenance = original.provenance.copy(subSpecHash = "sub-spec-B"),
-        planPayload = """{"phase_id":"plan","v":2}""",
-      )
+      val conflicting =
+        original.copy(
+          provenance = original.provenance.copy(subSpecHash = "sub-spec-B"),
+          planPayload = """{"phase_id":"plan","v":2}""",
+        )
 
       assertFailsWith<IncompatibleGoalPlanningPreparationRecoveryError> { store.markPrepared(conflicting) }
 
@@ -367,11 +369,12 @@ class GoalPlanningPreparationStoreTest {
   fun `marking a same-key pair with a diverging repository identity fails loudly`() {
     DatabaseRuntime.ensureDatabase(tempDb()).use { connection ->
       val store = GoalPlanningPreparationStore(connection)
-      val original = preparationRecord(
-        parentGoalWorkflowId = "goal-1",
-        subtaskId = 1,
-        repositoryIdentity = "repo-root-realpath-v1:/repo-a",
-      )
+      val original =
+        preparationRecord(
+          parentGoalWorkflowId = "goal-1",
+          subtaskId = 1,
+          repositoryIdentity = "repo-root-realpath-v1:/repo-a",
+        )
       store.markPrepared(original)
 
       val conflicting = original.copy(repositoryIdentity = "repo-root-realpath-v1:/repo-b")
@@ -502,8 +505,9 @@ class GoalPlanningPreparationStoreMutationTest {
   fun `malformed envelope with pending status is rejected at the checkpoint seam`() {
     DatabaseRuntime.ensureDatabase(tempDb()).use { connection ->
       val store = GoalPlanningPreparationStore(connection)
-      val pending = preparationRecord(parentGoalWorkflowId = "goal-1", subtaskId = 1)
-        .copy(preparationStatus = GoalPlanningPreparationState.PENDING)
+      val pending =
+        preparationRecord(parentGoalWorkflowId = "goal-1", subtaskId = 1)
+          .copy(preparationStatus = GoalPlanningPreparationState.PENDING)
 
       assertFailsWith<InvalidGoalPlanningPreparationSchemaError> { store.markPrepared(pending) }
     }
@@ -513,13 +517,15 @@ class GoalPlanningPreparationStoreMutationTest {
   fun `malformed envelope missing provenance hashes is rejected`() {
     DatabaseRuntime.ensureDatabase(tempDb()).use { connection ->
       val store = GoalPlanningPreparationStore(connection)
-      val record = preparationRecord(parentGoalWorkflowId = "goal-1", subtaskId = 1).copy(
-        provenance = GoalPlanningPreparationProvenance(
-          parentSpecHash = "",
-          subSpecHash = "sub",
-          decompositionManifestHash = "manifest",
-        ),
-      )
+      val record =
+        preparationRecord(parentGoalWorkflowId = "goal-1", subtaskId = 1).copy(
+          provenance =
+            GoalPlanningPreparationProvenance(
+              parentSpecHash = "",
+              subSpecHash = "sub",
+              decompositionManifestHash = "manifest",
+            ),
+        )
 
       assertFailsWith<InvalidGoalPlanningPreparationSchemaError> { store.markPrepared(record) }
     }
@@ -530,9 +536,10 @@ class GoalPlanningPreparationStoreMutationTest {
     DatabaseRuntime.ensureDatabase(tempDb()).use { connection ->
       val store = GoalPlanningPreparationStore(connection)
       val base = preparationRecord(parentGoalWorkflowId = "goal-1", subtaskId = 1)
-      val record = base.copy(
-        provenance = base.provenance.copy(phaseOutputContractVersion = "9.9"),
-      )
+      val record =
+        base.copy(
+          provenance = base.provenance.copy(phaseOutputContractVersion = "9.9"),
+        )
 
       assertFailsWith<InvalidGoalPlanningPreparationSchemaError> { store.markPrepared(record) }
       assertNull(store.findByGoalAndSubtask("goal-1", 1))
@@ -731,11 +738,12 @@ class GoalPlanningPreparationStoreMutationTest {
       store.checkpointSharedPreplan(sharedCheckpoint())
       store.checkpointSubtaskPlan(planCheckpoint(1, 0))
       store.checkpointSubtaskPlan(planCheckpoint(2, 1))
-      val replacement = sharedCheckpoint().copy(
-        payloadSha256 = "9".repeat(64),
-        preplanPayload = "regenerated-preplan",
-        provenance = provenance().copy(parentSpecHash = "d".repeat(64)),
-      )
+      val replacement =
+        sharedCheckpoint().copy(
+          payloadSha256 = "9".repeat(64),
+          preplanPayload = "regenerated-preplan",
+          provenance = provenance().copy(parentSpecHash = "d".repeat(64)),
+        )
 
       store.replaceSharedPreplan(replacement, sharedCheckpoint().payloadSha256, cascadePlanSubtaskIds = listOf(2))
 
@@ -800,10 +808,11 @@ class GoalPlanningPreparationStoreMutationTest {
       val store = GoalPlanningPreparationStore(connection)
       store.checkpointSharedPreplan(sharedCheckpoint())
       store.checkpointSubtaskPlan(planCheckpoint(1, 0))
-      val drifted = planCheckpoint(1, 0).copy(
-        provenance = provenance().copy(parentSpecHash = "f".repeat(64)),
-        planPayload = "regenerated-plan",
-      )
+      val drifted =
+        planCheckpoint(1, 0).copy(
+          provenance = provenance().copy(parentSpecHash = "f".repeat(64)),
+          planPayload = "regenerated-plan",
+        )
 
       assertFailsWith<IncompatibleGoalPlanningPreparationRecoveryError> { store.replaceSubtaskPlan(drifted) }
       assertEquals(

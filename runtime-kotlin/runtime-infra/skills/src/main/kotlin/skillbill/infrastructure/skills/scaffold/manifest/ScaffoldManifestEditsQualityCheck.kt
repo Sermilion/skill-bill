@@ -1,6 +1,7 @@
 
 package skillbill.infrastructure.skills.scaffold.manifest
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
+
 private val QUALITY_CHECK_KEY_PATTERN =
   Regex("^declared_quality_check_file:\\s*(.+)$", RegexOption.MULTILINE)
 private val DECLARED_FILES_BLOCK_PATTERN =
@@ -14,14 +15,18 @@ internal fun sanitizeCatalogDescription(description: String): String {
   return escaped.ifBlank { "TODO: describe this skill." }
 }
 
-internal fun updateDeclaredQualityCheckFileText(text: String, relativeContentPath: String): String =
+internal fun updateDeclaredQualityCheckFileText(
+  text: String,
+  relativeContentPath: String,
+): String =
   QUALITY_CHECK_KEY_PATTERN.find(text)?.let { match ->
     text.replaceRange(match.range, "declared_quality_check_file: ${yamlScalar(relativeContentPath)}")
   } ?: run {
-    val blockMatch = DECLARED_FILES_BLOCK_PATTERN.find(text)
-      ?: throw InvalidScaffoldPayloadError(
-        "Manifest is missing 'declared_files:' block; refusing to append declared_quality_check_file.",
-      )
+    val blockMatch =
+      DECLARED_FILES_BLOCK_PATTERN.find(text)
+        ?: throw InvalidScaffoldPayloadError(
+          "Manifest is missing 'declared_files:' block; refusing to append declared_quality_check_file.",
+        )
     val insertion = "\ndeclared_quality_check_file: ${yamlScalar(relativeContentPath)}\n"
     text.replaceRange(blockMatch.range.last + 1, blockMatch.range.last + 1, insertion)
   }

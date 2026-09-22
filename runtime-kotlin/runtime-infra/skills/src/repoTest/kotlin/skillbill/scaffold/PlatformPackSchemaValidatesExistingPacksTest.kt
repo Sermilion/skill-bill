@@ -11,6 +11,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertTrue
+
 class PlatformPackSchemaValidatesExistingPacksTest {
   @Test
   fun `canonical schema validates shipped platform_yamls`() {

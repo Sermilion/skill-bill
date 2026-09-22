@@ -8,12 +8,13 @@ value class FileLocation(val value: String) : Comparable<FileLocation> {
 
   val segments: List<String> get() = value.split(SEPARATOR).filter(String::isNotEmpty)
 
-  fun resolve(segment: String): FileLocation = when {
-    segment.startsWith(SEPARATOR) -> FileLocation(segment)
-    value.isEmpty() -> FileLocation(segment)
-    segment.isEmpty() -> this
-    else -> FileLocation(value.trimEnd(SEPARATOR) + SEPARATOR + segment)
-  }
+  fun resolve(segment: String): FileLocation =
+    when {
+      segment.startsWith(SEPARATOR) -> FileLocation(segment)
+      value.isEmpty() -> FileLocation(segment)
+      segment.isEmpty() -> this
+      else -> FileLocation(value.trimEnd(SEPARATOR) + SEPARATOR + segment)
+    }
 
   fun normalized(): FileLocation {
     val resolved = mutableListOf<String>()

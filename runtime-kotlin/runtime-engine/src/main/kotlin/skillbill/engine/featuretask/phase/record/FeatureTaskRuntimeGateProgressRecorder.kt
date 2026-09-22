@@ -20,7 +20,10 @@ import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidat
 interface FeatureTaskRuntimeReadinessEvidencePort {
   fun loadReadinessEvidence(workflowId: String): FeatureTaskRuntimeReadinessEvidence?
 
-  fun persistReadinessEvidence(workflowId: String, evidence: FeatureTaskRuntimeReadinessEvidence)
+  fun persistReadinessEvidence(
+    workflowId: String,
+    evidence: FeatureTaskRuntimeReadinessEvidence,
+  )
 }
 
 class FeatureTaskRuntimeGateProgressRecorder(
@@ -30,19 +33,24 @@ class FeatureTaskRuntimeGateProgressRecorder(
   fun loadValidationGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      val raw = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[
-        FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY,
-      ]
+      val raw =
+        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[
+          FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY,
+        ]
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null
       decodeValidationGateProgressFromArtifact(artifact)
     }
 
-  fun persistValidationGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress) {
+  fun persistValidationGateProgress(
+    workflowId: String,
+    progress: FeatureTaskRuntimeValidationGateProgress,
+  ) {
     database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-        ?: throw InvalidWorkflowStateSchemaError(
-          "Cannot persist validation gate progress: workflow '$workflowId' is missing.",
-        )
+      val record =
+        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          ?: throw InvalidWorkflowStateSchemaError(
+            "Cannot persist validation gate progress: workflow '$workflowId' is missing.",
+          )
       workflowPersistence.persistArtifactsPatch(
         unitOfWork.workflowStates,
         record,
@@ -54,9 +62,10 @@ class FeatureTaskRuntimeGateProgressRecorder(
   fun loadBuildGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      val raw = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[
-        FEATURE_TASK_RUNTIME_BUILD_GATE_PROGRESS_ARTIFACT_KEY,
-      ]
+      val raw =
+        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[
+          FEATURE_TASK_RUNTIME_BUILD_GATE_PROGRESS_ARTIFACT_KEY,
+        ]
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null
       decodeValidationGateProgressFromArtifact(artifact)
     }
@@ -73,19 +82,24 @@ class FeatureTaskRuntimeGateProgressRecorder(
   override fun loadReadinessEvidence(workflowId: String): FeatureTaskRuntimeReadinessEvidence? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      val raw = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[
-        FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_ARTIFACT_KEY,
-      ]
+      val raw =
+        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[
+          FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_ARTIFACT_KEY,
+        ]
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null
       decodeReadinessEvidenceFromArtifact(artifact, FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_ARTIFACT_KEY)
     }
 
-  override fun persistReadinessEvidence(workflowId: String, evidence: FeatureTaskRuntimeReadinessEvidence) {
+  override fun persistReadinessEvidence(
+    workflowId: String,
+    evidence: FeatureTaskRuntimeReadinessEvidence,
+  ) {
     database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-        ?: throw InvalidWorkflowStateSchemaError(
-          "Cannot persist readiness evidence: workflow '$workflowId' is missing.",
-        )
+      val record =
+        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          ?: throw InvalidWorkflowStateSchemaError(
+            "Cannot persist readiness evidence: workflow '$workflowId' is missing.",
+          )
       workflowPersistence.persistArtifactsPatch(
         unitOfWork.workflowStates,
         record,
@@ -94,12 +108,16 @@ class FeatureTaskRuntimeGateProgressRecorder(
     }
   }
 
-  fun persistBuildGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress) {
+  fun persistBuildGateProgress(
+    workflowId: String,
+    progress: FeatureTaskRuntimeValidationGateProgress,
+  ) {
     database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-        ?: throw InvalidWorkflowStateSchemaError(
-          "Cannot persist build gate progress: workflow '$workflowId' is missing.",
-        )
+      val record =
+        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          ?: throw InvalidWorkflowStateSchemaError(
+            "Cannot persist build gate progress: workflow '$workflowId' is missing.",
+          )
       workflowPersistence.persistArtifactsPatch(
         unitOfWork.workflowStates,
         record,

@@ -3,6 +3,7 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFindingBoundary
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeading
 import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
+
 fun FeatureTaskRuntimeFindingVerificationBoundaryMemory.selectionsRequiringBodyDelivery(
   sections: List<FeatureTaskRuntimeFindingBoundaryMemorySection>,
   dispositions: List<FeatureTaskRuntimeFindingVerificationDisposition>,
@@ -11,10 +12,11 @@ fun FeatureTaskRuntimeFindingVerificationBoundaryMemory.selectionsRequiringBodyD
   return dispositions.mapNotNull { disposition ->
     val section = sectionByFindingId[disposition.findingId] ?: return@mapNotNull null
     if (section.discovery.boundaryContextUnavailable) return@mapNotNull null
-    val validated = catalogValidatedBoundaryHeadings(
-      catalog = section.discovery.boundaryCatalog,
-      selected = disposition.selectedBoundaryHeadings,
-    )
+    val validated =
+      catalogValidatedBoundaryHeadings(
+        catalog = section.discovery.boundaryCatalog,
+        selected = disposition.selectedBoundaryHeadings,
+      )
     if (validated.isEmpty()) return@mapNotNull null
     disposition.findingId to validated
   }.toMap()
@@ -33,10 +35,11 @@ fun FeatureTaskRuntimeFindingVerificationBoundaryMemory.validateDispositionBound
 fun FeatureTaskRuntimeFindingVerificationBoundaryMemory.validateDispositionBoundaryProvenance(
   sections: List<FeatureTaskRuntimeFindingBoundaryMemorySection>,
   dispositions: List<FeatureTaskRuntimeFindingVerificationDisposition>,
-): String? = when {
-  sections.isEmpty() && dispositions.isEmpty() -> null
-  else -> null
-}
+): String? =
+  when {
+    sections.isEmpty() && dispositions.isEmpty() -> null
+    else -> null
+  }
 
 fun catalogValidatedBoundaryHeadings(
   catalog: List<GoalPlanningBoundaryHeading>,
@@ -54,10 +57,11 @@ fun FeatureTaskRuntimeFindingVerificationBoundaryMemory.validatePersistedBoundar
 ): String? {
   val sectionByFindingId = sections.associateBy(FeatureTaskRuntimeFindingBoundaryMemorySection::findingId)
   return persisted.firstNotNullOfOrNull { (findingId, persistedForFinding) ->
-    val disposition = dispositions.firstOrNull { it.findingId == findingId }
-      ?: return@firstNotNullOfOrNull (
-        "finding verification disposition must cover every finding whose boundary headings were " +
-          "delivered; missing finding_id $findingId."
+    val disposition =
+      dispositions.firstOrNull { it.findingId == findingId }
+        ?: return@firstNotNullOfOrNull (
+          "finding verification disposition must cover every finding whose boundary headings were " +
+            "delivered; missing finding_id $findingId."
         )
     val catalog = sectionByFindingId[findingId]?.discovery?.boundaryCatalog.orEmpty()
     val validated = catalogValidatedBoundaryHeadings(catalog, disposition.selectedBoundaryHeadings)

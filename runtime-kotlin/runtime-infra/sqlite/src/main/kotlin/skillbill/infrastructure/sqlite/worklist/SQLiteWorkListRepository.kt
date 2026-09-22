@@ -17,6 +17,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+
 internal class SQLiteWorkListRepository(
   private val connection: Connection,
 ) : WorkListRepository {
@@ -35,7 +36,8 @@ internal class SQLiteWorkListRepository(
   }
 }
 
-private fun query(): String = """
+private fun query(): String =
+  """
   SELECT issue_key, workflow_kind, workflow_id, started_at, current_state,
          state_entered_at, state_entered_at_estimated
   FROM (
@@ -72,9 +74,10 @@ private fun query(): String = """
   )
   ORDER BY unixepoch(started_at) DESC, ${fractionalSecondsSql("started_at")} DESC, workflow_id DESC
   LIMIT ?
-""".trimIndent()
+  """.trimIndent()
 
-private fun fractionalSecondsSql(columnName: String): String = """
+private fun fractionalSecondsSql(columnName: String): String =
+  """
   CASE
     WHEN instr($columnName, '.') = 0 THEN 0
     ELSE CAST('0.' || substr(
@@ -91,28 +94,32 @@ private fun fractionalSecondsSql(columnName: String): String = """
       END
     ) AS REAL)
   END
-""".trimIndent()
+  """.trimIndent()
 
 private fun ResultSet.toWorkItem(): WorkItem {
   val workflowId = required("workflow_id")
   val kindValue = required("workflow_kind")
-  val kind = WorkItemKind.entries.firstOrNull { it.wireValue == kindValue }
-    ?: invalid(workflowId, "unknown workflow kind '$kindValue'")
-  val estimatedValue = getObject("state_entered_at_estimated")
-    ?: invalid(workflowId, "missing state_entered_at_estimated")
-  val estimated = when ((estimatedValue as? Number)?.toInt()) {
-    0 -> false
-    1 -> true
-    else -> invalid(workflowId, "invalid state_entered_at_estimated '$estimatedValue'")
-  }
+  val kind =
+    WorkItemKind.entries.firstOrNull { it.wireValue == kindValue }
+      ?: invalid(workflowId, "unknown workflow kind '$kindValue'")
+  val estimatedValue =
+    getObject("state_entered_at_estimated")
+      ?: invalid(workflowId, "missing state_entered_at_estimated")
+  val estimated =
+    when ((estimatedValue as? Number)?.toInt()) {
+      0 -> false
+      1 -> true
+      else -> invalid(workflowId, "invalid state_entered_at_estimated '$estimatedValue'")
+    }
   return WorkItem(
     issueKey = getString(SharedPayloadKeys.ISSUE_KEY)?.trim()?.takeIf(String::isNotEmpty),
     workflowKind = kind,
     workflowId = workflowId,
     startedAt = parseInstant(required("started_at"), workflowId, "started_at"),
-    currentState = required("current_state").also { state ->
-      if (state !in validWorkStates) invalid(workflowId, "unknown current state '$state'")
-    },
+    currentState =
+      required("current_state").also { state ->
+        if (state !in validWorkStates) invalid(workflowId, "unknown current state '$state'")
+      },
     stateEnteredAt = parseInstant(required("state_entered_at"), workflowId, "state_entered_at"),
     stateEnteredAtEstimated = estimated,
   )
@@ -130,7 +137,11 @@ private fun ResultSet.required(column: String): String {
   return value
 }
 
-private fun parseInstant(value: String, workflowId: String, column: String): Instant =
+private fun parseInstant(
+  value: String,
+  workflowId: String,
+  column: String,
+): Instant =
   runCatching { Instant.parse(value) }
     .recoverCatching { OffsetDateTime.parse(value).toInstant() }
     .recoverCatching {
@@ -141,7 +152,11 @@ private fun parseInstant(value: String, workflowId: String, column: String): Ins
       throw error
     }
 
-private fun invalid(workflowId: String, detail: String, cause: Throwable? = null): Nothing {
+private fun invalid(
+  workflowId: String,
+  detail: String,
+  cause: Throwable? = null,
+): Nothing {
   val label = if (workflowId.isBlank()) "<unknown>" else workflowId
   throw InvalidWorkListRowError("Work-list row '$label' $detail.", cause)
 }

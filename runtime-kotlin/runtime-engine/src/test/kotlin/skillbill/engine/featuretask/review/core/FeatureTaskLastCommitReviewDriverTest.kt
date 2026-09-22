@@ -19,19 +19,20 @@ class FeatureTaskLastCommitReviewDriverTest {
   @Test
   fun `last-commit review launches one mutating agent in the repo without evidence isolation`() {
     val captured = mutableListOf<GoalRunnerSubtaskLaunchRequest>()
-    val driver = FeatureTaskLastCommitReviewDriver(
-      GoalRunnerSubtaskLauncher { launch ->
-        captured += launch
-        AgentRunLaunchFacts(
-          agent = InstallAgent.CURSOR,
-          exitStatus = 0,
-          stdout = "reviewed last commit\nverdict: approved",
-          stderr = "",
-          timedOut = false,
-          spawnFailed = false,
-        )
-      },
-    )
+    val driver =
+      FeatureTaskLastCommitReviewDriver(
+        GoalRunnerSubtaskLauncher { launch ->
+          captured += launch
+          AgentRunLaunchFacts(
+            agent = InstallAgent.CURSOR,
+            exitStatus = 0,
+            stdout = "reviewed last commit\nverdict: approved",
+            stderr = "",
+            timedOut = false,
+            spawnFailed = false,
+          )
+        },
+      )
 
     val result = driver.run(reviewRequest())
 
@@ -57,18 +58,19 @@ class FeatureTaskLastCommitReviewDriverTest {
 
   @Test
   fun `remaining blocker findings parse into the driver register`() {
-    val driver = FeatureTaskLastCommitReviewDriver(
-      GoalRunnerSubtaskLauncher {
-        AgentRunLaunchFacts(
-          agent = InstallAgent.CURSOR,
-          exitStatus = 0,
-          stdout = "- [F-001] Blocker | High | src/main/App.kt:42 | remaining defect\nverdict: changes_requested",
-          stderr = "",
-          timedOut = false,
-          spawnFailed = false,
-        )
-      },
-    )
+    val driver =
+      FeatureTaskLastCommitReviewDriver(
+        GoalRunnerSubtaskLauncher {
+          AgentRunLaunchFacts(
+            agent = InstallAgent.CURSOR,
+            exitStatus = 0,
+            stdout = "- [F-001] Blocker | High | src/main/App.kt:42 | remaining defect\nverdict: changes_requested",
+            stderr = "",
+            timedOut = false,
+            spawnFailed = false,
+          )
+        },
+      )
 
     val result = driver.run(reviewRequest())
 
@@ -82,18 +84,19 @@ class FeatureTaskLastCommitReviewDriverTest {
 
   @Test
   fun `a hung child is a failed lane not an approved empty register`() {
-    val driver = FeatureTaskLastCommitReviewDriver(
-      GoalRunnerSubtaskLauncher {
-        AgentRunLaunchFacts(
-          agent = InstallAgent.CURSOR,
-          exitStatus = null,
-          stdout = "",
-          stderr = "",
-          timedOut = true,
-          spawnFailed = false,
-        )
-      },
-    )
+    val driver =
+      FeatureTaskLastCommitReviewDriver(
+        GoalRunnerSubtaskLauncher {
+          AgentRunLaunchFacts(
+            agent = InstallAgent.CURSOR,
+            exitStatus = null,
+            stdout = "",
+            stderr = "",
+            timedOut = true,
+            spawnFailed = false,
+          )
+        },
+      )
 
     val result = driver.run(reviewRequest())
 
@@ -104,11 +107,12 @@ class FeatureTaskLastCommitReviewDriverTest {
 
   @Test
   fun `unsupported agent fails the lane`() {
-    val driver = FeatureTaskLastCommitReviewDriver(
-      GoalRunnerSubtaskLauncher {
-        UnsupportedAgentRunLaunch(agent = InstallAgent.CURSOR, reason = "cursor is not installed")
-      },
-    )
+    val driver =
+      FeatureTaskLastCommitReviewDriver(
+        GoalRunnerSubtaskLauncher {
+          UnsupportedAgentRunLaunch(agent = InstallAgent.CURSOR, reason = "cursor is not installed")
+        },
+      )
 
     val result = driver.run(reviewRequest())
 
@@ -116,15 +120,16 @@ class FeatureTaskLastCommitReviewDriverTest {
     assertEquals("cursor is not installed", result.lane1.failureReason)
   }
 
-  private fun reviewRequest() = ParallelCodeReviewRequest(
-    agent1Id = "cursor",
-    scope = ParallelReviewScope.BRANCH,
-    repoRoot = Path.of("/tmp/repo"),
-    timeout = null,
-    codeReviewMode = CodeReviewExecutionMode.INLINE,
-    reviewRunId = "rvw-last-commit",
-    activityWorkflowId = "wftr-review-child",
-    baseRevision = "abc^",
-    headRevision = "def",
-  )
+  private fun reviewRequest() =
+    ParallelCodeReviewRequest(
+      agent1Id = "cursor",
+      scope = ParallelReviewScope.BRANCH,
+      repoRoot = Path.of("/tmp/repo"),
+      timeout = null,
+      codeReviewMode = CodeReviewExecutionMode.INLINE,
+      reviewRunId = "rvw-last-commit",
+      activityWorkflowId = "wftr-review-child",
+      baseRevision = "abc^",
+      headRevision = "def",
+    )
 }

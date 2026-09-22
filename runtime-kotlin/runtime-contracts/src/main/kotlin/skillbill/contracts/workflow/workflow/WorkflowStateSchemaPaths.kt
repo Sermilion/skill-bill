@@ -3,7 +3,6 @@ package skillbill.contracts.workflow.workflow
 const val WORKFLOW_STATE_CONTRACT_VERSION: String = "0.3"
 
 object WorkflowStateSchemaPaths {
-
   const val REPO_RELATIVE_PATH: String =
     "orchestration/contracts/workflow-state-schema.yaml"
 

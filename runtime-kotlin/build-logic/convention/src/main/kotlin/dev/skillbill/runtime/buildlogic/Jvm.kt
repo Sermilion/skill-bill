@@ -16,10 +16,11 @@ private const val MAX_TEST_FORKS = 8
 private const val TEST_FORK_CPU_DIVISOR = 2
 private const val TEST_MAX_HEAP = "2g"
 
-private val HARNESS_ENVIRONMENT_GATES = listOf(
-  "SKILL_BILL_REAL_STORE_DB",
-  "SKILL_BILL_MIGRATION_FIXTURE_DB",
-)
+private val HARNESS_ENVIRONMENT_GATES =
+  listOf(
+    "SKILL_BILL_REAL_STORE_DB",
+    "SKILL_BILL_MIGRATION_FIXTURE_DB",
+  )
 
 internal fun Project.configureKotlinJvm() {
   extensions.configure(KotlinJvmProjectExtension::class.java) {

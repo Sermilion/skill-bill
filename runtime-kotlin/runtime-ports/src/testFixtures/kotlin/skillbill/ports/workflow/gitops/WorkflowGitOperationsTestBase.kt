@@ -34,6 +34,9 @@ abstract class WorkflowGitOperationsTestBase :
 
   override val scopedStagingOperations: ScopedStagingGitOperations = UnavailableScopedStagingGitOperations
 
-  override fun scopedPathContentsAgainstBase(repoRoot: Path, baseRef: String, headPaths: List<String>) =
-    NoopSuppressionEvidenceGitOperations.scopedPathContentsAgainstBase(repoRoot, baseRef, headPaths)
+  override fun scopedPathContentsAgainstBase(
+    repoRoot: Path,
+    baseRef: String,
+    headPaths: List<String>,
+  ) = NoopSuppressionEvidenceGitOperations.scopedPathContentsAgainstBase(repoRoot, baseRef, headPaths)
 }

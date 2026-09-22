@@ -3,6 +3,7 @@ import skillbill.review.context.model.execution.SHA256_HEX
 import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.hunk.ReviewEvidenceLimits
+
 data class ReviewExpansionRecord(
   val expansionId: String,
   val assignmentDigest: String,
@@ -21,12 +22,13 @@ data class ReviewExpansionRecord(
   }
 
   val canonical: String
-    get() = listOf(
-      expansionId,
-      assignmentDigest,
-      requestedPath,
-      reachabilityReason,
-      authorized.toString(),
-      sequence.toString(),
-    ).let { canonicalFieldList(it) }
+    get() =
+      listOf(
+        expansionId,
+        assignmentDigest,
+        requestedPath,
+        reachabilityReason,
+        authorized.toString(),
+        sequence.toString(),
+      ).let { canonicalFieldList(it) }
 }

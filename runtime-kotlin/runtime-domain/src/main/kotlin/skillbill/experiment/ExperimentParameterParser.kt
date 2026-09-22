@@ -16,12 +16,13 @@ object ExperimentParameterParser {
     }
     val parts = raw.split(',').map { part -> part.trim() }
     val names = parseExperimentNameList(parts)
-    val reason = when {
-      parts.any { part -> part.equals(EXPERIMENT_DISABLE_TOKEN, ignoreCase = true) } ->
-        "cannot mix none with experiment names."
-      names == null -> "contains an empty, invalid, or duplicate name."
-      else -> null
-    }
+    val reason =
+      when {
+        parts.any { part -> part.equals(EXPERIMENT_DISABLE_TOKEN, ignoreCase = true) } ->
+          "cannot mix none with experiment names."
+        names == null -> "contains an empty, invalid, or duplicate name."
+        else -> null
+      }
     if (reason != null) {
       throw ExperimentParameterMalformedError(rawParameter, reason)
     }

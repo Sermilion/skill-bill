@@ -71,11 +71,12 @@ private fun readOneEvidence(
   val servedScope = state.servedEvidenceScopes[normalizedTarget]
   val assigned = state.policy.isAssigned(exactPath)
   val expansion = request.authorizedExpansion
-  val scope = if (assigned && expansion == null) {
-    ReviewEvidenceScope.PROJECTED_HUNKS
-  } else {
-    ReviewEvidenceScope.COMPLETE_FILE
-  }
+  val scope =
+    if (assigned && expansion == null) {
+      ReviewEvidenceScope.PROJECTED_HUNKS
+    } else {
+      ReviewEvidenceScope.COMPLETE_FILE
+    }
   if (servedScope != null && servedScope != scope) {
     return refusedEvidence(
       state,
@@ -100,9 +101,10 @@ private fun admitExpansion(
   exactPath: String,
   alreadyServed: Boolean,
 ): ReviewEvidenceResult? {
-  val expansion = requireNotNull(request.authorizedExpansion) {
-    "Unassigned evidence requires an authorized expansion record."
-  }
+  val expansion =
+    requireNotNull(request.authorizedExpansion) {
+      "Unassigned evidence requires an authorized expansion record."
+    }
   require(expansion.authorized) { "Expansion '${expansion.expansionId}' is not authorized." }
   require(expansion.assignmentDigest == state.assignment.digest) {
     "Expansion '${expansion.expansionId}' does not belong to this assignment."
@@ -155,9 +157,10 @@ private fun readProjectedHunks(
   path: String,
   repeat: Boolean,
 ): ReviewEvidenceResult {
-  val hunks = state.projectedHunks
-    .filter { it.path == path }
-    .sortedWith(compareBy({ it.newStart }, { it.oldStart }, { it.hunkId }))
+  val hunks =
+    state.projectedHunks
+      .filter { it.path == path }
+      .sortedWith(compareBy({ it.newStart }, { it.oldStart }, { it.hunkId }))
   val delivered = mutableListOf<String>()
   for (hunk in hunks) {
     val body = materializeAssignedHunk(state, hunk)
@@ -192,18 +195,23 @@ private fun readProjectedHunks(
   )
 }
 
-private fun materializeAssignedHunk(state: FileSystemReviewEvidenceBrokerReadState, hunk: ReviewChangedHunk): String {
+private fun materializeAssignedHunk(
+  state: FileSystemReviewEvidenceBrokerReadState,
+  hunk: ReviewChangedHunk,
+): String {
   val locator = hunk.evidenceLocator
-  val body = if (state.locatorReader !== FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE) {
-    val payload = state.locatorReader.readDiffPayload(
-      FeatureTaskRuntimeSharedEvidenceLocatorReadRequest(state.root, locator.storePath, locator.payloadFile),
-    )
-    state.bodyExtractor.extract(payload, hunk)
-  } else {
-    val fallback = hunk.content.replace("\r\n", "\n")
-    if (fallback.isEmpty()) throw ReviewHunkEvidenceLocatorMissingError(locator.storePath)
-    fallback
-  }
+  val body =
+    if (state.locatorReader !== FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE) {
+      val payload =
+        state.locatorReader.readDiffPayload(
+          FeatureTaskRuntimeSharedEvidenceLocatorReadRequest(state.root, locator.storePath, locator.payloadFile),
+        )
+      state.bodyExtractor.extract(payload, hunk)
+    } else {
+      val fallback = hunk.content.replace("\r\n", "\n")
+      if (fallback.isEmpty()) throw ReviewHunkEvidenceLocatorMissingError(locator.storePath)
+      fallback
+    }
   val normalized = body.replace("\r\n", "\n")
   val observed = ReviewChangedHunk.digestOfBody(normalized)
   if (observed != hunk.contentDigest) {

@@ -1,9 +1,10 @@
 package skillbill.error.core
+
 class InvalidTelemetryTransportOutcomeError(
   val statusCode: Int,
 ) : SkillBillRuntimeException(
-  "Telemetry transport returned $statusCode, which is not a valid HTTP status code.",
-)
+    "Telemetry transport returned $statusCode, which is not a valid HTTP status code.",
+  )
 
 class TelemetryProxyRequestFailureError(
   val statusCode: Int,
@@ -11,16 +12,16 @@ class TelemetryProxyRequestFailureError(
   val detail: String,
   cause: Throwable? = null,
 ) : SkillBillRuntimeException(
-  "Telemetry proxy request failed at $seam with HTTP $statusCode: $detail",
-  cause,
-)
+    "Telemetry proxy request failed at $seam with HTTP $statusCode: $detail",
+    cause,
+  )
 
 class TelemetryProxyInvalidResponseError(
   val seam: String,
   val detail: String,
 ) : SkillBillRuntimeException(
-  "Telemetry proxy response invalid at $seam: $detail",
-)
+    "Telemetry proxy response invalid at $seam: $detail",
+  )
 
 class TelemetryRelayUrlUnconfiguredError : SkillBillRuntimeException(
   "Telemetry relay URL is not configured.",

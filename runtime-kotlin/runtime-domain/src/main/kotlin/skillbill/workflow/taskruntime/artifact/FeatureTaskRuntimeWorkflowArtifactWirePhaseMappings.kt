@@ -50,9 +50,10 @@ fun FeatureTaskRuntimeVerificationBoundaryHeadingProvenance.asWorkflowArtifactEn
 fun decodeVerificationBoundaryHeadingProvenanceFromArtifact(
   raw: Any?,
   path: String,
-): FeatureTaskRuntimeVerificationBoundaryHeadingProvenance? = JsonCodec.anyToStringAnyMap(raw)?.let {
-  FeatureTaskRuntimeVerificationBoundaryHeadingProvenance.fromArtifactMap(it, path)
-}
+): FeatureTaskRuntimeVerificationBoundaryHeadingProvenance? =
+  JsonCodec.anyToStringAnyMap(raw)?.let {
+    FeatureTaskRuntimeVerificationBoundaryHeadingProvenance.fromArtifactMap(it, path)
+  }
 
 internal fun decodeVerificationBoundaryHeadingProvenanceFromArtifact(
   raw: Map<String, Any?>,
@@ -81,10 +82,12 @@ fun NormalizedFeatureTaskRuntimePhaseOutput.envelopeWireMap(): FeatureTaskRuntim
 fun isDecompositionPackagePhaseOutput(phaseOutput: Any?): Boolean =
   JsonCodec.anyToStringAnyMap(phaseOutput)?.let { featureTaskRuntimeIsDecompositionPackage(it) } == true
 
-fun decomposePlanOutcomeFromPhaseOutput(phaseOutput: Any?, specSource: SpecSource) =
-  JsonCodec.anyToStringAnyMap(phaseOutput)?.let {
-    featureTaskRuntimeDecomposePlanOutcomeOrNull(it, specSource)
-  }
+fun decomposePlanOutcomeFromPhaseOutput(
+  phaseOutput: Any?,
+  specSource: SpecSource,
+) = JsonCodec.anyToStringAnyMap(phaseOutput)?.let {
+  featureTaskRuntimeDecomposePlanOutcomeOrNull(it, specSource)
+}
 
 fun FeatureTaskRuntimeProjectionMeasurement.asTelemetryPayload(): Any = toTelemetryMap()
 

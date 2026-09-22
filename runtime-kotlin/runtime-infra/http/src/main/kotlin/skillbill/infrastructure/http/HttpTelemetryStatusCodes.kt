@@ -2,6 +2,7 @@ package skillbill.infrastructure.http
 
 import skillbill.error.core.InvalidTelemetryTransportOutcomeError
 import skillbill.telemetry.model.TelemetryDeliveryOutcome
+
 internal const val HTTP_NOT_FOUND: Int = 404
 internal const val HTTP_METHOD_NOT_ALLOWED: Int = 405
 private const val HTTP_SUCCESS_MIN: Int = 200

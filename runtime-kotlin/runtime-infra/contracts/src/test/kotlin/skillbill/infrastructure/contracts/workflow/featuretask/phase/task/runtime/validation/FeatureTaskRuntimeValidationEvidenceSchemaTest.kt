@@ -30,12 +30,13 @@ class FeatureTaskRuntimeValidationEvidenceSchemaTest {
       mapOf(
         ValidationEvidencePayloadKeys.CONTRACT_VERSION to
           FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
-        ValidationEvidencePayloadKeys.RESULTS to listOf(
-          mapOf(
-            ValidationEvidencePayloadKeys.COMMAND to "./gradlew check",
-            ValidationEvidencePayloadKeys.EXIT_CODE to 0,
+        ValidationEvidencePayloadKeys.RESULTS to
+          listOf(
+            mapOf(
+              ValidationEvidencePayloadKeys.COMMAND to "./gradlew check",
+              ValidationEvidencePayloadKeys.EXIT_CODE to 0,
+            ),
           ),
-        ),
       ),
       "test",
     )
@@ -47,14 +48,15 @@ class FeatureTaskRuntimeValidationEvidenceSchemaTest {
       mapOf(
         ValidationEvidencePayloadKeys.CONTRACT_VERSION to
           FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
-        ValidationEvidencePayloadKeys.RESULTS to listOf(
-          mapOf(
-            ValidationEvidencePayloadKeys.COMMAND to "./gradlew check",
-            ValidationEvidencePayloadKeys.EXIT_CODE to 0,
-            "signal" to mapOf("unexpected" to listOf("opaque")),
-            "provider_metadata" to listOf("unvalidated"),
+        ValidationEvidencePayloadKeys.RESULTS to
+          listOf(
+            mapOf(
+              ValidationEvidencePayloadKeys.COMMAND to "./gradlew check",
+              ValidationEvidencePayloadKeys.EXIT_CODE to 0,
+              "signal" to mapOf("unexpected" to listOf("opaque")),
+              "provider_metadata" to listOf("unvalidated"),
+            ),
           ),
-        ),
       ),
       "optional-metadata",
     )

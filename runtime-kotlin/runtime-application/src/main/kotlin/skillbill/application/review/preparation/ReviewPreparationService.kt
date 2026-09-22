@@ -51,30 +51,35 @@ class ReviewPreparationService(
     val selection = ports.laneSelection.decideLanes(scope, routing)
     val laneDecisions = selection.decisions
 
-    val resolved = ResolvedReviewFacts(
-      scope,
-      routing,
-      matchedRules,
-      learningsReferences,
-      facts,
-      laneDecisions,
-      selection.routingMatrix,
-    )
+    val resolved =
+      ResolvedReviewFacts(
+        scope,
+        routing,
+        matchedRules,
+        learningsReferences,
+        facts,
+        laneDecisions,
+        selection.routingMatrix,
+      )
     val packet = composePacket(request, resolved)
     val assignments = composeAssignments(request, packet, laneDecisions)
     validateAgainstPacket(packet, assignments)
 
     val packetEnvelope = packet.toParentPacketEnvelope()
     envelopeValidator.validate(packetEnvelope.asWireMap(), parentLabel(packet))
-    val assignmentEnvelopes = assignments.map { assignment ->
-      assignment.toAssignmentEnvelope()
-        .also { envelopeValidator.validate(it.asWireMap(), assignmentLabel(assignment)) }
-    }
+    val assignmentEnvelopes =
+      assignments.map { assignment ->
+        assignment.toAssignmentEnvelope()
+          .also { envelopeValidator.validate(it.asWireMap(), assignmentLabel(assignment)) }
+      }
 
     return ReviewPreparationResult(packet, assignments, packetEnvelope, assignmentEnvelopes)
   }
 
-  fun validateAgainstPacket(packet: ReviewContextPacket, assignments: List<ReviewAssignment>) {
+  fun validateAgainstPacket(
+    packet: ReviewContextPacket,
+    assignments: List<ReviewAssignment>,
+  ) {
     if (assignments.map { it.lane }.distinct().size != assignments.size) {
       reject(parentLabel(packet), "Assignments contain duplicate lanes.")
     }
@@ -108,39 +113,44 @@ class ReviewPreparationService(
     )
   }
 
-  private fun composePacket(request: ReviewPreparationRequest, resolved: ResolvedReviewFacts): ReviewContextPacket {
+  private fun composePacket(
+    request: ReviewPreparationRequest,
+    resolved: ResolvedReviewFacts,
+  ): ReviewContextPacket {
     val includedLanes = includedLanesForPacket(request.reviewId, resolved.laneDecisions)
-    val indexed = ReviewHunkStoreIndexing.index(
-      hunks = resolved.scope.changedHunks,
-      commitUnits = resolved.scope.commitUnits,
-      storePath = request.evidenceStorePath,
-      repoRoot = request.repoRoot,
-      locatorReader = hunkLocatorReader,
-    )
-    val packet = ReviewContextPacket(
-      reviewId = request.reviewId,
-      repositoryIdentity = resolved.scope.repositoryIdentity,
-      baseRevision = resolved.scope.baseRevision,
-      headRevision = resolved.scope.headRevision,
-      status = resolved.scope.status,
-      stack = resolved.routing.stack,
-      pack = resolved.routing.pack,
-      addOns = resolved.routing.addOns,
-      composedLayers = resolved.routing.composedLayers,
-      selectedLanes = includedLanes,
-      changedHunks = indexed.hunks,
-      commitUnits = indexed.commitUnits,
-      coverageFact = resolved.scope.coverageFact,
-      routingMatrix = resolved.routingMatrix,
-      reviewRevision = request.reviewRevision,
-      laneDecisions = resolved.laneDecisions,
-      matchedRules = resolved.matchedRules,
-      learningsReferences = resolved.learningsReferences,
-      buildTestFacts = resolved.buildTestFacts,
-      dependencyAllowlist = request.dependencyAllowlist,
-      baselineUntrackedPolicy = request.baselineUntrackedPolicy,
-      evidenceTargets = evidenceTargetsFor(indexed.hunks),
-    )
+    val indexed =
+      ReviewHunkStoreIndexing.index(
+        hunks = resolved.scope.changedHunks,
+        commitUnits = resolved.scope.commitUnits,
+        storePath = request.evidenceStorePath,
+        repoRoot = request.repoRoot,
+        locatorReader = hunkLocatorReader,
+      )
+    val packet =
+      ReviewContextPacket(
+        reviewId = request.reviewId,
+        repositoryIdentity = resolved.scope.repositoryIdentity,
+        baseRevision = resolved.scope.baseRevision,
+        headRevision = resolved.scope.headRevision,
+        status = resolved.scope.status,
+        stack = resolved.routing.stack,
+        pack = resolved.routing.pack,
+        addOns = resolved.routing.addOns,
+        composedLayers = resolved.routing.composedLayers,
+        selectedLanes = includedLanes,
+        changedHunks = indexed.hunks,
+        commitUnits = indexed.commitUnits,
+        coverageFact = resolved.scope.coverageFact,
+        routingMatrix = resolved.routingMatrix,
+        reviewRevision = request.reviewRevision,
+        laneDecisions = resolved.laneDecisions,
+        matchedRules = resolved.matchedRules,
+        learningsReferences = resolved.learningsReferences,
+        buildTestFacts = resolved.buildTestFacts,
+        dependencyAllowlist = request.dependencyAllowlist,
+        baselineUntrackedPolicy = request.baselineUntrackedPolicy,
+        evidenceTargets = evidenceTargetsFor(indexed.hunks),
+      )
     rejectAllowlistOverlap(request.reviewId, packet)
     return packet
   }
@@ -152,13 +162,14 @@ class ReviewPreparationService(
   ): List<ReviewAssignment> {
     val packetDigest = packet.digest
 
-    fun laneBundle(laneHunkIds: Set<String>) = ReviewLaneBundle(
-      packet.commitUnits.sortedBy { it.orderIndex }.mapNotNull { unit ->
-        unit.hunkIds.filter { it in laneHunkIds }
-          .takeIf { it.isNotEmpty() }
-          ?.let { ReviewLaneBundleEntry(unit.commitSha, unit.orderIndex, it) }
-      },
-    )
+    fun laneBundle(laneHunkIds: Set<String>) =
+      ReviewLaneBundle(
+        packet.commitUnits.sortedBy { it.orderIndex }.mapNotNull { unit ->
+          unit.hunkIds.filter { it in laneHunkIds }
+            .takeIf { it.isNotEmpty() }
+            ?.let { ReviewLaneBundleEntry(unit.commitSha, unit.orderIndex, it) }
+        },
+      )
 
     return packet.selectedLanes.map { lane ->
       val decision = laneDecisions.first { it.lane == lane }
@@ -190,7 +201,10 @@ class ReviewPreparationService(
     }
   }
 
-  private fun rejectBundleViolations(packet: ReviewContextPacket, assignment: ReviewAssignment) {
+  private fun rejectBundleViolations(
+    packet: ReviewContextPacket,
+    assignment: ReviewAssignment,
+  ) {
     val label = assignmentLabel(assignment)
     val unitsBySha = packet.commitUnits.associateBy { it.commitSha }
     val outside = assignment.assignedBundle.entries.map { it.commitSha }.filterNot { it in unitsBySha }
@@ -245,7 +259,10 @@ class ReviewPreparationService(
     }
   }
 
-  private fun rejectRevisionDrift(packet: ReviewContextPacket, assignment: ReviewAssignment) {
+  private fun rejectRevisionDrift(
+    packet: ReviewContextPacket,
+    assignment: ReviewAssignment,
+  ) {
     val label = assignmentLabel(assignment)
     if (assignment.reviewId != packet.reviewId) {
       reject(label, "Assignment review id '${assignment.reviewId}' does not match packet '${packet.reviewId}'.")
@@ -279,7 +296,10 @@ class ReviewPreparationService(
     }
   }
 
-  private fun rejectOwnershipViolations(packet: ReviewContextPacket, assignment: ReviewAssignment) {
+  private fun rejectOwnershipViolations(
+    packet: ReviewContextPacket,
+    assignment: ReviewAssignment,
+  ) {
     val label = assignmentLabel(assignment)
     val ownedPaths = packet.ownedPaths
     val ownedHunkIds = packet.ownedHunkIds
@@ -323,19 +343,21 @@ class ReviewPreparationService(
   }
 
   companion object {
-    fun verificationEvidenceSurfaceRules(mode: ResolvedReviewExecutionMode): String = when (mode) {
-      ResolvedReviewExecutionMode.INLINE -> ReviewPacketConsumerContract.INLINE_VERIFICATION_EVIDENCE_SURFACE
-      ResolvedReviewExecutionMode.DELEGATED -> ReviewPacketConsumerContract.DELEGATED_VERIFICATION_EVIDENCE_SURFACE
-    }
+    fun verificationEvidenceSurfaceRules(mode: ResolvedReviewExecutionMode): String =
+      when (mode) {
+        ResolvedReviewExecutionMode.INLINE -> ReviewPacketConsumerContract.INLINE_VERIFICATION_EVIDENCE_SURFACE
+        ResolvedReviewExecutionMode.DELEGATED -> ReviewPacketConsumerContract.DELEGATED_VERIFICATION_EVIDENCE_SURFACE
+      }
 
     fun adjudicationEvidenceSurfaceRules(): String = ReviewPacketConsumerContract.ADJUDICATION_EVIDENCE_SURFACE
   }
 }
 
-private fun evidenceTargetsFor(hunks: List<ReviewChangedHunk>) = hunks
-  .groupBy { it.path }
-  .toSortedMap()
-  .map { (path, grouped) -> ReviewEvidenceTarget(path, path, grouped.map { it.hunkId }.sorted()) }
+private fun evidenceTargetsFor(hunks: List<ReviewChangedHunk>) =
+  hunks
+    .groupBy { it.path }
+    .toSortedMap()
+    .map { (path, grouped) -> ReviewEvidenceTarget(path, path, grouped.map { it.hunkId }.sorted()) }
 
 private fun parentLabel(packet: ReviewContextPacket) = "review-packet:${packet.reviewId}"
 
@@ -350,8 +372,9 @@ private fun rejectUnknownAssignmentDigests(
 ) {
   val unknown = expansions.filterNot { it.assignmentDigest in knownAssignmentDigests }
   if (unknown.isEmpty()) return
-  val described = unknown.sortedBy { it.expansionId }
-    .joinToString(", ") { "${it.expansionId} -> ${it.assignmentDigest}" }
+  val described =
+    unknown.sortedBy { it.expansionId }
+      .joinToString(", ") { "${it.expansionId} -> ${it.assignmentDigest}" }
   reject(label, "$subject name assignment digests that belong to no assignment in this review: $described.")
 }
 
@@ -359,27 +382,37 @@ internal fun deriveSpecialistBudget(
   basePolicy: ReviewContextBudgetPolicy,
   assignment: ReviewAssignment,
   packet: ReviewContextPacket,
-): ReviewContextBudgetPolicy = basePolicy.copy(
-  maxLaneEvidenceBytes = ReviewContextBudgetPolicy.deriveLaneEvidenceBytes(basePolicy, assignment, packet),
-)
+): ReviewContextBudgetPolicy =
+  basePolicy.copy(
+    maxLaneEvidenceBytes = ReviewContextBudgetPolicy.deriveLaneEvidenceBytes(basePolicy, assignment, packet),
+  )
 
-private fun reject(sourceLabel: String, reason: String): Nothing =
-  throw InvalidReviewContextSchemaError(sourceLabel = sourceLabel, reason = reason)
+private fun reject(
+  sourceLabel: String,
+  reason: String,
+): Nothing = throw InvalidReviewContextSchemaError(sourceLabel = sourceLabel, reason = reason)
 
-private fun includedLanesForPacket(reviewId: String, laneDecisions: List<ReviewLaneDecision>): List<String> {
+private fun includedLanesForPacket(
+  reviewId: String,
+  laneDecisions: List<ReviewLaneDecision>,
+): List<String> {
   if (laneDecisions.map { it.lane }.distinct().size != laneDecisions.size) {
     reject(reviewId, "Lane selection returned duplicate lane decisions.")
   }
-  val included = laneDecisions.filter { it.included }
-    .sortedWith(compareBy(ReviewLaneDecision::orderIndex, ReviewLaneDecision::lane))
-    .map { it.lane }
+  val included =
+    laneDecisions.filter { it.included }
+      .sortedWith(compareBy(ReviewLaneDecision::orderIndex, ReviewLaneDecision::lane))
+      .map { it.lane }
   if (included.isEmpty()) {
     reject(reviewId, "Lane selection produced no included lane; a review packet needs at least one lane.")
   }
   return included
 }
 
-private fun rejectAllowlistOverlap(reviewId: String, packet: ReviewContextPacket) {
+private fun rejectAllowlistOverlap(
+  reviewId: String,
+  packet: ReviewContextPacket,
+) {
   val overlap = packet.dependencyAllowlist.normalized.filter { it in packet.ownedPaths }
   if (overlap.isNotEmpty()) {
     reject(

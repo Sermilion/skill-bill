@@ -5,6 +5,7 @@ import skillbill.engine.featuretask.runloop.core.CapturedPhaseOutput
 import skillbill.engine.featuretask.runloop.core.RecordRejection
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeChildOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+
 internal sealed interface LaunchResult {
   data class Captured(
     val stdout: String,
@@ -14,6 +15,7 @@ internal sealed interface LaunchResult {
     val stdoutSha256: String,
     override val fileManifest: FeatureTaskRuntimePhaseFileManifest,
   ) : LaunchResult
+
   data class InfraFailure(
     val reason: String,
     override val fileManifest: FeatureTaskRuntimePhaseFileManifest?,
@@ -21,6 +23,7 @@ internal sealed interface LaunchResult {
     val neverLaunched: Boolean,
     val childOutput: FeatureTaskRuntimeChildOutput? = null,
   ) : LaunchResult
+
   data class RecordRejected(
     val rejection: RecordRejection,
     override val fileManifest: FeatureTaskRuntimePhaseFileManifest? = null,
@@ -46,12 +49,16 @@ internal sealed interface LaunchResult {
   val failureDisposition: FeatureTaskRuntimeFailureDisposition
     get() = (this as? InfraFailure)?.disposition ?: FeatureTaskRuntimeFailureDisposition.PROCESS_FAILURE
   val fileManifest: FeatureTaskRuntimePhaseFileManifest?
-  val capturedPhaseOutput: CapturedPhaseOutput? get() = (this as? Captured)?.let(
-    CapturedPhaseOutput::fromLaunchCaptured,
-  )
+  val capturedPhaseOutput: CapturedPhaseOutput? get() =
+    (this as? Captured)?.let(
+      CapturedPhaseOutput::fromLaunchCaptured,
+    )
 
   companion object {
-    fun captured(captured: CapturedPhaseOutput, fileManifest: FeatureTaskRuntimePhaseFileManifest): LaunchResult =
+    fun captured(
+      captured: CapturedPhaseOutput,
+      fileManifest: FeatureTaskRuntimePhaseFileManifest,
+    ): LaunchResult =
       Captured(
         captured.text,
         captured.bytes,
@@ -66,21 +73,26 @@ internal sealed interface LaunchResult {
       fileManifest: FeatureTaskRuntimePhaseFileManifest? = null,
       childNeverLaunched: Boolean,
       childOutput: FeatureTaskRuntimeChildOutput? = null,
-    ): LaunchResult = InfraFailure(
-      reason,
-      fileManifest,
-      FeatureTaskRuntimeFailureDisposition.PROCESS_FAILURE,
-      childNeverLaunched,
-      childOutput,
-    )
+    ): LaunchResult =
+      InfraFailure(
+        reason,
+        fileManifest,
+        FeatureTaskRuntimeFailureDisposition.PROCESS_FAILURE,
+        childNeverLaunched,
+        childOutput,
+      )
 
-    fun providerLimited(reason: String, fileManifest: FeatureTaskRuntimePhaseFileManifest? = null): LaunchResult =
-      ProviderLimited(reason, fileManifest)
+    fun providerLimited(
+      reason: String,
+      fileManifest: FeatureTaskRuntimePhaseFileManifest? = null,
+    ): LaunchResult = ProviderLimited(reason, fileManifest)
 
     fun projectionRejected(reason: String): LaunchResult =
       InfraFailure(reason, null, FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION, neverLaunched = true)
 
-    fun recordRejected(rejectionClass: String, rejectionDetail: String): LaunchResult =
-      RecordRejected(RecordRejection(rejectionClass, rejectionDetail))
+    fun recordRejected(
+      rejectionClass: String,
+      rejectionDetail: String,
+    ): LaunchResult = RecordRejected(RecordRejection(rejectionClass, rejectionDetail))
   }
 }

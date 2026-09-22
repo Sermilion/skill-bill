@@ -20,18 +20,19 @@ class PortNullObjectAbsenceArchitectureTest {
 
   @Test
   fun `no runtime module declares a null-object substitute in main source`() {
-    val declarations = RuntimeModuleCatalog.declaredGradleModules
-      .map { runtimeRoot.resolve("$it/src/main") }
-      .filter { Files.isDirectory(it) }
-      .flatMap { root ->
-        Files.walk(root).use { paths ->
-          paths
-            .filter { Files.isRegularFile(it) && it.extension == "kt" }
-            .toList()
+    val declarations =
+      RuntimeModuleCatalog.declaredGradleModules
+        .map { runtimeRoot.resolve("$it/src/main") }
+        .filter { Files.isDirectory(it) }
+        .flatMap { root ->
+          Files.walk(root).use { paths ->
+            paths
+              .filter { Files.isRegularFile(it) && it.extension == "kt" }
+              .toList()
+          }
         }
-      }
-      .flatMap { path -> PortNullObjectCensus.namesIn(Files.readString(path)).map { "$it (${path.fileName})" } }
-      .sorted()
+        .flatMap { path -> PortNullObjectCensus.namesIn(Files.readString(path)).map { "$it (${path.fileName})" } }
+        .sorted()
 
     assertEquals(
       emptyList(),
@@ -57,23 +58,26 @@ class PortNullObjectAbsenceArchitectureTest {
   fun `every runtime-ports test fixture object has an outside test or fixture reference`() {
     val fixtureRoot = runtimeRoot.resolve("runtime-kotlin/runtime-ports/src/testFixtures")
     val fixtureFiles = kotlinFiles(fixtureRoot)
-    val declarations = fixtureFiles.flatMap { path ->
-      Regex("""(?m)^\s*(?:internal\s+)?object\s+([A-Za-z]\w*)\b""")
-        .findAll(Files.readString(path))
-        .map { match -> match.groupValues[1] to path }
-        .toList()
-    }
-    val referenceFiles = kotlinFiles(runtimeRoot.resolve("runtime-kotlin"))
-      .filterNot { path -> path.fileName.toString() == "PortNullObjectClassification.kt" }
-
-    val missingReferences = declarations
-      .filter { (name, declarationPath) ->
-        referenceFiles
-          .filterNot { path -> path == declarationPath }
-          .none { path -> Regex("""\b${Regex.escape(name)}\b""").containsMatchIn(Files.readString(path)) }
+    val declarations =
+      fixtureFiles.flatMap { path ->
+        Regex("""(?m)^\s*(?:internal\s+)?object\s+([A-Za-z]\w*)\b""")
+          .findAll(Files.readString(path))
+          .map { match -> match.groupValues[1] to path }
+          .toList()
       }
-      .map { (name, path) -> "$name (${runtimeRoot.relativize(path)})" }
-      .sorted()
+    val referenceFiles =
+      kotlinFiles(runtimeRoot.resolve("runtime-kotlin"))
+        .filterNot { path -> path.fileName.toString() == "PortNullObjectClassification.kt" }
+
+    val missingReferences =
+      declarations
+        .filter { (name, declarationPath) ->
+          referenceFiles
+            .filterNot { path -> path == declarationPath }
+            .none { path -> Regex("""\b${Regex.escape(name)}\b""").containsMatchIn(Files.readString(path)) }
+        }
+        .map { (name, path) -> "$name (${runtimeRoot.relativize(path)})" }
+        .sorted()
 
     assertEquals(emptyList(), missingReferences)
     assertEquals(

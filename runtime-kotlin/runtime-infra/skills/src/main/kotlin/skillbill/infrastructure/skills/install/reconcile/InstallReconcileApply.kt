@@ -10,6 +10,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+
 internal fun applyReconciliation(
   upstream: ReconcileSourceRoots,
   local: ReconcileSourceRoots,
@@ -27,22 +28,24 @@ internal fun applyReconciliation(
       return@forEach
     }
     val skillPath = outcome.skillRelativePath
-    val upstreamDir = upstreamSkills[skillPath]?.sourceDir
-      ?: throw ReconciliationConflictError(
-        skillRelativePath = skillPath,
-        reason = "apply requires the upstream skill dir but it was not enumerated.",
-      )
+    val upstreamDir =
+      upstreamSkills[skillPath]?.sourceDir
+        ?: throw ReconciliationConflictError(
+          skillRelativePath = skillPath,
+          reason = "apply requires the upstream skill dir but it was not enumerated.",
+        )
     val liveDir = liveSkillDir(local, skillPath)
     reconcileSkillDirectory(upstreamDir, liveDir)
     installedPaths.add(skillPath)
   }
 
-  val prunedPaths = plan.outcomes
-    .filterIsInstance<SkillReconciliationOutcome.Prune>()
-    .map { outcome ->
-      deleteTreeRecursively(liveSkillDir(local, outcome.skillRelativePath))
-      outcome.skillRelativePath
-    }
+  val prunedPaths =
+    plan.outcomes
+      .filterIsInstance<SkillReconciliationOutcome.Prune>()
+      .map { outcome ->
+        deleteTreeRecursively(liveSkillDir(local, outcome.skillRelativePath))
+        outcome.skillRelativePath
+      }
   adoptPlatformPackNonSkillFiles(upstream, local, upstreamSkills)
   return ReconcileApplyOutput(plan = plan, installedPaths = installedPaths, prunedPaths = prunedPaths)
 }
@@ -58,8 +61,9 @@ private fun guardPruneAgainstEmptyUpstream(
   if (pruned.isNotEmpty()) {
     throw ReconciliationConflictError(
       skillRelativePath = pruned.first(),
-      reason = "refusing to prune ${pruned.size} installed path(s) because the upstream source " +
-        "tree enumerated no skills at all; the candidate source is missing or incomplete.",
+      reason =
+        "refusing to prune ${pruned.size} installed path(s) because the upstream source " +
+          "tree enumerated no skills at all; the candidate source is missing or incomplete.",
     )
   }
 }
@@ -73,9 +77,10 @@ private fun adoptPlatformPackNonSkillFiles(
   if (!Files.isDirectory(upstreamPacks)) {
     return
   }
-  val packSkillDirs = upstreamSkills.values
-    .map { it.sourceDir }
-    .filter { it.startsWith(upstreamPacks) }
+  val packSkillDirs =
+    upstreamSkills.values
+      .map { it.sourceDir }
+      .filter { it.startsWith(upstreamPacks) }
   val livePacks = local.platformPacksRoot.toAbsolutePath().normalize()
   Files.walk(upstreamPacks).use { stream ->
     stream.forEach { path ->
@@ -108,9 +113,10 @@ private fun deleteLivePackFilesAbsentUpstream(
   if (!Files.isDirectory(livePacks)) {
     return
   }
-  val liveSkillDirs = upstreamSkills.keys
-    .filter { it.startsWith(PLATFORM_PACKS_PREFIX) }
-    .map { liveSkillDir(local, it) }
+  val liveSkillDirs =
+    upstreamSkills.keys
+      .filter { it.startsWith(PLATFORM_PACKS_PREFIX) }
+      .map { liveSkillDir(local, it) }
   Files.walk(livePacks).use { stream ->
     stream.filter { !Files.isDirectory(it, LinkOption.NOFOLLOW_LINKS) }.forEach { path ->
       if (liveSkillDirs.any { skillDir -> path.startsWith(skillDir) }) {
@@ -130,32 +136,41 @@ private fun deleteLivePackFilesAbsentUpstream(
   }
 }
 
-private fun outcomeInstallsUpstream(outcome: SkillReconciliationOutcome): Boolean = when (outcome) {
-  is SkillReconciliationOutcome.Adopt -> true
-  is SkillReconciliationOutcome.Unchanged -> false
-  is SkillReconciliationOutcome.Prune -> false
-  is SkillReconciliationOutcome.LocallyAuthored -> false
-}
+private fun outcomeInstallsUpstream(outcome: SkillReconciliationOutcome): Boolean =
+  when (outcome) {
+    is SkillReconciliationOutcome.Adopt -> true
+    is SkillReconciliationOutcome.Unchanged -> false
+    is SkillReconciliationOutcome.Prune -> false
+    is SkillReconciliationOutcome.LocallyAuthored -> false
+  }
 
-private fun liveSkillDir(local: ReconcileSourceRoots, skillRelativePath: String): Path = when {
-  skillRelativePath.startsWith(SKILLS_PREFIX) ->
-    local.skillsRoot.resolve(skillRelativePath.removePrefix(SKILLS_PREFIX))
-  skillRelativePath.startsWith(PLATFORM_PACKS_PREFIX) ->
-    local.platformPacksRoot.resolve(skillRelativePath.removePrefix(PLATFORM_PACKS_PREFIX))
-  skillRelativePath.startsWith(AGENT_ADDONS_PREFIX) ->
-    local.repoRoot.resolve(AGENT_ADDONS_PREFIX).resolve(skillRelativePath.removePrefix(AGENT_ADDONS_PREFIX))
-  else -> throw ReconciliationConflictError(
-    skillRelativePath = skillRelativePath,
-    reason = "unrecognized skill-relative category prefix.",
-  )
-}
-
-private fun reconcileSkillDirectory(upstreamDir: Path, liveDir: Path) {
-  val parent = liveDir.toAbsolutePath().normalize().parent
-    ?: throw ReconciliationConflictError(
-      skillRelativePath = liveDir.toString(),
-      reason = "live skill dir has no parent directory.",
+private fun liveSkillDir(
+  local: ReconcileSourceRoots,
+  skillRelativePath: String,
+): Path =
+  when {
+    skillRelativePath.startsWith(SKILLS_PREFIX) ->
+      local.skillsRoot.resolve(skillRelativePath.removePrefix(SKILLS_PREFIX))
+    skillRelativePath.startsWith(PLATFORM_PACKS_PREFIX) ->
+      local.platformPacksRoot.resolve(skillRelativePath.removePrefix(PLATFORM_PACKS_PREFIX))
+    skillRelativePath.startsWith(AGENT_ADDONS_PREFIX) ->
+      local.repoRoot.resolve(AGENT_ADDONS_PREFIX).resolve(skillRelativePath.removePrefix(AGENT_ADDONS_PREFIX))
+    else -> throw ReconciliationConflictError(
+      skillRelativePath = skillRelativePath,
+      reason = "unrecognized skill-relative category prefix.",
     )
+  }
+
+private fun reconcileSkillDirectory(
+  upstreamDir: Path,
+  liveDir: Path,
+) {
+  val parent =
+    liveDir.toAbsolutePath().normalize().parent
+      ?: throw ReconciliationConflictError(
+        skillRelativePath = liveDir.toString(),
+        reason = "live skill dir has no parent directory.",
+      )
   Files.createDirectories(parent)
   val staged = Files.createTempDirectory(parent, ".reconcile-stage-")
   val stagedSkill = staged.resolve(liveDir.fileName.toString())
@@ -184,7 +199,10 @@ private fun reconcileSkillDirectory(upstreamDir: Path, liveDir: Path) {
   }
 }
 
-private fun copyTreeDeep(source: Path, target: Path) {
+private fun copyTreeDeep(
+  source: Path,
+  target: Path,
+) {
   Files.walk(source).use { stream ->
     stream.forEach { path ->
       val rel = source.relativize(path)
@@ -205,7 +223,10 @@ private fun copyTreeDeep(source: Path, target: Path) {
   }
 }
 
-private fun moveDir(source: Path, target: Path) {
+private fun moveDir(
+  source: Path,
+  target: Path,
+) {
   atomicMoveReplacing(source, target)
 }
 

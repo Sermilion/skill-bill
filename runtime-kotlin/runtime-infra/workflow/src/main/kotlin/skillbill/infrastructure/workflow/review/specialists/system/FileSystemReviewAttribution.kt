@@ -14,7 +14,6 @@ import java.nio.file.Path
 class FileSystemReviewAttribution(
   private val installedCatalog: InstalledPlatformPackCatalogPort,
 ) : ReviewAttributionPort {
-
   override fun routedSkillPlatformSlugs(): Map<String, String> =
     runCatching { platformReviewAttributionMappings(installedCatalog.manifests()) }.getOrDefault(emptyMap())
 
@@ -34,9 +33,10 @@ fun platformReviewAttributionMappings(platformPacksRoot: Path): Map<String, Stri
   return platformReviewAttributionMappings(discoverPlatformPackManifests(platformPacksRoot))
 }
 
-fun platformReviewAttributionMappings(manifests: List<PlatformManifest>): Map<String, String> = manifests
-  .sortedBy(PlatformManifest::slug)
-  .flatMap { manifest ->
-    manifest.declaredCodeReviewSkillNames().sorted().map { skillName -> skillName to manifest.slug }
-  }
-  .toMap()
+fun platformReviewAttributionMappings(manifests: List<PlatformManifest>): Map<String, String> =
+  manifests
+    .sortedBy(PlatformManifest::slug)
+    .flatMap { manifest ->
+      manifest.declaredCodeReviewSkillNames().sorted().map { skillName -> skillName to manifest.slug }
+    }
+    .toMap()

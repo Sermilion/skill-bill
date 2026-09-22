@@ -11,7 +11,10 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardOpenOption
 
-fun atomicWriteBytes(path: Path, bytes: ByteArray) {
+fun atomicWriteBytes(
+  path: Path,
+  bytes: ByteArray,
+) {
   val parent = path.parent
   if (parent != null) {
     Files.createDirectories(parent)
@@ -27,11 +30,18 @@ fun atomicWriteBytes(path: Path, bytes: ByteArray) {
   }
 }
 
-fun atomicWriteString(path: Path, text: String) {
+fun atomicWriteString(
+  path: Path,
+  text: String,
+) {
   atomicWriteBytes(path, text.toByteArray())
 }
 
-fun replaceDirectory(source: Path, target: Path, onDegraded: (String) -> Unit) {
+fun replaceDirectory(
+  source: Path,
+  target: Path,
+  onDegraded: (String) -> Unit,
+) {
   try {
     Files.move(source, target, ATOMIC_MOVE)
   } catch (error: AtomicMoveNotSupportedException) {
@@ -54,7 +64,10 @@ fun deleteRecursively(root: Path) {
   }
 }
 
-fun rollbackRestoreBytes(path: Path, bytes: ByteArray) {
+fun rollbackRestoreBytes(
+  path: Path,
+  bytes: ByteArray,
+) {
   atomicWriteBytes(path, bytes)
 }
 
@@ -86,11 +99,18 @@ fun rollbackDeletePathEntry(target: Path) {
   Files.deleteIfExists(target)
 }
 
-fun requirePathContainedIn(candidate: Path, root: Path, lazyMessage: () -> Any) {
+fun requirePathContainedIn(
+  candidate: Path,
+  root: Path,
+  lazyMessage: () -> Any,
+) {
   require(pathContainedIn(candidate, root), lazyMessage)
 }
 
-fun pathContainedIn(candidate: Path, root: Path): Boolean {
+fun pathContainedIn(
+  candidate: Path,
+  root: Path,
+): Boolean {
   val normalizedCandidate = candidate.toAbsolutePath().normalize()
   val normalizedRoot = root.toAbsolutePath().normalize()
   if (Files.isSymbolicLink(normalizedCandidate)) return false
@@ -99,9 +119,10 @@ fun pathContainedIn(candidate: Path, root: Path): Boolean {
   return realCandidate.startsWith(realRoot)
 }
 
-private fun resolveExistingAncestor(path: Path): Path = try {
-  path.toRealPath()
-} catch (error: NoSuchFileException) {
-  val parent = path.parent ?: throw error
-  resolveExistingAncestor(parent).resolve(path.fileName)
-}
+private fun resolveExistingAncestor(path: Path): Path =
+  try {
+    path.toRealPath()
+  } catch (error: NoSuchFileException) {
+    val parent = path.parent ?: throw error
+    resolveExistingAncestor(parent).resolve(path.fileName)
+  }

@@ -41,13 +41,14 @@ import kotlin.random.Random
 
 fun incompleteFeatureTaskIdentityError(args: WorkflowServiceOpenArgs): WorkflowOpenResult.Error? {
   val hasIdentityCoordinates = args.repositoryIdentity != null || args.governedSpecPath != null
-  val hasIncompleteIdentity = hasIncompleteFeatureTaskIdentity(
-    args.kind,
-    hasIdentityCoordinates,
-    args.issueKey,
-    args.repositoryIdentity,
-    args.governedSpecPath,
-  )
+  val hasIncompleteIdentity =
+    hasIncompleteFeatureTaskIdentity(
+      args.kind,
+      hasIdentityCoordinates,
+      args.issueKey,
+      args.repositoryIdentity,
+      args.governedSpecPath,
+    )
   return if (hasIncompleteIdentity) {
     WorkflowOpenResult.Error(
       workflowId = "unassigned",
@@ -64,12 +65,13 @@ fun persistOpenedWorkflow(args: PersistOpenedWorkflowArgs): WorkflowOpenResult =
     val family = args.family
     val workflowId = args.workflowId
     val stepId = args.stepId
-    val record = engine.openRecord(
-      family.definition,
-      workflowId,
-      args.effectiveSessionId,
-      stepId,
-    )
+    val record =
+      engine.openRecord(
+        family.definition,
+        workflowId,
+        args.effectiveSessionId,
+        stepId,
+      )
     family.saveRecord(
       unitOfWork.workflowStates,
       record.toRecord().copy(
@@ -79,15 +81,17 @@ fun persistOpenedWorkflow(args: PersistOpenedWorkflowArgs): WorkflowOpenResult =
     )
     args.executionIdentity?.let(unitOfWork.workflowStates::saveFeatureTaskExecutionIdentity)
     val saved = family.get(unitOfWork.workflowStates, workflowId) ?: record
-    val currentStep = engine.snapshotView(family.definition, saved).steps
-      .firstOrNull { it.stepId == stepId }
-    val launchProjection = launchProjectionIfReady(
-      engine,
-      family.definition,
-      engine.snapshotView(family.definition, saved),
-      stepId,
-      currentStep?.attemptCount ?: 0,
-    )
+    val currentStep =
+      engine.snapshotView(family.definition, saved).steps
+        .firstOrNull { it.stepId == stepId }
+    val launchProjection =
+      launchProjectionIfReady(
+        engine,
+        family.definition,
+        engine.snapshotView(family.definition, saved),
+        stepId,
+        currentStep?.attemptCount ?: 0,
+      )
     WorkflowOpenResult.Ok(
       workflowId = saved.workflowId,
       dbPath = unitOfWork.dbPath.toString(),
@@ -103,32 +107,36 @@ val resolveEffectiveSessionId =
     }
   }
 
-fun WorkflowUpdateRequest.toWorkflowUpdateInput(): WorkflowUpdateInput = WorkflowUpdateInput(
-  workflowStatus = WorkflowStatus.fromWire(workflowStatus)
-    ?: throw InvalidWorkflowStateSchemaError(
-      "Invalid workflow_status '$workflowStatus'.",
-    ),
-  currentStepId = currentStepId,
-  stepUpdates = stepUpdates,
-  artifactsPatch = artifactsPatch,
-  sessionId = sessionId,
-)
+fun WorkflowUpdateRequest.toWorkflowUpdateInput(): WorkflowUpdateInput =
+  WorkflowUpdateInput(
+    workflowStatus =
+      WorkflowStatus.fromWire(workflowStatus)
+        ?: throw InvalidWorkflowStateSchemaError(
+          "Invalid workflow_status '$workflowStatus'.",
+        ),
+    currentStepId = currentStepId,
+    stepUpdates = stepUpdates,
+    artifactsPatch = artifactsPatch,
+    sessionId = sessionId,
+  )
 
-fun WorkflowContinueDecision.toReopenInput(sessionId: String): WorkflowUpdateInput = WorkflowUpdateInput(
-  workflowStatus = WorkflowStatus.RUNNING,
-  currentStepId = resumeStepId,
-  stepUpdates = WorkflowStepUpdates.from(
-    listOf(
-      mapOf(
-        SharedPayloadKeys.STEP_ID to resumeStepId,
-        SharedPayloadKeys.STATUS to "running",
-        "attempt_count" to nextAttemptCount,
+fun WorkflowContinueDecision.toReopenInput(sessionId: String): WorkflowUpdateInput =
+  WorkflowUpdateInput(
+    workflowStatus = WorkflowStatus.RUNNING,
+    currentStepId = resumeStepId,
+    stepUpdates =
+      WorkflowStepUpdates.from(
+        listOf(
+          mapOf(
+            SharedPayloadKeys.STEP_ID to resumeStepId,
+            SharedPayloadKeys.STATUS to "running",
+            "attempt_count" to nextAttemptCount,
+          ),
+        ),
       ),
-    ),
-  ),
-  artifactsPatch = null,
-  sessionId = sessionId,
-)
+    artifactsPatch = null,
+    sessionId = sessionId,
+  )
 
 fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
   existing: WorkflowStateSnapshot,
@@ -141,28 +149,32 @@ fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
   return if (patch?.containsKey("progress_event") != true) {
     this
   } else {
-    val existingArtifacts = JsonCodec.parseObjectOrNull(existing.artifactsJson)
-      ?.let(JsonCodec::jsonElementToValue)
-      ?.let(JsonCodec::anyToStringAnyMap)
-      .orEmpty()
+    val existingArtifacts =
+      JsonCodec.parseObjectOrNull(existing.artifactsJson)
+        ?.let(JsonCodec::jsonElementToValue)
+        ?.let(JsonCodec::anyToStringAnyMap)
+        .orEmpty()
     val mergedArtifacts = LinkedHashMap(existingArtifacts).apply { putAll(patch) }
-    val observabilityPatch = GoalObservabilityArtifacts.patchForProgressEvent(
-      input = GoalObservabilityProgressInput(
-        artifacts = mergedArtifacts,
-        workflowId = workflowId,
-        workflowStatus = workflowStatus.wireValue,
-        currentStepId = currentStepId,
-        worktreeActivity = gitOperations.worktreeActivity(repoRoot.normalize())
-          .takeIf { activity -> activity.status == WorkflowGitOperationStatus.OK }
-          ?.let { activity ->
-            GoalObservabilityWorktreeActivity(
-              changedFileSummary = activity.changedFileSummary,
-              diffStat = activity.diffStat,
-            )
-          },
-      ),
-      validator = validator,
-    )
+    val observabilityPatch =
+      GoalObservabilityArtifacts.patchForProgressEvent(
+        input =
+          GoalObservabilityProgressInput(
+            artifacts = mergedArtifacts,
+            workflowId = workflowId,
+            workflowStatus = workflowStatus.wireValue,
+            currentStepId = currentStepId,
+            worktreeActivity =
+              gitOperations.worktreeActivity(repoRoot.normalize())
+                .takeIf { activity -> activity.status == WorkflowGitOperationStatus.OK }
+                ?.let { activity ->
+                  GoalObservabilityWorktreeActivity(
+                    changedFileSummary = activity.changedFileSummary,
+                    diffStat = activity.diffStat,
+                  )
+                },
+          ),
+        validator = validator,
+      )
     observabilityPatch?.let { patchValue ->
       val decoded = JsonCodec.anyToStringAnyMap(patchValue) ?: return this
       copy(artifactsPatch = WorkflowArtifactPatch.from(LinkedHashMap(patch).apply { putAll(decoded) }))
@@ -182,17 +194,19 @@ fun buildUpdateOk(
   return WorkflowUpdateResult.Ok(
     workflowId = updated.workflowId,
     dbPath = dbPath,
-    acknowledgement = engine.updateAcknowledgementView(
-      snapshot = snapshot,
-      input = effectiveInput,
-    ),
-    launchProjection = launchProjectionIfReady(
-      engine,
-      definition,
-      snapshot,
-      snapshot.currentStepId,
-      currentStep?.attemptCount ?: 0,
-    ),
+    acknowledgement =
+      engine.updateAcknowledgementView(
+        snapshot = snapshot,
+        input = effectiveInput,
+      ),
+    launchProjection =
+      launchProjectionIfReady(
+        engine,
+        definition,
+        snapshot,
+        snapshot.currentStepId,
+        currentStep?.attemptCount ?: 0,
+      ),
   )
 }
 
@@ -227,10 +241,15 @@ fun WorkflowService.openFeatureTask(args: WorkflowServiceOpenFeatureTaskArgs): W
   )
 }
 
-fun generateWorkflowId(prefix: String, clock: Clock, random: Random): String {
+fun generateWorkflowId(
+  prefix: String,
+  clock: Clock,
+  random: Random,
+): String {
   val now = clock.instant().atOffset(ZoneOffset.UTC)
-  val suffix = (1..WORKFLOW_ID_SUFFIX_LENGTH).map { SUFFIX_CHARS[random.nextInt(SUFFIX_CHARS.length)] }
-    .joinToString("")
+  val suffix =
+    (1..WORKFLOW_ID_SUFFIX_LENGTH).map { SUFFIX_CHARS[random.nextInt(SUFFIX_CHARS.length)] }
+      .joinToString("")
   return "$prefix-${now.year}${now.monthValue.twoDigits()}${now.dayOfMonth.twoDigits()}-" +
     "${now.hour.twoDigits()}${now.minute.twoDigits()}${now.second.twoDigits()}-$suffix"
 }

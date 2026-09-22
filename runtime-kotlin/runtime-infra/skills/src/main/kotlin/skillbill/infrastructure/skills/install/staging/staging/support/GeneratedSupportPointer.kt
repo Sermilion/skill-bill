@@ -23,9 +23,10 @@ internal fun generatedSupportPointersFor(
     return emptyList()
   }
   return requiredSupportingFilesForSkill(skillName, root, selectedPlatformManifests).mapNotNull { fileName ->
-    val target = requireSupportingFileTarget(skillName, fileName, root, selectedPlatformManifests)
-      .toAbsolutePath()
-      .normalize()
+    val target =
+      requireSupportingFileTarget(skillName, fileName, root, selectedPlatformManifests)
+        .toAbsolutePath()
+        .normalize()
     val sourceSidecar = resolvedSource.resolve(fileName).normalize()
     if (target == sourceSidecar) {
       null

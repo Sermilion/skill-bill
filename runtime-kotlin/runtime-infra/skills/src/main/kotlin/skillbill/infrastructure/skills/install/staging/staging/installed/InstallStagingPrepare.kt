@@ -56,21 +56,23 @@ internal data class StageInstalledSkillArtifacts(
 private fun resolveStageInstalledSkillArtifacts(
   request: ResolveStageInstalledSkillArtifactsInput,
 ): StageInstalledSkillArtifacts {
-  val contentHash = computeInstallContentHash(
-    InstallContentHashInputs(
-      sourceSkillDir = request.resolvedSource,
-      authored = request.authored,
-      applicablePointers = request.pointers,
-      generatedSupportPointers = request.internal.supportPointers,
-      internalChildren = request.internal.children,
-      agentAddonPointers = request.agentAddonPointers,
-    ),
-  )
+  val contentHash =
+    computeInstallContentHash(
+      InstallContentHashInputs(
+        sourceSkillDir = request.resolvedSource,
+        authored = request.authored,
+        applicablePointers = request.pointers,
+        generatedSupportPointers = request.internal.supportPointers,
+        internalChildren = request.internal.children,
+        agentAddonPointers = request.agentAddonPointers,
+      ),
+    )
   val contentIdentity = resolveStageContentIdentity(request.resolvedSource, request.suppliedCompactIdentity)
   val finalStagingDir = installedSkillStagingDir(request.input.home, request.resolvedSource, contentHash)
-  val expectedStagedNames = request.internal.sidecarNames + request.pointers.map { (_, pointer) -> pointer.name } +
-    request.internal.supportPointers.map { pointer -> pointer.name } + request.agentAddonPointers.map { it.name } +
-    SKILL_CONTENT_IDENTITY_FILENAME
+  val expectedStagedNames =
+    request.internal.sidecarNames + request.pointers.map { (_, pointer) -> pointer.name } +
+      request.internal.supportPointers.map { pointer -> pointer.name } + request.agentAddonPointers.map { it.name } +
+      SKILL_CONTENT_IDENTITY_FILENAME
   return StageInstalledSkillArtifacts(contentHash, contentIdentity, finalStagingDir, expectedStagedNames)
 }
 
@@ -94,32 +96,35 @@ private fun resolveStageInstallContext(input: StageInstalledSkillInput): StageIn
   val target = resolveTarget(resolvedRepoRoot, skillName)
   val selectedManifests = input.manifests.orEmpty().filter { manifest -> manifest.slug in input.selectedPlatformSlugs }
   val pointers = applicablePointers(resolvedRepoRoot, resolvedSource, input.manifests)
-  val generatedSupportPointers = generatedSupportPointersFor(
-    repoRoot = resolvedRepoRoot,
-    sourceSkillDir = resolvedSource,
-    skillName = skillName,
-    selectedPlatformManifests = selectedManifests,
-  )
-  val resolvedSkillsRoot = (input.skillsRoot ?: resolvedRepoRoot.resolve("skills")).toAbsolutePath().normalize()
-  val internal = prepareInternalStaging(
-    InternalStagingPreparation(
+  val generatedSupportPointers =
+    generatedSupportPointersFor(
       repoRoot = resolvedRepoRoot,
-      parentSourceDir = resolvedSource,
-      parentSkillName = skillName,
-      skillsRoot = resolvedSkillsRoot,
-      selectedPackSkills = input.selectedPackSkills,
-      platformManifests = input.manifests,
+      sourceSkillDir = resolvedSource,
+      skillName = skillName,
       selectedPlatformManifests = selectedManifests,
-      parentSupportPointers = generatedSupportPointers,
-      parentPointerNames = pointers.map { (_, pointer) -> pointer.name }.toSet(),
-    ),
-  )
-  val authored = authoredFilesFor(
-    sourceSkillDir = resolvedSource,
-    applicablePointers = pointers,
-    generatedSupportPointers = internal.supportPointers,
-    excludedSidecarNames = internal.sidecarNames,
-  )
+    )
+  val resolvedSkillsRoot = (input.skillsRoot ?: resolvedRepoRoot.resolve("skills")).toAbsolutePath().normalize()
+  val internal =
+    prepareInternalStaging(
+      InternalStagingPreparation(
+        repoRoot = resolvedRepoRoot,
+        parentSourceDir = resolvedSource,
+        parentSkillName = skillName,
+        skillsRoot = resolvedSkillsRoot,
+        selectedPackSkills = input.selectedPackSkills,
+        platformManifests = input.manifests,
+        selectedPlatformManifests = selectedManifests,
+        parentSupportPointers = generatedSupportPointers,
+        parentPointerNames = pointers.map { (_, pointer) -> pointer.name }.toSet(),
+      ),
+    )
+  val authored =
+    authoredFilesFor(
+      sourceSkillDir = resolvedSource,
+      applicablePointers = pointers,
+      generatedSupportPointers = internal.supportPointers,
+      excludedSidecarNames = internal.sidecarNames,
+    )
   return StageInstallContext(
     resolvedSource = resolvedSource,
     resolvedRepoRoot = resolvedRepoRoot,
@@ -142,17 +147,18 @@ internal fun prepareStageInstalledSkill(input: StageInstalledSkillInput): Prepar
       setOf("SKILL.md", ".content-hash", SKILL_CONTENT_IDENTITY_FILENAME),
     context.agentAddonPointers,
   )
-  val artifacts = resolveStageInstalledSkillArtifacts(
-    ResolveStageInstalledSkillArtifactsInput(
-      resolvedSource = context.resolvedSource,
-      input = input,
-      authored = context.authored,
-      pointers = context.pointers,
-      internal = context.internal,
-      agentAddonPointers = context.agentAddonPointers,
-      suppliedCompactIdentity = input.suppliedCompactIdentity,
-    ),
-  )
+  val artifacts =
+    resolveStageInstalledSkillArtifacts(
+      ResolveStageInstalledSkillArtifactsInput(
+        resolvedSource = context.resolvedSource,
+        input = input,
+        authored = context.authored,
+        pointers = context.pointers,
+        internal = context.internal,
+        agentAddonPointers = context.agentAddonPointers,
+        suppliedCompactIdentity = input.suppliedCompactIdentity,
+      ),
+    )
   return PreparedStageInstalledSkill(
     resolvedSource = context.resolvedSource,
     resolvedRepoRoot = context.resolvedRepoRoot,
@@ -170,15 +176,19 @@ internal fun prepareStageInstalledSkill(input: StageInstalledSkillInput): Prepar
   )
 }
 
-private fun resolveStageContentIdentity(resolvedSource: Path, suppliedCompactIdentity: String?): SkillContentIdentity {
-  val suppliedIdentity = suppliedCompactIdentity?.let { compact ->
-    val supplied = SkillContentIdentity.fromCompact(compact, "supplied session skill")
-    SkillContentIdentity.requireMatch(
-      suppliedSkillContentIdentity(resolvedSource),
-      supplied,
-    )
-    supplied
-  }
+private fun resolveStageContentIdentity(
+  resolvedSource: Path,
+  suppliedCompactIdentity: String?,
+): SkillContentIdentity {
+  val suppliedIdentity =
+    suppliedCompactIdentity?.let { compact ->
+      val supplied = SkillContentIdentity.fromCompact(compact, "supplied session skill")
+      SkillContentIdentity.requireMatch(
+        suppliedSkillContentIdentity(resolvedSource),
+        supplied,
+      )
+      supplied
+    }
   return suppliedIdentity ?: suppliedSkillContentIdentity(resolvedSource)
 }
 

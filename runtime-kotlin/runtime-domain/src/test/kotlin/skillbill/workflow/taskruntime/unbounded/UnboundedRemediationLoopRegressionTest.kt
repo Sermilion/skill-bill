@@ -48,9 +48,10 @@ class UnboundedRemediationLoopRegressionTest {
   @Test
   fun `a satisfied audit advances to review at any gap iteration count`() {
     listOf(0, 4, 17).forEach { consumed ->
-      val next = assertIs<FeatureTaskRuntimeNextPhase.Next>(
-        transition(def.PHASE_AUDIT, FeatureTaskRuntimeVerdict.SATISFIED, consumed, auditSatisfied),
-      )
+      val next =
+        assertIs<FeatureTaskRuntimeNextPhase.Next>(
+          transition(def.PHASE_AUDIT, FeatureTaskRuntimeVerdict.SATISFIED, consumed, auditSatisfied),
+        )
       assertEquals(def.PHASE_REVIEW, next.phaseId)
     }
   }

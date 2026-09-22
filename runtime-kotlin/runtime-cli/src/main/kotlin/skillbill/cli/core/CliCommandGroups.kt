@@ -8,6 +8,7 @@ import skillbill.cli.learning.LearningsCommand
 import skillbill.cli.review.ReviewTopLevelCommands
 import skillbill.cli.scaffold.commands.ScaffoldTopLevelCommands
 import skillbill.cli.telemetry.TelemetryCommand
+
 @Inject
 class ReviewCliCommandGroup(
   reviewCommands: ReviewTopLevelCommands,
@@ -15,10 +16,11 @@ class ReviewCliCommandGroup(
   telemetryCommand: TelemetryCommand,
 ) {
   val commands: List<CliktCommand> =
-    reviewCommands.commands + listOf(
-      learningsCommand,
-      telemetryCommand,
-    )
+    reviewCommands.commands +
+      listOf(
+        learningsCommand,
+        telemetryCommand,
+      )
 }
 
 @Inject

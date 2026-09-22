@@ -10,14 +10,15 @@ import skillbill.application.diagnostics.model.RejectedOutputDiagnosticCliResult
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
+
 @Inject
 class RejectedOutputInspectCliCommand(
   private val session: RejectedOutputDiagnosticCliSession,
   private val state: CliRunState,
 ) : DocumentedCliCommand(
-  "rejected-output",
-  "Inspect rejected phase output metadata, or emit one exact stored body with --raw-output.",
-) {
+    "rejected-output",
+    "Inspect rejected phase output metadata, or emit one exact stored body with --raw-output.",
+  ) {
   private val workflowId by option("--workflow", help = "Workflow identifier.").required()
   private val phaseId by option("--phase", help = "Optional phase selector.")
   private val attempt by option("--attempt", help = "Optional attempt selector.").int()
@@ -48,9 +49,9 @@ class RejectedOutputCleanupCliCommand(
   private val session: RejectedOutputDiagnosticCliSession,
   private val state: CliRunState,
 ) : DocumentedCliCommand(
-  "rejected-output-cleanup",
-  "Delete rejected-output diagnostics selected within one workflow.",
-) {
+    "rejected-output-cleanup",
+    "Delete rejected-output diagnostics selected within one workflow.",
+  ) {
   private val workflowId by option("--workflow", help = "Workflow identifier.").required()
   private val phaseId by option("--phase", help = "Optional phase selector.")
   private val attempt by option("--attempt", help = "Optional attempt selector.").int()
@@ -60,9 +61,10 @@ class RejectedOutputCleanupCliCommand(
   ).int()
 
   override fun run() {
-    val deleted = session.cleanup(
-      RejectedOutputDiagnosticSelector(workflowId, phaseId, attempt, repairTurn),
-    )
+    val deleted =
+      session.cleanup(
+        RejectedOutputDiagnosticSelector(workflowId, phaseId, attempt, repairTurn),
+      )
     state.completeText("deleted=$deleted\n", mapOf("deleted" to deleted))
   }
 }

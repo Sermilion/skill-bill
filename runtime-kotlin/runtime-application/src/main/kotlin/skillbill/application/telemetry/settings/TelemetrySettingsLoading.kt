@@ -7,6 +7,7 @@ import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.review.model.FeedbackTelemetryOptions
 import skillbill.telemetry.model.TelemetrySettings
 import kotlin.coroutines.cancellation.CancellationException
+
 internal const val TELEMETRY_SETTINGS_LOAD_FAILURE_MESSAGE =
   "Telemetry settings could not be loaded; treating telemetry as disabled."
 
@@ -16,19 +17,23 @@ internal fun loadTelemetrySettings(settingsProvider: TelemetrySettingsProvider):
 internal fun telemetrySettingsOrNull(
   settingsProvider: TelemetrySettingsProvider,
   diagnostics: RuntimeDiagnostics,
-): TelemetrySettings? = try {
-  settingsProvider.load()
-} catch (error: CancellationException) {
-  throw error
-} catch (error: InterruptedException) {
-  throw error
-} catch (error: IllegalStateException) {
-  telemetrySettingsLoadFailure(diagnostics, error)
-} catch (error: IllegalArgumentException) {
-  telemetrySettingsLoadFailure(diagnostics, error)
-}
+): TelemetrySettings? =
+  try {
+    settingsProvider.load()
+  } catch (error: CancellationException) {
+    throw error
+  } catch (error: InterruptedException) {
+    throw error
+  } catch (error: IllegalStateException) {
+    telemetrySettingsLoadFailure(diagnostics, error)
+  } catch (error: IllegalArgumentException) {
+    telemetrySettingsLoadFailure(diagnostics, error)
+  }
 
-private fun telemetrySettingsLoadFailure(diagnostics: RuntimeDiagnostics, error: RuntimeException): Nothing? {
+private fun telemetrySettingsLoadFailure(
+  diagnostics: RuntimeDiagnostics,
+  error: RuntimeException,
+): Nothing? {
   diagnostics.error(TELEMETRY_SETTINGS_LOAD_FAILURE_MESSAGE, error)
   return null
 }
@@ -44,7 +49,10 @@ internal fun feedbackTelemetryOptions(
   )
 }
 
-internal fun telemetryMutationResult(settings: TelemetrySettings, clearedEvents: Int): TelemetryMutationResult =
+internal fun telemetryMutationResult(
+  settings: TelemetrySettings,
+  clearedEvents: Int,
+): TelemetryMutationResult =
   TelemetryMutationResult(
     configPath = settings.configPath.toString(),
     telemetryEnabled = settings.enabled,
@@ -58,9 +66,10 @@ internal fun telemetryMutationResult(settings: TelemetrySettings, clearedEvents:
     clearedEvents = clearedEvents,
   )
 
-internal fun mapWorkflow(workflow: String): String = when (workflow) {
-  "verify", "bill-feature-verify" -> "bill-feature-verify"
-  "implement", "feature-task-prose" -> "feature-task-prose"
-  "feature-task-runtime" -> "feature-task-runtime"
-  else -> throw IllegalArgumentException("workflow must be one of: verify, implement, feature-task-runtime.")
-}
+internal fun mapWorkflow(workflow: String): String =
+  when (workflow) {
+    "verify", "bill-feature-verify" -> "bill-feature-verify"
+    "implement", "feature-task-prose" -> "feature-task-prose"
+    "feature-task-runtime" -> "feature-task-runtime"
+    else -> throw IllegalArgumentException("workflow must be one of: verify, implement, feature-task-runtime.")
+  }

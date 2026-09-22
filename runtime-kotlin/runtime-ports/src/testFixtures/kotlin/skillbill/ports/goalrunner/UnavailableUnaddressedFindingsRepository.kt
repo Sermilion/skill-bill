@@ -4,7 +4,11 @@ import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
 
 object UnavailableUnaddressedFindingsRepository : UnaddressedFindingsRepository {
-  override fun replaceLedgerForPass(workflowId: String, reviewPassNumber: Int, findings: List<UnaddressedFinding>) {
+  override fun replaceLedgerForPass(
+    workflowId: String,
+    reviewPassNumber: Int,
+    findings: List<UnaddressedFinding>,
+  ) {
     error("Unaddressed-findings persistence is unavailable.")
   }
 

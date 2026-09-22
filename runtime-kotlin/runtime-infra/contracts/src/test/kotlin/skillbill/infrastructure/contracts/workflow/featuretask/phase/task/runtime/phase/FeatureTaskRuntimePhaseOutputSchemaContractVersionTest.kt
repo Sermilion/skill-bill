@@ -43,8 +43,9 @@ class FeatureTaskRuntimePhaseOutputSchemaContractVersionTest {
   @Test
   fun `repair receipt nested contract_version const matches FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION`() {
     val schema = classpathSchema()
-    val receiptVersion = schema.path("\$defs").path("repairReceipt").path("properties")
-      .path("contract_version").path("const")
+    val receiptVersion =
+      schema.path("\$defs").path("repairReceipt").path("properties")
+        .path("contract_version").path("const")
     assertTrue(receiptVersion.isTextual, "repairReceipt must pin contract_version const.")
     assertEquals(FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION, receiptVersion.asText())
     assertEquals(
@@ -55,8 +56,9 @@ class FeatureTaskRuntimePhaseOutputSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader
-      .getResourceAsStream(FeatureTaskRuntimePhaseOutputSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader
+        .getResourceAsStream(FeatureTaskRuntimePhaseOutputSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical feature-task-runtime phase output schema is missing from the classpath at " +

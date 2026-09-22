@@ -30,19 +30,21 @@ class CliWorkflowContinuationRuntimeTest {
         workflowId = workflowId,
         workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "plan",
-        stepUpdates = RuntimeWorkflowTestSupport.parseStepUpdates(
-          """[{"step_id":"plan","status":"completed","attempt_count":1}]""",
-        ),
+        stepUpdates =
+          RuntimeWorkflowTestSupport.parseStepUpdates(
+            """[{"step_id":"plan","status":"completed","attempt_count":1}]""",
+          ),
         artifactsPatch = RuntimeWorkflowTestSupport.parseArtifactsPatch(fixture.artifactsPatch()),
         context = fixture.context,
       ),
     )
-    val continued = RuntimeWorkflowTestSupport.continueByIssueKey(
-      dbPath = fixture.dbPath,
-      issueKey = "SKILL-51",
-      subtaskId = 1,
-      context = fixture.context,
-    )
+    val continued =
+      RuntimeWorkflowTestSupport.continueByIssueKey(
+        dbPath = fixture.dbPath,
+        issueKey = "SKILL-51",
+        subtaskId = 1,
+        context = fixture.context,
+      )
 
     assertEquals("ok", continued["status"])
     assertEquals(1, continued["decomposition_subtask_id"])
@@ -70,19 +72,21 @@ class CliWorkflowContinuationRuntimeTest {
         workflowId = workflowId,
         workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "plan",
-        stepUpdates = RuntimeWorkflowTestSupport.parseStepUpdates(
-          """[{"step_id":"plan","status":"completed","attempt_count":1}]""",
-        ),
+        stepUpdates =
+          RuntimeWorkflowTestSupport.parseStepUpdates(
+            """[{"step_id":"plan","status":"completed","attempt_count":1}]""",
+          ),
         artifactsPatch = RuntimeWorkflowTestSupport.parseArtifactsPatch(fixture.artifactsPatch()),
         context = fixture.context,
       ),
     )
-    val continued = RuntimeWorkflowTestSupport.continueByIssueKey(
-      dbPath = fixture.dbPath,
-      issueKey = "SKILL-51",
-      subtaskId = 2,
-      context = fixture.context,
-    )
+    val continued =
+      RuntimeWorkflowTestSupport.continueByIssueKey(
+        dbPath = fixture.dbPath,
+        issueKey = "SKILL-51",
+        subtaskId = 2,
+        context = fixture.context,
+      )
 
     assertEquals("error", continued["status"])
     assertEquals("blocked", continued["continue_status"])
@@ -98,30 +102,33 @@ private data class CliDecompositionFixture(
   val subtaskSpec: Path,
   val secondSubtaskSpec: Path,
 ) {
-  fun artifactsPatch(): String = jsonString(
-    mapOf(
-      "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
-      "plan" to mapOf(
-        "mode" to "decompose",
-        "parent_spec_path" to parentSpec.toString(),
-        "recommended_first_subtask_id" to 1,
-        "subtasks" to listOf(
+  fun artifactsPatch(): String =
+    jsonString(
+      mapOf(
+        "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
+        "plan" to
           mapOf(
-            "id" to 1,
-            "name" to "foundation",
-            "spec_path" to subtaskSpec.toString(),
-            "depends_on" to emptyList<Int>(),
+            "mode" to "decompose",
+            "parent_spec_path" to parentSpec.toString(),
+            "recommended_first_subtask_id" to 1,
+            "subtasks" to
+              listOf(
+                mapOf(
+                  "id" to 1,
+                  "name" to "foundation",
+                  "spec_path" to subtaskSpec.toString(),
+                  "depends_on" to emptyList<Int>(),
+                ),
+                mapOf(
+                  "id" to 2,
+                  "name" to "runtime",
+                  "spec_path" to secondSubtaskSpec.toString(),
+                  "depends_on" to listOf(1),
+                ),
+              ),
           ),
-          mapOf(
-            "id" to 2,
-            "name" to "runtime",
-            "spec_path" to secondSubtaskSpec.toString(),
-            "depends_on" to listOf(1),
-          ),
-        ),
       ),
-    ),
-  )
+    )
 }
 
 private fun cliDecompositionFixture(): CliDecompositionFixture {
@@ -147,16 +154,23 @@ private object TestWorkflowGitOperations : WorkflowGitOperationsTestBase() {
 
   override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations = TestRepositoryFingerprintOperations
 
-  override fun checkoutBranch(repoRoot: Path, branch: String, baseBranch: String?): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Ok(value = branch)
+  override fun checkoutBranch(
+    repoRoot: Path,
+    branch: String,
+    baseBranch: String?,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = branch)
 
-  override fun branchExists(repoRoot: Path, branch: String): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Ok(value = "true")
+  override fun branchExists(
+    repoRoot: Path,
+    branch: String,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "true")
 
   override fun currentBranch(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
-  override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Ok(value = "test-commit")
+  override fun createCommit(
+    repoRoot: Path,
+    message: String,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "test-commit")
 
   override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Ok(value = "test-commit")

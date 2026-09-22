@@ -9,9 +9,11 @@ import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
 import skillbill.review.context.model.launch.ReviewConversationIsolation
 import java.nio.file.Path
-internal fun launchPrompt(request: SkillRunRequest): String = requireNotNull(request.promptOverride) {
-  "launchPrompt requires a promptOverride; goal-continuation runs spawn skill-bill directly."
-}
+
+internal fun launchPrompt(request: SkillRunRequest): String =
+  requireNotNull(request.promptOverride) {
+    "launchPrompt requires a promptOverride; goal-continuation runs spawn skill-bill directly."
+  }
 
 internal fun governedReviewConversationIsolation(request: SkillRunRequest): ReviewConversationIsolation? =
   ReviewConversationIsolation.FRESH.takeIf { request.reviewEvidenceBroker != null }
@@ -30,7 +32,10 @@ internal fun requireGovernedReviewLaunch(
   }
 }
 
-internal fun requireProcessLaunch(request: SkillRunRequest, strategy: ReviewLaunchIsolationStrategy) {
+internal fun requireProcessLaunch(
+  request: SkillRunRequest,
+  strategy: ReviewLaunchIsolationStrategy,
+) {
   if (request.reviewEvidenceBroker == null) return
   require(strategy.supported) {
     "Governed specialist launches require a supported fresh-context strategy."
@@ -127,13 +132,14 @@ internal fun MutableList<String>.addGoalContinuationArguments(context: SkillRunG
       ObjectMapper().writeValueAsString(
         linkedMapOf(
           SharedPayloadKeys.CONTRACT_VERSION to "0.1",
-          "entries" to context.agentAddonSelection.entries.map { entry ->
-            linkedMapOf(
-              "slug" to entry.slug,
-              "source_identity" to entry.sourceIdentity,
-              "content_sha256" to entry.contentSha256,
-            )
-          },
+          "entries" to
+            context.agentAddonSelection.entries.map { entry ->
+              linkedMapOf(
+                "slug" to entry.slug,
+                "source_identity" to entry.sourceIdentity,
+                "content_sha256" to entry.contentSha256,
+              )
+            },
         ),
       ),
     )

@@ -19,12 +19,14 @@ internal object FeatureTaskRuntimeHandoffProjectionDeclarationChecks {
     ) {
       return
     }
-    val buildCompleted = inputs.resolvedUpstream.outputsByPhaseId.containsKey(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD,
-    )
-    val validateCompleted = inputs.resolvedUpstream.outputsByPhaseId.containsKey(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-    )
+    val buildCompleted =
+      inputs.resolvedUpstream.outputsByPhaseId.containsKey(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD,
+      )
+    val validateCompleted =
+      inputs.resolvedUpstream.outputsByPhaseId.containsKey(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+      )
     when (inputs.qualityGateSelection) {
       FeatureTaskRuntimeQualityGateSelection.BUILD ->
         if (validateCompleted) {
@@ -134,18 +136,19 @@ internal object FeatureTaskRuntimeHandoffProjectionDeclarationChecks {
   ) {
     fields.forEach { field ->
       val reference = field.value as? FeatureTaskRuntimeHandoffProjectionValue.CompactReference ?: return@forEach
-      val problem = when {
-        reference.value.length > FeatureTaskRuntimeHandoffProjectionValidator.COMPACT_REFERENCE_MAX_LENGTH ->
-          "reference in field '${field.name}' exceeds " +
-            "${FeatureTaskRuntimeHandoffProjectionValidator.COMPACT_REFERENCE_MAX_LENGTH} characters; a compact " +
-            "reference must be an identifier, not an inlined body."
-        reference.value.any { it == '\n' || it == '\r' } ->
-          "reference in field '${field.name}' contains a line break; a compact reference must be a single token."
-        referencesPrivateEvidence(reference.value) && !declaration.allowsPrivateArtifactReference ->
-          "field '${field.name}' references a private evidence artifact, but this projection does not declare a " +
-            "runtime-owned deterministic inspection operation for it."
-        else -> null
-      }
+      val problem =
+        when {
+          reference.value.length > FeatureTaskRuntimeHandoffProjectionValidator.COMPACT_REFERENCE_MAX_LENGTH ->
+            "reference in field '${field.name}' exceeds " +
+              "${FeatureTaskRuntimeHandoffProjectionValidator.COMPACT_REFERENCE_MAX_LENGTH} characters; a compact " +
+              "reference must be an identifier, not an inlined body."
+          reference.value.any { it == '\n' || it == '\r' } ->
+            "reference in field '${field.name}' contains a line break; a compact reference must be a single token."
+          referencesPrivateEvidence(reference.value) && !declaration.allowsPrivateArtifactReference ->
+            "field '${field.name}' references a private evidence artifact, but this projection does not declare a " +
+              "runtime-owned deterministic inspection operation for it."
+          else -> null
+        }
       if (problem != null) {
         rejectFeatureTaskRuntimeHandoffProjection(
           inputs,
@@ -157,7 +160,10 @@ internal object FeatureTaskRuntimeHandoffProjectionDeclarationChecks {
     }
   }
 
-  private fun optionalDeclaredField(declaration: PhaseHandoffProjectionDeclaration, fieldName: String): Boolean =
+  private fun optionalDeclaredField(
+    declaration: PhaseHandoffProjectionDeclaration,
+    fieldName: String,
+  ): Boolean =
     declaration.projectionContractId ==
       FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE &&
       fieldName == "directive"

@@ -5,10 +5,16 @@ import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStepStatus
-internal fun validateWorkflowOpen(definition: WorkflowDefinition, currentStepId: String): String? =
-  validateWorkflowEnum(currentStepId, definition.stepIds, "current_step_id")
 
-internal fun validateWorkflowUpdate(definition: WorkflowDefinition, input: WorkflowUpdateInput): String? {
+internal fun validateWorkflowOpen(
+  definition: WorkflowDefinition,
+  currentStepId: String,
+): String? = validateWorkflowEnum(currentStepId, definition.stepIds, "current_step_id")
+
+internal fun validateWorkflowUpdate(
+  definition: WorkflowDefinition,
+  input: WorkflowUpdateInput,
+): String? {
   if (input.workflowStatus !in definition.workflowStatusEnums) {
     return "Invalid workflow_status '${input.workflowStatus.wireValue}'. Allowed: " +
       definition.workflowStatusEnums.joinToString { it.wireValue }
@@ -19,7 +25,10 @@ internal fun validateWorkflowUpdate(definition: WorkflowDefinition, input: Workf
   return input.stepUpdates?.let { validateWorkflowStepUpdates(definition, it.asEntries()) }
 }
 
-private fun validateWorkflowStepUpdates(definition: WorkflowDefinition, updates: List<Map<String, Any?>>): String? {
+private fun validateWorkflowStepUpdates(
+  definition: WorkflowDefinition,
+  updates: List<Map<String, Any?>>,
+): String? {
   val seenStepIds = mutableSetOf<String>()
   for ((index, update) in updates.withIndex()) {
     validateOneStepUpdate(definition, index, update, seenStepIds)?.let { return it }
@@ -65,7 +74,11 @@ private fun validateStepStatusAndAttempt(
   return null
 }
 
-private fun validateWorkflowEnum(value: String, allowed: Collection<String>, fieldName: String): String? =
+private fun validateWorkflowEnum(
+  value: String,
+  allowed: Collection<String>,
+  fieldName: String,
+): String? =
   if (value !in allowed) {
     "Invalid $fieldName '$value'. Allowed: ${allowed.joinToString()}"
   } else {

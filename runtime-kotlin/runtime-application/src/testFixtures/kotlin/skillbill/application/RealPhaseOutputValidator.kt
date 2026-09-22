@@ -2,5 +2,6 @@ package skillbill.application
 
 import skillbill.infrastructure.contracts.FeatureTaskRuntimePhaseOutputSchemaValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
+
 val realFeatureTaskRuntimePhaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator =
   FeatureTaskRuntimePhaseOutputSchemaValidator()

@@ -33,24 +33,28 @@ import skillbill.workflow.taskruntime.phaseartifacts.operatorBlockRetryFrom
 import skillbill.workflow.taskruntime.phaseartifacts.phaseLedgerFrom
 import skillbill.workflow.taskruntime.phaseartifacts.phaseRecordsFrom
 import skillbill.workflow.taskruntime.phaseartifacts.resolvedBranchFrom
-private fun artifactsMap(artifacts: Any?): Map<String, Any?> = when {
-  artifacts == null -> emptyMap()
-  else -> JsonCodec.anyToStringAnyMap(artifacts)
-    ?: throw InvalidWorkflowStateSchemaError(
-      "Feature-task-runtime workflow artifacts must decode to an object.",
-    )
-}
+
+private fun artifactsMap(artifacts: Any?): Map<String, Any?> =
+  when {
+    artifacts == null -> emptyMap()
+    else ->
+      JsonCodec.anyToStringAnyMap(artifacts)
+        ?: throw InvalidWorkflowStateSchemaError(
+          "Feature-task-runtime workflow artifacts must decode to an object.",
+        )
+  }
 
 class FeatureTaskRuntimeWorkflowArtifactMap private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
   internal companion object {
-    fun from(raw: Any?): FeatureTaskRuntimeWorkflowArtifactMap = FeatureTaskRuntimeWorkflowArtifactMap(
-      JsonCodec.anyToStringAnyMap(raw)
-        ?: throw InvalidWorkflowStateSchemaError(
-          "Feature-task-runtime workflow artifact entry must decode to an object.",
-        ),
-    )
+    fun from(raw: Any?): FeatureTaskRuntimeWorkflowArtifactMap =
+      FeatureTaskRuntimeWorkflowArtifactMap(
+        JsonCodec.anyToStringAnyMap(raw)
+          ?: throw InvalidWorkflowStateSchemaError(
+            "Feature-task-runtime workflow artifact entry must decode to an object.",
+          ),
+      )
   }
 }
 
@@ -96,9 +100,10 @@ fun FeatureTaskRuntimeValidationGateExecutionEvidence.asWorkflowArtifactEntry(re
 fun decodeValidationGateExecutionEvidenceFromArtifact(
   raw: Any?,
   sourceLabel: String,
-): FeatureTaskRuntimeValidationGateExecutionEvidence? = JsonCodec.anyToStringAnyMap(raw)?.let {
-  FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(it, sourceLabel)
-}
+): FeatureTaskRuntimeValidationGateExecutionEvidence? =
+  JsonCodec.anyToStringAnyMap(raw)?.let {
+    FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(it, sourceLabel)
+  }
 
 internal fun decodeValidationGateExecutionEvidenceFromArtifact(
   raw: Map<String, Any?>,
@@ -110,7 +115,10 @@ fun FeatureTaskRuntimeValidationEvidence.asWorkflowArtifactEntry(): Any = toArti
 
 fun FeatureTaskRuntimeReadinessEvidence.asWorkflowArtifactEntry(): Any = toArtifactMap()
 
-fun decodeReadinessEvidenceFromArtifact(raw: Any?, sourceLabel: String): FeatureTaskRuntimeReadinessEvidence? =
+fun decodeReadinessEvidenceFromArtifact(
+  raw: Any?,
+  sourceLabel: String,
+): FeatureTaskRuntimeReadinessEvidence? =
   JsonCodec.anyToStringAnyMap(raw)?.let { FeatureTaskRuntimeReadinessEvidence.fromArtifactMap(it, sourceLabel) }
 
 internal fun decodeReadinessEvidenceFromArtifact(
@@ -118,7 +126,10 @@ internal fun decodeReadinessEvidenceFromArtifact(
   sourceLabel: String,
 ): FeatureTaskRuntimeReadinessEvidence = FeatureTaskRuntimeReadinessEvidence.fromArtifactMap(raw, sourceLabel)
 
-fun decodeValidationEvidenceFromArtifact(raw: Any?, sourceLabel: String): FeatureTaskRuntimeValidationEvidence? =
+fun decodeValidationEvidenceFromArtifact(
+  raw: Any?,
+  sourceLabel: String,
+): FeatureTaskRuntimeValidationEvidence? =
   JsonCodec.anyToStringAnyMap(raw)?.let { FeatureTaskRuntimeValidationEvidence.fromArtifactMap(it, sourceLabel) }
 
 internal fun decodeValidationEvidenceFromArtifact(
@@ -128,7 +139,10 @@ internal fun decodeValidationEvidenceFromArtifact(
 
 fun FeatureTaskRuntimeRepairReceipt.asWorkflowArtifactEntry(): Any = toArtifactMap()
 
-fun decodeRepairReceiptFromArtifact(raw: Any?, sourceLabel: String): FeatureTaskRuntimeRepairReceipt? =
+fun decodeRepairReceiptFromArtifact(
+  raw: Any?,
+  sourceLabel: String,
+): FeatureTaskRuntimeRepairReceipt? =
   JsonCodec.anyToStringAnyMap(raw)?.let { FeatureTaskRuntimeRepairReceipt.fromArtifactMap(it, sourceLabel) }
 
 internal fun decodeRepairReceiptFromArtifact(
@@ -141,9 +155,10 @@ fun decodeRepairReceiptFromArtifactWithObservations(
   sourceLabel: String,
 ): FeatureTaskRuntimeRepairReceiptDecoded? {
   val collector = FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector()
-  val receipt = JsonCodec.anyToStringAnyMap(raw)?.let {
-    FeatureTaskRuntimeRepairReceipt.fromArtifactMap(it, sourceLabel, collector)
-  } ?: return null
+  val receipt =
+    JsonCodec.anyToStringAnyMap(raw)?.let {
+      FeatureTaskRuntimeRepairReceipt.fromArtifactMap(it, sourceLabel, collector)
+    } ?: return null
   return FeatureTaskRuntimeRepairReceiptDecoded(receipt, collector.finish())
 }
 
@@ -156,7 +171,10 @@ internal fun decodeRepairReceiptFromArtifactWithObservations(
   return FeatureTaskRuntimeRepairReceiptDecoded(receipt, collector.finish())
 }
 
-fun validateRepairReceiptWireEntries(raw: Any, path: String) {
+fun validateRepairReceiptWireEntries(
+  raw: Any,
+  path: String,
+) {
   FeatureTaskRuntimeRepairReceipt.validateEntries(
     JsonCodec.anyToStringAnyMap(raw)
       ?: throw InvalidFeatureTaskRuntimeRepairReceiptError(

@@ -11,7 +11,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TelemetryProxyPayloadMappersTest {
-
   @Test
   fun `a recorded version is injected next to install_id`() {
     val payload = telemetryProxyBatchPayload(settings(), listOf(row(id = 1, version = "1.2.3")))
@@ -62,24 +61,30 @@ class TelemetryProxyPayloadMappersTest {
     )
   }
 
-  private fun row(id: Long, version: String?, eventUuid: String = ""): TelemetryOutboxRecord = TelemetryOutboxRecord(
-    id = id,
-    eventName = "skillbill_goal_finished",
-    payloadJson = """{"name":"ok"}""",
-    createdAt = "2026-04-23 00:00:00",
-    syncedAt = null,
-    lastError = "",
-    skillBillVersion = version,
-    eventUuid = eventUuid,
-  )
+  private fun row(
+    id: Long,
+    version: String?,
+    eventUuid: String = "",
+  ): TelemetryOutboxRecord =
+    TelemetryOutboxRecord(
+      id = id,
+      eventName = "skillbill_goal_finished",
+      payloadJson = """{"name":"ok"}""",
+      createdAt = "2026-04-23 00:00:00",
+      syncedAt = null,
+      lastError = "",
+      skillBillVersion = version,
+      eventUuid = eventUuid,
+    )
 
-  private fun settings(): TelemetrySettings = TelemetrySettings(
-    configPath = Files.createTempFile("telemetry-mapper", ".json").toFileLocation(),
-    level = "anonymous",
-    enabled = true,
-    installId = "test-install-id",
-    proxyUrl = "https://telemetry.example.dev/ingest",
-    customProxyUrl = "https://telemetry.example.dev/ingest",
-    batchSize = 50,
-  )
+  private fun settings(): TelemetrySettings =
+    TelemetrySettings(
+      configPath = Files.createTempFile("telemetry-mapper", ".json").toFileLocation(),
+      level = "anonymous",
+      enabled = true,
+      installId = "test-install-id",
+      proxyUrl = "https://telemetry.example.dev/ingest",
+      customProxyUrl = "https://telemetry.example.dev/ingest",
+      batchSize = 50,
+    )
 }

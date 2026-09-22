@@ -30,6 +30,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRejec
 import skillbill.workflow.taskruntime.model.handoff.task.featureTaskRuntimeRejectionCapOf
 import skillbill.workflow.taskruntime.model.handoff.task.featureTaskRuntimeRejectionViolationClassOf
 import java.time.Clock
+
 private fun RejectedOutputDiagnosticError.degradableFailureClass(): FeatureTaskRuntimeDiagnosticFailureClass? =
   when (this) {
     is RejectedOutputDiagnosticError.Conflict -> FeatureTaskRuntimeDiagnosticFailureClass.CONFLICT
@@ -55,6 +56,7 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
 ) {
   private sealed class DiagnosticWriteOutcome<out T> {
     class Written<T>(val value: T) : DiagnosticWriteOutcome<T>()
+
     class Degraded(
       val failureClass: FeatureTaskRuntimeDiagnosticFailureClass,
     ) : DiagnosticWriteOutcome<Nothing>()
@@ -64,51 +66,58 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
     request: RejectedOutputDiagnosticRequest,
     producerGeneration: Int,
   ): FeatureTaskRuntimeRejectedOutputWrite {
-    val evidence = ProducerOutputEvidence(
-      workflowId = request.workflowId,
-      phaseId = request.phaseId,
-      attempt = request.attempt,
-      agentId = request.agentId,
-      model = request.model,
-      recordedAt = clock.instant(),
-      byteSize = request.observedByteSize,
-      sha256 = request.observedSha256,
-      payload = request.rawResponse.takeUnless { request.truncated },
-      generation = producerGeneration,
-      repairTurn = request.repairTurn,
-    )
-    return when (
-      val outcome = degradeDiagnosticFailure(
-        RejectedOutputDiagnosticDegradeRequest(
-          workflowId = request.workflowId,
-          operation = "record-rejected-output",
-          conflictingKey = evidence.evidenceKey(),
-          phaseId = request.phaseId,
-          attempt = request.attempt,
-          repairTurn = request.repairTurn,
-          generation = producerGeneration,
-        ),
-      ) {
-        database.transaction { unitOfWork ->
-          val service = diagnosticService(unitOfWork)
-          service.retainProducerOutput(evidence)
-          service.record(request)
-          recordRejectionMeasurement(unitOfWork, request)
-        }
-      }
-    ) {
-      is DiagnosticWriteOutcome.Written<*> -> FeatureTaskRuntimeRejectedOutputWrite.Written(
-        RejectedOutputDiagnosticService.stableIdentity(
-          request.workflowId,
-          request.phaseId,
-          request.attempt,
-          request.repairTurn,
-        ),
+    val evidence =
+      ProducerOutputEvidence(
+        workflowId = request.workflowId,
+        phaseId = request.phaseId,
+        attempt = request.attempt,
+        agentId = request.agentId,
+        model = request.model,
+        recordedAt = clock.instant(),
+        byteSize = request.observedByteSize,
+        sha256 = request.observedSha256,
+        payload = request.rawResponse.takeUnless { request.truncated },
+        generation = producerGeneration,
+        repairTurn = request.repairTurn,
       )
+    return when (
+      val outcome =
+        degradeDiagnosticFailure(
+          RejectedOutputDiagnosticDegradeRequest(
+            workflowId = request.workflowId,
+            operation = "record-rejected-output",
+            conflictingKey = evidence.evidenceKey(),
+            phaseId = request.phaseId,
+            attempt = request.attempt,
+            repairTurn = request.repairTurn,
+            generation = producerGeneration,
+          ),
+        ) {
+          database.transaction { unitOfWork ->
+            val service = diagnosticService(unitOfWork)
+            service.retainProducerOutput(evidence)
+            service.record(request)
+            recordRejectionMeasurement(unitOfWork, request)
+          }
+        }
+    ) {
+      is DiagnosticWriteOutcome.Written<*> ->
+        FeatureTaskRuntimeRejectedOutputWrite.Written(
+          RejectedOutputDiagnosticService.stableIdentity(
+            request.workflowId,
+            request.phaseId,
+            request.attempt,
+            request.repairTurn,
+          ),
+        )
       is DiagnosticWriteOutcome.Degraded -> FeatureTaskRuntimeRejectedOutputWrite.Degraded(outcome.failureClass)
     }
   }
-  private fun recordRejectionMeasurement(unitOfWork: UnitOfWork, request: RejectedOutputDiagnosticRequest) {
+
+  private fun recordRejectionMeasurement(
+    unitOfWork: UnitOfWork,
+    request: RejectedOutputDiagnosticRequest,
+  ) {
     runCatching {
       unitOfWork.lifecycleTelemetry.featureTaskRuntimeRejection(
         FeatureTaskRuntimeRejectionMeasurement(
@@ -150,6 +159,7 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
     val agentId = args.agentId
     val generation = args.generation
     val conflictingKey = "$workflowId:$phaseId:$generation:$attempt:*:$agentId"
+
     fun unreadable(failureClass: FeatureTaskRuntimeDiagnosticFailureClass): FeatureTaskRuntimeProducerOutputRead {
       persistDegradedDiagnostic(
         RejectedOutputDiagnosticPersistRequest(
@@ -166,11 +176,13 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
       return FeatureTaskRuntimeProducerOutputRead.Unreadable(failureClass)
     }
     return try {
-      val evidence = database.read { unitOfWork ->
-        val repository = unitOfWork.rejectedOutputDiagnostics
-          ?: throw RejectedOutputDiagnosticError.Persistence("repository-unavailable")
-        repository.readProducerOutput(workflowId, phaseId, attempt, agentId, generation)
-      }
+      val evidence =
+        database.read { unitOfWork ->
+          val repository =
+            unitOfWork.rejectedOutputDiagnostics
+              ?: throw RejectedOutputDiagnosticError.Persistence("repository-unavailable")
+          repository.readProducerOutput(workflowId, phaseId, attempt, agentId, generation)
+        }
       if (evidence == null) {
         FeatureTaskRuntimeProducerOutputRead.Absent
       } else {
@@ -216,20 +228,25 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
   }
 
   private fun persistDegradedDiagnostic(request: RejectedOutputDiagnosticPersistRequest) {
-    val signal = FeatureTaskRuntimeDiagnosticSignal(
-      operation = request.operation,
-      failureClass = request.failureClass,
-      conflictingKey = request.conflictingKey,
-      phaseId = request.phaseId,
-      attempt = request.attempt.coerceAtLeast(0),
-      repairTurn = request.repairTurn?.coerceAtLeast(0),
-      generation = request.generation.coerceAtLeast(0),
-      recordedAt = clock.instant().toString(),
-    )
+    val signal =
+      FeatureTaskRuntimeDiagnosticSignal(
+        operation = request.operation,
+        failureClass = request.failureClass,
+        conflictingKey = request.conflictingKey,
+        phaseId = request.phaseId,
+        attempt = request.attempt.coerceAtLeast(0),
+        repairTurn = request.repairTurn?.coerceAtLeast(0),
+        generation = request.generation.coerceAtLeast(0),
+        recordedAt = clock.instant().toString(),
+      )
     persistDiagnosticSignal(request.workflowId, signal)
     recordDegradationMeasurement(request.workflowId, signal)
   }
-  private fun recordDegradationMeasurement(workflowId: String, signal: FeatureTaskRuntimeDiagnosticSignal) {
+
+  private fun recordDegradationMeasurement(
+    workflowId: String,
+    signal: FeatureTaskRuntimeDiagnosticSignal,
+  ) {
     runCatching {
       database.transaction { unitOfWork ->
         unitOfWork.lifecycleTelemetry.featureTaskRuntimeDiagnosticDegradation(
@@ -247,16 +264,22 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
       }
     }
   }
-  private fun persistDiagnosticSignal(workflowId: String, signal: FeatureTaskRuntimeDiagnosticSignal) {
+
+  private fun persistDiagnosticSignal(
+    workflowId: String,
+    signal: FeatureTaskRuntimeDiagnosticSignal,
+  ) {
     runCatching {
       database.transaction { unitOfWork ->
-        val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-          ?: return@transaction
-        val existing = decodeDiagnosticSignalsFromArtifact(
-          FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(
-            record,
-          )[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
-        )
+        val record =
+          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+            ?: return@transaction
+        val existing =
+          decodeDiagnosticSignalsFromArtifact(
+            FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(
+              record,
+            )[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
+          )
         workflowPersistence.persistArtifactsPatch(
           unitOfWork.workflowStates,
           record,
@@ -268,10 +291,12 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
       }
     }
   }
+
   fun loadDiagnosticSignals(workflowId: String): List<FeatureTaskRuntimeDiagnosticSignal> =
     database.read { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-        ?: return@read emptyList()
+      val record =
+        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          ?: return@read emptyList()
       decodeDiagnosticSignalsFromArtifact(
         FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(
           record,
@@ -280,10 +305,12 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
     }
 
   private fun diagnosticService(unitOfWork: UnitOfWork): RejectedOutputDiagnosticService {
-    val repository = unitOfWork.rejectedOutputDiagnostics
-      ?: throw RejectedOutputDiagnosticError.Persistence("repository-unavailable")
-    val permissions = unitOfWork.rejectedOutputDiagnosticPermissions
-      ?: throw RejectedOutputDiagnosticError.Permission("permissions-unavailable")
+    val repository =
+      unitOfWork.rejectedOutputDiagnostics
+        ?: throw RejectedOutputDiagnosticError.Persistence("repository-unavailable")
+    val permissions =
+      unitOfWork.rejectedOutputDiagnosticPermissions
+        ?: throw RejectedOutputDiagnosticError.Permission("permissions-unavailable")
     return RejectedOutputDiagnosticService(
       repository = repository,
       permissions = permissions,

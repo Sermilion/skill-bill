@@ -4,7 +4,8 @@ import java.sql.Connection
 import java.sql.ResultSet
 import java.time.temporal.ChronoUnit
 
-private val staleCandidateSelectionSql = """
+private val staleCandidateSelectionSql =
+  """
   WITH candidates(family, primary_identity, secondary_identity, stale_at) AS (
     SELECT 'feature_task_runtime', session_id, NULL, started_at
     FROM feature_task_runtime_sessions
@@ -46,7 +47,7 @@ private val staleCandidateSelectionSql = """
   FROM candidates
   ORDER BY datetime(stale_at), family, primary_identity, COALESCE(secondary_identity, '')
   LIMIT ?
-""".trimIndent()
+  """.trimIndent()
 
 internal fun reconciliationCandidates(
   connection: Connection,
@@ -68,14 +69,15 @@ internal fun reconciliationCandidates(
   }
 }
 
-private fun mapCandidates(resultSet: ResultSet): List<ReconciliationCandidate> = buildList {
-  while (resultSet.next()) {
-    add(
-      ReconciliationCandidate(
-        family = resultSet.getString("family"),
-        primaryIdentity = resultSet.getString("primary_identity"),
-        secondaryIdentity = resultSet.getString("secondary_identity"),
-      ),
-    )
+private fun mapCandidates(resultSet: ResultSet): List<ReconciliationCandidate> =
+  buildList {
+    while (resultSet.next()) {
+      add(
+        ReconciliationCandidate(
+          family = resultSet.getString("family"),
+          primaryIdentity = resultSet.getString("primary_identity"),
+          secondaryIdentity = resultSet.getString("secondary_identity"),
+        ),
+      )
+    }
   }
-}

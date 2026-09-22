@@ -10,6 +10,7 @@ import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class TelemetryOutboxStaleSettlementTest {
   @Test
   fun `a stale owner cannot settle any outcome after another drain reclaims the rows`() {
@@ -94,57 +95,66 @@ class TelemetryOutboxStaleSettlementTest {
     claimedAt: Instant,
     reclaimBefore: Instant,
     limit: Int = 1,
-  ): TelemetryOutboxClaimRequest = TelemetryOutboxClaimRequest(
-    claimToken = token,
-    limit = limit,
-    claimedAt = claimedAt,
-    reclaimBefore = reclaimBefore,
-    attemptBudget = TELEMETRY_DELIVERY_ATTEMPT_BUDGET,
-  )
+  ): TelemetryOutboxClaimRequest =
+    TelemetryOutboxClaimRequest(
+      claimToken = token,
+      limit = limit,
+      claimedAt = claimedAt,
+      reclaimBefore = reclaimBefore,
+      attemptBudget = TELEMETRY_DELIVERY_ATTEMPT_BUDGET,
+    )
 
-  private fun claimToken(connection: Connection): String? = connection.createStatement().use { statement ->
-    statement.executeQuery("SELECT claim_token FROM telemetry_outbox").use { rows ->
-      check(rows.next())
-      rows.getString(1)
+  private fun claimToken(connection: Connection): String? =
+    connection.createStatement().use { statement ->
+      statement.executeQuery("SELECT claim_token FROM telemetry_outbox").use { rows ->
+        check(rows.next())
+        rows.getString(1)
+      }
     }
-  }
 
-  private fun lastError(connection: Connection): String? = connection.createStatement().use { statement ->
-    statement.executeQuery("SELECT last_error FROM telemetry_outbox").use { rows ->
-      check(rows.next())
-      rows.getString(1)
+  private fun lastError(connection: Connection): String? =
+    connection.createStatement().use { statement ->
+      statement.executeQuery("SELECT last_error FROM telemetry_outbox").use { rows ->
+        check(rows.next())
+        rows.getString(1)
+      }
     }
-  }
 
-  private fun deliveryAttempts(connection: Connection): Int = connection.createStatement().use { statement ->
-    statement.executeQuery("SELECT delivery_attempts FROM telemetry_outbox").use { rows ->
-      check(rows.next())
-      rows.getInt(1)
+  private fun deliveryAttempts(connection: Connection): Int =
+    connection.createStatement().use { statement ->
+      statement.executeQuery("SELECT delivery_attempts FROM telemetry_outbox").use { rows ->
+        check(rows.next())
+        rows.getInt(1)
+      }
     }
-  }
 
-  private fun syncedAt(connection: Connection): String? = connection.createStatement().use { statement ->
-    statement.executeQuery("SELECT synced_at FROM telemetry_outbox").use { rows ->
-      check(rows.next())
-      rows.getString(1)
+  private fun syncedAt(connection: Connection): String? =
+    connection.createStatement().use { statement ->
+      statement.executeQuery("SELECT synced_at FROM telemetry_outbox").use { rows ->
+        check(rows.next())
+        rows.getString(1)
+      }
     }
-  }
 
-  private fun rowState(connection: Connection, id: Long): RowState = connection.prepareStatement(
-    "SELECT claim_token, claimed_at, last_error, delivery_attempts, synced_at FROM telemetry_outbox WHERE id = ?",
-  ).use { statement ->
-    statement.setLong(1, id)
-    statement.executeQuery().use { rows ->
-      check(rows.next())
-      RowState(
-        claimToken = rows.getString("claim_token"),
-        claimedAt = rows.getString("claimed_at"),
-        lastError = rows.getString("last_error"),
-        deliveryAttempts = rows.getInt("delivery_attempts"),
-        syncedAt = rows.getString("synced_at"),
-      )
+  private fun rowState(
+    connection: Connection,
+    id: Long,
+  ): RowState =
+    connection.prepareStatement(
+      "SELECT claim_token, claimed_at, last_error, delivery_attempts, synced_at FROM telemetry_outbox WHERE id = ?",
+    ).use { statement ->
+      statement.setLong(1, id)
+      statement.executeQuery().use { rows ->
+        check(rows.next())
+        RowState(
+          claimToken = rows.getString("claim_token"),
+          claimedAt = rows.getString("claimed_at"),
+          lastError = rows.getString("last_error"),
+          deliveryAttempts = rows.getInt("delivery_attempts"),
+          syncedAt = rows.getString("synced_at"),
+        )
+      }
     }
-  }
 
   private fun withOutbox(block: (Connection, TelemetryOutboxStore) -> Unit) {
     val dbPath = Files.createTempDirectory("telemetry-stale-settlement").resolve("metrics.db")

@@ -12,7 +12,10 @@ import java.sql.Connection
 internal class FeatureTaskExecutionLookupStore(
   private val connection: Connection,
 ) : FeatureTaskExecutionLookupRepository {
-  override fun claimFeatureTaskContinuation(workflowId: String, expectedUpdatedAt: String?): Boolean =
+  override fun claimFeatureTaskContinuation(
+    workflowId: String,
+    expectedUpdatedAt: String?,
+  ): Boolean =
     connection.prepareStatement(
       """
       UPDATE feature_task_workflows
@@ -47,8 +50,9 @@ internal class FeatureTaskExecutionLookupStore(
       )
       statement.executeUpdate()
     }
-    val persisted = connection.featureTaskIdentity(identity.workflowId)
-      ?: throw InvalidFeatureTaskExecutionIdentitySchemaError(identity.workflowId, "identity was not persisted")
+    val persisted =
+      connection.featureTaskIdentity(identity.workflowId)
+        ?: throw InvalidFeatureTaskExecutionIdentitySchemaError(identity.workflowId, "identity was not persisted")
     if (persisted != identity) {
       throw InvalidFeatureTaskExecutionIdentitySchemaError(
         identity.workflowId,
@@ -63,66 +67,71 @@ internal class FeatureTaskExecutionLookupStore(
   override fun findStandaloneFeatureTaskCandidates(
     normalizedIssueKey: String,
     repositoryIdentity: String,
-  ): List<FeatureTaskWorkflowCandidate> = findFeatureTaskCandidates(
-    normalizedIssueKey,
-    repositoryIdentity,
-    "standalone",
-  )
+  ): List<FeatureTaskWorkflowCandidate> =
+    findFeatureTaskCandidates(
+      normalizedIssueKey,
+      repositoryIdentity,
+      "standalone",
+    )
 
   override fun findGoalChildFeatureTaskCandidates(
     normalizedIssueKey: String,
     repositoryIdentity: String,
-  ): List<FeatureTaskWorkflowCandidate> = findFeatureTaskCandidates(
-    normalizedIssueKey,
-    repositoryIdentity,
-    "goal_child",
-  )
+  ): List<FeatureTaskWorkflowCandidate> =
+    findFeatureTaskCandidates(
+      normalizedIssueKey,
+      repositoryIdentity,
+      "goal_child",
+    )
 
-  override fun countGoalChildIdentities(normalizedIssueKey: String): Int = connection.prepareStatement(
-    """
-    SELECT COUNT(*) AS child_count
-    FROM feature_task_execution_identities
-    WHERE normalized_issue_key = ? AND route_scope = 'goal_child'
-    """.trimIndent(),
-  ).use { statement ->
-    statement.bindAll(normalizedIssueKey)
-    statement.executeQuery().use { rows -> if (rows.next()) rows.getInt("child_count") else 0 }
-  }
+  override fun countGoalChildIdentities(normalizedIssueKey: String): Int =
+    connection.prepareStatement(
+      """
+      SELECT COUNT(*) AS child_count
+      FROM feature_task_execution_identities
+      WHERE normalized_issue_key = ? AND route_scope = 'goal_child'
+      """.trimIndent(),
+    ).use { statement ->
+      statement.bindAll(normalizedIssueKey)
+      statement.executeQuery().use { rows -> if (rows.next()) rows.getInt("child_count") else 0 }
+    }
 
   private fun findFeatureTaskCandidates(
     normalizedIssueKey: String,
     repositoryIdentity: String,
     routeScope: String,
-  ): List<FeatureTaskWorkflowCandidate> = connection.prepareStatement(
-    """
-    SELECT workflows.workflow_id
-    FROM feature_task_workflows AS workflows
-    LEFT JOIN feature_task_execution_identities AS identities
-      ON identities.workflow_id = workflows.workflow_id
-    WHERE (UPPER(workflows.issue_key) = ? OR identities.normalized_issue_key = ?)
-      AND (
-        (
-          ? = 'standalone'
-          AND identities.workflow_id IS NULL
-          AND workflows.artifacts_json NOT LIKE '%"decomposition_runtime"%'
+  ): List<FeatureTaskWorkflowCandidate> =
+    connection.prepareStatement(
+      """
+      SELECT workflows.workflow_id
+      FROM feature_task_workflows AS workflows
+      LEFT JOIN feature_task_execution_identities AS identities
+        ON identities.workflow_id = workflows.workflow_id
+      WHERE (UPPER(workflows.issue_key) = ? OR identities.normalized_issue_key = ?)
+        AND (
+          (
+            ? = 'standalone'
+            AND identities.workflow_id IS NULL
+            AND workflows.artifacts_json NOT LIKE '%"decomposition_runtime"%'
+          )
+          OR (identities.repository_identity = ? AND identities.route_scope = ?)
         )
-        OR (identities.repository_identity = ? AND identities.route_scope = ?)
-      )
-    ORDER BY identities.created_at, workflows.workflow_id
-    """.trimIndent(),
-  ).use { statement ->
-    statement.bindAll(normalizedIssueKey, normalizedIssueKey, routeScope, repositoryIdentity, routeScope)
-    statement.executeQuery().use { rows ->
-      buildList {
-        while (rows.next()) {
-          val workflowId = rows.getString(SharedPayloadKeys.WORKFLOW_ID)
-          val workflow = connection.getFeatureTaskWorkflowRow(workflowId)
-            ?: throw InvalidWorkflowStateSchemaError(
-              "Feature-task identity '$workflowId' has no workflow row.",
-            )
-          add(FeatureTaskWorkflowCandidate(connection.featureTaskIdentity(workflowId), workflow))
+      ORDER BY identities.created_at, workflows.workflow_id
+      """.trimIndent(),
+    ).use { statement ->
+      statement.bindAll(normalizedIssueKey, normalizedIssueKey, routeScope, repositoryIdentity, routeScope)
+      statement.executeQuery().use { rows ->
+        buildList {
+          while (rows.next()) {
+            val workflowId = rows.getString(SharedPayloadKeys.WORKFLOW_ID)
+            val workflow =
+              connection.getFeatureTaskWorkflowRow(workflowId)
+                ?: throw InvalidWorkflowStateSchemaError(
+                  "Feature-task identity '$workflowId' has no workflow row.",
+                )
+            add(FeatureTaskWorkflowCandidate(connection.featureTaskIdentity(workflowId), workflow))
+          }
         }
       }
     }
-  }
 }

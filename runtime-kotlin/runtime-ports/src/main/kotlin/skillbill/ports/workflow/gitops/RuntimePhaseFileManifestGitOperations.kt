@@ -6,7 +6,11 @@ import java.nio.file.Path
 interface RuntimePhaseFileManifestGitOperations {
   fun headCommit(repoRoot: Path): WorkflowGitOperationResult
 
-  fun changedPathsBetweenCommits(repoRoot: Path, beforeCommit: String, afterCommit: String): WorkflowGitOperationResult
+  fun changedPathsBetweenCommits(
+    repoRoot: Path,
+    beforeCommit: String,
+    afterCommit: String,
+  ): WorkflowGitOperationResult
 }
 
 fun WorkflowGitOperations.runtimePhaseHeadCommit(repoRoot: Path): WorkflowGitOperationResult =
@@ -16,8 +20,9 @@ fun WorkflowGitOperations.runtimePhaseChangedPathsBetweenCommits(
   repoRoot: Path,
   beforeCommit: String,
   afterCommit: String,
-): WorkflowGitOperationResult = runtimePhaseFileManifestOperations.changedPathsBetweenCommits(
-  repoRoot,
-  beforeCommit,
-  afterCommit,
-)
+): WorkflowGitOperationResult =
+  runtimePhaseFileManifestOperations.changedPathsBetweenCommits(
+    repoRoot,
+    beforeCommit,
+    afterCommit,
+  )

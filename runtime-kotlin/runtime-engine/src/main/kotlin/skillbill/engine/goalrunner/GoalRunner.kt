@@ -40,8 +40,9 @@ class GoalRunner(
   private val executionCoordinator = runBoundaries.executionCoordinator
 
   fun run(request: GoalRunnerRunRequest): GoalRunnerRunReport {
-    val loadedState = manifestStore.loadByIssueKey(request.issueKey, request.repoRoot)
-      ?: return unknownGoal(request.issueKey)
+    val loadedState =
+      manifestStore.loadByIssueKey(request.issueKey, request.repoRoot)
+        ?: return unknownGoal(request.issueKey)
     return try {
       executionCoordinator.runOwned(loadedState.parentWorkflowId) {
         val state = reconcileStateBeforeRun(loadedState)
@@ -59,23 +60,25 @@ class GoalRunner(
           reason = GoalRunnerStopReason.BLOCKED,
           blockedReason = alreadyRunning.message.orEmpty(),
           workflowId = loadedState.manifest.workflowIdFor(loadedState.manifest.currentSubtaskIntent.subtaskId),
-          lastResumableStep = loadedState.manifest.subtasks
-            .firstOrNull { it.id == loadedState.manifest.currentSubtaskIntent.subtaskId }
-            ?.lastResumableStep
-            .orEmpty()
-            .ifBlank { "plan" },
+          lastResumableStep =
+            loadedState.manifest.subtasks
+              .firstOrNull { it.id == loadedState.manifest.currentSubtaskIntent.subtaskId }
+              ?.lastResumableStep
+              .orEmpty()
+              .ifBlank { "plan" },
         ),
       )
     }
   }
 
   private fun reconcileStateBeforeRun(state: GoalRunnerManifestState): GoalRunnerManifestState {
-    val reconciled = reconcileGoalManifest(
-      manifest = state.manifest,
-      authoritativeOutcomes = outcomeStore.authoritativeOutcomes(state.manifest.issueKey),
-      acceptances = manifestStore.outOfBandAcceptances(state.parentWorkflowId),
-      outcomeStore = outcomeStore,
-    )
+    val reconciled =
+      reconcileGoalManifest(
+        manifest = state.manifest,
+        authoritativeOutcomes = outcomeStore.authoritativeOutcomes(state.manifest.issueKey),
+        acceptances = manifestStore.outOfBandAcceptances(state.parentWorkflowId),
+        outcomeStore = outcomeStore,
+      )
     return if (reconciled == state.manifest) {
       state
     } else {
@@ -105,16 +108,17 @@ class GoalRunner(
     validationQualityState.bind(state.parentWorkflowId)
     val pendingState = GoalRunnerIterationPendingState(validationQualityState)
     val goalLoop = perRunLoopAssembler.assemble(pendingState)
-    val loopResult = goalLoop.driveGoalLoop(
-      DriveGoalLoopArgs(
-        initialState = state,
-        request = effectiveRequest,
-        observability = observability,
-        ledger = ledger,
-        telemetryEmitter = telemetryEmitter,
-        planning = sweepOutcome as GoalPlanningSweepOutcome.PreparedAll,
-      ),
-    )
+    val loopResult =
+      goalLoop.driveGoalLoop(
+        DriveGoalLoopArgs(
+          initialState = state,
+          request = effectiveRequest,
+          observability = observability,
+          ledger = ledger,
+          telemetryEmitter = telemetryEmitter,
+          planning = sweepOutcome as GoalPlanningSweepOutcome.PreparedAll,
+        ),
+      )
     state = loopResult.state
     val finalReport = requireNotNull(loopResult.report)
     closeGoalTelemetrySegment(telemetryEmitter, state, finalReport, loopResult.attempted)
@@ -129,17 +133,18 @@ class GoalRunner(
     attempted: List<Int>,
     sweepOutcome: GoalPlanningSweepOutcome.Stopped,
   ): GoalRunnerRunReport {
-    val planningStop = stopped(
-      StoppedReportArgs(
-        issueKey = sweepOutcome.issueKey,
-        attempted = emptyList(),
-        subtaskId = sweepOutcome.currentSubtaskId,
-        reason = sweepOutcome.reason,
-        blockedReason = sweepOutcome.blockedReason,
-        workflowId = null,
-        lastResumableStep = sweepOutcome.lastResumableStep,
-      ),
-    )
+    val planningStop =
+      stopped(
+        StoppedReportArgs(
+          issueKey = sweepOutcome.issueKey,
+          attempted = emptyList(),
+          subtaskId = sweepOutcome.currentSubtaskId,
+          reason = sweepOutcome.reason,
+          blockedReason = sweepOutcome.blockedReason,
+          workflowId = null,
+          lastResumableStep = sweepOutcome.lastResumableStep,
+        ),
+      )
     effectiveRequest.eventSink.emit(
       GoalRunnerRunEvent.SubtaskStopped(
         issueKey = sweepOutcome.issueKey,
@@ -153,7 +158,10 @@ class GoalRunner(
     return planningStop.withParentWorkflowId(state.parentWorkflowId)
   }
 
-  private fun emitCompletedGoalEvent(request: GoalRunnerRunRequest, finalReport: GoalRunnerRunReport) {
+  private fun emitCompletedGoalEvent(
+    request: GoalRunnerRunRequest,
+    finalReport: GoalRunnerRunReport,
+  ) {
     if (finalReport is GoalRunnerRunReport.Completed) {
       request.eventSink.emit(
         GoalRunnerRunEvent.Completed(
@@ -184,7 +192,8 @@ class GoalRunner(
   }
 }
 
-private fun GoalRunnerRunReport.withParentWorkflowId(parentWorkflowId: String): GoalRunnerRunReport = when (this) {
-  is GoalRunnerRunReport.Completed -> copy(parentWorkflowId = parentWorkflowId)
-  is GoalRunnerRunReport.Stopped -> copy(parentWorkflowId = parentWorkflowId)
-}
+private fun GoalRunnerRunReport.withParentWorkflowId(parentWorkflowId: String): GoalRunnerRunReport =
+  when (this) {
+    is GoalRunnerRunReport.Completed -> copy(parentWorkflowId = parentWorkflowId)
+    is GoalRunnerRunReport.Stopped -> copy(parentWorkflowId = parentWorkflowId)
+  }

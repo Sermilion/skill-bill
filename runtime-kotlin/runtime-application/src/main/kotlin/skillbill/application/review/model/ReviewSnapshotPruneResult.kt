@@ -7,7 +7,6 @@ data class ReviewSnapshotPruneResult(
   val confirmed: Boolean,
   val candidates: List<ReviewSnapshot>,
   val deleted: List<ReviewSnapshot>,
-
   val failed: List<ReviewSnapshot> = emptyList(),
 ) {
   val reclaimedBytes: Long = deleted.sumOf(ReviewSnapshot::sizeBytes)

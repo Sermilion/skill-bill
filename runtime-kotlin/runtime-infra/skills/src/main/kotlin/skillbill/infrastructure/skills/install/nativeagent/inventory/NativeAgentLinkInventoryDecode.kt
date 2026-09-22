@@ -19,26 +19,35 @@ internal object NativeAgentLinkInventoryDecode {
     managedRoots: List<Path>,
     mapper: ObjectMapper,
     schema: JsonSchema,
-  ): List<NativeAgentLinkInventoryEntry> = try {
-    val root = readValidatedRoot(path, mapper, schema)
-    val entries = decodeEntries(root, path)
-    validateDecodedEntries(entries, home, managedRoots, path)
-    entries
-  } catch (error: CancellationException) {
-    rethrow(error)
-  } catch (error: ShellContentContractException) {
-    rethrow(error)
-  } catch (error: IOException) {
-    throwDecodeError(path, error)
-  } catch (error: IllegalArgumentException) {
-    throwDecodeError(path, error)
-  }
+  ): List<NativeAgentLinkInventoryEntry> =
+    try {
+      val root = readValidatedRoot(path, mapper, schema)
+      val entries = decodeEntries(root, path)
+      validateDecodedEntries(entries, home, managedRoots, path)
+      entries
+    } catch (error: CancellationException) {
+      rethrow(error)
+    } catch (error: ShellContentContractException) {
+      rethrow(error)
+    } catch (error: IOException) {
+      throwDecodeError(path, error)
+    } catch (error: IllegalArgumentException) {
+      throwDecodeError(path, error)
+    }
 
-  fun validateSemanticEntries(entries: List<NativeAgentLinkInventoryEntry>, home: Path, managedRoots: List<Path>) {
+  fun validateSemanticEntries(
+    entries: List<NativeAgentLinkInventoryEntry>,
+    home: Path,
+    managedRoots: List<Path>,
+  ) {
     validateDecodedEntries(entries, home, managedRoots, Path.of("<semantic>"))
   }
 
-  fun isSemanticallyValid(entry: NativeAgentLinkInventoryEntry, home: Path, managedRoots: List<Path>): Boolean {
+  fun isSemanticallyValid(
+    entry: NativeAgentLinkInventoryEntry,
+    home: Path,
+    managedRoots: List<Path>,
+  ): Boolean {
     return runCatching {
       val provider = NativeAgentLinkInventoryPaths.provider(entry.provider)
       val raw = Files.readSymbolicLink(entry.installedPath)
@@ -54,7 +63,11 @@ internal object NativeAgentLinkInventoryDecode {
     }.getOrDefault(false)
   }
 
-  private fun readValidatedRoot(path: Path, mapper: ObjectMapper, schema: JsonSchema): JsonNode {
+  private fun readValidatedRoot(
+    path: Path,
+    mapper: ObjectMapper,
+    schema: JsonSchema,
+  ): JsonNode {
     if (Files.size(path) > NativeAgentLinkInventoryLimits.MAX_BYTES) {
       invalid(path, "inventory exceeds ${NativeAgentLinkInventoryLimits.MAX_BYTES} bytes")
     }
@@ -67,7 +80,10 @@ internal object NativeAgentLinkInventoryDecode {
     return root
   }
 
-  private fun decodeEntries(root: JsonNode, path: Path): List<NativeAgentLinkInventoryEntry> =
+  private fun decodeEntries(
+    root: JsonNode,
+    path: Path,
+  ): List<NativeAgentLinkInventoryEntry> =
     root["entries"]?.elements()?.asSequence()?.map { node ->
       NativeAgentLinkInventoryEntry(
         logicalName = node.requiredText("logical_name", path),
@@ -89,7 +105,10 @@ internal object NativeAgentLinkInventoryDecode {
     entries.forEach { entry -> validateDecodedEntry(entry, home, managedRoots, path) }
   }
 
-  private fun validateUniqueEntries(entries: List<NativeAgentLinkInventoryEntry>, path: Path) {
+  private fun validateUniqueEntries(
+    entries: List<NativeAgentLinkInventoryEntry>,
+    path: Path,
+  ) {
     if (entries.map { it.provider to it.installedPath.normalize() }.distinct().size != entries.size) {
       invalid(path, "duplicate provider/installed_path entry")
     }
@@ -121,7 +140,10 @@ internal object NativeAgentLinkInventoryDecode {
     }
   }
 
-  private fun validateEntryShape(entry: NativeAgentLinkInventoryEntry, path: Path) {
+  private fun validateEntryShape(
+    entry: NativeAgentLinkInventoryEntry,
+    path: Path,
+  ) {
     if (entry.provider !in NativeAgentLinkInventoryLimits.PROVIDERS) {
       invalid(path, "unsupported provider '${entry.provider}'")
     }
@@ -135,7 +157,10 @@ internal object NativeAgentLinkInventoryDecode {
     }
   }
 
-  private fun validateAbsolutePaths(entry: NativeAgentLinkInventoryEntry, path: Path) {
+  private fun validateAbsolutePaths(
+    entry: NativeAgentLinkInventoryEntry,
+    path: Path,
+  ) {
     if (!entry.installedPath.isAbsolute) invalid(path, "installed_path must be absolute")
     if (!entry.cacheTargetPath.isAbsolute) invalid(path, "cache_target_path must be absolute")
     if (
@@ -146,7 +171,10 @@ internal object NativeAgentLinkInventoryDecode {
     }
   }
 
-  private fun validateNormalizedPaths(entry: NativeAgentLinkInventoryEntry, path: Path) {
+  private fun validateNormalizedPaths(
+    entry: NativeAgentLinkInventoryEntry,
+    path: Path,
+  ) {
     if (entry.sourceRoot != entry.sourceRoot.normalize()) invalid(path, "source_root must be normalized")
     if (entry.installedPath != entry.installedPath.normalize()) invalid(path, "installed_path must be normalized")
     if (entry.cacheTargetPath != entry.cacheTargetPath.normalize()) {
@@ -156,12 +184,20 @@ internal object NativeAgentLinkInventoryDecode {
 
   private fun <T> rethrow(error: Throwable): T = throw error
 
-  private fun throwDecodeError(path: Path, error: Throwable): Nothing =
-    throw decodeError(path, error.message.orEmpty(), error)
+  private fun throwDecodeError(
+    path: Path,
+    error: Throwable,
+  ): Nothing = throw decodeError(path, error.message.orEmpty(), error)
 
-  private fun invalid(path: Path, reason: String): Nothing = throw decodeError(path, reason)
+  private fun invalid(
+    path: Path,
+    reason: String,
+  ): Nothing = throw decodeError(path, reason)
 
-  private fun JsonNode.requiredText(field: String, path: Path): String =
+  private fun JsonNode.requiredText(
+    field: String,
+    path: Path,
+  ): String =
     get(field)?.asText()?.takeIf(String::isNotBlank)
       ?: throw decodeError(path, "$field is required")
 
@@ -169,9 +205,10 @@ internal object NativeAgentLinkInventoryDecode {
     path: Path,
     reason: String,
     cause: Throwable? = null,
-  ): InvalidNativeAgentLinkInventoryDecodeError = InvalidNativeAgentLinkInventoryDecodeError(
-    path = path.toString(),
-    reason = "$reason. Delete it and reinstall.",
-    cause = cause,
-  )
+  ): InvalidNativeAgentLinkInventoryDecodeError =
+    InvalidNativeAgentLinkInventoryDecodeError(
+      path = path.toString(),
+      reason = "$reason. Delete it and reinstall.",
+      cause = cause,
+    )
 }

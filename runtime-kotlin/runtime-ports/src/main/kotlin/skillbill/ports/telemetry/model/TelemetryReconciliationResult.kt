@@ -11,13 +11,14 @@ data class TelemetryReconciliationResult(
   val skippedByCadence: Boolean = false,
 ) {
   companion object {
-    val Empty = TelemetryReconciliationResult(
-      featureImplementSessions = 0,
-      featureTaskRuntimeSessions = 0,
-      featureVerifySessions = 0,
-      qualityCheckSessions = 0,
-      goalIssueAbandonedSessions = 0,
-      emittedTerminalEvents = 0,
-    )
+    val Empty =
+      TelemetryReconciliationResult(
+        featureImplementSessions = 0,
+        featureTaskRuntimeSessions = 0,
+        featureVerifySessions = 0,
+        qualityCheckSessions = 0,
+        goalIssueAbandonedSessions = 0,
+        emittedTerminalEvents = 0,
+      )
   }
 }

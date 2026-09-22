@@ -20,10 +20,11 @@ class DecompositionManifestBundleJournalValidationTest {
       val firstTarget = alias.resolve("first.md")
       val secondTarget = alias.resolve("second.md")
       val journal = DecompositionManifestBundleJournal()
-      val transaction = journal.create(
-        alias,
-        listOf(firstTarget to "first", secondTarget to "second"),
-      )
+      val transaction =
+        journal.create(
+          alias,
+          listOf(firstTarget to "first", secondTarget to "second"),
+        )
       journal.apply(transaction.copy(entries = listOf(transaction.entries.first())))
 
       journal.recoverPending(alias)
@@ -46,10 +47,11 @@ class DecompositionManifestBundleJournalValidationTest {
       Files.writeString(firstTarget, "old-first")
       Files.writeString(secondTarget, "old-second")
       val journal = DecompositionManifestBundleJournal()
-      val transaction = journal.create(
-        root,
-        listOf(firstTarget to "intended-first", secondTarget to "intended-second"),
-      )
+      val transaction =
+        journal.create(
+          root,
+          listOf(firstTarget to "intended-first", secondTarget to "intended-second"),
+        )
       Files.writeString(transaction.entries[1].staged, "corrupted")
       assertFailsWith<InvalidDecompositionManifestBundleJournalError> {
         journal.recoverPending(root)
@@ -73,8 +75,9 @@ class DecompositionManifestBundleJournalValidationTest {
       val journal = DecompositionManifestBundleJournal()
       val transaction = journal.create(root, listOf(target to "intended"))
       journal.apply(transaction)
-      val markerText = Files.readString(transaction.marker)
-        .replace(transaction.stagingDirectory.toString(), unrelated.toString())
+      val markerText =
+        Files.readString(transaction.marker)
+          .replace(transaction.stagingDirectory.toString(), unrelated.toString())
       Files.writeString(transaction.marker, markerText)
       assertFailsWith<InvalidDecompositionManifestBundleJournalError> {
         journal.recoverPending(root)
@@ -113,10 +116,11 @@ class DecompositionManifestBundleJournalValidationTest {
       Files.writeString(firstTarget, "old-first")
       Files.writeString(secondTarget, "old-second")
       val journal = DecompositionManifestBundleJournal()
-      val transaction = journal.create(
-        root,
-        listOf(firstTarget to "new-first", secondTarget to "new-second"),
-      )
+      val transaction =
+        journal.create(
+          root,
+          listOf(firstTarget to "new-first", secondTarget to "new-second"),
+        )
       Files.writeString(
         transaction.marker,
         Files.readString(transaction.marker).replace(
@@ -125,9 +129,10 @@ class DecompositionManifestBundleJournalValidationTest {
         ),
       )
 
-      val failure = assertFailsWith<InvalidDecompositionManifestBundleJournalError> {
-        journal.recoverPending(root)
-      }
+      val failure =
+        assertFailsWith<InvalidDecompositionManifestBundleJournalError> {
+          journal.recoverPending(root)
+        }
 
       assertEquals("duplicate_staged", failure.failureCode)
       assertEquals("old-first", Files.readString(firstTarget))
@@ -182,8 +187,9 @@ class DecompositionManifestBundleJournalValidationTest {
       val symlink = transaction.stagingDirectory.resolve("entry-link")
       Files.deleteIfExists(transaction.entries.single().staged)
       Files.createSymbolicLink(symlink, outsideFile)
-      val markerText = Files.readString(transaction.marker)
-        .replace(transaction.entries.single().staged.toString(), symlink.toString())
+      val markerText =
+        Files.readString(transaction.marker)
+          .replace(transaction.entries.single().staged.toString(), symlink.toString())
       Files.writeString(transaction.marker, markerText)
       assertFailsWith<InvalidDecompositionManifestBundleJournalError> {
         journal.recoverPending(root)
@@ -206,8 +212,9 @@ class DecompositionManifestBundleJournalValidationTest {
       Files.createSymbolicLink(targetLink, outsideFile)
       val journal = DecompositionManifestBundleJournal()
       val transaction = journal.create(root, listOf(target to "intended"))
-      val markerText = Files.readString(transaction.marker)
-        .replace(target.toString(), targetLink.toString())
+      val markerText =
+        Files.readString(transaction.marker)
+          .replace(target.toString(), targetLink.toString())
       Files.writeString(transaction.marker, markerText)
 
       assertFailsWith<InvalidDecompositionManifestBundleJournalError> {
@@ -229,15 +236,17 @@ class DecompositionManifestBundleJournalValidationTest {
       Files.writeString(target, "old")
       val journal = DecompositionManifestBundleJournal()
       val transaction = journal.create(root, listOf(target to "intended"))
-      val markerText = Files.readString(transaction.marker).replace(
-        "sha256:",
-        "sha256: not-a-digest\n  ignored:",
-      )
+      val markerText =
+        Files.readString(transaction.marker).replace(
+          "sha256:",
+          "sha256: not-a-digest\n  ignored:",
+        )
       Files.writeString(transaction.marker, markerText)
 
-      val failure = assertFailsWith<InvalidDecompositionManifestBundleJournalError> {
-        journal.recoverPending(root)
-      }
+      val failure =
+        assertFailsWith<InvalidDecompositionManifestBundleJournalError> {
+          journal.recoverPending(root)
+        }
       assertEquals("schema_invalid", failure.failureCode)
       assertEquals("old", Files.readString(target))
       assertTrue(Files.exists(transaction.marker))
@@ -257,9 +266,10 @@ class DecompositionManifestBundleJournalValidationTest {
       val markerNode = yamlMapper.readTree(Files.readString(transaction.marker)) as ObjectNode
       markerNode.put(SharedPayloadKeys.CONTRACT_VERSION, "9.9")
       Files.writeString(transaction.marker, yamlMapper.writeValueAsString(markerNode))
-      val failure = assertFailsWith<InvalidDecompositionManifestBundleJournalError> {
-        journal.recoverPending(root)
-      }
+      val failure =
+        assertFailsWith<InvalidDecompositionManifestBundleJournalError> {
+          journal.recoverPending(root)
+        }
       assertEquals("unsupported_contract_version", failure.failureCode)
       assertTrue(failure.reason.contains("Back up the marker"))
       assertTrue(!Files.exists(target))
@@ -300,10 +310,11 @@ class DecompositionManifestBundleJournalValidationTest {
       Files.writeString(firstTarget, "old-first")
       Files.writeString(secondTarget, "old-second")
       val journal = DecompositionManifestBundleJournal()
-      val transaction = journal.create(
-        root,
-        listOf(firstTarget to "new-first", secondTarget to "new-second"),
-      )
+      val transaction =
+        journal.create(
+          root,
+          listOf(firstTarget to "new-first", secondTarget to "new-second"),
+        )
       journal.apply(
         DecompositionManifestBundleTransaction(
           transaction.marker,

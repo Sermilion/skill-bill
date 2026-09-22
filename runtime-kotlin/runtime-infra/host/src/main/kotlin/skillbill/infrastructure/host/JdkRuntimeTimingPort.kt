@@ -7,11 +7,12 @@ import kotlin.time.Duration
 
 @Inject
 class JdkRuntimeTimingPort : RuntimeTimingPort {
-  override fun wait(duration: Duration): RuntimeWaitResult = try {
-    Thread.sleep(duration.inWholeMilliseconds)
-    RuntimeWaitResult.COMPLETED
-  } catch (_: InterruptedException) {
-    Thread.currentThread().interrupt()
-    RuntimeWaitResult.INTERRUPTED
-  }
+  override fun wait(duration: Duration): RuntimeWaitResult =
+    try {
+      Thread.sleep(duration.inWholeMilliseconds)
+      RuntimeWaitResult.COMPLETED
+    } catch (_: InterruptedException) {
+      Thread.currentThread().interrupt()
+      RuntimeWaitResult.INTERRUPTED
+    }
 }

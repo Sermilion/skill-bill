@@ -33,6 +33,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
   @Test
   fun `review capable plan includes the manifest declared fallback without slug knowledge`() {
@@ -75,14 +76,16 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
   fun `plan includes base skills and dynamically selected platform pack skills`() {
     val fixture = setupPlanFixture()
 
-    val plan = planInstallForTest(
-      fixture.request(
-        platformPackSelection = PlatformPackSelection(
-          mode = PlatformPackSelectionMode.SELECTED,
-          selectedSlugs = setOf("kotlin"),
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          platformPackSelection =
+            PlatformPackSelection(
+              mode = PlatformPackSelectionMode.SELECTED,
+              selectedSlugs = setOf("kotlin"),
+            ),
         ),
-      ),
-    )
+      )
 
     val skillsByName = plan.skills.associateBy { skill -> skill.name }
     assertEquals(
@@ -106,14 +109,16 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
     val fixture = setupPlanFixture()
     seedPlatformPack(fixture.repoRoot, slug = "python", areaNames = listOf("security"))
 
-    val plan = planInstallForTest(
-      fixture.request(
-        platformPackSelection = PlatformPackSelection(
-          mode = PlatformPackSelectionMode.SELECTED,
-          selectedSlugs = setOf("python"),
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          platformPackSelection =
+            PlatformPackSelection(
+              mode = PlatformPackSelectionMode.SELECTED,
+              selectedSlugs = setOf("python"),
+            ),
         ),
-      ),
-    )
+      )
 
     assertEquals(listOf("kmp", "kotlin", "python"), plan.discoveredPlatformPacks.map { pack -> pack.slug })
     assertEquals(listOf("python"), plan.selectedPlatformSlugs)
@@ -153,16 +158,18 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
       """.trimMargin(),
     )
 
-    val error = assertFailsWith<InvalidReviewSkillStructureError> {
-      planInstallForTest(
-        fixture.request(
-          platformPackSelection = PlatformPackSelection(
-            mode = PlatformPackSelectionMode.SELECTED,
-            selectedSlugs = setOf("invalid-review-shape"),
+    val error =
+      assertFailsWith<InvalidReviewSkillStructureError> {
+        planInstallForTest(
+          fixture.request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("invalid-review-shape"),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
 
     assertContains(error.message.orEmpty(), "specialist H2 sequence")
   }
@@ -173,23 +180,27 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
     val claudeTarget = fixture.home.resolve("manual-claude")
     val beforeHome = snapshotTree(fixture.home)
 
-    val plan = planInstallForTest(
-      fixture.request(
-        agentSelection = InstallAgentSelection(
-          mode = InstallAgentSelectionMode.MANUAL,
-          manualAgents = setOf(InstallAgent.CLAUDE, InstallAgent.CODEX),
-        ),
-        targetPaths = fixture.targetPaths(
-          agentTargets = listOf(
-            InstallAgentTarget(
-              agent = InstallAgent.CLAUDE,
-              path = claudeTarget.toFileLocation(),
-              source = InstallAgentTargetSource.MANUAL,
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agentSelection =
+            InstallAgentSelection(
+              mode = InstallAgentSelectionMode.MANUAL,
+              manualAgents = setOf(InstallAgent.CLAUDE, InstallAgent.CODEX),
             ),
-          ),
+          targetPaths =
+            fixture.targetPaths(
+              agentTargets =
+                listOf(
+                  InstallAgentTarget(
+                    agent = InstallAgent.CLAUDE,
+                    path = claudeTarget.toFileLocation(),
+                    source = InstallAgentTargetSource.MANUAL,
+                  ),
+                ),
+            ),
         ),
-      ),
-    )
+      )
 
     assertEquals(listOf(InstallAgent.CLAUDE, InstallAgent.CODEX), plan.agents.map { target -> target.agent })
     assertEquals(claudeTarget, plan.agents.first { target -> target.agent == InstallAgent.CLAUDE }.path.toPath())
@@ -208,11 +219,12 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
     val fixture = setupPlanFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
 
-    val plan = planInstallForTest(
-      fixture.request(
-        agentSelection = InstallAgentSelection(mode = InstallAgentSelectionMode.DETECTED),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agentSelection = InstallAgentSelection(mode = InstallAgentSelectionMode.DETECTED),
+        ),
+      )
 
     assertEquals(listOf(InstallAgent.CODEX, InstallAgent.CODEX), plan.agents.map { target -> target.agent })
     assertEquals(
@@ -232,20 +244,23 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
   fun `detection derived agent selection preserves caller supplied detected targets`() {
     val fixture = setupPlanFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val detectedTarget = InstallAgentTarget(
-      agent = InstallAgent.CLAUDE,
-      path = fixture.home.resolve("detected-claude").toFileLocation(),
-      source = InstallAgentTargetSource.MANUAL,
-    )
+    val detectedTarget =
+      InstallAgentTarget(
+        agent = InstallAgent.CLAUDE,
+        path = fixture.home.resolve("detected-claude").toFileLocation(),
+        source = InstallAgentTargetSource.MANUAL,
+      )
 
-    val plan = planInstallForTest(
-      fixture.request(
-        agentSelection = InstallAgentSelection(
-          mode = InstallAgentSelectionMode.DETECTED,
-          detectedTargets = listOf(detectedTarget),
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agentSelection =
+            InstallAgentSelection(
+              mode = InstallAgentSelectionMode.DETECTED,
+              detectedTargets = listOf(detectedTarget),
+            ),
         ),
-      ),
-    )
+      )
 
     assertEquals(listOf(InstallAgent.CLAUDE), plan.agents.map { target -> target.agent })
     assertEquals(listOf(InstallAgentTargetSource.DETECTED), plan.agents.map { target -> target.source })
@@ -259,11 +274,12 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
   fun `all platform selection selects every discovered pack`() {
     val fixture = setupPlanFixture()
 
-    val plan = planInstallForTest(
-      fixture.request(
-        platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL),
+        ),
+      )
 
     assertEquals(listOf("kmp", "kotlin"), plan.selectedPlatformSlugs)
     assertTrue(plan.skills.any { skill -> skill.name == "bill-kmp-code-review" })
@@ -278,16 +294,18 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
   fun `unknown selected platform slugs fail during planning`() {
     val fixture = setupPlanFixture()
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      planInstallForTest(
-        fixture.request(
-          platformPackSelection = PlatformPackSelection(
-            mode = PlatformPackSelectionMode.SELECTED,
-            selectedSlugs = setOf("swift"),
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        planInstallForTest(
+          fixture.request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("swift"),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
 
     assertContains(error.message.orEmpty(), "Unknown platform pack selection: swift")
     assertContains(error.message.orEmpty(), "Discovered platform packs: kmp, kotlin")
@@ -302,16 +320,18 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
       Files.readString(badVersionManifest).replace("contract_version: \"1.8\"", "contract_version: \"9.9\""),
     )
 
-    val versionError = assertFailsWith<ContractVersionMismatchError> {
-      planInstallForTest(
-        badVersion.request(
-          platformPackSelection = PlatformPackSelection(
-            mode = PlatformPackSelectionMode.SELECTED,
-            selectedSlugs = setOf("kotlin"),
+    val versionError =
+      assertFailsWith<ContractVersionMismatchError> {
+        planInstallForTest(
+          badVersion.request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("kotlin"),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
     assertContains(versionError.message.orEmpty(), "contract_version '9.9'")
 
     val missingContent = setupPlanFixture()
@@ -320,16 +340,18 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
         .resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review-architecture/content.md"),
     )
 
-    val contentError = assertFailsWith<MissingContentFileError> {
-      planInstallForTest(
-        missingContent.request(
-          platformPackSelection = PlatformPackSelection(
-            mode = PlatformPackSelectionMode.SELECTED,
-            selectedSlugs = setOf("kotlin"),
+    val contentError =
+      assertFailsWith<MissingContentFileError> {
+        planInstallForTest(
+          missingContent.request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("kotlin"),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
     assertContains(contentError.message.orEmpty(), "bill-kotlin-code-review-architecture/content.md")
   }
 
@@ -348,16 +370,18 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
       ),
     )
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      planInstallForTest(
-        fixture.request(
-          platformPackSelection = PlatformPackSelection(
-            mode = PlatformPackSelectionMode.SELECTED,
-            selectedSlugs = setOf("kotlin"),
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        planInstallForTest(
+          fixture.request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("kotlin"),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
 
     assertContains(error.message.orEmpty(), "Platform pack 'kotlin' declared content file")
     assertContains(error.message.orEmpty(), "escapes packRoot")
@@ -380,16 +404,18 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
       ),
     )
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      planInstallForTest(
-        fixture.request(
-          platformPackSelection = PlatformPackSelection(
-            mode = PlatformPackSelectionMode.SELECTED,
-            selectedSlugs = setOf("duplicate"),
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        planInstallForTest(
+          fixture.request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("duplicate"),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
 
     assertContains(error.message.orEmpty(), "duplicate skill name")
     assertContains(error.message.orEmpty(), "bill-duplicate-code-review")
@@ -412,16 +438,18 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
       ),
     )
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      planInstallForTest(
-        fixture.request(
-          platformPackSelection = PlatformPackSelection(
-            mode = PlatformPackSelectionMode.SELECTED,
-            selectedSlugs = setOf("collapsed"),
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        planInstallForTest(
+          fixture.request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("collapsed"),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
 
     assertContains(error.message.orEmpty(), "duplicate skill name")
     assertContains(error.message.orEmpty(), "bill-collapsed-code-review")
@@ -431,15 +459,17 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
   fun `missing base skills root fails instead of producing a plan without base skills`() {
     val fixture = setupPlanFixture()
 
-    val error = assertFailsWith<FileNotFoundException> {
-      planInstallForTest(
-        fixture.request(
-          targetPaths = fixture.targetPaths().copy(
-            skillsRoot = fixture.repoRoot.resolve("missing-skills").toFileLocation(),
+    val error =
+      assertFailsWith<FileNotFoundException> {
+        planInstallForTest(
+          fixture.request(
+            targetPaths =
+              fixture.targetPaths().copy(
+                skillsRoot = fixture.repoRoot.resolve("missing-skills").toFileLocation(),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
 
     assertContains(error.message.orEmpty(), "Base skills root")
   }
@@ -449,9 +479,10 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
     val fixture = setupPlanFixture()
     Files.delete(fixture.repoRoot.resolve("skills/bill-code-review/content.md"))
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      planInstallForTest(fixture.request())
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        planInstallForTest(fixture.request())
+      }
 
     assertContains(error.message.orEmpty(), "without content.md")
     assertContains(error.message.orEmpty(), "bill-code-review")
@@ -463,13 +494,14 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
     val emptySkillsRoot = fixture.repoRoot.resolve("empty-skills")
     Files.createDirectories(emptySkillsRoot.resolve("notes"))
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      planInstallForTest(
-        fixture.request(
-          targetPaths = fixture.targetPaths().copy(skillsRoot = emptySkillsRoot.toFileLocation()),
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        planInstallForTest(
+          fixture.request(
+            targetPaths = fixture.targetPaths().copy(skillsRoot = emptySkillsRoot.toFileLocation()),
+          ),
+        )
+      }
 
     assertContains(error.message.orEmpty(), "does not contain any bill-* skills with content.md")
   }
@@ -482,26 +514,29 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
     seedSupportTarget(fixture.repoRoot, "orchestration/shell-content-contract/shell-ceremony.md")
     seedSkillClass(fixture.repoRoot, "bill-code-review", listOf("shell-ceremony"))
 
-    val plan = planInstallForTest(
-      fixture.request(
-        targetPaths = fixture.targetPaths().copy(skillsRoot = packagedSkillsRoot.toFileLocation()),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          targetPaths = fixture.targetPaths().copy(skillsRoot = packagedSkillsRoot.toFileLocation()),
+        ),
+      )
 
     val sourceDir = packagedSkillsRoot.resolve("bill-code-review").toAbsolutePath().normalize()
-    val supportPointers = generatedSupportPointersFor(
-      repoRoot = fixture.repoRoot,
-      sourceSkillDir = sourceDir,
-      skillName = "bill-code-review",
-      skillsRoot = packagedSkillsRoot,
-    )
+    val supportPointers =
+      generatedSupportPointersFor(
+        repoRoot = fixture.repoRoot,
+        sourceSkillDir = sourceDir,
+        skillName = "bill-code-review",
+        skillsRoot = packagedSkillsRoot,
+      )
     val authored = authoredFilesFor(sourceDir, applicablePointers(fixture.repoRoot, sourceDir), supportPointers)
-    val expectedHash = computeInstallContentHash(
-      sourceSkillDir = sourceDir,
-      authored = authored,
-      applicablePointers = emptyList(),
-      generatedSupportPointers = supportPointers,
-    )
+    val expectedHash =
+      computeInstallContentHash(
+        sourceSkillDir = sourceDir,
+        authored = authored,
+        applicablePointers = emptyList(),
+        generatedSupportPointers = supportPointers,
+      )
 
     assertEquals(listOf("shell-ceremony.md"), supportPointers.map { pointer -> pointer.name })
     assertEquals(
@@ -520,16 +555,18 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
       pointerTarget = "orchestration/missing/PLAYBOOK.md",
     )
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      planInstallForTest(
-        fixture.request(
-          platformPackSelection = PlatformPackSelection(
-            mode = PlatformPackSelectionMode.SELECTED,
-            selectedSlugs = setOf("pointer-missing"),
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        planInstallForTest(
+          fixture.request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("pointer-missing"),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
 
     assertContains(error.message.orEmpty(), "review-orchestrator.md")
     assertContains(error.message.orEmpty(), "does not exist")
@@ -548,16 +585,18 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
       pointerTarget = "orchestration/PLAYBOOK.md",
     )
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      planInstallForTest(
-        fixture.request(
-          platformPackSelection = PlatformPackSelection(
-            mode = PlatformPackSelectionMode.SELECTED,
-            selectedSlugs = setOf("pointer-parent-symlink"),
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        planInstallForTest(
+          fixture.request(
+            platformPackSelection =
+              PlatformPackSelection(
+                mode = PlatformPackSelectionMode.SELECTED,
+                selectedSlugs = setOf("pointer-parent-symlink"),
+              ),
           ),
-        ),
-      )
-    }
+        )
+      }
 
     assertContains(error.message.orEmpty(), "review-orchestrator.md")
     assertContains(error.message.orEmpty(), "escapes repoRoot")
@@ -568,9 +607,10 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
     val fixture = setupPlanFixture()
     seedSkillClass(fixture.repoRoot, "bill-code-review", listOf("shell-ceremony"))
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      planInstallForTest(fixture.request())
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        planInstallForTest(fixture.request())
+      }
 
     assertContains(error.message.orEmpty(), "Supporting pointer 'shell-ceremony.md'")
     assertContains(error.message.orEmpty(), "does not exist")
@@ -581,16 +621,18 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
     val fixture = setupPlanFixture()
     val before = snapshotTree(fixture.repoRoot)
 
-    val plan = planInstallForTest(
-      fixture.request(
-        telemetryLevel = InstallTelemetryLevel.FULL,
-        windowsSymlinkPreflight = WindowsSymlinkPreflight(
-          state = WindowsSymlinkPreflightState.DECISION_REQUIRED,
-          decision = WindowsSymlinkDecision.REQUIRE_USER_ACTION,
-          message = "Windows requires elevation or Developer Mode before symlink install.",
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          telemetryLevel = InstallTelemetryLevel.FULL,
+          windowsSymlinkPreflight =
+            WindowsSymlinkPreflight(
+              state = WindowsSymlinkPreflightState.DECISION_REQUIRED,
+              decision = WindowsSymlinkDecision.REQUIRE_USER_ACTION,
+              message = "Windows requires elevation or Developer Mode before symlink install.",
+            ),
         ),
-      ),
-    )
+      )
 
     assertEquals(fixture.home.resolve(".skill-bill/installed-skills"), plan.staging.root.toPath())
     assertTrue(plan.staging.skillPaths.isNotEmpty())
@@ -610,13 +652,18 @@ class InstallPlanBuilderPlatformSelectionTest : InstallPlanBuilderTestSupport() 
   fun `builder seam still validates install plan wire map with typed schema error`() {
     val fixture = setupPlanFixture()
 
-    val error = assertFailsWith<InvalidInstallPlanSchemaError> {
-      planInstallForTest(
-        fixture.request().copy(
-          mcpRegistrationChoice = McpRegistrationChoice(register = true, runtimeMcpBin = Path.of("").toFileLocation()),
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<InvalidInstallPlanSchemaError> {
+        planInstallForTest(
+          fixture.request().copy(
+            mcpRegistrationChoice =
+              McpRegistrationChoice(
+                register = true,
+                runtimeMcpBin = Path.of("").toFileLocation(),
+              ),
+          ),
+        )
+      }
 
     assertContains(error.message.orEmpty(), "mcp_registration.runtime_mcp_bin")
   }

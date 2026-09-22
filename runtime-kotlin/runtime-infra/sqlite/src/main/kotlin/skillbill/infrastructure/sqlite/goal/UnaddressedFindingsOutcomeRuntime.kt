@@ -7,6 +7,7 @@ import skillbill.goalrunner.model.ReviewFindingOutcome
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import java.sql.Connection
+
 internal class UnaddressedFindingsOutcomeRuntime(private val connection: Connection) {
   fun recordOutcomes(outcomes: List<ReviewFindingOutcomeRecord>) {
     if (outcomes.isEmpty()) return
@@ -43,33 +44,34 @@ internal class UnaddressedFindingsOutcomeRuntime(private val connection: Connect
     reconcileEarlierPasses(outcomes)
   }
 
-  fun fetchOutcomes(workflowId: String): List<ReviewFindingOutcomeRecord> = connection.prepareStatement(
-    """
-    SELECT workflow_id, review_pass_number, finding_ordinal, review_run_id, finding_id, finding_key, outcome
-    FROM review_finding_outcomes
-    WHERE workflow_id = ?
-    ORDER BY review_pass_number, finding_ordinal
-    """.trimIndent(),
-  ).use { statement ->
-    statement.bindAll(workflowId)
-    statement.executeQuery().use { rows ->
-      buildList {
-        while (rows.next()) {
-          add(
-            ReviewFindingOutcomeRecord(
-              workflowId = rows.getString(SharedPayloadKeys.WORKFLOW_ID),
-              reviewPassNumber = rows.getInt("review_pass_number"),
-              findingOrdinal = rows.getInt("finding_ordinal"),
-              outcome = ReviewFindingOutcome.fromWireValue(rows.getString("outcome")),
-              reviewRunId = rows.getString(ReviewVerificationSignalKeys.REVIEW_RUN_ID),
-              findingId = rows.getString(ReviewFindingPayloadKeys.FINDING_ID),
-              findingKey = rows.getString("finding_key"),
-            ),
-          )
+  fun fetchOutcomes(workflowId: String): List<ReviewFindingOutcomeRecord> =
+    connection.prepareStatement(
+      """
+      SELECT workflow_id, review_pass_number, finding_ordinal, review_run_id, finding_id, finding_key, outcome
+      FROM review_finding_outcomes
+      WHERE workflow_id = ?
+      ORDER BY review_pass_number, finding_ordinal
+      """.trimIndent(),
+    ).use { statement ->
+      statement.bindAll(workflowId)
+      statement.executeQuery().use { rows ->
+        buildList {
+          while (rows.next()) {
+            add(
+              ReviewFindingOutcomeRecord(
+                workflowId = rows.getString(SharedPayloadKeys.WORKFLOW_ID),
+                reviewPassNumber = rows.getInt("review_pass_number"),
+                findingOrdinal = rows.getInt("finding_ordinal"),
+                outcome = ReviewFindingOutcome.fromWireValue(rows.getString("outcome")),
+                reviewRunId = rows.getString(ReviewVerificationSignalKeys.REVIEW_RUN_ID),
+                findingId = rows.getString(ReviewFindingPayloadKeys.FINDING_ID),
+                findingKey = rows.getString("finding_key"),
+              ),
+            )
+          }
         }
       }
     }
-  }
 
   private fun reconcileEarlierPasses(outcomes: List<ReviewFindingOutcomeRecord>) {
     val terminal = outcomes.filter { it.outcome != ReviewFindingOutcome.CARRIED && it.findingKey != null }

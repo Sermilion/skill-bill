@@ -53,45 +53,48 @@ data class FeatureTaskRuntimePriorReviewContext(
     return if (withinByteBudget(full)) full else renderSummaryBody()
   }
 
-  private fun renderBody(carried: List<GoalSubtaskReviewCompactFinding>): String = buildString {
-    appendLine("findings reported by pass $passNumber: ${findings.size}")
-    if (carried.size < findings.size) {
-      appendLine("listing the first ${carried.size}; this is not a complete listing")
-    }
-    carried.forEach { finding ->
-      val ref = finding.findingId?.let { "$it " }.orEmpty()
-      appendLine("  - $ref[${finding.severity}] ${finding.label}: ${finding.text}")
-    }
-    if (dispositions.isEmpty()) return@buildString
-    appendLine("blocker dispositions the previous pass recorded: ${dispositions.size}")
-    dispositions.take(PRIOR_REVIEW_CONTEXT_MAX_DISPOSITIONS).forEach { disposition ->
-      appendLine("  - ${disposition.findingId} [${disposition.verdict.wireValue}]")
-      disposition.evidence
-        .take(PRIOR_REVIEW_CONTEXT_MAX_EVIDENCE_PER_DISPOSITION)
-        .forEach { line -> appendLine("      evidence: ${boundedEvidence(line)}") }
-    }
-  }
-
-  private fun renderSummaryBody(): String = buildString {
-    appendLine("findings reported by pass $passNumber: ${findings.size}")
-    appendLine("summarized: true (finding payloads omitted; this is not a complete listing)")
-    SEVERITY_ORDER.forEach { severity ->
-      val count = findings.count { it.severity == severity }
-      if (count > 0) appendLine("  $severity: $count")
-    }
-    if (dispositions.isNotEmpty()) {
+  private fun renderBody(carried: List<GoalSubtaskReviewCompactFinding>): String =
+    buildString {
+      appendLine("findings reported by pass $passNumber: ${findings.size}")
+      if (carried.size < findings.size) {
+        appendLine("listing the first ${carried.size}; this is not a complete listing")
+      }
+      carried.forEach { finding ->
+        val ref = finding.findingId?.let { "$it " }.orEmpty()
+        appendLine("  - $ref[${finding.severity}] ${finding.label}: ${finding.text}")
+      }
+      if (dispositions.isEmpty()) return@buildString
       appendLine("blocker dispositions the previous pass recorded: ${dispositions.size}")
-      dispositions.groupingBy { it.verdict.wireValue }.eachCount().toSortedMap().forEach { (verdict, count) ->
-        appendLine("  $verdict: $count")
+      dispositions.take(PRIOR_REVIEW_CONTEXT_MAX_DISPOSITIONS).forEach { disposition ->
+        appendLine("  - ${disposition.findingId} [${disposition.verdict.wireValue}]")
+        disposition.evidence
+          .take(PRIOR_REVIEW_CONTEXT_MAX_EVIDENCE_PER_DISPOSITION)
+          .forEach { line -> appendLine("      evidence: ${boundedEvidence(line)}") }
       }
     }
-  }
 
-  private fun boundedEvidence(line: String): String = if (line.length <= PRIOR_REVIEW_CONTEXT_MAX_EVIDENCE_CHARS) {
-    line
-  } else {
-    line.take(PRIOR_REVIEW_CONTEXT_MAX_EVIDENCE_CHARS) + "… [truncated]"
-  }
+  private fun renderSummaryBody(): String =
+    buildString {
+      appendLine("findings reported by pass $passNumber: ${findings.size}")
+      appendLine("summarized: true (finding payloads omitted; this is not a complete listing)")
+      SEVERITY_ORDER.forEach { severity ->
+        val count = findings.count { it.severity == severity }
+        if (count > 0) appendLine("  $severity: $count")
+      }
+      if (dispositions.isNotEmpty()) {
+        appendLine("blocker dispositions the previous pass recorded: ${dispositions.size}")
+        dispositions.groupingBy { it.verdict.wireValue }.eachCount().toSortedMap().forEach { (verdict, count) ->
+          appendLine("  $verdict: $count")
+        }
+      }
+    }
+
+  private fun boundedEvidence(line: String): String =
+    if (line.length <= PRIOR_REVIEW_CONTEXT_MAX_EVIDENCE_CHARS) {
+      line
+    } else {
+      line.take(PRIOR_REVIEW_CONTEXT_MAX_EVIDENCE_CHARS) + "… [truncated]"
+    }
 
   private fun withinByteBudget(body: String): Boolean =
     body.toByteArray(Charsets.UTF_8).size <= PRIOR_REVIEW_CONTEXT_MAX_UTF8_BYTES

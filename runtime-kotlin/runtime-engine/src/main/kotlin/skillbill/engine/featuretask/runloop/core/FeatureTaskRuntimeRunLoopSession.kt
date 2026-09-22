@@ -2,6 +2,7 @@ package skillbill.engine.featuretask.runloop.core
 
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
+
 internal sealed class FeatureTaskRuntimeRunLoopTerminalOutcome {
   data class Blocked(val report: FeatureTaskRuntimeRunReport.Blocked) : FeatureTaskRuntimeRunLoopTerminalOutcome()
 
@@ -24,7 +25,10 @@ internal class FeatureTaskRuntimeRunLoopSession(
   private var recordRejectionSettlementPendingStorage: Boolean = false
   private var auditRetryFocusHintStorage: String? = null
 
-  internal fun recordPhaseContentIdentities(phaseId: String, identities: Map<String, String>) {
+  internal fun recordPhaseContentIdentities(
+    phaseId: String,
+    identities: Map<String, String>,
+  ) {
     phaseContentIdentitiesStorage[phaseId] = identities.toMap()
   }
 
@@ -93,7 +97,10 @@ internal class FeatureTaskRuntimeRunLoopSession(
     activeReentryStorage = reentry
   }
 
-  internal fun transitionReentryPair(pending: PendingReentry?, active: PendingReentry?) {
+  internal fun transitionReentryPair(
+    pending: PendingReentry?,
+    active: PendingReentry?,
+  ) {
     pendingReentryStorage = pending
     activeReentryStorage = active
   }

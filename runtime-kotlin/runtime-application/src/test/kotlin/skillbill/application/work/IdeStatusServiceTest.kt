@@ -24,19 +24,18 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-class IdeStatusServiceTest {
 
+class IdeStatusServiceTest {
   @Test
   fun `invalid repository root yields typed invalid_repository_input without writes`() {
     val database = TrackingDatabase(work = emptyList(), workflows = IdeStatusWorkflowStates())
     val service = ideStatusService(database)
     val missing = Files.createTempDirectory("ide-status-missing").resolve("no-repo")
 
-    val result = service.status(
-
-      IdeStatusRequest(repoRoot = missing.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      service.status(
+        IdeStatusRequest(repoRoot = missing.toString(), observedAt = ideStatusObservedAt),
+      )
 
     assertEquals(1, result.exitCode)
     assertEquals(IdeStatusProblemCode.INVALID_REPOSITORY_INPUT, result.snapshot.problem?.code)
@@ -51,11 +50,10 @@ class IdeStatusServiceTest {
     val database = TrackingDatabase(work = emptyList(), workflows = IdeStatusWorkflowStates(), exists = false)
     val service = ideStatusService(database)
 
-    val result = service.status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      service.status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
 
     assertEquals(0, result.exitCode)
     assertEquals(IdeStatusProblemCode.ABSENT_DATABASE, result.snapshot.problem?.code)
@@ -70,11 +68,10 @@ class IdeStatusServiceTest {
     val database = TrackingDatabase(work = emptyList(), workflows = IdeStatusWorkflowStates())
     val service = ideStatusService(database)
 
-    val result = service.status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      service.status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
 
     assertEquals(0, result.exitCode)
     assertEquals(IdeStatusProblemCode.NO_MATCHING_WORK, result.snapshot.problem?.code)
@@ -87,11 +84,10 @@ class IdeStatusServiceTest {
     val fixture = gitRepoFixture("ide-status-no-matching-work-shape")
     val service = ideStatusService(TrackingDatabase(work = emptyList(), workflows = IdeStatusWorkflowStates()))
 
-    val result = service.status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      service.status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
 
     assertEquals(0, result.exitCode)
     assertEquals(IdeStatusProblemCode.NO_MATCHING_WORK, result.snapshot.problem?.code)
@@ -111,17 +107,17 @@ class IdeStatusServiceTest {
   @Test
   fun `a typed workflow-schema failure during collection surfaces as an incompatible record`() {
     val fixture = gitRepoFixture("ide-status-orphaned-workflow-row")
-    val database = TrackingDatabase(
-      work = listOf(workItem("w-orphan", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T11:00:00Z")),
-      workflows = OrphanedIdentityWorkflowStates("Feature-task identity 'w-orphan' has no workflow row."),
-    )
+    val database =
+      TrackingDatabase(
+        work = listOf(workItem("w-orphan", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T11:00:00Z")),
+        workflows = OrphanedIdentityWorkflowStates("Feature-task identity 'w-orphan' has no workflow row."),
+      )
     val service = ideStatusService(database)
 
-    val result = service.status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      service.status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
 
     assertEquals(IdeStatusProblemCode.INCOMPATIBLE_RECORD, result.snapshot.problem?.code)
     assertEquals("Feature-task identity 'w-orphan' has no workflow row.", result.snapshot.problem?.message)
@@ -142,17 +138,17 @@ class IdeStatusServiceTest {
         mode = FeatureTaskWorkflowMode.RUNTIME,
       ),
     )
-    val database = TrackingDatabase(
-      work = listOf(workItem("w-foreign", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T11:00:00Z")),
-      workflows = workflows,
-    )
+    val database =
+      TrackingDatabase(
+        work = listOf(workItem("w-foreign", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T11:00:00Z")),
+        workflows = workflows,
+      )
     val service = ideStatusService(database)
 
-    val result = service.status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      service.status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
 
     assertEquals(IdeStatusProblemCode.NO_MATCHING_WORK, result.snapshot.problem?.code)
     assertNull(result.snapshot.workflowId)
@@ -167,20 +163,21 @@ class IdeStatusServiceTest {
     workflows.saveFeatureImplementWorkflow(runtimeRecord("w-terminal", "2026-08-06T11:00:00Z", currentStep = "pr"))
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-active", identity))
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-terminal", identity))
-    val database = TrackingDatabase(
-      work = listOf(
-        workItem("w-terminal", WorkItemKind.FEATURE_TASK_RUNTIME, "completed", "2026-08-06T11:00:00Z"),
-        workItem("w-active", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T10:00:00Z"),
-      ),
-      workflows = workflows,
-    )
+    val database =
+      TrackingDatabase(
+        work =
+          listOf(
+            workItem("w-terminal", WorkItemKind.FEATURE_TASK_RUNTIME, "completed", "2026-08-06T11:00:00Z"),
+            workItem("w-active", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T10:00:00Z"),
+          ),
+        workflows = workflows,
+      )
     val service = ideStatusService(database)
 
-    val result = service.status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      service.status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
 
     assertEquals(0, result.exitCode)
     assertNull(result.snapshot.problem)
@@ -201,25 +198,27 @@ class IdeStatusServiceTest {
     workflows.saveFeatureTaskExecutionIdentity(
       identityFor("w-child", identity).copy(routeScope = FeatureTaskRouteScope.GOAL_CHILD),
     )
-    val controls = object : GoalRunnerControlRepository by EmptyGoalRunnerControlRepository {
-      override fun controlState(parentWorkflowId: String): GoalRunnerControlState =
-        GoalRunnerControlState(repositoryIdentity = identity)
-    }
-    val database = TrackingDatabase(
-      work = listOf(
-        workItem("w-child", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T11:00:00Z"),
-        workItem("goal-1", WorkItemKind.FEATURE_GOAL, "running", "2026-08-06T09:00:00Z"),
-      ),
-      workflows = workflows,
-      controls = controls,
-    )
+    val controls =
+      object : GoalRunnerControlRepository by EmptyGoalRunnerControlRepository {
+        override fun controlState(parentWorkflowId: String): GoalRunnerControlState =
+          GoalRunnerControlState(repositoryIdentity = identity)
+      }
+    val database =
+      TrackingDatabase(
+        work =
+          listOf(
+            workItem("w-child", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T11:00:00Z"),
+            workItem("goal-1", WorkItemKind.FEATURE_GOAL, "running", "2026-08-06T09:00:00Z"),
+          ),
+        workflows = workflows,
+        controls = controls,
+      )
     val service = ideStatusService(database)
 
-    val result = service.status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      service.status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
 
     assertEquals("goal-1", result.snapshot.workflowId)
     assertEquals(IdeStatusWorkflowFamily.FEATURE_GOAL, result.snapshot.workflowFamily)
@@ -233,29 +232,31 @@ class IdeStatusServiceTest {
     val workflows = IdeStatusWorkflowStates()
     workflows.saveFeatureImplementWorkflow(
       runtimeRecord("w-model", "2026-08-06T10:00:00Z").copy(
-        artifactsJson = phaseRecordsArtifactsJson(
-          "preplan" to phaseRecordWire("preplan", "completed", null),
-          "plan" to phaseRecordWire("plan", "completed", "plan-model"),
-          "implement" to phaseRecordWire(
-            "implement",
-            "running",
-            "claude-opus-4-8",
-            options = PhaseRecordOptions(effort = "high"),
+        artifactsJson =
+          phaseRecordsArtifactsJson(
+            "preplan" to phaseRecordWire("preplan", "completed", null),
+            "plan" to phaseRecordWire("plan", "completed", "plan-model"),
+            "implement" to
+              phaseRecordWire(
+                "implement",
+                "running",
+                "claude-opus-4-8",
+                options = PhaseRecordOptions(effort = "high"),
+              ),
           ),
-        ),
       ),
     )
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-model", identity))
-    val database = TrackingDatabase(
-      work = listOf(workItem("w-model", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T10:00:00Z")),
-      workflows = workflows,
-    )
+    val database =
+      TrackingDatabase(
+        work = listOf(workItem("w-model", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T10:00:00Z")),
+        workflows = workflows,
+      )
 
-    val result = ideStatusService(database).status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      ideStatusService(database).status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
 
     assertEquals("implement", result.snapshot.currentStep.id)
     assertEquals("claude-opus-4-8", result.snapshot.currentModel?.model)
@@ -269,16 +270,16 @@ class IdeStatusServiceTest {
     val workflows = IdeStatusWorkflowStates()
     workflows.saveFeatureImplementWorkflow(runtimeRecord("w-nomodel", "2026-08-06T10:00:00Z"))
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-nomodel", identity))
-    val database = TrackingDatabase(
-      work = listOf(workItem("w-nomodel", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T10:00:00Z")),
-      workflows = workflows,
-    )
+    val database =
+      TrackingDatabase(
+        work = listOf(workItem("w-nomodel", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T10:00:00Z")),
+        workflows = workflows,
+      )
 
-    val result = ideStatusService(database).status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      ideStatusService(database).status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
 
     assertNull(result.snapshot.currentModel)
   }
@@ -288,22 +289,26 @@ class IdeStatusServiceTest {
     val fixture = gitRepoFixture("ide-status-goal-current-model")
     val identity = testGoalRepositoryIdentity(fixture)
     val childStarted = Instant.parse("2026-08-06T09:15:00Z")
-    val database = goalWithLaunchedChildDatabase(
-      identity,
-      childStarted,
-      childArtifactsJson = phaseRecordsArtifactsJson(
-        "preplan" to phaseRecordWire("preplan", "completed", null),
-        "plan" to phaseRecordWire("plan", "completed", null),
-        "implement" to phaseRecordWire("implement", "running", "claude-opus-4-8[effort=high]"),
-      ),
-    )
-    val withChild = ideStatusService(
-      database,
-      manifestStore = StubGoalManifestStore(goalManifestState(fixture, identity, childWorkflowId = "w-child")),
-    ).status(IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt))
+    val database =
+      goalWithLaunchedChildDatabase(
+        identity,
+        childStarted,
+        childArtifactsJson =
+          phaseRecordsArtifactsJson(
+            "preplan" to phaseRecordWire("preplan", "completed", null),
+            "plan" to phaseRecordWire("plan", "completed", null),
+            "implement" to phaseRecordWire("implement", "running", "claude-opus-4-8[effort=high]"),
+          ),
+      )
+    val withChild =
+      ideStatusService(
+        database,
+        manifestStore = StubGoalManifestStore(goalManifestState(fixture, identity, childWorkflowId = "w-child")),
+      ).status(IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt))
 
-    val withoutChild = ideStatusService(database)
-      .status(IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt))
+    val withoutChild =
+      ideStatusService(database)
+        .status(IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt))
 
     assertEquals("claude-opus-4-8[effort=high]", withChild.snapshot.currentModel?.model)
     assertNull(withChild.snapshot.currentModel?.effort)
@@ -318,24 +323,25 @@ class IdeStatusServiceTest {
     val fixture = gitRepoFixture("ide-status-current-model-settled")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    val allCompleted = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds.map { phaseId ->
-      phaseId to phaseRecordWire(phaseId, "completed", "claude-opus-4-8".takeIf { phaseId == "pr" })
-    }
+    val allCompleted =
+      FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds.map { phaseId ->
+        phaseId to phaseRecordWire(phaseId, "completed", "claude-opus-4-8".takeIf { phaseId == "pr" })
+      }
     workflows.saveFeatureImplementWorkflow(
       runtimeRecord("w-settled", "2026-08-06T10:00:00Z", currentStep = "pr")
         .copy(artifactsJson = phaseRecordsArtifactsJson(*allCompleted.toTypedArray())),
     )
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-settled", identity))
-    val database = TrackingDatabase(
-      work = listOf(workItem("w-settled", WorkItemKind.FEATURE_TASK_RUNTIME, "completed", "2026-08-06T10:00:00Z")),
-      workflows = workflows,
-    )
+    val database =
+      TrackingDatabase(
+        work = listOf(workItem("w-settled", WorkItemKind.FEATURE_TASK_RUNTIME, "completed", "2026-08-06T10:00:00Z")),
+        workflows = workflows,
+      )
 
-    val result = ideStatusService(database).status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      ideStatusService(database).status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
 
     assertEquals("w-settled", result.snapshot.workflowId)
     assertEquals("pr", result.snapshot.currentStep.id)
@@ -346,23 +352,27 @@ class IdeStatusServiceTest {
   fun `a goal whose child status read fails schema validation keeps its status and omits only current_model`() {
     val fixture = gitRepoFixture("ide-status-goal-child-schema-invalid")
     val identity = testGoalRepositoryIdentity(fixture)
-    val database = goalWithLaunchedChildDatabase(
-      identity,
-      Instant.parse("2026-08-06T09:15:00Z"),
-      childArtifactsJson = JsonCodec.mapToJsonString(
-        mapOf(
-          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
-            "implement" to phaseRecordWire("implement", "running", "claude-opus-4-8"),
+    val database =
+      goalWithLaunchedChildDatabase(
+        identity,
+        Instant.parse("2026-08-06T09:15:00Z"),
+        childArtifactsJson =
+          JsonCodec.mapToJsonString(
+            mapOf(
+              FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+                mapOf(
+                  "implement" to phaseRecordWire("implement", "running", "claude-opus-4-8"),
+                ),
+              FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY to "not-a-map",
+            ),
           ),
-          FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY to "not-a-map",
-        ),
-      ),
-    )
+      )
 
-    val result = ideStatusService(
-      database,
-      manifestStore = StubGoalManifestStore(goalManifestState(fixture, identity, childWorkflowId = "w-child")),
-    ).status(IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt))
+    val result =
+      ideStatusService(
+        database,
+        manifestStore = StubGoalManifestStore(goalManifestState(fixture, identity, childWorkflowId = "w-child")),
+      ).status(IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt))
 
     assertEquals("goal-1", result.snapshot.workflowId)
     assertNull(result.snapshot.problem)
@@ -378,39 +388,42 @@ class IdeStatusServiceTest {
     val workflows = IdeStatusWorkflowStates()
     workflows.saveFeatureImplementWorkflow(
       runtimeRecord("w-exec", "2026-08-06T10:00:00Z", currentStep = "validate").copy(
-        artifactsJson = phaseRecordsArtifactsJson(
-          "preplan" to phaseRecordWire("preplan", "completed", null),
-          "plan" to phaseRecordWire("plan", "completed", null),
-          "implement" to phaseRecordWire("implement", "completed", null),
-          "simplify" to phaseRecordWire("simplify", "completed", null),
-          "audit" to phaseRecordWire("audit", "completed", null),
-          "review" to phaseRecordWire(
-            "review",
-            "completed",
-            null,
-            options = PhaseRecordOptions(reviewPassNumber = 3),
+        artifactsJson =
+          phaseRecordsArtifactsJson(
+            "preplan" to phaseRecordWire("preplan", "completed", null),
+            "plan" to phaseRecordWire("plan", "completed", null),
+            "implement" to phaseRecordWire("implement", "completed", null),
+            "simplify" to phaseRecordWire("simplify", "completed", null),
+            "audit" to phaseRecordWire("audit", "completed", null),
+            "review" to
+              phaseRecordWire(
+                "review",
+                "completed",
+                null,
+                options = PhaseRecordOptions(reviewPassNumber = 3),
+              ),
+            "verify_findings" to phaseRecordWire("verify_findings", "completed", null),
+            "validate" to
+              phaseRecordWire(
+                "validate",
+                "running",
+                null,
+                options = PhaseRecordOptions(attemptCount = 2),
+              ),
           ),
-          "verify_findings" to phaseRecordWire("verify_findings", "completed", null),
-          "validate" to phaseRecordWire(
-            "validate",
-            "running",
-            null,
-            options = PhaseRecordOptions(attemptCount = 2),
-          ),
-        ),
       ),
     )
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-exec", identity))
-    val database = TrackingDatabase(
-      work = listOf(workItem("w-exec", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T10:00:00Z")),
-      workflows = workflows,
-    )
+    val database =
+      TrackingDatabase(
+        work = listOf(workItem("w-exec", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T10:00:00Z")),
+        workflows = workflows,
+      )
 
-    val result = ideStatusService(database).status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      ideStatusService(database).status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
     val execution = requireNotNull(result.snapshot.currentPhaseExecution)
 
     assertEquals("validate", result.snapshot.currentStep.id)
@@ -428,35 +441,38 @@ class IdeStatusServiceTest {
     val workflows = IdeStatusWorkflowStates()
     workflows.saveFeatureImplementWorkflow(
       runtimeRecord("w-review", "2026-08-06T10:00:00Z", currentStep = "review").copy(
-        artifactsJson = phaseRecordsArtifactsJson(
-          "preplan" to phaseRecordWire("preplan", "completed", null),
-          "plan" to phaseRecordWire("plan", "completed", null),
-          "implement" to phaseRecordWire("implement", "completed", null),
-          "simplify" to phaseRecordWire("simplify", "completed", null),
-          "audit" to phaseRecordWire("audit", "completed", null),
-          "review" to phaseRecordWire(
-            "review",
-            "running",
-            null,
-            options = PhaseRecordOptions(
-              attemptCount = 4,
-              reviewPassNumber = 2,
-            ),
+        artifactsJson =
+          phaseRecordsArtifactsJson(
+            "preplan" to phaseRecordWire("preplan", "completed", null),
+            "plan" to phaseRecordWire("plan", "completed", null),
+            "implement" to phaseRecordWire("implement", "completed", null),
+            "simplify" to phaseRecordWire("simplify", "completed", null),
+            "audit" to phaseRecordWire("audit", "completed", null),
+            "review" to
+              phaseRecordWire(
+                "review",
+                "running",
+                null,
+                options =
+                  PhaseRecordOptions(
+                    attemptCount = 4,
+                    reviewPassNumber = 2,
+                  ),
+              ),
           ),
-        ),
       ),
     )
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-review", identity))
-    val database = TrackingDatabase(
-      work = listOf(workItem("w-review", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T10:00:00Z")),
-      workflows = workflows,
-    )
+    val database =
+      TrackingDatabase(
+        work = listOf(workItem("w-review", WorkItemKind.FEATURE_TASK_RUNTIME, "running", "2026-08-06T10:00:00Z")),
+        workflows = workflows,
+      )
 
-    val result = ideStatusService(database).status(
-
-      IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
-
-    )
+    val result =
+      ideStatusService(database).status(
+        IdeStatusRequest(repoRoot = fixture.toString(), observedAt = ideStatusObservedAt),
+      )
     val execution = requireNotNull(result.snapshot.currentPhaseExecution)
 
     assertEquals("review", execution.phaseId)

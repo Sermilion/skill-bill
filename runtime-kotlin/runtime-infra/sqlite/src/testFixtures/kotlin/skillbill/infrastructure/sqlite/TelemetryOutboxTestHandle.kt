@@ -5,12 +5,16 @@ import skillbill.infrastructure.sqlite.telemetry.redaction.SkillBillRuntimeVersi
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import java.sql.Connection
+
 class TelemetryOutboxTestHandle internal constructor(
   private val store: TelemetryOutboxStore,
 ) : TelemetryOutboxRepository by store {
   fun listPending(limit: Int? = null): List<TelemetryOutboxRecord> = store.listPending(limit)
 
-  fun markSynced(id: Long, syncedAt: String) {
+  fun markSynced(
+    id: Long,
+    syncedAt: String,
+  ) {
     store.markSynced(id, syncedAt)
   }
 }

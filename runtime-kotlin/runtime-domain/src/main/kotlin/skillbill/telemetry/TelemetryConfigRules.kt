@@ -3,21 +3,26 @@ package skillbill.telemetry
 import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.model.TelemetryOpenDocument
 
-fun defaultLocalTelemetryConfig(installId: String): TelemetryConfigDocument = TelemetryConfigDocument(
-  payload = TelemetryOpenDocument.from(
-    mapOf(
-      "install_id" to installId,
-      "telemetry" to
+fun defaultLocalTelemetryConfig(installId: String): TelemetryConfigDocument =
+  TelemetryConfigDocument(
+    payload =
+      TelemetryOpenDocument.from(
         mapOf(
-          "level" to "anonymous",
-          "proxy_url" to "",
-          "batch_size" to DEFAULT_TELEMETRY_BATCH_SIZE,
+          "install_id" to installId,
+          "telemetry" to
+            mapOf(
+              "level" to "anonymous",
+              "proxy_url" to "",
+              "batch_size" to DEFAULT_TELEMETRY_BATCH_SIZE,
+            ),
         ),
-    ),
-  ),
-)
+      ),
+  )
 
-fun TelemetryConfigDocument.withTelemetryLevel(level: String, configPath: String): TelemetryConfigDocument {
+fun TelemetryConfigDocument.withTelemetryLevel(
+  level: String,
+  configPath: String,
+): TelemetryConfigDocument {
   val updatedPayload = payload.toMutableMap()
   val telemetry =
     when (val telemetryRaw = updatedPayload["telemetry"]) {
@@ -37,19 +42,29 @@ fun TelemetryConfigDocument.withTelemetryLevel(level: String, configPath: String
   return TelemetryConfigDocument(TelemetryOpenDocument.from(updatedPayload))
 }
 
-fun parseTelemetryBoolValue(rawValue: String, name: String): Boolean = when (rawValue.trim().lowercase()) {
-  "1", "true", "yes", "on" -> true
-  "0", "false", "no", "off" -> false
-  else -> throw IllegalArgumentException("$name must be one of: 1, 0, true, false, yes, no, on, off.")
-}
+fun parseTelemetryBoolValue(
+  rawValue: String,
+  name: String,
+): Boolean =
+  when (rawValue.trim().lowercase()) {
+    "1", "true", "yes", "on" -> true
+    "0", "false", "no", "off" -> false
+    else -> throw IllegalArgumentException("$name must be one of: 1, 0, true, false, yes, no, on, off.")
+  }
 
-fun parsePositiveTelemetryInt(rawValue: String, name: String): Int {
+fun parsePositiveTelemetryInt(
+  rawValue: String,
+  name: String,
+): Int {
   val value = rawValue.toIntOrNull() ?: throw IllegalArgumentException("$name must be an integer.")
   require(value > 0) { "$name must be greater than zero." }
   return value
 }
 
-fun parseTelemetryLevelValue(rawValue: String, name: String): String {
+fun parseTelemetryLevelValue(
+  rawValue: String,
+  name: String,
+): String {
   val normalized = rawValue.trim().lowercase()
   require(normalized in telemetryLevels) {
     "$name must be one of: ${telemetryLevels.joinToString(", ")}."

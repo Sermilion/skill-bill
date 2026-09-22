@@ -4,7 +4,11 @@ import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
 
 interface UnaddressedFindingsRepository {
-  fun replaceLedgerForPass(workflowId: String, reviewPassNumber: Int, findings: List<UnaddressedFinding>)
+  fun replaceLedgerForPass(
+    workflowId: String,
+    reviewPassNumber: Int,
+    findings: List<UnaddressedFinding>,
+  )
 
   /**
    * Records the terminal accepted/rejected/carried disposition for findings a run produced. Survives

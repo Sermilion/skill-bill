@@ -13,21 +13,23 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import java.nio.file.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+
 sealed interface GoalPlanningSweepOutcome {
   data class PreparedAll(
     val identity: GoalPlanningIdentity? = null,
     val provenance: GoalPlanningContractProvenance? = null,
     val descriptors: List<GovernedGoalSubtaskDescriptor> = emptyList(),
   ) : GoalPlanningSweepOutcome {
-    fun hydrationFor(subtaskId: Int) = identity?.let { expectedIdentity ->
-      val expectedProvenance = requireNotNull(provenance)
-      val descriptor = descriptors.singleOrNull { it.subtaskId == subtaskId } ?: return@let null
-      GoalChildPlanningHydrationRequest(
-        expectedIdentity,
-        expectedProvenance,
-        descriptor,
-      )
-    }
+    fun hydrationFor(subtaskId: Int) =
+      identity?.let { expectedIdentity ->
+        val expectedProvenance = requireNotNull(provenance)
+        val descriptor = descriptors.singleOrNull { it.subtaskId == subtaskId } ?: return@let null
+        GoalChildPlanningHydrationRequest(
+          expectedIdentity,
+          expectedProvenance,
+          descriptor,
+        )
+      }
   }
 
   data class Stopped(
@@ -100,17 +102,17 @@ data class GoalPlanningEmptyTurnEvidence(
   val assistantEventCount: Int?,
   val rawOutputPreview: String?,
 ) {
-
-  fun summary(): String = buildString {
-    append("EmptyProviderTurn: agent=")
-    append(agentId)
-    append(" durationMs=")
-    append(durationMs)
-    append(" exitStatus=")
-    append(exitStatus ?: "none")
-    append(" assistantEvents=")
-    append(assistantEventCount ?: "unknown")
-  }
+  fun summary(): String =
+    buildString {
+      append("EmptyProviderTurn: agent=")
+      append(agentId)
+      append(" durationMs=")
+      append(durationMs)
+      append(" exitStatus=")
+      append(exitStatus ?: "none")
+      append(" assistantEvents=")
+      append(assistantEventCount ?: "unknown")
+    }
 }
 
 data class GoalPlanningRejectionRecord(

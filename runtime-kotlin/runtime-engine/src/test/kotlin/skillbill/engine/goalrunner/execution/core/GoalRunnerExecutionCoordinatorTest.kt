@@ -38,10 +38,11 @@ class GoalRunnerExecutionCoordinatorTest {
     val store = InMemoryExecutionLeaseStore(lease(generation = 1, ownerToken = "old-owner"))
     val coordinator = testCoordinator(store, FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning))
 
-    val result = coordinator.runOwned("parent-1") {
-      assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
-      "continued"
-    }
+    val result =
+      coordinator.runOwned("parent-1") {
+        assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
+        "continued"
+      }
 
     assertEquals("continued", result)
     assertNull(store.executionLeaseValue)
@@ -49,18 +50,21 @@ class GoalRunnerExecutionCoordinatorTest {
 
   @Test
   fun `expired parent lease with ownership mismatch reclaims and runs`() {
-    val store = InMemoryExecutionLeaseStore(
-      lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
-    )
-    val supervisor = FakeGoalSupervisor(
-      FeatureTaskRuntimeProcessInspection.OwnershipMismatch("Worker PID was reused by a different process."),
-    )
+    val store =
+      InMemoryExecutionLeaseStore(
+        lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
+      )
+    val supervisor =
+      FakeGoalSupervisor(
+        FeatureTaskRuntimeProcessInspection.OwnershipMismatch("Worker PID was reused by a different process."),
+      )
     val coordinator = testCoordinator(store, supervisor)
 
-    val result = coordinator.runOwned("parent-1") {
-      assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
-      "continued"
-    }
+    val result =
+      coordinator.runOwned("parent-1") {
+        assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
+        "continued"
+      }
 
     assertEquals("continued", result)
     assertNull(store.executionLeaseValue)
@@ -68,18 +72,21 @@ class GoalRunnerExecutionCoordinatorTest {
 
   @Test
   fun `expired parent lease with unsupported inspection reclaims and runs`() {
-    val store = InMemoryExecutionLeaseStore(
-      lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
-    )
-    val supervisor = FakeGoalSupervisor(
-      FeatureTaskRuntimeProcessInspection.Unsupported("Process inspection is unavailable on this host."),
-    )
+    val store =
+      InMemoryExecutionLeaseStore(
+        lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
+      )
+    val supervisor =
+      FakeGoalSupervisor(
+        FeatureTaskRuntimeProcessInspection.Unsupported("Process inspection is unavailable on this host."),
+      )
     val coordinator = testCoordinator(store, supervisor)
 
-    val result = coordinator.runOwned("parent-1") {
-      assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
-      "continued"
-    }
+    val result =
+      coordinator.runOwned("parent-1") {
+        assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
+        "continued"
+      }
 
     assertEquals("continued", result)
     assertNull(store.executionLeaseValue)
@@ -87,20 +94,23 @@ class GoalRunnerExecutionCoordinatorTest {
 
   @Test
   fun `relaunch after expired lease clears interrupted pause`() {
-    val store = InMemoryExecutionLeaseStore(
-      lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
-    )
-    store.controlStateValue = GoalRunnerControlState(
-      pauseRequested = true,
-      pauseConsumed = true,
-      paused = true,
-      pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
-      pausedAt = "2026-08-02T09:59:00Z",
-    )
-    val coordinator = testCoordinator(
-      store,
-      FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
-    )
+    val store =
+      InMemoryExecutionLeaseStore(
+        lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
+      )
+    store.controlStateValue =
+      GoalRunnerControlState(
+        pauseRequested = true,
+        pauseConsumed = true,
+        paused = true,
+        pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
+        pausedAt = "2026-08-02T09:59:00Z",
+      )
+    val coordinator =
+      testCoordinator(
+        store,
+        FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
+      )
 
     coordinator.runOwned("parent-1") { "continued" }
 
@@ -110,20 +120,23 @@ class GoalRunnerExecutionCoordinatorTest {
 
   @Test
   fun `operator stop pause is preserved after expired lease reclaim`() {
-    val store = InMemoryExecutionLeaseStore(
-      lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
-    )
-    store.controlStateValue = GoalRunnerControlState(
-      pauseRequested = true,
-      pauseConsumed = true,
-      paused = true,
-      pauseReason = GOAL_PAUSE_REASON_OPERATOR_STOP,
-      pausedAt = "2026-08-02T09:00:00Z",
-    )
-    val coordinator = testCoordinator(
-      store,
-      FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
-    )
+    val store =
+      InMemoryExecutionLeaseStore(
+        lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
+      )
+    store.controlStateValue =
+      GoalRunnerControlState(
+        pauseRequested = true,
+        pauseConsumed = true,
+        paused = true,
+        pauseReason = GOAL_PAUSE_REASON_OPERATOR_STOP,
+        pausedAt = "2026-08-02T09:00:00Z",
+      )
+    val coordinator =
+      testCoordinator(
+        store,
+        FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
+      )
 
     coordinator.runOwned("parent-1") { "continued" }
 
@@ -135,25 +148,29 @@ class GoalRunnerExecutionCoordinatorTest {
 
   @Test
   fun `issue 342 expired lease relaunch clears interrupted pause`() {
-    val store = InMemoryExecutionLeaseStore(
-      lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
-    )
-    store.controlStateValue = GoalRunnerControlState(
-      pauseRequested = true,
-      pauseConsumed = true,
-      paused = true,
-      pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
-      pausedAt = "2026-08-02T09:59:00Z",
-    )
-    val supervisor = FakeGoalSupervisor(
-      FeatureTaskRuntimeProcessInspection.OwnershipMismatch("the existing process owner is ambiguous"),
-    )
+    val store =
+      InMemoryExecutionLeaseStore(
+        lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
+      )
+    store.controlStateValue =
+      GoalRunnerControlState(
+        pauseRequested = true,
+        pauseConsumed = true,
+        paused = true,
+        pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
+        pausedAt = "2026-08-02T09:59:00Z",
+      )
+    val supervisor =
+      FakeGoalSupervisor(
+        FeatureTaskRuntimeProcessInspection.OwnershipMismatch("the existing process owner is ambiguous"),
+      )
     val coordinator = testCoordinator(store, supervisor)
 
-    val result = coordinator.runOwned("parent-1") {
-      assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
-      "goal body ran"
-    }
+    val result =
+      coordinator.runOwned("parent-1") {
+        assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
+        "goal body ran"
+      }
 
     assertEquals("goal body ran", result)
     assertEquals(GoalRunnerControlState(), store.controlStateValue)
@@ -162,19 +179,21 @@ class GoalRunnerExecutionCoordinatorTest {
 
   @Test
   fun `a long-running parent lease still blocks a second foreground goal runner`() {
-    val store = InMemoryExecutionLeaseStore(
-      lease(
-        generation = 1,
-        ownerToken = "live-owner",
-        processBirthToken = staleBirthToken(),
-      ),
-    )
+    val store =
+      InMemoryExecutionLeaseStore(
+        lease(
+          generation = 1,
+          ownerToken = "live-owner",
+          processBirthToken = staleBirthToken(),
+        ),
+      )
     val supervisor = FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive)
     val coordinator = testCoordinator(store, supervisor)
 
-    val failure = assertFailsWith<GoalRunnerExecutionAlreadyRunningException> {
-      coordinator.runOwned("parent-1") { error("the second run must not enter the goal body") }
-    }
+    val failure =
+      assertFailsWith<GoalRunnerExecutionAlreadyRunningException> {
+        coordinator.runOwned("parent-1") { error("the second run must not enter the goal body") }
+      }
     assertTrue(failure.message.orEmpty().contains("another goal runner process is live"))
     assertEquals(0, supervisor.awaitExitCalls)
     assertEquals("live-owner", requireNotNull(store.executionLeaseValue).ownerToken)
@@ -182,20 +201,22 @@ class GoalRunnerExecutionCoordinatorTest {
 
   @Test
   fun `a duplicate-launch live lease is waited out then reclaimed`() {
-    val store = InMemoryExecutionLeaseStore(
-      lease(
-        generation = 1,
-        ownerToken = "live-owner",
-        processBirthToken = recentBirthToken(),
-      ),
-    )
+    val store =
+      InMemoryExecutionLeaseStore(
+        lease(
+          generation = 1,
+          ownerToken = "live-owner",
+          processBirthToken = recentBirthToken(),
+        ),
+      )
     val supervisor = FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive)
     val coordinator = testCoordinator(store, supervisor)
 
-    val result = coordinator.runOwned("parent-1") {
-      assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
-      "continued"
-    }
+    val result =
+      coordinator.runOwned("parent-1") {
+        assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
+        "continued"
+      }
 
     assertEquals("continued", result)
     assertEquals(1, supervisor.awaitExitCalls)
@@ -205,22 +226,25 @@ class GoalRunnerExecutionCoordinatorTest {
 
   @Test
   fun `a duplicate-launch peer that stays live after awaitExit stays blocked`() {
-    val store = InMemoryExecutionLeaseStore(
-      lease(
-        generation = 1,
-        ownerToken = "live-owner",
-        processBirthToken = recentBirthToken(),
-      ),
-    )
-    val supervisor = FakeGoalSupervisor(
-      FeatureTaskRuntimeProcessInspection.ExactLive,
-      markNotRunningAfterAwait = false,
-    )
+    val store =
+      InMemoryExecutionLeaseStore(
+        lease(
+          generation = 1,
+          ownerToken = "live-owner",
+          processBirthToken = recentBirthToken(),
+        ),
+      )
+    val supervisor =
+      FakeGoalSupervisor(
+        FeatureTaskRuntimeProcessInspection.ExactLive,
+        markNotRunningAfterAwait = false,
+      )
     val coordinator = testCoordinator(store, supervisor)
 
-    val failure = assertFailsWith<GoalRunnerExecutionAlreadyRunningException> {
-      coordinator.runOwned("parent-1") { error("must not reclaim a still-live peer") }
-    }
+    val failure =
+      assertFailsWith<GoalRunnerExecutionAlreadyRunningException> {
+        coordinator.runOwned("parent-1") { error("must not reclaim a still-live peer") }
+      }
     assertTrue(failure.message.orEmpty().contains("another goal runner process is live"))
     assertEquals(1, supervisor.awaitExitCalls)
     assertEquals(Duration.ofSeconds(60), supervisor.lastAwaitTimeout)
@@ -230,35 +254,39 @@ class GoalRunnerExecutionCoordinatorTest {
   @Test
   fun `this process does not wait on its own execution lease`() {
     val current = FeatureTaskRuntimeProcessIdentity("host", "boot", 200, "birth-200")
-    val store = InMemoryExecutionLeaseStore(
-      lease(
-        generation = 1,
-        ownerToken = "self-owner",
-        pid = current.pid,
-        processBirthToken = current.processBirthToken,
-      ),
-    )
+    val store =
+      InMemoryExecutionLeaseStore(
+        lease(
+          generation = 1,
+          ownerToken = "self-owner",
+          pid = current.pid,
+          processBirthToken = current.processBirthToken,
+        ),
+      )
     val supervisor = FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive, current)
     val coordinator = testCoordinator(store, supervisor)
 
-    val failure = assertFailsWith<GoalRunnerExecutionAlreadyRunningException> {
-      coordinator.runOwned("parent-1") { error("must not re-enter") }
-    }
+    val failure =
+      assertFailsWith<GoalRunnerExecutionAlreadyRunningException> {
+        coordinator.runOwned("parent-1") { error("must not re-enter") }
+      }
     assertTrue(failure.message.orEmpty().contains("this process already owns the execution lease"))
     assertEquals(0, supervisor.awaitExitCalls)
   }
 
   @Test
   fun `an unparseable process birth token is not treated as a duplicate launch`() {
-    val store = InMemoryExecutionLeaseStore(
-      lease(generation = 1, ownerToken = "live-owner", processBirthToken = "birth-100"),
-    )
+    val store =
+      InMemoryExecutionLeaseStore(
+        lease(generation = 1, ownerToken = "live-owner", processBirthToken = "birth-100"),
+      )
     val supervisor = FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive)
     val coordinator = testCoordinator(store, supervisor)
 
-    val failure = assertFailsWith<GoalRunnerExecutionAlreadyRunningException> {
-      coordinator.runOwned("parent-1") { error("must not attach") }
-    }
+    val failure =
+      assertFailsWith<GoalRunnerExecutionAlreadyRunningException> {
+        coordinator.runOwned("parent-1") { error("must not attach") }
+      }
     assertTrue(failure.message.orEmpty().contains("another goal runner process is live"))
     assertEquals(0, supervisor.awaitExitCalls)
   }
@@ -288,12 +316,13 @@ class GoalRunnerExecutionCoordinatorTest {
     val coordinator = testCoordinator(store, supervisor)
     var bodyRan = false
 
-    val thrown = assertFailsWith<IllegalStateException> {
-      coordinator.runOwned("parent-1") {
-        bodyRan = true
-        "never"
+    val thrown =
+      assertFailsWith<IllegalStateException> {
+        coordinator.runOwned("parent-1") {
+          bodyRan = true
+          "never"
+        }
       }
-    }
 
     assertSame(failure, thrown)
     assertTrue(thrown.suppressed.any { it === releaseFailure })
@@ -307,22 +336,24 @@ class GoalRunnerExecutionCoordinatorTest {
     val store = InMemoryExecutionLeaseStore(null)
     val failure = IllegalStateException("register hook")
     val supervisor = FakeGoalSupervisor(NOT_RUNNING)
-    val coordinator = DefaultGoalRunnerExecutionCoordinator(
-      manifestStore = store,
-      supervisor = supervisor,
-      clock = fixedClock(),
-      shutdownHookPort = FailingRegisterShutdownHookPort(failure),
-      daemonThreadPort = FakeDaemonThreadPort,
-      identifierGeneratorPort = FakeIdentifierGeneratorPort,
-    )
+    val coordinator =
+      DefaultGoalRunnerExecutionCoordinator(
+        manifestStore = store,
+        supervisor = supervisor,
+        clock = fixedClock(),
+        shutdownHookPort = FailingRegisterShutdownHookPort(failure),
+        daemonThreadPort = FakeDaemonThreadPort,
+        identifierGeneratorPort = FakeIdentifierGeneratorPort,
+      )
     var bodyRan = false
 
-    val thrown = assertFailsWith<IllegalStateException> {
-      coordinator.runOwned("parent-1") {
-        bodyRan = true
-        "never"
+    val thrown =
+      assertFailsWith<IllegalStateException> {
+        coordinator.runOwned("parent-1") {
+          bodyRan = true
+          "never"
+        }
       }
-    }
 
     assertEquals("register hook", thrown.message)
     assertNull(store.executionLeaseValue)
@@ -336,18 +367,20 @@ class GoalRunnerExecutionCoordinatorTest {
     val primary = IllegalArgumentException("body failed")
     val secondary = IllegalStateException("unregister hook")
     val supervisor = FakeGoalSupervisor(NOT_RUNNING)
-    val coordinator = DefaultGoalRunnerExecutionCoordinator(
-      manifestStore = store,
-      supervisor = supervisor,
-      clock = fixedClock(),
-      shutdownHookPort = FailingUnregisterShutdownHookPort(secondary),
-      daemonThreadPort = FakeDaemonThreadPort,
-      identifierGeneratorPort = FakeIdentifierGeneratorPort,
-    )
+    val coordinator =
+      DefaultGoalRunnerExecutionCoordinator(
+        manifestStore = store,
+        supervisor = supervisor,
+        clock = fixedClock(),
+        shutdownHookPort = FailingUnregisterShutdownHookPort(secondary),
+        daemonThreadPort = FakeDaemonThreadPort,
+        identifierGeneratorPort = FakeIdentifierGeneratorPort,
+      )
 
-    val thrown = assertFailsWith<IllegalArgumentException> {
-      coordinator.runOwned("parent-1") { throw primary }
-    }
+    val thrown =
+      assertFailsWith<IllegalArgumentException> {
+        coordinator.runOwned("parent-1") { throw primary }
+      }
 
     assertEquals("body failed", thrown.message)
     assertTrue(thrown.suppressed.any { it === secondary })
@@ -363,9 +396,10 @@ class GoalRunnerExecutionCoordinatorTest {
     store.releaseFailure = secondary
     val coordinator = testCoordinator(store, FakeGoalSupervisor(NOT_RUNNING))
 
-    val thrown = assertFailsWith<CancellationException> {
-      coordinator.runOwned("parent-1") { throw primary }
-    }
+    val thrown =
+      assertFailsWith<CancellationException> {
+        coordinator.runOwned("parent-1") { throw primary }
+      }
 
     assertSame(primary, thrown)
     assertTrue(thrown.suppressed.any { it === secondary })
@@ -379,9 +413,10 @@ class GoalRunnerExecutionCoordinatorTest {
     val supervisor = FakeGoalSupervisor(NOT_RUNNING, heartbeatStopFailure = failure)
     val coordinator = testCoordinator(store, supervisor)
 
-    val thrown = assertFailsWith<IllegalStateException> {
-      coordinator.runOwned("parent-1") { "done" }
-    }
+    val thrown =
+      assertFailsWith<IllegalStateException> {
+        coordinator.runOwned("parent-1") { "done" }
+      }
 
     assertEquals("stop heartbeat", thrown.message)
     assertNull(store.executionLeaseValue)
@@ -415,12 +450,13 @@ class GoalRunnerExecutionCoordinatorTest {
     val supervisor = FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning)
     val coordinator = testCoordinator(store, supervisor)
 
-    val failure = assertFailsWith<GoalRunnerExecutionAlreadyRunningException> {
-      coordinator.runOwned("parent-1") {
-        store.executionLeaseValue = lease(generation = 9, ownerToken = "usurper-owner")
-        assertTrue(supervisor.runHeartbeatTick() is FeatureTaskRuntimeHeartbeatTick.FencingLost)
+    val failure =
+      assertFailsWith<GoalRunnerExecutionAlreadyRunningException> {
+        coordinator.runOwned("parent-1") {
+          store.executionLeaseValue = lease(generation = 9, ownerToken = "usurper-owner")
+          assertTrue(supervisor.runHeartbeatTick() is FeatureTaskRuntimeHeartbeatTick.FencingLost)
+        }
       }
-    }
 
     assertTrue(failure.message.orEmpty().contains("execution lease fencing was lost"))
   }
@@ -457,13 +493,14 @@ class GoalRunnerShutdownHookTest {
   @Test
   fun `the hook leaves a stop-verb reason alone and performs no second write`() {
     val store = InMemoryExecutionLeaseStore(null)
-    store.controlStateValue = GoalRunnerControlState(
-      pauseRequested = true,
-      pauseConsumed = true,
-      paused = true,
-      pauseReason = "operator_stop",
-      pausedAt = "2026-08-02T09:00:00Z",
-    )
+    store.controlStateValue =
+      GoalRunnerControlState(
+        pauseRequested = true,
+        pauseConsumed = true,
+        paused = true,
+        pauseReason = "operator_stop",
+        pausedAt = "2026-08-02T09:00:00Z",
+      )
 
     testCoordinator(store, FakeGoalSupervisor(NOT_RUNNING))
       .recordInterruption("parent-1")
@@ -523,7 +560,10 @@ private class InMemoryExecutionLeaseStore(
 
   override fun controlState(parentWorkflowId: String): GoalRunnerControlState = controlStateValue
 
-  override fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState {
+  override fun persistControlState(
+    parentWorkflowId: String,
+    state: GoalRunnerControlState,
+  ): GoalRunnerControlState {
     persistControlStateCalls += 1
     controlStateValue = state
     return state
@@ -539,17 +579,21 @@ private class InMemoryExecutionLeaseStore(
     if (pauseNowBlocksForever) Thread.sleep(Long.MAX_VALUE)
     pauseNowFailure?.invoke()
     if (controlStateValue.paused && !overwriteExistingReason) return controlStateValue
-    controlStateValue = controlStateValue.copy(
-      pauseRequested = true,
-      pauseConsumed = true,
-      paused = true,
-      pauseReason = reason,
-      pausedAt = pausedAt,
-    )
+    controlStateValue =
+      controlStateValue.copy(
+        pauseRequested = true,
+        pauseConsumed = true,
+        paused = true,
+        pauseReason = reason,
+        pausedAt = pausedAt,
+      )
     return controlStateValue
   }
 
-  override fun loadByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState? = null
+  override fun loadByIssueKey(
+    issueKey: String,
+    repoRoot: Path?,
+  ): GoalRunnerManifestState? = null
 
   override fun save(state: GoalRunnerManifestState): GoalRunnerManifestState = state
 
@@ -565,7 +609,10 @@ private class InMemoryExecutionLeaseStore(
     return true
   }
 
-  override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean {
+  override fun heartbeatExecutionLease(
+    parentWorkflowId: String,
+    lease: GoalRunnerExecutionLease,
+  ): Boolean {
     if (executionLeaseValue?.ownerToken != lease.ownerToken || executionLeaseValue?.generation != lease.generation) {
       return false
     }
@@ -573,7 +620,11 @@ private class InMemoryExecutionLeaseStore(
     return true
   }
 
-  override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean {
+  override fun releaseExecutionLease(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+  ): Boolean {
     releaseCalls += Triple(parentWorkflowId, ownerToken, generation)
     releaseFailure?.let { throw it }
     if (executionLeaseValue?.ownerToken != ownerToken || executionLeaseValue?.generation != generation) return false
@@ -606,7 +657,10 @@ private class FakeGoalSupervisor(
 
   override fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership): FeatureTaskRuntimeProcessInspection = inspection
 
-  override fun awaitExit(ownership: FeatureTaskRuntimeWorkerOwnership, timeout: Duration) {
+  override fun awaitExit(
+    ownership: FeatureTaskRuntimeWorkerOwnership,
+    timeout: Duration,
+  ) {
     awaitExitCalls += 1
     lastAwaitTimeout = timeout
     if (markNotRunningAfterAwait) {
@@ -658,9 +712,10 @@ private fun testCoordinator(
 )
 
 private object FakeShutdownHookPort : ShutdownHookPort {
-  override fun register(action: () -> Unit): ShutdownHookRegistration = object : ShutdownHookRegistration {
-    override fun unregister(): Boolean = true
-  }
+  override fun register(action: () -> Unit): ShutdownHookRegistration =
+    object : ShutdownHookRegistration {
+      override fun unregister(): Boolean = true
+    }
 }
 
 private class FailingRegisterShutdownHookPort(
@@ -674,15 +729,19 @@ private class FailingRegisterShutdownHookPort(
 private class FailingUnregisterShutdownHookPort(
   private val failure: Throwable,
 ) : ShutdownHookPort {
-  override fun register(action: () -> Unit): ShutdownHookRegistration = object : ShutdownHookRegistration {
-    override fun unregister(): Boolean {
-      throw failure
+  override fun register(action: () -> Unit): ShutdownHookRegistration =
+    object : ShutdownHookRegistration {
+      override fun unregister(): Boolean {
+        throw failure
+      }
     }
-  }
 }
 
 private object FakeDaemonThreadPort : DaemonThreadPort {
-  override fun runWithJoinBudget(action: () -> Unit, joinBudgetMillis: Long) {
+  override fun runWithJoinBudget(
+    action: () -> Unit,
+    joinBudgetMillis: Long,
+  ) {
     val worker = Thread(action)
     worker.isDaemon = true
     worker.start()

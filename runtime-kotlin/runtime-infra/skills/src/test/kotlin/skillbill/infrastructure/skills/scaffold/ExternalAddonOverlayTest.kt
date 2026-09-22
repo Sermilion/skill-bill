@@ -15,6 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class ExternalAddonOverlayTest {
   @TempDir
   lateinit var work: Path
@@ -81,12 +82,13 @@ class ExternalAddonOverlayTest {
   @Test
   fun `pointer target rewriting converts source-relative target to canonical form`() {
     seedIosPack(packOwnedAddon = null)
-    val source = seedExternalSource(
-      "ios",
-      "acme",
-      listOf("acme-review.md"),
-      target = "acme-review.md",
-    )
+    val source =
+      seedExternalSource(
+        "ios",
+        "acme",
+        listOf("acme-review.md"),
+        target = "acme-review.md",
+      )
 
     overlay.applyOverlay(request(listOf(source)))
 
@@ -125,9 +127,10 @@ class ExternalAddonOverlayTest {
     )
     val source = ExternalAddonSource(sourceDir.toFileLocation(), "ios")
 
-    val error = assertFailsWith<ExternalAddonOverlayError> {
-      overlay.applyOverlay(request(listOf(source)))
-    }
+    val error =
+      assertFailsWith<ExternalAddonOverlayError> {
+        overlay.applyOverlay(request(listOf(source)))
+      }
     assertTrue(error.message.orEmpty().contains("collides"))
     val manifest = Files.readString(platformPacksRoot.resolve("ios/platform.yaml"))
     assertFalse(manifest.contains("acme"), "Atomicity: failing overlay must not mutate the installed manifest.")
@@ -153,9 +156,10 @@ class ExternalAddonOverlayTest {
     )
     val source = ExternalAddonSource(sourceDir.toFileLocation(), "ios")
 
-    val error = assertFailsWith<ExternalAddonOverlayError> {
-      overlay.applyOverlay(request(listOf(source)))
-    }
+    val error =
+      assertFailsWith<ExternalAddonOverlayError> {
+        overlay.applyOverlay(request(listOf(source)))
+      }
     assertTrue(
       error.message.orEmpty().contains("silent overwrite refused"),
       "Expected target-basename collision message, got: ${error.message}",
@@ -345,9 +349,10 @@ class ExternalAddonOverlayTest {
       """.trimIndent() + "\n",
     )
 
-    val error = assertFailsWith<ExternalAddonOverlayError> {
-      overlay.applyOverlay(request(listOf(ExternalAddonSource(sourceDir.toFileLocation(), "ios"))))
-    }
+    val error =
+      assertFailsWith<ExternalAddonOverlayError> {
+        overlay.applyOverlay(request(listOf(ExternalAddonSource(sourceDir.toFileLocation(), "ios"))))
+      }
     assertTrue(
       error.message.orEmpty().contains("flat file"),
       "Expected nested-target rejection, got: ${error.message}",
@@ -403,7 +408,10 @@ class ExternalAddonOverlayTest {
     }
   }
 
-  private fun seedPackWithSharedDir(platform: String, strongSignal: String) {
+  private fun seedPackWithSharedDir(
+    platform: String,
+    strongSignal: String,
+  ) {
     val packRoot = Files.createDirectories(platformPacksRoot.resolve(platform))
     val baseline = Files.createDirectories(packRoot.resolve("code-review/bill-shared-review"))
     Files.writeString(baseline.resolve("content.md"), "# $platform shared review\n")
@@ -427,7 +435,11 @@ class ExternalAddonOverlayTest {
     )
   }
 
-  private fun seedSharedDirExternalSource(platform: String, slug: String, addonMd: String): ExternalAddonSource {
+  private fun seedSharedDirExternalSource(
+    platform: String,
+    slug: String,
+    addonMd: String,
+  ): ExternalAddonSource {
     val sourceDir = Files.createDirectories(work.resolve("ext/$platform-$slug"))
     Files.writeString(sourceDir.resolve(addonMd), "# $slug body\n")
     Files.writeString(
@@ -446,7 +458,10 @@ class ExternalAddonOverlayTest {
     return ExternalAddonSource(sourceDir.toFileLocation(), platform)
   }
 
-  private fun assertContains(actual: String, expected: String) {
+  private fun assertContains(
+    actual: String,
+    expected: String,
+  ) {
     assertTrue(actual.contains(expected), "Expected '$actual' to contain '$expected'.")
   }
 

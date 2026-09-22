@@ -31,9 +31,10 @@ class GoalRunnerPurgePersistenceTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC())
       val fixture = seedGoalPurgeFixture(connection, store)
-      val outboxBefore = connection.prepareStatement("SELECT COUNT(*) FROM telemetry_outbox").use { rows ->
-        rows.executeQuery().use { it.getInt(1) }
-      }
+      val outboxBefore =
+        connection.prepareStatement("SELECT COUNT(*) FROM telemetry_outbox").use { rows ->
+          rows.executeQuery().use { it.getInt(1) }
+        }
       val factory =
         sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
       factory.transaction { unitOfWork ->
@@ -43,17 +44,23 @@ class GoalRunnerPurgePersistenceTest {
     }
   }
 
-  private fun seedGoalPurgeFixture(connection: Connection, store: WorkflowStateStore): GoalPurgeFixture {
+  private fun seedGoalPurgeFixture(
+    connection: Connection,
+    store: WorkflowStateStore,
+  ): GoalPurgeFixture {
     val parentId = "wftr-parent"
-    val childOne = goalChildWorkflow("wftr-child-1", parentId).copy(
-      artifactsJson = goalContinuationArtifacts(parentId, 1),
-    )
-    val childTwo = goalChildWorkflow("wftr-child-2", parentId).copy(
-      artifactsJson = goalContinuationArtifacts(parentId, 2),
-    )
-    val standalone = goalChildWorkflow("wftr-standalone", parentId).copy(
-      artifactsJson = goalContinuationArtifacts(parentId, 99),
-    )
+    val childOne =
+      goalChildWorkflow("wftr-child-1", parentId).copy(
+        artifactsJson = goalContinuationArtifacts(parentId, 1),
+      )
+    val childTwo =
+      goalChildWorkflow("wftr-child-2", parentId).copy(
+        artifactsJson = goalContinuationArtifacts(parentId, 2),
+      )
+    val standalone =
+      goalChildWorkflow("wftr-standalone", parentId).copy(
+        artifactsJson = goalContinuationArtifacts(parentId, 99),
+      )
     store.saveFeatureTaskRuntimeWorkflow(
       workflowRow(parentId, "ftr-parent", "bill-feature-task", "plan", FeatureTaskWorkflowMode.RUNTIME).copy(
         issueKey = "SKILL-245",
@@ -76,8 +83,10 @@ class GoalRunnerPurgePersistenceTest {
     return GoalPurgeFixture(parentId, childOne.workflowId, childTwo.workflowId, standalone.workflowId)
   }
 
-  private fun goalContinuationArtifacts(parentId: String, subtaskId: Int) =
-    """{"goal_continuation":{"issue_key":"SKILL-245","subtask_id":$subtaskId,"parent_workflow_id":"$parentId"}}"""
+  private fun goalContinuationArtifacts(
+    parentId: String,
+    subtaskId: Int,
+  ) = """{"goal_continuation":{"issue_key":"SKILL-245","subtask_id":$subtaskId,"parent_workflow_id":"$parentId"}}"""
 
   private fun assertPurgedGoalState(
     connection: Connection,
@@ -105,13 +114,17 @@ class GoalRunnerPurgePersistenceTest {
     listOf("goal_planning_preparations", "goal_shared_preplans", "goal_subtask_plans").forEach { table ->
       assertEquals(0, countByParentWorkflowId(connection, table, "parent_goal_workflow_id", fixture.parentId))
     }
-    val outboxAfter = connection.prepareStatement("SELECT COUNT(*) FROM telemetry_outbox").use { rows ->
-      rows.executeQuery().use { it.getInt(1) }
-    }
+    val outboxAfter =
+      connection.prepareStatement("SELECT COUNT(*) FROM telemetry_outbox").use { rows ->
+        rows.executeQuery().use { it.getInt(1) }
+      }
     assertEquals(outboxBefore, outboxAfter)
   }
 
-  private fun seedGoalPurgeControlRows(connection: Connection, parentId: String) {
+  private fun seedGoalPurgeControlRows(
+    connection: Connection,
+    parentId: String,
+  ) {
     connection.prepareStatement(
       """
       INSERT INTO goal_runner_controls (parent_workflow_id, control_state_json)
@@ -141,12 +154,20 @@ class GoalRunnerPurgePersistenceTest {
     ).use { statement -> statement.executeUpdate() }
   }
 
-  private fun seedGoalPurgeSatellites(connection: Connection, parentId: String, childOne: String, childTwo: String) {
+  private fun seedGoalPurgeSatellites(
+    connection: Connection,
+    parentId: String,
+    childOne: String,
+    childTwo: String,
+  ) {
     seedGoalPurgePlanningSatellites(connection, parentId)
     seedGoalPurgeWorkflowSatellites(connection, listOf(parentId, childOne, childTwo))
   }
 
-  private fun seedGoalPurgePlanningSatellites(connection: Connection, parentId: String) {
+  private fun seedGoalPurgePlanningSatellites(
+    connection: Connection,
+    parentId: String,
+  ) {
     connection.prepareStatement(
       """
       INSERT INTO goal_planning_preparations (
@@ -190,7 +211,10 @@ class GoalRunnerPurgePersistenceTest {
     }
   }
 
-  private fun seedGoalPurgeWorkflowSatellites(connection: Connection, workflowIds: List<String>) {
+  private fun seedGoalPurgeWorkflowSatellites(
+    connection: Connection,
+    workflowIds: List<String>,
+  ) {
     workflowIds.forEach { workflowId ->
       connection.prepareStatement(
         """
@@ -236,7 +260,11 @@ class GoalRunnerPurgePersistenceTest {
     }
   }
 
-  private fun countByWorkflowIds(connection: Connection, table: String, workflowIds: List<String>): Int {
+  private fun countByWorkflowIds(
+    connection: Connection,
+    table: String,
+    workflowIds: List<String>,
+  ): Int {
     val placeholders = workflowIds.joinToString(", ") { "?" }
     return connection.prepareStatement(
       "SELECT COUNT(*) FROM $table WHERE workflow_id IN ($placeholders)",
@@ -249,7 +277,12 @@ class GoalRunnerPurgePersistenceTest {
     }
   }
 
-  private fun countByParentWorkflowId(connection: Connection, table: String, column: String, parentId: String): Int =
+  private fun countByParentWorkflowId(
+    connection: Connection,
+    table: String,
+    column: String,
+    parentId: String,
+  ): Int =
     connection.prepareStatement("SELECT COUNT(*) FROM $table WHERE $column = ?").use { statement ->
       statement.setString(1, parentId)
       statement.executeQuery().use { rows ->

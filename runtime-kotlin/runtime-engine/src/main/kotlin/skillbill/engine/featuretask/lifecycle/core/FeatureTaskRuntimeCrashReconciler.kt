@@ -19,16 +19,17 @@ class FeatureTaskRuntimeCrashReconciler(
 ) {
   fun reconcile(): FeatureTaskRuntimeCrashReconciliationResult {
     val now = clock.instant().toString()
-    val candidates = runCatching {
-      database.read { it.workflowStates.findFeatureTaskRuntimeCrashReconciliationCandidates(now) }
-    }.getOrElse { error ->
-      RuntimeDiagnosticsBestEffortWarning.record(
-        diagnostics,
-        "Crash-reconciliation candidate scan failed; startup is unaffected.",
-        error,
-      )
-      return FeatureTaskRuntimeCrashReconciliationResult.NONE
-    }
+    val candidates =
+      runCatching {
+        database.read { it.workflowStates.findFeatureTaskRuntimeCrashReconciliationCandidates(now) }
+      }.getOrElse { error ->
+        RuntimeDiagnosticsBestEffortWarning.record(
+          diagnostics,
+          "Crash-reconciliation candidate scan failed; startup is unaffected.",
+          error,
+        )
+        return FeatureTaskRuntimeCrashReconciliationResult.NONE
+      }
     if (candidates.isEmpty()) return FeatureTaskRuntimeCrashReconciliationResult.NONE
     val reasonClassCounts = mutableMapOf<String, Int>()
     var reconciledCount = 0
@@ -42,30 +43,32 @@ class FeatureTaskRuntimeCrashReconciler(
     return FeatureTaskRuntimeCrashReconciliationResult(reconciledCount, reasonClassCounts)
   }
 
-  private fun reconcileCandidate(candidate: FeatureTaskRuntimeCrashReconciliationCandidate): String? = runCatching {
-    if (!supervisor.inspect(candidate.ownership).isConfirmedDead()) {
-      return@runCatching null
-    }
-    val reason = interruptionReason()
+  private fun reconcileCandidate(candidate: FeatureTaskRuntimeCrashReconciliationCandidate): String? =
+    runCatching {
+      if (!supervisor.inspect(candidate.ownership).isConfirmedDead()) {
+        return@runCatching null
+      }
+      val reason = interruptionReason()
 
-    val reconciled = database.transaction {
-      it.workflowStates.reconcileFeatureTaskRuntimeCrashedWorker(
-        workflowId = candidate.ownership.workflowId,
-        ownerToken = candidate.ownership.ownerToken,
-        generation = candidate.ownership.generation,
-        interruptionReason = "${reason.wireValue}: worker lease expired and process confirmed dead",
-        nowInstant = clock.instant().toString(),
+      val reconciled =
+        database.transaction {
+          it.workflowStates.reconcileFeatureTaskRuntimeCrashedWorker(
+            workflowId = candidate.ownership.workflowId,
+            ownerToken = candidate.ownership.ownerToken,
+            generation = candidate.ownership.generation,
+            interruptionReason = "${reason.wireValue}: worker lease expired and process confirmed dead",
+            nowInstant = clock.instant().toString(),
+          )
+        }
+      if (reconciled) reason.wireValue else null
+    }.getOrElse { error ->
+      RuntimeDiagnosticsBestEffortWarning.record(
+        diagnostics,
+        "Crash reconciliation faulted on a candidate; the pass continues and the fault is counted.",
+        error,
       )
+      FAULT_REASON_CLASS
     }
-    if (reconciled) reason.wireValue else null
-  }.getOrElse { error ->
-    RuntimeDiagnosticsBestEffortWarning.record(
-      diagnostics,
-      "Crash reconciliation faulted on a candidate; the pass continues and the fault is counted.",
-      error,
-    )
-    FAULT_REASON_CLASS
-  }
 
   private companion object {
     const val FAULT_REASON_CLASS = "reconcile_fault"

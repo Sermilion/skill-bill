@@ -23,18 +23,19 @@ class CliGoalPurgeCommandTest {
     val beforeParentSpec = Files.readString(fixture.parentSpec)
     val beforeManifest = Files.readString(manifestPath)
     val beforeSubtaskSpecs = fixture.subtaskSpecs.map { path -> Files.readString(path) }
-    val denied = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "purge",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-      ),
-      fixture.context(launcher = GoalFixtureAgentRunLauncher(fixture)),
-    )
+    val denied =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "purge",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+        ),
+        fixture.context(launcher = GoalFixtureAgentRunLauncher(fixture)),
+      )
     assertEquals(1, denied.exitCode, denied.stdout)
     assertContains(denied.stdout, "Goal purge requires explicit confirmation")
     assertEquals(beforeWorkflowCount, workflowCount(fixture))
@@ -47,31 +48,33 @@ class CliGoalPurgeCommandTest {
   fun `confirmed goal purge restores an unlaunched bundle and preflight reports new work`() {
     val fixture = goalFixture(subtaskCount = 2)
     val manifestPath = fixture.parentSpec.parent.resolve("decomposition-manifest.yaml")
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "purge",
-        "SKILL-901",
-        "--confirm-issue-key",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-      ),
-      fixture.context(launcher = GoalFixtureAgentRunLauncher(fixture)),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "purge",
+          "SKILL-901",
+          "--confirm-issue-key",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+        ),
+        fixture.context(launcher = GoalFixtureAgentRunLauncher(fixture)),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertRestoredBundle(fixture, manifestPath)
 
     val preflight = runPreflight(fixture)
     assertEquals(0, preflight.exitCode, preflight.stdout)
-    val payload = requireNotNull(
-      JsonCodec.anyToStringAnyMap(
-        JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(preflight.stdout))),
-      ),
-    )
+    val payload =
+      requireNotNull(
+        JsonCodec.anyToStringAnyMap(
+          JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(preflight.stdout))),
+        ),
+      )
     assertEquals("new_work", payload["verdict"])
     assertNull(payload["candidate"])
     assertEquals(emptyList<Any?>(), payload["candidates"])
@@ -79,31 +82,36 @@ class CliGoalPurgeCommandTest {
     assertTrue(payload["manifest_missing"] == false)
   }
 
-  private fun runPreflight(fixture: GoalCliFixture) = CliRuntime.run(
-    listOf(
-      "--db",
-      fixture.dbPath.toString(),
-      "goal",
-      "preflight",
-      "SKILL-901",
-      "--agent",
-      "codex",
-      "--repo-root",
-      fixture.tempDir.toString(),
-      "--format",
-      "json",
-    ),
-    fixture.context(launcher = GoalFixtureAgentRunLauncher(fixture)),
-  )
+  private fun runPreflight(fixture: GoalCliFixture) =
+    CliRuntime.run(
+      listOf(
+        "--db",
+        fixture.dbPath.toString(),
+        "goal",
+        "preflight",
+        "SKILL-901",
+        "--agent",
+        "codex",
+        "--repo-root",
+        fixture.tempDir.toString(),
+        "--format",
+        "json",
+      ),
+      fixture.context(launcher = GoalFixtureAgentRunLauncher(fixture)),
+    )
 
-  private fun assertRestoredBundle(fixture: GoalCliFixture, manifestPath: Path) {
+  private fun assertRestoredBundle(
+    fixture: GoalCliFixture,
+    manifestPath: Path,
+  ) {
     assertTrue(Files.isRegularFile(fixture.parentSpec))
     fixture.subtaskSpecs.forEach { path -> assertTrue(Files.isRegularFile(path)) }
-    val restored = loadDecompositionManifest(
-      manifestPath,
-      TestDecompositionManifestStore,
-      testDecompositionManifestValidator,
-    )
+    val restored =
+      loadDecompositionManifest(
+        manifestPath,
+        TestDecompositionManifestStore,
+        testDecompositionManifestValidator,
+      )
     assertEquals("pending", restored.status)
     assertEquals(1, restored.currentSubtaskIntent.subtaskId)
     assertEquals("start", restored.currentSubtaskIntent.action)
@@ -117,12 +125,13 @@ class CliGoalPurgeCommandTest {
     }
   }
 
-  private fun workflowCount(fixture: GoalCliFixture): Int = ensureTestDatabase(fixture.dbPath).use { connection ->
-    connection.prepareStatement("SELECT COUNT(*) FROM feature_task_workflows").use { statement ->
-      statement.executeQuery().use { rows ->
-        check(rows.next())
-        rows.getInt(1)
+  private fun workflowCount(fixture: GoalCliFixture): Int =
+    ensureTestDatabase(fixture.dbPath).use { connection ->
+      connection.prepareStatement("SELECT COUNT(*) FROM feature_task_workflows").use { statement ->
+        statement.executeQuery().use { rows ->
+          check(rows.next())
+          rows.getInt(1)
+        }
       }
     }
-  }
 }

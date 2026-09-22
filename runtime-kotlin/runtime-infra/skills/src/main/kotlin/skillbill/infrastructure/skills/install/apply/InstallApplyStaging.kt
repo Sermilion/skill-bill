@@ -35,9 +35,13 @@ import skillbill.scaffold.model.PointerSpec
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
+
 private val plannedContentHashRegex = Regex("[0-9a-f]{16}")
 
-internal fun plannedStagingIntent(plan: InstallPlan, skill: InstallPlanSkill): InstallStagingPathIntent =
+internal fun plannedStagingIntent(
+  plan: InstallPlan,
+  skill: InstallPlanSkill,
+): InstallStagingPathIntent =
   plan.staging.skillPaths.singleOrNull { intent ->
     intent.skillName == skill.name &&
       intent.sourceDir.toPath().toAbsolutePath().normalize() == skill.sourceDir.toPath().toAbsolutePath().normalize()
@@ -94,16 +98,17 @@ private fun materializeValidatedPlannedStaging(inputs: PlannedStagingMaterializa
       listOf("SKILL.md", ".content-hash", SKILL_CONTENT_IDENTITY_FILENAME),
     agentAddonPointers,
   )
-  val currentHash = computeInstallContentHash(
-    InstallContentHashInputs(
-      sourceSkillDir = inputs.resolvedSource,
-      authored = authored,
-      applicablePointers = pointers,
-      generatedSupportPointers = internal.supportPointers,
-      internalChildren = internal.children,
-      agentAddonPointers = agentAddonPointers,
-    ),
-  )
+  val currentHash =
+    computeInstallContentHash(
+      InstallContentHashInputs(
+        sourceSkillDir = inputs.resolvedSource,
+        authored = authored,
+        applicablePointers = pointers,
+        generatedSupportPointers = internal.supportPointers,
+        internalChildren = internal.children,
+        agentAddonPointers = agentAddonPointers,
+      ),
+    )
   validatePlannedStagingSource(inputs, currentHash)
   return reuseOrFreshPlannedStaging(inputs, pointers, internal, agentAddonPointers, selectedPackSkills)
 }
@@ -118,9 +123,10 @@ private fun reuseOrFreshPlannedStaging(
   val plan = inputs.plan
   val skill = inputs.skill
   val intent = inputs.intent
-  val expectedStagedNames = internal.sidecarNames + pointers.map { (_, pointer) -> pointer.name } +
-    internal.supportPointers.map { pointer -> pointer.name } + agentAddonPointers.map { it.name } +
-    SKILL_CONTENT_IDENTITY_FILENAME
+  val expectedStagedNames =
+    internal.sidecarNames + pointers.map { (_, pointer) -> pointer.name } +
+      internal.supportPointers.map { pointer -> pointer.name } + agentAddonPointers.map { it.name } +
+      SKILL_CONTENT_IDENTITY_FILENAME
   if (isReusableInstallStaging(inputs.expectedStagingDir, intent.contentHash, expectedStagedNames)) {
     return reuseInstallStaging(
       ReuseInstallStagingInput(
@@ -134,17 +140,18 @@ private fun reuseOrFreshPlannedStaging(
       ),
     )
   }
-  val staged = stageInstalledSkill(
-    StageInstalledSkillInput(
-      repoRoot = plan.request.repoRoot.toPath(),
-      sourceSkillDir = inputs.resolvedSource,
-      home = plan.request.home.toPath(),
-      manifests = inputs.platformManifests,
-      skillsRoot = plan.request.targetPaths.skillsRoot.toPath(),
-      selectedPackSkills = selectedPackSkills,
-      selectedPlatformSlugs = selectedPlatformSlugs(plan, inputs.platformManifests),
-    ),
-  )
+  val staged =
+    stageInstalledSkill(
+      StageInstalledSkillInput(
+        repoRoot = plan.request.repoRoot.toPath(),
+        sourceSkillDir = inputs.resolvedSource,
+        home = plan.request.home.toPath(),
+        manifests = inputs.platformManifests,
+        skillsRoot = plan.request.targetPaths.skillsRoot.toPath(),
+        selectedPackSkills = selectedPackSkills,
+        selectedPlatformSlugs = selectedPlatformSlugs(plan, inputs.platformManifests),
+      ),
+    )
   val stagedDir = staged.stagingDir.toPath().toAbsolutePath().normalize()
   require(staged.contentHash == intent.contentHash && stagedDir == inputs.expectedStagingDir) {
     "Staged '${skill.name}' at '${staged.stagingDir}' with hash '${staged.contentHash}', but plan expected " +
@@ -153,7 +160,10 @@ private fun reuseOrFreshPlannedStaging(
   return staged
 }
 
-private fun validatePlannedStagingSource(inputs: PlannedStagingMaterialization, currentHash: String) {
+private fun validatePlannedStagingSource(
+  inputs: PlannedStagingMaterialization,
+  currentHash: String,
+) {
   val marker = inputs.expectedStagingDir.resolve(SKILL_CONTENT_IDENTITY_FILENAME)
   if (Files.isRegularFile(marker, NOFOLLOW_LINKS)) {
     requireMatchingSkillContentIdentity(
@@ -167,13 +177,14 @@ private fun validatePlannedStagingSource(inputs: PlannedStagingMaterialization, 
   }
 }
 
-private fun plannedSupportPointers(inputs: PlannedStagingMaterialization) = generatedSupportPointersFor(
-  repoRoot = inputs.plan.request.repoRoot.toPath(),
-  sourceSkillDir = inputs.resolvedSource,
-  skillName = inputs.skill.name,
-  skillsRoot = inputs.plan.request.targetPaths.skillsRoot.toPath(),
-  selectedPlatformManifests = selectedPlatformManifests(inputs.plan, inputs.platformManifests),
-)
+private fun plannedSupportPointers(inputs: PlannedStagingMaterialization) =
+  generatedSupportPointersFor(
+    repoRoot = inputs.plan.request.repoRoot.toPath(),
+    sourceSkillDir = inputs.resolvedSource,
+    skillName = inputs.skill.name,
+    skillsRoot = inputs.plan.request.targetPaths.skillsRoot.toPath(),
+    selectedPlatformManifests = selectedPlatformManifests(inputs.plan, inputs.platformManifests),
+  )
 
 private fun plannedInternalStaging(
   inputs: PlannedStagingMaterialization,
@@ -202,7 +213,10 @@ private fun selectedPlatformManifests(
   return platformManifests.filter { manifest -> manifest.slug in selected }
 }
 
-private fun selectedPlatformSlugs(plan: InstallPlan, platformManifests: List<PlatformManifest>): Set<String> =
+private fun selectedPlatformSlugs(
+  plan: InstallPlan,
+  platformManifests: List<PlatformManifest>,
+): Set<String> =
   plan.skills
     .filter { skill -> skill.kind == InstallPlanSkillKind.PLATFORM_PACK }
     .mapNotNull { skill ->
@@ -210,9 +224,10 @@ private fun selectedPlatformSlugs(plan: InstallPlan, platformManifests: List<Pla
     }
     .toSet()
 
-private fun selectedInternalPackSkills(plan: InstallPlan): List<InstallPlanSkill> = plan.skills.filter { skill ->
-  skill.kind == InstallPlanSkillKind.PLATFORM_PACK && skill.internalFor != null
-}
+private fun selectedInternalPackSkills(plan: InstallPlan): List<InstallPlanSkill> =
+  plan.skills.filter { skill ->
+    skill.kind == InstallPlanSkillKind.PLATFORM_PACK && skill.internalFor != null
+  }
 
 private data class PlannedStagingMaterialization(
   val plan: InstallPlan,

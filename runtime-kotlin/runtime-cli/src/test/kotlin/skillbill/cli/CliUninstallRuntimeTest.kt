@@ -40,13 +40,14 @@ class CliUninstallRuntimeTest {
   fun `uninstall refuses during goal continuation`() {
     val home = Files.createTempDirectory("skillbill-cli-uninstall-goal")
 
-    val result = CliRuntime.run(
-      listOf("--home", home.toString(), "uninstall", "--yes"),
-      CliRuntimeContext(
-        userHome = home,
-        environment = mapOf("SKILL_BILL_GOAL_CONTINUATION" to "1"),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--home", home.toString(), "uninstall", "--yes"),
+        CliRuntimeContext(
+          userHome = home,
+          environment = mapOf("SKILL_BILL_GOAL_CONTINUATION" to "1"),
+        ),
+      )
 
     assertEquals(64, result.exitCode, result.stdout)
     assertContains(result.stdout, "Refusing to run skill-bill uninstall during skill-bill goal-continuation.")
@@ -70,13 +71,14 @@ class CliUninstallRuntimeTest {
     val selected = uninstallFixture()
     val contextHome = Files.createTempDirectory("skillbill-cli-uninstall-context-home")
 
-    val result = CliRuntime.run(
-      listOf("--home", selected.home.toString(), "uninstall", "--yes"),
-      CliRuntimeContext(
-        userHome = contextHome,
-        environment = emptyMap(),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--home", selected.home.toString(), "uninstall", "--yes"),
+        CliRuntimeContext(
+          userHome = contextHome,
+          environment = emptyMap(),
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertFalse(Files.exists(selected.stateRoot))
@@ -101,7 +103,11 @@ class CliUninstallRuntimeTest {
     assertTrue(Files.exists(fixture.userLauncher))
   }
 
-  private fun runUninstall(home: Path, vararg args: String, stdinText: String? = null) = CliRuntime.run(
+  private fun runUninstall(
+    home: Path,
+    vararg args: String,
+    stdinText: String? = null,
+  ) = CliRuntime.run(
     listOf("--home", home.toString(), "uninstall") + args,
     CliRuntimeContext(
       userHome = home,

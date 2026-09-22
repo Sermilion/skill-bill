@@ -26,6 +26,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class WorkflowStateStoreTest {
   @Test
   fun `identity-less goal parent is excluded from standalone candidates so lookup can reach goal continuation`() {
@@ -101,10 +102,12 @@ class WorkflowStateStoreTest {
     val dbPath = Files.createTempDirectory("goal-child-scoped-delete").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC())
-      val completed = goalChildWorkflow("wftr-completed", "wftr-parent")
-        .copy(workflowStatus = WorkflowStatus.COMPLETED.wireValue)
-      val pending = goalChildWorkflow("wftr-pending", "wftr-parent")
-        .copy(workflowStatus = WorkflowStatus.PENDING.wireValue)
+      val completed =
+        goalChildWorkflow("wftr-completed", "wftr-parent")
+          .copy(workflowStatus = WorkflowStatus.COMPLETED.wireValue)
+      val pending =
+        goalChildWorkflow("wftr-pending", "wftr-parent")
+          .copy(workflowStatus = WorkflowStatus.PENDING.wireValue)
       listOf(completed, pending).forEach { workflow ->
         store.saveFeatureTaskRuntimeWorkflow(workflow)
         store.saveFeatureTaskExecutionIdentity(goalChildIdentity(workflow))
@@ -151,28 +154,30 @@ class WorkflowStateStoreTest {
     val dbPath = Files.createTempDirectory("crash-reconcile-write").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC())
-      val row = workflowRow(
-        "wftr-crash",
-        "ftr-crash",
-        "bill-feature-task",
-        "implement",
-        FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        artifactsJson = """{"phase_records":{"preplan":"done"}}""",
-      )
+      val row =
+        workflowRow(
+          "wftr-crash",
+          "ftr-crash",
+          "bill-feature-task",
+          "implement",
+          FeatureTaskWorkflowMode.RUNTIME,
+        ).copy(
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
+          artifactsJson = """{"phase_records":{"preplan":"done"}}""",
+        )
       store.saveFeatureTaskRuntimeWorkflow(row)
       val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
       val ownership = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-crash0001")
       assertTrue(store.acquireFeatureTaskRuntimeWorker(ownership, updatedAt))
 
-      val reconciled = store.reconcileFeatureTaskRuntimeCrashedWorker(
-        workflowId = row.workflowId,
-        ownerToken = ownership.ownerToken,
-        generation = ownership.generation,
-        interruptionReason = "lease_expired: worker lease expired and process confirmed dead",
-        nowInstant = "2026-07-14T10:06:00Z",
-      )
+      val reconciled =
+        store.reconcileFeatureTaskRuntimeCrashedWorker(
+          workflowId = row.workflowId,
+          ownerToken = ownership.ownerToken,
+          generation = ownership.generation,
+          interruptionReason = "lease_expired: worker lease expired and process confirmed dead",
+          nowInstant = "2026-07-14T10:06:00Z",
+        )
 
       assertTrue(reconciled)
       val after = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId))
@@ -194,32 +199,35 @@ class WorkflowStateStoreTest {
     val dbPath = Files.createTempDirectory("crash-reconcile-fencing").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC())
-      val row = workflowRow(
-        "wftr-fence",
-        "ftr-fence",
-        "bill-feature-task",
-        "implement",
-        FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue)
+      val row =
+        workflowRow(
+          "wftr-fence",
+          "ftr-fence",
+          "bill-feature-task",
+          "implement",
+          FeatureTaskWorkflowMode.RUNTIME,
+        ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue)
       store.saveFeatureTaskRuntimeWorkflow(row)
       val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
       val ownership = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-fence0001")
       assertTrue(store.acquireFeatureTaskRuntimeWorker(ownership, updatedAt))
 
-      val wrongToken = store.reconcileFeatureTaskRuntimeCrashedWorker(
-        row.workflowId,
-        "owner-token-stale0001",
-        1,
-        "reason",
-        "2026-07-14T10:06:00Z",
-      )
-      val wrongGeneration = store.reconcileFeatureTaskRuntimeCrashedWorker(
-        row.workflowId,
-        ownership.ownerToken,
-        99,
-        "reason",
-        "2026-07-14T10:06:00Z",
-      )
+      val wrongToken =
+        store.reconcileFeatureTaskRuntimeCrashedWorker(
+          row.workflowId,
+          "owner-token-stale0001",
+          1,
+          "reason",
+          "2026-07-14T10:06:00Z",
+        )
+      val wrongGeneration =
+        store.reconcileFeatureTaskRuntimeCrashedWorker(
+          row.workflowId,
+          ownership.ownerToken,
+          99,
+          "reason",
+          "2026-07-14T10:06:00Z",
+        )
 
       assertEquals(false, wrongToken)
       assertEquals(false, wrongGeneration)
@@ -233,13 +241,14 @@ class WorkflowStateStoreTest {
     val dbPath = Files.createTempDirectory("runtime-worker-lease").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC())
-      val row = workflowRow(
-        workflowId = "wftr-worker",
-        sessionId = "ftr-worker",
-        workflowName = "bill-feature-task",
-        currentStepId = "implement",
-        mode = FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue)
+      val row =
+        workflowRow(
+          workflowId = "wftr-worker",
+          sessionId = "ftr-worker",
+          workflowName = "bill-feature-task",
+          currentStepId = "implement",
+          mode = FeatureTaskWorkflowMode.RUNTIME,
+        ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue)
       store.saveFeatureTaskRuntimeWorkflow(row)
       val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
       val initial = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-0001")
@@ -261,13 +270,14 @@ class WorkflowStateStoreTest {
     val dbPath = Files.createTempDirectory("runtime-worker-contention").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC())
-      val row = workflowRow(
-        workflowId = "wftr-contention",
-        sessionId = "ftr-contention",
-        workflowName = "bill-feature-task",
-        currentStepId = "implement",
-        mode = FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(workflowStatus = WorkflowStatus.PAUSED.wireValue)
+      val row =
+        workflowRow(
+          workflowId = "wftr-contention",
+          sessionId = "ftr-contention",
+          workflowName = "bill-feature-task",
+          currentStepId = "implement",
+          mode = FeatureTaskWorkflowMode.RUNTIME,
+        ).copy(workflowStatus = WorkflowStatus.PAUSED.wireValue)
       store.saveFeatureTaskRuntimeWorkflow(row)
       val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
       val ownership = workerOwnership(row.workflowId, generation = 4, ownerToken = "owner-token-0004")
@@ -283,13 +293,14 @@ class WorkflowStateStoreTest {
     val dbPath = Files.createTempDirectory("runtime-worker-invalid-lease").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC())
-      val row = workflowRow(
-        workflowId = "wftr-invalid-lease",
-        sessionId = "ftr-invalid-lease",
-        workflowName = "bill-feature-task",
-        currentStepId = "implement",
-        mode = FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(workflowStatus = WorkflowStatus.PAUSED.wireValue)
+      val row =
+        workflowRow(
+          workflowId = "wftr-invalid-lease",
+          sessionId = "ftr-invalid-lease",
+          workflowName = "bill-feature-task",
+          currentStepId = "implement",
+          mode = FeatureTaskWorkflowMode.RUNTIME,
+        ).copy(workflowStatus = WorkflowStatus.PAUSED.wireValue)
       store.saveFeatureTaskRuntimeWorkflow(row)
       val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
       assertTrue(
@@ -401,13 +412,14 @@ class WorkflowStateStoreTest {
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC())
-      val initialRow = workflowRow(
-        workflowId = "wftr-paused-parent",
-        sessionId = "ftr-paused-parent",
-        workflowName = "bill-feature-task",
-        currentStepId = "plan",
-        mode = FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(artifactsJson = """{"plan":{"mode":"decompose"}}""")
+      val initialRow =
+        workflowRow(
+          workflowId = "wftr-paused-parent",
+          sessionId = "ftr-paused-parent",
+          workflowName = "bill-feature-task",
+          currentStepId = "plan",
+          mode = FeatureTaskWorkflowMode.RUNTIME,
+        ).copy(artifactsJson = """{"plan":{"mode":"decompose"}}""")
 
       store.saveFeatureTaskRuntimeWorkflow(initialRow)
       store.saveFeatureTaskRuntimeWorkflow(
@@ -432,13 +444,14 @@ class WorkflowStateStoreLifecycleTest {
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC())
-      val initial = workflowRow(
-        workflowId = "wftr-state-entry-main",
-        sessionId = "ftr-state-entry-main",
-        workflowName = "bill-feature-task",
-        currentStepId = "preplan",
-        mode = FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(startedAt = startedAt)
+      val initial =
+        workflowRow(
+          workflowId = "wftr-state-entry-main",
+          sessionId = "ftr-state-entry-main",
+          workflowName = "bill-feature-task",
+          currentStepId = "preplan",
+          mode = FeatureTaskWorkflowMode.RUNTIME,
+        ).copy(startedAt = startedAt)
 
       store.saveFeatureTaskRuntimeWorkflow(initial)
       val inserted = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry-main"))
@@ -496,13 +509,14 @@ class WorkflowStateStoreLifecycleTest {
   @Test
   fun `concurrent workflow status transitions serialize strictly increasing state entry times`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-workflow-concurrent-state").resolve("metrics.db")
-    val initial = workflowRow(
-      workflowId = "wftr-concurrent-state-entry",
-      sessionId = "ftr-concurrent-state-entry",
-      workflowName = "bill-feature-task",
-      currentStepId = "preplan",
-      mode = FeatureTaskWorkflowMode.RUNTIME,
-    ).copy(startedAt = "2999-05-01T12:00:00.123456789Z")
+    val initial =
+      workflowRow(
+        workflowId = "wftr-concurrent-state-entry",
+        sessionId = "ftr-concurrent-state-entry",
+        workflowName = "bill-feature-task",
+        currentStepId = "preplan",
+        mode = FeatureTaskWorkflowMode.RUNTIME,
+      ).copy(startedAt = "2999-05-01T12:00:00.123456789Z")
 
     prepareConcurrentWorkflowTransitions(dbPath, initial)
 
@@ -510,18 +524,19 @@ class WorkflowStateStoreLifecycleTest {
     val start = CountDownLatch(1)
     val executor = Executors.newFixedThreadPool(2)
     try {
-      val transitions = listOf("blocked", "failed").map { status ->
-        executor.submit {
-          ready.countDown()
-          check(start.await(5, TimeUnit.SECONDS)) { "Concurrent transition start timed out." }
-          DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
-            connection.createStatement().use { it.execute("PRAGMA busy_timeout = 5000") }
-            WorkflowStateStore(connection, Clock.systemUTC()).saveFeatureTaskRuntimeWorkflow(
-              initial.copy(workflowStatus = status, currentStepId = "plan"),
-            )
+      val transitions =
+        listOf("blocked", "failed").map { status ->
+          executor.submit {
+            ready.countDown()
+            check(start.await(5, TimeUnit.SECONDS)) { "Concurrent transition start timed out." }
+            DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+              connection.createStatement().use { it.execute("PRAGMA busy_timeout = 5000") }
+              WorkflowStateStore(connection, Clock.systemUTC()).saveFeatureTaskRuntimeWorkflow(
+                initial.copy(workflowStatus = status, currentStepId = "plan"),
+              )
+            }
           }
         }
-      }
 
       assertTrue(ready.await(5, TimeUnit.SECONDS))
       start.countDown()
@@ -531,15 +546,17 @@ class WorkflowStateStoreLifecycleTest {
     }
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val entries = connection.createStatement().use { statement ->
-        statement.executeQuery("SELECT state_entered_at FROM workflow_transition_log ORDER BY rowid").use { resultSet ->
-          buildList {
-            while (resultSet.next()) {
-              add(resultSet.getString("state_entered_at"))
+      val entries =
+        connection.createStatement().use { statement ->
+          statement.executeQuery("SELECT state_entered_at FROM workflow_transition_log ORDER BY rowid").use {
+              resultSet ->
+            buildList {
+              while (resultSet.next()) {
+                add(resultSet.getString("state_entered_at"))
+              }
             }
           }
         }
-      }
 
       assertEquals(2, entries.size)
       assertTrue(Instant.parse(entries[1]).isAfter(Instant.parse(entries[0])))
@@ -630,13 +647,14 @@ class WorkflowStateStoreLifecycleTest {
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC())
-      val row = workflowRow(
-        workflowId = "wftr-audit-repair",
-        sessionId = "ftr-audit-repair",
-        workflowName = "bill-feature-task",
-        currentStepId = "implement",
-        mode = FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(artifactsJson = auditRepairArtifactsJson())
+      val row =
+        workflowRow(
+          workflowId = "wftr-audit-repair",
+          sessionId = "ftr-audit-repair",
+          workflowName = "bill-feature-task",
+          currentStepId = "implement",
+          mode = FeatureTaskWorkflowMode.RUNTIME,
+        ).copy(artifactsJson = auditRepairArtifactsJson())
 
       store.saveFeatureTaskRuntimeWorkflow(row)
 
@@ -798,8 +816,8 @@ class WorkflowStateStoreLifecycleTest {
         requireNotNull(store.getFeatureTaskWorkflow("wfl-legacy-prose-term-001")).copy(
           workflowStatus = WorkflowStatus.ABANDONED.wireValue,
           artifactsJson =
-          """{"history_note":"retain-me",""" +
-            """"operator_abandonment":{"reason":"retire","abandoned_at":"2026-08-09T00:00:00Z"}}""",
+            """{"history_note":"retain-me",""" +
+              """"operator_abandonment":{"reason":"retire","abandoned_at":"2026-08-09T00:00:00Z"}}""",
           finishedAt = "2026-08-09T00:00:00Z",
         ),
       )

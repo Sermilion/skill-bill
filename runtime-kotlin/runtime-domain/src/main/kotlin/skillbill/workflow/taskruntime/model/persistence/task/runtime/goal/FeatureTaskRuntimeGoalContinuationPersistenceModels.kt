@@ -18,11 +18,13 @@ data class FeatureTaskRuntimeGoalContinuationFieldAdoption(
       "FeatureTaskRuntimeGoalContinuationFieldAdoption.reason must be non-blank."
     }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    "field" to field,
-    "adopted_value" to adoptedValue,
-    "reason" to reason,
-  )
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      "field" to field,
+      "adopted_value" to adoptedValue,
+      "reason" to reason,
+    )
 
   companion object {
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationFieldAdoption {
@@ -53,22 +55,23 @@ data class FeatureTaskRuntimeGoalPlanningImport(
   val preplanPayloadSha256: String,
   val planPayloadSha256: String,
 ) {
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    "source_kind" to "imported_goal_planning",
-    "parent_goal_workflow_id" to parentGoalWorkflowId,
-    "normalized_issue_key" to normalizedIssueKey,
-    "repository_identity" to repositoryIdentity,
-    "parent_spec_hash" to parentSpecHash,
-    "decomposition_manifest_hash" to decompositionManifestHash,
-    "planning_contract_id" to planningContractId,
-    "planning_contract_version" to planningContractVersion,
-    "phase_output_contract_id" to phaseOutputContractId,
-    "phase_output_contract_version" to phaseOutputContractVersion,
-    SharedPayloadKeys.SUBTASK_ID to subtaskId,
-    "manifest_order" to manifestOrder,
-    "governed_sub_spec_path" to governedSubSpecPath,
-    "sub_spec_hash" to subSpecHash,
-    "preplan_payload_sha256" to preplanPayloadSha256,
-    "plan_payload_sha256" to planPayloadSha256,
-  )
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      "source_kind" to "imported_goal_planning",
+      "parent_goal_workflow_id" to parentGoalWorkflowId,
+      "normalized_issue_key" to normalizedIssueKey,
+      "repository_identity" to repositoryIdentity,
+      "parent_spec_hash" to parentSpecHash,
+      "decomposition_manifest_hash" to decompositionManifestHash,
+      "planning_contract_id" to planningContractId,
+      "planning_contract_version" to planningContractVersion,
+      "phase_output_contract_id" to phaseOutputContractId,
+      "phase_output_contract_version" to phaseOutputContractVersion,
+      SharedPayloadKeys.SUBTASK_ID to subtaskId,
+      "manifest_order" to manifestOrder,
+      "governed_sub_spec_path" to governedSubSpecPath,
+      "sub_spec_hash" to subSpecHash,
+      "preplan_payload_sha256" to preplanPayloadSha256,
+      "plan_payload_sha256" to planPayloadSha256,
+    )
 }

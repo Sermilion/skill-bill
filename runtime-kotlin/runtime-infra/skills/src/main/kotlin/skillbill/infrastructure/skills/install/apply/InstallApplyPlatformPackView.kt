@@ -26,17 +26,20 @@ internal fun materializeAgentPlatformPackViews(
     cleanupManagedPlatformPackViews(plan, failures)
     return
   }
-  val selectedManifests = platformManifests
-    .filter { manifest -> manifest.slug in plan.selectedPlatformSlugs }
-    .sortedBy(PlatformManifest::slug)
-  val stagedPlatformSkills = appliedSkills
-    .filter { skill -> skill.kind == InstallPlanSkillKind.PLATFORM_PACK }
-    .filter { skill -> skill.staging.status == InstallSkillStagingStatus.STAGED }
-    .associateBy { skill -> skill.sourceDir.toPath().toAbsolutePath().normalize() }
-  val internalPlatformSkillDirs = plan.skills
-    .filter { skill -> skill.kind == InstallPlanSkillKind.PLATFORM_PACK && skill.internalFor != null }
-    .map { skill -> skill.sourceDir.toPath().toAbsolutePath().normalize() }
-    .toSet()
+  val selectedManifests =
+    platformManifests
+      .filter { manifest -> manifest.slug in plan.selectedPlatformSlugs }
+      .sortedBy(PlatformManifest::slug)
+  val stagedPlatformSkills =
+    appliedSkills
+      .filter { skill -> skill.kind == InstallPlanSkillKind.PLATFORM_PACK }
+      .filter { skill -> skill.staging.status == InstallSkillStagingStatus.STAGED }
+      .associateBy { skill -> skill.sourceDir.toPath().toAbsolutePath().normalize() }
+  val internalPlatformSkillDirs =
+    plan.skills
+      .filter { skill -> skill.kind == InstallPlanSkillKind.PLATFORM_PACK && skill.internalFor != null }
+      .map { skill -> skill.sourceDir.toPath().toAbsolutePath().normalize() }
+      .toSet()
   plan.agents.forEach { agentTarget ->
     runCatching {
       val root = agentTarget.path.toPath().toAbsolutePath().normalize().resolve(PLATFORM_PACKS_DIR)
@@ -58,7 +61,10 @@ internal fun materializeAgentPlatformPackViews(
   }
 }
 
-internal fun cleanupManagedPlatformPackViews(plan: InstallPlan, failures: MutableList<InstallApplyIssue>) {
+internal fun cleanupManagedPlatformPackViews(
+  plan: InstallPlan,
+  failures: MutableList<InstallApplyIssue>,
+) {
   plan.agents.forEach { agentTarget ->
     runCatching {
       val root = agentTarget.path.toPath().toAbsolutePath().normalize().resolve(PLATFORM_PACKS_DIR)
@@ -110,8 +116,9 @@ private fun materializeOnePack(
     if (skillDir in internalPlatformSkillDirs) {
       return@forEach
     }
-    val staged = stagedPlatformSkills[skillDir]?.staging?.stagingDir
-      ?: error("Selected platform pack '${manifest.slug}' skill '$skillDir' was not staged.")
+    val staged =
+      stagedPlatformSkills[skillDir]?.staging?.stagingDir
+        ?: error("Selected platform pack '${manifest.slug}' skill '$skillDir' was not staged.")
     val relative = packRoot.relativize(skillDir).toString()
     val linkPath = destinationPackRoot.resolve(relative).normalize()
     require(linkPath.startsWith(destinationPackRoot)) {
@@ -122,13 +129,18 @@ private fun materializeOnePack(
   }
 }
 
-private fun platformSkillDirs(manifest: PlatformManifest): Set<Path> = (
-  listOfNotNull(manifest.declaredFiles.baseline) + manifest.declaredFiles.areas.values
+private fun platformSkillDirs(manifest: PlatformManifest): Set<Path> =
+  (
+    listOfNotNull(manifest.declaredFiles.baseline) + manifest.declaredFiles.areas.values
   )
-  .map { contentFile -> contentFile.toPath().toAbsolutePath().normalize().parent }
-  .toSet()
+    .map { contentFile -> contentFile.toPath().toAbsolutePath().normalize().parent }
+    .toSet()
 
-private fun copyPackNonSkillFiles(packRoot: Path, destinationPackRoot: Path, skillDirs: Set<Path>) {
+private fun copyPackNonSkillFiles(
+  packRoot: Path,
+  destinationPackRoot: Path,
+  skillDirs: Set<Path>,
+) {
   val agentDir = packRoot.resolve("agent").toAbsolutePath().normalize()
   Files.walk(packRoot).use { stream ->
     stream.forEach { source ->
@@ -158,7 +170,10 @@ private fun copyPackNonSkillFiles(packRoot: Path, destinationPackRoot: Path, ski
   }
 }
 
-private fun createOrReplaceManagedSkillSymlink(linkPath: Path, stagingDir: Path) {
+private fun createOrReplaceManagedSkillSymlink(
+  linkPath: Path,
+  stagingDir: Path,
+) {
   val target = stagingDir.toAbsolutePath().normalize()
   require(Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
     "Staged platform skill target '$target' is not a directory."

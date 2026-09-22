@@ -30,9 +30,10 @@ class GoalSubtaskRemediationBaseShaTest {
     assertFailsWith<IllegalArgumentException> { initialState().copy(remediationBaseSha = "not-a-sha") }
   }
 
-  private fun initialState() = GoalSubtaskReviewState.initial(
-    reviewBaseSha = "a".repeat(40),
-    baselineUntrackedPaths = emptyList(),
-    codeReviewMode = CodeReviewExecutionMode.INLINE,
-  )
+  private fun initialState() =
+    GoalSubtaskReviewState.initial(
+      reviewBaseSha = "a".repeat(40),
+      baselineUntrackedPaths = emptyList(),
+      codeReviewMode = CodeReviewExecutionMode.INLINE,
+    )
 }

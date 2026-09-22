@@ -12,6 +12,7 @@ import skillbill.error.shellcontent.ShellContentContractException
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException
+
 internal data class ValidatedClasspathYamlNodeRequest(
   val classLoader: ClassLoader,
   val resource: String,
@@ -78,54 +79,60 @@ object ClasspathContractSchemaLoader {
     return yamlMapper.readTree(text)
   }
 
-  internal fun readValidatedClasspathYamlNode(request: ValidatedClasspathYamlNodeRequest): JsonNode = try {
-    val node = readClasspathYamlNode(request.classLoader, request.resource, request.missingResource)
-    validateIdentity(
-      SchemaIdentityRequest(
-        yamlNode = node,
-        classpathResource = request.resource,
-        expectedSchemaId = request.expectedSchemaId,
-        expectedContractVersion = request.expectedContractVersion,
-        contractVersionPath = request.contractVersionPath,
-        contractVersionMatches = request.contractVersionMatches,
-        identityFailure = request.identityFailure,
-      ),
-    )
-    node
-  } catch (cancellation: CancellationException) {
-    rethrow(cancellation)
-  } catch (error: ShellContentContractException) {
-    rethrow(error)
-  } catch (error: IOException) {
-    throw request.processingFailure(error)
-  } catch (error: IllegalArgumentException) {
-    throw request.processingFailure(error)
-  }
+  internal fun readValidatedClasspathYamlNode(request: ValidatedClasspathYamlNodeRequest): JsonNode =
+    try {
+      val node = readClasspathYamlNode(request.classLoader, request.resource, request.missingResource)
+      validateIdentity(
+        SchemaIdentityRequest(
+          yamlNode = node,
+          classpathResource = request.resource,
+          expectedSchemaId = request.expectedSchemaId,
+          expectedContractVersion = request.expectedContractVersion,
+          contractVersionPath = request.contractVersionPath,
+          contractVersionMatches = request.contractVersionMatches,
+          identityFailure = request.identityFailure,
+        ),
+      )
+      node
+    } catch (cancellation: CancellationException) {
+      rethrow(cancellation)
+    } catch (error: ShellContentContractException) {
+      rethrow(error)
+    } catch (error: IOException) {
+      throw request.processingFailure(error)
+    } catch (error: IllegalArgumentException) {
+      throw request.processingFailure(error)
+    }
 
-  fun compiledSchema(request: CompiledSchemaRequest): JsonSchema = compiledSchemas.computeIfAbsent(request.cacheKey) {
-    compileSchemaDocument(request)
-  }
+  fun compiledSchema(request: CompiledSchemaRequest): JsonSchema =
+    compiledSchemas.computeIfAbsent(request.cacheKey) {
+      compileSchemaDocument(request)
+    }
 
   fun compiledSchemaFromYamlNode(
     cacheKey: String,
     yamlNode: JsonNode,
     processingFailure: (Throwable) -> ShellContentContractException,
-  ): JsonSchema = compiledSchemas.computeIfAbsent(cacheKey) {
-    try {
-      jsonSchemaFactory.getSchema(objectMapper.writeValueAsString(yamlNode), LOCALE_STABLE_SCHEMA_CONFIG)
-    } catch (cancellation: CancellationException) {
-      rethrow(cancellation)
-    } catch (error: JsonProcessingException) {
-      throw processingFailure(error)
-    } catch (error: IllegalArgumentException) {
-      throw processingFailure(error)
+  ): JsonSchema =
+    compiledSchemas.computeIfAbsent(cacheKey) {
+      try {
+        jsonSchemaFactory.getSchema(objectMapper.writeValueAsString(yamlNode), LOCALE_STABLE_SCHEMA_CONFIG)
+      } catch (cancellation: CancellationException) {
+        rethrow(cancellation)
+      } catch (error: JsonProcessingException) {
+        throw processingFailure(error)
+      } catch (error: IllegalArgumentException) {
+        throw processingFailure(error)
+      }
     }
-  }
 
   fun compileUncachedYamlNode(yamlNode: JsonNode): JsonSchema =
     jsonSchemaFactory.getSchema(objectMapper.writeValueAsString(yamlNode), LOCALE_STABLE_SCHEMA_CONFIG)
 
-  fun validate(schema: JsonSchema, instance: JsonNode): Set<ValidationMessage> = schema.validate(instance)
+  fun validate(
+    schema: JsonSchema,
+    instance: JsonNode,
+  ): Set<ValidationMessage> = schema.validate(instance)
 
   fun valueToTree(map: Map<String, Any?>): JsonNode = objectMapper.valueToTree(map)
 
@@ -170,11 +177,13 @@ object ClasspathContractSchemaLoader {
           "but expected '${request.expectedSchemaId}'.",
       )
     }
-    val loadedVersion = request.contractVersionPath
-      .fold(request.yamlNode) { node, segment -> node.path(segment) }
-      .asText("")
-    val versionMatches = request.contractVersionMatches?.invoke(request.yamlNode, request.expectedContractVersion)
-      ?: (loadedVersion == request.expectedContractVersion)
+    val loadedVersion =
+      request.contractVersionPath
+        .fold(request.yamlNode) { node, segment -> node.path(segment) }
+        .asText("")
+    val versionMatches =
+      request.contractVersionMatches?.invoke(request.yamlNode, request.expectedContractVersion)
+        ?: (loadedVersion == request.expectedContractVersion)
     if (!versionMatches) {
       throw request.identityFailure(
         "Canonical schema contract version mismatch for '${request.classpathResource}': loaded '$loadedVersion' " +
@@ -183,7 +192,10 @@ object ClasspathContractSchemaLoader {
     }
   }
 
-  private fun throwCompiledSchemaFailure(request: CompiledSchemaRequest, error: Throwable): Nothing {
+  private fun throwCompiledSchemaFailure(
+    request: CompiledSchemaRequest,
+    error: Throwable,
+  ): Nothing {
     val wrapped = request.processingFailure(error)
     request.loadFailureLogger(wrapped)
     throw wrapped

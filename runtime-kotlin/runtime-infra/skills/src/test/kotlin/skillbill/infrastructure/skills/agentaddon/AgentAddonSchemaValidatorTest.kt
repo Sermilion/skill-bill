@@ -3,6 +3,7 @@ package skillbill.infrastructure.skills.agentaddon
 import skillbill.error.shellcontent.InvalidAgentAddonSchemaError
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+
 class AgentAddonSchemaValidatorTest {
   private val validator = AgentAddonSchemaValidator()
 
@@ -30,11 +31,12 @@ class AgentAddonSchemaValidatorTest {
     assertFailsWith<InvalidAgentAddonSchemaError> { validator.validate(validManifest(), "fixture") }
   }
 
-  private fun validManifest(): Map<String, Any?> = mapOf(
-    "contract_version" to "1.0",
-    "slug" to "review-helper",
-    "description" to "Provides review guidance.",
-    "agent_ids" to listOf("codex"),
-    "consumers" to listOf("bill-feature"),
-  )
+  private fun validManifest(): Map<String, Any?> =
+    mapOf(
+      "contract_version" to "1.0",
+      "slug" to "review-helper",
+      "description" to "Provides review guidance.",
+      "agent_ids" to listOf("codex"),
+      "consumers" to listOf("bill-feature"),
+    )
 }

@@ -31,17 +31,18 @@ internal object TelemetryOutboxDeliveryIdentityMigration {
     }
   }
 
-  private fun pendingIdsWithoutIdentity(connection: Connection): List<Long> = connection.prepareStatement(
-    "SELECT id FROM $TABLE WHERE synced_at IS NULL AND (event_uuid IS NULL OR event_uuid = '')",
-  ).use { statement ->
-    statement.executeQuery().use { resultSet ->
-      buildList {
-        while (resultSet.next()) {
-          add(resultSet.getLong("id"))
+  private fun pendingIdsWithoutIdentity(connection: Connection): List<Long> =
+    connection.prepareStatement(
+      "SELECT id FROM $TABLE WHERE synced_at IS NULL AND (event_uuid IS NULL OR event_uuid = '')",
+    ).use { statement ->
+      statement.executeQuery().use { resultSet ->
+        buildList {
+          while (resultSet.next()) {
+            add(resultSet.getLong("id"))
+          }
         }
       }
     }
-  }
 
   private const val TABLE = "telemetry_outbox"
 }

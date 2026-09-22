@@ -1,4 +1,5 @@
 package skillbill.contracts.workflow.identity.task
+
 object FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys {
   const val ISSUE_KEY: String = "issue_key"
   const val SUBTASK_ID: String = "subtask_id"

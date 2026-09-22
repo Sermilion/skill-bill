@@ -40,18 +40,24 @@ fun renderPlatformPackManifestContent(request: PlatformPackManifestContentRender
       strongSignals = request.routingSignals,
       tieBreakers = request.tieBreakers,
       declaredCodeReviewAreas = request.specialistAreas,
-      baselineContentPath = request.packRoot.relativize(request.baselineSkillPath.resolve("content.md"))
-        .toString()
-        .replace('\\', '/'),
-      declaredAreaFiles = request.specialistSkillPaths.mapValues { (_, path) ->
-        request.packRoot.relativize(path.resolve("content.md")).toString().replace('\\', '/')
-      },
+      baselineContentPath =
+        request.packRoot.relativize(request.baselineSkillPath.resolve("content.md"))
+          .toString()
+          .replace('\\', '/'),
+      declaredAreaFiles =
+        request.specialistSkillPaths.mapValues { (_, path) ->
+          request.packRoot.relativize(path.resolve("content.md")).toString().replace('\\', '/')
+        },
       areaMetadata = request.specialistAreaMetadata,
       baselineLayers = request.baselineLayers,
     ),
   )
 
-private fun appendRoutingSignals(lines: MutableList<String>, strongSignals: List<String>, tieBreakers: List<String>) {
+private fun appendRoutingSignals(
+  lines: MutableList<String>,
+  strongSignals: List<String>,
+  tieBreakers: List<String>,
+) {
   lines += "routing_signals:"
   lines += "  strong:"
   strongSignals.forEach { lines += "    - ${yamlScalar(it)}" }
@@ -63,7 +69,10 @@ private fun appendRoutingSignals(lines: MutableList<String>, strongSignals: List
   }
 }
 
-private fun appendDeclaredCodeReviewAreas(lines: MutableList<String>, declaredCodeReviewAreas: List<String>) {
+private fun appendDeclaredCodeReviewAreas(
+  lines: MutableList<String>,
+  declaredCodeReviewAreas: List<String>,
+) {
   if (declaredCodeReviewAreas.isEmpty()) {
     lines += "declared_code_review_areas: []"
   } else {
@@ -108,7 +117,10 @@ private fun appendAreaMetadata(
   }
 }
 
-private fun appendBaselineLayers(lines: MutableList<String>, baselineLayers: List<CodeReviewBaselineLayer>) {
+private fun appendBaselineLayers(
+  lines: MutableList<String>,
+  baselineLayers: List<CodeReviewBaselineLayer>,
+) {
   if (baselineLayers.isEmpty()) return
   lines += ""
   lines += "code_review_composition:"

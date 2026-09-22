@@ -2,6 +2,7 @@ package skillbill.domain.skillremove
 
 import skillbill.domain.skillremove.model.SkillRemovalRefusalReason
 import skillbill.error.core.SkillBillRuntimeException
+
 class SkillRemovalRefusedException(
   val refusalReason: SkillRemovalRefusalReason,
   message: String,

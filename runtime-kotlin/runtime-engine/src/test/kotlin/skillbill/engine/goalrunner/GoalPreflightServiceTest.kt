@@ -49,10 +49,11 @@ class GoalPreflightServiceTest {
   @Test
   fun `missing manifest is new work and does not open workflow state`() {
     val states = InMemoryWorkflowStates()
-    val service = service(
-      database = FakeDatabaseSessionFactory(states),
-      manifestState = null,
-    )
+    val service =
+      service(
+        database = FakeDatabaseSessionFactory(states),
+        manifestState = null,
+      )
     val root = Files.createTempDirectory("goal-preflight-missing")
 
     val result = service.preflight(request(root))
@@ -66,20 +67,22 @@ class GoalPreflightServiceTest {
   fun `gate block preserves planner order dependencies and requested selections`() {
     val states = InMemoryWorkflowStates()
     val manifest = manifest()
-    val service = service(
-      database = FakeDatabaseSessionFactory(states),
-      manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest),
-    )
+    val service =
+      service(
+        database = FakeDatabaseSessionFactory(states),
+        manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest),
+      )
     val root = Files.createTempDirectory("goal-preflight-gate")
 
-    val result = service.preflight(
-      request(
-        root = root,
-        reviewMode = CodeReviewExecutionMode.INLINE,
-        agentOverride = "claude",
-        addons = listOf("first-addon", "second-addon"),
-      ),
-    )
+    val result =
+      service.preflight(
+        request(
+          root = root,
+          reviewMode = CodeReviewExecutionMode.INLINE,
+          agentOverride = "claude",
+          addons = listOf("first-addon", "second-addon"),
+        ),
+      )
 
     val gate = requireNotNull(result.gateBlock)
     assertEquals("inline", gate.reviewMode)
@@ -95,28 +98,32 @@ class GoalPreflightServiceTest {
   @Test
   fun `gate block shows the complete selected experiment pair`() {
     val root = Files.createTempDirectory("goal-preflight-experiment")
-    val service = service(
-      database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-      manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest()),
-      experimentSelectionPort = object : ExperimentSelectionPort {
-        override fun resolveForLaunch(
-          repoRoot: Path,
-          parameter: String?,
-          mode: ExperimentExecutionMode,
-          savedSelection: List<String>?,
-        ): ExperimentLaunchSelection = ExperimentLaunchSelection(
-          normalizedNames = listOf("first-fixture", "second-fixture"),
-          descriptors = listOf("first-fixture", "second-fixture"),
-          availabilitySummary = "explicit",
-        )
-      },
-    )
+    val service =
+      service(
+        database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+        manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest()),
+        experimentSelectionPort =
+          object : ExperimentSelectionPort {
+            override fun resolveForLaunch(
+              repoRoot: Path,
+              parameter: String?,
+              mode: ExperimentExecutionMode,
+              savedSelection: List<String>?,
+            ): ExperimentLaunchSelection =
+              ExperimentLaunchSelection(
+                normalizedNames = listOf("first-fixture", "second-fixture"),
+                descriptors = listOf("first-fixture", "second-fixture"),
+                availabilitySummary = "explicit",
+              )
+          },
+      )
 
-    val gate = requireNotNull(
-      service.preflight(
-        request(root).copy(experimentsParameter = "first-fixture,second-fixture"),
-      ).gateBlock,
-    )
+    val gate =
+      requireNotNull(
+        service.preflight(
+          request(root).copy(experimentsParameter = "first-fixture,second-fixture"),
+        ).gateBlock,
+      )
 
     assertEquals(listOf("first-fixture", "second-fixture"), gate.experiment?.selectedNames)
     assertEquals(listOf("control", "treatment"), gate.experiment?.arms)
@@ -128,25 +135,27 @@ class GoalPreflightServiceTest {
   fun `ordinary and explicit none preflight requests do not activate a treatment`() {
     val root = Files.createTempDirectory("goal-preflight-ordinary-experiment")
     val parameters = mutableListOf<String?>()
-    val service = service(
-      database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-      manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest()),
-      experimentSelectionPort = object : ExperimentSelectionPort {
-        override fun resolveForLaunch(
-          repoRoot: Path,
-          parameter: String?,
-          mode: ExperimentExecutionMode,
-          savedSelection: List<String>?,
-        ): ExperimentLaunchSelection {
-          parameters += parameter
-          return ExperimentLaunchSelection(
-            normalizedNames = emptyList(),
-            descriptors = emptyList(),
-            availabilitySummary = "none",
-          )
-        }
-      },
-    )
+    val service =
+      service(
+        database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+        manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest()),
+        experimentSelectionPort =
+          object : ExperimentSelectionPort {
+            override fun resolveForLaunch(
+              repoRoot: Path,
+              parameter: String?,
+              mode: ExperimentExecutionMode,
+              savedSelection: List<String>?,
+            ): ExperimentLaunchSelection {
+              parameters += parameter
+              return ExperimentLaunchSelection(
+                normalizedNames = emptyList(),
+                descriptors = emptyList(),
+                availabilitySummary = "none",
+              )
+            }
+          },
+      )
 
     val omitted = service.preflight(request(root)).gateBlock!!
     val disabled = service.preflight(request(root).copy(experimentsParameter = "none")).gateBlock!!
@@ -160,10 +169,11 @@ class GoalPreflightServiceTest {
   fun `linear rehydration excludes completed subtask scratch and local mode is empty`() {
     val root = Files.createTempDirectory("goal-preflight-rehydrate")
     val linear = manifest(specSource = SpecSource.LINEAR)
-    val service = service(
-      database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-      manifestState = GoalRunnerManifestState("", "/fake/metrics.db", linear),
-    )
+    val service =
+      service(
+        database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+        manifestState = GoalRunnerManifestState("", "/fake/metrics.db", linear),
+      )
 
     val linearResult = service.preflight(request(root))
     assertEquals(
@@ -173,19 +183,21 @@ class GoalPreflightServiceTest {
     assertEquals(listOf("SKILL-901", "SKILL-901"), linearResult.rehydrateTargets.map { it.issueKey })
     assertEquals(listOf("SKILL-901", "SKILL-901"), linearResult.rehydrateTargets.map { it.linearIssueId })
 
-    val localResult = service(
-      database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-      manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest()),
-    ).preflight(request(root))
+    val localResult =
+      service(
+        database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+        manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest()),
+      ).preflight(request(root))
     assertEquals(emptyList(), localResult.rehydrateTargets)
   }
 
   @Test
   fun `malformed issue key fails before new work classification`() {
-    val service = service(
-      database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-      manifestState = null,
-    )
+    val service =
+      service(
+        database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+        manifestState = null,
+      )
 
     assertFailsWith<InvalidFeatureTaskExecutionIdentitySchemaError> {
       service.preflight(
@@ -223,12 +235,13 @@ class GoalPreflightServiceTest {
       ),
     )
 
-    val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      service(
-        database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-        manifestState = null,
-      ).preflight(request(root))
-    }
+    val error =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        service(
+          database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+          manifestState = null,
+        ).preflight(request(root))
+      }
 
     assertEquals("issue_key_mismatch", error.failureCode)
   }
@@ -249,12 +262,13 @@ class GoalPreflightServiceTest {
       )
     }
 
-    val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      service(
-        database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-        manifestState = null,
-      ).preflight(request(root))
-    }
+    val error =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        service(
+          database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+          manifestState = null,
+        ).preflight(request(root))
+      }
 
     assertEquals("duplicate_active", error.failureCode)
   }
@@ -262,10 +276,11 @@ class GoalPreflightServiceTest {
   @Test
   fun `blank optional agent identities fail before repository lookup`() {
     val states = InMemoryWorkflowStates()
-    val service = service(
-      database = FakeDatabaseSessionFactory(states),
-      manifestState = null,
-    )
+    val service =
+      service(
+        database = FakeDatabaseSessionFactory(states),
+        manifestState = null,
+      )
 
     assertFailsWith<InvalidFeatureTaskExecutionIdentitySchemaError> {
       service.preflight(
@@ -280,18 +295,21 @@ class GoalPreflightServiceTest {
   fun `raw add-on resolution receives configured external source roots`() {
     val root = Files.createTempDirectory("goal-preflight-external-addon")
     val externalRoot = root.resolve("external-addons")
-    val config = object : ExternalAgentAddonSourceConfigPort {
-      override fun readExternalAgentAddonSources(
-        request: ExternalAgentAddonSourceConfigRequest,
-      ): ExternalAgentAddonSourceConfigResult = ExternalAgentAddonSourceConfigResult(
-        listOf(ExternalAgentAddonSource(externalRoot.toFileLocation())),
+    val config =
+      object : ExternalAgentAddonSourceConfigPort {
+        override fun readExternalAgentAddonSources(
+          request: ExternalAgentAddonSourceConfigRequest,
+        ): ExternalAgentAddonSourceConfigResult =
+          ExternalAgentAddonSourceConfigResult(
+            listOf(ExternalAgentAddonSource(externalRoot.toFileLocation())),
+          )
+      }
+    val service =
+      service(
+        database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+        manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest()),
+        externalAgentAddonSourceConfigPort = config,
       )
-    }
-    val service = service(
-      database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-      manifestState = GoalRunnerManifestState("", "/fake/metrics.db", manifest()),
-      externalAgentAddonSourceConfigPort = config,
-    )
 
     val result = service.preflight(request(root, addons = listOf("external-addon")))
 
@@ -315,14 +333,16 @@ class GoalPreflightServiceTest {
   @Test
   fun `blocked planner selection has no expected runnable subtask`() {
     val root = Files.createTempDirectory("goal-preflight-blocked")
-    val blocked = manifest().copy(
-      currentSubtaskIntent = CurrentSubtaskIntent(2, "start"),
-      subtasks = manifest().subtasks.map { it.copy(status = "pending") },
-    )
-    val result = service(
-      database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-      manifestState = GoalRunnerManifestState("", "/fake/metrics.db", blocked),
-    ).preflight(request(root))
+    val blocked =
+      manifest().copy(
+        currentSubtaskIntent = CurrentSubtaskIntent(2, "start"),
+        subtasks = manifest().subtasks.map { it.copy(status = "pending") },
+      )
+    val result =
+      service(
+        database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+        manifestState = GoalRunnerManifestState("", "/fake/metrics.db", blocked),
+      ).preflight(request(root))
 
     assertEquals(null, result.gateBlock?.expectedFirstRunnableSubtask)
   }
@@ -337,11 +357,12 @@ class GoalPreflightServiceTest {
   ): GoalPreflightService {
     val fileStore: DecompositionManifestStore = TestDecompositionManifestStore
     return GoalPreflightService(
-      continuationLookup = FeatureTaskContinuationLookupService(
-        database,
-        testWorkflowSnapshotValidator,
-        testDecompositionManifestValidator,
-      ),
+      continuationLookup =
+        FeatureTaskContinuationLookupService(
+          database,
+          testWorkflowSnapshotValidator,
+          testDecompositionManifestValidator,
+        ),
       manifestStore = TestManifestStore(manifestState, persistedReviewPolicy),
       agentAddonSelectionPort = TestAgentAddonSelectionPort,
       externalAgentAddonSourceConfigPort = externalAgentAddonSourceConfigPort,
@@ -358,50 +379,59 @@ class GoalPreflightServiceTest {
     reviewMode: CodeReviewExecutionMode? = null,
     agentOverride: String? = null,
     addons: List<String> = emptyList(),
-  ): GoalPreflightRequest = GoalPreflightRequest(
-    issueKey = issueKey,
-    repoRoot = root,
-    invokedAgentId = "codex",
-    agentOverrideId = agentOverride,
-    requestedReviewMode = reviewMode,
-    requestedAgentAddonSlugs = addons,
-  )
+  ): GoalPreflightRequest =
+    GoalPreflightRequest(
+      issueKey = issueKey,
+      repoRoot = root,
+      invokedAgentId = "codex",
+      agentOverrideId = agentOverride,
+      requestedReviewMode = reviewMode,
+      requestedAgentAddonSlugs = addons,
+    )
 
-  private fun manifest(specSource: SpecSource = SpecSource.LOCAL): DecompositionManifest = DecompositionManifest(
-    issueKey = "SKILL-901",
-    featureName = "preflight-test",
-    parentSpecPath = ".feature-specs/SKILL-901-goal/spec.md",
-    specSource = specSource,
-    status = "in_progress",
-    baseBranch = "main",
-    featureBranch = "feat/SKILL-901-goal",
-    currentSubtaskIntent = CurrentSubtaskIntent(1, "start"),
-    subtasks = listOf(
-      DecompositionSubtask(
-        id = 1,
-        name = "first",
-        specPath = ".feature-specs/SKILL-901-goal/spec_subtask_1.md",
-        status = "complete",
-        linearIssueId = "SKILL-901",
-      ),
-      DecompositionSubtask(
-        id = 2,
-        name = "second",
-        specPath = ".feature-specs/SKILL-901-goal/spec_subtask_2.md",
-        dependencies = listOf(DecompositionDependency(1)),
-        linearIssueId = "SKILL-901",
-      ),
-    ),
-  )
+  private fun manifest(specSource: SpecSource = SpecSource.LOCAL): DecompositionManifest =
+    DecompositionManifest(
+      issueKey = "SKILL-901",
+      featureName = "preflight-test",
+      parentSpecPath = ".feature-specs/SKILL-901-goal/spec.md",
+      specSource = specSource,
+      status = "in_progress",
+      baseBranch = "main",
+      featureBranch = "feat/SKILL-901-goal",
+      currentSubtaskIntent = CurrentSubtaskIntent(1, "start"),
+      subtasks =
+        listOf(
+          DecompositionSubtask(
+            id = 1,
+            name = "first",
+            specPath = ".feature-specs/SKILL-901-goal/spec_subtask_1.md",
+            status = "complete",
+            linearIssueId = "SKILL-901",
+          ),
+          DecompositionSubtask(
+            id = 2,
+            name = "second",
+            specPath = ".feature-specs/SKILL-901-goal/spec_subtask_2.md",
+            dependencies = listOf(DecompositionDependency(1)),
+            linearIssueId = "SKILL-901",
+          ),
+        ),
+    )
 }
 
 private class TestManifestStore(
   private val state: GoalRunnerManifestState?,
   private val persistedReviewPolicy: GoalRunnerReviewPolicy? = null,
 ) : GoalRunnerManifestStoreDefaults() {
-  override fun loadByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState? = state
+  override fun loadByIssueKey(
+    issueKey: String,
+    repoRoot: Path?,
+  ): GoalRunnerManifestState? = state
 
-  override fun readByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState? = state
+  override fun readByIssueKey(
+    issueKey: String,
+    repoRoot: Path?,
+  ): GoalRunnerManifestState? = state
 
   override fun reviewPolicy(parentWorkflowId: String): GoalRunnerReviewPolicy? = persistedReviewPolicy
 
@@ -411,9 +441,16 @@ private class TestManifestStore(
     expectedOwnerToken: String?,
   ): Boolean = true
 
-  override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean = true
+  override fun heartbeatExecutionLease(
+    parentWorkflowId: String,
+    lease: GoalRunnerExecutionLease,
+  ): Boolean = true
 
-  override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean = true
+  override fun releaseExecutionLease(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+  ): Boolean = true
 
   override fun save(state: GoalRunnerManifestState): GoalRunnerManifestState =
     error("Preflight must not save manifest state.")
@@ -445,13 +482,14 @@ private object TestAgentAddonSelectionPort : AgentAddonSelectionPort {
     receivingAgentIds: List<String>,
   ): HydratedAgentAddonSelection = hydrated(selection.entries.map { it.slug })
 
-  private fun hydrated(slugs: List<String>): HydratedAgentAddonSelection = HydratedAgentAddonSelection(
-    slugs.mapIndexed { index, slug ->
-      HydratedAgentAddonSelectionEntry(
-        persisted = PersistedAgentAddonSelectionEntry(slug, "source-$index", "a".repeat(64)),
-        description = "Description for $slug",
-        content = "content-$slug",
-      )
-    },
-  )
+  private fun hydrated(slugs: List<String>): HydratedAgentAddonSelection =
+    HydratedAgentAddonSelection(
+      slugs.mapIndexed { index, slug ->
+        HydratedAgentAddonSelectionEntry(
+          persisted = PersistedAgentAddonSelectionEntry(slug, "source-$index", "a".repeat(64)),
+          description = "Description for $slug",
+          content = "content-$slug",
+        )
+      },
+    )
 }

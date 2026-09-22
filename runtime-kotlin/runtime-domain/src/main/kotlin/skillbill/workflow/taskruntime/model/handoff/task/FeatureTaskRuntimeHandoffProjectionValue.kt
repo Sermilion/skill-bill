@@ -13,8 +13,9 @@ enum class FeatureTaskRuntimeCompactReferenceKind(val wireValue: String, val run
   ;
 
   companion object {
-    fun fromWire(value: String): FeatureTaskRuntimeCompactReferenceKind = entries.firstOrNull { it.wireValue == value }
-      ?: unrecognizedHandoffWireValue("compact reference kind", value)
+    fun fromWire(value: String): FeatureTaskRuntimeCompactReferenceKind =
+      entries.firstOrNull { it.wireValue == value }
+        ?: unrecognizedHandoffWireValue("compact reference kind", value)
   }
 }
 
@@ -41,20 +42,21 @@ sealed interface FeatureTaskRuntimeHandoffProjectionValue {
   }
 }
 
-val FEATURE_TASK_RUNTIME_FORBIDDEN_PROJECTION_FIELD_NAMES: Set<String> = setOf(
-  "upstream_outputs_by_phase_id",
-  "raw_payload",
-  "payload",
-  "raw_prompt",
-  SharedPayloadKeys.PROMPT,
-  "transcript",
-  "tool_output",
-  "log",
-  "logs",
-  "source_body",
-  "diff_body",
-  "telemetry",
-)
+val FEATURE_TASK_RUNTIME_FORBIDDEN_PROJECTION_FIELD_NAMES: Set<String> =
+  setOf(
+    "upstream_outputs_by_phase_id",
+    "raw_payload",
+    "payload",
+    "raw_prompt",
+    SharedPayloadKeys.PROMPT,
+    "transcript",
+    "tool_output",
+    "log",
+    "logs",
+    "source_body",
+    "diff_body",
+    "telemetry",
+  )
 
 internal val PROJECTION_NAME_PATTERN = Regex("^[a-z][a-z0-9_]*$")
 

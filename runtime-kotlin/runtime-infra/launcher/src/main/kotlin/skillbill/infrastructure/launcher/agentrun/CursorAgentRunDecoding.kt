@@ -7,6 +7,7 @@ import skillbill.infrastructure.launcher.review.CursorReviewStreamMalformedError
 import skillbill.infrastructure.launcher.review.CursorReviewStreamProviderFailureError
 import skillbill.infrastructure.launcher.review.CursorReviewStreamTerminationError
 import skillbill.review.parallel.ParallelReviewFindingParser
+
 internal fun decodeCursorStreamJson(stdout: String): DecodedAgentRunOutput {
   if (stdout.isBlank()) {
     return DecodedAgentRunOutput("")
@@ -48,12 +49,13 @@ private fun parseCursorStreamLines(lines: List<String>): CursorStreamParse {
     totalByteCount += line.toByteArray().size
     totalByteCount <= CURSOR_STREAM_MAX_TOTAL_BYTES
   }.filter(String::isNotBlank).forEach { line ->
-    val event = runCatching { structuredOutputMapper.readTree(line) }.getOrElse {
-      throw CursorReviewStreamMalformedError(
-        "Malformed Cursor stream JSONL line: ${line.take(CURSOR_STREAM_MALFORMED_LINE_PREVIEW_CHARS)}",
-        it,
-      )
-    }
+    val event =
+      runCatching { structuredOutputMapper.readTree(line) }.getOrElse {
+        throw CursorReviewStreamMalformedError(
+          "Malformed Cursor stream JSONL line: ${line.take(CURSOR_STREAM_MALFORMED_LINE_PREVIEW_CHARS)}",
+          it,
+        )
+      }
     decodedEnvelope = true
     when (event.path("type").takeIf { it.isTextual }?.asText()) {
       "error" -> {
@@ -84,20 +86,28 @@ private fun parseCursorStreamLines(lines: List<String>): CursorStreamParse {
   )
 }
 
-private fun cursorStreamError(errorType: String?, errorMessage: String?): Throwable = when (errorType) {
-  "forbidden_operation" -> CursorReviewStreamForbiddenOperationError(
-    errorMessage ?: "Cursor reported a forbidden operation",
-  )
-  "provider_failure" -> CursorReviewStreamProviderFailureError(
-    errorMessage ?: "Cursor reported a provider failure",
-  )
-  "termination" -> CursorReviewStreamTerminationError(
-    errorMessage ?: "Cursor process terminated prematurely",
-  )
-  else -> CursorReviewStreamError(
-    errorMessage ?: "Cursor reported an unknown error",
-  )
-}
+private fun cursorStreamError(
+  errorType: String?,
+  errorMessage: String?,
+): Throwable =
+  when (errorType) {
+    "forbidden_operation" ->
+      CursorReviewStreamForbiddenOperationError(
+        errorMessage ?: "Cursor reported a forbidden operation",
+      )
+    "provider_failure" ->
+      CursorReviewStreamProviderFailureError(
+        errorMessage ?: "Cursor reported a provider failure",
+      )
+    "termination" ->
+      CursorReviewStreamTerminationError(
+        errorMessage ?: "Cursor process terminated prematurely",
+      )
+    else ->
+      CursorReviewStreamError(
+        errorMessage ?: "Cursor reported an unknown error",
+      )
+  }
 
 private fun pickCursorHarvest(
   terminalText: String?,
@@ -115,10 +125,11 @@ private fun harvestCursorRegister(text: String): String {
   if (trimmed.isEmpty() || isStrictReviewRegister(trimmed)) return trimmed
   peelTrailingNoFindings(trimmed)?.let { return it }
   val split = insertCursorRegisterBoundaries(trimmed)
-  val findingLines = split.lineSequence()
-    .map { it.trim() }
-    .filter { it.isNotEmpty() && FINDING_LINE_START.containsMatchIn(it) }
-    .toList()
+  val findingLines =
+    split.lineSequence()
+      .map { it.trim() }
+      .filter { it.isNotEmpty() && FINDING_LINE_START.containsMatchIn(it) }
+      .toList()
   return when {
     findingLines.isNotEmpty() -> findingLines.joinToString("\n")
     split.lineSequence().any { it.trim() == NO_FINDINGS_TOKEN } -> NO_FINDINGS_TOKEN
@@ -149,8 +160,9 @@ private fun peelTrailingNoFindings(text: String): String? {
 private fun cursorAssistantText(event: JsonNode): String? {
   val content = event.path("message").path("content")
   if (content.isArray) {
-    val joined = content.mapNotNull { part -> part.path("text").takeIf { it.isTextual }?.asText() }
-      .joinToString("")
+    val joined =
+      content.mapNotNull { part -> part.path("text").takeIf { it.isTextual }?.asText() }
+        .joinToString("")
     return joined.takeIf(String::isNotBlank)
   }
   return event.path("message").path("text").takeIf { it.isTextual }?.asText()?.takeIf(String::isNotBlank)
@@ -160,12 +172,14 @@ private fun cursorAssistantText(event: JsonNode): String? {
 private const val NO_FINDINGS_TOKEN = "NO_FINDINGS"
 private const val CURSOR_STREAM_MAX_TOTAL_BYTES = 10_000_000
 private const val CURSOR_STREAM_MALFORMED_LINE_PREVIEW_CHARS = 100
-private val FINDING_LINE_START = Regex(
-  "^\\s*(?:-\\s+)?\\[F-\\d{${ParallelReviewFindingParser.PARALLEL_REVIEW_FINDING_ID_PAD_WIDTH}}]",
-)
+private val FINDING_LINE_START =
+  Regex(
+    "^\\s*(?:-\\s+)?\\[F-\\d{${ParallelReviewFindingParser.PARALLEL_REVIEW_FINDING_ID_PAD_WIDTH}}]",
+  )
 private val FINDING_CANDIDATE = Regex("\\[F-\\d+]")
 private val TRAILING_NO_FINDINGS = Regex("(?:^|[^A-Z0-9_])NO_FINDINGS\\s*$")
-private val GLUED_FINDING_START = Regex(
-  "(?<![\\n\\r])(\\[F-\\d{${ParallelReviewFindingParser.PARALLEL_REVIEW_FINDING_ID_PAD_WIDTH}}])",
-)
+private val GLUED_FINDING_START =
+  Regex(
+    "(?<![\\n\\r])(\\[F-\\d{${ParallelReviewFindingParser.PARALLEL_REVIEW_FINDING_ID_PAD_WIDTH}}])",
+  )
 private val GLUED_TRAILING_NO_FINDINGS = Regex("(?<![\\n\\r])(NO_FINDINGS)\\s*$")

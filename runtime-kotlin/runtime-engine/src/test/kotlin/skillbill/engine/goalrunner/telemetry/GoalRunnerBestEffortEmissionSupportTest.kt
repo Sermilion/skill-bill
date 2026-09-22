@@ -18,13 +18,20 @@ class GoalRunnerBestEffortEmissionSupportTest {
   @Test
   fun `degraded attempt ledger read records seam expected and used values`() {
     val records = mutableListOf<String>()
-    val diagnostics = object : RuntimeDiagnostics {
-      override fun warning(message: String, error: Throwable?) {
-        records += message
-      }
+    val diagnostics =
+      object : RuntimeDiagnostics {
+        override fun warning(
+          message: String,
+          error: Throwable?,
+        ) {
+          records += message
+        }
 
-      override fun error(message: String, error: Throwable?) = Unit
-    }
+        override fun error(
+          message: String,
+          error: Throwable?,
+        ) = Unit
+      }
     val tracker = GoalRunnerStatusDurableReadTracker(diagnostics)
     tracker.recordDegradedRead(
       seam = "goal-status.attempt_ledger",
@@ -41,11 +48,12 @@ class GoalRunnerBestEffortEmissionSupportTest {
 
   @Test
   fun `observability wire vocabulary preserves supported worker role and liveness class bytes`() {
-    val signal = GoalRunnerObservabilitySignal(
-      workflowPhase = "implement",
-      livenessClass = GoalRunnerObservabilityLivenessClass.PHASE_CHANGE,
-      activitySummary = "Child workflow is at step implement.",
-    )
+    val signal =
+      GoalRunnerObservabilitySignal(
+        workflowPhase = "implement",
+        livenessClass = GoalRunnerObservabilityLivenessClass.PHASE_CHANGE,
+        activitySummary = "Child workflow is at step implement.",
+      )
     assertEquals(GoalRunnerObservabilityWorkerRole.GOAL_RUNNER_SUPERVISOR, signal.workerRole)
     assertEquals("goal_runner_supervisor", signal.workerRole.wireValue)
     assertEquals("phase_change", signal.livenessClass.wireValue)

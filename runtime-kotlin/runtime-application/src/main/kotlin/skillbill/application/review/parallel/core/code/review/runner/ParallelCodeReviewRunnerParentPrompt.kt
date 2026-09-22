@@ -17,13 +17,14 @@ object ParallelCodeReviewRunnerParentPrompt {
       append(modeFraming(resolvedMode))
       appendCursorDelegatedFanOut(selected, resolvedMode, agentId)
       appendLine("Detected stack: ${routedManifests.joinToString("+") { it.slug }.ifBlank { "generic" }}")
-      val rubricLabel = selected.joinToString { launch ->
-        val decision = launch.assignment.laneDecision
-        "${decision.specialistSkillName}" +
-          "[paths=${launch.assignment.assignedPaths.joinToString(",") { structuredString(it) }};" +
-          "add-ons=${decision.addOns.joinToString("+").ifBlank { "none" }};" +
-          "origins=${decision.originLayerChains.joinToString("|") { it.joinToString("->") }}]"
-      }.ifBlank { "code-review" }
+      val rubricLabel =
+        selected.joinToString { launch ->
+          val decision = launch.assignment.laneDecision
+          "${decision.specialistSkillName}" +
+            "[paths=${launch.assignment.assignedPaths.joinToString(",") { structuredString(it) }};" +
+            "add-ons=${decision.addOns.joinToString("+").ifBlank { "none" }};" +
+            "origins=${decision.originLayerChains.joinToString("|") { it.joinToString("->") }}]"
+        }.ifBlank { "code-review" }
       appendLine("Authoritative routed rubric identities: $rubricLabel")
       selected.forEach { launch ->
         val decision = launch.assignment.laneDecision
@@ -70,10 +71,11 @@ object ParallelCodeReviewRunnerParentPrompt {
     agentId: String,
   ) {
     if (agentId != "cursor" || resolvedMode != ResolvedReviewExecutionMode.DELEGATED) return
-    val nativeLanes = selected
-      .filter { it.workerKind == ReviewWorkerKind.PROVIDER_NATIVE }
-      .mapNotNull { it.logicalWorkerName }
-      .distinct()
+    val nativeLanes =
+      selected
+        .filter { it.workerKind == ReviewWorkerKind.PROVIDER_NATIVE }
+        .mapNotNull { it.logicalWorkerName }
+        .distinct()
     if (nativeLanes.isEmpty()) return
     appendLine()
     appendLine(
@@ -84,27 +86,28 @@ object ParallelCodeReviewRunnerParentPrompt {
     nativeLanes.forEach { logicalName -> appendLine("/$logicalName") }
   }
 
-  private fun modeFraming(resolvedMode: ResolvedReviewExecutionMode): String = buildString {
-    if (resolvedMode == ResolvedReviewExecutionMode.INLINE) {
-      appendLine("Run exactly one bill-code-review mode:inline review prompt in this context.")
-      appendLine("Resolved execution mode: inline")
-      appendLine(
-        "Depth: reduced. Merge the routed areas below into one combined checklist and traverse the " +
-          "diff exactly once against it, holding all areas in mind simultaneously, under a bounded " +
-          "budget. Never re-walk the diff once per area; coverage is accounted per area in your " +
-          "output, not by separate passes. This is not equivalent coverage to a full per-specialist " +
-          "review and must not be presented as one; state that specialist depth was not applied.",
-      )
-    } else {
-      appendLine("Run one bill-code-review mode:delegated review over the routed specialist fan-out.")
-      appendLine("Resolved execution mode: delegated")
-      appendLine(
-        "Depth: full. Launch one specialist worker per resolved rubric below. Pass each specialist's " +
-          "raw return through unchanged — do not require a register shape from them. You alone author " +
-          "the final review prose and verdict from whatever they returned.",
-      )
+  private fun modeFraming(resolvedMode: ResolvedReviewExecutionMode): String =
+    buildString {
+      if (resolvedMode == ResolvedReviewExecutionMode.INLINE) {
+        appendLine("Run exactly one bill-code-review mode:inline review prompt in this context.")
+        appendLine("Resolved execution mode: inline")
+        appendLine(
+          "Depth: reduced. Merge the routed areas below into one combined checklist and traverse the " +
+            "diff exactly once against it, holding all areas in mind simultaneously, under a bounded " +
+            "budget. Never re-walk the diff once per area; coverage is accounted per area in your " +
+            "output, not by separate passes. This is not equivalent coverage to a full per-specialist " +
+            "review and must not be presented as one; state that specialist depth was not applied.",
+        )
+      } else {
+        appendLine("Run one bill-code-review mode:delegated review over the routed specialist fan-out.")
+        appendLine("Resolved execution mode: delegated")
+        appendLine(
+          "Depth: full. Launch one specialist worker per resolved rubric below. Pass each specialist's " +
+            "raw return through unchanged — do not require a register shape from them. You alone author " +
+            "the final review prose and verdict from whatever they returned.",
+        )
+      }
     }
-  }
 
   private fun StringBuilder.appendAssignedBundleEvidence(launch: ReviewSpecialistLaunchRequest) {
     parallelCodeReviewGovernedLaunchFor(launch).deliveredEntries.forEach { entry ->

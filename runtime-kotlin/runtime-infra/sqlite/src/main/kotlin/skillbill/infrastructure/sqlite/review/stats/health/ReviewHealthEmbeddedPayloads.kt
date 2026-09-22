@@ -9,11 +9,12 @@ internal fun embeddedReviewPayloads(row: Map<String, Any?>): List<ReviewHealthPa
   if (rawChildSteps.isBlank()) {
     return emptyList()
   }
-  val parsed = try {
-    JsonCodec.parseJsonArrayStrict(rawChildSteps.trim())
-  } catch (_: ShellContentContractException) {
-    return listOf(ReviewHealthPayload("malformed", emptyMap()))
-  }
+  val parsed =
+    try {
+      JsonCodec.parseJsonArrayStrict(rawChildSteps.trim())
+    } catch (_: ShellContentContractException) {
+      return listOf(ReviewHealthPayload("malformed", emptyMap()))
+    }
   return parsed.mapNotNull(::childStepToReviewPayload)
 }
 

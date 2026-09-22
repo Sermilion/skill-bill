@@ -5,6 +5,7 @@ import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSch
 import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
+
 data class GoalPlanningIdentity(
   val parentGoalWorkflowId: String,
   val normalizedIssueKey: String,
@@ -105,7 +106,8 @@ enum class GoalPlanningPreparationState(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWireValue(value: String): GoalPlanningPreparationState = entries.singleOrNull { it.wireValue == value }
-      ?: throw IllegalArgumentException("Unsupported goal planning preparation status '$value'.")
+    fun fromWireValue(value: String): GoalPlanningPreparationState =
+      entries.singleOrNull { it.wireValue == value }
+        ?: throw IllegalArgumentException("Unsupported goal planning preparation status '$value'.")
   }
 }

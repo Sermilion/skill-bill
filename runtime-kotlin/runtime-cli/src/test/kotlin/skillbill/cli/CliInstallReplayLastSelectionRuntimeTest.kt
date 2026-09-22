@@ -26,13 +26,14 @@ class CliInstallReplayLastSelectionRuntimeTest {
       ),
     )
 
-    val result = CliRuntime.run(
-      replayLastSelectionArguments(fixture),
-      CliRuntimeContext(
-        userHome = fixture.home,
-        environment = isolatedCliEnvironment(fixture.home),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        replayLastSelectionArguments(fixture),
+        CliRuntimeContext(
+          userHome = fixture.home,
+          environment = isolatedCliEnvironment(fixture.home),
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "agent\tcodex\t${fixture.home.resolve(".agents/skills")}")
@@ -58,13 +59,14 @@ class CliInstallReplayLastSelectionRuntimeTest {
       ),
     )
 
-    val result = CliRuntime.run(
-      replayLastSelectionArguments(fixture),
-      CliRuntimeContext(
-        userHome = fixture.home,
-        environment = isolatedCliEnvironment(fixture.home),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        replayLastSelectionArguments(fixture),
+        CliRuntimeContext(
+          userHome = fixture.home,
+          environment = isolatedCliEnvironment(fixture.home),
+        ),
+      )
 
     assertEquals(1, result.exitCode, result.stdout)
     assertContains(result.stdout, "retired")
@@ -74,13 +76,14 @@ class CliInstallReplayLastSelectionRuntimeTest {
   fun `install replay last selection fails when shared record is missing`() {
     val fixture = replayFixture()
 
-    val result = CliRuntime.run(
-      replayLastSelectionArguments(fixture),
-      CliRuntimeContext(
-        userHome = fixture.home,
-        environment = isolatedCliEnvironment(fixture.home),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        replayLastSelectionArguments(fixture),
+        CliRuntimeContext(
+          userHome = fixture.home,
+          environment = isolatedCliEnvironment(fixture.home),
+        ),
+      )
 
     assertEquals(1, result.exitCode, result.stdout)
     assertContains(result.stdout, "Install selection record is missing")
@@ -92,13 +95,14 @@ class CliInstallReplayLastSelectionRuntimeTest {
     Files.createDirectories(installSelectionPath(fixture.home).parent)
     Files.writeString(installSelectionPath(fixture.home), "[]")
 
-    val result = CliRuntime.run(
-      replayLastSelectionArguments(fixture),
-      CliRuntimeContext(
-        userHome = fixture.home,
-        environment = isolatedCliEnvironment(fixture.home),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        replayLastSelectionArguments(fixture),
+        CliRuntimeContext(
+          userHome = fixture.home,
+          environment = isolatedCliEnvironment(fixture.home),
+        ),
+      )
 
     assertEquals(1, result.exitCode, result.stdout)
     assertContains(result.stdout, "Install selection record")
@@ -115,7 +119,10 @@ class CliInstallReplayLastSelectionRuntimeTest {
     return ReplayFixture(repoRoot, home)
   }
 
-  private fun seedPlatformPack(repoRoot: Path, slug: String) {
+  private fun seedPlatformPack(
+    repoRoot: Path,
+    slug: String,
+  ) {
     val codeReviewName = "bill-$slug-code-review"
     val qualityCheckName = "bill-$slug-code-check"
     val packRoot = repoRoot.resolve("platform-packs/$slug")
@@ -129,16 +136,22 @@ class CliInstallReplayLastSelectionRuntimeTest {
     )
   }
 
-  private fun replayLastSelectionArguments(fixture: ReplayFixture): List<String> = listOf(
-    "install",
-    "replay-last-selection",
-    "--skills",
-    fixture.repoRoot.resolve("skills").toString(),
-    "--platform-packs",
-    fixture.repoRoot.resolve("platform-packs").toString(),
-  )
+  private fun replayLastSelectionArguments(fixture: ReplayFixture): List<String> =
+    listOf(
+      "install",
+      "replay-last-selection",
+      "--skills",
+      fixture.repoRoot.resolve("skills").toString(),
+      "--platform-packs",
+      fixture.repoRoot.resolve("platform-packs").toString(),
+    )
 
-  private fun platformManifest(slug: String, codeReviewName: String, qualityCheckName: String): String = """
+  private fun platformManifest(
+    slug: String,
+    codeReviewName: String,
+    qualityCheckName: String,
+  ): String =
+    """
     |platform: "$slug"
     |contract_version: "1.8"
     |routing_signals:
@@ -153,9 +166,10 @@ class CliInstallReplayLastSelectionRuntimeTest {
     |display_name: "$slug"
     |declared_quality_check_file: "quality-check/$qualityCheckName/content.md"
     |
-  """.trimMargin()
+    """.trimMargin()
 
-  private fun testSkillContent(skillName: String = "bill-code-review"): String = """
+  private fun testSkillContent(skillName: String = "bill-code-review"): String =
+    """
     |---
     |name: $skillName
     |description: Test skill.
@@ -165,15 +179,19 @@ class CliInstallReplayLastSelectionRuntimeTest {
     |
     |Test body.
     |
-  """.trimMargin()
+    """.trimMargin()
 
-  private fun writeInstallSelection(home: Path, selection: TestInstallSelection) {
+  private fun writeInstallSelection(
+    home: Path,
+    selection: TestInstallSelection,
+  ) {
     val mcpRuntimeBin = selection.runtimeMcpBin?.let { "\"$it\"" } ?: "null"
     Files.createDirectories(installSelectionPath(home).parent)
     Files.writeString(installSelectionPath(home), selection.toJson(mcpRuntimeBin))
   }
 
-  private fun TestInstallSelection.toJson(mcpRuntimeBin: String): String = """
+  private fun TestInstallSelection.toJson(mcpRuntimeBin: String): String =
+    """
     |{
     |  "contract_version": "1.0",
     |  "selected_agents": [${selectedAgents.joinToString(",") { "\"$it\"" }}],
@@ -188,7 +206,7 @@ class CliInstallReplayLastSelectionRuntimeTest {
     |  }
     |}
     |
-  """.trimMargin()
+    """.trimMargin()
 
   private fun installSelectionPath(home: Path): Path = home.resolve(".skill-bill/install-selection.json")
 

@@ -56,20 +56,22 @@ class PointerOperationsTest {
   @Test
   fun `createdPaths contains only files that did not previously exist`() {
     val repoRoot = setupRepoWithTwoPointers()
-    val pointerB = repoRoot.resolve(
-      "platform-packs/fixturepack/code-review/skill/b.md",
-    )
+    val pointerB =
+      repoRoot.resolve(
+        "platform-packs/fixturepack/code-review/skill/b.md",
+      )
     Files.createDirectories(pointerB.parent)
     Files.writeString(pointerB, "../../../shared/b.md")
     val original = Files.readAllBytes(pointerB)
 
     val originalBytes = mutableMapOf<Path, ByteArray>()
     val createdPaths = mutableListOf<Path>()
-    val result = PointerOperations.regenerate(
-      repoRoot,
-      originalBytes = originalBytes,
-      createdPaths = createdPaths,
-    )
+    val result =
+      PointerOperations.regenerate(
+        repoRoot,
+        originalBytes = originalBytes,
+        createdPaths = createdPaths,
+      )
 
     assertTrue(result.regeneratedFiles.isNotEmpty(), "expected pointers to be written")
     val createdNames = createdPaths.map { it.fileName.toString() }
@@ -85,9 +87,10 @@ class PointerOperationsTest {
   @Test
   fun `originalBytes is sticky across multiple regenerate calls and not clobbered by overwrites`() {
     val repoRoot = setupRepoWithTwoPointers()
-    val pointerA = repoRoot.resolve(
-      "platform-packs/fixturepack/code-review/skill/a.md",
-    ).normalize()
+    val pointerA =
+      repoRoot.resolve(
+        "platform-packs/fixturepack/code-review/skill/a.md",
+      ).normalize()
     Files.createDirectories(pointerA.parent)
     val veryFirstBytes = "ORIGINAL CONTENT".toByteArray(Charsets.UTF_8)
     Files.write(pointerA, veryFirstBytes)
@@ -114,14 +117,16 @@ class PointerOperationsTest {
   @Test
   fun `regenerate replaces a stale symlink with one pointing at the correct target`() {
     val repoRoot = setupRepoWithTwoPointers()
-    val pointerA = repoRoot.resolve(
-      "platform-packs/fixturepack/code-review/skill/a.md",
-    ).normalize()
+    val pointerA =
+      repoRoot.resolve(
+        "platform-packs/fixturepack/code-review/skill/a.md",
+      ).normalize()
     Files.createDirectories(pointerA.parent)
 
-    val symlinksSupported = runCatching {
-      Files.createSymbolicLink(pointerA, Path.of("../../../wrong/target.md"))
-    }.fold(onSuccess = { true }, onFailure = { it !is FileSystemException && it !is UnsupportedOperationException })
+    val symlinksSupported =
+      runCatching {
+        Files.createSymbolicLink(pointerA, Path.of("../../../wrong/target.md"))
+      }.fold(onSuccess = { true }, onFailure = { it !is FileSystemException && it !is UnsupportedOperationException })
     Assumptions.assumeTrue(symlinksSupported, "symlinks unsupported on this filesystem")
 
     val result = PointerOperations.regenerate(repoRoot)
@@ -141,9 +146,10 @@ class PointerOperationsTest {
   @Test
   fun `regenerate replaces a regular text file with a symlink when supported`() {
     val repoRoot = setupRepoWithTwoPointers()
-    val pointerA = repoRoot.resolve(
-      "platform-packs/fixturepack/code-review/skill/a.md",
-    ).normalize()
+    val pointerA =
+      repoRoot.resolve(
+        "platform-packs/fixturepack/code-review/skill/a.md",
+      ).normalize()
     Files.createDirectories(pointerA.parent)
     Files.writeString(pointerA, "../../../stale/a.md")
 
@@ -174,13 +180,15 @@ class PointerOperationsTest {
   @Test
   fun `regenerate is a no-op when an existing symlink already points at the correct target`() {
     val repoRoot = setupRepoWithTwoPointers()
-    val pointerA = repoRoot.resolve(
-      "platform-packs/fixturepack/code-review/skill/a.md",
-    ).normalize()
+    val pointerA =
+      repoRoot.resolve(
+        "platform-packs/fixturepack/code-review/skill/a.md",
+      ).normalize()
     Files.createDirectories(pointerA.parent)
-    val symlinksSupported = runCatching {
-      Files.createSymbolicLink(pointerA, Path.of("../../../../shared/a.md"))
-    }.fold(onSuccess = { true }, onFailure = { it !is FileSystemException && it !is UnsupportedOperationException })
+    val symlinksSupported =
+      runCatching {
+        Files.createSymbolicLink(pointerA, Path.of("../../../../shared/a.md"))
+      }.fold(onSuccess = { true }, onFailure = { it !is FileSystemException && it !is UnsupportedOperationException })
     Assumptions.assumeTrue(symlinksSupported, "symlinks unsupported on this filesystem")
 
     val result = PointerOperations.regenerate(repoRoot)
@@ -195,14 +203,16 @@ class PointerOperationsTest {
   @Test
   fun `regenerate does NOT write through an existing symlink to corrupt its target`() {
     val repoRoot = setupRepoWithTwoPointers()
-    val pointerA = repoRoot.resolve(
-      "platform-packs/fixturepack/code-review/skill/a.md",
-    ).normalize()
+    val pointerA =
+      repoRoot.resolve(
+        "platform-packs/fixturepack/code-review/skill/a.md",
+      ).normalize()
     val sharedA = repoRoot.resolve("shared/a.md").normalize()
     Files.createDirectories(pointerA.parent)
-    val symlinksSupported = runCatching {
-      Files.createSymbolicLink(pointerA, Path.of("../../../wrong/target.md"))
-    }.fold(onSuccess = { true }, onFailure = { it !is FileSystemException && it !is UnsupportedOperationException })
+    val symlinksSupported =
+      runCatching {
+        Files.createSymbolicLink(pointerA, Path.of("../../../wrong/target.md"))
+      }.fold(onSuccess = { true }, onFailure = { it !is FileSystemException && it !is UnsupportedOperationException })
     Assumptions.assumeTrue(symlinksSupported, "symlinks unsupported on this filesystem")
     val sharedABefore = Files.readAllBytes(sharedA)
 

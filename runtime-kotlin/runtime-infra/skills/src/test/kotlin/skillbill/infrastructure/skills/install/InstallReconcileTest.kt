@@ -21,14 +21,16 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 private const val STALE_CONTRACT_VERSION: String = "0.9"
 
 class InstallReconcileTest : InstallApplyTestSupport() {
-  private fun roots(repoRoot: Path) = ReconcileSourceRoots(
-    repoRoot = repoRoot,
-    skillsRoot = repoRoot.resolve("skills"),
-    platformPacksRoot = repoRoot.resolve("platform-packs"),
-  )
+  private fun roots(repoRoot: Path) =
+    ReconcileSourceRoots(
+      repoRoot = repoRoot,
+      skillsRoot = repoRoot.resolve("skills"),
+      platformPacksRoot = repoRoot.resolve("platform-packs"),
+    )
 
   private fun seedRepo(name: String): Path {
     val repoRoot = Files.createTempDirectory(name).also(tempDirs::add)
@@ -40,15 +42,27 @@ class InstallReconcileTest : InstallApplyTestSupport() {
 
   private fun home(): Path = Files.createTempDirectory("skillbill-reconcile-home").also(tempDirs::add)
 
-  private fun planWith(upstream: Path, local: Path, home: Path, baseline: BaselineManifest) =
-    computeReconciliationPlan(roots(upstream), roots(local), home, baseline)
+  private fun planWith(
+    upstream: Path,
+    local: Path,
+    home: Path,
+    baseline: BaselineManifest,
+  ) = computeReconciliationPlan(roots(upstream), roots(local), home, baseline)
 
-  private fun outcomeFor(plan: ReconciliationPlan, path: String) = plan.outcomes.single { it.skillRelativePath == path }
+  private fun outcomeFor(
+    plan: ReconciliationPlan,
+    path: String,
+  ) = plan.outcomes.single { it.skillRelativePath == path }
 
-  private fun baselineFromUpstream(upstream: Path, local: Path, home: Path): BaselineManifest = BaselineManifest.of(
-    BaselineManifest.CONTRACT_VERSION,
-    planWith(upstream, local, home, BaselineManifest.empty()).baselineOverlay,
-  )
+  private fun baselineFromUpstream(
+    upstream: Path,
+    local: Path,
+    home: Path,
+  ): BaselineManifest =
+    BaselineManifest.of(
+      BaselineManifest.CONTRACT_VERSION,
+      planWith(upstream, local, home, BaselineManifest.empty()).baselineOverlay,
+    )
 
   @Test
   fun `upstream overwrites a local edit whether or not a baseline exists`() {
@@ -108,9 +122,10 @@ class InstallReconcileTest : InstallApplyTestSupport() {
     val plan = planWith(upstream, local, home, baseline)
 
     val pruned = assertIs<SkillReconciliationOutcome.Prune>(outcomeFor(plan, "skills/bill-local-only"))
-    val expectedLocalHash = planWith(local, local, home, BaselineManifest.empty())
-      .baselineOverlay
-      .getValue("skills/bill-local-only")
+    val expectedLocalHash =
+      planWith(local, local, home, BaselineManifest.empty())
+        .baselineOverlay
+        .getValue("skills/bill-local-only")
     assertEquals(expectedLocalHash, pruned.localHash)
     assertEquals(listOf("skills/bill-local-only"), plan.prunedPaths)
     assertFalse(plan.baselineOverlay.containsKey("skills/bill-local-only"))
@@ -150,23 +165,27 @@ class InstallReconcileTest : InstallApplyTestSupport() {
   private fun stalePackContractVersion(repoRoot: Path) {
     val manifest = repoRoot.resolve("platform-packs/generic/platform.yaml")
     val current = Files.readString(manifest)
-    val stale = current.replace(
-      "contract_version: \"$SHELL_CONTRACT_VERSION\"",
-      "contract_version: \"$STALE_CONTRACT_VERSION\"",
-    )
+    val stale =
+      current.replace(
+        "contract_version: \"$SHELL_CONTRACT_VERSION\"",
+        "contract_version: \"$STALE_CONTRACT_VERSION\"",
+      )
     assertTrue(stale != current, "fixture pack must declare contract_version $SHELL_CONTRACT_VERSION")
     Files.writeString(manifest, stale)
   }
 
   private fun <T> capturingSchemaRecords(block: () -> T): Pair<T, List<String>> {
     val records = mutableListOf<LogRecord>()
-    val handler = object : Handler() {
-      override fun publish(record: LogRecord) {
-        records += record
+    val handler =
+      object : Handler() {
+        override fun publish(record: LogRecord) {
+          records += record
+        }
+
+        override fun flush() = Unit
+
+        override fun close() = Unit
       }
-      override fun flush() = Unit
-      override fun close() = Unit
-    }
     platformPackSchemaLog.addHandler(handler)
     return try {
       block() to records.map { record -> record.message }
@@ -189,9 +208,10 @@ class InstallReconcileTest : InstallApplyTestSupport() {
         "\nlocal stale copy\n",
     )
 
-    val (plan, schemaRecords) = capturingSchemaRecords {
-      planWith(upstream, local, home, BaselineManifest.empty())
-    }
+    val (plan, schemaRecords) =
+      capturingSchemaRecords {
+        planWith(upstream, local, home, BaselineManifest.empty())
+      }
 
     val degradation = schemaRecords.first { it.contains("contract_version enforcement degraded") }
     assertTrue(degradation.contains("pack=generic"), degradation)
@@ -227,13 +247,14 @@ class InstallReconcileTest : InstallApplyTestSupport() {
     assertFalse(initial.existed)
     assertTrue(initial.manifest.entries.isEmpty())
 
-    val manifest = BaselineManifest.of(
-      BaselineManifest.CONTRACT_VERSION,
-      mapOf(
-        "skills/bill-zebra" to "00112233aabbccdd",
-        "skills/bill-alpha" to "ffeeddccbbaa9988",
-      ),
-    )
+    val manifest =
+      BaselineManifest.of(
+        BaselineManifest.CONTRACT_VERSION,
+        mapOf(
+          "skills/bill-zebra" to "00112233aabbccdd",
+          "skills/bill-alpha" to "ffeeddccbbaa9988",
+        ),
+      )
     val writeResult = persistence.writeBaseline(WriteBaselineManifestRequest(home, manifest))
     val firstBytes = Files.readAllBytes(writeResult.path)
 
@@ -249,7 +270,11 @@ class InstallReconcileTest : InstallApplyTestSupport() {
     assertTrue(firstBytes.contentEquals(secondBytes), "no-change rewrite must be byte-identical")
   }
 
-  private fun seedAgentAddon(repo: Path, slug: String, body: String) {
+  private fun seedAgentAddon(
+    repo: Path,
+    slug: String,
+    body: String,
+  ) {
     val root = repo.resolve("agent-addons/$slug")
     Files.createDirectories(root)
     Files.writeString(

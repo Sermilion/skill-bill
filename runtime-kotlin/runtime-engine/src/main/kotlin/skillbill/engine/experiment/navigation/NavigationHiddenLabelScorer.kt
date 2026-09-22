@@ -19,23 +19,27 @@ object NavigationHiddenLabelScorer {
     annotationsExhaustive: Boolean,
   ): NavigationHiddenLabelScore {
     val labelled = acceptanceCriteria.count { criterion -> hiddenLabels.containsKey(criterion) }
-    val relevant = reads.count { receipt ->
-      hiddenLabels.values.any { paths -> receipt.path in paths }
-    }
-    val delivered = acceptanceCriteria.count { criterion ->
-      hiddenLabels[criterion].orEmpty().any { path -> path in deliveredPaths }
-    }
-    val precision = if (annotationsExhaustive && labelled == acceptanceCriteria.size && reads.isNotEmpty()) {
-      relevant.toDouble() / reads.size
-    } else {
-      null
-    }
+    val relevant =
+      reads.count { receipt ->
+        hiddenLabels.values.any { paths -> receipt.path in paths }
+      }
+    val delivered =
+      acceptanceCriteria.count { criterion ->
+        hiddenLabels[criterion].orEmpty().any { path -> path in deliveredPaths }
+      }
+    val precision =
+      if (annotationsExhaustive && labelled == acceptanceCriteria.size && reads.isNotEmpty()) {
+        relevant.toDouble() / reads.size
+      } else {
+        null
+      }
     return NavigationHiddenLabelScore(
-      coverage = ExperimentNavigationLabelCoverage(
-        labelledCriteria = labelled,
-        totalCriteria = acceptanceCriteria.size,
-        precisionAvailable = precision != null,
-      ),
+      coverage =
+        ExperimentNavigationLabelCoverage(
+          labelledCriteria = labelled,
+          totalCriteria = acceptanceCriteria.size,
+          precisionAvailable = precision != null,
+        ),
       deliveredCriteria = delivered,
       relevantReads = relevant,
       precision = precision,

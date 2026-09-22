@@ -35,44 +35,56 @@ internal fun aggregateReviewStageMetrics(
 ): ReviewStageMetrics {
   val verification = distribution(verdicts.filter { it.stage == ReviewStage.VERIFICATION })
   val adjudication = distribution(verdicts.filter { it.stage == ReviewStage.ADJUDICATION })
-  val denominator = runFindingCount.takeIf { it > 0 }
-    ?: verdicts.map { it.findingRef }.toSet().size
+  val denominator =
+    runFindingCount.takeIf { it > 0 }
+      ?: verdicts.map { it.findingRef }.toSet().size
   return ReviewStageMetrics(
     verification = verification,
     adjudication = adjudication,
     verificationRefutationRate = rate(verification.refuted, denominator),
     adjudicationRefutationRate = rate(adjudication.refuted, denominator),
-    rejectedVerdictCounts = ReviewRejectedVerdictCounts(
-      uncitedRefutations = verdicts.count {
-        it.rejectionReason == ReviewClaimVerdictAdmission.UNCITED_REFUTATION
-      },
-      uncitedDowngrades = verdicts.count {
-        it.rejectionReason == ReviewSpecAdjudicationAdmission.UNCITED_DOWNGRADE
-      },
-      findingMutations = verdicts.count {
-        it.rejectionReason == ReviewClaimVerdictAdmission.ALTERED_CLAIM ||
-          it.rejectionReason == ReviewSpecAdjudicationAdmission.ALTERED_CLAIM
-      },
-    ),
-    severityAdjustmentCounts = ReviewSeverityAdjustmentCounts(
-      raised = verdicts.count {
-        it.severityAdjustment?.direction == ReviewSeverityAdjustmentDirection.RAISE
-      },
-      lowered = verdicts.count {
-        it.severityAdjustment?.direction == ReviewSeverityAdjustmentDirection.LOWER
-      },
-    ),
+    rejectedVerdictCounts =
+      ReviewRejectedVerdictCounts(
+        uncitedRefutations =
+          verdicts.count {
+            it.rejectionReason == ReviewClaimVerdictAdmission.UNCITED_REFUTATION
+          },
+        uncitedDowngrades =
+          verdicts.count {
+            it.rejectionReason == ReviewSpecAdjudicationAdmission.UNCITED_DOWNGRADE
+          },
+        findingMutations =
+          verdicts.count {
+            it.rejectionReason == ReviewClaimVerdictAdmission.ALTERED_CLAIM ||
+              it.rejectionReason == ReviewSpecAdjudicationAdmission.ALTERED_CLAIM
+          },
+      ),
+    severityAdjustmentCounts =
+      ReviewSeverityAdjustmentCounts(
+        raised =
+          verdicts.count {
+            it.severityAdjustment?.direction == ReviewSeverityAdjustmentDirection.RAISE
+          },
+        lowered =
+          verdicts.count {
+            it.severityAdjustment?.direction == ReviewSeverityAdjustmentDirection.LOWER
+          },
+      ),
     resolvedTier = resolvedTier,
   )
 }
 
-internal fun resolvedTier(executionMode: ReviewExecutionMode?): String = when (executionMode) {
-  ReviewExecutionMode.INLINE -> ReviewExecutionMode.INLINE.wireValue
-  ReviewExecutionMode.DELEGATED -> ReviewExecutionMode.DELEGATED.wireValue
-  else -> "unresolved"
-}
+internal fun resolvedTier(executionMode: ReviewExecutionMode?): String =
+  when (executionMode) {
+    ReviewExecutionMode.INLINE -> ReviewExecutionMode.INLINE.wireValue
+    ReviewExecutionMode.DELEGATED -> ReviewExecutionMode.DELEGATED.wireValue
+    else -> "unresolved"
+  }
 
-internal fun fetchReviewExecutionMode(connection: Connection, reviewRunId: String): ReviewExecutionMode? =
+internal fun fetchReviewExecutionMode(
+  connection: Connection,
+  reviewRunId: String,
+): ReviewExecutionMode? =
   connection.prepareStatement(
     "SELECT ${ReviewFinishedTelemetryPayloadKeys.EXECUTION_MODE} FROM review_runs WHERE review_run_id = ?",
   ).use { statement ->
@@ -86,22 +98,25 @@ internal fun fetchReviewExecutionMode(connection: Connection, reviewRunId: Strin
     }
   }
 
-internal fun loadReviewRunTiers(connection: Connection): Map<String, String> = connection.prepareStatement(
-  "SELECT review_run_id, ${ReviewFinishedTelemetryPayloadKeys.EXECUTION_MODE} FROM review_runs",
-).use { statement ->
-  statement.executeQuery().use { resultSet ->
-    buildMap {
-      while (resultSet.next()) {
-        put(
-          resultSet.getString(ReviewVerificationSignalKeys.REVIEW_RUN_ID),
-          resolvedTier(
-            resultSet.getString(ReviewFinishedTelemetryPayloadKeys.EXECUTION_MODE)?.let(ReviewExecutionMode::fromWire),
-          ),
-        )
+internal fun loadReviewRunTiers(connection: Connection): Map<String, String> =
+  connection.prepareStatement(
+    "SELECT review_run_id, ${ReviewFinishedTelemetryPayloadKeys.EXECUTION_MODE} FROM review_runs",
+  ).use { statement ->
+    statement.executeQuery().use { resultSet ->
+      buildMap {
+        while (resultSet.next()) {
+          put(
+            resultSet.getString(ReviewVerificationSignalKeys.REVIEW_RUN_ID),
+            resolvedTier(
+              resultSet.getString(
+                ReviewFinishedTelemetryPayloadKeys.EXECUTION_MODE,
+              )?.let(ReviewExecutionMode::fromWire),
+            ),
+          )
+        }
       }
     }
   }
-}
 
 internal fun stageMetricsByResolvedTier(connection: Connection): Map<String, ReviewStageMetrics> {
   val tiers = loadReviewRunTiers(connection)

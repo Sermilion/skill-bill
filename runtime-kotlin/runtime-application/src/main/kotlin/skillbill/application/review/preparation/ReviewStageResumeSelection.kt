@@ -10,21 +10,25 @@ import skillbill.review.model.ReviewStageResumeReport
 object ReviewStageResumeSelection {
   const val SEAM: String = "ReviewStageResumeSelection.select"
 
-  fun select(boundaries: List<ReviewStageBoundary>, verdicts: List<ReviewFindingVerdict>): ReviewStageResumeReport {
+  fun select(
+    boundaries: List<ReviewStageBoundary>,
+    verdicts: List<ReviewFindingVerdict>,
+  ): ReviewStageResumeReport {
     val degradations = mutableListOf<ReviewStageResumeDegradation>()
-    val durableByStage = ReviewStage.entries.associateWith { stage ->
-      val stageBoundaries = boundaries.filter { it.stage == stage }
-      val stageVerdicts = verdicts.filter { it.stage == stage }
-      stageBoundaries.filter { it.contractVersion != REVIEW_CONTEXT_CONTRACT_VERSION }.forEach { drifted ->
-        degradations += degradation(drifted.contractVersion, "boundary", stage)
+    val durableByStage =
+      ReviewStage.entries.associateWith { stage ->
+        val stageBoundaries = boundaries.filter { it.stage == stage }
+        val stageVerdicts = verdicts.filter { it.stage == stage }
+        stageBoundaries.filter { it.contractVersion != REVIEW_CONTEXT_CONTRACT_VERSION }.forEach { drifted ->
+          degradations += degradation(drifted.contractVersion, "boundary", stage)
+        }
+        stageVerdicts.filter { it.contractVersion != REVIEW_CONTEXT_CONTRACT_VERSION }.forEach { drifted ->
+          degradations += degradation(drifted.contractVersion, "verdict", stage)
+        }
+        stageBoundaries.any {
+          it.contractVersion == REVIEW_CONTEXT_CONTRACT_VERSION && it.reached == ReviewStageReached.REACHED
+        }
       }
-      stageVerdicts.filter { it.contractVersion != REVIEW_CONTEXT_CONTRACT_VERSION }.forEach { drifted ->
-        degradations += degradation(drifted.contractVersion, "verdict", stage)
-      }
-      stageBoundaries.any {
-        it.contractVersion == REVIEW_CONTEXT_CONTRACT_VERSION && it.reached == ReviewStageReached.REACHED
-      }
-    }
     return ReviewStageResumeReport(
       durableByStage = durableByStage,
       reentryStage = ReviewStage.entries.firstOrNull { durableByStage[it] != true },
@@ -32,7 +36,11 @@ object ReviewStageResumeSelection {
     )
   }
 
-  private fun degradation(used: String, kind: String, stage: ReviewStage) = ReviewStageResumeDegradation(
+  private fun degradation(
+    used: String,
+    kind: String,
+    stage: ReviewStage,
+  ) = ReviewStageResumeDegradation(
     seam = SEAM,
     used = used,
     expected = REVIEW_CONTEXT_CONTRACT_VERSION,

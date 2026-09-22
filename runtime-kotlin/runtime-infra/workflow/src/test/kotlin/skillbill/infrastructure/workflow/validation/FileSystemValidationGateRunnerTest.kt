@@ -28,6 +28,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+
 class FileSystemValidationGateRunnerTest {
   @Test
   fun `COLLECT_ALL unions compiler findings from module A with JUnit from compiling module B`() {
@@ -35,23 +36,25 @@ class FileSystemValidationGateRunnerTest {
     try {
       val script = writeGateScript(repo)
       val runner = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver())
-      val failFast = runner.run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val failFast =
+        runner.run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       assertTrue(failFast.findings.none { it.ruleOrTestId == "fails" })
       assertEquals("kotlin_compiler", failFast.findings.single().ruleOrTestId)
 
-      val collectAll = runner.run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString(), "--continue"),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val collectAll =
+        runner.run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString(), "--continue"),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       assertEquals(2, collectAll.findings.size)
       val compiler = collectAll.findings.single { it.ruleOrTestId == "kotlin_compiler" }
       assertEquals("module-a", compiler.module)
@@ -78,13 +81,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       assertEquals(listOf("kotlin_compiler"), result.findings.map { it.ruleOrTestId })
       assertTrue(result.findings.none { it.ruleOrTestId == "unparseable_gate_failure" })
     } finally {
@@ -105,17 +109,18 @@ class FileSystemValidationGateRunnerTest {
         exit 0
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          GateParseOptions(
-            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-            terminalVerifying = true,
-            withExecutedWorkSignal = true,
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            GateParseOptions(
+              parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+              terminalVerifying = true,
+              withExecutedWorkSignal = true,
+            ),
           ),
-        ),
-      )
+        )
       assertEquals(ValidationGateRunOutcome.PASSED, result.outcome)
       assertEquals(0, result.executedWorkUnits)
       assertEquals(emptyList(), result.findings)
@@ -150,19 +155,21 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          GateParseOptions(
-            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-            artifactGlobs = listOf(
-              "**/build/test-results/**/*.xml",
-              "runtime-kotlin/**/build/reports/detekt/*.xml",
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            GateParseOptions(
+              parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+              artifactGlobs =
+                listOf(
+                  "**/build/test-results/**/*.xml",
+                  "runtime-kotlin/**/build/reports/detekt/*.xml",
+                ),
             ),
           ),
-        ),
-      )
+        )
       val finding = result.findings.single { it.ruleOrTestId == "TooManyFunctions" }
       assertEquals("runtime-application", finding.module)
       assertEquals("runtime-application/src/main/kotlin/skillbill/example/Foo.kt:12", finding.location)
@@ -187,13 +194,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       assertEquals(2, result.findings.size)
       assertEquals("TooManyFunctions", result.findings.single { it.ruleOrTestId == "TooManyFunctions" }.ruleOrTestId)
       assertEquals("MaxLineLength", result.findings.single { it.ruleOrTestId == "MaxLineLength" }.ruleOrTestId)
@@ -216,13 +224,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       val finding = result.findings.single()
       assertEquals("unparseable_gate_failure", finding.ruleOrTestId)
       assertEquals("<validation-gate>", finding.module)
@@ -246,13 +255,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       assertTrue(result.findings.size >= 2)
       val ruleIds = result.findings.map { it.ruleOrTestId }.toSet()
       assertTrue("incorrectConfiguration" in ruleIds)
@@ -284,13 +294,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       assertTrue(result.findings.isNotEmpty())
       val finding = result.findings.single { it.ruleOrTestId == "incorrectConfiguration" }
       assertEquals("harness-cursor", finding.module)
@@ -323,13 +334,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       val finding = result.findings.single { it.ruleOrTestId == "spotless" }
       assertEquals("runtime-application", finding.module)
       assertEquals(
@@ -360,13 +372,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       val finding = result.findings.single()
       assertEquals("runtime-infra:fs", finding.module)
       assertEquals("spotlessCheck", finding.ruleOrTestId)
@@ -392,13 +405,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       val finding = result.findings.single()
       assertEquals("runtime-infra:fs", finding.module)
       assertEquals("spotlessCheck", finding.ruleOrTestId)
@@ -424,13 +438,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       assertEquals(1, result.findings.size)
       assertEquals("kotlin_compiler", result.findings.single().ruleOrTestId)
     } finally {
@@ -452,13 +467,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.ARTIFACTS_ONLY,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.ARTIFACTS_ONLY,
+          ),
+        )
       assertEquals(emptyList(), result.findings)
     } finally {
       repo.toFile().deleteRecursively()
@@ -479,13 +495,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       val finding = result.findings.single()
       assertEquals("module-a/Foo.kt:3:1", finding.location)
       assertEquals("Unresolved reference: missing", finding.message)
@@ -514,13 +531,14 @@ class FileSystemValidationGateRunnerTest {
         exit 1
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          link,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            link,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       val finding = result.findings.single()
       assertEquals("module-a", finding.module)
       assertEquals("module-a/Foo.kt:3:1", finding.location)
@@ -574,13 +592,14 @@ class FileSystemValidationGateRunnerTest {
         """.trimIndent(),
       )
 
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        request(
-          repo,
-          argv = listOf("sh", script.toString()),
-          parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
 
       assertEquals(ValidationGateRunOutcome.PASSED, result.outcome)
       assertEquals(emptyList(), result.findings)
@@ -592,10 +611,11 @@ class FileSystemValidationGateRunnerTest {
   @Test
   fun `the gate command environment never carries a JAVA_HOME under the runtime image root`() {
     val leaked = Path.of(System.getProperty("java.home")).resolve("lib").toString()
-    val environment = mutableMapOf(
-      GateJvmEnvironmentKeys.JAVA_HOME to leaked,
-      GateJvmEnvironmentKeys.PATH to hostPath(),
-    )
+    val environment =
+      mutableMapOf(
+        GateJvmEnvironmentKeys.JAVA_HOME to leaked,
+        GateJvmEnvironmentKeys.PATH to hostPath(),
+      )
 
     applyResolvedGateJvm(environment, testGateJvmResolver().resolve(environment))
 
@@ -610,12 +630,13 @@ class FileSystemValidationGateRunnerTest {
   @Test
   fun `an unresolvable gate JVM raises a typed error instead of reaching finding parsing`() {
     val environment = mutableMapOf(GateJvmEnvironmentKeys.JAVA_HOME to "/opt/skill-bill/runtime")
-    val failure = assertFailsWith<GateJvmUnresolvedException> {
-      applyResolvedGateJvm(
-        environment,
-        GateJvmDisposition.Unresolved(rejectedCandidate = "/opt/skill-bill/runtime", requiredMajor = "21"),
-      )
-    }
+    val failure =
+      assertFailsWith<GateJvmUnresolvedException> {
+        applyResolvedGateJvm(
+          environment,
+          GateJvmDisposition.Unresolved(rejectedCandidate = "/opt/skill-bill/runtime", requiredMajor = "21"),
+        )
+      }
 
     assertEquals("/opt/skill-bill/runtime", failure.rejectedCandidate)
     assertEquals("21", failure.requiredMajor)
@@ -639,15 +660,16 @@ class FileSystemValidationGateRunnerTest {
         """.trimIndent(),
       )
 
-      val failure = assertFailsWith<GateJvmStartupFailureException> {
-        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-          request(
-            repo,
-            argv = listOf("sh", script.toString()),
-            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-          ),
-        )
-      }
+      val failure =
+        assertFailsWith<GateJvmStartupFailureException> {
+          FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+            request(
+              repo,
+              argv = listOf("sh", script.toString()),
+              parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+            ),
+          )
+        }
 
       assertTrue(
         failure.message.orEmpty().contains("Error occurred during initialization of VM"),
@@ -659,8 +681,9 @@ class FileSystemValidationGateRunnerTest {
   }
 
   private fun fixturePath(name: String): String {
-    val resource = javaClass.classLoader.getResource("validation-gate/$name")
-      ?: error("Missing validation-gate fixture: $name")
+    val resource =
+      javaClass.classLoader.getResource("validation-gate/$name")
+        ?: error("Missing validation-gate fixture: $name")
     return Path.of(resource.toURI()).toString()
   }
 
@@ -690,29 +713,37 @@ class FileSystemValidationGateRunnerTest {
     parseMode: ValidationGateFindingParseMode,
   ): ValidationGateRunRequest = request(repo, argv, GateParseOptions(parseMode = parseMode))
 
-  private fun request(repo: Path, argv: List<String>, options: GateParseOptions): ValidationGateRunRequest =
+  private fun request(
+    repo: Path,
+    argv: List<String>,
+    options: GateParseOptions,
+  ): ValidationGateRunRequest =
     ValidationGateRunRequest(
       repoRoot = repo,
       argv = argv,
       cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
-      declaration = ValidationGateDeclaration(
-        fullGateCommand = listOf("sh", "gate.sh"),
-        cacheBypassingFullGateCommand = listOf("sh", "gate.sh", "--rerun-tasks"),
-        collectAllFullGateCommand = listOf("sh", "gate.sh", "--continue"),
-        cacheBypassingCollectAllFullGateCommand = listOf("sh", "gate.sh", "--continue", "--rerun-tasks"),
-        findings = ValidationGateFindingsLocator(
-          format = ValidationGateFindingsFormat.JUNIT_XML,
-          artifactGlobs = options.artifactGlobs,
-          compilerDiagnostics = ValidationGateCompilerDiagnosticsLocator(
-            ValidationGateCompilerDiagnosticsFormat.GRADLE_KOTLIN_COMPILER_STDOUT,
-          ),
-          executedWork = if (options.withExecutedWorkSignal) {
-            ValidationGateExecutedWorkSignal(ValidationGateExecutedWorkFormat.GRADLE_ACTIONABLE_SUMMARY)
-          } else {
-            null
-          },
+      declaration =
+        ValidationGateDeclaration(
+          fullGateCommand = listOf("sh", "gate.sh"),
+          cacheBypassingFullGateCommand = listOf("sh", "gate.sh", "--rerun-tasks"),
+          collectAllFullGateCommand = listOf("sh", "gate.sh", "--continue"),
+          cacheBypassingCollectAllFullGateCommand = listOf("sh", "gate.sh", "--continue", "--rerun-tasks"),
+          findings =
+            ValidationGateFindingsLocator(
+              format = ValidationGateFindingsFormat.JUNIT_XML,
+              artifactGlobs = options.artifactGlobs,
+              compilerDiagnostics =
+                ValidationGateCompilerDiagnosticsLocator(
+                  ValidationGateCompilerDiagnosticsFormat.GRADLE_KOTLIN_COMPILER_STDOUT,
+                ),
+              executedWork =
+                if (options.withExecutedWorkSignal) {
+                  ValidationGateExecutedWorkSignal(ValidationGateExecutedWorkFormat.GRADLE_ACTIONABLE_SUMMARY)
+                } else {
+                  null
+                },
+            ),
         ),
-      ),
       terminalVerifying = options.terminalVerifying,
       findingParseMode = options.parseMode,
     )

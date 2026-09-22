@@ -17,6 +17,7 @@ dependencies {
   implementation(libs.beryx.runtime.gradle.plugin)
 
   testImplementation(libs.junit.jupiter)
+  testImplementation(gradleTestKit())
 
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

@@ -27,12 +27,13 @@ class FeatureTaskRuntimeHandoffFoundationSchemaContractVersionTest {
   fun `persistence schema id version and classpath resource match Kotlin pins`() {
     val schema = classpathSchema(FeatureTaskRuntimePersistenceSchemaPaths.CLASSPATH_RESOURCE)
     assertEquals(FeatureTaskRuntimePersistenceSchemaPaths.EXPECTED_SCHEMA_ID, schema.path("\$id").asText())
-    val versions = schema.path("\$defs").let { defs ->
-      listOf(
-        defs.path("private_phase_record"),
-        defs.path("delivered_projection"),
-      )
-    }.map { it.path("properties").path("contract_version").path("const").asText() }
+    val versions =
+      schema.path("\$defs").let { defs ->
+        listOf(
+          defs.path("private_phase_record"),
+          defs.path("delivered_projection"),
+        )
+      }.map { it.path("properties").path("contract_version").path("const").asText() }
     assertEquals(
       listOf(
         FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
@@ -60,7 +61,11 @@ class FeatureTaskRuntimeHandoffFoundationSchemaContractVersionTest {
     )
   }
 
-  private fun assertSchemaPin(resource: String, expectedId: String, expectedVersion: String) {
+  private fun assertSchemaPin(
+    resource: String,
+    expectedId: String,
+    expectedVersion: String,
+  ) {
     val schema = classpathSchema(resource)
     assertEquals(expectedId, schema.path("\$id").asText())
     assertEquals(expectedVersion, schema.path("properties").path("contract_version").path("const").asText())

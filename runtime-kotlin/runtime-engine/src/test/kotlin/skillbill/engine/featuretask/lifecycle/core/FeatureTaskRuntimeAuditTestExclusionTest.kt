@@ -5,13 +5,15 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeAuditTestExclusionTest {
   @Test
   fun `repair and follow-up audit directives carry no build or test execution instruction`() {
-    val repairAndAudit = listOf(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-    ).map { phaseId -> phaseId to requireNotNull(phaseDirectives[phaseId]) }
+    val repairAndAudit =
+      listOf(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+      ).map { phaseId -> phaseId to requireNotNull(phaseDirectives[phaseId]) }
 
     repairAndAudit.forEach { (phaseId, directive) ->
       BUILD_AND_TEST_COMMANDS.forEach { command ->

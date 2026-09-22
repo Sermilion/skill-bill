@@ -41,7 +41,10 @@ internal fun decodeReviewDiffGitPath(value: String): String {
   return decodeReviewDiffQuotedGitPath(trimmed.substring(1, trimmed.length - 1))
 }
 
-internal fun reviewDiffRepositoryPath(value: String, prefix: String?): String? =
+internal fun reviewDiffRepositoryPath(
+  value: String,
+  prefix: String?,
+): String? =
   value.takeUnless { it.trim() == "/dev/null" }
     ?.let(::decodeReviewDiffGitPath)?.let { path ->
       if (prefix == null) {
@@ -67,7 +70,11 @@ private fun decodeReviewDiffQuotedGitPath(body: String): String {
   return decoded.toString()
 }
 
-private fun decodeReviewDiffQuotedGitPathSegment(body: String, index: Int, decoded: StringBuilder): Int {
+private fun decodeReviewDiffQuotedGitPathSegment(
+  body: String,
+  index: Int,
+  decoded: StringBuilder,
+): Int {
   if (body[index] != '\\') {
     decoded.append(body[index])
     return index + 1
@@ -85,7 +92,10 @@ private fun decodeReviewDiffQuotedGitPathSegment(body: String, index: Int, decod
 
 private data class ReviewDiffGitOctalBytes(val bytes: ByteArray, val nextIndex: Int)
 
-private fun consumeReviewDiffGitOctalBytes(body: String, startIndex: Int): ReviewDiffGitOctalBytes? {
+private fun consumeReviewDiffGitOctalBytes(
+  body: String,
+  startIndex: Int,
+): ReviewDiffGitOctalBytes? {
   val bytes = ByteArrayOutputStream()
   var index = startIndex
   while (index + REVIEW_DIFF_GIT_OCTAL_WIDTH < body.length && body[index] == '\\' &&
@@ -98,22 +108,24 @@ private fun consumeReviewDiffGitOctalBytes(body: String, startIndex: Int): Revie
 }
 
 private fun decodeReviewDiffGitOctalUtf8(raw: ByteArray): CharSequence {
-  val decoder = Charsets.UTF_8.newDecoder()
-    .onMalformedInput(CodingErrorAction.REPORT)
-    .onUnmappableCharacter(CodingErrorAction.REPORT)
+  val decoder =
+    Charsets.UTF_8.newDecoder()
+      .onMalformedInput(CodingErrorAction.REPORT)
+      .onUnmappableCharacter(CodingErrorAction.REPORT)
   return runCatching { decoder.decode(ByteBuffer.wrap(raw)) }
     .getOrElse { throw IllegalArgumentException("Quoted Git path contains invalid UTF-8 bytes.", it) }
 }
 
-private fun decodeReviewDiffGitEscapeChar(escaped: Char): Char = when (escaped) {
-  'a' -> '\u0007'
-  'b' -> '\b'
-  'f' -> '\u000c'
-  'n' -> '\n'
-  'r' -> '\r'
-  't' -> '\t'
-  'v' -> '\u000b'
-  '\\' -> '\\'
-  '"' -> '"'
-  else -> throw IllegalArgumentException("Unsupported quoted Git path escape '\\$escaped'.")
-}
+private fun decodeReviewDiffGitEscapeChar(escaped: Char): Char =
+  when (escaped) {
+    'a' -> '\u0007'
+    'b' -> '\b'
+    'f' -> '\u000c'
+    'n' -> '\n'
+    'r' -> '\r'
+    't' -> '\t'
+    'v' -> '\u000b'
+    '\\' -> '\\'
+    '"' -> '"'
+    else -> throw IllegalArgumentException("Unsupported quoted Git path escape '\\$escaped'.")
+  }

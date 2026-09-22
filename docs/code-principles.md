@@ -218,9 +218,10 @@ explicitly exempted in that inventory.
 `configureKotlinJvm`; `skillbill.repo-test` applied after it by the six modules that
 carry repository-contract suites; every build-logic class in
 `dev.skillbill.runtime.buildlogic` with the fully qualified `implementationClass` in
-the `gradlePlugin` block; convention behavior asserted by `ProjectBuilder` tests in
-`build-logic/convention/src/test`; file splits by verb family or responsibility
-within the same package; empty exemption map when the tree is clean.
+the `gradlePlugin` block; convention behavior asserted in
+`build-logic/convention/src/test` by `ProjectBuilder`, or by Gradle TestKit against
+a synthetic project where task outcome is the assertion; file splits by verb family
+or responsibility within the same package; empty exemption map when the tree is clean.
 
 **Anti-patterns.** Copy-pasting `update-snapshots` `systemProperty` into module
 build files; a shared convention silently skipping its wiring when a directory is

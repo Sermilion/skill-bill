@@ -44,12 +44,16 @@ internal object DatabaseColumnMigrations {
   internal fun reviewRunColumnNames(connection: Connection): Set<String> =
     DatabaseColumnMigrationsEnsure.tableColumnNames(connection, "review_runs")
 
-  internal fun tableExists(connection: Connection, tableName: String): Boolean = connection.prepareStatement(
-    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
-  ).use { statement ->
-    statement.bindAll(tableName)
-    statement.executeQuery().use { resultSet -> resultSet.next() }
-  }
+  internal fun tableExists(
+    connection: Connection,
+    tableName: String,
+  ): Boolean =
+    connection.prepareStatement(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+    ).use { statement ->
+      statement.bindAll(tableName)
+      statement.executeQuery().use { resultSet -> resultSet.next() }
+    }
 
   internal fun ensureColumn(
     connection: Connection,

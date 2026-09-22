@@ -14,8 +14,9 @@ object FeatureTaskRuntimeTransitionFunction {
     verdict: FeatureTaskRuntimeVerdict,
     edgeIterationCount: Int,
     context: FeatureTaskRuntimeTransitionContext = FeatureTaskRuntimeTransitionContext(),
-  ): FeatureTaskRuntimeNextPhase = computeTransition(declaration, currentPhaseId, verdict, edgeIterationCount)
-    .also { transition -> guardEntryGate(declaration, transition, context.settledVerdictsByPhaseId) }
+  ): FeatureTaskRuntimeNextPhase =
+    computeTransition(declaration, currentPhaseId, verdict, edgeIterationCount)
+      .also { transition -> guardEntryGate(declaration, transition, context.settledVerdictsByPhaseId) }
 
   private fun guardEntryGate(
     declaration: FeatureTaskRuntimeTransitionDeclaration,
@@ -53,11 +54,12 @@ object FeatureTaskRuntimeTransitionFunction {
       } else {
         when (edge.capExhaustionBehavior) {
           FeatureTaskRuntimeCapExhaustionBehavior.ADVANCE -> forwardTransition(declaration, currentPhaseId)
-          FeatureTaskRuntimeCapExhaustionBehavior.BLOCK -> FeatureTaskRuntimeNextPhase.TerminalBlock(
-            loopId = edge.loopId,
-            edgeIteration = edgeIterationCount,
-            unresolvedVerdict = verdict,
-          )
+          FeatureTaskRuntimeCapExhaustionBehavior.BLOCK ->
+            FeatureTaskRuntimeNextPhase.TerminalBlock(
+              loopId = edge.loopId,
+              edgeIteration = edgeIterationCount,
+              unresolvedVerdict = verdict,
+            )
         }
       }
     }
@@ -68,9 +70,10 @@ object FeatureTaskRuntimeTransitionFunction {
     declaration: FeatureTaskRuntimeTransitionDeclaration,
     currentPhaseId: String,
     verdict: FeatureTaskRuntimeVerdict,
-  ): FeatureTaskRuntimeBackwardEdge? = declaration.backwardEdges.firstOrNull { edge ->
-    edge.fromPhaseId == currentPhaseId && edge.triggeringVerdict == verdict
-  }
+  ): FeatureTaskRuntimeBackwardEdge? =
+    declaration.backwardEdges.firstOrNull { edge ->
+      edge.fromPhaseId == currentPhaseId && edge.triggeringVerdict == verdict
+    }
 
   private fun forwardTransition(
     declaration: FeatureTaskRuntimeTransitionDeclaration,
@@ -83,8 +86,9 @@ object FeatureTaskRuntimeTransitionFunction {
     declaration.loopOnlySuccessors[currentPhaseId]?.let { successor ->
       return FeatureTaskRuntimeNextPhase.Next(phaseId = successor)
     }
-    val nextIndex = (index + 1 until declaration.forwardPhaseIds.size)
-      .firstOrNull { declaration.forwardPhaseIds[it] !in declaration.loopOnlyPhaseIds }
+    val nextIndex =
+      (index + 1 until declaration.forwardPhaseIds.size)
+        .firstOrNull { declaration.forwardPhaseIds[it] !in declaration.loopOnlyPhaseIds }
     return if (nextIndex != null) {
       FeatureTaskRuntimeNextPhase.Next(phaseId = declaration.forwardPhaseIds[nextIndex])
     } else {

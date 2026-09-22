@@ -36,23 +36,25 @@ object ReviewParser {
       detectedStack = extractSummaryValue(text, "detected_stack"),
       executionMode = resolveExecutionMode(parseExecutionMode(text), specialistReviews),
       specialistReviews = specialistReviews,
-      findings = parseReviewFindings(text).map { finding ->
-        finding.copy(
-          issueCategory =
-          resolveReviewIssueCategory(
-            explicitCategory = finding.issueCategory.takeUnless { it == ReviewIssueCategory.OTHER.wireValue },
-            routedSkill = normalizeRoutedSkill(rawRoutedSkill),
-            specialistReviews = specialistReviews,
-            finding = finding,
-          ),
-        )
-      },
+      findings =
+        parseReviewFindings(text).map { finding ->
+          finding.copy(
+            issueCategory =
+              resolveReviewIssueCategory(
+                explicitCategory = finding.issueCategory.takeUnless { it == ReviewIssueCategory.OTHER.wireValue },
+                routedSkill = normalizeRoutedSkill(rawRoutedSkill),
+                specialistReviews = specialistReviews,
+                finding = finding,
+              ),
+          )
+        },
     )
   }
 
   private fun parseExecutionMode(text: String): ReviewExecutionMode? {
-    val reported = reportedExecutionModePattern.find(text)?.groups?.get(SharedPayloadKeys.VALUE)?.value?.trim()
-      ?: return null
+    val reported =
+      reportedExecutionModePattern.find(text)?.groups?.get(SharedPayloadKeys.VALUE)?.value?.trim()
+        ?: return null
     return ReviewExecutionMode.fromWire(extractSummaryValue(text, "execution_mode"))
       ?: throw IllegalArgumentException(
         "Review output reported an unknown execution mode '$reported'. Allowed: inline, delegated.",

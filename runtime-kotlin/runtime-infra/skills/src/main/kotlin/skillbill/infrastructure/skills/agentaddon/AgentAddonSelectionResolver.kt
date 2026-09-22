@@ -13,6 +13,7 @@ import skillbill.model.toPath
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import java.nio.file.Files
 import java.nio.file.Path
+
 @Inject
 class AgentAddonSelectionResolver : AgentAddonSelectionPort {
   override fun resolveInitial(
@@ -32,8 +33,9 @@ class AgentAddonSelectionResolver : AgentAddonSelectionPort {
     val catalogue = discoverAgentAddons(repoRoot, externalSourceRoots).associateBy { it.slug }
     return HydratedAgentAddonSelection(
       requestedSlugs.map { slug ->
-        val declaration = catalogue[slug]
-          ?: throw InvalidAgentAddonSelectionError("Unknown agent add-on '$slug'.")
+        val declaration =
+          catalogue[slug]
+            ?: throw InvalidAgentAddonSelectionError("Unknown agent add-on '$slug'.")
         validateCompatibility(slug, declaration.consumers, declaration.agents, consumer, receivingAgents)
         hydrate(
           slug = slug,
@@ -49,16 +51,17 @@ class AgentAddonSelectionResolver : AgentAddonSelectionPort {
     selection: AgentAddonSelection,
     consumer: AgentAddonConsumer,
     receivingAgentIds: List<String>,
-  ): HydratedAgentAddonSelection = verifyPersistedAgentAddonSelection(
-    PersistedAgentAddonSelectionVerifyRequest(
-      selection = selection,
-      consumer = consumer,
-      receivingAgentIds = receivingAgentIds,
-      parseAgent = ::parseAgent,
-      validateCompatibility = ::validateCompatibility,
-      stringList = ::stringList,
-    ),
-  )
+  ): HydratedAgentAddonSelection =
+    verifyPersistedAgentAddonSelection(
+      PersistedAgentAddonSelectionVerifyRequest(
+        selection = selection,
+        consumer = consumer,
+        receivingAgentIds = receivingAgentIds,
+        parseAgent = ::parseAgent,
+        validateCompatibility = ::validateCompatibility,
+        stringList = ::stringList,
+      ),
+    )
 
   private fun hydrate(
     slug: String,
@@ -68,11 +71,12 @@ class AgentAddonSelectionResolver : AgentAddonSelectionPort {
   ): HydratedAgentAddonSelectionEntry {
     val bytes = Files.readAllBytes(contentPath)
     return HydratedAgentAddonSelectionEntry(
-      persisted = PersistedAgentAddonSelectionEntry(
-        slug,
-        sourceIdentity.toString(),
-        sha256Hex(bytes),
-      ),
+      persisted =
+        PersistedAgentAddonSelectionEntry(
+          slug,
+          sourceIdentity.toString(),
+          sha256Hex(bytes),
+        ),
       description = description,
       content = bytes.toString(Charsets.UTF_8),
     )
@@ -89,13 +93,14 @@ class AgentAddonSelectionResolver : AgentAddonSelectionPort {
     }
   }
 
-  private fun parseAgent(id: String): String = runCatching {
-    SupportedAgent.parseAgentAddonId(
-      id,
-    ).wireValue
-  }.getOrElse {
-    throw InvalidAgentAddonSelectionError("Unknown receiving agent '$id'.")
-  }
+  private fun parseAgent(id: String): String =
+    runCatching {
+      SupportedAgent.parseAgentAddonId(
+        id,
+      ).wireValue
+    }.getOrElse {
+      throw InvalidAgentAddonSelectionError("Unknown receiving agent '$id'.")
+    }
 
   private fun validateCompatibility(
     slug: String,
@@ -117,8 +122,10 @@ class AgentAddonSelectionResolver : AgentAddonSelectionPort {
     }
   }
 
-  private fun stringList(values: Map<*, *>, key: String): List<String> =
-    (values[key] as? List<*>)?.map { it as? String ?: invalidField(key) } ?: invalidField(key)
+  private fun stringList(
+    values: Map<*, *>,
+    key: String,
+  ): List<String> = (values[key] as? List<*>)?.map { it as? String ?: invalidField(key) } ?: invalidField(key)
 
   private fun invalidField(key: String): Nothing =
     throw InvalidAgentAddonSelectionError("Selected agent add-on manifest field '$key' is malformed.")

@@ -25,7 +25,13 @@ class HttpTelemetryResultMappersTest {
 }
 
 private object SilentDiagnostics : RuntimeDiagnostics {
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }

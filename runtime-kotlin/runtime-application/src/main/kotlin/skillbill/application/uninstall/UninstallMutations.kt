@@ -53,11 +53,12 @@ internal fun cleanupNativeAgentInstallLinks(
   if (!plan.nativeSourceRoots.any(uninstallFileSystem::exists)) {
     return
   }
-  val request = NativeAgentLinkRequest(
-    platformPacksRoot = plan.stateRoot.resolve("platform-packs"),
-    skillsRoot = plan.stateRoot.resolve("skills"),
-    home = plan.home,
-  )
+  val request =
+    NativeAgentLinkRequest(
+      platformPacksRoot = plan.stateRoot.resolve("platform-packs"),
+      skillsRoot = plan.stateRoot.resolve("skills"),
+      home = plan.home,
+    )
   NativeAgentLinkProvider.entries.forEach { provider ->
     runCatching {
       installNativeAgentLinkPort.unlinkNativeAgents(

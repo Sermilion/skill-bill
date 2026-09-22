@@ -78,11 +78,15 @@ class GitSuppressionEvidenceOperationsTest {
     }
   }
 
-  private fun git(repo: Path, vararg args: String): String {
-    val process = ProcessBuilder(listOf("git") + args.toList())
-      .directory(repo.toFile())
-      .redirectErrorStream(true)
-      .start()
+  private fun git(
+    repo: Path,
+    vararg args: String,
+  ): String {
+    val process =
+      ProcessBuilder(listOf("git") + args.toList())
+        .directory(repo.toFile())
+        .redirectErrorStream(true)
+        .start()
     val output = process.inputStream.bufferedReader().readText()
     val code = process.waitFor()
     check(code == 0) { "git ${args.joinToString(" ")} failed ($code): $output" }

@@ -54,7 +54,10 @@ internal fun loadCompositionClosure(rootPack: PlatformManifest): List<PlatformMa
   }
 }
 
-internal fun validateCompositionReferences(pack: PlatformManifest, packsBySlug: Map<String, PlatformManifest>) {
+internal fun validateCompositionReferences(
+  pack: PlatformManifest,
+  packsBySlug: Map<String, PlatformManifest>,
+) {
   val seenTargets = mutableSetOf<Pair<String, String>>()
   pack.codeReviewComposition?.baselineLayers.orEmpty().forEachIndexed { index, layer ->
     val targetLabel = "${layer.platform}/${layer.skill}"
@@ -69,11 +72,12 @@ internal fun validateCompositionReferences(pack: PlatformManifest, packsBySlug: 
         "Platform pack '${pack.slug}': duplicate code_review_composition baseline layer '$targetLabel'.",
       )
     }
-    val targetPack = packsBySlug[layer.platform]
-      ?: invalidManifestSchema(
-        "Platform pack '${pack.slug}': code_review_composition.baseline_layers[$index] references " +
-          "missing platform pack '${layer.platform}'.",
-      )
+    val targetPack =
+      packsBySlug[layer.platform]
+        ?: invalidManifestSchema(
+          "Platform pack '${pack.slug}': code_review_composition.baseline_layers[$index] references " +
+            "missing platform pack '${layer.platform}'.",
+        )
     if (layer.skill !in targetPack.declaredCodeReviewSkillNames()) {
       invalidManifestSchema(
         "Platform pack '${pack.slug}': code_review_composition.baseline_layers[$index] references " +
@@ -89,7 +93,11 @@ internal fun validateCompositionModeSupported(pack: PlatformManifest) {
   }
 }
 
-internal fun validateCompositionModeSupported(sourceSlug: String, index: Int, layer: CodeReviewBaselineLayer) {
+internal fun validateCompositionModeSupported(
+  sourceSlug: String,
+  index: Int,
+  layer: CodeReviewBaselineLayer,
+) {
   val unsupportedReason = unsupportedCompositionModeReason(layer)
   if (unsupportedReason != null) {
     invalidManifestSchema(
@@ -100,19 +108,21 @@ internal fun validateCompositionModeSupported(sourceSlug: String, index: Int, la
   }
 }
 
-internal fun unsupportedCompositionModeReason(layer: CodeReviewBaselineLayer): String? = when (layer.mode) {
-  CodeReviewCompositionMode.KmpBaseline ->
-    if (layer.skill == "bill-${layer.platform}-code-review") {
-      null
-    } else {
-      "Mode '${layer.mode.wireValue}' requires the referenced pack's baseline code-review skill."
-    }
-}
+internal fun unsupportedCompositionModeReason(layer: CodeReviewBaselineLayer): String? =
+  when (layer.mode) {
+    CodeReviewCompositionMode.KmpBaseline ->
+      if (layer.skill == "bill-${layer.platform}-code-review") {
+        null
+      } else {
+        "Mode '${layer.mode.wireValue}' requires the referenced pack's baseline code-review skill."
+      }
+  }
 
 internal fun validateNoCompositionCycles(packs: List<PlatformManifest>) {
-  val graph: Map<String, List<String>> = packs.associate { pack ->
-    pack.slug to pack.codeReviewComposition?.baselineLayers.orEmpty().map { layer -> layer.platform }
-  }
+  val graph: Map<String, List<String>> =
+    packs.associate { pack ->
+      pack.slug to pack.codeReviewComposition?.baselineLayers.orEmpty().map { layer -> layer.platform }
+    }
   val visited = mutableSetOf<String>()
   val visiting = mutableSetOf<String>()
   val stack = mutableListOf<String>()

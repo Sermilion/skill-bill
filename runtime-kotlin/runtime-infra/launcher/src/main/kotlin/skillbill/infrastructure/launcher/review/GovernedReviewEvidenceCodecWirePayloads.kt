@@ -5,15 +5,17 @@ import skillbill.ports.review.model.ReviewEvidenceResult
 import skillbill.review.context.model.execution.ForbiddenReviewOperation
 import skillbill.review.context.model.hunk.ReviewBudgetOutcome
 import skillbill.review.context.model.packet.ReviewExpansionRecord
+
 internal object GovernedReviewEvidenceCodecWirePayloads {
-  fun expansionPayload(record: ReviewExpansionRecord): Map<String, Any?> = linkedMapOf(
-    GovernedReviewEvidencePayloadKeys.EXPANSION_ID to record.expansionId,
-    GovernedReviewEvidencePayloadKeys.ASSIGNMENT_DIGEST to record.assignmentDigest,
-    GovernedReviewEvidencePayloadKeys.REQUESTED_PATH to record.requestedPath,
-    GovernedReviewEvidencePayloadKeys.REACHABILITY_REASON to record.reachabilityReason,
-    GovernedReviewEvidencePayloadKeys.AUTHORIZED to record.authorized,
-    GovernedReviewEvidencePayloadKeys.SEQUENCE to record.sequence,
-  )
+  fun expansionPayload(record: ReviewExpansionRecord): Map<String, Any?> =
+    linkedMapOf(
+      GovernedReviewEvidencePayloadKeys.EXPANSION_ID to record.expansionId,
+      GovernedReviewEvidencePayloadKeys.ASSIGNMENT_DIGEST to record.assignmentDigest,
+      GovernedReviewEvidencePayloadKeys.REQUESTED_PATH to record.requestedPath,
+      GovernedReviewEvidencePayloadKeys.REACHABILITY_REASON to record.reachabilityReason,
+      GovernedReviewEvidencePayloadKeys.AUTHORIZED to record.authorized,
+      GovernedReviewEvidencePayloadKeys.SEQUENCE to record.sequence,
+    )
 
   fun resultPayload(result: ReviewEvidenceResult): Map<String, Any?> {
     val refusal = refusal(result)
@@ -28,14 +30,15 @@ internal object GovernedReviewEvidenceCodecWirePayloads {
     )
   }
 
-  fun budgetPayload(outcome: ReviewBudgetOutcome): Map<String, Any?> = linkedMapOf(
-    GovernedReviewEvidencePayloadKeys.REFUSED to true,
-    GovernedReviewEvidencePayloadKeys.REFUSAL_KIND to "budget_exceeded",
-    GovernedReviewEvidencePayloadKeys.REASON to outcome.type,
-    GovernedReviewEvidencePayloadKeys.BUDGET_KIND to outcome.budgetKind,
-    GovernedReviewEvidencePayloadKeys.CONFIGURED_LIMIT to outcome.configuredLimit,
-    GovernedReviewEvidencePayloadKeys.OBSERVED_VALUE to outcome.observedValue,
-  )
+  fun budgetPayload(outcome: ReviewBudgetOutcome): Map<String, Any?> =
+    linkedMapOf(
+      GovernedReviewEvidencePayloadKeys.REFUSED to true,
+      GovernedReviewEvidencePayloadKeys.REFUSAL_KIND to "budget_exceeded",
+      GovernedReviewEvidencePayloadKeys.REASON to outcome.type,
+      GovernedReviewEvidencePayloadKeys.BUDGET_KIND to outcome.budgetKind,
+      GovernedReviewEvidencePayloadKeys.CONFIGURED_LIMIT to outcome.configuredLimit,
+      GovernedReviewEvidencePayloadKeys.OBSERVED_VALUE to outcome.observedValue,
+    )
 
   private fun refusal(result: ReviewEvidenceResult): Map<String, Any?>? {
     result.forbidden?.let { return forbiddenPayload(it) }
@@ -43,11 +46,12 @@ internal object GovernedReviewEvidenceCodecWirePayloads {
     return null
   }
 
-  private fun forbiddenPayload(forbidden: ForbiddenReviewOperation): Map<String, Any?> = linkedMapOf(
-    GovernedReviewEvidencePayloadKeys.REFUSED to true,
-    GovernedReviewEvidencePayloadKeys.REFUSAL_KIND to "forbidden",
-    GovernedReviewEvidencePayloadKeys.REASON to forbidden.reason,
-    GovernedReviewEvidencePayloadKeys.CATEGORY to forbidden.category,
-    GovernedReviewEvidencePayloadKeys.TARGET to forbidden.target,
-  )
+  private fun forbiddenPayload(forbidden: ForbiddenReviewOperation): Map<String, Any?> =
+    linkedMapOf(
+      GovernedReviewEvidencePayloadKeys.REFUSED to true,
+      GovernedReviewEvidencePayloadKeys.REFUSAL_KIND to "forbidden",
+      GovernedReviewEvidencePayloadKeys.REASON to forbidden.reason,
+      GovernedReviewEvidencePayloadKeys.CATEGORY to forbidden.category,
+      GovernedReviewEvidencePayloadKeys.TARGET to forbidden.target,
+    )
 }

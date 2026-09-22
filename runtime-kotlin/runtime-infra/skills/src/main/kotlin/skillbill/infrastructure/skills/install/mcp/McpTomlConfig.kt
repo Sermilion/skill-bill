@@ -7,10 +7,15 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 object McpTomlConfig {
-  fun register(agent: String, path: Path, command: String): McpMutationResult {
-    val filtered = removeSkillBillSection(readLines(path))
-      .dropLastWhile { it.isBlank() }
-      .toMutableList()
+  fun register(
+    agent: String,
+    path: Path,
+    command: String,
+  ): McpMutationResult {
+    val filtered =
+      removeSkillBillSection(readLines(path))
+        .dropLastWhile { it.isBlank() }
+        .toMutableList()
     filtered += ""
     filtered += "[mcp_servers.skill-bill]"
     filtered += "command = \"${tomlString(command)}\""
@@ -20,7 +25,10 @@ object McpTomlConfig {
     return McpMutationResult(agent, path.toFileLocation(), changed = true)
   }
 
-  fun unregister(agent: String, path: Path): McpMutationResult {
+  fun unregister(
+    agent: String,
+    path: Path,
+  ): McpMutationResult {
     val lines = readLines(path)
     val filtered = removeSkillBillSection(lines)
     val changed = filtered != lines
@@ -38,15 +46,19 @@ object McpTomlConfig {
     val enabledTools: List<String>,
   )
 
-  fun writeGovernedServer(path: Path, server: GovernedServer) {
-    val lines = buildList {
-      add("[mcp_servers.${server.serverName}]")
-      add("command = \"${tomlString(server.command)}\"")
-      add("args = [${server.args.joinToString(", ") { "\"${tomlString(it)}\"" }}]")
-      add("enabled_tools = [${server.enabledTools.joinToString(", ") { "\"${tomlString(it)}\"" }}]")
-      add("[mcp_servers.${server.serverName}.env]")
-      server.env.forEach { (key, value) -> add("$key = \"${tomlString(value)}\"") }
-    }
+  fun writeGovernedServer(
+    path: Path,
+    server: GovernedServer,
+  ) {
+    val lines =
+      buildList {
+        add("[mcp_servers.${server.serverName}]")
+        add("command = \"${tomlString(server.command)}\"")
+        add("args = [${server.args.joinToString(", ") { "\"${tomlString(it)}\"" }}]")
+        add("enabled_tools = [${server.enabledTools.joinToString(", ") { "\"${tomlString(it)}\"" }}]")
+        add("[mcp_servers.${server.serverName}.env]")
+        server.env.forEach { (key, value) -> add("$key = \"${tomlString(value)}\"") }
+      }
     writeLines(path, lines)
   }
 
@@ -72,7 +84,10 @@ object McpTomlConfig {
 
   private fun readLines(path: Path): List<String> = if (Files.exists(path)) Files.readAllLines(path) else emptyList()
 
-  private fun writeLines(path: Path, lines: List<String>) {
+  private fun writeLines(
+    path: Path,
+    lines: List<String>,
+  ) {
     atomicWriteString(path, lines.joinToString("\n"))
   }
 

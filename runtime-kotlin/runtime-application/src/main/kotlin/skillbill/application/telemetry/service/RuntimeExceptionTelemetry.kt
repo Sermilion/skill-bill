@@ -16,18 +16,23 @@ fun enqueueRuntimeException(
   level: String,
 ) {
   val unredacted = level == "full"
-  val payload = mapOf(
-    "workflow_phase" to workflowPhase,
-    "error_type" to (error.javaClass.name.substringAfterLast('.')),
-    "error_message" to if (unredacted) error.message.orEmpty().take(MAX_MESSAGE_LENGTH) else REDACTED_ERROR_MESSAGE,
-    "stack_trace" to redactedStackTrace(error, unredacted),
-  )
+  val payload =
+    mapOf(
+      "workflow_phase" to workflowPhase,
+      "error_type" to (error.javaClass.name.substringAfterLast('.')),
+      "error_message" to if (unredacted) error.message.orEmpty().take(MAX_MESSAGE_LENGTH) else REDACTED_ERROR_MESSAGE,
+      "stack_trace" to redactedStackTrace(error, unredacted),
+    )
   outbox.enqueue(RUNTIME_EXCEPTION_EVENT, JsonCodec.mapToJsonString(payload))
 }
 
-private fun redactedStackTrace(error: Exception, unredacted: Boolean): String = error.stackTrace
-  .filter { unredacted || it.className.startsWith(SKILLBILL_FRAME_PREFIX) }
-  .take(MAX_STACK_FRAMES)
-  .joinToString("\n") { frame ->
-    "${frame.className}.${frame.methodName}:${frame.lineNumber}"
-  }
+private fun redactedStackTrace(
+  error: Exception,
+  unredacted: Boolean,
+): String =
+  error.stackTrace
+    .filter { unredacted || it.className.startsWith(SKILLBILL_FRAME_PREFIX) }
+    .take(MAX_STACK_FRAMES)
+    .joinToString("\n") { frame ->
+      "${frame.className}.${frame.methodName}:${frame.lineNumber}"
+    }

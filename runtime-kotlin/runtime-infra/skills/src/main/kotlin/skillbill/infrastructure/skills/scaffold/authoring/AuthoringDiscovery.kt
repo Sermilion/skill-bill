@@ -15,7 +15,10 @@ import kotlin.io.path.name
 
 private const val PRE_SHELL_PLATFORM_PATH_PARTS = 3
 
-internal fun selectedTargets(repoRoot: Path, skillNames: List<String>): List<AuthoringTarget> {
+internal fun selectedTargets(
+  repoRoot: Path,
+  skillNames: List<String>,
+): List<AuthoringTarget> {
   val targets = discoverTargets(repoRoot)
   if (skillNames.isEmpty()) {
     return targets.values.sortedBy { target -> target.skillName }
@@ -31,20 +34,24 @@ internal fun <T> runWithUpgradeRollback(
   originalBytes: Map<Path, ByteArray>,
   createdPaths: List<Path> = emptyList(),
   block: () -> T,
-): T = try {
-  block()
-} catch (error: SkillBillRuntimeException) {
-  rollbackUpgrade(originalBytes, createdPaths)
-  throw error
-} catch (error: IOException) {
-  rollbackUpgrade(originalBytes, createdPaths)
-  throw error
-} catch (error: IllegalArgumentException) {
-  rollbackUpgrade(originalBytes, createdPaths)
-  throw error
-}
+): T =
+  try {
+    block()
+  } catch (error: SkillBillRuntimeException) {
+    rollbackUpgrade(originalBytes, createdPaths)
+    throw error
+  } catch (error: IOException) {
+    rollbackUpgrade(originalBytes, createdPaths)
+    throw error
+  } catch (error: IllegalArgumentException) {
+    rollbackUpgrade(originalBytes, createdPaths)
+    throw error
+  }
 
-private fun rollbackUpgrade(originalBytes: Map<Path, ByteArray>, createdPaths: List<Path>) {
+private fun rollbackUpgrade(
+  originalBytes: Map<Path, ByteArray>,
+  createdPaths: List<Path>,
+) {
   restoreFiles(originalBytes)
   createdPaths.asReversed().forEach { path ->
     if (path !in originalBytes) {
@@ -53,12 +60,19 @@ private fun rollbackUpgrade(originalBytes: Map<Path, ByteArray>, createdPaths: L
   }
 }
 
-internal fun resolveTarget(repoRoot: Path, skillName: String): AuthoringTarget = discoverTargets(repoRoot)[skillName]
-  ?: throw SkillBillRuntimeException(
-    "Skill '$skillName' is not a content-managed skill with a sibling content.md file.",
-  )
+internal fun resolveTarget(
+  repoRoot: Path,
+  skillName: String,
+): AuthoringTarget =
+  discoverTargets(repoRoot)[skillName]
+    ?: throw SkillBillRuntimeException(
+      "Skill '$skillName' is not a content-managed skill with a sibling content.md file.",
+    )
 
-internal fun discoverTargets(repoRoot: Path, enforceContractVersion: Boolean = true): Map<String, AuthoringTarget> {
+internal fun discoverTargets(
+  repoRoot: Path,
+  enforceContractVersion: Boolean = true,
+): Map<String, AuthoringTarget> {
   val discovered = linkedMapOf<String, AuthoringTarget>()
   discoverPlatformPackManifests(
     repoRoot.resolve("platform-packs"),
@@ -86,7 +100,10 @@ private fun restoreFiles(originalBytes: Map<Path, ByteArray>) {
   originalBytes.forEach { (path, bytes) -> rollbackRestoreBytes(path, bytes) }
 }
 
-private fun recordPackTargets(discovered: MutableMap<String, AuthoringTarget>, pack: PlatformManifest) {
+private fun recordPackTargets(
+  discovered: MutableMap<String, AuthoringTarget>,
+  pack: PlatformManifest,
+) {
   val displayName = pack.displayName ?: displayNameFromSlug(pack.slug)
   pack.declaredFiles.baseline?.let { baseline ->
     val baselineContent = declaredContentFile(baseline.toPath())
@@ -123,7 +140,11 @@ private fun recordPackTargets(discovered: MutableMap<String, AuthoringTarget>, p
   }
 }
 
-private fun recordSkillTarget(repoRoot: Path, discovered: MutableMap<String, AuthoringTarget>, contentFile: Path) {
+private fun recordSkillTarget(
+  repoRoot: Path,
+  discovered: MutableMap<String, AuthoringTarget>,
+  contentFile: Path,
+) {
   val skillFile = contentFile.resolveSibling("SKILL.md")
   val skillName = contentFile.parent.name
   if (skillName in discovered) {
@@ -153,12 +174,13 @@ private fun recordSkillTarget(repoRoot: Path, discovered: MutableMap<String, Aut
 
 private fun declaredContentFile(declaredFile: Path): Path = declaredFile
 
-private fun platformFromSkillPath(relative: Path): String = if (
-  relative.nameCount >= PRE_SHELL_PLATFORM_PATH_PARTS &&
-  relative.getName(0).toString() == "skills" &&
-  !relative.getName(1).toString().startsWith("bill-")
-) {
-  relative.getName(1).toString()
-} else {
-  ""
-}
+private fun platformFromSkillPath(relative: Path): String =
+  if (
+    relative.nameCount >= PRE_SHELL_PLATFORM_PATH_PARTS &&
+    relative.getName(0).toString() == "skills" &&
+    !relative.getName(1).toString().startsWith("bill-")
+  ) {
+    relative.getName(1).toString()
+  } else {
+    ""
+  }

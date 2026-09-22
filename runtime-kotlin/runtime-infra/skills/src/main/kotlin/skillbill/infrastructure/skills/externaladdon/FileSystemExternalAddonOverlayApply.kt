@@ -39,26 +39,36 @@ internal fun mergeIntoManifest(plan: SourcePlan) {
   }
 }
 
-internal fun appendPointers(plan: SourcePlan, root: MutableMap<String, Any?>) {
-  val pointersRoot = root
-    .getOrPut("pointers") { linkedMapOf<String, Any?>() }
-    .asMutableMap(plan.platform, "pointers")
+internal fun appendPointers(
+  plan: SourcePlan,
+  root: MutableMap<String, Any?>,
+) {
+  val pointersRoot =
+    root
+      .getOrPut("pointers") { linkedMapOf<String, Any?>() }
+      .asMutableMap(plan.platform, "pointers")
   plan.pointersToAppend.forEach { (dir, entries) ->
-    val list = pointersRoot
-      .getOrPut(dir) { mutableListOf<Any?>() }
-      .asMutableList(plan.platform, "pointers[$dir]")
+    val list =
+      pointersRoot
+        .getOrPut(dir) { mutableListOf<Any?>() }
+        .asMutableList(plan.platform, "pointers[$dir]")
     entries.forEach { spec -> list.add(linkedMapOf("name" to spec.name, "target" to spec.target)) }
   }
 }
 
-internal fun appendAddonUsage(plan: SourcePlan, root: MutableMap<String, Any?>) {
-  val addonUsageRoot = root
-    .getOrPut("addon_usage") { linkedMapOf<String, Any?>() }
-    .asMutableMap(plan.platform, "addon_usage")
+internal fun appendAddonUsage(
+  plan: SourcePlan,
+  root: MutableMap<String, Any?>,
+) {
+  val addonUsageRoot =
+    root
+      .getOrPut("addon_usage") { linkedMapOf<String, Any?>() }
+      .asMutableMap(plan.platform, "addon_usage")
   plan.addonsToAppend.forEach { (dir, entries) ->
-    val list = addonUsageRoot
-      .getOrPut(dir) { mutableListOf<Any?>() }
-      .asMutableList(plan.platform, "addon_usage[$dir]")
+    val list =
+      addonUsageRoot
+        .getOrPut(dir) { mutableListOf<Any?>() }
+        .asMutableList(plan.platform, "addon_usage[$dir]")
     entries.forEach { selection -> list.add(addonUsageEntry(selection)) }
   }
 }
@@ -77,7 +87,11 @@ internal fun addonUsageEntry(selection: GovernedAddonSelection): MutableMap<Stri
 
 internal fun activationEntry(activation: GovernedAddonActivation): MutableMap<String, Any?> {
   val entry = linkedMapOf<String, Any?>()
-  fun put(field: String, values: List<String>) {
+
+  fun put(
+    field: String,
+    values: List<String>,
+  ) {
     if (values.isNotEmpty()) entry[field] = values.toMutableList()
   }
   put("any_path", activation.anyPath)
@@ -91,26 +105,34 @@ internal fun activationEntry(activation: GovernedAddonActivation): MutableMap<St
   return entry
 }
 
-internal fun Any?.asMutableMap(slug: String, field: String): MutableMap<String, Any?> = when (this) {
-  is MutableMap<*, *> -> {
-    @Suppress("UNCHECKED_CAST")
-    try {
-      this as MutableMap<String, Any?>
-    } catch (error: ClassCastException) {
-      throw manifestStructureError(slug, field, error)
+internal fun Any?.asMutableMap(
+  slug: String,
+  field: String,
+): MutableMap<String, Any?> =
+  when (this) {
+    is MutableMap<*, *> -> {
+      @Suppress("UNCHECKED_CAST")
+      try {
+        this as MutableMap<String, Any?>
+      } catch (error: ClassCastException) {
+        throw manifestStructureError(slug, field, error)
+      }
     }
+    else -> throw manifestStructureError(slug, field, expected = "a mapping", actual = this)
   }
-  else -> throw manifestStructureError(slug, field, expected = "a mapping", actual = this)
-}
 
-internal fun Any?.asMutableList(slug: String, field: String): MutableList<Any?> = when (this) {
-  is MutableList<*> -> {
-    @Suppress("UNCHECKED_CAST")
-    try {
-      this as MutableList<Any?>
-    } catch (error: ClassCastException) {
-      throw manifestStructureError(slug, field, error)
+internal fun Any?.asMutableList(
+  slug: String,
+  field: String,
+): MutableList<Any?> =
+  when (this) {
+    is MutableList<*> -> {
+      @Suppress("UNCHECKED_CAST")
+      try {
+        this as MutableList<Any?>
+      } catch (error: ClassCastException) {
+        throw manifestStructureError(slug, field, error)
+      }
     }
+    else -> throw manifestStructureError(slug, field, expected = "a list", actual = this)
   }
-  else -> throw manifestStructureError(slug, field, expected = "a list", actual = this)
-}

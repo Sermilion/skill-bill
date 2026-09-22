@@ -14,43 +14,46 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class ScaffoldReviewStructureAcceptanceTest {
   @Test
-  fun `platform pack scaffolder emits the complete review structure`() = withReviewStructureUserHome {
-    val repo = seedReviewStructureRepo()
+  fun `platform pack scaffolder emits the complete review structure`() =
+    withReviewStructureUserHome {
+      val repo = seedReviewStructureRepo()
 
-    scaffold(reviewStructurePayload(repo, "platform-pack", "platform" to "java"))
+      scaffold(reviewStructurePayload(repo, "platform-pack", "platform" to "java"))
 
-    val pack = repo.resolve("platform-packs/java")
-    assertSpecialistPointers(pack)
-    assertRenderedSharedContract(repo)
-    assertBaseline(pack)
-    assertFalse(Files.exists(pack.resolve("quality-check")))
-    assertFalse(Files.readString(pack.resolve("platform.yaml")).contains("declared_quality_check_file"))
-    assertNativeAgents(pack)
-    val violations = ReviewSkillStructureValidator.violations(pack)
-    assertEquals(emptyList(), violations, violations.joinToString("\n"))
-    APPROVED_CODE_REVIEW_AREAS.forEach { area ->
-      val content = Files.readString(
-        pack.resolve("code-review/bill-java-code-review-$area/content.md"),
-      )
-      assertContains(content, "internal-for: bill-code-review")
-      assertEquals(
-        listOf("Focus", "Ignore", "Applicability", "Project-Specific Rules"),
-        content.lineSequence().filter { it.startsWith("## ") }.map { it.removePrefix("## ") }.toList(),
-      )
-      assertContains(content, "### Review Rules")
-      assertContains(content, "Verify `Java")
-      assertContains(content, canonicalSeverityCloser(area))
-      assertEquals(
-        canonicalSeverityCloser(area),
-        content.lineSequence().filter { it.startsWith("- ") }.last(),
-      )
-      assertRetiredHeadingsAbsent(content)
-      if (area == "ui") assertUiDeferrals(content)
-      if (area == "ux-accessibility") assertAccessibilityDeferrals(content)
+      val pack = repo.resolve("platform-packs/java")
+      assertSpecialistPointers(pack)
+      assertRenderedSharedContract(repo)
+      assertBaseline(pack)
+      assertFalse(Files.exists(pack.resolve("quality-check")))
+      assertFalse(Files.readString(pack.resolve("platform.yaml")).contains("declared_quality_check_file"))
+      assertNativeAgents(pack)
+      val violations = ReviewSkillStructureValidator.violations(pack)
+      assertEquals(emptyList(), violations, violations.joinToString("\n"))
+      APPROVED_CODE_REVIEW_AREAS.forEach { area ->
+        val content =
+          Files.readString(
+            pack.resolve("code-review/bill-java-code-review-$area/content.md"),
+          )
+        assertContains(content, "internal-for: bill-code-review")
+        assertEquals(
+          listOf("Focus", "Ignore", "Applicability", "Project-Specific Rules"),
+          content.lineSequence().filter { it.startsWith("## ") }.map { it.removePrefix("## ") }.toList(),
+        )
+        assertContains(content, "### Review Rules")
+        assertContains(content, "Verify `Java")
+        assertContains(content, canonicalSeverityCloser(area))
+        assertEquals(
+          canonicalSeverityCloser(area),
+          content.lineSequence().filter { it.startsWith("- ") }.last(),
+        )
+        assertRetiredHeadingsAbsent(content)
+        if (area == "ui") assertUiDeferrals(content)
+        if (area == "ux-accessibility") assertAccessibilityDeferrals(content)
+      }
     }
-  }
 
   private fun assertRenderedSharedContract(repo: Path) {
     val contract =
@@ -119,21 +122,23 @@ class ScaffoldReviewStructureAcceptanceTest {
   private fun assertSpecialistPointers(pack: Path) {
     val manifest = Yaml().load<Map<String, Any?>>(Files.readString(pack.resolve("platform.yaml")))
     val pointers = manifest.getValue("pointers") as Map<*, *>
-    val expected = listOf(
-      mapOf(
-        "name" to "specialist-contract.md",
-        "target" to "orchestration/review-orchestrator/specialist-contract.md",
-      ),
-    )
+    val expected =
+      listOf(
+        mapOf(
+          "name" to "specialist-contract.md",
+          "target" to "orchestration/review-orchestrator/specialist-contract.md",
+        ),
+      )
     APPROVED_CODE_REVIEW_AREAS.forEach { area ->
       assertEquals(expected, pointers["code-review/bill-java-code-review-$area"])
     }
   }
 
-  private fun headings(content: String): List<String> = content.lineSequence()
-    .filter { it.startsWith("## ") }
-    .map { it.removePrefix("## ") }
-    .toList()
+  private fun headings(content: String): List<String> =
+    content.lineSequence()
+      .filter { it.startsWith("## ") }
+      .map { it.removePrefix("## ") }
+      .toList()
 
   private fun assertUiDeferrals(content: String) {
     assertContains(content, "Defer accessibility concerns to the ux-accessibility specialist")

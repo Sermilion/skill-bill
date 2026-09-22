@@ -21,11 +21,12 @@ import kotlin.test.assertTrue
 class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
   @Test
   fun `census verify with extra keys and census fix with finding_ref alias complete the loop`() {
-    val harness = goalCensusHarness(
-      findings = listOf(blockerFinding(REVIEW_FIX_BLOCKER_FINDING_ID)),
-      verifyOutput = fatVerifiedCensus(REVIEW_FIX_BLOCKER_FINDING_ID),
-      implementFixOutput = validJsonOutput("implement_fix").replace("\"finding_id\"", "\"finding_ref\""),
-    )
+    val harness =
+      goalCensusHarness(
+        findings = listOf(blockerFinding(REVIEW_FIX_BLOCKER_FINDING_ID)),
+        verifyOutput = fatVerifiedCensus(REVIEW_FIX_BLOCKER_FINDING_ID),
+        implementFixOutput = validJsonOutput("implement_fix").replace("\"finding_id\"", "\"finding_ref\""),
+      )
 
     val report = runInline(harness)
 
@@ -43,14 +44,16 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
 
   @Test
   fun `findings_verified with zero verified rows launches implement_fix covered by empty entries`() {
-    val harness = goalCensusHarness(
-      findings = listOf(blockerFinding(REVIEW_FIX_BLOCKER_FINDING_ID)),
-      verifyOutput = verifyCensus(
-        verdict = "findings_verified",
-        dispositions = listOf(disposition(REVIEW_FIX_BLOCKER_FINDING_ID, "rejected")),
-      ),
-      implementFixOutput = emptyCensusFix(),
-    )
+    val harness =
+      goalCensusHarness(
+        findings = listOf(blockerFinding(REVIEW_FIX_BLOCKER_FINDING_ID)),
+        verifyOutput =
+          verifyCensus(
+            verdict = "findings_verified",
+            dispositions = listOf(disposition(REVIEW_FIX_BLOCKER_FINDING_ID, "rejected")),
+          ),
+        implementFixOutput = emptyCensusFix(),
+      )
 
     val report = runInline(harness)
 
@@ -62,12 +65,14 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
 
   @Test
   fun `no_findings_verified skips implement_fix even when the census has verified rows`() {
-    val harness = seededVerifyHarness(
-      verifyOutput = verifyCensus(
-        verdict = "no_findings_verified",
-        dispositions = listOf(disposition(REVIEW_FIX_BLOCKER_FINDING_ID, "verified")),
-      ),
-    )
+    val harness =
+      seededVerifyHarness(
+        verifyOutput =
+          verifyCensus(
+            verdict = "no_findings_verified",
+            dispositions = listOf(disposition(REVIEW_FIX_BLOCKER_FINDING_ID, "verified")),
+          ),
+      )
 
     val report = harness.runner.run(harness.request())
 
@@ -80,12 +85,14 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
 
   @Test
   fun `omitted review finding id blocks verify without launching implement_fix`() {
-    val harness = seededVerifyHarness(
-      verifyOutput = verifyCensus(
-        verdict = "findings_verified",
-        dispositions = emptyList(),
-      ),
-    )
+    val harness =
+      seededVerifyHarness(
+        verifyOutput =
+          verifyCensus(
+            verdict = "findings_verified",
+            dispositions = emptyList(),
+          ),
+      )
 
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
 
@@ -101,16 +108,19 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
 
   @Test
   fun `legacy 0_2 repair receipt blocks implement_fix`() {
-    val harness = seededVerifyHarness(
-      verifyOutput = verifyCensus(
-        verdict = "findings_verified",
-        dispositions = listOf(disposition(REVIEW_FIX_BLOCKER_FINDING_ID, "verified")),
-      ),
-      implementFixOutput = censusFix(
-        findingId = REVIEW_FIX_BLOCKER_FINDING_ID,
-        receiptContractVersion = "0.2",
-      ),
-    )
+    val harness =
+      seededVerifyHarness(
+        verifyOutput =
+          verifyCensus(
+            verdict = "findings_verified",
+            dispositions = listOf(disposition(REVIEW_FIX_BLOCKER_FINDING_ID, "verified")),
+          ),
+        implementFixOutput =
+          censusFix(
+            findingId = REVIEW_FIX_BLOCKER_FINDING_ID,
+            receiptContractVersion = "0.2",
+          ),
+      )
 
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
 
@@ -124,14 +134,16 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
 
   @Test
   fun `omitted carried finding blocks implement_fix coverage`() {
-    val harness = goalCensusHarness(
-      findings = listOf(blockerFinding(REVIEW_FIX_BLOCKER_FINDING_ID)),
-      verifyOutput = verifyCensus(
-        verdict = "findings_verified",
-        dispositions = listOf(disposition(REVIEW_FIX_BLOCKER_FINDING_ID, "verified")),
-      ),
-      implementFixOutput = emptyCensusFix(),
-    )
+    val harness =
+      goalCensusHarness(
+        findings = listOf(blockerFinding(REVIEW_FIX_BLOCKER_FINDING_ID)),
+        verifyOutput =
+          verifyCensus(
+            verdict = "findings_verified",
+            dispositions = listOf(disposition(REVIEW_FIX_BLOCKER_FINDING_ID, "verified")),
+          ),
+        implementFixOutput = emptyCensusFix(),
+      )
 
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(runInline(harness))
 
@@ -147,20 +159,24 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
   @Test
   fun `refuted finding is not owed on the repair receipt and lands on the ledger from review identity`() {
     val refutedId = "F-002"
-    val harness = goalCensusHarness(
-      findings = listOf(
-        blockerFinding(REVIEW_FIX_BLOCKER_FINDING_ID),
-        nitFinding(refutedId),
-      ),
-      verifyOutput = verifyCensus(
-        verdict = "findings_verified",
-        dispositions = listOf(
-          disposition(REVIEW_FIX_BLOCKER_FINDING_ID, "verified"),
-          disposition(refutedId, "rejected", reason = "False positive against spec intent."),
-        ),
-      ),
-      implementFixOutput = censusFix(REVIEW_FIX_BLOCKER_FINDING_ID),
-    )
+    val harness =
+      goalCensusHarness(
+        findings =
+          listOf(
+            blockerFinding(REVIEW_FIX_BLOCKER_FINDING_ID),
+            nitFinding(refutedId),
+          ),
+        verifyOutput =
+          verifyCensus(
+            verdict = "findings_verified",
+            dispositions =
+              listOf(
+                disposition(REVIEW_FIX_BLOCKER_FINDING_ID, "verified"),
+                disposition(refutedId, "rejected", reason = "False positive against spec intent."),
+              ),
+          ),
+        implementFixOutput = censusFix(REVIEW_FIX_BLOCKER_FINDING_ID),
+      )
 
     val report = runInline(harness)
 
@@ -177,27 +193,32 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
   private fun runInline(harness: RunnerHarness): FeatureTaskRuntimeRunReport =
     harness.runner.run(harness.request().copy(requestedCodeReviewMode = CodeReviewExecutionMode.INLINE))
 
-  private fun seededVerifyHarness(verifyOutput: String, implementFixOutput: String? = null): RunnerHarness {
+  private fun seededVerifyHarness(
+    verifyOutput: String,
+    implementFixOutput: String? = null,
+  ): RunnerHarness {
     val git = RecordingWorkflowGitOperations().apply { repositoryFingerprintValue = "before-fix" }
-    val harness = runnerHarness(
-      RuntimeHarnessConfig(
-        branchSetup = BranchSetupTestConfig(gitOperations = git),
-        repoRoot = Files.createTempDirectory("skillbill-census-seeded"),
-      ).copy(
-        launcher = RuntimeRecordingLauncher { request ->
-          val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-          when (phaseId) {
-            "verify_findings" -> facts(verifyOutput)
-            "implement_fix" -> {
-              git.repositoryFingerprintValue = "after-fix"
-              facts(implementFixOutput ?: validJsonOutput(phaseId))
-            }
-            else -> facts(validJsonOutput(phaseId))
-          }
-        },
-        validator = realFeatureTaskRuntimePhaseOutputValidator,
-      ),
-    )
+    val harness =
+      runnerHarness(
+        RuntimeHarnessConfig(
+          branchSetup = BranchSetupTestConfig(gitOperations = git),
+          repoRoot = Files.createTempDirectory("skillbill-census-seeded"),
+        ).copy(
+          launcher =
+            RuntimeRecordingLauncher { request ->
+              val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+              when (phaseId) {
+                "verify_findings" -> facts(verifyOutput)
+                "implement_fix" -> {
+                  git.repositoryFingerprintValue = "after-fix"
+                  facts(implementFixOutput ?: validJsonOutput(phaseId))
+                }
+                else -> facts(validJsonOutput(phaseId))
+              }
+            },
+          validator = realFeatureTaskRuntimePhaseOutputValidator,
+        ),
+      )
     harness.seedPhase("preplan", "completed", 1, INVOKED_AGENT, validJsonOutput("preplan"))
     harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, validJsonOutput("plan"))
     harness.seedPhase("implement", "completed", 1, INVOKED_AGENT, validJsonOutput("implement"))
@@ -214,36 +235,39 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
     implementFixOutput: String,
   ): RunnerHarness {
     val repoRoot = Files.createTempDirectory("skillbill-census-goal")
-    val git = RecordingWorkflowGitOperations(currentBranchValue = "feat/existing-runtime-branch")
-      .also { it.headCommitShaValue = "f".repeat(40) }
-      .also { it.repositoryFingerprintValue = "before-fix" }
+    val git =
+      RecordingWorkflowGitOperations(currentBranchValue = "feat/existing-runtime-branch")
+        .also { it.headCommitShaValue = "f".repeat(40) }
+        .also { it.repositoryFingerprintValue = "before-fix" }
     return runnerHarness(
       RuntimeHarnessConfig(
         branchSetup = BranchSetupTestConfig(gitOperations = git),
         repoRoot = repoRoot,
-        goalContinuation = FeatureTaskRuntimeGoalContinuationContext(
-          parentIssueKey = "SKILL-65",
-          subtaskId = 5,
-          goalBranch = "feat/existing-runtime-branch",
-          suppressPr = true,
-          parentWorkflowId = "wfl-parent",
-          reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
-        ),
+        goalContinuation =
+          FeatureTaskRuntimeGoalContinuationContext(
+            parentIssueKey = "SKILL-65",
+            subtaskId = 5,
+            goalBranch = "feat/existing-runtime-branch",
+            suppressPr = true,
+            parentWorkflowId = "wfl-parent",
+            reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
+          ),
         useRealDecompositionPlanner = true,
         reviewDriver = censusReviewDriver(findings),
       ).copy(
-        launcher = RuntimeRecordingLauncher { request ->
-          val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-          when (phaseId) {
-            "verify_findings" -> facts(verifyOutput)
-            "implement_fix" -> {
-              git.repositoryFingerprintValue = "after-fix"
-              git.goalReviewTrackedDelta = "census-fix\n"
-              facts(implementFixOutput)
+        launcher =
+          RuntimeRecordingLauncher { request ->
+            val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+            when (phaseId) {
+              "verify_findings" -> facts(verifyOutput)
+              "implement_fix" -> {
+                git.repositoryFingerprintValue = "after-fix"
+                git.goalReviewTrackedDelta = "census-fix\n"
+                facts(implementFixOutput)
+              }
+              else -> facts(validJsonOutput(phaseId))
             }
-            else -> facts(validJsonOutput(phaseId))
-          }
-        },
+          },
         validator = realFeatureTaskRuntimePhaseOutputValidator,
         agentAssignment = phasePerAgentAssignment(),
       ),
@@ -263,32 +287,36 @@ private fun censusReviewDriver(findings: List<ParallelReviewMergedFinding>): Fea
   FeatureTaskRuntimeReviewDriver { request ->
     harnessPendingVerifyFindingIds = findings.map { it.fNumber }
     ApprovingReviewDriverStub.run(request).copy(
-      mergeResult = ParallelReviewMergeResult(
-        findings = findings,
-        formattedOutput = "findings",
-      ),
+      mergeResult =
+        ParallelReviewMergeResult(
+          findings = findings,
+          formattedOutput = "findings",
+        ),
     )
   }
 
-private fun blockerFinding(findingId: String) = ParallelReviewMergedFinding(
-  fNumber = findingId,
-  agentIds = listOf("agent-review"),
-  severity = ParallelReviewSeverity.BLOCKER,
-  confidence = "High",
-  location = "Foo.kt:1",
-  description = REVIEW_BLOCKER_MESSAGE,
-)
+private fun blockerFinding(findingId: String) =
+  ParallelReviewMergedFinding(
+    fNumber = findingId,
+    agentIds = listOf("agent-review"),
+    severity = ParallelReviewSeverity.BLOCKER,
+    confidence = "High",
+    location = "Foo.kt:1",
+    description = REVIEW_BLOCKER_MESSAGE,
+  )
 
-private fun nitFinding(findingId: String) = ParallelReviewMergedFinding(
-  fNumber = findingId,
-  agentIds = listOf("agent-review"),
-  severity = ParallelReviewSeverity.NIT,
-  confidence = "High",
-  location = "Bar.kt:1",
-  description = NIT_MESSAGE,
-)
+private fun nitFinding(findingId: String) =
+  ParallelReviewMergedFinding(
+    fNumber = findingId,
+    agentIds = listOf("agent-review"),
+    severity = ParallelReviewSeverity.NIT,
+    confidence = "High",
+    location = "Bar.kt:1",
+    description = NIT_MESSAGE,
+  )
 
-private fun seededReviewFinding(): String = """
+private fun seededReviewFinding(): String =
+  """
   {
     "contract_version": "0.6",
     "phase_id": "review",
@@ -304,44 +332,55 @@ private fun seededReviewFinding(): String = """
       "blocker_dispositions": []
     }
   }
-""".trimIndent()
+  """.trimIndent()
 
-private fun disposition(findingId: String, disposition: String, reason: String? = null): String {
+private fun disposition(
+  findingId: String,
+  disposition: String,
+  reason: String? = null,
+): String {
   val reasonField = reason?.let { ""","reason":"$it"""" }.orEmpty()
   return """{"finding_id":"$findingId","disposition":"$disposition","boundary_context_unavailable":true$reasonField}"""
 }
 
-private fun verifyCensus(verdict: String, dispositions: List<String>, extraProduced: String = ""): String {
+private fun verifyCensus(
+  verdict: String,
+  dispositions: List<String>,
+  extraProduced: String = "",
+): String {
   val extra = if (extraProduced.isEmpty()) "" else ",$extraProduced"
   return """
-  {
-    "contract_version": "0.6",
-    "phase_id": "verify_findings",
-    "status": "completed",
-    "summary": "Verified findings.",
-    "verdict": "$verdict",
-    "produced_outputs": {
-      "finding_dispositions": [${dispositions.joinToString(",")}]
-      $extra
+    {
+      "contract_version": "0.6",
+      "phase_id": "verify_findings",
+      "status": "completed",
+      "summary": "Verified findings.",
+      "verdict": "$verdict",
+      "produced_outputs": {
+        "finding_dispositions": [${dispositions.joinToString(",")}]
+        $extra
+      }
     }
-  }
-  """.trimIndent()
+    """.trimIndent()
 }
 
-private fun fatVerifiedCensus(findingId: String): String = verifyCensus(
-  verdict = "findings_verified",
-  dispositions = listOf(
-    """{"finding_id":"$findingId","disposition":"verified","boundary_context_unavailable":true,""" +
-      """"reason":"ignored","severity":"major","location":"ignored.kt","message":"ignored"}""",
-  ),
-  extraProduced = """"legacy_sibling":"ignored"""",
-)
+private fun fatVerifiedCensus(findingId: String): String =
+  verifyCensus(
+    verdict = "findings_verified",
+    dispositions =
+      listOf(
+        """{"finding_id":"$findingId","disposition":"verified","boundary_context_unavailable":true,""" +
+          """"reason":"ignored","severity":"major","location":"ignored.kt","message":"ignored"}""",
+      ),
+    extraProduced = """"legacy_sibling":"ignored"""",
+  )
 
 private fun censusFix(
   findingId: String,
   outcome: String = "addressed",
   receiptContractVersion: String = "0.3",
-): String = """
+): String =
+  """
   {
     "contract_version": "0.6",
     "phase_id": "implement_fix",
@@ -358,9 +397,10 @@ private fun censusFix(
       "reconciled_state": {"reconciled": true, "evidence": "Fixture tree at target state."}
     }
   }
-""".trimIndent()
+  """.trimIndent()
 
-private fun emptyCensusFix(): String = """
+private fun emptyCensusFix(): String =
+  """
   {
     "contract_version": "0.6",
     "phase_id": "implement_fix",
@@ -371,4 +411,4 @@ private fun emptyCensusFix(): String = """
       "reconciled_state": {"reconciled": true, "evidence": "Fixture tree at target state."}
     }
   }
-""".trimIndent()
+  """.trimIndent()

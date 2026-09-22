@@ -10,11 +10,17 @@ import java.nio.file.Path
 import java.util.UUID
 
 internal object DecompositionManifestBundleJournalRecovery {
-  fun recoverPending(parent: Path?, journal: DecompositionManifestBundleJournal) {
+  fun recoverPending(
+    parent: Path?,
+    journal: DecompositionManifestBundleJournal,
+  ) {
     withDecompositionManifestBundleLock(parent, journal.hostPlatform) { journal.recoverPendingUnlocked(parent) }
   }
 
-  fun recoverPendingUnlocked(parent: Path?, journal: DecompositionManifestBundleJournal) {
+  fun recoverPendingUnlocked(
+    parent: Path?,
+    journal: DecompositionManifestBundleJournal,
+  ) {
     if (parent == null || !Files.isDirectory(parent)) return
     val markerGlob =
       "${DecompositionManifestBundleJournal.BUNDLE_PREFIX}*" +
@@ -63,34 +69,38 @@ internal object DecompositionManifestBundleJournalCreate {
     journal: DecompositionManifestBundleJournal,
   ): DecompositionManifestBundleTransaction {
     val transactionId = UUID.randomUUID().toString()
-    val stagingDirectory = parent.resolve(
-      "${DecompositionManifestBundleJournal.BUNDLE_PREFIX}$transactionId" +
-        DecompositionManifestBundleJournal.STAGING_SUFFIX,
-    )
+    val stagingDirectory =
+      parent.resolve(
+        "${DecompositionManifestBundleJournal.BUNDLE_PREFIX}$transactionId" +
+          DecompositionManifestBundleJournal.STAGING_SUFFIX,
+      )
     Files.createDirectories(stagingDirectory)
-    val entries = writes.mapIndexed { index, (path, content) ->
-      val target = path.toAbsolutePath().normalize()
-      val staged = stagingDirectory.resolve("entry-$index")
-      journal.writeAtomically(staged, content)
-      DecompositionManifestBundleEntry(target, staged, sha256Hex(content.toByteArray(Charsets.UTF_8)))
-    }
-    val marker = parent.resolve(
-      "${DecompositionManifestBundleJournal.BUNDLE_PREFIX}$transactionId" +
-        DecompositionManifestBundleJournal.MARKER_SUFFIX,
-    )
+    val entries =
+      writes.mapIndexed { index, (path, content) ->
+        val target = path.toAbsolutePath().normalize()
+        val staged = stagingDirectory.resolve("entry-$index")
+        journal.writeAtomically(staged, content)
+        DecompositionManifestBundleEntry(target, staged, sha256Hex(content.toByteArray(Charsets.UTF_8)))
+      }
+    val marker =
+      parent.resolve(
+        "${DecompositionManifestBundleJournal.BUNDLE_PREFIX}$transactionId" +
+          DecompositionManifestBundleJournal.MARKER_SUFFIX,
+      )
     journal.writeAtomically(
       marker,
       yamlMapper.writeValueAsString(
         mapOf(
           SharedPayloadKeys.CONTRACT_VERSION to DecompositionManifestBundleJournal.BUNDLE_CONTRACT_VERSION,
           DecompositionManifestBundleJournalPayloadKeys.STAGING_DIRECTORY to stagingDirectory.toString(),
-          DecompositionManifestBundleJournalPayloadKeys.ENTRIES to entries.map { entry ->
-            mapOf(
-              DecompositionManifestBundleJournalPayloadKeys.TARGET to entry.target.toString(),
-              DecompositionManifestBundleJournalPayloadKeys.STAGED to entry.staged.toString(),
-              DecompositionManifestBundleJournalPayloadKeys.SHA256 to entry.sha256,
-            )
-          },
+          DecompositionManifestBundleJournalPayloadKeys.ENTRIES to
+            entries.map { entry ->
+              mapOf(
+                DecompositionManifestBundleJournalPayloadKeys.TARGET to entry.target.toString(),
+                DecompositionManifestBundleJournalPayloadKeys.STAGED to entry.staged.toString(),
+                DecompositionManifestBundleJournalPayloadKeys.SHA256 to entry.sha256,
+              )
+            },
         ),
       ),
     )

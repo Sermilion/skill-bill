@@ -11,6 +11,7 @@ import java.net.UnixDomainSocketAddress
 import java.nio.channels.Channels
 import java.nio.channels.SocketChannel
 import java.nio.file.Path
+
 internal class GovernedReviewEvidenceConnection(
   private val channel: SocketChannel,
   val reader: BufferedReader,
@@ -27,7 +28,10 @@ internal class GovernedReviewEvidenceConnection(
   }
 
   companion object {
-    fun connect(socketPath: Path, token: String): GovernedReviewEvidenceConnection {
+    fun connect(
+      socketPath: Path,
+      token: String,
+    ): GovernedReviewEvidenceConnection {
       val connection = openSocketChannel(socketPath)
       val writer = Channels.newOutputStream(connection).bufferedWriter()
       val reader = Channels.newInputStream(connection).bufferedReader()
@@ -50,19 +54,20 @@ internal class GovernedReviewEvidenceConnection(
   }
 }
 
-private fun openSocketChannel(socketPath: Path): SocketChannel = try {
-  SocketChannel.open(UnixDomainSocketAddress.of(socketPath))
-} catch (error: IOException) {
-  throw GovernedReviewEvidenceTransportError(
-    "Governed review evidence endpoint at '$socketPath' is unreachable.",
-    error,
-  )
-} catch (error: UnsupportedOperationException) {
-  throw GovernedReviewEvidenceTransportError(
-    "This platform cannot reach the governed review evidence endpoint at '$socketPath'.",
-    error,
-  )
-}
+private fun openSocketChannel(socketPath: Path): SocketChannel =
+  try {
+    SocketChannel.open(UnixDomainSocketAddress.of(socketPath))
+  } catch (error: IOException) {
+    throw GovernedReviewEvidenceTransportError(
+      "Governed review evidence endpoint at '$socketPath' is unreachable.",
+      error,
+    )
+  } catch (error: UnsupportedOperationException) {
+    throw GovernedReviewEvidenceTransportError(
+      "This platform cannot reach the governed review evidence endpoint at '$socketPath'.",
+      error,
+    )
+  }
 
 private const val UTF8_SINGLE_BYTE_MAX = 0x7f
 private const val UTF8_TWO_BYTE_MAX = 0x7ff
@@ -78,12 +83,13 @@ private fun BufferedReader.readReviewEvidenceFrame(
     val next = read()
     if (next == -1) return frame.toString().takeIf { it.isNotEmpty() }
     if (next == '\n'.code) return frame.toString().removeSuffix("\r")
-    bytes += when {
-      previousHighSurrogate && next.toChar().isLowSurrogate() -> 1
-      next <= UTF8_SINGLE_BYTE_MAX -> 1
-      next <= UTF8_TWO_BYTE_MAX -> 2
-      else -> UTF8_THREE_BYTE_WIDTH
-    }
+    bytes +=
+      when {
+        previousHighSurrogate && next.toChar().isLowSurrogate() -> 1
+        next <= UTF8_SINGLE_BYTE_MAX -> 1
+        next <= UTF8_TWO_BYTE_MAX -> 2
+        else -> UTF8_THREE_BYTE_WIDTH
+      }
     previousHighSurrogate = next.toChar().isHighSurrogate()
     if (bytes > maxBytes) throw GovernedReviewEvidenceTransportError("Governed evidence frame exceeds its byte limit.")
     frame.append(next.toChar())

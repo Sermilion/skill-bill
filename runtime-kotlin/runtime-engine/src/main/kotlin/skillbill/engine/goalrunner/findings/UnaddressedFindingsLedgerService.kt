@@ -18,25 +18,27 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
+
 @Inject
 class UnaddressedFindingsLedgerService(
   private val database: DatabaseSessionFactory,
   private val diagnostics: RuntimeDiagnostics,
 ) {
-  fun ledger(issueKey: String): UnaddressedFindingsLedger = database.read { unitOfWork ->
-    if (!unitOfWork.unaddressedFindings.issueExists(issueKey)) {
-      throw UnaddressedFindingsLedgerAbsentError("No goal exists for issue key '$issueKey'.")
-    }
-    val findings = unitOfWork.unaddressedFindings.fetchLedger(issueKey)
-    findings.forEach { finding ->
-      if (!isValidFinding(issueKey, finding)) {
-        throw InvalidUnaddressedFindingsLedgerSchemaError(
-          "Malformed unaddressed-findings ledger row for issue '$issueKey'.",
-        )
+  fun ledger(issueKey: String): UnaddressedFindingsLedger =
+    database.read { unitOfWork ->
+      if (!unitOfWork.unaddressedFindings.issueExists(issueKey)) {
+        throw UnaddressedFindingsLedgerAbsentError("No goal exists for issue key '$issueKey'.")
       }
+      val findings = unitOfWork.unaddressedFindings.fetchLedger(issueKey)
+      findings.forEach { finding ->
+        if (!isValidFinding(issueKey, finding)) {
+          throw InvalidUnaddressedFindingsLedgerSchemaError(
+            "Malformed unaddressed-findings ledger row for issue '$issueKey'.",
+          )
+        }
+      }
+      UnaddressedFindingsLedger(issueKey, findings)
     }
-    UnaddressedFindingsLedger(issueKey, findings)
-  }
 
   fun verificationDispositions(issueKey: String): List<FeatureTaskRuntimeFindingVerificationDisposition> =
     database.read { unitOfWork ->
@@ -44,16 +46,18 @@ class UnaddressedFindingsLedgerService(
         throw UnaddressedFindingsLedgerAbsentError("No goal exists for issue key '$issueKey'.")
       }
       unitOfWork.unaddressedFindings.workflowIdsForIssue(issueKey).flatMap { workflowId ->
-        val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-          ?: return@flatMap emptyList()
+        val record =
+          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+            ?: return@flatMap emptyList()
         val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
-        val artifactKey = when {
-          artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY] != null ->
-            FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
-          artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY] != null ->
-            FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
-          else -> return@flatMap emptyList()
-        }
+        val artifactKey =
+          when {
+            artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY] != null ->
+              FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
+            artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY] != null ->
+              FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
+            else -> return@flatMap emptyList()
+          }
         val raw = artifacts[artifactKey] ?: return@flatMap emptyList()
         runCatching {
           FeatureTaskRuntimeFindingVerificationDisposition.parseList(
@@ -75,26 +79,32 @@ class UnaddressedFindingsLedgerService(
         throw UnaddressedFindingsLedgerAbsentError("No goal exists for issue key '$issueKey'.")
       }
       unitOfWork.unaddressedFindings.workflowIdsForIssue(issueKey).mapNotNull { workflowId ->
-        val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-          ?: return@mapNotNull null
-        val state = runCatching {
-          GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(
-            FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
-          )
-        }.getOrNull() ?: return@mapNotNull null
+        val record =
+          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+            ?: return@mapNotNull null
+        val state =
+          runCatching {
+            GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(
+              FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+            )
+          }.getOrNull() ?: return@mapNotNull null
         runCatching { state.repairLedger }.getOrNull()
           ?.takeUnless(FeatureTaskRuntimeRepairLedger::isEmpty)
           ?.let { workflowId to it }
       }.toMap()
     }
 
-  private fun isValidFinding(issueKey: String, finding: UnaddressedFinding): Boolean = finding.issueKey == issueKey &&
-    finding.workflowId.isNotBlank() &&
-    finding.subtaskId > 0 &&
-    finding.reviewPassNumber > 0 &&
-    finding.findingOrdinal > 0 &&
-    finding.location.isNotBlank() &&
-    finding.summary.isNotBlank() &&
-    finding.severity in UNADDRESSED_FINDING_SEVERITIES &&
-    finding.issueCategory in UNADDRESSED_FINDING_CATEGORIES
+  private fun isValidFinding(
+    issueKey: String,
+    finding: UnaddressedFinding,
+  ): Boolean =
+    finding.issueKey == issueKey &&
+      finding.workflowId.isNotBlank() &&
+      finding.subtaskId > 0 &&
+      finding.reviewPassNumber > 0 &&
+      finding.findingOrdinal > 0 &&
+      finding.location.isNotBlank() &&
+      finding.summary.isNotBlank() &&
+      finding.severity in UNADDRESSED_FINDING_SEVERITIES &&
+      finding.issueCategory in UNADDRESSED_FINDING_CATEGORIES
 }

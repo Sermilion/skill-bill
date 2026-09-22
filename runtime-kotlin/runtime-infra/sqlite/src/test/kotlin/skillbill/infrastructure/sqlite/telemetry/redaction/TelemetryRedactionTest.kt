@@ -72,7 +72,10 @@ class TelemetryRedactionTest {
     assertEquals("", redactIssueKey("", "full", "salt-a"))
   }
 
-  private fun tableExists(connection: Connection, tableName: String): Boolean =
+  private fun tableExists(
+    connection: Connection,
+    tableName: String,
+  ): Boolean =
     connection.prepareStatement("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").use { statement ->
       statement.setString(1, tableName)
       statement.executeQuery().use { resultSet -> resultSet.next() }

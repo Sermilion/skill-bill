@@ -4,6 +4,7 @@ import java.sql.Connection
 
 internal object DatabaseColumnMigrationsEnsure {
   private val safeIdentifierPattern = Regex("^[a-z_][a-z0-9_]*$")
+
   fun ensureQualityCheckSessionColumns(connection: Connection) {
     ensureColumn(connection, "quality_check_sessions", "started_at", "TEXT NOT NULL DEFAULT ''")
     backfillBlankColumn(connection, "quality_check_sessions", "started_at", "CURRENT_TIMESTAMP")
@@ -30,7 +31,10 @@ internal object DatabaseColumnMigrationsEnsure {
     ensureStaleReasonColumn(connection, "quality_check_sessions")
   }
 
-  private fun ensureStaleReasonColumn(connection: Connection, tableName: String) {
+  private fun ensureStaleReasonColumn(
+    connection: Connection,
+    tableName: String,
+  ) {
     ensureColumn(connection, tableName, "stale_reason", "TEXT")
   }
 
@@ -240,7 +244,12 @@ internal object DatabaseColumnMigrationsEnsure {
     return true
   }
 
-  fun backfillBlankColumn(connection: Connection, tableName: String, columnName: String, expression: String) {
+  fun backfillBlankColumn(
+    connection: Connection,
+    tableName: String,
+    columnName: String,
+    expression: String,
+  ) {
     require(tableName.matches(safeIdentifierPattern)) { "Unsafe table name: '$tableName'" }
     require(columnName.matches(safeIdentifierPattern)) { "Unsafe column name: '$columnName'" }
     connection.createStatement().use { statement ->
@@ -254,7 +263,10 @@ internal object DatabaseColumnMigrationsEnsure {
     }
   }
 
-  fun tableColumnNames(connection: Connection, tableName: String): Set<String> =
+  fun tableColumnNames(
+    connection: Connection,
+    tableName: String,
+  ): Set<String> =
     connection.createStatement().use { statement ->
       statement.executeQuery("PRAGMA table_info($tableName)").use { resultSet ->
         buildSet {

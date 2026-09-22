@@ -38,6 +38,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class TelemetryLevelMutationServiceTest {
   @Test
   fun `clears disabled outbox inside application transaction`() {
@@ -56,11 +57,12 @@ class TelemetryLevelMutationServiceTest {
       )
     val database = FakeTelemetryDatabaseSessionFactory(outboxRepository)
     val configStore = FakeMutationTelemetryConfigStore()
-    val service = TelemetryLevelMutationService(
-      database = database,
-      settingsProvider = DisabledMutationTelemetrySettingsProvider,
-      configStore = configStore,
-    )
+    val service =
+      TelemetryLevelMutationService(
+        database = database,
+        settingsProvider = DisabledMutationTelemetrySettingsProvider,
+        configStore = configStore,
+      )
 
     val result = service.setLevel("off")
 
@@ -75,11 +77,12 @@ class TelemetryLevelMutationServiceTest {
   fun `downgrade from full to anonymous clears the outbox inside a transaction`() {
     val outboxRepository = MutationTelemetryOutboxRepository(mutableListOf(outboxRecord(1), outboxRecord(2)))
     val database = FakeTelemetryDatabaseSessionFactory(outboxRepository)
-    val service = TelemetryLevelMutationService(
-      database = database,
-      settingsProvider = LeveledMutationTelemetrySettingsProvider("full"),
-      configStore = FakeMutationTelemetryConfigStore(),
-    )
+    val service =
+      TelemetryLevelMutationService(
+        database = database,
+        settingsProvider = LeveledMutationTelemetrySettingsProvider("full"),
+        configStore = FakeMutationTelemetryConfigStore(),
+      )
 
     val result = service.setLevel("anonymous")
 
@@ -93,11 +96,12 @@ class TelemetryLevelMutationServiceTest {
     for ((current, next) in listOf("anonymous" to "full", "full" to "full")) {
       val outboxRepository = MutationTelemetryOutboxRepository(mutableListOf(outboxRecord(1)))
       val database = FakeTelemetryDatabaseSessionFactory(outboxRepository)
-      val service = TelemetryLevelMutationService(
-        database = database,
-        settingsProvider = LeveledMutationTelemetrySettingsProvider(current),
-        configStore = FakeMutationTelemetryConfigStore(),
-      )
+      val service =
+        TelemetryLevelMutationService(
+          database = database,
+          settingsProvider = LeveledMutationTelemetrySettingsProvider(current),
+          configStore = FakeMutationTelemetryConfigStore(),
+        )
 
       val result = service.setLevel(next)
 
@@ -110,11 +114,12 @@ class TelemetryLevelMutationServiceTest {
   @Test
   fun `an unrecognized current level fails closed and clears the outbox`() {
     val outboxRepository = MutationTelemetryOutboxRepository(mutableListOf(outboxRecord(1)))
-    val service = TelemetryLevelMutationService(
-      database = FakeTelemetryDatabaseSessionFactory(outboxRepository),
-      settingsProvider = LeveledMutationTelemetrySettingsProvider("bogus"),
-      configStore = FakeMutationTelemetryConfigStore(),
-    )
+    val service =
+      TelemetryLevelMutationService(
+        database = FakeTelemetryDatabaseSessionFactory(outboxRepository),
+        settingsProvider = LeveledMutationTelemetrySettingsProvider("bogus"),
+        configStore = FakeMutationTelemetryConfigStore(),
+      )
 
     assertEquals(1, service.setLevel("anonymous").clearedEvents)
     assertEquals(0, outboxRepository.pendingCount())
@@ -122,15 +127,17 @@ class TelemetryLevelMutationServiceTest {
 
   @Test
   fun `disable rewrites the config file in place instead of deleting it`() {
-    val fixture = telemetryStoreFixture(
-      seed = """{"install_id":"seeded-id","telemetry":{"level":"anonymous","proxy_url":"","batch_size":50}}""",
-    )
+    val fixture =
+      telemetryStoreFixture(
+        seed = """{"install_id":"seeded-id","telemetry":{"level":"anonymous","proxy_url":"","batch_size":50}}""",
+      )
 
-    val (settings, cleared) = TelemetryConfigMutations.setTelemetryLevel(
-      level = "off",
-      configStore = fixture.configStore,
-      settingsProvider = fixture.settingsProvider,
-    )
+    val (settings, cleared) =
+      TelemetryConfigMutations.setTelemetryLevel(
+        level = "off",
+        configStore = fixture.configStore,
+        settingsProvider = fixture.settingsProvider,
+      )
 
     assertTrue(Files.exists(fixture.configPath), "disable must leave config.json on disk")
     assertContains(Files.readString(fixture.configPath), "\"level\":\"off\"")
@@ -141,9 +148,10 @@ class TelemetryLevelMutationServiceTest {
 
   @Test
   fun `off to anonymous round trip reuses the retained install_id`() {
-    val fixture = telemetryStoreFixture(
-      seed = """{"install_id":"seeded-id","telemetry":{"level":"anonymous","proxy_url":"","batch_size":50}}""",
-    )
+    val fixture =
+      telemetryStoreFixture(
+        seed = """{"install_id":"seeded-id","telemetry":{"level":"anonymous","proxy_url":"","batch_size":50}}""",
+      )
 
     TelemetryConfigMutations.setTelemetryLevel(
       level = "off",
@@ -152,11 +160,12 @@ class TelemetryLevelMutationServiceTest {
     )
     assertContains(Files.readString(fixture.configPath), "\"install_id\":\"seeded-id\"")
 
-    val (settings, _) = TelemetryConfigMutations.setTelemetryLevel(
-      level = "anonymous",
-      configStore = fixture.configStore,
-      settingsProvider = fixture.settingsProvider,
-    )
+    val (settings, _) =
+      TelemetryConfigMutations.setTelemetryLevel(
+        level = "anonymous",
+        configStore = fixture.configStore,
+        settingsProvider = fixture.settingsProvider,
+      )
 
     assertEquals("seeded-id", settings.installId, "re-enable must not mint a fresh install id")
     assertTrue(settings.enabled)
@@ -164,13 +173,15 @@ class TelemetryLevelMutationServiceTest {
 
   @Test
   fun `disable preserves external addon sources and execution matrix`() {
-    val fixture = telemetryStoreFixture(
-      seed = """
+    val fixture =
+      telemetryStoreFixture(
+        seed =
+          """
       |{"install_id":"seeded-id","external_addon_sources":["/tmp/addons","/tmp/more"],
       |"execution_matrix":{"default":"claude","review":"codex"},
       |"telemetry":{"level":"anonymous","proxy_url":"","batch_size":50}}
-      """.trimMargin(),
-    )
+          """.trimMargin(),
+      )
 
     TelemetryConfigMutations.setTelemetryLevel(
       level = "off",
@@ -185,22 +196,25 @@ class TelemetryLevelMutationServiceTest {
 
   @Test
   fun `disable clears queued outbox events and reports the cleared count`() {
-    val fixture = telemetryStoreFixture(
-      seed = """{"install_id":"seeded-id","telemetry":{"level":"anonymous","proxy_url":"","batch_size":50}}""",
-    )
-    val outbox = MutationTelemetryOutboxRepository(
-      mutableListOf(
-        outboxRecord(1),
-        outboxRecord(2),
-      ),
-    )
+    val fixture =
+      telemetryStoreFixture(
+        seed = """{"install_id":"seeded-id","telemetry":{"level":"anonymous","proxy_url":"","batch_size":50}}""",
+      )
+    val outbox =
+      MutationTelemetryOutboxRepository(
+        mutableListOf(
+          outboxRecord(1),
+          outboxRecord(2),
+        ),
+      )
 
-    val (_, cleared) = TelemetryConfigMutations.setTelemetryLevel(
-      level = "off",
-      configStore = fixture.configStore,
-      settingsProvider = fixture.settingsProvider,
-      outbox = outbox,
-    )
+    val (_, cleared) =
+      TelemetryConfigMutations.setTelemetryLevel(
+        level = "off",
+        configStore = fixture.configStore,
+        settingsProvider = fixture.settingsProvider,
+        outbox = outbox,
+      )
 
     assertEquals(2, cleared)
     assertEquals(0, outbox.pendingCount())
@@ -208,9 +222,10 @@ class TelemetryLevelMutationServiceTest {
 
   @Test
   fun `no events are queued while the level is off`() {
-    val fixture = telemetryStoreFixture(
-      seed = """{"install_id":"seeded-id","telemetry":{"level":"anonymous","proxy_url":"","batch_size":50}}""",
-    )
+    val fixture =
+      telemetryStoreFixture(
+        seed = """{"install_id":"seeded-id","telemetry":{"level":"anonymous","proxy_url":"","batch_size":50}}""",
+      )
     val outbox = MutationTelemetryOutboxRepository(mutableListOf())
     TelemetryConfigMutations.setTelemetryLevel(
       level = "off",
@@ -219,16 +234,18 @@ class TelemetryLevelMutationServiceTest {
       outbox = outbox,
     )
 
-    val service = LifecycleTelemetryService(
-      database = FakeTelemetryDatabaseSessionFactory(outbox),
-      settingsProvider = fixture.settingsProvider,
-      clock = Clock.systemUTC(),
-      diagnostics = NoopRuntimeDiagnostics,
-    )
+    val service =
+      LifecycleTelemetryService(
+        database = FakeTelemetryDatabaseSessionFactory(outbox),
+        settingsProvider = fixture.settingsProvider,
+        clock = Clock.systemUTC(),
+        diagnostics = NoopRuntimeDiagnostics,
+      )
 
-    val result = service.featureTaskRuntimeStarted(
-      FeatureTaskRuntimeStartedRequest(featureSize = "MEDIUM", issueKey = "SKILL-163", featureName = "telemetry"),
-    )
+    val result =
+      service.featureTaskRuntimeStarted(
+        FeatureTaskRuntimeStartedRequest(featureSize = "MEDIUM", issueKey = "SKILL-163", featureName = "telemetry"),
+      )
 
     assertEquals("skipped", result.toPayload()["status"], "level off must skip lifecycle emission")
     assertEquals(0, outbox.pendingCount(), "nothing may be queued while telemetry is off")
@@ -247,10 +264,11 @@ private fun telemetryStoreFixture(seed: String): TelemetryStoreFixture {
   val configPath = home.resolve(".config").resolve("skill-bill").resolve("config.json")
   Files.createDirectories(configPath.parent)
   Files.writeString(configPath, seed)
-  val context = EnvironmentContext(
-    environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath.toString()),
-    userHome = home,
-  )
+  val context =
+    EnvironmentContext(
+      environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath.toString()),
+      userHome = home,
+    )
   val configStore = FileTelemetryConfigStore(context)
   return TelemetryStoreFixture(
     configPath = configPath,
@@ -259,14 +277,15 @@ private fun telemetryStoreFixture(seed: String): TelemetryStoreFixture {
   )
 }
 
-private fun outboxRecord(id: Long): TelemetryOutboxRecord = TelemetryOutboxRecord(
-  id = id,
-  eventName = "skillbill_feature_implement_started",
-  payloadJson = """{"name":"ok"}""",
-  createdAt = "2026-04-24 00:00:00",
-  syncedAt = null,
-  lastError = "",
-)
+private fun outboxRecord(id: Long): TelemetryOutboxRecord =
+  TelemetryOutboxRecord(
+    id = id,
+    eventName = "skillbill_feature_implement_started",
+    payloadJson = """{"name":"ok"}""",
+    createdAt = "2026-04-24 00:00:00",
+    syncedAt = null,
+    lastError = "",
+  )
 
 private class FakeTelemetryDatabaseSessionFactory(
   private val telemetryOutbox: TelemetryOutboxRepository,
@@ -290,29 +309,33 @@ private class FakeTelemetryDatabaseSessionFactory(
     return block(fakeUnitOfWork())
   }
 
-  private fun fakeUnitOfWork(): UnitOfWork = object : UnitOfWorkDefaults() {
-    override val dbPath: Path = this@FakeTelemetryDatabaseSessionFactory.dbPath
-    override val reviews: ReviewRepository
-      get() = error("Unexpected reviews")
-    override val learnings: LearningRepository
-      get() = error("Unexpected learnings")
-    override val lifecycleTelemetry: LifecycleTelemetryRepository
-      get() = error("Unexpected lifecycleTelemetry")
-    override val telemetryReconciliation: TelemetryReconciliationRepository
-      get() = error("Unexpected telemetryReconciliation")
-    override val telemetryOutbox: TelemetryOutboxRepository = this@FakeTelemetryDatabaseSessionFactory.telemetryOutbox
-    override val workflowStates: WorkflowStateRepository
-      get() = error("Unexpected workflowStates")
-    override val workList = EmptyWorkListRepository
-    override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
-    override val goalRunnerControls = EmptyGoalRunnerControlRepository
-  }
+  private fun fakeUnitOfWork(): UnitOfWork =
+    object : UnitOfWorkDefaults() {
+      override val dbPath: Path = this@FakeTelemetryDatabaseSessionFactory.dbPath
+      override val reviews: ReviewRepository
+        get() = error("Unexpected reviews")
+      override val learnings: LearningRepository
+        get() = error("Unexpected learnings")
+      override val lifecycleTelemetry: LifecycleTelemetryRepository
+        get() = error("Unexpected lifecycleTelemetry")
+      override val telemetryReconciliation: TelemetryReconciliationRepository
+        get() = error("Unexpected telemetryReconciliation")
+      override val telemetryOutbox: TelemetryOutboxRepository = this@FakeTelemetryDatabaseSessionFactory.telemetryOutbox
+      override val workflowStates: WorkflowStateRepository
+        get() = error("Unexpected workflowStates")
+      override val workList = EmptyWorkListRepository
+      override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
+      override val goalRunnerControls = EmptyGoalRunnerControlRepository
+    }
 }
 
 private class MutationTelemetryOutboxRepository(
   private val rows: MutableList<TelemetryOutboxRecord>,
 ) : TelemetryOutboxRepository {
-  override fun enqueue(eventName: String, payloadJson: String): Long {
+  override fun enqueue(
+    eventName: String,
+    payloadJson: String,
+  ): Long {
     val id = (rows.maxOfOrNull(TelemetryOutboxRecord::id) ?: 0L) + 1
     rows +=
       TelemetryOutboxRecord(
@@ -337,8 +360,10 @@ private class MutationTelemetryOutboxRepository(
 
   override fun lastSyncedAt(): String? = rows.mapNotNull(TelemetryOutboxRecord::syncedAt).maxOrNull()
 
-  override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult =
-    TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
+  override fun markSynced(
+    eventIds: List<Long>,
+    claimToken: String,
+  ): TelemetryOutboxSettlementResult = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
 
   override fun markFailed(
     eventIds: List<Long>,
@@ -360,38 +385,41 @@ private class MutationTelemetryOutboxRepository(
 }
 
 private class LeveledMutationTelemetrySettingsProvider(private val level: String) : TelemetrySettingsProvider {
-  override fun load(materialize: Boolean): TelemetrySettings = TelemetrySettings(
-    configPath = Path.of("/fake/config.json").toFileLocation(),
-    level = level,
-    enabled = level != "off",
-    installId = "existing",
-    proxyUrl = "",
-    customProxyUrl = null,
-    batchSize = 50,
-  )
+  override fun load(materialize: Boolean): TelemetrySettings =
+    TelemetrySettings(
+      configPath = Path.of("/fake/config.json").toFileLocation(),
+      level = level,
+      enabled = level != "off",
+      installId = "existing",
+      proxyUrl = "",
+      customProxyUrl = null,
+      batchSize = 50,
+    )
 }
 
 private object DisabledMutationTelemetrySettingsProvider : TelemetrySettingsProvider {
-  override fun load(materialize: Boolean): TelemetrySettings = TelemetrySettings(
-    configPath = Path.of("/fake/config.json").toFileLocation(),
-    level = "off",
-    enabled = false,
-    installId = "",
-    proxyUrl = "",
-    customProxyUrl = null,
-    batchSize = 50,
-  )
+  override fun load(materialize: Boolean): TelemetrySettings =
+    TelemetrySettings(
+      configPath = Path.of("/fake/config.json").toFileLocation(),
+      level = "off",
+      enabled = false,
+      installId = "",
+      proxyUrl = "",
+      customProxyUrl = null,
+      batchSize = 50,
+    )
 }
 
 private class FakeMutationTelemetryConfigStore : TelemetryConfigStore {
-  var document: TelemetryConfigDocument = TelemetryConfigDocument(
-    TelemetryOpenDocument.from(
-      mapOf(
-        "install_id" to "existing",
-        "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 50),
+  var document: TelemetryConfigDocument =
+    TelemetryConfigDocument(
+      TelemetryOpenDocument.from(
+        mapOf(
+          "install_id" to "existing",
+          "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 50),
+        ),
       ),
-    ),
-  )
+    )
 
   override fun stateDir(): Path = Path.of("/fake")
 

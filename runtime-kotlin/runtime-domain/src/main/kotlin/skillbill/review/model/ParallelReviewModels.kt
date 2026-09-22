@@ -57,10 +57,11 @@ data class ParallelReviewMergedFinding(
   val sourceFindingRefs: List<String> = emptyList(),
 ) {
   val hasRecordedVerdict: Boolean
-    get() = claimVerdict != null ||
-      scopeDisposition != null ||
-      severityAdjustment != null ||
-      sourceVerdicts.isNotEmpty()
+    get() =
+      claimVerdict != null ||
+        scopeDisposition != null ||
+        severityAdjustment != null ||
+        sourceVerdicts.isNotEmpty()
 }
 
 data class ParallelReviewMergeResult(

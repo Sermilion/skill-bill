@@ -1,4 +1,5 @@
 package skillbill.review.context.model.execution
+
 class GovernedReviewJsonRpcArguments private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {

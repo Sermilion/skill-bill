@@ -9,17 +9,19 @@ import kotlin.test.assertEquals
 
 class ReviewOutputClassificationTest {
   @Test fun `only a normal zero-exit envelope can be admitted or repaired`() {
-    val valid = classifyReviewOutput(
-      facts(FactsFixture(exitStatus = 0, stdout = "NO_FINDINGS")),
-      resultEnvelopeValid = true,
-    )
+    val valid =
+      classifyReviewOutput(
+        facts(FactsFixture(exitStatus = 0, stdout = "NO_FINDINGS")),
+        resultEnvelopeValid = true,
+      )
     assertEquals(ReviewProcessOutcome.ZERO_EXIT, valid.processOutcome)
     assertEquals(ReviewOutputAdmission.SUCCESS, valid.admission)
 
-    val repairable = classifyReviewOutput(
-      facts(FactsFixture(exitStatus = 0, stdout = "not-an-envelope")),
-      resultEnvelopeValid = false,
-    )
+    val repairable =
+      classifyReviewOutput(
+        facts(FactsFixture(exitStatus = 0, stdout = "not-an-envelope")),
+        resultEnvelopeValid = false,
+      )
     assertEquals(ReviewOutputAdmission.SCHEMA_REPAIR_ELIGIBLE, repairable.admission)
   }
 
@@ -51,14 +53,15 @@ class ReviewOutputClassificationTest {
     val stdoutTruncated: Boolean = false,
   )
 
-  private fun facts(fixture: FactsFixture) = AgentRunLaunchFacts(
-    agent = InstallAgent.CODEX,
-    exitStatus = fixture.exitStatus,
-    stdout = fixture.stdout,
-    stderr = "",
-    timedOut = fixture.timedOut,
-    interrupted = fixture.interrupted,
-    spawnFailed = fixture.spawnFailed,
-    stdoutTruncated = fixture.stdoutTruncated,
-  )
+  private fun facts(fixture: FactsFixture) =
+    AgentRunLaunchFacts(
+      agent = InstallAgent.CODEX,
+      exitStatus = fixture.exitStatus,
+      stdout = fixture.stdout,
+      stderr = "",
+      timedOut = fixture.timedOut,
+      interrupted = fixture.interrupted,
+      spawnFailed = fixture.spawnFailed,
+      stdoutTruncated = fixture.stdoutTruncated,
+    )
 }

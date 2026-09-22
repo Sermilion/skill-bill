@@ -36,19 +36,22 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
         "'${envelope.consumerPhaseId}'."
     }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
-    "record_kind" to "delivered_projection",
-    SharedPayloadKeys.WORKFLOW_ID to workflowId,
-    "consumer_phase_id" to consumerPhaseId,
-    "consumer_delivery_iteration" to iteration,
-    "source_producer_iterations" to sourceProducerIterations.map {
-      mapOf(SharedPayloadKeys.PHASE_ID to it.phaseId, "iteration" to it.iteration)
-    },
-    REPOSITORY_CHECKPOINT_FIELD to
-      mapOf(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT to repositoryCheckpointFingerprint),
-    "handoff_envelope" to envelope.toEnvelopeMap(),
-  )
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
+      "record_kind" to "delivered_projection",
+      SharedPayloadKeys.WORKFLOW_ID to workflowId,
+      "consumer_phase_id" to consumerPhaseId,
+      "consumer_delivery_iteration" to iteration,
+      "source_producer_iterations" to
+        sourceProducerIterations.map {
+          mapOf(SharedPayloadKeys.PHASE_ID to it.phaseId, "iteration" to it.iteration)
+        },
+      REPOSITORY_CHECKPOINT_FIELD to
+        mapOf(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT to repositoryCheckpointFingerprint),
+      "handoff_envelope" to envelope.toEnvelopeMap(),
+    )
 
   companion object {
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDeliveredProjectionRecord {
@@ -61,9 +64,10 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
     }
 
     private fun requireSupportedPersistenceContract(raw: Map<String, Any?>) {
-      val contractVersion = raw[SharedPayloadKeys.CONTRACT_VERSION] as? String ?: missing(
-        SharedPayloadKeys.CONTRACT_VERSION,
-      )
+      val contractVersion =
+        raw[SharedPayloadKeys.CONTRACT_VERSION] as? String ?: missing(
+          SharedPayloadKeys.CONTRACT_VERSION,
+        )
       if (contractVersion != FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION) {
         throw InvalidWorkflowStateSchemaError(
           "Feature-task-runtime delivered projection uses unsupported persistence contract version " +
@@ -81,18 +85,21 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
       }
     }
 
-    private fun decodeDeliveredProjection(raw: Map<String, Any?>) = FeatureTaskRuntimeDeliveredProjectionRecord(
-      workflowId = raw[SharedPayloadKeys.WORKFLOW_ID] as? String ?: missing(SharedPayloadKeys.WORKFLOW_ID),
-      consumerPhaseId = raw["consumer_phase_id"] as? String ?: missing("consumer_phase_id"),
-      iteration = (raw["consumer_delivery_iteration"] as? Number)?.toInt()
-        ?: missing("consumer_delivery_iteration"),
-      envelope = FeatureTaskRuntimeHandoffEnvelope.fromEnvelopeMap(
-        JsonCodec.anyToStringAnyMap(raw["handoff_envelope"])
+    private fun decodeDeliveredProjection(raw: Map<String, Any?>) =
+      FeatureTaskRuntimeDeliveredProjectionRecord(
+        workflowId = raw[SharedPayloadKeys.WORKFLOW_ID] as? String ?: missing(SharedPayloadKeys.WORKFLOW_ID),
+        consumerPhaseId = raw["consumer_phase_id"] as? String ?: missing("consumer_phase_id"),
+        iteration =
+          (raw["consumer_delivery_iteration"] as? Number)?.toInt()
+            ?: missing("consumer_delivery_iteration"),
+        envelope =
+          FeatureTaskRuntimeHandoffEnvelope.fromEnvelopeMap(
+            JsonCodec.anyToStringAnyMap(raw["handoff_envelope"])
 
-          ?: missing("handoff_envelope"),
-      ),
-      sourceProducerIterations = decodeSourceProducerIterations(raw),
-    )
+              ?: missing("handoff_envelope"),
+          ),
+        sourceProducerIterations = decodeSourceProducerIterations(raw),
+      )
 
     private fun decodeSourceProducerIterations(raw: Map<String, Any?>): List<FeatureTaskRuntimeProducerIteration> =
       (raw["source_producer_iterations"] as? List<*>)
@@ -100,8 +107,9 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
           val map = JsonCodec.anyToStringAnyMap(identity) ?: missing("source_producer_iterations")
           FeatureTaskRuntimeProducerIteration(
             phaseId = map[SharedPayloadKeys.PHASE_ID] as? String ?: missing("source_producer_iterations.phase_id"),
-            iteration = (map["iteration"] as? Number)?.toInt()
-              ?: missing("source_producer_iterations.iteration"),
+            iteration =
+              (map["iteration"] as? Number)?.toInt()
+                ?: missing("source_producer_iterations.iteration"),
           )
         } ?: missing("source_producer_iterations")
 
@@ -109,10 +117,12 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
       raw: Map<String, Any?>,
       record: FeatureTaskRuntimeDeliveredProjectionRecord,
     ) {
-      val checkpoint = JsonCodec.anyToStringAnyMap(raw[REPOSITORY_CHECKPOINT_FIELD])
-        ?: missing(REPOSITORY_CHECKPOINT_FIELD)
-      val persistedFingerprint = checkpoint[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT] as? String
-        ?: missing("repository_checkpoint.fingerprint")
+      val checkpoint =
+        JsonCodec.anyToStringAnyMap(raw[REPOSITORY_CHECKPOINT_FIELD])
+          ?: missing(REPOSITORY_CHECKPOINT_FIELD)
+      val persistedFingerprint =
+        checkpoint[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT] as? String
+          ?: missing("repository_checkpoint.fingerprint")
       if (persistedFingerprint != record.repositoryCheckpointFingerprint) {
         throw InvalidWorkflowStateSchemaError(
           "Feature-task-runtime delivered projection checkpoint identity does not match its validated envelope; " +
@@ -122,16 +132,17 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
     }
 
     private fun requireExactDeliveredProjectionFields(raw: Map<String, Any?>) {
-      val expected = setOf(
-        SharedPayloadKeys.CONTRACT_VERSION,
-        "record_kind",
-        SharedPayloadKeys.WORKFLOW_ID,
-        "consumer_phase_id",
-        "consumer_delivery_iteration",
-        "source_producer_iterations",
-        REPOSITORY_CHECKPOINT_FIELD,
-        "handoff_envelope",
-      )
+      val expected =
+        setOf(
+          SharedPayloadKeys.CONTRACT_VERSION,
+          "record_kind",
+          SharedPayloadKeys.WORKFLOW_ID,
+          "consumer_phase_id",
+          "consumer_delivery_iteration",
+          "source_producer_iterations",
+          REPOSITORY_CHECKPOINT_FIELD,
+          "handoff_envelope",
+        )
       val unexpected = raw.keys - expected
       if (unexpected.isNotEmpty()) {
         throw InvalidWorkflowStateSchemaError(
@@ -141,9 +152,10 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
       }
     }
 
-    private fun missing(field: String): Nothing = throw InvalidWorkflowStateSchemaError(
-      "Feature-task-runtime delivered-projection record is missing field '$field'; " +
-        "$FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE.",
-    )
+    private fun missing(field: String): Nothing =
+      throw InvalidWorkflowStateSchemaError(
+        "Feature-task-runtime delivered-projection record is missing field '$field'; " +
+          "$FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE.",
+      )
   }
 }

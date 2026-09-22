@@ -15,7 +15,11 @@ class SpecSourceResolver(
   private val fileStore: DecompositionManifestStore,
   private val validator: DecompositionManifestValidator,
 ) {
-  fun resolve(repoRoot: Path, specReference: String, isGoalContinuation: Boolean): SpecSource {
+  fun resolve(
+    repoRoot: Path,
+    specReference: String,
+    isGoalContinuation: Boolean,
+  ): SpecSource {
     val specPath = resolvedParentSpecPath(repoRoot, Path.of(specReference))
     val manifestPath = specPath.parent?.resolve(DECOMPOSITION_MANIFEST_FILENAME)
     if (manifestPath != null && (isGoalContinuation || fileStore.isRegularFile(manifestPath))) {
@@ -24,13 +28,14 @@ class SpecSourceResolver(
     return legacySpecSource(specPath)
   }
 
-  private fun legacySpecSource(specPath: Path): SpecSource = try {
-    if (fileStore.isRegularFile(specPath)) {
-      SpecSourceSpecReader.parseSpecSource(fileStore.readText(specPath))
-    } else {
+  private fun legacySpecSource(specPath: Path): SpecSource =
+    try {
+      if (fileStore.isRegularFile(specPath)) {
+        SpecSourceSpecReader.parseSpecSource(fileStore.readText(specPath))
+      } else {
+        SpecSource.LOCAL
+      }
+    } catch (_: NoSuchFileException) {
       SpecSource.LOCAL
     }
-  } catch (_: NoSuchFileException) {
-    SpecSource.LOCAL
-  }
 }

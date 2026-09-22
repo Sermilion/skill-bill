@@ -23,11 +23,9 @@ data class FeatureTaskRuntimeFinishedRequest(
   val blockedReason: String,
   val resolvedBranch: String,
   val reviewFixIterationCount: Int = 0,
-
   val regenerationActivationCount: Int = 0,
   val regenerationAttemptCount: Int = 0,
   val regenerationOutcomeCounts: Map<String, Int> = emptyMap(),
-
   val crashReconciliationCount: Int = 0,
   val crashReconciliationReasonCounts: Map<String, Int> = emptyMap(),
   val estimatedPhaseTokenBreakdownJson: String? = null,

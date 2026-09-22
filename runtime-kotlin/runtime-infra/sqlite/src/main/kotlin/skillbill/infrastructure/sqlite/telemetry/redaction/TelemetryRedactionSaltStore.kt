@@ -18,11 +18,12 @@ internal fun telemetryRedactionSalt(connection: Connection): String {
   return readRedactionSalt(connection) ?: generated
 }
 
-private fun readRedactionSalt(connection: Connection): String? = connection.prepareStatement(
-  "SELECT secret_value FROM telemetry_local_secrets WHERE secret_key = ?",
-).use { statement ->
-  statement.bindAll(REDACTION_SALT_KEY)
-  statement.executeQuery().use { resultSet ->
-    if (resultSet.next()) resultSet.getString("secret_value")?.takeIf(String::isNotBlank) else null
+private fun readRedactionSalt(connection: Connection): String? =
+  connection.prepareStatement(
+    "SELECT secret_value FROM telemetry_local_secrets WHERE secret_key = ?",
+  ).use { statement ->
+    statement.bindAll(REDACTION_SALT_KEY)
+    statement.executeQuery().use { resultSet ->
+      if (resultSet.next()) resultSet.getString("secret_value")?.takeIf(String::isNotBlank) else null
+    }
   }
-}

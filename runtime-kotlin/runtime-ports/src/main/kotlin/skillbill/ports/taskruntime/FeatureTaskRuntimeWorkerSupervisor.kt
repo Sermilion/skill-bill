@@ -19,7 +19,10 @@ interface FeatureTaskRuntimeWorkerSupervisor {
    * On timeout the peer may still be live — the caller re-inspects and fails closed. A no-op default
    * keeps tests and artifact-only seams from waiting. Must not wait on the current process.
    */
-  fun awaitExit(ownership: FeatureTaskRuntimeWorkerOwnership, timeout: Duration)
+  fun awaitExit(
+    ownership: FeatureTaskRuntimeWorkerOwnership,
+    timeout: Duration,
+  )
 
   fun terminateGracefully(ownership: FeatureTaskRuntimeWorkerOwnership): Boolean
 

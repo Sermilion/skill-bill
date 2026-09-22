@@ -12,15 +12,17 @@ import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoredContentB
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import java.nio.file.Path
+
 internal fun testNativeAgentCompositionContext(repoRoot: Path): NativeAgentCompositionContext {
   val normalizedRoot = repoRoot.toAbsolutePath().normalize()
-  val budget = runCatching {
-    FileSystemRepoLocalConfig(NoopRuntimeDiagnostics)
-      .readRepoLocalConfig(ReadRepoLocalConfigRequest(normalizedRoot))
-      .config
-      .reviewContextBudget
-      .maxLaneLaunchBytes
-  }.getOrDefault(RepoLocalConfig.defaults().reviewContextBudget.maxLaneLaunchBytes)
+  val budget =
+    runCatching {
+      FileSystemRepoLocalConfig(NoopRuntimeDiagnostics)
+        .readRepoLocalConfig(ReadRepoLocalConfigRequest(normalizedRoot))
+        .config
+        .reviewContextBudget
+        .maxLaneLaunchBytes
+    }.getOrDefault(RepoLocalConfig.defaults().reviewContextBudget.maxLaneLaunchBytes)
   return NativeAgentCompositionContext(
     reviewContextBudgetBytes = budget,
     renderGovernedBody = ::renderAuthoredContentBody,
@@ -28,7 +30,10 @@ internal fun testNativeAgentCompositionContext(repoRoot: Path): NativeAgentCompo
   )
 }
 
-internal fun testComposeNativeAgentSource(repoRoot: Path, source: NativeAgentSource): NativeAgentSource {
+internal fun testComposeNativeAgentSource(
+  repoRoot: Path,
+  source: NativeAgentSource,
+): NativeAgentSource {
   val context = testNativeAgentCompositionContext(repoRoot)
   return composeNativeAgentSource(
     repoRoot,

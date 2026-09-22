@@ -32,9 +32,10 @@ internal fun buildFeatureTaskRuntimeStats(rows: List<Map<String, Any?>>): Featur
   val blockedRuns = observedRows.count { it.stringValue("completion_status") == "blocked" }
   val decomposedRuns = observedRows.count { it.stringValue("completion_status") == "decomposed_at_planning" }
   val errorRuns = observedRows.count { it.stringValue("completion_status") == "error" }
-  val completedPhaseCounts = observedRows.map {
-    parseJsonList(it[SqliteReviewTelemetryPayloadKeys.COMPLETED_PHASE_IDS]).size
-  }
+  val completedPhaseCounts =
+    observedRows.map {
+      parseJsonList(it[SqliteReviewTelemetryPayloadKeys.COMPLETED_PHASE_IDS]).size
+    }
   val tokenValues = observedRows.mapNotNull { it.nullableIntValue("estimated_total_tokens") }
   return FeatureTaskRuntimeWorkflowStats(
     totalRuns = rows.size,
@@ -64,9 +65,10 @@ internal const val STALE_COMPLETION_STATUS: String = "stale"
 internal fun phaseOutcomeCounts(rows: List<Map<String, Any?>>): Map<String, Int> {
   val counts = featureTaskRuntimePhaseOutcomes.associateWith { 0 }.toMutableMap()
   rows.forEach { row ->
-    val outcomes = JsonCodec.parseObjectOrNull(row.stringValue("phase_outcomes"))
-      ?.let { JsonCodec.jsonElementToValue(it) as? Map<*, *> }
-      .orEmpty()
+    val outcomes =
+      JsonCodec.parseObjectOrNull(row.stringValue("phase_outcomes"))
+        ?.let { JsonCodec.jsonElementToValue(it) as? Map<*, *> }
+        .orEmpty()
     outcomes.values.forEach { status ->
       val key = status?.toString().orEmpty()
       if (key in counts) {
@@ -84,11 +86,12 @@ internal fun buildFeatureVerifyStats(rows: List<Map<String, Any?>>): FeatureVeri
   val historyReadRuns = finishedRows.count(::historySignalsPresent)
   val historyRelevantRuns = finishedRows.count { it.stringValue("history_relevance") in setOf("medium", "high") }
   val historyHelpfulRuns = finishedRows.count { it.stringValue("history_helpfulness") in setOf("medium", "high") }
-  val runsWithGapsFound = finishedRows.count {
-    parseJsonList(
-      it[LifecycleTelemetryPayloadKeys.GAPS_FOUND],
-    ).isNotEmpty()
-  }
+  val runsWithGapsFound =
+    finishedRows.count {
+      parseJsonList(
+        it[LifecycleTelemetryPayloadKeys.GAPS_FOUND],
+      ).isNotEmpty()
+    }
   val reviewIterations = finishedRows.mapNotNull { it.intValue("review_iterations") }
   val durations = finishedRows.map(::durationSeconds).filter { it > 0 }
   val acceptanceCriteriaCounts = rows.mapNotNull { it.intValue("acceptance_criteria_count") }
@@ -117,7 +120,10 @@ internal fun buildFeatureVerifyStats(rows: List<Map<String, Any?>>): FeatureVeri
   )
 }
 
-internal fun loadRows(connection: Connection, tableName: String): List<Map<String, Any?>> =
+internal fun loadRows(
+  connection: Connection,
+  tableName: String,
+): List<Map<String, Any?>> =
   connection.prepareStatement("SELECT * FROM $tableName ORDER BY started_at, session_id").use { statement ->
     statement.executeQuery().use(::collectRows)
   }

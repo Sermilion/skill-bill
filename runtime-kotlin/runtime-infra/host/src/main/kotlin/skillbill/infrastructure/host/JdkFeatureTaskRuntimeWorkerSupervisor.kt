@@ -28,12 +28,15 @@ private const val BOOT_IDENTITY_UNAVAILABLE: String = "boot-identity-unavailable
 
 private const val LEGACY_BOOT_IDENTITY_PREFIX: String = "fallback-"
 
-private fun bootIdentitiesConflict(stored: String, local: String): Boolean =
-  bootIdentityIsDecisive(stored) && bootIdentityIsDecisive(local) && stored != local
+private fun bootIdentitiesConflict(
+  stored: String,
+  local: String,
+): Boolean = bootIdentityIsDecisive(stored) && bootIdentityIsDecisive(local) && stored != local
 
-private fun bootIdentityIsDecisive(value: String): Boolean = value.isNotBlank() &&
-  value != BOOT_IDENTITY_UNAVAILABLE &&
-  !value.startsWith(LEGACY_BOOT_IDENTITY_PREFIX)
+private fun bootIdentityIsDecisive(value: String): Boolean =
+  value.isNotBlank() &&
+    value != BOOT_IDENTITY_UNAVAILABLE &&
+    !value.startsWith(LEGACY_BOOT_IDENTITY_PREFIX)
 
 internal fun processBirthToken(handle: ProcessHandle): String? =
   handle.info().startInstant().orElse(null)?.toEpochMilli()?.toString()
@@ -67,8 +70,9 @@ class JdkFeatureTaskRuntimeWorkerSupervisor(
       hostIdentity = InetAddress.getLocalHost().hostName,
       bootIdentity = processBootIdentity(diagnostics),
       pid = handle.pid(),
-      processBirthToken = processBirthToken(handle)
-        ?: error("The current process does not expose process-birth evidence."),
+      processBirthToken =
+        processBirthToken(handle)
+          ?: error("The current process does not expose process-birth evidence."),
     )
   }
 
@@ -80,7 +84,10 @@ class JdkFeatureTaskRuntimeWorkerSupervisor(
       },
     )
 
-  override fun awaitExit(ownership: FeatureTaskRuntimeWorkerOwnership, timeout: Duration) {
+  override fun awaitExit(
+    ownership: FeatureTaskRuntimeWorkerOwnership,
+    timeout: Duration,
+  ) {
     require(!timeout.isNegative && !timeout.isZero) {
       "awaitExit timeout must be positive, got $timeout"
     }
@@ -116,8 +123,9 @@ class JdkFeatureTaskRuntimeWorkerSupervisor(
       return FeatureTaskRuntimeProcessInspection.NotRunning
     }
 
-    val handle = ProcessHandle.of(ownership.pid).orElse(null)
-      ?: return FeatureTaskRuntimeProcessInspection.NotRunning
+    val handle =
+      ProcessHandle.of(ownership.pid).orElse(null)
+        ?: return FeatureTaskRuntimeProcessInspection.NotRunning
     val birth = processBirthToken(handle)
     return when {
       birth == null ->
@@ -138,9 +146,10 @@ class JdkFeatureTaskRuntimeWorkerSupervisor(
     plan: FeatureTaskRuntimeHeartbeatPlan,
     heartbeat: () -> FeatureTaskRuntimeHeartbeatTick,
   ): FeatureTaskRuntimeHeartbeat {
-    val executor = Executors.newSingleThreadScheduledExecutor { runnable ->
-      Thread(runnable, "skill-bill-worker-heartbeat").apply { isDaemon = true }
-    }
+    val executor =
+      Executors.newSingleThreadScheduledExecutor { runnable ->
+        Thread(runnable, "skill-bill-worker-heartbeat").apply { isDaemon = true }
+      }
     return HeartbeatLoop(plan, heartbeat, diagnostics, executor).also(HeartbeatLoop::start)
   }
 
@@ -175,23 +184,24 @@ private class HeartbeatLoop(
   override fun fencingLostReason(): String? = fencingLost.get()
 
   private fun runTick() {
-    val tick = try {
-      heartbeat()
-    } catch (cancellation: CancellationException) {
-      throw cancellation
-    } catch (error: IOException) {
-      reportFailure(error)
-      scheduleNext(plan.retryDelaySeconds)
-      return
-    } catch (error: IllegalArgumentException) {
-      reportFailure(error)
-      scheduleNext(plan.retryDelaySeconds)
-      return
-    } catch (error: IllegalStateException) {
-      reportFailure(error)
-      scheduleNext(plan.retryDelaySeconds)
-      return
-    }
+    val tick =
+      try {
+        heartbeat()
+      } catch (cancellation: CancellationException) {
+        throw cancellation
+      } catch (error: IOException) {
+        reportFailure(error)
+        scheduleNext(plan.retryDelaySeconds)
+        return
+      } catch (error: IllegalArgumentException) {
+        reportFailure(error)
+        scheduleNext(plan.retryDelaySeconds)
+        return
+      } catch (error: IllegalStateException) {
+        reportFailure(error)
+        scheduleNext(plan.retryDelaySeconds)
+        return
+      }
     consecutiveFailures.set(0)
     lastRenewalNanos.set(System.nanoTime())
     when (tick) {
@@ -210,8 +220,9 @@ private class HeartbeatLoop(
   private fun reportFailure(error: Throwable) {
     val failures = consecutiveFailures.incrementAndGet()
     val staleSeconds = (System.nanoTime() - lastRenewalNanos.get()) / NANOS_PER_SECOND
-    val detail = "Worker heartbeat tick failed for '${plan.label}': consecutive failures=$failures, " +
-      "${staleSeconds}s since the last renewal, retrying in ${plan.retryDelaySeconds}s."
+    val detail =
+      "Worker heartbeat tick failed for '${plan.label}': consecutive failures=$failures, " +
+        "${staleSeconds}s since the last renewal, retrying in ${plan.retryDelaySeconds}s."
     if (staleSeconds >= plan.leaseSeconds) {
       diagnostics.error("$detail The lease has already expired and this worker now reads as idle.", error)
     } else {

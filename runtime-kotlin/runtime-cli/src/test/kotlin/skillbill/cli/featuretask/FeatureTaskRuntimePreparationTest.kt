@@ -14,26 +14,27 @@ class FeatureTaskRuntimePreparationTest {
     val home = Files.createTempDirectory("skillbill-feature-task-preparation")
     val db = home.resolve("metrics.db")
     val context = CliRuntimeContext(userHome = home, environment = emptyMap())
-    val invocations = listOf(
+    val invocations =
       listOf(
-        "--db",
-        db.toString(),
-        "feature-task",
-        "SKILL-348",
-        "--operator-decision",
-        "unknown",
-      ),
-      listOf(
-        "--db",
-        db.toString(),
-        "feature-task",
-        "SKILL-348",
-        "--code-review-mode",
-        "inline",
-        "--code-review-mode",
-        "auto",
-      ),
-    )
+        listOf(
+          "--db",
+          db.toString(),
+          "feature-task",
+          "SKILL-348",
+          "--operator-decision",
+          "unknown",
+        ),
+        listOf(
+          "--db",
+          db.toString(),
+          "feature-task",
+          "SKILL-348",
+          "--code-review-mode",
+          "inline",
+          "--code-review-mode",
+          "auto",
+        ),
+      )
 
     invocations.forEach { arguments ->
       val result = CliRuntime.run(arguments, context)

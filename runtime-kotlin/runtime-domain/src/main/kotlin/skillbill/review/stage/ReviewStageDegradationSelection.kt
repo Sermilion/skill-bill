@@ -12,25 +12,27 @@ import skillbill.review.model.ReviewStageReached
 import skillbill.review.model.ReviewVerificationNonSuccess
 
 object ReviewStageDegradationSelection {
-  private val workerFailureReasons: Map<String, ReviewStageDegradationReason> = mapOf(
-    "agent process failed to spawn" to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
-    "agent was interrupted" to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
-    "agent exited with unknown status" to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
-    "agent timed out" to ReviewStageDegradationReason.WORKER_TIMED_OUT,
-    "agent output exceeded the retention cap before completion" to
-      ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
-    "verification launch exceeded max_lane_launch_bytes" to
-      ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
-    "adjudication launch exceeded max_lane_launch_bytes" to
-      ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
-    "unparseable verification output" to ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
-    "unparseable adjudication output" to ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
-  )
+  private val workerFailureReasons: Map<String, ReviewStageDegradationReason> =
+    mapOf(
+      "agent process failed to spawn" to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
+      "agent was interrupted" to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
+      "agent exited with unknown status" to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
+      "agent timed out" to ReviewStageDegradationReason.WORKER_TIMED_OUT,
+      "agent output exceeded the retention cap before completion" to
+        ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
+      "verification launch exceeded max_lane_launch_bytes" to
+        ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
+      "adjudication launch exceeded max_lane_launch_bytes" to
+        ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
+      "unparseable verification output" to ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
+      "unparseable adjudication output" to ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
+    )
 
-  private val workerFailureReasonPrefixes: Map<String, ReviewStageDegradationReason> = mapOf(
-    "agent exited with status " to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
-    "unsupported agent:" to ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
-  )
+  private val workerFailureReasonPrefixes: Map<String, ReviewStageDegradationReason> =
+    mapOf(
+      "agent exited with status " to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
+      "unsupported agent:" to ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
+    )
 
   fun workerFailureReason(rejectionReason: String?): ReviewStageDegradationReason? {
     val reason = rejectionReason ?: return null
@@ -67,13 +69,19 @@ object ReviewStageDegradationSelection {
     )
   }
 
-  private fun adjudicationSkipped(specNone: Boolean, byStage: Map<ReviewStage, ReviewStageBoundary>): Boolean {
+  private fun adjudicationSkipped(
+    specNone: Boolean,
+    byStage: Map<ReviewStage, ReviewStageBoundary>,
+  ): Boolean {
     val verificationReached = byStage[ReviewStage.VERIFICATION]?.reached == ReviewStageReached.REACHED
     val adjudicationReached = byStage[ReviewStage.ADJUDICATION]?.reached == ReviewStageReached.REACHED
     return specNone || (!verificationReached && !adjudicationReached)
   }
 
-  private fun adjudicationSkip(reviewRunId: String, specNone: Boolean): ReviewStageDegradationMeasurement =
+  private fun adjudicationSkip(
+    reviewRunId: String,
+    specNone: Boolean,
+  ): ReviewStageDegradationMeasurement =
     ReviewStageDegradationMeasurement(
       reviewRunId = reviewRunId,
       seam = "review.adjudication",
@@ -86,9 +94,10 @@ object ReviewStageDegradationSelection {
     reviewRunId: String,
     verdicts: List<ReviewFindingVerdict>,
   ): ReviewStageDegradationMeasurement? {
-    val failure = verdicts.firstNotNullOfOrNull { verdict ->
-      workerFailureReason(verdict.rejectionReason)?.let { verdict to it }
-    } ?: return null
+    val failure =
+      verdicts.firstNotNullOfOrNull { verdict ->
+        workerFailureReason(verdict.rejectionReason)?.let { verdict to it }
+      } ?: return null
     val (failedWorker, reason) = failure
     return ReviewStageDegradationMeasurement(
       reviewRunId = reviewRunId,
@@ -122,9 +131,10 @@ object ReviewStageDegradationSelection {
     val verificationReached = byStage[ReviewStage.VERIFICATION]?.reached == ReviewStageReached.REACHED
     return ReviewStage.entries.mapNotNull { stage ->
       val boundary = byStage[stage]
-      val unreached = boundary?.reached == ReviewStageReached.NOT_REACHED ||
-        missingVerificationBoundary(stage, claims, boundary) ||
-        missingAdjudicationBoundary(stage, verificationReached, specNone, boundary)
+      val unreached =
+        boundary?.reached == ReviewStageReached.NOT_REACHED ||
+          missingVerificationBoundary(stage, claims, boundary) ||
+          missingAdjudicationBoundary(stage, verificationReached, specNone, boundary)
       if (!unreached) {
         null
       } else {
@@ -155,10 +165,11 @@ object ReviewStageDegradationSelection {
   private fun evidenceBoundaryRecords(
     reviewRunId: String,
     accounting: ReviewEvidenceBoundaryAccounting,
-  ): List<ReviewStageDegradationMeasurement> = buildList {
-    evidenceBoundaryUnboundRecord(reviewRunId, accounting)?.let(::add)
-    evidenceBoundaryUnexercisedRecord(reviewRunId, accounting)?.let(::add)
-    evidenceBoundaryRefusedRecord(reviewRunId, accounting)?.let(::add)
-    evidenceBoundaryRejectedRecord(reviewRunId, accounting)?.let(::add)
-  }
+  ): List<ReviewStageDegradationMeasurement> =
+    buildList {
+      evidenceBoundaryUnboundRecord(reviewRunId, accounting)?.let(::add)
+      evidenceBoundaryUnexercisedRecord(reviewRunId, accounting)?.let(::add)
+      evidenceBoundaryRefusedRecord(reviewRunId, accounting)?.let(::add)
+      evidenceBoundaryRejectedRecord(reviewRunId, accounting)?.let(::add)
+    }
 }

@@ -14,8 +14,9 @@ fun goalContinuationOutcome(
   subtaskId: Int,
   suppressPr: Boolean,
 ): GoalRunnerStoredOutcome? {
-  val outcome = artifacts.asGoalWorkflowArtifactMap("goal continuation outcome artifacts")
-    .get("goal_continuation_outcome") as? Map<*, *> ?: return null
+  val outcome =
+    artifacts.asGoalWorkflowArtifactMap("goal continuation outcome artifacts")
+      .get("goal_continuation_outcome") as? Map<*, *> ?: return null
   if (outcome[SharedPayloadKeys.ISSUE_KEY]?.toString() != issueKey) return null
   if (outcome[SharedPayloadKeys.SUBTASK_ID].asGoalRunnerIntOrNull() != subtaskId) return null
   return goalContinuationTerminalStatus(outcome[SharedPayloadKeys.STATUS]?.toString())?.let { status ->

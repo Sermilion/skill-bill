@@ -103,12 +103,13 @@ private class TrackingTransport(
     bodyJson: String?,
     headers: Map<String, String>,
   ): RemoteTransportResponse {
-    stagingDirectory = Files.list(Path.of(System.getProperty("java.io.tmpdir"))).use { paths ->
-      paths
-        .filter { path -> path.fileName.toString().startsWith("skill-bill-update-") }
-        .findFirst()
-        .orElse(null)
-    }
+    stagingDirectory =
+      Files.list(Path.of(System.getProperty("java.io.tmpdir"))).use { paths ->
+        paths
+          .filter { path -> path.fileName.toString().startsWith("skill-bill-update-") }
+          .findFirst()
+          .orElse(null)
+      }
     return response()
   }
 }
@@ -116,15 +117,27 @@ private class TrackingTransport(
 private class InstallerRecordingDiagnostics : RuntimeDiagnostics {
   val warnings = mutableListOf<String>()
 
-  override fun warning(message: String, error: Throwable?) {
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
     warnings += message
   }
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private object SilentInstallerDiagnostics : RuntimeDiagnostics {
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }

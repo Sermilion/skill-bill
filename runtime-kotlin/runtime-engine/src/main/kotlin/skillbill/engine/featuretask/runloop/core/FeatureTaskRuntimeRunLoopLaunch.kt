@@ -57,6 +57,7 @@ import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrec
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
+
 object FeatureTaskRuntimeRunLoopLaunch {
   internal fun findingPathsForBoundaryMemory(finding: StructuredGoalReviewFinding): List<String> =
     GoalSubtaskReviewSummaryReducer.verificationBoundaryFindingPaths(finding)
@@ -69,23 +70,27 @@ object FeatureTaskRuntimeRunLoopLaunch {
     run: PhaseRun,
   ): String {
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS) return ""
-    val checkpoint = recorder.loadFindingVerificationCheckpoint(
-      run.request.workflowId,
-    )
-    val boundarySelection = recorder.loadFindingVerificationBoundarySelection(
-      run.request.workflowId,
-    )?.takeIf { it.isNotEmpty() }
-    val resolution = phaseGates.specIntentProjectionResolver.resolve(
-      SpecIntentProjectionResolveRequest(
-        repoRoot = run.request.repoRoot.toFileLocation(),
-        explicitSpecPath = Path.of(run.request.runInvariants.specReference).toFileLocation(),
-        branchName = session.resolvedBranch ?: "HEAD",
-        changedPaths = emptyList(),
-        budget = ReviewContextBudgetPolicy.DEFAULT,
-      ),
-    )
-    val boundarySections = FeatureTaskRuntimeRunLoopOutputVerification
-      .findingVerificationBoundarySections(state, recorder, phaseGates, run)
+    val checkpoint =
+      recorder.loadFindingVerificationCheckpoint(
+        run.request.workflowId,
+      )
+    val boundarySelection =
+      recorder.loadFindingVerificationBoundarySelection(
+        run.request.workflowId,
+      )?.takeIf { it.isNotEmpty() }
+    val resolution =
+      phaseGates.specIntentProjectionResolver.resolve(
+        SpecIntentProjectionResolveRequest(
+          repoRoot = run.request.repoRoot.toFileLocation(),
+          explicitSpecPath = Path.of(run.request.runInvariants.specReference).toFileLocation(),
+          branchName = session.resolvedBranch ?: "HEAD",
+          changedPaths = emptyList(),
+          budget = ReviewContextBudgetPolicy.DEFAULT,
+        ),
+      )
+    val boundarySections =
+      FeatureTaskRuntimeRunLoopOutputVerification
+        .findingVerificationBoundarySections(state, recorder, phaseGates, run)
     return buildString {
       when (resolution) {
         is SpecIntentResolution.Resolved -> {
@@ -126,22 +131,24 @@ object FeatureTaskRuntimeRunLoopLaunch {
     state: FeatureTaskRuntimeRunState,
     priorCorrection: PriorAttemptCorrection? = null,
   ): LaunchResult {
-    val before = when (val captured = FeatureTaskRuntimeRunLoopLaunch.captureLaunchBeforeState(phaseGates, run)) {
-      is LaunchCaptureBeforeResult.Ready -> captured.state
-      is LaunchCaptureBeforeResult.Failed ->
-        return FeatureTaskRuntimeRunLoopLaunch.launchCaptureInfraFailure(
-          run.phaseId,
-          captured.detail,
-          childNeverLaunched = true,
-        )
-    }
-    val prepared = when (
-      val preparation = FeatureTaskRuntimeRunLoopLaunch.prepareLaunchForCapture(this, run, state, priorCorrection)
-    ) {
-      is PreparedLaunchReady -> preparation.value
-      is LaunchPreparationRejected -> return preparation.result
-      is LaunchMeasurementContextReady -> error("Unexpected launch preparation result.")
-    }
+    val before =
+      when (val captured = FeatureTaskRuntimeRunLoopLaunch.captureLaunchBeforeState(phaseGates, run)) {
+        is LaunchCaptureBeforeResult.Ready -> captured.state
+        is LaunchCaptureBeforeResult.Failed ->
+          return FeatureTaskRuntimeRunLoopLaunch.launchCaptureInfraFailure(
+            run.phaseId,
+            captured.detail,
+            childNeverLaunched = true,
+          )
+      }
+    val prepared =
+      when (
+        val preparation = FeatureTaskRuntimeRunLoopLaunch.prepareLaunchForCapture(this, run, state, priorCorrection)
+      ) {
+        is PreparedLaunchReady -> preparation.value
+        is LaunchPreparationRejected -> return preparation.result
+        is LaunchMeasurementContextReady -> error("Unexpected launch preparation result.")
+      }
     val (
       isReviewPhase,
       isVerifyFindingsPhase,
@@ -153,17 +160,18 @@ object FeatureTaskRuntimeRunLoopLaunch {
       outcome,
       state,
     )
-    val fileManifest = when (
-      val captured = FeatureTaskRuntimeRunLoopLaunch.buildLaunchFileManifest(phaseGates, run, before)
-    ) {
-      is LaunchCaptureAfterResult.Ready -> captured.manifest
-      is LaunchCaptureAfterResult.Failed ->
-        return FeatureTaskRuntimeRunLoopLaunch.launchCaptureInfraFailure(
-          run.phaseId,
-          captured.detail,
-          childNeverLaunched = false,
-        )
-    }
+    val fileManifest =
+      when (
+        val captured = FeatureTaskRuntimeRunLoopLaunch.buildLaunchFileManifest(phaseGates, run, before)
+      ) {
+        is LaunchCaptureAfterResult.Ready -> captured.manifest
+        is LaunchCaptureAfterResult.Failed ->
+          return FeatureTaskRuntimeRunLoopLaunch.launchCaptureInfraFailure(
+            run.phaseId,
+            captured.detail,
+            childNeverLaunched = false,
+          )
+      }
     capturePhaseContentIdentities(request, session, phaseGates, run.phaseId)
     return FeatureTaskRuntimeRunLoopLaunch.reconcileLaunch(run.phaseId, outcome, fileManifest)
   }
@@ -185,15 +193,16 @@ object FeatureTaskRuntimeRunLoopLaunch {
     )
   }
 
-  internal fun parseContentIdentities(raw: String): Map<String, String> = raw
-    .split(OWNED_PATH_DELIMITER)
-    .filter(String::isNotBlank)
-    .mapNotNull { record ->
-      val identity = record.substringBefore('\t', missingDelimiterValue = "")
-      val path = record.substringAfter('\t', missingDelimiterValue = "")
-      if (identity.isBlank() || path.isBlank()) null else path to identity
-    }
-    .toMap()
+  internal fun parseContentIdentities(raw: String): Map<String, String> =
+    raw
+      .split(OWNED_PATH_DELIMITER)
+      .filter(String::isNotBlank)
+      .mapNotNull { record ->
+        val identity = record.substringBefore('\t', missingDelimiterValue = "")
+        val path = record.substringAfter('\t', missingDelimiterValue = "")
+        if (identity.isBlank() || path.isBlank()) null else path to identity
+      }
+      .toMap()
 
   internal fun prepareLaunchForCapture(
     context: FeatureTaskRuntimeRunLoopContext,
@@ -202,20 +211,20 @@ object FeatureTaskRuntimeRunLoopLaunch {
     priorCorrection: PriorAttemptCorrection?,
   ): LaunchPreparation {
     with(context) {
-      val measurementContext = when (
-        val resolution = FeatureTaskRuntimeRunLoopLaunch.resolveLaunchMeasurementContext(context, run)
-      ) {
-        is LaunchMeasurementContextReady -> resolution.value
-        is LaunchPreparationRejected -> return resolution
-        is PreparedLaunchReady -> error("Unexpected launch measurement result.")
-      }
+      val measurementContext =
+        when (
+          val resolution = FeatureTaskRuntimeRunLoopLaunch.resolveLaunchMeasurementContext(context, run)
+        ) {
+          is LaunchMeasurementContextReady -> resolution.value
+          is LaunchPreparationRejected -> return resolution
+          is PreparedLaunchReady -> error("Unexpected launch measurement result.")
+        }
       return FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunch(
         context,
         DeclaredLaunchArgs(
           run,
           state,
           priorCorrection,
-
           measurementContext,
         ),
       )
@@ -229,11 +238,13 @@ object FeatureTaskRuntimeRunLoopLaunch {
 
   internal sealed interface LaunchCaptureBeforeResult {
     data class Ready(val state: LaunchCaptureBeforeState) : LaunchCaptureBeforeResult
+
     data class Failed(val detail: String) : LaunchCaptureBeforeResult
   }
 
   internal sealed interface LaunchCaptureAfterResult {
     data class Ready(val manifest: FeatureTaskRuntimePhaseFileManifest) : LaunchCaptureAfterResult
+
     data class Failed(val detail: String) : LaunchCaptureAfterResult
   }
 
@@ -257,7 +268,11 @@ object FeatureTaskRuntimeRunLoopLaunch {
     )
   }
 
-  internal fun launchCaptureInfraFailure(phaseId: String, detail: String, childNeverLaunched: Boolean): LaunchResult =
+  internal fun launchCaptureInfraFailure(
+    phaseId: String,
+    detail: String,
+    childNeverLaunched: Boolean,
+  ): LaunchResult =
     LaunchResult.infraFailure(
       "Feature-task-runtime phase '$phaseId' could not capture its $detail",
       childNeverLaunched = childNeverLaunched,
@@ -274,27 +289,31 @@ object FeatureTaskRuntimeRunLoopLaunch {
       GoalRunnerSubtaskLaunchRequest(
         invokedAgentId = run.resolvedAgent.invokedAgentId,
         configuredAgentOverrideId = run.resolvedAgent.configuredAgentOverrideId,
-        skillRunRequest = SkillRunRequest(
-          issueKey = run.request.issueKey,
-          repoRoot = run.request.repoRoot,
-          timeout = run.request.timeout,
-          modelOverride = launched.modelOverride,
-          effortOverride = launched.effortOverride,
-          compaction = run.compaction,
-          promptOverride = prepared.prompt,
-          readOnlyPhase = isReviewPhase || isVerifyFindingsPhase,
-          progressIdleTimeout = READ_ONLY_PHASE_PROGRESS_IDLE_TIMEOUT_MINUTES.minutes
-            .takeIf { isReviewPhase || isVerifyFindingsPhase },
-          activityStampSink = activityStampWriter.sink(
-            workflowId = run.request.workflowId,
-            parentWorkflowId = run.request.goalContinuation?.parentWorkflowId,
-          ),
-          worktreeEditObserver = worktreeEditJournalWriter.observer(
+        skillRunRequest =
+          SkillRunRequest(
+            issueKey = run.request.issueKey,
             repoRoot = run.request.repoRoot,
-            resolveWorkflowId = { run.request.workflowId },
-            resolvePhaseId = { run.phaseId },
+            timeout = run.request.timeout,
+            modelOverride = launched.modelOverride,
+            effortOverride = launched.effortOverride,
+            compaction = run.compaction,
+            promptOverride = prepared.prompt,
+            readOnlyPhase = isReviewPhase || isVerifyFindingsPhase,
+            progressIdleTimeout =
+              READ_ONLY_PHASE_PROGRESS_IDLE_TIMEOUT_MINUTES.minutes
+                .takeIf { isReviewPhase || isVerifyFindingsPhase },
+            activityStampSink =
+              activityStampWriter.sink(
+                workflowId = run.request.workflowId,
+                parentWorkflowId = run.request.goalContinuation?.parentWorkflowId,
+              ),
+            worktreeEditObserver =
+              worktreeEditJournalWriter.observer(
+                repoRoot = run.request.repoRoot,
+                resolveWorkflowId = { run.request.workflowId },
+                resolvePhaseId = { run.phaseId },
+              ),
           ),
-        ),
       ),
     )
   }
@@ -312,20 +331,22 @@ object FeatureTaskRuntimeRunLoopLaunch {
     if (afterCommit !is WorkflowGitOperationResult.Ok) {
       return FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureAfterResult.Failed("after commit")
     }
-    val committedPaths = phaseGates.gitOperations.runtimePhaseChangedPathsBetweenCommits(
-      run.request.repoRoot,
-      before.beforeCommit,
-      afterCommit.value.orEmpty(),
-    )
+    val committedPaths =
+      phaseGates.gitOperations.runtimePhaseChangedPathsBetweenCommits(
+        run.request.repoRoot,
+        before.beforeCommit,
+        afterCommit.value.orEmpty(),
+      )
     if (committedPaths !is WorkflowGitOperationResult.Ok) {
       return FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureAfterResult.Failed("committed file changes")
     }
     return FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureAfterResult.Ready(
       FeatureTaskRuntimePhaseFileManifest(
         before = FeatureTaskRuntimePhaseSafetyPolicy.changedPaths(before.beforeManifest),
-        after = (
-          FeatureTaskRuntimePhaseSafetyPolicy.changedPaths(after.value) +
-            FeatureTaskRuntimePhaseSafetyPolicy.lineSeparatedPaths(committedPaths.value.orEmpty())
+        after =
+          (
+            FeatureTaskRuntimePhaseSafetyPolicy.changedPaths(after.value) +
+              FeatureTaskRuntimePhaseSafetyPolicy.lineSeparatedPaths(committedPaths.value.orEmpty())
           ).distinct().sorted(),
       ),
     )
@@ -355,29 +376,31 @@ object FeatureTaskRuntimeRunLoopLaunch {
     run: PhaseRun,
   ): LaunchPreparation {
     with(context) {
-      val producerIteration = run.declaration.projectionDeclarations
-        .map { declaration ->
-          val phaseId = declaration.producerIteration.phaseId
-          state.outputFor(phaseId)?.let { FeatureTaskRuntimeProducerIteration(phaseId, it.iteration) }
-            ?: declaration.producerIteration
-        }
-        .maxByOrNull(FeatureTaskRuntimeProducerIteration::iteration)
-        ?: FeatureTaskRuntimeProducerIteration(run.phaseId, 1)
+      val producerIteration =
+        run.declaration.projectionDeclarations
+          .map { declaration ->
+            val phaseId = declaration.producerIteration.phaseId
+            state.outputFor(phaseId)?.let { FeatureTaskRuntimeProducerIteration(phaseId, it.iteration) }
+              ?: declaration.producerIteration
+          }
+          .maxByOrNull(FeatureTaskRuntimeProducerIteration::iteration)
+          ?: FeatureTaskRuntimeProducerIteration(run.phaseId, 1)
       return try {
         LaunchMeasurementContextReady(
           LaunchRejectionMeasurementContext(
             producerIteration = producerIteration,
-            repositoryCheckpoint = with(FeatureTaskRuntimeRunLoopOutputVerification) {
-              resolveRepositoryCheckpoint(
-                RepositoryCheckpointResolutionArgs(
-                  recorder = recorder,
-                  goalContinuationRecorder = goalContinuationRecorder,
-                  phaseGates = phaseGates,
-                  session = session,
-                  run = run,
-                ),
-              )
-            },
+            repositoryCheckpoint =
+              with(FeatureTaskRuntimeRunLoopOutputVerification) {
+                resolveRepositoryCheckpoint(
+                  RepositoryCheckpointResolutionArgs(
+                    recorder = recorder,
+                    goalContinuationRecorder = goalContinuationRecorder,
+                    phaseGates = phaseGates,
+                    session = session,
+                    run = run,
+                  ),
+                )
+              },
           ),
         )
       } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {
@@ -406,19 +429,23 @@ object FeatureTaskRuntimeRunLoopLaunch {
     args: DeclaredLaunchArgs,
   ): LaunchPreparation = FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunchBody(context, args)
 
-  internal fun recordLaunchSeamRejection(recorder: FeatureTaskRuntimePhaseRecorder, args: LaunchSeamRejectionArgs) {
+  internal fun recordLaunchSeamRejection(
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    args: LaunchSeamRejectionArgs,
+  ) {
     val run = args.run
     val state = args.state
     val classification = args.classification
     val sourceLabel = args.sourceLabel
     val fallbackProducerIteration = args.fallbackProducerIteration
     val repositoryCheckpoint = args.repositoryCheckpoint
-    val attribution = resolveLaunchRejectionAttribution(
-      declarations = run.declaration.projectionDeclarations,
-      projectionName = sourceLabel,
-      currentProducerIteration = { phaseId -> state.outputFor(phaseId)?.iteration },
-      fallbackProducerIteration = fallbackProducerIteration,
-    )
+    val attribution =
+      resolveLaunchRejectionAttribution(
+        declarations = run.declaration.projectionDeclarations,
+        projectionName = sourceLabel,
+        currentProducerIteration = { phaseId -> state.outputFor(phaseId)?.iteration },
+        fallbackProducerIteration = fallbackProducerIteration,
+      )
     recorder.recordProjectionRejection(
       FeatureTaskRuntimeProjectionRejection(
         workflowId = run.request.workflowId,
@@ -441,34 +468,37 @@ object FeatureTaskRuntimeRunLoopLaunch {
     phaseId: String,
     outcome: AgentRunLaunchOutcome,
     fileManifest: FeatureTaskRuntimePhaseFileManifest,
-  ): LaunchResult = when (outcome) {
-    is UnsupportedAgentRunLaunch -> LaunchResult.infraFailure(
-      "Feature-task-runtime phase '$phaseId' could not launch an agent: ${outcome.reason}",
-      fileManifest,
-      childNeverLaunched = true,
-    )
-    is AgentRunLaunchFacts -> providerLimitSignal(outcome)
-      ?.let { LaunchResult.providerLimited(providerLimitPauseReason(phaseId, it), fileManifest) }
-      ?: infraFailureReason(phaseId, outcome)
-        ?.let {
-          LaunchResult.infraFailure(
-            it,
-            fileManifest,
-            childNeverLaunched = outcome.spawnFailed || !outcome.processStarted,
-            childOutput = featureTaskRuntimeChildOutput(outcome),
+  ): LaunchResult =
+    when (outcome) {
+      is UnsupportedAgentRunLaunch ->
+        LaunchResult.infraFailure(
+          "Feature-task-runtime phase '$phaseId' could not launch an agent: ${outcome.reason}",
+          fileManifest,
+          childNeverLaunched = true,
+        )
+      is AgentRunLaunchFacts ->
+        providerLimitSignal(outcome)
+          ?.let { LaunchResult.providerLimited(providerLimitPauseReason(phaseId, it), fileManifest) }
+          ?: infraFailureReason(phaseId, outcome)
+            ?.let {
+              LaunchResult.infraFailure(
+                it,
+                fileManifest,
+                childNeverLaunched = outcome.spawnFailed || !outcome.processStarted,
+                childOutput = featureTaskRuntimeChildOutput(outcome),
+              )
+            }
+          ?: LaunchResult.captured(
+            CapturedPhaseOutput(
+              text = outcome.stdout,
+              bytes = outcome.stdoutBytes,
+              truncated = outcome.stdoutTruncated,
+              byteSize = outcome.stdoutByteSize,
+              sha256 = outcome.stdoutSha256,
+            ),
+            fileManifest = fileManifest,
           )
-        }
-      ?: LaunchResult.captured(
-        CapturedPhaseOutput(
-          text = outcome.stdout,
-          bytes = outcome.stdoutBytes,
-          truncated = outcome.stdoutTruncated,
-          byteSize = outcome.stdoutByteSize,
-          sha256 = outcome.stdoutSha256,
-        ),
-        fileManifest = fileManifest,
-      )
-  }
+    }
 
   internal fun launchPreparationRejected(
     recorder: FeatureTaskRuntimePhaseRecorder,
@@ -524,19 +554,20 @@ object FeatureTaskRuntimeRunLoopLaunch {
     state: FeatureTaskRuntimeRunState,
     error: InvalidFeatureTaskRuntimeHandoffProjectionError,
     context: LaunchRejectionMeasurementContext,
-  ): LaunchPreparationRejected = launchPreparationRejected(
-    recorder,
-
-    LaunchPreparationRejectedArgs(
-      run = run,
-      state = state,
-      classification = error.failureKind.toMeasurementFailureClassification(),
-      sourceLabel = error.projectionName,
-      measurement = context,
-      message = "Feature-task-runtime phase '${run.phaseId}' could not build its declared handoff " +
-        "projection: ${error.message}",
-    ),
-  )
+  ): LaunchPreparationRejected =
+    launchPreparationRejected(
+      recorder,
+      LaunchPreparationRejectedArgs(
+        run = run,
+        state = state,
+        classification = error.failureKind.toMeasurementFailureClassification(),
+        sourceLabel = error.projectionName,
+        measurement = context,
+        message =
+          "Feature-task-runtime phase '${run.phaseId}' could not build its declared handoff " +
+            "projection: ${error.message}",
+      ),
+    )
 
   private fun rejectedBriefingLaunch(
     recorder: FeatureTaskRuntimePhaseRecorder,
@@ -544,19 +575,20 @@ object FeatureTaskRuntimeRunLoopLaunch {
     state: FeatureTaskRuntimeRunState,
     error: InvalidFeatureTaskRuntimePhaseBriefingFramingError,
     context: LaunchRejectionMeasurementContext,
-  ): LaunchPreparationRejected = launchPreparationRejected(
-    recorder,
-
-    LaunchPreparationRejectedArgs(
-      run = run,
-      state = state,
-      classification = FeatureTaskRuntimeProjectionFailureClassification.BUDGET_OVERFLOW,
-      sourceLabel = "phase_briefing",
-      measurement = context,
-      message = "Feature-task-runtime phase '${run.phaseId}' could not fit its launch briefing under " +
-        "the byte ceiling: ${error.message}",
-    ),
-  )
+  ): LaunchPreparationRejected =
+    launchPreparationRejected(
+      recorder,
+      LaunchPreparationRejectedArgs(
+        run = run,
+        state = state,
+        classification = FeatureTaskRuntimeProjectionFailureClassification.BUDGET_OVERFLOW,
+        sourceLabel = "phase_briefing",
+        measurement = context,
+        message =
+          "Feature-task-runtime phase '${run.phaseId}' could not fit its launch briefing under " +
+            "the byte ceiling: ${error.message}",
+      ),
+    )
 
   private fun rejectedPlanningProjectionLaunch(
     recorder: FeatureTaskRuntimePhaseRecorder,
@@ -590,19 +622,20 @@ object FeatureTaskRuntimeRunLoopLaunch {
     state: FeatureTaskRuntimeRunState,
     error: InvalidWorkflowStateSchemaError,
     context: LaunchRejectionMeasurementContext,
-  ): LaunchPreparationRejected = launchPreparationRejected(
-    recorder,
-
-    LaunchPreparationRejectedArgs(
-      run = run,
-      state = state,
-      classification = FeatureTaskRuntimeProjectionFailureClassification.UNSUPPORTED_VERSION,
-      sourceLabel = "durable_briefing",
-      measurement = context,
-      message = "Feature-task-runtime phase '${run.phaseId}' rejected a durable handoff envelope at " +
-        "the launch seam: ${error.message}",
-    ),
-  )
+  ): LaunchPreparationRejected =
+    launchPreparationRejected(
+      recorder,
+      LaunchPreparationRejectedArgs(
+        run = run,
+        state = state,
+        classification = FeatureTaskRuntimeProjectionFailureClassification.UNSUPPORTED_VERSION,
+        sourceLabel = "durable_briefing",
+        measurement = context,
+        message =
+          "Feature-task-runtime phase '${run.phaseId}' rejected a durable handoff envelope at " +
+            "the launch seam: ${error.message}",
+      ),
+    )
 }
 
 internal sealed interface AttemptResult {
@@ -660,44 +693,47 @@ internal sealed interface AttemptResult {
   val schemaInvalidOperatorReason: String? get() = (this as? SchemaInvalid)?.operatorReason
   val schemaInvalidRetryReason: String? get() = (this as? SchemaInvalid)?.retryReason
   val fileManifest: FeatureTaskRuntimePhaseFileManifest?
-    get() = when (this) {
-      is Settled -> null
-      is SchemaInvalid -> fileManifest
-      is IncompleteWork -> fileManifest
-      is RetryableTerminal -> fileManifest
-      is FindingsOwed -> fileManifest
-      is BoundaryBodyDelivery -> fileManifest
-      is AuditRetry -> fileManifest
-      is ValidationRemaining -> fileManifest
-    }
+    get() =
+      when (this) {
+        is Settled -> null
+        is SchemaInvalid -> fileManifest
+        is IncompleteWork -> fileManifest
+        is RetryableTerminal -> fileManifest
+        is FindingsOwed -> fileManifest
+        is BoundaryBodyDelivery -> fileManifest
+        is AuditRetry -> fileManifest
+        is ValidationRemaining -> fileManifest
+      }
   val rejectedOutput: String? get() = (this as? SchemaInvalid)?.rejectedOutput
   val malformedOutput: Boolean get() = (this as? SchemaInvalid)?.malformedOutput == true
   val correctiveRepairContext: FeatureTaskRuntimeCorrectiveRepairContext?
     get() = (this as? SchemaInvalid)?.correctiveRepairContext
 
   val retryableOperatorReason: String?
-    get() = when (this) {
-      is Settled -> null
-      is SchemaInvalid -> operatorReason
-      is IncompleteWork -> operatorReason
-      is RetryableTerminal -> operatorReason
-      is FindingsOwed -> operatorReason
-      is BoundaryBodyDelivery -> null
-      is AuditRetry -> null
-      is ValidationRemaining -> remainingDetail
-    }
+    get() =
+      when (this) {
+        is Settled -> null
+        is SchemaInvalid -> operatorReason
+        is IncompleteWork -> operatorReason
+        is RetryableTerminal -> operatorReason
+        is FindingsOwed -> operatorReason
+        is BoundaryBodyDelivery -> null
+        is AuditRetry -> null
+        is ValidationRemaining -> remainingDetail
+      }
 
   val semanticRetryReason: String?
-    get() = when (this) {
-      is Settled -> null
-      is SchemaInvalid -> retryReason
-      is IncompleteWork -> null
-      is RetryableTerminal -> null
-      is FindingsOwed -> null
-      is BoundaryBodyDelivery -> null
-      is AuditRetry -> null
-      is ValidationRemaining -> remainingDetail
-    }
+    get() =
+      when (this) {
+        is Settled -> null
+        is SchemaInvalid -> retryReason
+        is IncompleteWork -> null
+        is RetryableTerminal -> null
+        is FindingsOwed -> null
+        is BoundaryBodyDelivery -> null
+        is AuditRetry -> null
+        is ValidationRemaining -> remainingDetail
+      }
 
   val retryableTerminalRetryReason: String? get() = (this as? RetryableTerminal)?.retryReason
 
@@ -741,8 +777,10 @@ internal sealed interface AttemptResult {
       normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
     ): AttemptResult = IncompleteWork(operatorReason, continuationReason, fileManifest, normalizedOutput)
 
-    fun auditRetry(focusHint: String, fileManifest: FeatureTaskRuntimePhaseFileManifest): AttemptResult =
-      AuditRetry(focusHint, fileManifest)
+    fun auditRetry(
+      focusHint: String,
+      fileManifest: FeatureTaskRuntimePhaseFileManifest,
+    ): AttemptResult = AuditRetry(focusHint, fileManifest)
 
     fun validationRemaining(
       remainingFingerprint: String,
@@ -756,55 +794,62 @@ internal sealed interface AttemptResult {
       unaccountedRefs: List<String>,
       retryReason: String,
       fileManifest: FeatureTaskRuntimePhaseFileManifest,
-    ): AttemptResult = FindingsOwed(
-      kind = FindingsOwedKind.OMITTED,
-      operatorReason = "Phase '$phaseId' left carried $itemNoun unaccounted for in its output: " +
-        unaccountedRefs.joinToString(", ") + ".",
-      retryReason = retryReason,
-      refs = unaccountedRefs.toSet(),
-      detail = null,
-      fileManifest = fileManifest,
-    )
+    ): AttemptResult =
+      FindingsOwed(
+        kind = FindingsOwedKind.OMITTED,
+        operatorReason =
+          "Phase '$phaseId' left carried $itemNoun unaccounted for in its output: " +
+            unaccountedRefs.joinToString(", ") + ".",
+        retryReason = retryReason,
+        refs = unaccountedRefs.toSet(),
+        detail = null,
+        fileManifest = fileManifest,
+      )
 
     fun unresolvedFindings(
       unresolvedRefs: Set<String>,
       detail: String,
       retryReason: String,
       fileManifest: FeatureTaskRuntimePhaseFileManifest,
-    ): AttemptResult = FindingsOwed(
-      kind = FindingsOwedKind.UNRESOLVED,
-      operatorReason = "Phase 'implement_fix' reported carried review findings still open after " +
-        "its attempt: ${unresolvedRefs.joinToString(", ")}.",
-      retryReason = retryReason,
-      refs = unresolvedRefs,
-      detail = detail,
-      fileManifest = fileManifest,
-    )
+    ): AttemptResult =
+      FindingsOwed(
+        kind = FindingsOwedKind.UNRESOLVED,
+        operatorReason =
+          "Phase 'implement_fix' reported carried review findings still open after " +
+            "its attempt: ${unresolvedRefs.joinToString(", ")}.",
+        retryReason = retryReason,
+        refs = unresolvedRefs,
+        detail = detail,
+        fileManifest = fileManifest,
+      )
 
     fun retryableTerminal(
       operatorReason: String,
       fileManifest: FeatureTaskRuntimePhaseFileManifest,
       failureDisposition: FeatureTaskRuntimeFailureDisposition,
     ): AttemptResult = RetryableTerminal(operatorReason, operatorReason, fileManifest, failureDisposition)
+
     fun schemaInvalid(
       operatorReason: String,
       fileManifest: FeatureTaskRuntimePhaseFileManifest,
       malformedOutput: Boolean = false,
       retryReason: String = operatorReason,
       correctiveRepairContext: FeatureTaskRuntimeCorrectiveRepairContext? = null,
-    ): AttemptResult = SchemaInvalid(
-      operatorReason = operatorReason,
-      retryReason = retryReason,
-      fileManifest = fileManifest,
-      rejectedOutput = null,
-      malformedOutput = malformedOutput,
-      correctiveRepairContext = correctiveRepairContext,
-    )
+    ): AttemptResult =
+      SchemaInvalid(
+        operatorReason = operatorReason,
+        retryReason = retryReason,
+        fileManifest = fileManifest,
+        rejectedOutput = null,
+        malformedOutput = malformedOutput,
+        correctiveRepairContext = correctiveRepairContext,
+      )
   }
 }
 
 internal sealed interface PhaseOutcome {
   data class Completed(val output: FeatureTaskRuntimePhaseOutput) : PhaseOutcome
+
   data class Blocked(val reason: String) : PhaseOutcome
 
   data class Paused(val reason: String) : PhaseOutcome
@@ -821,14 +866,18 @@ internal sealed interface PhaseOutcome {
 
   companion object {
     fun completed(output: FeatureTaskRuntimePhaseOutput): PhaseOutcome = Completed(output)
+
     fun blocked(reason: String): PhaseOutcome = Blocked(reason)
+
     fun paused(reason: String): PhaseOutcome = Paused(reason)
+
     fun regenerateProducer(producerPhaseId: String): PhaseOutcome = RegenerateProducer(producerPhaseId)
   }
 }
 
 internal sealed interface GoalReviewRunPreparation {
   data object CarryForward : GoalReviewRunPreparation
+
   class Blocked(
     val reason: String,
     val failureDisposition: FeatureTaskRuntimeFailureDisposition,

@@ -5,9 +5,9 @@ class InvalidFeatureSpecPreparationRequestError(
   val reason: String,
   cause: Throwable? = null,
 ) : SkillBillRuntimeException(
-  "Feature-spec preparation request is invalid at '${fieldPath.ifBlank { "<root>" }}': $reason",
-  cause,
-)
+    "Feature-spec preparation request is invalid at '${fieldPath.ifBlank { "<root>" }}': $reason",
+    cause,
+  )
 
 class FeatureSpecPreparationModeConflictError(
   val issueKey: String,
@@ -16,7 +16,7 @@ class FeatureSpecPreparationModeConflictError(
   val reason: String,
   cause: Throwable? = null,
 ) : SkillBillRuntimeException(
-  "Feature-spec preparation mode conflict for '$issueKey' (${requestedMode.ifBlank { "unknown" }}): " +
-    "$reason (path: $conflictingPath)",
-  cause,
-)
+    "Feature-spec preparation mode conflict for '$issueKey' (${requestedMode.ifBlank { "unknown" }}): " +
+      "$reason (path: $conflictingPath)",
+    cause,
+  )

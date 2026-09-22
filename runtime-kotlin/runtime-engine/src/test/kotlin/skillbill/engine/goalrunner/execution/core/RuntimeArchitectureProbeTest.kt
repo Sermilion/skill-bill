@@ -31,6 +31,7 @@ import kotlin.test.assertTrue
 
 class RuntimeArchitectureProbeTest {
   private val clock = Clock.fixed(Instant.parse("2026-09-16T10:00:00Z"), ZoneOffset.UTC)
+
   private inline fun <reified T> proxy(crossinline invoke: (String, Array<out Any?>) -> Any?): T =
     Proxy.newProxyInstance(T::class.java.classLoader, arrayOf(T::class.java)) { _, method, args ->
       invoke(method.name, args ?: emptyArray())
@@ -50,45 +51,48 @@ class RuntimeArchitectureProbeTest {
     hookStopFailure: Throwable? = null,
     heartbeatStopFailure: Throwable? = null,
   ): DefaultGoalRunnerExecutionCoordinator {
-    val store = proxy<GoalRunnerManifestStore> { name, args ->
-      when (name) {
-        "executionLease" -> state.lease
-        "acquireExecutionLease" -> {
-          state.lease = args[1] as GoalRunnerExecutionLease
-          true
-        }
-        "releaseExecutionLease" -> {
-          state.lease = null
-          true
-        }
-        else -> unexpectedCall(name)
-      }
-    }
-    val supervisor = proxy<FeatureTaskRuntimeWorkerSupervisor> { name, _ ->
-      when (name) {
-        "currentProcess" -> FeatureTaskRuntimeProcessIdentity("host", "boot", 1, "birth")
-        "startHeartbeat" -> {
-          heartbeatStartFailure?.let(::throwFailure)
-          object : FeatureTaskRuntimeHeartbeat {
-            override fun stop() {
-              heartbeatStopFailure?.let(::throwFailure)
-              state.stopped = true
-            }
-
-            override fun fencingLostReason(): String? = null
+    val store =
+      proxy<GoalRunnerManifestStore> { name, args ->
+        when (name) {
+          "executionLease" -> state.lease
+          "acquireExecutionLease" -> {
+            state.lease = args[1] as GoalRunnerExecutionLease
+            true
           }
+          "releaseExecutionLease" -> {
+            state.lease = null
+            true
+          }
+          else -> unexpectedCall(name)
         }
-        else -> unexpectedCall(name)
       }
-    }
-    val hooks = ShutdownHookPort {
-      hookStartFailure?.let(::throwFailure)
-      ShutdownHookRegistration {
-        hookStopFailure?.let(::throwFailure)
-        state.unregistered = true
-        true
+    val supervisor =
+      proxy<FeatureTaskRuntimeWorkerSupervisor> { name, _ ->
+        when (name) {
+          "currentProcess" -> FeatureTaskRuntimeProcessIdentity("host", "boot", 1, "birth")
+          "startHeartbeat" -> {
+            heartbeatStartFailure?.let(::throwFailure)
+            object : FeatureTaskRuntimeHeartbeat {
+              override fun stop() {
+                heartbeatStopFailure?.let(::throwFailure)
+                state.stopped = true
+              }
+
+              override fun fencingLostReason(): String? = null
+            }
+          }
+          else -> unexpectedCall(name)
+        }
       }
-    }
+    val hooks =
+      ShutdownHookPort {
+        hookStartFailure?.let(::throwFailure)
+        ShutdownHookRegistration {
+          hookStopFailure?.let(::throwFailure)
+          state.unregistered = true
+          true
+        }
+      }
     val daemon = proxy<DaemonThreadPort> { _, _ -> unexpectedCall("No shutdown execution expected") }
     return DefaultGoalRunnerExecutionCoordinator(
       store,
@@ -140,11 +144,12 @@ class RuntimeArchitectureProbeTest {
     val state = State()
     val primary = IllegalArgumentException("body")
     val secondary = IllegalStateException("unregister hook")
-    val thrown = assertFails {
-      coordinator(state, hookStopFailure = secondary).runOwned("parent") {
-        throw primary
+    val thrown =
+      assertFails {
+        coordinator(state, hookStopFailure = secondary).runOwned("parent") {
+          throw primary
+        }
       }
-    }
     assertSame(primary, thrown)
     assertTrue(thrown.suppressed.any { it === secondary })
     assertNull(state.lease)
@@ -169,13 +174,14 @@ class RuntimeArchitectureProbeTest {
   fun `probe progress resolver cancellation propagates`() {
     val diagnostics = proxy<RuntimeDiagnostics> { _, _ -> null }
     val store = proxy<GoalRunnerWorkflowOutcomeStore> { _, _ -> error("Store should not be called") }
-    val emitter = GoalRunnerProgressEventEmitter(
-      store,
-      { throw CancellationException("stop") },
-      null,
-      clock,
-      diagnostics,
-    )
+    val emitter =
+      GoalRunnerProgressEventEmitter(
+        store,
+        { throw CancellationException("stop") },
+        null,
+        clock,
+        diagnostics,
+      )
     assertFailsWithCancellation {
       emitter.emit(AgentRunProgressEmission(GoalProgressEventKind.entries.first(), true, "probe", "probe"))
     }
@@ -184,12 +190,13 @@ class RuntimeArchitectureProbeTest {
   @Test
   fun `probe ledger watermark read failure stops construction`() {
     val diagnostics = proxy<RuntimeDiagnostics> { _, _ -> null }
-    val store = proxy<GoalRunnerWorkflowOutcomeStore> { name, _ ->
-      when (name) {
-        "ledgerSequenceWatermarks" -> error("read failed")
-        else -> unexpectedCall(name)
+    val store =
+      proxy<GoalRunnerWorkflowOutcomeStore> { name, _ ->
+        when (name) {
+          "ledgerSequenceWatermarks" -> error("read failed")
+          else -> unexpectedCall(name)
+        }
       }
-    }
     assertFails {
       GoalRunnerLedgerRecorder(
         store,

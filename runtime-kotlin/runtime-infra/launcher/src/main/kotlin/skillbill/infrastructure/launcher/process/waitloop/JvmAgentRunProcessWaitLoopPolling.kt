@@ -48,18 +48,20 @@ internal fun ProcessWaitLoop.pollDeclaredProgress(nowNanos: Long) {
 internal fun ProcessWaitLoop.declaredProgressWait(nowNanos: Long): ProcessWait? {
   val decision = declaredTracker.classify(nowNanos, operationDeadlineNanos, idleTimeoutNanos)
   return when (decision.state) {
-    GoalRunnerLivenessState.UNRESPONSIVE -> ProcessWait(
-      finished = false,
-      progressIdleTimedOut = true,
-      fileActivityGraceExhausted = false,
-      wallClockTimedOut = false,
-      liveness = declaredLiveness(
-        "watchdog",
-        "operation_deadline_overrun",
-        GoalRunnerProcessState.KILLED,
-        decision.state,
-      ),
-    )
+    GoalRunnerLivenessState.UNRESPONSIVE ->
+      ProcessWait(
+        finished = false,
+        progressIdleTimedOut = true,
+        fileActivityGraceExhausted = false,
+        wallClockTimedOut = false,
+        liveness =
+          declaredLiveness(
+            "watchdog",
+            "operation_deadline_overrun",
+            GoalRunnerProcessState.KILLED,
+            decision.state,
+          ),
+      )
     GoalRunnerLivenessState.IDLE ->
       if (idleTimeoutNanos != null && nowNanos - declaredTracker.lastAdvanceNanos >= idleTimeoutNanos) {
         val processLiveWithinWindow = request.idlePolicy.extendIdleWindow(idleSignals(idleTimeoutNanos, nowNanos))
@@ -71,12 +73,13 @@ internal fun ProcessWaitLoop.declaredProgressWait(nowNanos: Long): ProcessWait? 
             progressIdleTimedOut = true,
             fileActivityGraceExhausted = false,
             wallClockTimedOut = false,
-            liveness = declaredLiveness(
-              "watchdog",
-              "progress_idle_timeout",
-              GoalRunnerProcessState.KILLED,
-              decision.state,
-            ),
+            liveness =
+              declaredLiveness(
+                "watchdog",
+                "progress_idle_timeout",
+                GoalRunnerProcessState.KILLED,
+                decision.state,
+              ),
           )
         }
       } else {
@@ -88,9 +91,10 @@ internal fun ProcessWaitLoop.declaredProgressWait(nowNanos: Long): ProcessWait? 
 
 internal fun ProcessWaitLoop.legacyIdleWait(nowNanos: Long): ProcessWait? =
   if (idleTimeoutNanos != null && nowNanos - lastWorkflowProgressNanos >= idleTimeoutNanos) {
-    val graceActive = fileActivityWindowStartNanos?.let { windowStart ->
-      nowNanos - windowStart < fileActivityGraceNanos
-    } == true
+    val graceActive =
+      fileActivityWindowStartNanos?.let { windowStart ->
+        nowNanos - windowStart < fileActivityGraceNanos
+      } == true
     val processLiveWithinWindow = request.idlePolicy.extendIdleWindow(idleSignals(idleTimeoutNanos, nowNanos))
     if (graceActive || processLiveWithinWindow) {
       null
@@ -100,19 +104,23 @@ internal fun ProcessWaitLoop.legacyIdleWait(nowNanos: Long): ProcessWait? =
         progressIdleTimedOut = true,
         fileActivityGraceExhausted = fileActivityWindowStartNanos != null,
         wallClockTimedOut = false,
-        liveness = declaredLiveness(
-          "watchdog",
-          "progress_idle_timeout",
-          GoalRunnerProcessState.KILLED,
-          GoalRunnerLivenessState.IDLE,
-        ),
+        liveness =
+          declaredLiveness(
+            "watchdog",
+            "progress_idle_timeout",
+            GoalRunnerProcessState.KILLED,
+            GoalRunnerLivenessState.IDLE,
+          ),
       )
     }
   } else {
     null
   }
 
-internal fun ProcessWaitLoop.idleSignals(idleTimeoutNanos: Long, nowNanos: Long): AgentRunIdleSignals =
+internal fun ProcessWaitLoop.idleSignals(
+  idleTimeoutNanos: Long,
+  nowNanos: Long,
+): AgentRunIdleSignals =
   AgentRunIdleSignals(
     lastLiveHeartbeatNanos = lastLiveHeartbeatNanos,
     lastOutputNanos = lastOutputNanos,

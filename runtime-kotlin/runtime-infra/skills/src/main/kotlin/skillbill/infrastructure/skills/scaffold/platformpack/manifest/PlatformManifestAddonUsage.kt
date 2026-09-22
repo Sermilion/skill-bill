@@ -22,20 +22,26 @@ internal fun declaredSkillRelativeDirs(
   packRoot: Path,
   declaredFiles: DeclaredFiles,
   declaredQualityCheckFile: Path? = null,
-): Set<String> = buildSet {
-  declaredFiles.baseline?.let { add(packRelativeSkillDir(packRoot, it.toPath())) }
-  declaredFiles.areas.values.forEach { add(packRelativeSkillDir(packRoot, it.toPath())) }
-  declaredQualityCheckFile?.let { add(packRelativeSkillDir(packRoot, it)) }
-}
+): Set<String> =
+  buildSet {
+    declaredFiles.baseline?.let { add(packRelativeSkillDir(packRoot, it.toPath())) }
+    declaredFiles.areas.values.forEach { add(packRelativeSkillDir(packRoot, it.toPath())) }
+    declaredQualityCheckFile?.let { add(packRelativeSkillDir(packRoot, it)) }
+  }
 
-private fun PlatformManifest.packRelativeSkillDir(contentFile: Path): String = packRoot.toPath()
-  .toAbsolutePath()
-  .normalize()
-  .relativize(contentFile.parent.toAbsolutePath().normalize())
-  .toString()
-  .replace('\\', '/')
+private fun PlatformManifest.packRelativeSkillDir(contentFile: Path): String =
+  packRoot.toPath()
+    .toAbsolutePath()
+    .normalize()
+    .relativize(contentFile.parent.toAbsolutePath().normalize())
+    .toString()
+    .replace('\\', '/')
 
-private fun packRelativeSkillDir(packRoot: Path, contentFile: Path): String = packRoot.toAbsolutePath().normalize()
-  .relativize(contentFile.parent.toAbsolutePath().normalize())
-  .toString()
-  .replace('\\', '/')
+private fun packRelativeSkillDir(
+  packRoot: Path,
+  contentFile: Path,
+): String =
+  packRoot.toAbsolutePath().normalize()
+    .relativize(contentFile.parent.toAbsolutePath().normalize())
+    .toString()
+    .replace('\\', '/')

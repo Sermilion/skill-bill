@@ -19,8 +19,10 @@ import java.nio.file.Path
 import skillbill.infrastructure.skills.install.plan.codexAgentsPath as planCodexAgentsPath
 
 object InstallOperations {
-  fun planInstall(request: InstallPlanRequest, wireValidator: InstallPlanWireValidator): InstallPlan =
-    buildInstallPlan(request, wireValidator)
+  fun planInstall(
+    request: InstallPlanRequest,
+    wireValidator: InstallPlanWireValidator,
+  ): InstallPlan = buildInstallPlan(request, wireValidator)
 
   fun applyInstall(
     plan: InstallPlan,
@@ -74,9 +76,13 @@ object InstallOperations {
     hostPlatform: HostPlatformPort = JdkHostPlatformPort,
   ): Path = InstallOperationsPaths.claudeAgentsPath(home, environment, hostPlatform)
 
-  fun junieAgentsPath(home: Path?, hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path =
-    InstallOperationsPaths.junieAgentsPath(home, hostPlatform)
+  fun junieAgentsPath(
+    home: Path?,
+    hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  ): Path = InstallOperationsPaths.junieAgentsPath(home, hostPlatform)
 
-  fun cursorAgentsPath(home: Path?, hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path =
-    InstallOperationsPaths.cursorAgentsPath(home, hostPlatform)
+  fun cursorAgentsPath(
+    home: Path?,
+    hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  ): Path = InstallOperationsPaths.cursorAgentsPath(home, hostPlatform)
 }

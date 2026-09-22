@@ -16,11 +16,12 @@ class GoalRuntimeDelegationParityTest {
     writeGoalStub(installedRuntime)
 
     val repoOutput = runGoal(repoRuntime, home = root.resolve("home"), exportedExecutable = null)
-    val installedOutput = runGoal(
-      installedRuntime,
-      home = root.resolve("home"),
-      exportedExecutable = installedRuntime.toAbsolutePath().normalize().toString(),
-    )
+    val installedOutput =
+      runGoal(
+        installedRuntime,
+        home = root.resolve("home"),
+        exportedExecutable = installedRuntime.toAbsolutePath().normalize().toString(),
+      )
 
     val normalizedRepo = normalizeGoalSemantics(repoOutput)
     val normalizedInstalled = normalizeGoalSemantics(installedOutput)
@@ -65,25 +66,30 @@ class GoalRuntimeDelegationParityTest {
     runtime.toFile().setExecutable(true)
   }
 
-  private fun runGoal(runtime: Path, home: Path, exportedExecutable: String?): String {
-    val process = ProcessBuilder(
-      runtime.toString(),
-      "--home",
-      home.toString(),
-      "goal",
-      "SKILL-901",
-      "--agent",
-      "codex",
-      "--repo-root",
-      home.toString(),
-    )
-      .redirectErrorStream(true)
-      .apply {
-        if (!exportedExecutable.isNullOrBlank()) {
-          environment()["SKILL_BILL_RUNTIME_EXECUTABLE"] = exportedExecutable
+  private fun runGoal(
+    runtime: Path,
+    home: Path,
+    exportedExecutable: String?,
+  ): String {
+    val process =
+      ProcessBuilder(
+        runtime.toString(),
+        "--home",
+        home.toString(),
+        "goal",
+        "SKILL-901",
+        "--agent",
+        "codex",
+        "--repo-root",
+        home.toString(),
+      )
+        .redirectErrorStream(true)
+        .apply {
+          if (!exportedExecutable.isNullOrBlank()) {
+            environment()["SKILL_BILL_RUNTIME_EXECUTABLE"] = exportedExecutable
+          }
         }
-      }
-      .start()
+        .start()
     val output = process.inputStream.bufferedReader().readText()
     assertEquals(0, process.waitFor(), output)
     return output

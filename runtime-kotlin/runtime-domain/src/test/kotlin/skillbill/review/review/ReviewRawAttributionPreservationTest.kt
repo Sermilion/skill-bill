@@ -4,18 +4,19 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ReviewRawAttributionPreservationTest {
-  private fun review(routedSkillLine: String) = ReviewParser.parseReview(
-    """
-    Routed to: $routedSkillLine
-    Review session ID: rvs-1
-    Review run ID: rvw-1
-    Detected review scope: branch diff
-    Detected stack: kotlin
+  private fun review(routedSkillLine: String) =
+    ReviewParser.parseReview(
+      """
+      Routed to: $routedSkillLine
+      Review session ID: rvs-1
+      Review run ID: rvw-1
+      Detected review scope: branch diff
+      Detected stack: kotlin
 
-    ### 2. Risk Register
-    - [F-001] Major | High | Auth.kt:12 | Token is logged with sensitive user data.
-    """.trimIndent(),
-  )
+      ### 2. Risk Register
+      - [F-001] Major | High | Auth.kt:12 | Token is logged with sensitive user data.
+      """.trimIndent(),
+    )
 
   @Test
   fun `a namespaced routed skill survives parsing without being rewritten`() {

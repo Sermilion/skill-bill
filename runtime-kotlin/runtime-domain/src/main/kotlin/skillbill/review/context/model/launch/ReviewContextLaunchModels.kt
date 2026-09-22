@@ -71,9 +71,10 @@ data class GovernedReviewLaunch(
     require(assignment.matchedRules.toSet() == packet.matchedRules.toSet()) {
       "Launch matched rules differ from the packet rules."
     }
-    val expectedTargets = packet.evidenceTargets
-      .filter { it.path in packetDecision.normalizedOwnedPaths }
-      .toSet()
+    val expectedTargets =
+      packet.evidenceTargets
+        .filter { it.path in packetDecision.normalizedOwnedPaths }
+        .toSet()
     require(assignment.evidenceTargets.toSet() == expectedTargets) {
       "Launch evidence targets differ from the packet targets for the lane."
     }
@@ -147,34 +148,37 @@ data class GovernedReviewLaunch(
   }
 
   private fun measureBundleEntries(entries: List<ReviewLaneAssembledEntry>): Long {
-    val synthetic = if (entries.isEmpty()) {
-      ReviewLaneBundleSegmentation(emptyList(), emptyList(), budget.maxLaneLaunchBytes)
-    } else {
-      ReviewLaneBundleSegmentation(
-        segments = listOf(
-          ReviewLaneBundleSegment(
-            segmentId = "measure",
-            entries = entries,
-            measuredBytes = REVIEW_BUNDLE_MEASUREMENT_PLACEHOLDER_BYTES,
-          ),
-        ),
-        unreviewableEntries = emptyList(),
-        budgetLimitBytes = budget.maxLaneLaunchBytes,
-      )
-    }
+    val synthetic =
+      if (entries.isEmpty()) {
+        ReviewLaneBundleSegmentation(emptyList(), emptyList(), budget.maxLaneLaunchBytes)
+      } else {
+        ReviewLaneBundleSegmentation(
+          segments =
+            listOf(
+              ReviewLaneBundleSegment(
+                segmentId = "measure",
+                entries = entries,
+                measuredBytes = REVIEW_BUNDLE_MEASUREMENT_PLACEHOLDER_BYTES,
+              ),
+            ),
+          unreviewableEntries = emptyList(),
+          budgetLimitBytes = budget.maxLaneLaunchBytes,
+        )
+      }
     return renderCanonicalPayload(entries, synthetic).toByteArray(Charsets.UTF_8).size.toLong()
   }
 
   private fun renderCanonicalPayload(
     entries: List<ReviewLaneAssembledEntry>,
     segments: ReviewLaneBundleSegmentation,
-  ): String = buildString {
-    appendLaunchIdentity()
-    appendGovernanceText()
-    appendAssignedSurface()
-    appendBundleSection(entries, segments)
-    appendPolicySurface()
-  }.trimEnd()
+  ): String =
+    buildString {
+      appendLaunchIdentity()
+      appendGovernanceText()
+      appendAssignedSurface()
+      appendBundleSection(entries, segments)
+      appendPolicySurface()
+    }.trimEnd()
 
   private fun StringBuilder.appendLaunchIdentity() {
     appendLine("contract_version: \"$REVIEW_CONTEXT_CONTRACT_VERSION\"")
@@ -230,11 +234,12 @@ data class GovernedReviewLaunch(
     entries: List<ReviewLaneAssembledEntry>,
     segments: ReviewLaneBundleSegmentation,
   ) {
-    val disposition = if (segments.incomplete) {
-      ReviewLaneReviewDisposition.INCOMPLETE
-    } else {
-      ReviewLaneReviewDisposition.COMPLETE
-    }
+    val disposition =
+      if (segments.incomplete) {
+        ReviewLaneReviewDisposition.INCOMPLETE
+      } else {
+        ReviewLaneReviewDisposition.COMPLETE
+      }
     appendLine("bundle:")
     appendLine("  composition_digest: ${assembledBundle.compositionDigest}")
     appendLine("  lane_disposition: ${disposition.wireValue}")

@@ -9,6 +9,7 @@ import skillbill.scaffold.model.CodeReviewComposition
 import skillbill.scaffold.model.GovernedAddonSelection
 import java.nio.file.Files
 import java.nio.file.Path
+
 internal const val AUTHORING_EXPLANATION =
   "Governed skills split author-owned behavior into content.md and generated runtime wiring into " +
     "render/install output. " +
@@ -21,7 +22,6 @@ data class AuthoringTarget(
   val displayName: String,
   val family: String,
   val area: String,
-
   val skillFile: Path,
   val contentFile: Path,
   val codeReviewComposition: CodeReviewComposition? = null,
@@ -30,7 +30,10 @@ data class AuthoringTarget(
 )
 
 object AuthoringOperations {
-  internal fun list(repoRoot: Path, skillNames: List<String>): AuthoringListResult {
+  internal fun list(
+    repoRoot: Path,
+    skillNames: List<String>,
+  ): AuthoringListResult {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
     val targets = selectedTargets(resolvedRoot, skillNames)
     return AuthoringListResult(
@@ -40,49 +43,63 @@ object AuthoringOperations {
     )
   }
 
-  internal fun show(repoRoot: Path, skillName: String, contentMode: String): ScaffoldSkillStatus {
+  internal fun show(
+    repoRoot: Path,
+    skillName: String,
+    contentMode: String,
+  ): ScaffoldSkillStatus {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
     val target = resolveTarget(resolvedRoot, skillName)
     return skillStatus(resolvedRoot, target, contentMode)
   }
 
-  internal fun explain(repoRoot: Path, skillName: String?): AuthoringExplain {
-    val skill = skillName?.let { name ->
-      val resolvedRoot = repoRoot.toAbsolutePath().normalize()
-      val target = resolveTarget(resolvedRoot, name)
-      AuthoringExplainSkill(
-        skillName = target.skillName,
-        contentFile = target.contentFile.toString(),
-        renderCommand = "skill-bill render ${target.skillName} --repo-root $resolvedRoot",
-        recommendedCommands = recommendedCommands(
-          resolvedRoot,
-          target,
-          completionStatus = contentCompletionStatus(Files.readString(target.contentFile)),
-          issues = emptyList(),
-        ),
-      )
-    }
+  internal fun explain(
+    repoRoot: Path,
+    skillName: String?,
+  ): AuthoringExplain {
+    val skill =
+      skillName?.let { name ->
+        val resolvedRoot = repoRoot.toAbsolutePath().normalize()
+        val target = resolveTarget(resolvedRoot, name)
+        AuthoringExplainSkill(
+          skillName = target.skillName,
+          contentFile = target.contentFile.toString(),
+          renderCommand = "skill-bill render ${target.skillName} --repo-root $resolvedRoot",
+          recommendedCommands =
+            recommendedCommands(
+              resolvedRoot,
+              target,
+              completionStatus = contentCompletionStatus(Files.readString(target.contentFile)),
+              issues = emptyList(),
+            ),
+        )
+      }
     return AuthoringExplain(
       explanation = AUTHORING_EXPLANATION,
       editableSurface = listOf("content.md"),
       generatedSurface = listOf("SKILL.md", "platform.yaml pointer files"),
       governedSidecars = emptyList(),
-      normalWorkflow = listOf(
-        "skill-bill new --payload <file>",
-        "skill-bill fill <skill-name>",
-        "skill-bill validate --skill-name <skill-name>",
-        "skill-bill render <skill-name>",
-      ),
-      notes = listOf(
-        "Author behavior changes in content.md.",
-        "Preview generated wrappers with render instead of hand-editing SKILL.md.",
-        "Use show to inspect completion and next commands.",
-      ),
+      normalWorkflow =
+        listOf(
+          "skill-bill new --payload <file>",
+          "skill-bill fill <skill-name>",
+          "skill-bill validate --skill-name <skill-name>",
+          "skill-bill render <skill-name>",
+        ),
+      notes =
+        listOf(
+          "Author behavior changes in content.md.",
+          "Preview generated wrappers with render instead of hand-editing SKILL.md.",
+          "Use show to inspect completion and next commands.",
+        ),
       skill = skill,
     )
   }
 
-  internal fun validate(repoRoot: Path, skillNames: List<String>): AuthoringValidateResult {
+  internal fun validate(
+    repoRoot: Path,
+    skillNames: List<String>,
+  ): AuthoringValidateResult {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
     if (skillNames.isEmpty()) {
       val issues =
@@ -134,15 +151,16 @@ object AuthoringOperations {
       targets.forEach { target ->
         renderAuthoringTarget(resolvedRoot, target)
       }
-      val nativeRegeneration = NativeAgentOperations.regenerate(
-        NativeAgentRegenerationRequest(
-          repoRoot = resolvedRoot,
-          compositionContext = nativeAgentCompositionContext,
-          skillNames = skillNames,
-          originalBytes = originalBytes,
-          createdPaths = createdPaths,
-        ),
-      )
+      val nativeRegeneration =
+        NativeAgentOperations.regenerate(
+          NativeAgentRegenerationRequest(
+            repoRoot = resolvedRoot,
+            compositionContext = nativeAgentCompositionContext,
+            skillNames = skillNames,
+            originalBytes = originalBytes,
+            createdPaths = createdPaths,
+          ),
+        )
       regenerated += nativeRegeneration.regeneratedFiles
       if (validate) {
         val issues = targets.flatMap { target -> validateTarget(target, resolvedRoot) }
@@ -161,7 +179,12 @@ object AuthoringOperations {
     }
   }
 
-  internal fun fill(repoRoot: Path, skillName: String, body: String, sectionName: String?): AuthoringFillResult {
+  internal fun fill(
+    repoRoot: Path,
+    skillName: String,
+    body: String,
+    sectionName: String?,
+  ): AuthoringFillResult {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
     val target = resolveTarget(resolvedRoot, skillName)
     val replacement =
@@ -178,7 +201,11 @@ object AuthoringOperations {
     )
   }
 
-  internal fun saveExactContent(repoRoot: Path, skillName: String, content: String): AuthoringSaveExactContentResult {
+  internal fun saveExactContent(
+    repoRoot: Path,
+    skillName: String,
+    content: String,
+  ): AuthoringSaveExactContentResult {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
     val target = resolveTarget(resolvedRoot, skillName)
     val mutation = mutateContent(resolvedRoot, target, content)
@@ -212,9 +239,13 @@ object AuthoringOperations {
     )
   }
 
-  fun retiredInteractiveMessage(command: String, replacement: String): String =
-    "$command interactive mode was retired in SKILL-32; use `$replacement` instead."
+  fun retiredInteractiveMessage(
+    command: String,
+    replacement: String,
+  ): String = "$command interactive mode was retired in SKILL-32; use `$replacement` instead."
 
-  fun retiredEditorMessage(command: String, replacement: String): String =
-    "$command editor mode was retired in SKILL-32; use `$replacement` instead."
+  fun retiredEditorMessage(
+    command: String,
+    replacement: String,
+  ): String = "$command editor mode was retired in SKILL-32; use `$replacement` instead."
 }

@@ -3,6 +3,7 @@ package skillbill.ports.workflow.model
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
+
 data class WorkflowStateRecord(
   val workflowId: String,
   val sessionId: String,
@@ -22,10 +23,11 @@ data class WorkflowStateRecord(
   val stateEnteredAtEstimated: Boolean = false,
 ) {
   companion object {
-    internal fun requiredWorkflowStatus(value: String): WorkflowStatus = WorkflowStatus.fromWire(value)
-      ?: throw InvalidWorkflowStateSchemaError(
-        "Workflow state workflow_status has unsupported value '$value'.",
-      )
+    internal fun requiredWorkflowStatus(value: String): WorkflowStatus =
+      WorkflowStatus.fromWire(value)
+        ?: throw InvalidWorkflowStateSchemaError(
+          "Workflow state workflow_status has unsupported value '$value'.",
+        )
   }
 }
 

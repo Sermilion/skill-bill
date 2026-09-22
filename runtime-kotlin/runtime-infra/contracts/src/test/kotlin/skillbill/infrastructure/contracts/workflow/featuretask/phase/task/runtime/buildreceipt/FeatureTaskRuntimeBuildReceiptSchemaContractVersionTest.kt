@@ -50,8 +50,9 @@ class FeatureTaskRuntimeBuildReceiptSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = FeatureTaskRuntimeBuildReceiptSchemaValidator::class.java.classLoader
-      .getResourceAsStream(FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      FeatureTaskRuntimeBuildReceiptSchemaValidator::class.java.classLoader
+        .getResourceAsStream(FeatureTaskRuntimeBuildReceiptSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical feature-task-runtime build-receipt schema is missing from the classpath at " +
@@ -87,19 +88,21 @@ class FeatureTaskRuntimeBuildReceiptSchemaValidatorTest {
     }
   }
 
-  private fun representativeReceipt(): Map<String, Any?> = linkedMapOf(
-    "contract_version" to FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION,
-    "validation_status" to "passed",
-    "checks" to emptyList<String>(),
-    "repository_checkpoint" to mapOf("fingerprint" to "fp-abc"),
-    "gate_run_count" to 1,
-    "gate_runs" to listOf(
-      mapOf(
-        "duration_ms" to 1,
-        "outcome" to "passed",
-        "cache_mode" to "cache_eligible",
-        "executed_work_units" to 1,
-      ),
-    ),
-  )
+  private fun representativeReceipt(): Map<String, Any?> =
+    linkedMapOf(
+      "contract_version" to FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION,
+      "validation_status" to "passed",
+      "checks" to emptyList<String>(),
+      "repository_checkpoint" to mapOf("fingerprint" to "fp-abc"),
+      "gate_run_count" to 1,
+      "gate_runs" to
+        listOf(
+          mapOf(
+            "duration_ms" to 1,
+            "outcome" to "passed",
+            "cache_mode" to "cache_eligible",
+            "executed_work_units" to 1,
+          ),
+        ),
+    )
 }

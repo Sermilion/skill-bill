@@ -2,9 +2,14 @@ package skillbill.infrastructure.skills.scaffold.validation.shape
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.REQUIRED_GOVERNED_SECTIONS
 import java.nio.file.Path
 
-internal fun validateSkillMdFrontmatter(path: Path, fileName: String, text: String): Int {
-  val frontmatterMatch = SKILL_MD_FRONTMATTER_PATTERN.find(text)
-    ?: skillShapeFailure("$path: $fileName must begin with a YAML frontmatter block.")
+internal fun validateSkillMdFrontmatter(
+  path: Path,
+  fileName: String,
+  text: String,
+): Int {
+  val frontmatterMatch =
+    SKILL_MD_FRONTMATTER_PATTERN.find(text)
+      ?: skillShapeFailure("$path: $fileName must begin with a YAML frontmatter block.")
 
   val frontmatter = parseSkillMdFrontmatter(frontmatterMatch.groupValues[1])
   val unknownKeys = (frontmatter.keys - SKILL_MD_ALLOWED_FRONTMATTER_KEYS).sorted()
@@ -22,7 +27,12 @@ internal fun validateSkillMdFrontmatter(path: Path, fileName: String, text: Stri
   return frontmatterMatch.range.last + 1
 }
 
-internal fun validateSkillMdBodyShape(path: Path, fileName: String, text: String, bodyStartOffset: Int) {
+internal fun validateSkillMdBodyShape(
+  path: Path,
+  fileName: String,
+  text: String,
+  bodyStartOffset: Int,
+) {
   val body = text.substring(bodyStartOffset)
   val bodyStartLine = text.substring(0, bodyStartOffset).count { it == '\n' } + 1
   val headings = mutableListOf<String>()

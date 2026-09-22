@@ -8,21 +8,24 @@ import skillbill.review.context.model.commit.ReviewCommitSource
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-class SharedReviewEvidenceCodecTest {
-  private fun commitRecord() = SharedReviewEvidenceRecord(
-    aggregateDiff = "diff --git a/src/A.kt b/src/A.kt\n@@ -1,1 +1,2 @@\n+alpha\n",
-    sequence = SharedReviewEvidenceCommits(
-      baseRevision = "base",
-      headRevision = "head",
-      commits = listOf(
-        RawCommitDiff("c1", "base", "subject with\nan embedded newline", "diff --git a/A b/A\n@@ -1 +1 @@\n+a\n"),
 
-        RawCommitDiff("head", "c1", "12\nnot a length", "7\nseven\n0\n\n"),
-      ),
-      syntheticSource = null,
-      syntheticReason = null,
-    ),
-  )
+class SharedReviewEvidenceCodecTest {
+  private fun commitRecord() =
+    SharedReviewEvidenceRecord(
+      aggregateDiff = "diff --git a/src/A.kt b/src/A.kt\n@@ -1,1 +1,2 @@\n+alpha\n",
+      sequence =
+        SharedReviewEvidenceCommits(
+          baseRevision = "base",
+          headRevision = "head",
+          commits =
+            listOf(
+              RawCommitDiff("c1", "base", "subject with\nan embedded newline", "diff --git a/A b/A\n@@ -1 +1 @@\n+a\n"),
+              RawCommitDiff("head", "c1", "12\nnot a length", "7\nseven\n0\n\n"),
+            ),
+          syntheticSource = null,
+          syntheticReason = null,
+        ),
+    )
 
   @Test fun `a commit record round-trips byte-for-byte`() {
     val record = commitRecord()
@@ -36,16 +39,18 @@ class SharedReviewEvidenceCodecTest {
       ReviewCommitSource.SYNTHETIC_SUPPLIED_DIFF,
       ReviewCommitSource.SYNTHETIC_AGGREGATE_PR_DIFF,
     ).forEach { source ->
-      val record = SharedReviewEvidenceRecord(
-        aggregateDiff = "diff --git a/A b/A\n@@ -1 +1 @@\n+a\n",
-        sequence = SharedReviewEvidenceCommits(
-          baseRevision = "base",
-          headRevision = "head",
-          commits = emptyList(),
-          syntheticSource = source,
-          syntheticReason = "git enumerated no commits for base..head in the local object store",
-        ),
-      )
+      val record =
+        SharedReviewEvidenceRecord(
+          aggregateDiff = "diff --git a/A b/A\n@@ -1 +1 @@\n+a\n",
+          sequence =
+            SharedReviewEvidenceCommits(
+              baseRevision = "base",
+              headRevision = "head",
+              commits = emptyList(),
+              syntheticSource = source,
+              syntheticReason = "git enumerated no commits for base..head in the local object store",
+            ),
+        )
 
       val decoded = SharedReviewEvidenceCodec.decode(SharedReviewEvidenceCodec.encode(record))
 

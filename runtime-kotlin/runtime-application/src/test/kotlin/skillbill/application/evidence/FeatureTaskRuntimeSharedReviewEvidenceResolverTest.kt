@@ -22,10 +22,15 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
   private val repoRoot: Path = Path.of(".")
 
-  private fun diffFor(path: String, line: String, hunks: Int = 1) = buildString {
+  private fun diffFor(
+    path: String,
+    line: String,
+    hunks: Int = 1,
+  ) = buildString {
     appendLine("diff --git a/$path b/$path")
     appendLine("--- a/$path")
     appendLine("+++ b/$path")
@@ -37,16 +42,25 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
 
   private class FakeGit(private val responses: Map<String, String?>) : DiffResolverPort {
     val invoked: MutableList<String> = mutableListOf()
-    override fun runProcess(args: List<String>, workDir: Path): String? {
+
+    override fun runProcess(
+      args: List<String>,
+      workDir: Path,
+    ): String? {
       val key = args.joinToString(" ")
       invoked += key
       return responses[key]
     }
 
-    override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) =
-      emptyMap<String, ReviewCheckpointFileIdentity>()
+    override fun reviewWorktreeFileIdentities(
+      root: Path,
+      paths: List<String>,
+    ) = emptyMap<String, ReviewCheckpointFileIdentity>()
 
-    override fun readDiff(path: Path, maxBytes: Long): String? = null
+    override fun readDiff(
+      path: Path,
+      maxBytes: Long,
+    ): String? = null
   }
 
   private class InMemoryStore : FeatureTaskRuntimeSharedEvidenceResolverPort {
@@ -64,41 +78,53 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
       }
       derivations++
       val derivation = deriver.derive(request.checkpoint)
-      val outcome = if (stored.isNotEmpty()) {
-        CHECKPOINT_CHANGE_REDERIVATION
-      } else {
-        DERIVATION
-      }
-      val resolution = FeatureTaskRuntimeSharedEvidenceResolution(
-        artifact = FeatureTaskRuntimeSharedEvidenceArtifact(
-          fingerprint = fingerprint,
-          baseRef = derivation.baseRef,
-          headRef = derivation.headRef,
-          files = derivation.files,
-          hunks = derivation.hunks,
-          diffPayload = FeatureTaskRuntimeSharedEvidenceDiffPayloadRef(
-            "diff.patch",
-            derivation.diffPayload.length.toLong(),
-          ),
-        ),
-        diffPayload = derivation.diffPayload,
-        storePath = ".skill-bill/run-evidence/${request.workflowId}/$fingerprint",
-        outcome = outcome,
-      )
+      val outcome =
+        if (stored.isNotEmpty()) {
+          CHECKPOINT_CHANGE_REDERIVATION
+        } else {
+          DERIVATION
+        }
+      val resolution =
+        FeatureTaskRuntimeSharedEvidenceResolution(
+          artifact =
+            FeatureTaskRuntimeSharedEvidenceArtifact(
+              fingerprint = fingerprint,
+              baseRef = derivation.baseRef,
+              headRef = derivation.headRef,
+              files = derivation.files,
+              hunks = derivation.hunks,
+              diffPayload =
+                FeatureTaskRuntimeSharedEvidenceDiffPayloadRef(
+                  "diff.patch",
+                  derivation.diffPayload.length.toLong(),
+                ),
+            ),
+          diffPayload = derivation.diffPayload,
+          storePath = ".skill-bill/run-evidence/${request.workflowId}/$fingerprint",
+          outcome = outcome,
+        )
       stored[fingerprint] = resolution
       return resolution
     }
   }
 
-  private fun checkpoint(fingerprint: String, base: String = "base", head: String = "head") =
-    FeatureTaskRuntimeRepositoryCheckpoint(
-      fingerprint = fingerprint,
-      baseRef = base,
-      headRef = head,
-    )
+  private fun checkpoint(
+    fingerprint: String,
+    base: String = "base",
+    head: String = "head",
+  ) = FeatureTaskRuntimeRepositoryCheckpoint(
+    fingerprint = fingerprint,
+    baseRef = base,
+    headRef = head,
+  )
 
-  private fun gitFor(base: String, head: String, path: String, line: String, hunks: Int = 1) =
-    FakeGit(mapOf("git diff $base $head" to diffFor(path, line, hunks)))
+  private fun gitFor(
+    base: String,
+    head: String,
+    path: String,
+    line: String,
+    hunks: Int = 1,
+  ) = FakeGit(mapOf("git diff $base $head" to diffFor(path, line, hunks)))
 
   @Test
   fun `an absent artifact re-derives and the launch still receives a reference`() {
@@ -127,8 +153,9 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
     assertEquals(1, firstGit.invoked.size)
 
     val secondGit = FakeGit(emptyMap())
-    val reused = FeatureTaskRuntimeSharedReviewEvidenceResolver(store, secondGit)
-      .resolve(repoRoot, "wf-1", checkpoint("fp-hit"), "audit")
+    val reused =
+      FeatureTaskRuntimeSharedReviewEvidenceResolver(store, secondGit)
+        .resolve(repoRoot, "wf-1", checkpoint("fp-hit"), "audit")
 
     assertNotNull(reused)
     assertEquals(first.reference.storePath, reused.reference.storePath)
@@ -146,16 +173,18 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
     assertNotNull(before)
 
     val reuseGit = FakeGit(emptyMap())
-    val reused = FeatureTaskRuntimeSharedReviewEvidenceResolver(store, reuseGit)
-      .resolve(repoRoot, "wf-audit-gap", checkpoint("fp-unchanged"), "audit")
+    val reused =
+      FeatureTaskRuntimeSharedReviewEvidenceResolver(store, reuseGit)
+        .resolve(repoRoot, "wf-audit-gap", checkpoint("fp-unchanged"), "audit")
     assertNotNull(reused)
     assertEquals(before.reference.checkpointFingerprint, reused.reference.checkpointFingerprint)
     assertEquals(1, store.derivations)
     assertTrue(reuseGit.invoked.isEmpty())
 
     val movedGit = gitFor("base", "head", "b.kt", "after")
-    val moved = FeatureTaskRuntimeSharedReviewEvidenceResolver(store, movedGit)
-      .resolve(repoRoot, "wf-audit-gap", checkpoint("fp-moved"), "audit")
+    val moved =
+      FeatureTaskRuntimeSharedReviewEvidenceResolver(store, movedGit)
+        .resolve(repoRoot, "wf-audit-gap", checkpoint("fp-moved"), "audit")
     assertNotNull(moved)
     assertNotEquals(before.reference.checkpointFingerprint, moved.reference.checkpointFingerprint)
     assertEquals(2, store.derivations)
@@ -165,22 +194,25 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
   @Test
   fun `review_fix re-entry reuses or re-derives by fingerprint with no added invalidation branch`() {
     val store = InMemoryStore()
-    val first = FeatureTaskRuntimeSharedReviewEvidenceResolver(
-      store,
-      gitFor("base", "head", "fix.kt", "round-1"),
-    ).resolve(repoRoot, "wf-review-fix", checkpoint("fp-review-1"), "audit")
+    val first =
+      FeatureTaskRuntimeSharedReviewEvidenceResolver(
+        store,
+        gitFor("base", "head", "fix.kt", "round-1"),
+      ).resolve(repoRoot, "wf-review-fix", checkpoint("fp-review-1"), "audit")
     assertNotNull(first)
 
-    val same = FeatureTaskRuntimeSharedReviewEvidenceResolver(store, FakeGit(emptyMap()))
-      .resolve(repoRoot, "wf-review-fix", checkpoint("fp-review-1"), "audit")
+    val same =
+      FeatureTaskRuntimeSharedReviewEvidenceResolver(store, FakeGit(emptyMap()))
+        .resolve(repoRoot, "wf-review-fix", checkpoint("fp-review-1"), "audit")
     assertNotNull(same)
     assertEquals(first.reference.checkpointFingerprint, same.reference.checkpointFingerprint)
     assertEquals(1, store.derivations)
 
-    val next = FeatureTaskRuntimeSharedReviewEvidenceResolver(
-      store,
-      gitFor("base", "head", "fix.kt", "round-2"),
-    ).resolve(repoRoot, "wf-review-fix", checkpoint("fp-review-2"), "audit")
+    val next =
+      FeatureTaskRuntimeSharedReviewEvidenceResolver(
+        store,
+        gitFor("base", "head", "fix.kt", "round-2"),
+      ).resolve(repoRoot, "wf-review-fix", checkpoint("fp-review-2"), "audit")
     assertNotNull(next)
     assertNotEquals(first.reference.checkpointFingerprint, next.reference.checkpointFingerprint)
     assertEquals(2, store.derivations)
@@ -188,44 +220,49 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
 
   @Test
   fun `a resolution that cannot produce a store path yields null so the launch still succeeds`() {
-    val blankStore = FeatureTaskRuntimeSharedEvidenceResolverPort { request, deriver ->
-      val derivation = deriver.derive(request.checkpoint)
-      FeatureTaskRuntimeSharedEvidenceResolution(
-        artifact = FeatureTaskRuntimeSharedEvidenceArtifact(
-          fingerprint = request.checkpoint.fingerprint,
-          baseRef = derivation.baseRef,
-          headRef = derivation.headRef,
-          files = derivation.files,
-          hunks = derivation.hunks,
-          diffPayload = FeatureTaskRuntimeSharedEvidenceDiffPayloadRef("diff.patch", 0),
-        ),
-        diffPayload = derivation.diffPayload,
-        storePath = null,
-      )
-    }
-    val reference = FeatureTaskRuntimeSharedReviewEvidenceResolver(
-      blankStore,
-      gitFor("base", "head", "a.kt", "x"),
-    ).resolve(repoRoot, "wf-1", checkpoint("fp"), "audit")
+    val blankStore =
+      FeatureTaskRuntimeSharedEvidenceResolverPort { request, deriver ->
+        val derivation = deriver.derive(request.checkpoint)
+        FeatureTaskRuntimeSharedEvidenceResolution(
+          artifact =
+            FeatureTaskRuntimeSharedEvidenceArtifact(
+              fingerprint = request.checkpoint.fingerprint,
+              baseRef = derivation.baseRef,
+              headRef = derivation.headRef,
+              files = derivation.files,
+              hunks = derivation.hunks,
+              diffPayload = FeatureTaskRuntimeSharedEvidenceDiffPayloadRef("diff.patch", 0),
+            ),
+          diffPayload = derivation.diffPayload,
+          storePath = null,
+        )
+      }
+    val reference =
+      FeatureTaskRuntimeSharedReviewEvidenceResolver(
+        blankStore,
+        gitFor("base", "head", "a.kt", "x"),
+      ).resolve(repoRoot, "wf-1", checkpoint("fp"), "audit")
 
     assertNull(reference)
   }
 
   @Test
   fun `a fingerprint contradiction from the port loud-fails instead of becoming a silent null omit`() {
-    val contradicted = FeatureTaskRuntimeSharedEvidenceResolverPort { _, _ ->
-      throw FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError(
-        addressedFingerprint = "fp-addressed",
-        recordedFingerprint = "fp-recorded",
-        sourceLabel = "envelope.json",
-      )
-    }
-    val error = assertFailsWith<FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError> {
-      FeatureTaskRuntimeSharedReviewEvidenceResolver(
-        contradicted,
-        FakeGit(emptyMap()),
-      ).resolve(repoRoot, "wf-1", checkpoint("fp-addressed"), "audit")
-    }
+    val contradicted =
+      FeatureTaskRuntimeSharedEvidenceResolverPort { _, _ ->
+        throw FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError(
+          addressedFingerprint = "fp-addressed",
+          recordedFingerprint = "fp-recorded",
+          sourceLabel = "envelope.json",
+        )
+      }
+    val error =
+      assertFailsWith<FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError> {
+        FeatureTaskRuntimeSharedReviewEvidenceResolver(
+          contradicted,
+          FakeGit(emptyMap()),
+        ).resolve(repoRoot, "wf-1", checkpoint("fp-addressed"), "audit")
+      }
     assertEquals("fp-addressed", error.addressedFingerprint)
     assertEquals("fp-recorded", error.recordedFingerprint)
   }
@@ -233,10 +270,12 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
   @Test
   fun `serialized reference size tracks file count not diff size`() {
     val store = InMemoryStore()
-    fun resolve(hunks: Int) = FeatureTaskRuntimeSharedReviewEvidenceResolver(
-      store,
-      gitFor("base", "head", "a.kt", "line", hunks),
-    ).resolve(repoRoot, "wf-size", checkpoint("fp-$hunks"), "audit")!!
+
+    fun resolve(hunks: Int) =
+      FeatureTaskRuntimeSharedReviewEvidenceResolver(
+        store,
+        gitFor("base", "head", "a.kt", "line", hunks),
+      ).resolve(repoRoot, "wf-size", checkpoint("fp-$hunks"), "audit")!!
 
     val small = resolve(1)
     val large = resolve(200)
@@ -250,15 +289,17 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
   fun `owned worktree paths derive against the base revision`() {
     val store = InMemoryStore()
     val git = FakeGit(mapOf("git diff base -- src/A.kt" to diffFor("src/A.kt", "working")))
-    val checkpoint = FeatureTaskRuntimeRepositoryCheckpoint(
-      fingerprint = "fp-working-tree",
-      baseRef = "base",
-      headRef = "checkpoint-head",
-      workingTreeOwnedPaths = listOf("src/A.kt"),
-    )
+    val checkpoint =
+      FeatureTaskRuntimeRepositoryCheckpoint(
+        fingerprint = "fp-working-tree",
+        baseRef = "base",
+        headRef = "checkpoint-head",
+        workingTreeOwnedPaths = listOf("src/A.kt"),
+      )
 
-    val reference = FeatureTaskRuntimeSharedReviewEvidenceResolver(store, git)
-      .resolve(repoRoot, "wf-working-tree", checkpoint, "audit")
+    val reference =
+      FeatureTaskRuntimeSharedReviewEvidenceResolver(store, git)
+        .resolve(repoRoot, "wf-working-tree", checkpoint, "audit")
 
     assertNotNull(reference)
     assertEquals(listOf("git diff base -- src/A.kt"), git.invoked)

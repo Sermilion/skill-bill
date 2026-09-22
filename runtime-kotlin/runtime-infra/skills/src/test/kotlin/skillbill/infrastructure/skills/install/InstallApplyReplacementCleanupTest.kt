@@ -17,12 +17,13 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
   @Test
   fun `apply replacement removes previously installed unselected platform links`() {
     val fixture = setupApplyFixture()
-    val selectedPlatformPlan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val selectedPlatformPlan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
     applyInstallForTest(selectedPlatformPlan)
     val targetDir = fixture.home.resolve("agent-skill-targets/codex")
     val codeReviewStaging = readSymlinkTarget(targetDir.resolve("bill-code-review"))
@@ -37,12 +38,13 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
       ),
     )
 
-    val baseOnlyReplacementPlan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        replaceExistingSkillBillLinks = true,
-      ),
-    )
+    val baseOnlyReplacementPlan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          replaceExistingSkillBillLinks = true,
+        ),
+      )
 
     val result = applyInstallForTest(baseOnlyReplacementPlan)
 
@@ -67,12 +69,13 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     Files.createDirectories(legacyManagedDir)
     Files.writeString(legacyManagedDir.resolve(".skill-bill-install"), "")
     Files.writeString(legacyManagedDir.resolve("SKILL.md"), "old managed install")
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        replaceExistingSkillBillLinks = true,
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          replaceExistingSkillBillLinks = true,
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -81,9 +84,10 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     assertTrue(readSymlinkTarget(legacySourceLink).startsWith(fixture.home.resolve(".skill-bill/installed-skills")))
     assertTrue(Files.isSymbolicLink(legacyManagedDir))
     assertTrue(readSymlinkTarget(legacyManagedDir).startsWith(fixture.home.resolve(".skill-bill/installed-skills")))
-    val billCodeReviewLinks = result.skills
-      .single { skill -> skill.skillName == "bill-code-review" }
-      .links
+    val billCodeReviewLinks =
+      result.skills
+        .single { skill -> skill.skillName == "bill-code-review" }
+        .links
     assertTrue(
       billCodeReviewLinks.any { link ->
         link.agent == InstallAgent.CODEX && link.status == InstallAgentLinkStatus.CREATED
@@ -101,12 +105,13 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     val cloneManagedLink = targetDir.resolve("bill-code-review")
     createSymlinkOrSkip(cloneManagedLink, clone.resolve("skills/bill-code-review"))
 
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        replaceExistingSkillBillLinks = true,
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          replaceExistingSkillBillLinks = true,
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -123,12 +128,13 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     )
 
     val cloneRoot = clone.toAbsolutePath().normalize()
-    val danglingIntoClone = Files.list(targetDir).use { stream ->
-      stream
-        .filter { entry -> Files.isSymbolicLink(entry) }
-        .filter { entry -> readSymlinkTarget(entry).startsWith(cloneRoot) }
-        .toList()
-    }
+    val danglingIntoClone =
+      Files.list(targetDir).use { stream ->
+        stream
+          .filter { entry -> Files.isSymbolicLink(entry) }
+          .filter { entry -> readSymlinkTarget(entry).startsWith(cloneRoot) }
+          .toList()
+      }
     assertTrue(danglingIntoClone.isEmpty(), "no symlink may still point into the clone: $danglingIntoClone")
   }
 
@@ -138,12 +144,13 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     val targetDir = fixture.home.resolve("agent-skill-targets/codex")
     Files.createDirectories(targetDir)
     val legacyPaths = createLegacyRenamedLinks(fixture, targetDir)
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        replaceExistingSkillBillLinks = true,
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          replaceExistingSkillBillLinks = true,
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -155,31 +162,36 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     assertTrue(Files.isSymbolicLink(targetDir.resolve("bill-code-check")))
   }
 
-  private fun createLegacyRenamedLinks(fixture: ApplyFixture, targetDir: Path): List<Path> {
-    val links = listOf(
-      "bill-backend-kotlin-code-review" to "platform-packs/kotlin/code-review/bill-kotlin-code-review",
-      "bill-quality-check" to "skills/bill-code-check",
-      "bill-code-quality-check" to "skills/bill-code-check",
-      "bill-kotlin-quality-check" to "platform-packs/kotlin/quality-check/bill-kotlin-code-check",
-      "bill-kotlin-code-quality-check" to "platform-packs/kotlin/quality-check/bill-kotlin-code-check",
-      ("bill-feature-" + "implement") to "skills/bill-feature",
-      ("bill-feature-" + "implement-agentic") to "skills/bill-feature",
-      "bill-new-skill-all-agents" to "skills/bill-create-skill",
-      "bill-grill-plan" to "skills/bill-grill-plan",
-      "bill-skill-remove" to "skills/bill-skill-remove",
-    ).map { (linkName, sourcePath) ->
-      targetDir.resolve(linkName).also { link ->
-        createSymlinkOrSkip(link, fixture.repoRoot.resolve(sourcePath))
+  private fun createLegacyRenamedLinks(
+    fixture: ApplyFixture,
+    targetDir: Path,
+  ): List<Path> {
+    val links =
+      listOf(
+        "bill-backend-kotlin-code-review" to "platform-packs/kotlin/code-review/bill-kotlin-code-review",
+        "bill-quality-check" to "skills/bill-code-check",
+        "bill-code-quality-check" to "skills/bill-code-check",
+        "bill-kotlin-quality-check" to "platform-packs/kotlin/quality-check/bill-kotlin-code-check",
+        "bill-kotlin-code-quality-check" to "platform-packs/kotlin/quality-check/bill-kotlin-code-check",
+        ("bill-feature-" + "implement") to "skills/bill-feature",
+        ("bill-feature-" + "implement-agentic") to "skills/bill-feature",
+        "bill-new-skill-all-agents" to "skills/bill-create-skill",
+        "bill-grill-plan" to "skills/bill-grill-plan",
+        "bill-skill-remove" to "skills/bill-skill-remove",
+      ).map { (linkName, sourcePath) ->
+        targetDir.resolve(linkName).also { link ->
+          createSymlinkOrSkip(link, fixture.repoRoot.resolve(sourcePath))
+        }
       }
-    }
-    val managedDirs = listOf(
-      targetDir.resolve("mdp-gcheck"),
-      targetDir.resolve("mdp-skill-scaffold"),
-    ).onEach { managedDir ->
-      Files.createDirectories(managedDir)
-      Files.writeString(managedDir.resolve(".skill-bill-install"), "")
-      Files.writeString(managedDir.resolve("SKILL.md"), "old managed install")
-    }
+    val managedDirs =
+      listOf(
+        targetDir.resolve("mdp-gcheck"),
+        targetDir.resolve("mdp-skill-scaffold"),
+      ).onEach { managedDir ->
+        Files.createDirectories(managedDir)
+        Files.writeString(managedDir.resolve(".skill-bill-install"), "")
+        Files.writeString(managedDir.resolve("SKILL.md"), "old managed install")
+      }
     return links + managedDirs
   }
 
@@ -188,18 +200,21 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     val fixture = setupApplyFixture()
     val targetDir = fixture.home.resolve("agent-skill-targets/codex")
     Files.createDirectories(targetDir)
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        replaceExistingSkillBillLinks = true,
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          replaceExistingSkillBillLinks = true,
+        ),
+      )
     val invalidName = "bad\u0000name"
-    val tampered = plan.copy(
-      skills = plan.skills.map { skill ->
-        if (skill.name == "bill-code-review") skill.copy(name = invalidName) else skill
-      },
-    )
+    val tampered =
+      plan.copy(
+        skills =
+          plan.skills.map { skill ->
+            if (skill.name == "bill-code-review") skill.copy(name = invalidName) else skill
+          },
+      )
 
     val result = applyInstallForTest(tampered)
 

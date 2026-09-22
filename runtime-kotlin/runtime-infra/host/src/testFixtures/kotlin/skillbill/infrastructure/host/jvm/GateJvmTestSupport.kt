@@ -8,7 +8,10 @@ fun testGateJvmResolver(): GateJvmResolver = GateJvmResolver(NoopRuntimeDiagnost
 
 fun hostPath(): String = System.getenv(GateJvmEnvironmentKeys.PATH) ?: "/usr/bin:/bin"
 
-fun writeJdkShapedHome(root: Path, javaVersion: String = "21.0.2"): Path {
+fun writeJdkShapedHome(
+  root: Path,
+  javaVersion: String = "21.0.2",
+): Path {
   Files.createDirectories(root.resolve("bin"))
   Files.writeString(root.resolve("release"), "JAVA_VERSION=\"$javaVersion\"\n")
   val java = root.resolve("bin/java")

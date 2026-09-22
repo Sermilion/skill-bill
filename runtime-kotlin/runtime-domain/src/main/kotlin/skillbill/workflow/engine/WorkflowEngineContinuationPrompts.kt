@@ -3,6 +3,7 @@ package skillbill.workflow.engine
 import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.model.WorkflowContinueStatus
+
 internal data class ContinuationArtifactKeys(
   val currentStepArtifactKeys: List<String>,
   val omittedArtifactKeys: List<String>,
@@ -21,9 +22,10 @@ internal fun continuationBrief(request: ContinuationBriefRequest): String {
   val stepLabel = request.definition.stepLabels[request.resumeStepId] ?: request.resumeStepId
   val currentArtifacts = request.artifactKeys.currentStepArtifactKeys.joinToString().ifBlank { "none" }
   val omittedArtifacts = request.artifactKeys.omittedArtifactKeys.joinToString().ifBlank { "none" }
-  val instructionPath = CONTINUATION_CONTENT_PATHS[request.definition.skillName]
-    ?.let { path -> "Follow the normal step instructions in `$path`. " }
-    .orEmpty()
+  val instructionPath =
+    CONTINUATION_CONTENT_PATHS[request.definition.skillName]
+      ?.let { path -> "Follow the normal step instructions in `$path`. " }
+      .orEmpty()
   return "Resume `${request.definition.skillName}` workflow `${request.workflowId}` from `$stepLabel` " +
     "(`${request.resumeStepId}`). " +
     instructionPath +
@@ -53,14 +55,15 @@ internal data class ContinuationEntryPromptRequest(
 
 internal fun continuationEntryPrompt(request: ContinuationEntryPromptRequest): String {
   val identity = request.identity
-  val references = request.definition.continuationReferenceSections[identity.resumeStepId].orEmpty()
-    .joinToString("; ")
+  val references =
+    request.definition.continuationReferenceSections[identity.resumeStepId].orEmpty()
+      .joinToString("; ")
   val directive =
     request.definition.continuationDirectives[identity.resumeStepId]
       ?: (
         "Resume the workflow from the recovered current step using the persisted artifacts as " +
           "authoritative context."
-        )
+      )
   val currentArtifacts = request.artifactKeys.currentStepArtifactKeys.joinToString().ifBlank { "none" }
   val omittedArtifacts = request.artifactKeys.omittedArtifactKeys.joinToString().ifBlank { "none" }
   val commonLines =
@@ -100,6 +103,7 @@ internal fun continuationEntryPrompt(request: ContinuationEntryPromptRequest): S
   return commonLines.joinToString("\n")
 }
 
-internal val CONTINUATION_CONTENT_PATHS: Map<String, String> = mapOf(
-  "bill-feature-verify" to "skills/bill-feature-verify/content.md",
-)
+internal val CONTINUATION_CONTENT_PATHS: Map<String, String> =
+  mapOf(
+    "bill-feature-verify" to "skills/bill-feature-verify/content.md",
+  )

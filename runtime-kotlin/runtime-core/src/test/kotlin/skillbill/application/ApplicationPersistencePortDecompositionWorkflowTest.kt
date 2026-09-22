@@ -15,6 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class ApplicationPersistencePortDecompositionWorkflowTest {
   fun `workflow service writes decomposition manifest when implement plan decomposes`() {
     val tempDir = Files.createTempDirectory("skillbill-app-decomposition")
@@ -24,8 +25,9 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val workflowRepository = InMemoryWorkflowStateRepository()
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
     val service = testWorkflowService(database)
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     service.update(
@@ -34,32 +36,33 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = workflowId,
         workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "plan",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+        stepUpdates =
+          WorkflowStepUpdates.from(
+            listOf(
+              mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+            ),
           ),
-        ),
         artifactsPatch =
-        WorkflowArtifactPatch.from(
-          mapOf(
-            "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
-            "plan" to
-              mapOf(
-                "mode" to "decompose",
-                "parent_spec_path" to parentSpec.toString(),
-                "recommended_first_subtask_id" to 1,
-                "subtasks" to
-                  listOf(
-                    mapOf(
-                      "id" to 1,
-                      "name" to "foundation",
-                      "spec_path" to parentSpec.parent.resolve("spec_subtask_1_foundation.md").toString(),
-                      "depends_on" to emptyList<Int>(),
+          WorkflowArtifactPatch.from(
+            mapOf(
+              "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
+              "plan" to
+                mapOf(
+                  "mode" to "decompose",
+                  "parent_spec_path" to parentSpec.toString(),
+                  "recommended_first_subtask_id" to 1,
+                  "subtasks" to
+                    listOf(
+                      mapOf(
+                        "id" to 1,
+                        "name" to "foundation",
+                        "spec_path" to parentSpec.parent.resolve("spec_subtask_1_foundation.md").toString(),
+                        "depends_on" to emptyList<Int>(),
+                      ),
                     ),
-                  ),
-              ),
+                ),
+            ),
           ),
-        ),
       ),
     )
 
@@ -77,8 +80,9 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val workflowRepository = InMemoryWorkflowStateRepository()
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
     val service = testWorkflowService(database)
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     service.update(
@@ -87,22 +91,23 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = workflowId,
         workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
+        stepUpdates =
+          WorkflowStepUpdates.from(
+            listOf(
+              mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
+            ),
           ),
-        ),
         artifactsPatch =
-        WorkflowArtifactPatch.from(
-          mapOf(
-            "plan" to
-              mapOf(
-                "mode" to "implement",
-                "task_count" to 1,
-                "parent_spec_path" to parentSpec.toString(),
-              ),
+          WorkflowArtifactPatch.from(
+            mapOf(
+              "plan" to
+                mapOf(
+                  "mode" to "implement",
+                  "task_count" to 1,
+                  "parent_spec_path" to parentSpec.toString(),
+                ),
+            ),
           ),
-        ),
       ),
     ) as WorkflowUpdateResult.Ok
 
@@ -123,8 +128,9 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val workflowRepository = InMemoryWorkflowStateRepository()
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
     val service = testWorkflowService(database)
-    val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
-      as WorkflowOpenResult.Ok
+    val opened =
+      service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+        as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
     workflowRepository.failNextRuntimeSave = true
@@ -135,11 +141,12 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
           workflowId = workflowId,
           workflowStatus = WorkflowStatus.RUNNING.wireValue,
           currentStepId = "plan",
-          stepUpdates = WorkflowStepUpdates.from(
-            listOf(
-              mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+          stepUpdates =
+            WorkflowStepUpdates.from(
+              listOf(
+                mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+              ),
             ),
-          ),
           artifactsPatch = decompositionPlanPatch(parentSpec, subtaskSpec),
         ),
       )
@@ -197,24 +204,26 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = workflowId,
         workflowStatus = WorkflowStatus.BLOCKED.wireValue,
         currentStepId = "validate",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "validate", "status" to "blocked", "attempt_count" to 1),
+        stepUpdates =
+          WorkflowStepUpdates.from(
+            listOf(
+              mapOf("step_id" to "validate", "status" to "blocked", "attempt_count" to 1),
+            ),
           ),
-        ),
         artifactsPatch =
-        WorkflowArtifactPatch.from(
-          mapOf(
-            "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
-            FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("plan", "audit"),
-            "blocked_reason" to "Validation paused.",
+          WorkflowArtifactPatch.from(
+            mapOf(
+              "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
+              FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("plan", "audit"),
+              "blocked_reason" to "Validation paused.",
+            ),
           ),
-        ),
       ),
     )
 
-    val continued = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, workflowId)
-      as WorkflowContinueResult.Standard
+    val continued =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, workflowId)
+        as WorkflowContinueResult.Standard
 
     val manifest = loadTestDecompositionManifest(parentSpec.parent.resolve("decomposition-manifest.yaml"))
     val subtask = manifest.subtasks.single()
@@ -237,8 +246,9 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val service = testWorkflowService(FakeDatabaseSessionFactory(workflows = workflowRepository), git)
     createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
 
-    val continued = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val continued =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
 
     val manifest = loadTestDecompositionManifest(parentSpec.parent.resolve("decomposition-manifest.yaml"))
     assertEquals(1, continued.decompositionSubtaskId)
@@ -260,17 +270,19 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val subtaskOne = parentSpec.parent.resolve("spec_subtask_1_foundation.md")
     val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
     writeSpecs(parentSpec, subtaskOne, subtaskTwo)
-    val service = testWorkflowService(
-      FakeDatabaseSessionFactory(workflows = InMemoryWorkflowStateRepository()),
-      FakeWorkflowGitOperations(),
-    )
+    val service =
+      testWorkflowService(
+        FakeDatabaseSessionFactory(workflows = InMemoryWorkflowStateRepository()),
+        FakeWorkflowGitOperations(),
+      )
     createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
 
-    val blocked = service.continueWorkflow(
-      WorkflowFamilyKind.TASK_RUNTIME,
-      "SKILL-51",
-      subtaskId = 2,
-    ) as WorkflowContinueResult.DecompositionBlockedSubtask
+    val blocked =
+      service.continueWorkflow(
+        WorkflowFamilyKind.TASK_RUNTIME,
+        "SKILL-51",
+        subtaskId = 2,
+      ) as WorkflowContinueResult.DecompositionBlockedSubtask
 
     assertEquals(2, blocked.subtaskId)
     assertEquals("Requested subtask 2 is not the next runnable subtask for SKILL-51.", blocked.blockedReason)
@@ -287,12 +299,14 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val git = FakeWorkflowGitOperations(commitSha = "abc123")
     val service = testWorkflowService(FakeDatabaseSessionFactory(workflows = workflowRepository), git)
     createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
-    val first = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val first =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
     markDecompositionSubtaskComplete(service, first.view.resume.snapshot.workflowId, subtaskOne)
 
-    val continued = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val continued =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
 
     val manifest = loadTestDecompositionManifest(parentSpec.parent.resolve("decomposition-manifest.yaml"))
     assertEquals(2, continued.decompositionSubtaskId)
@@ -308,20 +322,23 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
     writeSpecs(parentSpec, subtaskOne, subtaskTwo)
     val git = FakeWorkflowGitOperations(commitSha = "abc123")
-    val service = testWorkflowService(
-      FakeDatabaseSessionFactory(workflows = InMemoryWorkflowStateRepository()),
-      git,
-    )
+    val service =
+      testWorkflowService(
+        FakeDatabaseSessionFactory(workflows = InMemoryWorkflowStateRepository()),
+        git,
+      )
     createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
-    val first = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val first =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
     markDecompositionSubtaskComplete(service, first.view.resume.snapshot.workflowId, subtaskOne)
 
-    val continued = service.continueWorkflow(
-      WorkflowFamilyKind.TASK_RUNTIME,
-      "SKILL-51",
-      subtaskId = 2,
-    ) as WorkflowContinueResult.DecompositionStandard
+    val continued =
+      service.continueWorkflow(
+        WorkflowFamilyKind.TASK_RUNTIME,
+        "SKILL-51",
+        subtaskId = 2,
+      ) as WorkflowContinueResult.DecompositionStandard
 
     assertEquals(2, continued.decompositionSubtaskId)
     assertEquals(emptyList(), git.commits)
@@ -335,13 +352,15 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
     writeSpecs(parentSpec, subtaskOne, subtaskTwo)
     val workflowRepository = InMemoryWorkflowStateRepository()
-    val service = testWorkflowService(
-      FakeDatabaseSessionFactory(workflows = workflowRepository),
-      FakeWorkflowGitOperations(),
-    )
+    val service =
+      testWorkflowService(
+        FakeDatabaseSessionFactory(workflows = workflowRepository),
+        FakeWorkflowGitOperations(),
+      )
     val parentWorkflowId = createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
-    val first = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val first =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
 
     service.update(
       WorkflowFamilyKind.TASK_RUNTIME,
@@ -349,30 +368,34 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = first.view.resume.snapshot.workflowId,
         workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "commit_push",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
+        stepUpdates =
+          WorkflowStepUpdates.from(
+            listOf(
+              mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
+            ),
           ),
-        ),
-        artifactsPatch = WorkflowArtifactPatch.from(
-          mapOf(
-            "assessment" to mapOf("spec_path" to subtaskOne.toString()),
-            "goal_continuation" to mapOf("enabled" to true, "suppress_pr" to true),
-            "commit_push_result" to mapOf("commit_sha" to "abc123"),
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            mapOf(
+              "assessment" to mapOf("spec_path" to subtaskOne.toString()),
+              "goal_continuation" to mapOf("enabled" to true, "suppress_pr" to true),
+              "commit_push_result" to mapOf("commit_sha" to "abc123"),
+            ),
           ),
-        ),
       ),
     )
 
-    val continued = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val continued =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
     val manifest = loadTestDecompositionManifest(parentSpec.parent.resolve("decomposition-manifest.yaml"))
     val parent =
       service.get(WorkflowFamilyKind.TASK_RUNTIME, parentWorkflowId) as WorkflowGetResult.Ok
     val runtime = parent.snapshot.artifacts["decomposition_runtime"] as Map<*, *>
-    val firstRuntimeSubtask = (runtime["subtasks"] as List<*>)
-      .filterIsInstance<Map<*, *>>()
-      .single { it["id"] == 1 }
+    val firstRuntimeSubtask =
+      (runtime["subtasks"] as List<*>)
+        .filterIsInstance<Map<*, *>>()
+        .single { it["id"] == 1 }
 
     assertEquals(2, continued.decompositionSubtaskId)
     assertEquals(null, manifest.subtasks.first { it.id == 1 }.commitSha)
@@ -396,13 +419,15 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
     writeSpecs(parentSpec, subtaskOne, subtaskTwo)
     val workflowRepository = InMemoryWorkflowStateRepository()
-    val service = testWorkflowService(
-      FakeDatabaseSessionFactory(workflows = workflowRepository),
-      FakeWorkflowGitOperations(),
-    )
+    val service =
+      testWorkflowService(
+        FakeDatabaseSessionFactory(workflows = workflowRepository),
+        FakeWorkflowGitOperations(),
+      )
     createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
-    val first = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val first =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
 
     service.update(
       WorkflowFamilyKind.TASK_RUNTIME,
@@ -410,22 +435,25 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = first.view.resume.snapshot.workflowId,
         workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "commit_push",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
+        stepUpdates =
+          WorkflowStepUpdates.from(
+            listOf(
+              mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
+            ),
           ),
-        ),
-        artifactsPatch = WorkflowArtifactPatch.from(
-          mapOf(
-            "assessment" to mapOf("spec_path" to subtaskOne.toString()),
-            "goal_continuation" to mapOf("enabled" to true, "suppress_pr" to true),
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            mapOf(
+              "assessment" to mapOf("spec_path" to subtaskOne.toString()),
+              "goal_continuation" to mapOf("enabled" to true, "suppress_pr" to true),
+            ),
           ),
-        ),
       ),
     )
 
-    val continued = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionBlockedSubtask
+    val continued =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionBlockedSubtask
     val manifest = loadTestDecompositionManifest(parentSpec.parent.resolve("decomposition-manifest.yaml"))
     val blockedSubtask = manifest.subtasks.first { it.id == 1 }
 
@@ -445,20 +473,23 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val subtaskOne = parentSpec.parent.resolve("spec_subtask_1_foundation.md")
     val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
     writeSpecs(parentSpec, subtaskOne, subtaskTwo)
-    val service = testWorkflowService(
-      FakeDatabaseSessionFactory(workflows = InMemoryWorkflowStateRepository()),
-      FakeWorkflowGitOperations(),
-    )
+    val service =
+      testWorkflowService(
+        FakeDatabaseSessionFactory(workflows = InMemoryWorkflowStateRepository()),
+        FakeWorkflowGitOperations(),
+      )
     createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
-    val first = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val first =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
     markDecompositionSubtaskComplete(service, first.view.resume.snapshot.workflowId, subtaskOne)
 
-    val continued = service.continueWorkflow(
-      WorkflowFamilyKind.TASK_RUNTIME,
-      "SKILL-51",
-      subtaskId = 1,
-    ) as WorkflowContinueResult.DecompositionSubtaskOutcome
+    val continued =
+      service.continueWorkflow(
+        WorkflowFamilyKind.TASK_RUNTIME,
+        "SKILL-51",
+        subtaskId = 1,
+      ) as WorkflowContinueResult.DecompositionSubtaskOutcome
     val manifest = loadTestDecompositionManifest(parentSpec.parent.resolve("decomposition-manifest.yaml"))
 
     assertEquals(1, continued.subtaskId)
@@ -479,15 +510,18 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val git = FakeWorkflowGitOperations(commitSha = "abc123")
     val service = testWorkflowService(FakeDatabaseSessionFactory(workflows = workflowRepository), git)
     createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
-    val first = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val first =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
     markDecompositionSubtaskComplete(service, first.view.resume.snapshot.workflowId, subtaskOne)
-    val second = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val second =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
     markDecompositionSubtaskComplete(service, second.view.resume.snapshot.workflowId, subtaskTwo)
 
-    val done = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionDone
+    val done =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionDone
 
     val manifest = loadTestDecompositionManifest(parentSpec.parent.resolve("decomposition-manifest.yaml"))
     assertEquals("complete", done.decompositionStatus)
@@ -509,17 +543,20 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
     writeSpecs(parentSpec, subtaskOne, subtaskTwo)
     val workflowRepository = InMemoryWorkflowStateRepository()
-    val service = testWorkflowService(
-      FakeDatabaseSessionFactory(workflows = workflowRepository),
-      FakeWorkflowGitOperations(commitError = "missing git identity"),
-    )
+    val service =
+      testWorkflowService(
+        FakeDatabaseSessionFactory(workflows = workflowRepository),
+        FakeWorkflowGitOperations(commitError = "missing git identity"),
+      )
     createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
-    val first = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val first =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
     markDecompositionSubtaskComplete(service, first.view.resume.snapshot.workflowId, subtaskOne)
 
-    val continued = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionBlockedGit
+    val continued =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionBlockedGit
 
     val manifest = loadTestDecompositionManifest(parentSpec.parent.resolve("decomposition-manifest.yaml"))
     val blocked = manifest.subtasks.first { it.id == 1 }
@@ -568,15 +605,17 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
     writeSpecs(parentSpec, subtaskOne, subtaskTwo)
     val workflowRepository = InMemoryWorkflowStateRepository()
-    val service = testWorkflowService(
-      FakeDatabaseSessionFactory(workflows = workflowRepository),
-      FakeWorkflowGitOperations(),
-    )
+    val service =
+      testWorkflowService(
+        FakeDatabaseSessionFactory(workflows = workflowRepository),
+        FakeWorkflowGitOperations(),
+      )
     val workflowId = createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
     markDecompositionSubtaskBlocked(service, workflowId, subtaskOne)
 
-    val continued = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionBlockedSubtask
+    val continued =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionBlockedSubtask
 
     assertEquals("runtime: Validation failed.", continued.blockedReason)
     assertEquals(1, continued.subtaskId)
@@ -590,13 +629,15 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
     writeSpecs(parentSpec, subtaskOne, subtaskTwo)
     val workflowRepository = InMemoryWorkflowStateRepository()
-    val service = testWorkflowService(
-      FakeDatabaseSessionFactory(workflows = workflowRepository),
-      FakeWorkflowGitOperations(),
-    )
+    val service =
+      testWorkflowService(
+        FakeDatabaseSessionFactory(workflows = workflowRepository),
+        FakeWorkflowGitOperations(),
+      )
     createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
-    val first = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val first =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
     val subtaskWorkflowId = first.view.resume.snapshot.workflowId
 
     service.update(
@@ -605,22 +646,25 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = subtaskWorkflowId,
         workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "validate",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "validate", "status" to "running", "attempt_count" to 1),
+        stepUpdates =
+          WorkflowStepUpdates.from(
+            listOf(
+              mapOf("step_id" to "validate", "status" to "running", "attempt_count" to 1),
+            ),
           ),
-        ),
-        artifactsPatch = WorkflowArtifactPatch.from(
-          mapOf(
-            FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("plan", "audit"),
-            "validation_result" to mapOf("passed" to false),
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            mapOf(
+              FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("plan", "audit"),
+              "validation_result" to mapOf("passed" to false),
+            ),
           ),
-        ),
       ),
     )
 
-    val continued = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-      as WorkflowContinueResult.DecompositionStandard
+    val continued =
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+        as WorkflowContinueResult.DecompositionStandard
 
     assertEquals("already_running", continued.view.continueStatus.wireValue)
     assertEquals(subtaskWorkflowId, continued.view.resume.snapshot.workflowId)

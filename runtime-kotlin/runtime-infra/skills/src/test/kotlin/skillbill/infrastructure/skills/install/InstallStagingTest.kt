@@ -39,6 +39,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class InstallStagingTest {
   private val tempDirs = mutableListOf<Path>()
 
@@ -247,9 +248,10 @@ class InstallStagingTest {
     }
     assertGeneratedArtifactsExcludedFromAuthoredCopy(rendered, fixture)
     assertGeneratedArtifactsExcludedFromAuthoredCopy(reused, fixture)
-    val renderedPointers = reused.renderedPointerFiles
-      .map { path -> reused.stagingDir.relativize(path).toString().replace(File.separatorChar, '/') }
-      .toSet()
+    val renderedPointers =
+      reused.renderedPointerFiles
+        .map { path -> reused.stagingDir.relativize(path).toString().replace(File.separatorChar, '/') }
+        .toSet()
     fixture.pointerNames.forEach { pointerName ->
       assertTrue(pointerName in renderedPointers, "cache-hit result must classify $pointerName as rendered pointer")
     }
@@ -282,11 +284,12 @@ class InstallStagingTest {
     val expectedHash = computeInstallContentHash(fixture.skillDir, authored, pointers)
     val expectedTarget = installedSkillStagingDir(fixture.home, fixture.skillDir, expectedHash)
 
-    val created = installSkill(
-      skillPath = fixture.skillDir,
-      agentTargets = listOf(agent),
-      context = InstallContext(repoRoot = fixture.repoRoot, home = fixture.home),
-    ).linkPaths
+    val created =
+      installSkill(
+        skillPath = fixture.skillDir,
+        agentTargets = listOf(agent),
+        context = InstallContext(repoRoot = fixture.repoRoot, home = fixture.home),
+      ).linkPaths
 
     assertEquals(1, created.size)
     val link = created.single()
@@ -517,14 +520,15 @@ class InstallStagingTest {
   fun `content-managed staging target resolves under the home cache outside the source repoRoot`() {
     val fixture = setupFixture()
 
-    val target = resolveStagedSymlinkTarget(
-      StagedSymlinkTargetInput(
-        resolvedSkill = fixture.skillDir,
-        repoRoot = fixture.repoRoot,
-        home = fixture.home,
-        manifests = fixture.pointerSpecs.map { it.first }.distinct(),
-      ),
-    ).toAbsolutePath().normalize()
+    val target =
+      resolveStagedSymlinkTarget(
+        StagedSymlinkTargetInput(
+          resolvedSkill = fixture.skillDir,
+          repoRoot = fixture.repoRoot,
+          home = fixture.home,
+          manifests = fixture.pointerSpecs.map { it.first }.distinct(),
+        ),
+      ).toAbsolutePath().normalize()
 
     assertTrue(
       target.startsWith(fixture.home.resolve(".skill-bill/installed-skills").toAbsolutePath().normalize()),
@@ -550,13 +554,14 @@ class InstallStagingTest {
     }
     assertFalse(isContentManagedSkill(copySkillDir), "fixture must be non-content-managed (no content.md)")
 
-    val target = resolveStagedSymlinkTarget(
-      StagedSymlinkTargetInput(
-        resolvedSkill = copySkillDir,
-        repoRoot = copyRoot,
-        home = home,
-      ),
-    ).toAbsolutePath().normalize()
+    val target =
+      resolveStagedSymlinkTarget(
+        StagedSymlinkTargetInput(
+          resolvedSkill = copySkillDir,
+          repoRoot = copyRoot,
+          home = home,
+        ),
+      ).toAbsolutePath().normalize()
 
     assertEquals(
       copySkillDir.toAbsolutePath().normalize(),
@@ -592,7 +597,12 @@ class InstallStagingTest {
     )
   }
 
-  private fun seedSamplePack(repoRoot: Path, packRoot: Path, skillDir: Path, skillRelativeDir: String) {
+  private fun seedSamplePack(
+    repoRoot: Path,
+    packRoot: Path,
+    skillDir: Path,
+    skillRelativeDir: String,
+  ) {
     Files.createDirectories(skillDir)
     Files.createDirectories(repoRoot.resolve("orchestration/review-orchestrator"))
     Files.writeString(
@@ -627,60 +637,72 @@ class InstallStagingTest {
   }
 
   private fun seedSampleSkillContent(skillDir: Path) {
-    val frontmatter = """
+    val frontmatter =
+      """
       |---
       |name: bill-sample-code-review
       |description: Sample skill for install staging tests.
       |---
-    """.trimMargin() + "\n\nAuthored body.\n"
+      """.trimMargin() + "\n\nAuthored body.\n"
     Files.writeString(skillDir.resolve("content.md"), frontmatter)
 
     Files.writeString(skillDir.resolve("notes.md"), "verbatim notes\n")
   }
 
   private fun seedTopLevelSkillContent(skillDir: Path) {
-    val frontmatter = """
+    val frontmatter =
+      """
       |---
       |name: bill-code-review
       |description: Review code.
       |---
-    """.trimMargin() + "\n\nAuthored review guidance.\n"
+      """.trimMargin() + "\n\nAuthored review guidance.\n"
     Files.writeString(skillDir.resolve("content.md"), frontmatter)
   }
 
-  private fun assertGeneratedArtifactsExcludedFromAuthoredCopy(rendered: RenderedSkill, fixture: Fixture) {
-    val copiedRelative = rendered.copiedAuthoredFiles
-      .map { path -> rendered.stagingDir.relativize(path).toString().replace(File.separatorChar, '/') }
-      .toSet()
+  private fun assertGeneratedArtifactsExcludedFromAuthoredCopy(
+    rendered: RenderedSkill,
+    fixture: Fixture,
+  ) {
+    val copiedRelative =
+      rendered.copiedAuthoredFiles
+        .map { path -> rendered.stagingDir.relativize(path).toString().replace(File.separatorChar, '/') }
+        .toSet()
     assertFalse("SKILL.md" in copiedRelative, "stale source SKILL.md must not be part of authored copy set")
     fixture.pointerNames.forEach { pointerName ->
       assertFalse(pointerName in copiedRelative, "stale source pointer $pointerName must not be authored copy")
     }
   }
 
-  private fun snapshotTree(root: Path): Map<String, TreeEntry> = Files.walk(root).use { stream ->
-    stream
-      .sorted()
-      .filter { it != root }
-      .toList()
-      .associate { path ->
-        val key = root.relativize(path).toString().replace(File.separatorChar, '/')
-        val entry: TreeEntry = when {
-          Files.isSymbolicLink(path) -> TreeEntry.Symlink(Files.readSymbolicLink(path).toString())
-          Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) -> TreeEntry.Directory
-          Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) -> TreeEntry.RegularFile(Files.readAllBytes(path))
-          else -> TreeEntry.Other
+  private fun snapshotTree(root: Path): Map<String, TreeEntry> =
+    Files.walk(root).use { stream ->
+      stream
+        .sorted()
+        .filter { it != root }
+        .toList()
+        .associate { path ->
+          val key = root.relativize(path).toString().replace(File.separatorChar, '/')
+          val entry: TreeEntry =
+            when {
+              Files.isSymbolicLink(path) -> TreeEntry.Symlink(Files.readSymbolicLink(path).toString())
+              Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) -> TreeEntry.Directory
+              Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) -> TreeEntry.RegularFile(Files.readAllBytes(path))
+              else -> TreeEntry.Other
+            }
+          key to entry
         }
-        key to entry
-      }
-  }
+    }
 
   private sealed class TreeEntry {
     data object Directory : TreeEntry()
+
     data object Other : TreeEntry()
+
     data class Symlink(val target: String) : TreeEntry()
+
     class RegularFile(val bytes: ByteArray) : TreeEntry() {
       override fun equals(other: Any?): Boolean = other is RegularFile && bytes.contentEquals(other.bytes)
+
       override fun hashCode(): Int = bytes.contentHashCode()
     }
   }
@@ -694,8 +716,10 @@ class InstallStagingTest {
     }
   }
 
-  private fun stagedText(rendered: RenderedSkill, relativePath: String): String =
-    Files.readString(rendered.stagingDir.resolve(relativePath).toPath())
+  private fun stagedText(
+    rendered: RenderedSkill,
+    relativePath: String,
+  ): String = Files.readString(rendered.stagingDir.resolve(relativePath).toPath())
 
   private data class Fixture(
     val repoRoot: Path,

@@ -16,18 +16,20 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class FeatureTaskPhaseSettlementServiceTest {
   @Test
   fun `complete then findEnvelope returns stuffed value`() {
     val service = FeatureTaskPhaseSettlementService(InMemoryFeatureTaskPhaseSettlementRepository(), testHarnessClock)
-    val acknowledgment = service.complete(
-      FeatureTaskPhaseSettlementCompleteRequest(
-        workflowId = "wftr-test",
-        phaseId = "implement",
-        attempt = 1,
-        value = """{"projection_kind":"implementation_receipt","completed_task_ids":["task-1"]}""",
-      ),
-    )
+    val acknowledgment =
+      service.complete(
+        FeatureTaskPhaseSettlementCompleteRequest(
+          workflowId = "wftr-test",
+          phaseId = "implement",
+          attempt = 1,
+          value = """{"projection_kind":"implementation_receipt","completed_task_ids":["task-1"]}""",
+        ),
+      )
     assertEquals("ok", acknowledgment.status)
     assertEquals("wftr-test", acknowledgment.workflowId)
     assertEquals("implement", acknowledgment.phaseId)
@@ -150,29 +152,33 @@ class FeatureTaskPhaseSettlementServiceTest {
   @Test
   fun `settlement round trip preserves multiple validation command results`() {
     val service = FeatureTaskPhaseSettlementService(InMemoryFeatureTaskPhaseSettlementRepository(), testHarnessClock)
-    val evidence = FeatureTaskRuntimeValidationEvidence(
-      listOf(
-        FeatureTaskRuntimeValidationCommandResult("./gradlew check", 1),
-        FeatureTaskRuntimeValidationCommandResult("./gradlew check --offline", 0),
-      ),
-    )
+    val evidence =
+      FeatureTaskRuntimeValidationEvidence(
+        listOf(
+          FeatureTaskRuntimeValidationCommandResult("./gradlew check", 1),
+          FeatureTaskRuntimeValidationCommandResult("./gradlew check --offline", 0),
+        ),
+      )
     service.complete(
       FeatureTaskPhaseSettlementCompleteRequest(
         workflowId = "wftr-test",
         phaseId = "implement",
         attempt = 1,
-        value = JsonCodec.mapToJsonString(
-          mapOf(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to evidence.asWorkflowArtifactEntry()),
-        ),
+        value =
+          JsonCodec.mapToJsonString(
+            mapOf(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to evidence.asWorkflowArtifactEntry()),
+          ),
       ),
     )
     val envelope = assertNotNull(service.findEnvelope("wftr-test", "implement", 1)).envelope
     val produced = assertNotNull(JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS]))
-    val value = JsonCodec.parseObjectOrNull(produced[SharedPayloadKeys.VALUE] as String)
-      ?.let(JsonCodec::jsonElementToValue)
-      ?.let(JsonCodec::anyToStringAnyMap)
-    val results = JsonCodec.anyToStringAnyMap(value?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE))
-      ?.get(ValidationEvidencePayloadKeys.RESULTS) as? List<*>
+    val value =
+      JsonCodec.parseObjectOrNull(produced[SharedPayloadKeys.VALUE] as String)
+        ?.let(JsonCodec::jsonElementToValue)
+        ?.let(JsonCodec::anyToStringAnyMap)
+    val results =
+      JsonCodec.anyToStringAnyMap(value?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE))
+        ?.get(ValidationEvidencePayloadKeys.RESULTS) as? List<*>
     assertEquals(2, results?.size)
   }
 }

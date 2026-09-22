@@ -57,9 +57,10 @@ internal class ParallelCodeReviewInlineCoverageContinuation(
         sliceCount += 1
         val deliveredBefore = bound.broker.accounting().deliveredEvidenceUnits
         when (
-          val launchOutcome = parentReviewLauncher.launch(
-            inlineParentLaunchRequest(args, endpoint, remainingTimeout),
-          )
+          val launchOutcome =
+            parentReviewLauncher.launch(
+              inlineParentLaunchRequest(args, endpoint, remainingTimeout),
+            )
         ) {
           is UnsupportedAgentRunLaunch -> return unsupportedParentOutcome(args.launch, launchOutcome)
           is AgentRunLaunchFacts -> {
@@ -88,11 +89,12 @@ internal class ParallelCodeReviewInlineCoverageContinuation(
               )
             }
             endpoint.unbindListener()
-            endpoint = governedEvidenceEndpointBinder.bind(
-              bound.broker.accounting().lane,
-              bound.broker,
-              evidenceReadCallback(args.request),
-            )
+            endpoint =
+              governedEvidenceEndpointBinder.bind(
+                bound.broker.accounting().lane,
+                bound.broker,
+                evidenceReadCallback(args.request),
+              )
             remainingTimeout = remainingPassTimeout(args.request.timeout, passStarted)
           }
         }
@@ -106,10 +108,11 @@ internal class ParallelCodeReviewInlineCoverageContinuation(
     facts: AgentRunLaunchFacts,
     accounting: ReviewLaneAccounting,
     deliveredBefore: Int,
-  ): Boolean = failureAdmission.laneFailureReason(facts) == null &&
-    accounting.terminalOutcome == null &&
-    accounting.requiredEvidenceUnits > accounting.deliveredEvidenceUnits &&
-    accounting.deliveredEvidenceUnits > deliveredBefore
+  ): Boolean =
+    failureAdmission.laneFailureReason(facts) == null &&
+      accounting.terminalOutcome == null &&
+      accounting.requiredEvidenceUnits > accounting.deliveredEvidenceUnits &&
+      accounting.deliveredEvidenceUnits > deliveredBefore
 
   private fun mergedOutcome(request: InlineMergedOutcomeRequest): ParallelReviewLaneOutcome {
     val args = request.args
@@ -122,43 +125,49 @@ internal class ParallelCodeReviewInlineCoverageContinuation(
     val sliceCount = request.sliceCount
     val mergedStdout = stdoutChunks.joinToString("\n")
     val mergedResultBytes = mergedStdout.toByteArray().size.toLong()
-    val budgetOutcome = ReviewBudgetEvaluator.laneResultOutcome(
-      ReviewLaneIdentity.of(args.launch.assignment),
-      args.budget,
-      mergedResultBytes,
-    ) ?: outcome.budgetOutcome
-    val budgetFailure = budgetOutcome?.let {
-      "${it.type}: ${it.budgetKind} ${it.observedValue} > ${it.configuredLimit}"
-    }
-    val evidenceAccounting = args.bound.broker.accounting()
-    val completion = parallelCodeReviewBrokerEvidenceCompletionState(
-      args.launch.bundleState,
-      evidenceAccounting,
-    )
-    val failureReason = budgetFailure
-      ?: outcome.failureReason
-      ?: "Required review evidence remains undelivered.".takeIf {
-        completion.disposition == ReviewLaneReviewDisposition.INCOMPLETE ||
-          evidenceAccounting.terminalOutcome != null
+    val budgetOutcome =
+      ReviewBudgetEvaluator.laneResultOutcome(
+        ReviewLaneIdentity.of(args.launch.assignment),
+        args.budget,
+        mergedResultBytes,
+      ) ?: outcome.budgetOutcome
+    val budgetFailure =
+      budgetOutcome?.let {
+        "${it.type}: ${it.budgetKind} ${it.observedValue} > ${it.configuredLimit}"
       }
+    val evidenceAccounting = args.bound.broker.accounting()
+    val completion =
+      parallelCodeReviewBrokerEvidenceCompletionState(
+        args.launch.bundleState,
+        evidenceAccounting,
+      )
+    val failureReason =
+      budgetFailure
+        ?: outcome.failureReason
+        ?: "Required review evidence remains undelivered.".takeIf {
+          completion.disposition == ReviewLaneReviewDisposition.INCOMPLETE ||
+            evidenceAccounting.terminalOutcome != null
+        }
     val admittedFindings = if (budgetFailure == null) findings else emptyList()
     return outcome.copy(
-      success = failureReason == null &&
-        completion.disposition == ReviewLaneReviewDisposition.COMPLETE &&
-        evidenceAccounting.terminalOutcome == null,
+      success =
+        failureReason == null &&
+          completion.disposition == ReviewLaneReviewDisposition.COMPLETE &&
+          evidenceAccounting.terminalOutcome == null,
       rawOutput = mergedStdout,
       failureReason = failureReason,
       budgetOutcome = budgetOutcome,
       droppedCandidateDiagnostic = if (budgetFailure == null) droppedDiagnostic else null,
       rejectedCandidateCount = if (budgetFailure == null) rejectedCount else 0,
       findings = admittedFindings,
-      accounting = inlineParentAccounting(
-        args.launch,
-        parallelCodeReviewInlineTerminalStatus(lastFacts, completion.disposition),
-        lastFacts,
-        evidenceAccounting,
-        completion,
-      ).copy(modelTurns = sliceCount, resultBytes = mergedResultBytes),
+      accounting =
+        inlineParentAccounting(
+          args.launch,
+          parallelCodeReviewInlineTerminalStatus(lastFacts, completion.disposition),
+          lastFacts,
+          evidenceAccounting,
+          completion,
+        ).copy(modelTurns = sliceCount, resultBytes = mergedResultBytes),
       reviewDisposition = completion.disposition,
       bundleCompositionDigest = completion.bundleCompositionDigest,
       segmentAccounting = completion.segments,
@@ -172,24 +181,30 @@ internal class ParallelCodeReviewInlineCoverageContinuation(
     args: LaunchedBoundParentArgs,
     endpoint: GovernedReviewEvidenceEndpointHandle,
     timeout: Duration?,
-  ): GoalRunnerSubtaskLaunchRequest = GoalRunnerSubtaskLaunchRequest(
-    invokedAgentId = args.launch.agentId,
-    configuredAgentOverrideId = null,
-    skillRunRequest = SkillRunRequest(
-      issueKey = "code-review",
-      repoRoot = args.request.repoRoot,
-      timeout = timeout,
-      promptOverride = args.request.withSelectedAgentAddons(args.launch.prompt),
-      modelOverride = args.modelOverride,
-      reviewEvidenceBroker = args.bound.broker,
-      reviewEvidenceEndpoint = endpoint,
-      nativeReviewWorkerName = PARALLEL_REVIEW_INLINE_NATIVE_WORKER
-        .takeIf { args.resolvedMode == ResolvedReviewExecutionMode.INLINE },
-      reviewFanOut = args.resolvedMode == ResolvedReviewExecutionMode.DELEGATED,
-    ),
-  )
+  ): GoalRunnerSubtaskLaunchRequest =
+    GoalRunnerSubtaskLaunchRequest(
+      invokedAgentId = args.launch.agentId,
+      configuredAgentOverrideId = null,
+      skillRunRequest =
+        SkillRunRequest(
+          issueKey = "code-review",
+          repoRoot = args.request.repoRoot,
+          timeout = timeout,
+          promptOverride = args.request.withSelectedAgentAddons(args.launch.prompt),
+          modelOverride = args.modelOverride,
+          reviewEvidenceBroker = args.bound.broker,
+          reviewEvidenceEndpoint = endpoint,
+          nativeReviewWorkerName =
+            PARALLEL_REVIEW_INLINE_NATIVE_WORKER
+              .takeIf { args.resolvedMode == ResolvedReviewExecutionMode.INLINE },
+          reviewFanOut = args.resolvedMode == ResolvedReviewExecutionMode.DELEGATED,
+        ),
+    )
 
-  private fun remainingPassTimeout(original: Duration?, passStarted: TimeSource.Monotonic.ValueTimeMark): Duration? {
+  private fun remainingPassTimeout(
+    original: Duration?,
+    passStarted: TimeSource.Monotonic.ValueTimeMark,
+  ): Duration? {
     if (original == null) return null
     val remaining = original - passStarted.elapsedNow()
     return remaining.takeIf { it > Duration.ZERO } ?: Duration.ZERO

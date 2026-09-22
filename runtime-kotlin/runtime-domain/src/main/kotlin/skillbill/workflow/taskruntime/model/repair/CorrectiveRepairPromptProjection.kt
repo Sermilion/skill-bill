@@ -2,6 +2,7 @@ package skillbill.workflow.taskruntime.model.repair
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairBudget
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairContext
+
 data class CorrectiveRepairPromptProjection(
   val availability: CorrectiveRepairResponseAvailability,
   val inclusionReason: CorrectiveRepairInclusionReason,
@@ -35,30 +36,32 @@ data class CorrectiveRepairPromptProjection(
   val includesExactBody: Boolean
     get() = availability == CorrectiveRepairResponseAvailability.EXACT_RESPONSE_INCLUDED
 
-  fun renderAuthorizedRepairSection(): String = if (includesExactBody) {
-    renderExactUntrustedSection(
-      body = requireNotNull(exactResponseBody),
-      utf8ByteCount = utf8ByteCount,
-      digestSha256 = digestSha256,
-    )
-  } else {
-    renderPayloadFreeFallbackSection()
-  }
+  fun renderAuthorizedRepairSection(): String =
+    if (includesExactBody) {
+      renderExactUntrustedSection(
+        body = requireNotNull(exactResponseBody),
+        utf8ByteCount = utf8ByteCount,
+        digestSha256 = digestSha256,
+      )
+    } else {
+      renderPayloadFreeFallbackSection()
+    }
 
   private fun renderPayloadFreeFallbackSection(): String {
-    val locatorLine = diagnosticLocator?.authorizedLookupGuidance()
-      ?: (
-        "Private diagnostic write degraded (${requireNotNull(diagnosticDegradationClass).wireValue}); " +
-          "no resolvable locator."
+    val locatorLine =
+      diagnosticLocator?.authorizedLookupGuidance()
+        ?: (
+          "Private diagnostic write degraded (${requireNotNull(diagnosticDegradationClass).wireValue}); " +
+            "no resolvable locator."
         )
     return """
-    ## Rejected response body not included in this prompt
-    availability: ${availability.wireValue}
-    inclusion_reason: ${inclusionReason.wireValue}
-    utf8_bytes: $utf8ByteCount
-    digest: $digestSha256
-    $locatorLine
-    """.trimIndent()
+      ## Rejected response body not included in this prompt
+      availability: ${availability.wireValue}
+      inclusion_reason: ${inclusionReason.wireValue}
+      utf8_bytes: $utf8ByteCount
+      digest: $digestSha256
+      $locatorLine
+      """.trimIndent()
   }
 
   companion object {
@@ -66,11 +69,12 @@ data class CorrectiveRepairPromptProjection(
       context.budget.requireCollectionWithinLimit(itemCount = 1)
       val captured = context.captured
       if (captured is CorrectiveRepairCapturedResponse.Exact) {
-        val framed = renderExactUntrustedSection(
-          body = captured.body,
-          utf8ByteCount = captured.utf8ByteCount,
-          digestSha256 = captured.digestSha256,
-        )
+        val framed =
+          renderExactUntrustedSection(
+            body = captured.body,
+            utf8ByteCount = captured.utf8ByteCount,
+            digestSha256 = captured.digestSha256,
+          )
         val framedBytes = framed.toByteArray(Charsets.UTF_8).size
         if (framedBytes > context.budget.maxPromptUtf8Bytes) {
           return requireWithinPromptBudget(

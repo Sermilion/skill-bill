@@ -83,8 +83,12 @@ internal fun collectScaffoldWizardPayload(
   }
 }
 
-internal fun horizontalWizardPayload(state: CliRunState, inputs: CliRunInputs): Map<String, Any?> = buildMap {
-  putScaffoldBase("horizontal")
-  put("name", normalizeBillSkillName(promptRequired(state, inputs, "Skill name")))
-  promptOptional(state, inputs, "Description").ifNotBlank { description -> put("description", description) }
-}
+internal fun horizontalWizardPayload(
+  state: CliRunState,
+  inputs: CliRunInputs,
+): Map<String, Any?> =
+  buildMap {
+    putScaffoldBase("horizontal")
+    put("name", normalizeBillSkillName(promptRequired(state, inputs, "Skill name")))
+    promptOptional(state, inputs, "Description").ifNotBlank { description -> put("description", description) }
+  }

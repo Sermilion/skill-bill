@@ -27,7 +27,10 @@ private data class ExperimentSchemaValidationRequest(
 )
 
 object ExperimentDescriptorSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) = validateAgainst(
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateAgainst(
     ExperimentSchemaValidationRequest(
       payload = payload,
       classpathResource = ExperimentDescriptorSchemaPaths.CLASSPATH_RESOURCE,
@@ -39,7 +42,10 @@ object ExperimentDescriptorSchemaValidator {
 }
 
 object ExperimentPairSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) = validateAgainst(
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateAgainst(
     ExperimentSchemaValidationRequest(
       payload = payload,
       classpathResource = ExperimentPairSchemaPaths.CLASSPATH_RESOURCE,
@@ -51,7 +57,10 @@ object ExperimentPairSchemaValidator {
 }
 
 object ExperimentObservationSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) = validateAgainst(
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateAgainst(
     ExperimentSchemaValidationRequest(
       payload = payload,
       classpathResource = ExperimentObservationSchemaPaths.CLASSPATH_RESOURCE,
@@ -63,7 +72,10 @@ object ExperimentObservationSchemaValidator {
 }
 
 object ExperimentReportSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) = validateAgainst(
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = validateAgainst(
     ExperimentSchemaValidationRequest(
       payload = payload,
       classpathResource = ExperimentReportSchemaPaths.CLASSPATH_RESOURCE,
@@ -75,39 +87,48 @@ object ExperimentReportSchemaValidator {
 }
 
 class ExperimentPayloadSchemaValidator : ExperimentPayloadValidationPort {
-  override fun validatePair(payload: Map<String, Any?>, sourceLabel: String) =
-    ExperimentPairSchemaValidator.validate(payload, sourceLabel)
+  override fun validatePair(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = ExperimentPairSchemaValidator.validate(payload, sourceLabel)
 
-  override fun validateObservation(payload: Map<String, Any?>, sourceLabel: String) =
-    ExperimentObservationSchemaValidator.validate(payload, sourceLabel)
+  override fun validateObservation(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = ExperimentObservationSchemaValidator.validate(payload, sourceLabel)
 
-  override fun validateReport(payload: Map<String, Any?>, sourceLabel: String) =
-    ExperimentReportSchemaValidator.validate(payload, sourceLabel)
+  override fun validateReport(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) = ExperimentReportSchemaValidator.validate(payload, sourceLabel)
 }
 
 private fun validateAgainst(request: ExperimentSchemaValidationRequest) {
-  val schema = ClasspathContractSchemaLoader.compiledSchema(
-    CompiledSchemaRequest(
-      cacheKey = request.classpathResource,
-      classLoader = ExperimentDescriptorSchemaValidator::class.java.classLoader,
-      classpathResource = request.classpathResource,
-      missingResource = { request.error("Canonical runtime contract is missing at '${request.classpathResource}'.") },
-      processingFailure = { cause -> request.error(cause.message ?: cause::class.simpleName.orEmpty()) },
-      loadFailureLogger = {},
-      expectedSchemaId = request.expectedId,
-      expectedContractVersion = request.expectedContractVersion,
-      identityFailure = request.error,
-    ),
-  )
-  val failures = ClasspathContractSchemaLoader.validate(
-    schema,
-    ClasspathContractSchemaLoader.valueToTree(request.payload),
-  )
+  val schema =
+    ClasspathContractSchemaLoader.compiledSchema(
+      CompiledSchemaRequest(
+        cacheKey = request.classpathResource,
+        classLoader = ExperimentDescriptorSchemaValidator::class.java.classLoader,
+        classpathResource = request.classpathResource,
+        missingResource = { request.error("Canonical runtime contract is missing at '${request.classpathResource}'.") },
+        processingFailure = { cause -> request.error(cause.message ?: cause::class.simpleName.orEmpty()) },
+        loadFailureLogger = {},
+        expectedSchemaId = request.expectedId,
+        expectedContractVersion = request.expectedContractVersion,
+        identityFailure = request.error,
+      ),
+    )
+  val failures =
+    ClasspathContractSchemaLoader.validate(
+      schema,
+      ClasspathContractSchemaLoader.valueToTree(request.payload),
+    )
   if (failures.isNotEmpty()) {
-    val reason = failures
-      .sortedBy { it.instanceLocation.toString() }
-      .take(MAX_REPORTED_SCHEMA_FAILURES)
-      .joinToString(" | ") { it.message }
+    val reason =
+      failures
+        .sortedBy { it.instanceLocation.toString() }
+        .take(MAX_REPORTED_SCHEMA_FAILURES)
+        .joinToString(" | ") { it.message }
     throw request.error(reason)
   }
 }

@@ -15,17 +15,19 @@ internal fun appendSelectedDiffHunks(
   chunks: MutableList<GoalObservabilitySelectedDiffHunk>,
   budget: SelectedDiffBudget,
 ): WorkflowSelectedDiffHunksResult {
-  val args = if (staged) {
-    listOf("diff", "--cached", "--unified=3", "--") + request.paths
-  } else {
-    listOf("diff", "--unified=3", "--") + request.paths
-  }
-  val result = readSelectedDiffHunks(
-    repoRoot = repoRoot,
-    args = args,
-    staged = staged,
-    budget = budget,
-  )
+  val args =
+    if (staged) {
+      listOf("diff", "--cached", "--unified=3", "--") + request.paths
+    } else {
+      listOf("diff", "--unified=3", "--") + request.paths
+    }
+  val result =
+    readSelectedDiffHunks(
+      repoRoot = repoRoot,
+      args = args,
+      staged = staged,
+      budget = budget,
+    )
   if (result.status != WorkflowGitOperationStatus.OK) {
     return WorkflowSelectedDiffHunksResult(status = WorkflowGitOperationStatus.ERROR, error = result.error)
   }
@@ -41,16 +43,17 @@ internal fun readSelectedDiffHunks(
 ): SelectedDiffReadResult {
   val parser = SelectedDiffHunkParser(staged, budget)
   val errorOutput = StringBuilder()
-  val capture = invokeGitProcessWithBoundedLines(
-    repoRoot = repoRoot,
-    args = args,
-    readLineMaxBytes = budget.readLineMaxBytes,
-    shouldStopReading = { parser.truncated },
-    onLine = { line ->
-      line.appendTo(errorOutput)
-      parser.consume(line.text, line.truncated)
-    },
-  )
+  val capture =
+    invokeGitProcessWithBoundedLines(
+      repoRoot = repoRoot,
+      args = args,
+      readLineMaxBytes = budget.readLineMaxBytes,
+      shouldStopReading = { parser.truncated },
+      onLine = { line ->
+        line.appendTo(errorOutput)
+        parser.consume(line.text, line.truncated)
+      },
+    )
   return when {
     capture.timedOut ->
       SelectedDiffReadResult(status = WorkflowGitOperationStatus.ERROR, error = gitTimedOutError(args))
@@ -166,7 +169,10 @@ internal class SelectedDiffBudget(
     return SelectedDiffLineRecord(line = recordedLine, truncated = true)
   }
 
-  private fun utf8Prefix(line: String, maxBytes: Int): String {
+  private fun utf8Prefix(
+    line: String,
+    maxBytes: Int,
+  ): String {
     val prefix = StringBuilder()
     var bytes = 0
     for (char in line) {
@@ -197,7 +203,10 @@ internal class SelectedDiffHunkParser(
   var truncated: Boolean = false
     private set
 
-  fun consume(line: String, lineTruncated: Boolean = false) {
+  fun consume(
+    line: String,
+    lineTruncated: Boolean = false,
+  ) {
     if (lineTruncated) {
       truncated = true
     }
@@ -227,7 +236,10 @@ internal class SelectedDiffHunkParser(
     }
   }
 
-  private fun appendLine(line: String, lineTruncated: Boolean) {
+  private fun appendLine(
+    line: String,
+    lineTruncated: Boolean,
+  ) {
     val record = budget.tryRecordLine(line)
     val recordedLine = record.line
     if (recordedLine != null) {
@@ -242,13 +254,14 @@ internal class SelectedDiffHunkParser(
     val header = currentHeader
     if (header != null && currentPath.isNotBlank()) {
       budget.recordHunk()
-      hunks += GoalObservabilitySelectedDiffHunk(
-        path = currentPath,
-        staged = staged,
-        header = header,
-        lines = currentLines.toList(),
-        truncated = truncated,
-      )
+      hunks +=
+        GoalObservabilitySelectedDiffHunk(
+          path = currentPath,
+          staged = staged,
+          header = header,
+          lines = currentLines.toList(),
+          truncated = truncated,
+        )
     }
     currentHeader = null
     currentLines.clear()

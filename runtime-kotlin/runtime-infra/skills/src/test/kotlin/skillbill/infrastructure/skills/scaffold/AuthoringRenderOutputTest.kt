@@ -14,6 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+
 class AuthoringRenderOutputTest {
   private val tempRoot: Path = Files.createTempDirectory("skillbill-authoring-render-")
 
@@ -137,16 +138,18 @@ class AuthoringRenderOutputTest {
     val fixture = writePlatformRenderFixture()
 
     val rendered = renderAuthoringTarget(fixture.repoRoot, "bill-fixturepack-code-review")
-    val expectedZ = renderPointer(
-      fixture.repoRoot,
-      fixture.packRoot,
-      loadPlatformManifest(fixture.packRoot).pointers[0],
-    )
-    val expectedA = renderPointer(
-      fixture.repoRoot,
-      fixture.packRoot,
-      loadPlatformManifest(fixture.packRoot).pointers[1],
-    )
+    val expectedZ =
+      renderPointer(
+        fixture.repoRoot,
+        fixture.packRoot,
+        loadPlatformManifest(fixture.packRoot).pointers[0],
+      )
+    val expectedA =
+      renderPointer(
+        fixture.repoRoot,
+        fixture.packRoot,
+        loadPlatformManifest(fixture.packRoot).pointers[1],
+      )
 
     assertEquals(
       listOf(
@@ -187,16 +190,18 @@ class AuthoringRenderOutputTest {
     )
   }
 
-  private fun platformFixtureContent(): String = """
+  private fun platformFixtureContent(): String =
+    """
     ---
     name: bill-fixturepack-code-review
     description: Fixture platform render skill.
     ---
 
     # Platform Body
-  """.trimIndent() + "\n"
+    """.trimIndent() + "\n"
 
-  private fun platformFixtureManifest(): String = """
+  private fun platformFixtureManifest(): String =
+    """
     platform: fixturepack
     contract_version: "1.8"
 
@@ -217,7 +222,7 @@ class AuthoringRenderOutputTest {
           target: shared/z.md
         - name: a.md
           target: shared/a.md
-  """.trimIndent() + "\n"
+    """.trimIndent() + "\n"
 }
 
 private data class PlatformRenderFixture(

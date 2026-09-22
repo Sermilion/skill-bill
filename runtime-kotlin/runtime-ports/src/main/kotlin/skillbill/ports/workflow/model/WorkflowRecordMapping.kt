@@ -4,20 +4,22 @@ import skillbill.contracts.workflow.session.FeatureImplementSessionSummaryContra
 import skillbill.contracts.workflow.session.FeatureVerifySessionSummaryContract
 import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-fun WorkflowStateRecord.toSnapshot(): WorkflowStateSnapshot = WorkflowStateSnapshot(
-  workflowId = workflowId,
-  sessionId = sessionId,
-  workflowName = workflowName,
-  mode = mode?.wireValue,
-  contractVersion = contractVersion,
-  workflowStatus = WorkflowStateRecord.requiredWorkflowStatus(workflowStatus),
-  currentStepId = currentStepId,
-  stepsJson = stepsJson,
-  artifactsJson = artifactsJson,
-  startedAt = startedAt,
-  updatedAt = updatedAt,
-  finishedAt = finishedAt,
-)
+
+fun WorkflowStateRecord.toSnapshot(): WorkflowStateSnapshot =
+  WorkflowStateSnapshot(
+    workflowId = workflowId,
+    sessionId = sessionId,
+    workflowName = workflowName,
+    mode = mode?.wireValue,
+    contractVersion = contractVersion,
+    workflowStatus = WorkflowStateRecord.requiredWorkflowStatus(workflowStatus),
+    currentStepId = currentStepId,
+    stepsJson = stepsJson,
+    artifactsJson = artifactsJson,
+    startedAt = startedAt,
+    updatedAt = updatedAt,
+    finishedAt = finishedAt,
+  )
 
 fun FeatureImplementSessionSummary.toContract(): FeatureImplementSessionSummaryContract =
   FeatureImplementSessionSummaryContract(
@@ -34,12 +36,13 @@ fun FeatureImplementSessionSummary.toContract(): FeatureImplementSessionSummaryC
     specSummary = specSummary,
   )
 
-fun FeatureVerifySessionSummary.toContract(): FeatureVerifySessionSummaryContract = FeatureVerifySessionSummaryContract(
-  sessionId = sessionId,
-  acceptanceCriteriaCount = acceptanceCriteriaCount,
-  rolloutRelevant = rolloutRelevant,
-  specSummary = specSummary,
-)
+fun FeatureVerifySessionSummary.toContract(): FeatureVerifySessionSummaryContract =
+  FeatureVerifySessionSummaryContract(
+    sessionId = sessionId,
+    acceptanceCriteriaCount = acceptanceCriteriaCount,
+    rolloutRelevant = rolloutRelevant,
+    specSummary = specSummary,
+  )
 
 fun FeatureVerifySessionSummary.toContinueSessionSummary(): WorkflowContinueSessionSummary =
   WorkflowContinueSessionSummary(

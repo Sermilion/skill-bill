@@ -6,20 +6,25 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.workflow.model.WorkflowContinueStatus
 
+private typealias MissingSubtaskWorkflow = WorkflowContinueResult.DecompositionMissingSubtaskWorkflow
+private typealias BlockedSubtask = WorkflowContinueResult.DecompositionBlockedSubtask
+private typealias BlockedBranchStart = WorkflowContinueResult.DecompositionBlockedBranchStart
+private typealias SubtaskOutcome = WorkflowContinueResult.DecompositionSubtaskOutcome
+
 internal fun WorkflowContinueResult.DecompositionStandard.toDecompositionStandardMcpMap(): Map<String, Any?> =
   standardMcpContinueMap(
     view = view,
     dbPath = dbPath,
-    decompositionExtras = linkedMapOf(
-      SharedPayloadKeys.ISSUE_KEY to (outcome?.issueKey ?: issueKey),
-      "decomposition_subtask_id" to decompositionSubtaskId,
-      "decomposition_subtask_spec_path" to decompositionSubtaskSpecPath,
-      "goal_continuation_outcome" to outcome.toWireMap(),
-    ),
+    decompositionExtras =
+      linkedMapOf(
+        SharedPayloadKeys.ISSUE_KEY to (outcome?.issueKey ?: issueKey),
+        "decomposition_subtask_id" to decompositionSubtaskId,
+        "decomposition_subtask_spec_path" to decompositionSubtaskSpecPath,
+        "goal_continuation_outcome" to outcome.toWireMap(),
+      ),
   )
 
-internal fun WorkflowContinueResult.DecompositionMissingSubtaskWorkflow.toDecompositionMissingSubtaskWorkflowMcpMap():
-  Map<String, Any?> =
+internal fun MissingSubtaskWorkflow.toDecompositionMissingSubtaskWorkflowMcpMap(): Map<String, Any?> =
   linkedMapOf(
     SharedPayloadKeys.STATUS to "error",
     "continue_status" to WorkflowContinueStatus.BLOCKED.wireValue,
@@ -28,8 +33,7 @@ internal fun WorkflowContinueResult.DecompositionMissingSubtaskWorkflow.toDecomp
     "db_path" to dbPath,
   )
 
-internal fun WorkflowContinueResult.DecompositionBlockedSubtask.toDecompositionBlockedSubtaskMcpMap():
-  Map<String, Any?> =
+internal fun BlockedSubtask.toDecompositionBlockedSubtaskMcpMap(): Map<String, Any?> =
   linkedMapOf(
     SharedPayloadKeys.STATUS to "error",
     "continue_status" to WorkflowContinueStatus.BLOCKED.wireValue,
@@ -42,8 +46,7 @@ internal fun WorkflowContinueResult.DecompositionBlockedSubtask.toDecompositionB
     "db_path" to dbPath,
   )
 
-internal fun WorkflowContinueResult.DecompositionBlockedBranchStart.toDecompositionBlockedBranchStartMcpMap():
-  Map<String, Any?> =
+internal fun BlockedBranchStart.toDecompositionBlockedBranchStartMcpMap(): Map<String, Any?> =
   linkedMapOf(
     SharedPayloadKeys.STATUS to "error",
     "continue_status" to WorkflowContinueStatus.BLOCKED.wireValue,
@@ -53,17 +56,17 @@ internal fun WorkflowContinueResult.DecompositionBlockedBranchStart.toDecomposit
     "db_path" to dbPath,
   )
 
-internal fun WorkflowContinueResult.DecompositionDone.toDecompositionDoneMcpMap(): Map<String, Any?> = linkedMapOf(
-  SharedPayloadKeys.STATUS to "ok",
-  "continue_status" to WorkflowContinueStatus.DONE.wireValue,
-  SharedPayloadKeys.WORKFLOW_ID to workflowId,
-  SharedPayloadKeys.ISSUE_KEY to issueKey,
-  "decomposition_status" to decompositionStatus,
-  "db_path" to dbPath,
-)
+internal fun WorkflowContinueResult.DecompositionDone.toDecompositionDoneMcpMap(): Map<String, Any?> =
+  linkedMapOf(
+    SharedPayloadKeys.STATUS to "ok",
+    "continue_status" to WorkflowContinueStatus.DONE.wireValue,
+    SharedPayloadKeys.WORKFLOW_ID to workflowId,
+    SharedPayloadKeys.ISSUE_KEY to issueKey,
+    "decomposition_status" to decompositionStatus,
+    "db_path" to dbPath,
+  )
 
-internal fun WorkflowContinueResult.DecompositionSubtaskOutcome.toDecompositionSubtaskOutcomeMcpMap():
-  Map<String, Any?> =
+internal fun SubtaskOutcome.toDecompositionSubtaskOutcomeMcpMap(): Map<String, Any?> =
   linkedMapOf(
     SharedPayloadKeys.STATUS to "ok",
     "continue_status" to WorkflowContinueStatus.DONE.wireValue,
@@ -86,14 +89,15 @@ internal fun WorkflowContinueResult.DecompositionBlockedGit.toDecompositionBlock
     "db_path" to dbPath,
   )
 
-internal fun GoalContinuationOutcome?.toWireMap(): Map<String, Any?> = this?.let { outcome ->
-  linkedMapOf(
-    SharedPayloadKeys.ISSUE_KEY to outcome.issueKey,
-    SharedPayloadKeys.SUBTASK_ID to outcome.subtaskId,
-    SharedPayloadKeys.STATUS to outcome.status,
-    DecompositionManifestPayloadKeys.COMMIT_SHA to outcome.commitSha,
-    SharedPayloadKeys.WORKFLOW_ID to outcome.workflowId,
-    DecompositionManifestPayloadKeys.BLOCKED_REASON to outcome.blockedReason,
-    DecompositionManifestPayloadKeys.LAST_RESUMABLE_STEP to outcome.lastResumableStep,
-  )
-}.orEmpty()
+internal fun GoalContinuationOutcome?.toWireMap(): Map<String, Any?> =
+  this?.let { outcome ->
+    linkedMapOf(
+      SharedPayloadKeys.ISSUE_KEY to outcome.issueKey,
+      SharedPayloadKeys.SUBTASK_ID to outcome.subtaskId,
+      SharedPayloadKeys.STATUS to outcome.status,
+      DecompositionManifestPayloadKeys.COMMIT_SHA to outcome.commitSha,
+      SharedPayloadKeys.WORKFLOW_ID to outcome.workflowId,
+      DecompositionManifestPayloadKeys.BLOCKED_REASON to outcome.blockedReason,
+      DecompositionManifestPayloadKeys.LAST_RESUMABLE_STEP to outcome.lastResumableStep,
+    )
+  }.orEmpty()

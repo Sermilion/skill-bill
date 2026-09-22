@@ -13,6 +13,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeSharedReview
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceFileEntry
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceHunkEntry
 import java.nio.file.Path
+
 class FeatureTaskRuntimeSharedReviewEvidenceResolver(
   private val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort,
   private val diffResolver: DiffResolverPort,
@@ -24,21 +25,23 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolver(
     consumerPhaseId: String,
   ): FeatureTaskRuntimeSharedReviewEvidenceResolved? {
     if (workflowId.isNullOrBlank() || checkpoint == null) return null
-    val resolution = sharedEvidenceResolver.resolve(
-      FeatureTaskRuntimeSharedEvidenceRequest(repoRoot, workflowId, checkpoint),
-    ) { requested -> derive(repoRoot, requested) }
+    val resolution =
+      sharedEvidenceResolver.resolve(
+        FeatureTaskRuntimeSharedEvidenceRequest(repoRoot, workflowId, checkpoint),
+      ) { requested -> derive(repoRoot, requested) }
     val storePath = resolution.storePath?.takeIf(String::isNotBlank) ?: return null
     val reference = FeatureTaskRuntimeSharedReviewEvidenceReference.of(storePath, resolution.artifact)
     return FeatureTaskRuntimeSharedReviewEvidenceResolved(
       reference = reference,
-      measurement = FeatureTaskRuntimeSharedEvidenceMeasurement(
-        workflowId = workflowId,
-        checkpointFingerprint = resolution.artifact.fingerprint,
-        consumerPhaseId = consumerPhaseId,
-        outcome = resolution.outcome.toMeasurementOutcome(),
-        fileIndexCount = resolution.artifact.files.size,
-        hunkIndexCount = resolution.artifact.hunks.size,
-      ),
+      measurement =
+        FeatureTaskRuntimeSharedEvidenceMeasurement(
+          workflowId = workflowId,
+          checkpointFingerprint = resolution.artifact.fingerprint,
+          consumerPhaseId = consumerPhaseId,
+          outcome = resolution.outcome.toMeasurementOutcome(),
+          fileIndexCount = resolution.artifact.files.size,
+          hunkIndexCount = resolution.artifact.hunks.size,
+        ),
     )
   }
 
@@ -49,33 +52,40 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolver(
     val base = checkpoint.baseRef?.takeIf(String::isNotBlank)
     val head = checkpoint.headRef?.takeIf(String::isNotBlank) ?: "HEAD"
     val ownedPaths = checkpoint.workingTreeOwnedPaths.filter(String::isNotBlank)
-    val committedArgs = when {
-      base == null -> listOf("git", "diff", head)
-      ownedPaths.isEmpty() -> listOf("git", "diff", base, head)
-      else -> listOf("git", "diff", base)
-    }
+    val committedArgs =
+      when {
+        base == null -> listOf("git", "diff", head)
+        ownedPaths.isEmpty() -> listOf("git", "diff", base, head)
+        else -> listOf("git", "diff", base)
+      }
     val pathArgs = ownedPaths.flatMap { listOf("--", it) }
     val diff = diffResolver.runProcess(committedArgs + pathArgs, repoRoot).orEmpty()
     val evidence = runCatching { ReviewDiffEvidence.parse(diff) }.getOrNull()
     return FeatureTaskRuntimeSharedEvidenceDerivation(
       baseRef = base,
       headRef = head,
-      files = evidence?.files.orEmpty().map {
-        FeatureTaskRuntimeSharedEvidenceFileEntry(it.path, changeKind(it.oldPath, it.newPath))
-      },
-      hunks = evidence?.hunks.orEmpty().map {
-        FeatureTaskRuntimeSharedEvidenceHunkEntry(it.path, it.content.lineSequence().first().ifBlank { "@@" })
-      },
+      files =
+        evidence?.files.orEmpty().map {
+          FeatureTaskRuntimeSharedEvidenceFileEntry(it.path, changeKind(it.oldPath, it.newPath))
+        },
+      hunks =
+        evidence?.hunks.orEmpty().map {
+          FeatureTaskRuntimeSharedEvidenceHunkEntry(it.path, it.content.lineSequence().first().ifBlank { "@@" })
+        },
       diffPayload = diff,
     )
   }
 
-  private fun changeKind(oldPath: String?, newPath: String?): String = when {
-    oldPath == null -> "added"
-    newPath == null -> "deleted"
-    oldPath != newPath -> "renamed"
-    else -> "modified"
-  }
+  private fun changeKind(
+    oldPath: String?,
+    newPath: String?,
+  ): String =
+    when {
+      oldPath == null -> "added"
+      newPath == null -> "deleted"
+      oldPath != newPath -> "renamed"
+      else -> "modified"
+    }
 }
 
 private fun FeatureTaskRuntimeSharedEvidenceResolveOutcome.toMeasurementOutcome():

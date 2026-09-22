@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.model.subtask
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeCheckpointRefName
+
 internal const val SUBTASK_TRAILER_KEY = "Skill-Bill-Subtask"
 
 data class FeatureTaskRuntimeSubtaskCommitIdentity(val issueKey: String, val subtaskId: String) {
@@ -16,11 +17,12 @@ data class FeatureTaskRuntimeSubtaskCommitIdentity(val issueKey: String, val sub
   fun matches(commitMessage: String): Boolean = parse(commitMessage) == this
 
   companion object {
-    fun parse(commitMessage: String): FeatureTaskRuntimeSubtaskCommitIdentity? = commitMessage.lineSequence()
-      .map(String::trim)
-      .filter { it.startsWith("$SUBTASK_TRAILER_KEY:") }
-      .mapNotNull { line -> identityFrom(line.removePrefix("$SUBTASK_TRAILER_KEY:").trim()) }
-      .lastOrNull()
+    fun parse(commitMessage: String): FeatureTaskRuntimeSubtaskCommitIdentity? =
+      commitMessage.lineSequence()
+        .map(String::trim)
+        .filter { it.startsWith("$SUBTASK_TRAILER_KEY:") }
+        .mapNotNull { line -> identityFrom(line.removePrefix("$SUBTASK_TRAILER_KEY:").trim()) }
+        .lastOrNull()
 
     private fun identityFrom(value: String): FeatureTaskRuntimeSubtaskCommitIdentity? {
       val segments = value.split('/')

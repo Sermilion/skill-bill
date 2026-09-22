@@ -40,32 +40,36 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeRunStateReconstructionTest {
   @Test
   fun `resume keeps only a true validation result and invalidates successors of false or missing results`() {
     listOf(true to "completed", false to "completed", null to "completed", true to "failed")
       .forEach { (signal, status) ->
-        val payload = validJsonOutput("validate").let { output ->
-          when (signal) {
-            true -> output
-            false -> output.replace("\"validation_passed\":true", "\"validation_passed\":false")
-            null -> output.replace("validation_passed", "missing_signal")
+        val payload =
+          validJsonOutput("validate").let { output ->
+            when (signal) {
+              true -> output
+              false -> output.replace("\"validation_passed\":true", "\"validation_passed\":false")
+              null -> output.replace("validation_passed", "missing_signal")
+            }
           }
-        }
-        val validation = FeatureTaskRuntimePhaseRecord(
-          phaseId = "validate",
-          status = WorkflowStepStatus.COMPLETED,
-          attemptCount = 1,
-          startedAt = "2026-09-19T00:00:00Z",
-          resolvedAgentId = "claude",
-          outputArtifact = payload.replace("\"status\": \"completed\"", "\"status\": \"$status\""),
-        )
+        val validation =
+          FeatureTaskRuntimePhaseRecord(
+            phaseId = "validate",
+            status = WorkflowStepStatus.COMPLETED,
+            attemptCount = 1,
+            startedAt = "2026-09-19T00:00:00Z",
+            resolvedAgentId = "claude",
+            outputArtifact = payload.replace("\"status\": \"completed\"", "\"status\": \"$status\""),
+          )
         val history = validation.copy(phaseId = "write_history", outputArtifact = validJsonOutput("write_history"))
-        val state = FeatureTaskRuntimeRunState(
-          initialRecords = mapOf("validate" to validation, "write_history" to history),
-          transitions = FeatureTaskRuntimeTransitionDeclaration(listOf("validate", "write_history")),
-          outputValidator = realFeatureTaskRuntimePhaseOutputValidator,
-        )
+        val state =
+          FeatureTaskRuntimeRunState(
+            initialRecords = mapOf("validate" to validation, "write_history" to history),
+            transitions = FeatureTaskRuntimeTransitionDeclaration(listOf("validate", "write_history")),
+            outputValidator = realFeatureTaskRuntimePhaseOutputValidator,
+          )
         val valid = signal == true && status == "completed"
         assertEquals(valid, "validate" in state.completedPhaseIds())
         assertEquals(valid, "write_history" in state.completedPhaseIds())
@@ -76,16 +80,18 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
 
   @Test
   fun `completed phase and output views cannot mutate run state`() {
-    val state = FeatureTaskRuntimeRunState(
-      initialRecords = emptyMap(),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      outputValidator = AlwaysValidValidator,
-    )
-    val output = FeatureTaskRuntimePhaseOutput(
-      phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-      iteration = 1,
-      payload = "{}",
-    )
+    val state =
+      FeatureTaskRuntimeRunState(
+        initialRecords = emptyMap(),
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        outputValidator = AlwaysValidValidator,
+      )
+    val output =
+      FeatureTaskRuntimePhaseOutput(
+        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        iteration = 1,
+        payload = "{}",
+      )
 
     state.recordCompleted(output)
     val outputs = state.outputs().toMutableList()
@@ -97,11 +103,12 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
 
   @Test
   fun `phase token view is a snapshot of named state transitions`() {
-    val state = FeatureTaskRuntimeRunState(
-      initialRecords = emptyMap(),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      outputValidator = AlwaysValidValidator,
-    )
+    val state =
+      FeatureTaskRuntimeRunState(
+        initialRecords = emptyMap(),
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        outputValidator = AlwaysValidValidator,
+      )
 
     state.recordPhaseTokenUsage("implement", 11, 17)
     val firstView = state.phaseTokenView
@@ -116,26 +123,30 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
 
   @Test
   fun `resumed phase token telemetry matches live execution for the current phase`() {
-    val durableRecords = mapOf(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseRecord(
-        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-        status = WorkflowStepStatus.COMPLETED,
-        attemptCount = 1,
-        startedAt = "2026-01-01T00:00:00Z",
-        resolvedAgentId = "claude",
-        outputArtifact = "{}",
-      ),
-    )
-    val live = FeatureTaskRuntimeRunState(
-      initialRecords = durableRecords,
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      outputValidator = AlwaysValidValidator,
-    )
-    val resumed = FeatureTaskRuntimeRunState(
-      initialRecords = durableRecords,
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      outputValidator = AlwaysValidValidator,
-    )
+    val durableRecords =
+      mapOf(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to
+          FeatureTaskRuntimePhaseRecord(
+            phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+            status = WorkflowStepStatus.COMPLETED,
+            attemptCount = 1,
+            startedAt = "2026-01-01T00:00:00Z",
+            resolvedAgentId = "claude",
+            outputArtifact = "{}",
+          ),
+      )
+    val live =
+      FeatureTaskRuntimeRunState(
+        initialRecords = durableRecords,
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        outputValidator = AlwaysValidValidator,
+      )
+    val resumed =
+      FeatureTaskRuntimeRunState(
+        initialRecords = durableRecords,
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        outputValidator = AlwaysValidValidator,
+      )
 
     live.recordPhaseTokenUsage("review", 13, 21)
     resumed.recordPhaseTokenUsage("review", 13, 21)
@@ -149,46 +160,52 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
   @Test
   fun `resume reconstruction preserves completed phase and backward edge state`() {
     val transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions
-    val live = FeatureTaskRuntimeRunState(
-      initialRecords = emptyMap(),
-      transitions = transitions,
-      outputValidator = AlwaysValidValidator,
-    )
-    val output = FeatureTaskRuntimePhaseOutput(
-      phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-      iteration = 1,
-      payload = "{}",
-    )
+    val live =
+      FeatureTaskRuntimeRunState(
+        initialRecords = emptyMap(),
+        transitions = transitions,
+        outputValidator = AlwaysValidValidator,
+      )
+    val output =
+      FeatureTaskRuntimePhaseOutput(
+        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        iteration = 1,
+        payload = "{}",
+      )
     live.recordEdgeIteration(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID, 2)
     live.recordCompleted(output)
 
-    val resumed = FeatureTaskRuntimeRunState(
-      initialRecords = mapOf(
-        output.phaseId to FeatureTaskRuntimePhaseRecord(
-          phaseId = output.phaseId,
-          status = WorkflowStepStatus.COMPLETED,
-          attemptCount = 1,
-          startedAt = "2026-01-01T00:00:00Z",
-          resolvedAgentId = "claude",
-          outputArtifact = output.payload,
-          loopId = FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID,
-          edgeIteration = 2,
-        ),
-      ),
-      transitions = transitions,
-      durableInitialLedger = listOf(
-        FeatureTaskRuntimePhaseLedgerEntry(
-          action = FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE,
-          sequenceNumber = 1,
-          timestamp = "2026-01-01T00:00:00Z",
-          phaseId = output.phaseId,
-          attemptCount = 1,
-          loopId = FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID,
-          edgeIteration = 2,
-        ),
-      ),
-      outputValidator = AlwaysValidValidator,
-    )
+    val resumed =
+      FeatureTaskRuntimeRunState(
+        initialRecords =
+          mapOf(
+            output.phaseId to
+              FeatureTaskRuntimePhaseRecord(
+                phaseId = output.phaseId,
+                status = WorkflowStepStatus.COMPLETED,
+                attemptCount = 1,
+                startedAt = "2026-01-01T00:00:00Z",
+                resolvedAgentId = "claude",
+                outputArtifact = output.payload,
+                loopId = FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID,
+                edgeIteration = 2,
+              ),
+          ),
+        transitions = transitions,
+        durableInitialLedger =
+          listOf(
+            FeatureTaskRuntimePhaseLedgerEntry(
+              action = FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE,
+              sequenceNumber = 1,
+              timestamp = "2026-01-01T00:00:00Z",
+              phaseId = output.phaseId,
+              attemptCount = 1,
+              loopId = FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID,
+              edgeIteration = 2,
+            ),
+          ),
+        outputValidator = AlwaysValidValidator,
+      )
 
     assertEquals(live.completedPhaseIds(), resumed.completedPhaseIds())
     assertEquals(
@@ -204,19 +221,21 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
     val database = sqliteResumeDatabase(tempDir)
     val workflowId = "wftr-sqlite-resume"
     seedSqliteResumeWorkflow(database, workflowId)
-    val recorder = featureTaskRuntimePhaseRecorder(
-      database,
-      NoopWorkflowSnapshotValidator,
-      AcceptingFeatureTaskRuntimeWireArtifactValidator,
-      AcceptingFeatureTaskRuntimeWireArtifactValidator,
-      testHarnessClock,
-      NoopRuntimeDiagnostics,
-    )
-    val output = FeatureTaskRuntimePhaseOutput(
-      phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-      iteration = 1,
-      payload = "{}",
-    )
+    val recorder =
+      featureTaskRuntimePhaseRecorder(
+        database,
+        NoopWorkflowSnapshotValidator,
+        AcceptingFeatureTaskRuntimeWireArtifactValidator,
+        AcceptingFeatureTaskRuntimeWireArtifactValidator,
+        testHarnessClock,
+        NoopRuntimeDiagnostics,
+      )
+    val output =
+      FeatureTaskRuntimePhaseOutput(
+        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        iteration = 1,
+        payload = "{}",
+      )
     assertTrue(
       recorder.recordCompletedPhase(
         FeatureTaskRuntimePhaseStateRequest(
@@ -233,20 +252,22 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
       ),
     )
 
-    val live = FeatureTaskRuntimeRunState(
-      initialRecords = emptyMap(),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      outputValidator = AlwaysValidValidator,
-    ).also {
-      it.recordEdgeIteration(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID, 2)
-      it.recordCompleted(output)
-    }
-    val resumed = FeatureTaskRuntimeRunState(
-      initialRecords = recorder.loadPhaseRecords(workflowId).orEmpty(),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      durableInitialLedger = recorder.loadPhaseLedger(workflowId).orEmpty(),
-      outputValidator = AlwaysValidValidator,
-    )
+    val live =
+      FeatureTaskRuntimeRunState(
+        initialRecords = emptyMap(),
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        outputValidator = AlwaysValidValidator,
+      ).also {
+        it.recordEdgeIteration(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID, 2)
+        it.recordCompleted(output)
+      }
+    val resumed =
+      FeatureTaskRuntimeRunState(
+        initialRecords = recorder.loadPhaseRecords(workflowId).orEmpty(),
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        durableInitialLedger = recorder.loadPhaseLedger(workflowId).orEmpty(),
+        outputValidator = AlwaysValidValidator,
+      )
 
     assertEquals(live.completedPhaseIds(), resumed.completedPhaseIds())
     assertEquals(
@@ -256,13 +277,17 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
     assertEquals(live.outputFor(output.phaseId)?.payload, resumed.outputFor(output.phaseId)?.payload)
   }
 
-  private fun sqliteResumeDatabase(tempDir: Path): SQLiteDatabaseSessionFactory = sqliteDatabaseSessionFactory(
-    userHome = tempDir,
-    dbPathOverride = tempDir.resolve("runtime.db").toString(),
-    environment = emptyMap(),
-  )
+  private fun sqliteResumeDatabase(tempDir: Path): SQLiteDatabaseSessionFactory =
+    sqliteDatabaseSessionFactory(
+      userHome = tempDir,
+      dbPathOverride = tempDir.resolve("runtime.db").toString(),
+      environment = emptyMap(),
+    )
 
-  private fun seedSqliteResumeWorkflow(database: SQLiteDatabaseSessionFactory, workflowId: String) {
+  private fun seedSqliteResumeWorkflow(
+    database: SQLiteDatabaseSessionFactory,
+    workflowId: String,
+  ) {
     database.transaction { unitOfWork ->
       unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(
         WorkflowStateRecord(
@@ -287,12 +312,13 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
   fun `validation settlement owns mutable invalidation state behind read-only snapshots`() {
     val completed = mutableSetOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
     val invalidated = mutableSetOf<String>()
-    val settlement = ValidationSettlementState(
-      completed = completed,
-      initialRecords = emptyMap(),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      gateInvalidatedPhases = invalidated,
-    )
+    val settlement =
+      ValidationSettlementState(
+        completed = completed,
+        initialRecords = emptyMap(),
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        gateInvalidatedPhases = invalidated,
+      )
 
     completed.clear()
     invalidated += FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
@@ -317,15 +343,17 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
 
   @Test
   fun `legacy blocked audit with loop id only normalizes to pending`() {
-    val raw = auditPhaseRecord(
-      status = WorkflowStepStatus.BLOCKED,
-      loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
-      edgeIteration = 1,
-      blockedReason = "legacy audit-gap block",
-    )
-    val normalized = FeatureTaskRuntimeRunStateReconstruction
-      .normalizeInitialRecordsForStatelessAudit(mapOf("audit" to raw))
-      .getValue("audit")
+    val raw =
+      auditPhaseRecord(
+        status = WorkflowStepStatus.BLOCKED,
+        loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
+        edgeIteration = 1,
+        blockedReason = "legacy audit-gap block",
+      )
+    val normalized =
+      FeatureTaskRuntimeRunStateReconstruction
+        .normalizeInitialRecordsForStatelessAudit(mapOf("audit" to raw))
+        .getValue("audit")
     assertEquals(WorkflowStepStatus.PENDING, normalized.status)
     assertNull(normalized.loopId)
     assertNull(normalized.outputArtifact)
@@ -335,13 +363,15 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
 
   @Test
   fun `legacy completed gaps_found audit normalizes to pending`() {
-    val raw = auditPhaseRecord(
-      status = WorkflowStepStatus.COMPLETED,
-      outputArtifact = auditGapsFoundOutput(),
-    )
-    val normalized = FeatureTaskRuntimeRunStateReconstruction
-      .normalizeInitialRecordsForStatelessAudit(mapOf("audit" to raw))
-      .getValue("audit")
+    val raw =
+      auditPhaseRecord(
+        status = WorkflowStepStatus.COMPLETED,
+        outputArtifact = auditGapsFoundOutput(),
+      )
+    val normalized =
+      FeatureTaskRuntimeRunStateReconstruction
+        .normalizeInitialRecordsForStatelessAudit(mapOf("audit" to raw))
+        .getValue("audit")
     assertEquals(WorkflowStepStatus.PENDING, normalized.status)
     assertNull(normalized.outputArtifact)
   }
@@ -369,11 +399,12 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
     )
     val loaded = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID))["audit"]
     assertEquals(FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID, loaded?.loopId)
-    val state = FeatureTaskRuntimeRunState(
-      initialRecords = harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty(),
-      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      outputValidator = AlwaysValidValidator,
-    )
+    val state =
+      FeatureTaskRuntimeRunState(
+        initialRecords = harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty(),
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        outputValidator = AlwaysValidValidator,
+      )
     assertNull(state.persistedBlockedReason("audit"))
     assertEquals(WorkflowStepStatus.PENDING, state.recordFor("audit")?.status)
     assertFalse(state.isComplete("audit"))
@@ -381,135 +412,149 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
 
   @Test
   fun `normalizeForStatelessAudit applies record and ledger normalization together`() {
-    val rawAudit = auditPhaseRecord(
-      status = WorkflowStepStatus.BLOCKED,
-      loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
-      blockedReason = "legacy audit-gap block",
-    )
-    val rawLedger = listOf(
-      FeatureTaskRuntimePhaseLedgerEntry(
-        action = FeatureTaskRuntimePhaseLedgerAction.BLOCKED,
-        sequenceNumber = 1,
-        timestamp = "2026-01-01T00:00:00Z",
-        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-        attemptCount = 1,
-      ),
-    )
-    val normalized = FeatureTaskRuntimeRunStateReconstruction.normalizeForStatelessAudit(
-      mapOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to rawAudit),
-      rawLedger,
-    )
+    val rawAudit =
+      auditPhaseRecord(
+        status = WorkflowStepStatus.BLOCKED,
+        loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
+        blockedReason = "legacy audit-gap block",
+      )
+    val rawLedger =
+      listOf(
+        FeatureTaskRuntimePhaseLedgerEntry(
+          action = FeatureTaskRuntimePhaseLedgerAction.BLOCKED,
+          sequenceNumber = 1,
+          timestamp = "2026-01-01T00:00:00Z",
+          phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+          attemptCount = 1,
+        ),
+      )
+    val normalized =
+      FeatureTaskRuntimeRunStateReconstruction.normalizeForStatelessAudit(
+        mapOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to rawAudit),
+        rawLedger,
+      )
     assertEquals(WorkflowStepStatus.PENDING, normalized.records.getValue("audit").status)
     assertTrue(normalized.ledger.isEmpty())
   }
 
   @Test
   fun `normalize ledger drops retired audit gap loop edges and legacy audit blocks`() {
-    val rawAudit = auditPhaseRecord(
-      status = WorkflowStepStatus.BLOCKED,
-      loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
-      blockedReason = "legacy audit-gap block",
-    )
-    val ledger = listOf(
-      FeatureTaskRuntimePhaseLedgerEntry(
-        action = FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE,
-        sequenceNumber = 1,
-        timestamp = "2026-01-01T00:00:00Z",
-        phaseId = "implement",
-        attemptCount = 1,
+    val rawAudit =
+      auditPhaseRecord(
+        status = WorkflowStepStatus.BLOCKED,
         loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
-        edgeIteration = 1,
-      ),
-      FeatureTaskRuntimePhaseLedgerEntry(
-        action = FeatureTaskRuntimePhaseLedgerAction.BLOCKED,
-        sequenceNumber = 2,
-        timestamp = "2026-01-01T00:00:01Z",
-        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-        attemptCount = 1,
-      ),
-    )
-    val normalized = FeatureTaskRuntimeRunStateReconstruction.normalizeLedgerForStatelessAudit(
-      ledger,
-      mapOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to rawAudit),
-    )
+        blockedReason = "legacy audit-gap block",
+      )
+    val ledger =
+      listOf(
+        FeatureTaskRuntimePhaseLedgerEntry(
+          action = FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE,
+          sequenceNumber = 1,
+          timestamp = "2026-01-01T00:00:00Z",
+          phaseId = "implement",
+          attemptCount = 1,
+          loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
+          edgeIteration = 1,
+        ),
+        FeatureTaskRuntimePhaseLedgerEntry(
+          action = FeatureTaskRuntimePhaseLedgerAction.BLOCKED,
+          sequenceNumber = 2,
+          timestamp = "2026-01-01T00:00:01Z",
+          phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+          attemptCount = 1,
+        ),
+      )
+    val normalized =
+      FeatureTaskRuntimeRunStateReconstruction.normalizeLedgerForStatelessAudit(
+        ledger,
+        mapOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to rawAudit),
+      )
     assertTrue(normalized.isEmpty())
   }
 
   @Test
   fun `normalize ledger is idempotent on already normalized records`() {
-    val rawAudit = auditPhaseRecord(
-      status = WorkflowStepStatus.BLOCKED,
-      loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
-      blockedReason = "legacy audit-gap block",
-    )
+    val rawAudit =
+      auditPhaseRecord(
+        status = WorkflowStepStatus.BLOCKED,
+        loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
+        blockedReason = "legacy audit-gap block",
+      )
     val rawRecords = mapOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to rawAudit)
-    val rawLedger = listOf(
-      FeatureTaskRuntimePhaseLedgerEntry(
-        action = FeatureTaskRuntimePhaseLedgerAction.BLOCKED,
-        sequenceNumber = 1,
-        timestamp = "2026-01-01T00:00:00Z",
-        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-        attemptCount = 1,
-      ),
-    )
+    val rawLedger =
+      listOf(
+        FeatureTaskRuntimePhaseLedgerEntry(
+          action = FeatureTaskRuntimePhaseLedgerAction.BLOCKED,
+          sequenceNumber = 1,
+          timestamp = "2026-01-01T00:00:00Z",
+          phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+          attemptCount = 1,
+        ),
+      )
     val firstPass = FeatureTaskRuntimeRunStateReconstruction.normalizeForStatelessAudit(rawRecords, rawLedger)
-    val secondPass = FeatureTaskRuntimeRunStateReconstruction.normalizeLedgerForStatelessAudit(
-      rawLedger,
-      firstPass.records,
-    )
+    val secondPass =
+      FeatureTaskRuntimeRunStateReconstruction.normalizeLedgerForStatelessAudit(
+        rawLedger,
+        firstPass.records,
+      )
     assertTrue(secondPass.isEmpty())
     assertEquals(firstPass.ledger, secondPass)
   }
 
   @Test
   fun `fix loop budget bases retain operator retry and ignore retired audit gap edges`() {
-    val rawAudit = auditPhaseRecord(
-      status = WorkflowStepStatus.BLOCKED,
-      loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
-      blockedReason = "legacy audit-gap block",
-    )
-    val rawRecords = mapOf(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseRecord(
-        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-        status = WorkflowStepStatus.COMPLETED,
-        attemptCount = 2,
-        startedAt = "2026-01-01T00:00:00Z",
-        resolvedAgentId = "claude",
+    val rawAudit =
+      auditPhaseRecord(
+        status = WorkflowStepStatus.BLOCKED,
         loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
-        edgeIteration = 1,
-        finishedAt = "2026-01-01T00:01:00Z",
-      ),
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to rawAudit,
-    )
-    val rawLedger = listOf(
-      FeatureTaskRuntimePhaseLedgerEntry(
-        action = FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE,
-        sequenceNumber = 1,
-        timestamp = "2026-01-01T00:00:00Z",
-        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-        attemptCount = 2,
-        loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
-        edgeIteration = 1,
-      ),
-      FeatureTaskRuntimePhaseLedgerEntry(
-        action = FeatureTaskRuntimePhaseLedgerAction.RETRY,
-        sequenceNumber = 2,
-        timestamp = "2026-01-01T00:00:01Z",
-        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-        attemptCount = 2,
-      ),
-    )
-    val bases = FeatureTaskRuntimeRunStateReconstruction.reconstructFixLoopBudgetBases(
-      ReconstructFixLoopBudgetBasesArgs(
-        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-        edgeIterationByLoop = emptyMap(),
-        initialRecords = rawRecords,
-        initialLedger = rawLedger,
-        completed = setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT),
-        gateInvalidatedPhases = emptySet(),
-        nextIteration = { 1 },
-      ),
-    )
+        blockedReason = "legacy audit-gap block",
+      )
+    val rawRecords =
+      mapOf(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to
+          FeatureTaskRuntimePhaseRecord(
+            phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+            status = WorkflowStepStatus.COMPLETED,
+            attemptCount = 2,
+            startedAt = "2026-01-01T00:00:00Z",
+            resolvedAgentId = "claude",
+            loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
+            edgeIteration = 1,
+            finishedAt = "2026-01-01T00:01:00Z",
+          ),
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to rawAudit,
+      )
+    val rawLedger =
+      listOf(
+        FeatureTaskRuntimePhaseLedgerEntry(
+          action = FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE,
+          sequenceNumber = 1,
+          timestamp = "2026-01-01T00:00:00Z",
+          phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+          attemptCount = 2,
+          loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
+          edgeIteration = 1,
+        ),
+        FeatureTaskRuntimePhaseLedgerEntry(
+          action = FeatureTaskRuntimePhaseLedgerAction.RETRY,
+          sequenceNumber = 2,
+          timestamp = "2026-01-01T00:00:01Z",
+          phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+          attemptCount = 2,
+        ),
+      )
+    val bases =
+      FeatureTaskRuntimeRunStateReconstruction.reconstructFixLoopBudgetBases(
+        ReconstructFixLoopBudgetBasesArgs(
+          transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+          edgeIterationByLoop = emptyMap(),
+          initialRecords = rawRecords,
+          initialLedger = rawLedger,
+          completed = setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT),
+          gateInvalidatedPhases = emptySet(),
+          nextIteration = { 1 },
+        ),
+      )
     assertEquals(mapOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to 2), bases)
   }
 
@@ -545,20 +590,24 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
     edgeIteration: Int? = null,
     blockedReason: String? = null,
     outputArtifact: String? = null,
-  ): FeatureTaskRuntimePhaseRecord = FeatureTaskRuntimePhaseRecord(
-    phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-    status = status,
-    attemptCount = 1,
-    startedAt = "2026-01-01T00:00:00Z",
-    resolvedAgentId = "claude",
-    loopId = loopId,
-    edgeIteration = edgeIteration,
-    blockedReason = blockedReason,
-    outputArtifact = outputArtifact,
-    finishedAt = if (status == WorkflowStepStatus.COMPLETED) "2026-01-01T00:01:00Z" else null,
-  )
+  ): FeatureTaskRuntimePhaseRecord =
+    FeatureTaskRuntimePhaseRecord(
+      phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+      status = status,
+      attemptCount = 1,
+      startedAt = "2026-01-01T00:00:00Z",
+      resolvedAgentId = "claude",
+      loopId = loopId,
+      edgeIteration = edgeIteration,
+      blockedReason = blockedReason,
+      outputArtifact = outputArtifact,
+      finishedAt = if (status == WorkflowStepStatus.COMPLETED) "2026-01-01T00:01:00Z" else null,
+    )
 
   private object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
-    override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+    override fun validate(
+      snapshot: WorkflowStateSnapshot,
+      slug: String,
+    ) = Unit
   }
 }

@@ -41,15 +41,16 @@ internal fun CliRunInputs.goalStatusRequest(options: GoalStatusCliRequestOptions
     issueKey = options.issueKey,
     invokedAgentId = detectInvokingAgentId(options.agent, environment),
     configuredAgentOverrideId = options.agentOverride,
-    repoRoot = options.repoRoot?.let(Path::of)
-      ?.let { root ->
-        if (options.monitorOnly) {
-          repositoryEnclosingRootPort.enclosingRepositoryRoot(root)
-        } else {
-          root.toAbsolutePath().normalize()
+    repoRoot =
+      options.repoRoot?.let(Path::of)
+        ?.let { root ->
+          if (options.monitorOnly) {
+            repositoryEnclosingRootPort.enclosingRepositoryRoot(root)
+          } else {
+            root.toAbsolutePath().normalize()
+          }
         }
-      }
-      ?: repositoryRoot,
+        ?: repositoryRoot,
     includeDiffStat = options.diff.includeDiffStat,
     selectedDiffHunkPaths = options.diff.selectedDiffHunkPaths,
     selectedDiffMaxHunks = options.diff.selectedDiffMaxHunks,
@@ -57,40 +58,41 @@ internal fun CliRunInputs.goalStatusRequest(options: GoalStatusCliRequestOptions
     selectedDiffMaxBytes = options.diff.selectedDiffMaxBytes,
   )
 
-internal fun GoalRunnerStatusProjection?.toGoalStatusCliMap(issueKey: String): Map<String, Any?> = this?.let {
-  linkedMapOf<String, Any?>(
-    SharedPayloadKeys.STATUS to "ok",
-    SharedPayloadKeys.ISSUE_KEY to it.issueKey,
-    "complete_count" to it.completeCount,
-    "pending_count" to it.pendingCount,
-    "blocked_count" to it.blockedCount,
-    "current_subtask" to it.currentSubtaskId,
-    "current_step" to it.currentStep,
-    "active_agent" to it.activeAgent,
-    "execution_liveness" to it.executionLiveness.wireValue,
-    "degraded_durable_read" to it.degradedDurableRead,
-    "latest_liveness_signal" to it.latestLivenessSignal,
-    "paused" to it.paused,
-    "pause_requested" to it.pauseRequested,
-    "pause_reason" to it.pauseReason,
-    "stop_after_subtask" to it.stopAfterSubtaskId,
-  ).apply { putGoalStatusDetails(it) }
-} ?: linkedMapOf(
-  SharedPayloadKeys.STATUS to "not_found",
-  SharedPayloadKeys.ISSUE_KEY to issueKey,
-  "complete_count" to 0,
-  "pending_count" to 0,
-  "blocked_count" to 0,
-  "current_subtask" to null,
-  "current_step" to null,
-  "active_agent" to null,
-  "execution_liveness" to ExecutionLiveness.UNKNOWN.wireValue,
-  "latest_liveness_signal" to null,
-  "paused" to false,
-  "pause_requested" to false,
-  "pause_reason" to null,
-  "stop_after_subtask" to null,
-)
+internal fun GoalRunnerStatusProjection?.toGoalStatusCliMap(issueKey: String): Map<String, Any?> =
+  this?.let {
+    linkedMapOf<String, Any?>(
+      SharedPayloadKeys.STATUS to "ok",
+      SharedPayloadKeys.ISSUE_KEY to it.issueKey,
+      "complete_count" to it.completeCount,
+      "pending_count" to it.pendingCount,
+      "blocked_count" to it.blockedCount,
+      "current_subtask" to it.currentSubtaskId,
+      "current_step" to it.currentStep,
+      "active_agent" to it.activeAgent,
+      "execution_liveness" to it.executionLiveness.wireValue,
+      "degraded_durable_read" to it.degradedDurableRead,
+      "latest_liveness_signal" to it.latestLivenessSignal,
+      "paused" to it.paused,
+      "pause_requested" to it.pauseRequested,
+      "pause_reason" to it.pauseReason,
+      "stop_after_subtask" to it.stopAfterSubtaskId,
+    ).apply { putGoalStatusDetails(it) }
+  } ?: linkedMapOf(
+    SharedPayloadKeys.STATUS to "not_found",
+    SharedPayloadKeys.ISSUE_KEY to issueKey,
+    "complete_count" to 0,
+    "pending_count" to 0,
+    "blocked_count" to 0,
+    "current_subtask" to null,
+    "current_step" to null,
+    "active_agent" to null,
+    "execution_liveness" to ExecutionLiveness.UNKNOWN.wireValue,
+    "latest_liveness_signal" to null,
+    "paused" to false,
+    "pause_requested" to false,
+    "pause_reason" to null,
+    "stop_after_subtask" to null,
+  )
 
 private fun MutableMap<String, Any?>.putGoalStatusDetails(projection: GoalRunnerStatusProjection) {
   projection.planning?.let { planning ->
@@ -140,41 +142,45 @@ private fun MutableMap<String, Any?>.putGoalStatusDetails(projection: GoalRunner
   }
 }
 
-internal fun GoalRunnerStatusProjection?.toBoundedGoalStatusCliMap(issueKey: String): Map<String, Any?> = this?.let {
-  linkedMapOf<String, Any?>(
-    "complete_count" to it.completeCount,
-    "pending_count" to it.pendingCount,
-    "blocked_count" to it.blockedCount,
-    "current_subtask" to it.currentSubtaskId,
-    "current_step" to it.currentStep?.let(::singleLineBounded),
-    "execution_liveness" to it.executionLiveness.wireValue,
-    "resumable_state" to it.monitorResumableState(),
-  ).apply {
-    it.latestWorktreeEdit?.let { edit ->
-      put(
-        WorktreeEditJournalPayloadKeys.WORKTREE_EDITS,
-        linkedMapOf(
-          WorktreeEditJournalPayloadKeys.RECORDED_AT to singleLineBounded(edit.recordedAt.toString()),
-          WorktreeEditJournalPayloadKeys.PHASE_ID to edit.phaseId,
-          WorktreeEditJournalPayloadKeys.PATH_SAMPLE to
-            singleLineBounded(edit.pathSample.joinToString(",")),
-          WorktreeEditJournalPayloadKeys.NET_INSERTIONS to edit.netInsertions,
-          WorktreeEditJournalPayloadKeys.NET_DELETIONS to edit.netDeletions,
-          WorktreeEditJournalPayloadKeys.SOURCE to WorktreeEditSource.WORKTREE_PROBE.wireValue,
-        ),
-      )
+internal fun GoalRunnerStatusProjection?.toBoundedGoalStatusCliMap(issueKey: String): Map<String, Any?> =
+  this?.let {
+    linkedMapOf<String, Any?>(
+      "complete_count" to it.completeCount,
+      "pending_count" to it.pendingCount,
+      "blocked_count" to it.blockedCount,
+      "current_subtask" to it.currentSubtaskId,
+      "current_step" to it.currentStep?.let(::singleLineBounded),
+      "execution_liveness" to it.executionLiveness.wireValue,
+      "resumable_state" to it.monitorResumableState(),
+    ).apply {
+      it.latestWorktreeEdit?.let { edit ->
+        put(
+          WorktreeEditJournalPayloadKeys.WORKTREE_EDITS,
+          linkedMapOf(
+            WorktreeEditJournalPayloadKeys.RECORDED_AT to singleLineBounded(edit.recordedAt.toString()),
+            WorktreeEditJournalPayloadKeys.PHASE_ID to edit.phaseId,
+            WorktreeEditJournalPayloadKeys.PATH_SAMPLE to
+              singleLineBounded(edit.pathSample.joinToString(",")),
+            WorktreeEditJournalPayloadKeys.NET_INSERTIONS to edit.netInsertions,
+            WorktreeEditJournalPayloadKeys.NET_DELETIONS to edit.netDeletions,
+            WorktreeEditJournalPayloadKeys.SOURCE to WorktreeEditSource.WORKTREE_PROBE.wireValue,
+          ),
+        )
+      }
+      it.auditAcRetryCount?.let { count ->
+        put(WorktreeEditJournalPayloadKeys.AUDIT_AC_RETRY_COUNT, count)
+      }
     }
-    it.auditAcRetryCount?.let { count ->
-      put(WorktreeEditJournalPayloadKeys.AUDIT_AC_RETRY_COUNT, count)
-    }
-  }
-} ?: linkedMapOf(
-  SharedPayloadKeys.STATUS to "not_found",
-  SharedPayloadKeys.ISSUE_KEY to singleLineBounded(issueKey),
-  "resumable_state" to "not_found",
-)
+  } ?: linkedMapOf(
+    SharedPayloadKeys.STATUS to "not_found",
+    SharedPayloadKeys.ISSUE_KEY to singleLineBounded(issueKey),
+    "resumable_state" to "not_found",
+  )
 
-internal fun databaseUnavailableGoalStatusCliMap(issueKey: String, error: DatabaseAccessError): Map<String, Any?> =
+internal fun databaseUnavailableGoalStatusCliMap(
+  issueKey: String,
+  error: DatabaseAccessError,
+): Map<String, Any?> =
   linkedMapOf(
     SharedPayloadKeys.STATUS to GOAL_STATUS_DATABASE_UNAVAILABLE,
     SharedPayloadKeys.ISSUE_KEY to singleLineBounded(issueKey),
@@ -182,15 +188,16 @@ internal fun databaseUnavailableGoalStatusCliMap(issueKey: String, error: Databa
     "reason" to singleLineBounded(error.condition),
   )
 
-internal fun GoalRunnerStatusProjection.monitorResumableState(): String = currentStep.let { step ->
-  when {
-    paused -> "paused"
-    pauseRequested -> "pause_requested"
-    currentSubtaskId == null && pendingCount == 0 && blockedCount == 0 -> "complete"
-    step.isNullOrBlank() -> "resumable"
-    else -> "resumable_at:${singleLineBounded(step)}"
+internal fun GoalRunnerStatusProjection.monitorResumableState(): String =
+  currentStep.let { step ->
+    when {
+      paused -> "paused"
+      pauseRequested -> "pause_requested"
+      currentSubtaskId == null && pendingCount == 0 && blockedCount == 0 -> "complete"
+      step.isNullOrBlank() -> "resumable"
+      else -> "resumable_at:${singleLineBounded(step)}"
+    }
   }
-}
 
 internal fun MutableMap<String, Any?>.putGoalLedgerCliEntries(projection: GoalRunnerStatusProjection) {
   if (projection.blockedAttemptCount > 0) put("blocked_attempt_count", projection.blockedAttemptCount)
@@ -203,26 +210,28 @@ internal fun MutableMap<String, Any?>.putGoalLedgerCliEntries(projection: GoalRu
   projection.findingsInScope?.let { count -> put("findings_in_scope", count) }
 }
 
-internal fun List<GoalRunnerAcceptedSubtask>.toGoalAcceptanceCliList(): List<Map<String, Any?>>? = takeIf {
-  it.isNotEmpty()
-}?.map { acceptance ->
-  linkedMapOf(
-    SharedPayloadKeys.SUBTASK_ID to acceptance.subtaskId,
-    "commit_sha" to acceptance.commitSha,
-    "reason" to acceptance.reason,
-    "accepted_at" to acceptance.acceptedAt,
-  )
-}
+internal fun List<GoalRunnerAcceptedSubtask>.toGoalAcceptanceCliList(): List<Map<String, Any?>>? =
+  takeIf {
+    it.isNotEmpty()
+  }?.map { acceptance ->
+    linkedMapOf(
+      SharedPayloadKeys.SUBTASK_ID to acceptance.subtaskId,
+      "commit_sha" to acceptance.commitSha,
+      "reason" to acceptance.reason,
+      "accepted_at" to acceptance.acceptedAt,
+    )
+  }
 
-internal fun goalStatusText(payload: Map<String, Any?>): String = buildString {
-  appendGoalStatusSummary(payload)
-  appendPlanningStatusLines(payload)
-  appendObservabilityStatusLines(payload)
-  appendWorktreeEditLines(payload)
-  appendOperatorSurfaceLines(payload)
-  appendValidationStatusLines(payload)
-  appendDiffStatusLines(payload)
-}
+internal fun goalStatusText(payload: Map<String, Any?>): String =
+  buildString {
+    appendGoalStatusSummary(payload)
+    appendPlanningStatusLines(payload)
+    appendObservabilityStatusLines(payload)
+    appendWorktreeEditLines(payload)
+    appendOperatorSurfaceLines(payload)
+    appendValidationStatusLines(payload)
+    appendDiffStatusLines(payload)
+  }
 
 private fun StringBuilder.appendGoalStatusSummary(payload: Map<String, Any?>) {
   appendLine("goal: ${payload[SharedPayloadKeys.ISSUE_KEY]}")
@@ -271,22 +280,24 @@ private fun StringBuilder.appendValidationStatusLines(payload: Map<String, Any?>
     val integrity = evidence[ValidationEvidencePayloadKeys.INTEGRITY_PROBLEM]
     when {
       integrity != null -> appendLine("validation_integrity: subtask=$subtaskId problem=$integrity")
-      results != null -> results.forEach { rawResult ->
-        val result = rawResult as? Map<*, *> ?: return@forEach
-        appendLine(
-          "validation: subtask=$subtaskId command=${result[ValidationEvidencePayloadKeys.COMMAND]} " +
-            "exit_code=${result[ValidationEvidencePayloadKeys.EXIT_CODE]}",
-        )
-      }
+      results != null ->
+        results.forEach { rawResult ->
+          val result = rawResult as? Map<*, *> ?: return@forEach
+          appendLine(
+            "validation: subtask=$subtaskId command=${result[ValidationEvidencePayloadKeys.COMMAND]} " +
+              "exit_code=${result[ValidationEvidencePayloadKeys.EXIT_CODE]}",
+          )
+        }
     }
   }
 }
 
-private fun planningWaveText(waveSize: Int): String = when (waveSize) {
-  0 -> ""
-  1 -> " wave=1 subtask"
-  else -> " wave=$waveSize subtasks"
-}
+private fun planningWaveText(waveSize: Int): String =
+  when (waveSize) {
+    0 -> ""
+    1 -> " wave=1 subtask"
+    else -> " wave=$waveSize subtasks"
+  }
 
 internal fun goalMonitorStatusText(payload: Map<String, Any?>): String =
   if (payload[SharedPayloadKeys.STATUS] == "not_found") {
@@ -318,10 +329,11 @@ internal fun goalMonitorStatusText(payload: Map<String, Any?>): String =
 private fun StringBuilder.appendWorktreeEditLines(payload: Map<String, Any?>) {
   (payload[WorktreeEditJournalPayloadKeys.WORKTREE_EDITS] as? Map<*, *>)?.let { edits ->
     val phase = edits[WorktreeEditJournalPayloadKeys.PHASE_ID] ?: "none"
-    val paths = when (val sample = edits[WorktreeEditJournalPayloadKeys.PATH_SAMPLE]) {
-      is List<*> -> sample.joinToString(",")
-      else -> sample?.toString().orEmpty()
-    }
+    val paths =
+      when (val sample = edits[WorktreeEditJournalPayloadKeys.PATH_SAMPLE]) {
+        is List<*> -> sample.joinToString(",")
+        else -> sample?.toString().orEmpty()
+      }
     appendLine(
       "worktree_edits: at=${edits[WorktreeEditJournalPayloadKeys.RECORDED_AT]} phase=$phase " +
         "+${edits[WorktreeEditJournalPayloadKeys.NET_INSERTIONS]} " +

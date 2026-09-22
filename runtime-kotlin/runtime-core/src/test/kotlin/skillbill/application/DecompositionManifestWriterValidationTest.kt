@@ -16,6 +16,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+
 class DecompositionManifestWriterValidationTest {
   private val validator: DecompositionManifestValidator = DecompositionManifestSchemaValidator()
   private val fileStore = FileSystemDecompositionManifestFileStore()
@@ -27,29 +28,31 @@ class DecompositionManifestWriterValidationTest {
     val parentSpecPath = repoRoot.resolve(".feature-specs/SKILL-51-decomposition/spec.md")
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
-    val initial = writer.writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningPlan(parentSpecPath),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-      validator,
-      fileStore,
-    )
+    val initial =
+      writer.writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult = decompositionPlanningPlan(parentSpecPath),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
+        ),
+        validator,
+        fileStore,
+      )
     assertNotNull(initial)
 
-    val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      writer.writeFromWorkflowUpdate(
-        DecompositionManifestWorkflowProjectionInput(
-          repoRoot = repoRoot,
-          existingArtifactsJson = invalidDurableRuntimeArtifactsJson(initial.manifest),
-          validator = validator,
-          fileStore = fileStore,
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        writer.writeFromWorkflowUpdate(
+          DecompositionManifestWorkflowProjectionInput(
+            repoRoot = repoRoot,
+            existingArtifactsJson = invalidDurableRuntimeArtifactsJson(initial.manifest),
+            validator = validator,
+            fileStore = fileStore,
+          ),
+        )
+      }
 
     assertEquals("decomposition_runtime", error.sourceLabel)
     assertContains(error.reason, "contract_version")
@@ -62,27 +65,29 @@ class DecompositionManifestWriterValidationTest {
     val parentSpecPath = repoRoot.resolve(".feature-specs/SKILL-51-decomposition/spec.md")
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
-    val initial = writer.writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningPlan(parentSpecPath),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-      validator,
-      fileStore,
-    )
+    val initial =
+      writer.writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult = decompositionPlanningPlan(parentSpecPath),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
+        ),
+        validator,
+        fileStore,
+      )
     assertNotNull(initial)
 
-    val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      writer.writeProjectionFromWorkflowState(
-        repoRoot = repoRoot,
-        artifactsJson = invalidDurableRuntimeArtifactsJson(initial.manifest),
-        validator = validator,
-        fileStore = fileStore,
-      )
-    }
+    val error =
+      assertFailsWith<InvalidDecompositionManifestSchemaError> {
+        writer.writeProjectionFromWorkflowState(
+          repoRoot = repoRoot,
+          artifactsJson = invalidDurableRuntimeArtifactsJson(initial.manifest),
+          validator = validator,
+          fileStore = fileStore,
+        )
+      }
 
     assertEquals("decomposition_runtime", error.sourceLabel)
     assertContains(error.reason, "contract_version")
@@ -90,9 +95,10 @@ class DecompositionManifestWriterValidationTest {
   }
 
   private fun invalidDurableRuntimeArtifactsJson(manifest: DecompositionManifest): String {
-    val invalidManifest = LinkedHashMap(validator.encodeManifestWireMap(manifest)).apply {
-      put("contract_version", "invalid-contract")
-    }
+    val invalidManifest =
+      LinkedHashMap(validator.encodeManifestWireMap(manifest)).apply {
+        put("contract_version", "invalid-contract")
+      }
     return JsonCodec.mapToJsonString(mapOf("decomposition_runtime" to invalidManifest))
   }
 }

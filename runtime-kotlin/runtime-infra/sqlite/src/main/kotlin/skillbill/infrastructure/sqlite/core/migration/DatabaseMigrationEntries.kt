@@ -68,8 +68,8 @@ internal val databaseMigrations: List<DatabaseMigration> =
           )
           statement.execute(
             """
-              CREATE INDEX IF NOT EXISTS idx_feature_task_identity_lookup
-                ON feature_task_execution_identities(normalized_issue_key, repository_identity, route_scope)
+            CREATE INDEX IF NOT EXISTS idx_feature_task_identity_lookup
+              ON feature_task_execution_identities(normalized_issue_key, repository_identity, route_scope)
             """.trimIndent(),
           )
         }
@@ -82,22 +82,22 @@ internal val databaseMigrations: List<DatabaseMigration> =
         connection.createStatement().use { statement ->
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS feature_task_runtime_worker_leases (
-                workflow_id TEXT PRIMARY KEY,
-                contract_version TEXT NOT NULL CHECK (contract_version = '0.1'),
-                generation INTEGER NOT NULL CHECK (generation > 0),
-                owner_token TEXT NOT NULL,
-                host_identity TEXT NOT NULL,
-                boot_identity TEXT NOT NULL,
-                pid INTEGER NOT NULL CHECK (pid > 0),
-                process_birth_token TEXT NOT NULL,
-                lease_state TEXT NOT NULL CHECK (lease_state IN ('active', 'takeover_reserved')),
-                heartbeat_at TEXT NOT NULL,
-                expires_at TEXT NOT NULL,
-                phase_id TEXT NOT NULL,
-                phase_attempt INTEGER NOT NULL CHECK (phase_attempt > 0),
-                FOREIGN KEY (workflow_id) REFERENCES feature_task_workflows(workflow_id) ON DELETE CASCADE
-              )
+            CREATE TABLE IF NOT EXISTS feature_task_runtime_worker_leases (
+              workflow_id TEXT PRIMARY KEY,
+              contract_version TEXT NOT NULL CHECK (contract_version = '0.1'),
+              generation INTEGER NOT NULL CHECK (generation > 0),
+              owner_token TEXT NOT NULL,
+              host_identity TEXT NOT NULL,
+              boot_identity TEXT NOT NULL,
+              pid INTEGER NOT NULL CHECK (pid > 0),
+              process_birth_token TEXT NOT NULL,
+              lease_state TEXT NOT NULL CHECK (lease_state IN ('active', 'takeover_reserved')),
+              heartbeat_at TEXT NOT NULL,
+              expires_at TEXT NOT NULL,
+              phase_id TEXT NOT NULL,
+              phase_attempt INTEGER NOT NULL CHECK (phase_attempt > 0),
+              FOREIGN KEY (workflow_id) REFERENCES feature_task_workflows(workflow_id) ON DELETE CASCADE
+            )
             """.trimIndent(),
           )
         }
@@ -136,8 +136,8 @@ internal val databaseMigrations: List<DatabaseMigration> =
           )
           statement.execute(
             """
-              CREATE INDEX IF NOT EXISTS idx_goal_planning_preparations_lookup
-                ON goal_planning_preparations(normalized_issue_key, repository_identity)
+            CREATE INDEX IF NOT EXISTS idx_goal_planning_preparations_lookup
+              ON goal_planning_preparations(normalized_issue_key, repository_identity)
             """.trimIndent(),
           )
         }
@@ -150,52 +150,52 @@ internal val databaseMigrations: List<DatabaseMigration> =
         connection.createStatement().use { statement ->
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS goal_shared_preplans (
-                parent_goal_workflow_id TEXT PRIMARY KEY,
-                normalized_issue_key TEXT NOT NULL,
-                repository_identity TEXT NOT NULL,
-                preparation_status TEXT NOT NULL CHECK (preparation_status = 'prepared'),
-                contract_version TEXT NOT NULL CHECK (contract_version = '0.2'),
-                parent_spec_hash TEXT NOT NULL,
-                decomposition_manifest_hash TEXT NOT NULL,
-                planning_contract_id TEXT NOT NULL,
-                planning_contract_version TEXT NOT NULL CHECK (planning_contract_version = '0.2'),
-                phase_output_contract_id TEXT NOT NULL,
-                phase_output_contract_version TEXT NOT NULL CHECK (phase_output_contract_version = '0.1'),
-                payload_sha256 TEXT NOT NULL,
-                preplan_payload_json TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(normalized_issue_key, repository_identity)
-              )
+            CREATE TABLE IF NOT EXISTS goal_shared_preplans (
+              parent_goal_workflow_id TEXT PRIMARY KEY,
+              normalized_issue_key TEXT NOT NULL,
+              repository_identity TEXT NOT NULL,
+              preparation_status TEXT NOT NULL CHECK (preparation_status = 'prepared'),
+              contract_version TEXT NOT NULL CHECK (contract_version = '0.2'),
+              parent_spec_hash TEXT NOT NULL,
+              decomposition_manifest_hash TEXT NOT NULL,
+              planning_contract_id TEXT NOT NULL,
+              planning_contract_version TEXT NOT NULL CHECK (planning_contract_version = '0.2'),
+              phase_output_contract_id TEXT NOT NULL,
+              phase_output_contract_version TEXT NOT NULL CHECK (phase_output_contract_version = '0.1'),
+              payload_sha256 TEXT NOT NULL,
+              preplan_payload_json TEXT NOT NULL,
+              created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              UNIQUE(normalized_issue_key, repository_identity)
+            )
             """.trimIndent(),
           )
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS goal_subtask_plans (
-                parent_goal_workflow_id TEXT NOT NULL,
-                normalized_issue_key TEXT NOT NULL,
-                repository_identity TEXT NOT NULL,
-                subtask_id INTEGER NOT NULL CHECK (subtask_id > 0),
-                manifest_order INTEGER NOT NULL CHECK (manifest_order >= 0),
-                governed_sub_spec_path TEXT NOT NULL,
-                sub_spec_hash TEXT NOT NULL,
-                preparation_status TEXT NOT NULL CHECK (preparation_status = 'prepared'),
-                contract_version TEXT NOT NULL CHECK (contract_version = '0.2'),
-                parent_spec_hash TEXT NOT NULL,
-                decomposition_manifest_hash TEXT NOT NULL,
-                planning_contract_id TEXT NOT NULL,
-                planning_contract_version TEXT NOT NULL CHECK (planning_contract_version = '0.2'),
-                phase_output_contract_id TEXT NOT NULL,
-                phase_output_contract_version TEXT NOT NULL CHECK (phase_output_contract_version = '0.1'),
-                payload_sha256 TEXT NOT NULL,
-                plan_payload_json TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY(parent_goal_workflow_id, subtask_id),
-                UNIQUE(parent_goal_workflow_id, governed_sub_spec_path),
-                UNIQUE(parent_goal_workflow_id, manifest_order),
-                FOREIGN KEY(parent_goal_workflow_id)
-                REFERENCES goal_shared_preplans(parent_goal_workflow_id) ON DELETE CASCADE
-              )
+            CREATE TABLE IF NOT EXISTS goal_subtask_plans (
+              parent_goal_workflow_id TEXT NOT NULL,
+              normalized_issue_key TEXT NOT NULL,
+              repository_identity TEXT NOT NULL,
+              subtask_id INTEGER NOT NULL CHECK (subtask_id > 0),
+              manifest_order INTEGER NOT NULL CHECK (manifest_order >= 0),
+              governed_sub_spec_path TEXT NOT NULL,
+              sub_spec_hash TEXT NOT NULL,
+              preparation_status TEXT NOT NULL CHECK (preparation_status = 'prepared'),
+              contract_version TEXT NOT NULL CHECK (contract_version = '0.2'),
+              parent_spec_hash TEXT NOT NULL,
+              decomposition_manifest_hash TEXT NOT NULL,
+              planning_contract_id TEXT NOT NULL,
+              planning_contract_version TEXT NOT NULL CHECK (planning_contract_version = '0.2'),
+              phase_output_contract_id TEXT NOT NULL,
+              phase_output_contract_version TEXT NOT NULL CHECK (phase_output_contract_version = '0.1'),
+              payload_sha256 TEXT NOT NULL,
+              plan_payload_json TEXT NOT NULL,
+              created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY(parent_goal_workflow_id, subtask_id),
+              UNIQUE(parent_goal_workflow_id, governed_sub_spec_path),
+              UNIQUE(parent_goal_workflow_id, manifest_order),
+              FOREIGN KEY(parent_goal_workflow_id)
+              REFERENCES goal_shared_preplans(parent_goal_workflow_id) ON DELETE CASCADE
+            )
             """.trimIndent(),
           )
           statement.execute(
@@ -222,12 +222,12 @@ internal val databaseMigrations: List<DatabaseMigration> =
         connection.createStatement().use { statement ->
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS review_accounting (
-                review_id TEXT PRIMARY KEY,
-                packet_digest TEXT NOT NULL,
-                bounded_payload_json TEXT NOT NULL,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-              )
+            CREATE TABLE IF NOT EXISTS review_accounting (
+              review_id TEXT PRIMARY KEY,
+              packet_digest TEXT NOT NULL,
+              bounded_payload_json TEXT NOT NULL,
+              updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
             """.trimIndent(),
           )
         }
@@ -312,27 +312,27 @@ internal val databaseMigrations: List<DatabaseMigration> =
         connection.createStatement().use { statement ->
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS rejected_output_diagnostics (
-                identity TEXT PRIMARY KEY,
-                workflow_id TEXT NOT NULL,
-                phase_id TEXT NOT NULL,
-                attempt INTEGER NOT NULL CHECK (attempt > 0),
-                rule TEXT NOT NULL,
-                rejection_path TEXT NOT NULL,
-                reason TEXT NOT NULL,
-                agent_id TEXT NOT NULL,
-                model TEXT NOT NULL,
-                recorded_at TEXT NOT NULL,
-                byte_size INTEGER NOT NULL CHECK (byte_size >= 0),
-                sha256 TEXT NOT NULL,
-                lifecycle TEXT NOT NULL CHECK (lifecycle IN ('stored', 'oversized', 'expired')),
-                payload BLOB,
-                UNIQUE(workflow_id, phase_id, attempt),
-                CHECK (
-                  (lifecycle = 'stored' AND payload IS NOT NULL) OR
-                  (lifecycle IN ('oversized', 'expired') AND payload IS NULL)
-                )
+            CREATE TABLE IF NOT EXISTS rejected_output_diagnostics (
+              identity TEXT PRIMARY KEY,
+              workflow_id TEXT NOT NULL,
+              phase_id TEXT NOT NULL,
+              attempt INTEGER NOT NULL CHECK (attempt > 0),
+              rule TEXT NOT NULL,
+              rejection_path TEXT NOT NULL,
+              reason TEXT NOT NULL,
+              agent_id TEXT NOT NULL,
+              model TEXT NOT NULL,
+              recorded_at TEXT NOT NULL,
+              byte_size INTEGER NOT NULL CHECK (byte_size >= 0),
+              sha256 TEXT NOT NULL,
+              lifecycle TEXT NOT NULL CHECK (lifecycle IN ('stored', 'oversized', 'expired')),
+              payload BLOB,
+              UNIQUE(workflow_id, phase_id, attempt),
+              CHECK (
+                (lifecycle = 'stored' AND payload IS NOT NULL) OR
+                (lifecycle IN ('oversized', 'expired') AND payload IS NULL)
               )
+            )
             """.trimIndent(),
           )
           statement.execute(
@@ -353,13 +353,13 @@ internal val databaseMigrations: List<DatabaseMigration> =
         connection.createStatement().use {
           it.execute(
             """
-              CREATE TABLE IF NOT EXISTS producer_output_evidence (
-                workflow_id TEXT NOT NULL, phase_id TEXT NOT NULL,
-                attempt INTEGER NOT NULL CHECK (attempt > 0),
-                agent_id TEXT NOT NULL, model TEXT NOT NULL, recorded_at TEXT NOT NULL,
-                byte_size INTEGER NOT NULL CHECK (byte_size >= 0), sha256 TEXT NOT NULL, payload BLOB,
-                PRIMARY KEY (workflow_id, phase_id, attempt)
-              )
+            CREATE TABLE IF NOT EXISTS producer_output_evidence (
+              workflow_id TEXT NOT NULL, phase_id TEXT NOT NULL,
+              attempt INTEGER NOT NULL CHECK (attempt > 0),
+              agent_id TEXT NOT NULL, model TEXT NOT NULL, recorded_at TEXT NOT NULL,
+              byte_size INTEGER NOT NULL CHECK (byte_size >= 0), sha256 TEXT NOT NULL, payload BLOB,
+              PRIMARY KEY (workflow_id, phase_id, attempt)
+            )
             """.trimIndent(),
           )
         }
@@ -369,11 +369,12 @@ internal val databaseMigrations: List<DatabaseMigration> =
       version = 16,
       name = "rekey-producer-output-evidence-by-generation",
       operation = { connection ->
-        val alreadyRekeyed = connection.prepareStatement(
-          "SELECT 1 FROM pragma_table_info('producer_output_evidence') WHERE name = 'generation'",
-        ).use { statement ->
-          statement.executeQuery().use { resultSet -> resultSet.next() }
-        }
+        val alreadyRekeyed =
+          connection.prepareStatement(
+            "SELECT 1 FROM pragma_table_info('producer_output_evidence') WHERE name = 'generation'",
+          ).use { statement ->
+            statement.executeQuery().use { resultSet -> resultSet.next() }
+          }
         if (!alreadyRekeyed) {
           connection.createStatement().use {
             it.execute(
@@ -381,25 +382,25 @@ internal val databaseMigrations: List<DatabaseMigration> =
             )
             it.execute(
               """
-                CREATE TABLE IF NOT EXISTS producer_output_evidence (
-                  workflow_id TEXT NOT NULL, phase_id TEXT NOT NULL,
-                  generation INTEGER NOT NULL DEFAULT 0 CHECK (generation >= 0),
-                  attempt INTEGER NOT NULL CHECK (attempt > 0),
-                  agent_id TEXT NOT NULL, model TEXT NOT NULL, recorded_at TEXT NOT NULL,
-                  byte_size INTEGER NOT NULL CHECK (byte_size >= 0), sha256 TEXT NOT NULL, payload BLOB,
-                  PRIMARY KEY (workflow_id, phase_id, generation, attempt)
-                )
+              CREATE TABLE IF NOT EXISTS producer_output_evidence (
+                workflow_id TEXT NOT NULL, phase_id TEXT NOT NULL,
+                generation INTEGER NOT NULL DEFAULT 0 CHECK (generation >= 0),
+                attempt INTEGER NOT NULL CHECK (attempt > 0),
+                agent_id TEXT NOT NULL, model TEXT NOT NULL, recorded_at TEXT NOT NULL,
+                byte_size INTEGER NOT NULL CHECK (byte_size >= 0), sha256 TEXT NOT NULL, payload BLOB,
+                PRIMARY KEY (workflow_id, phase_id, generation, attempt)
+              )
               """.trimIndent(),
             )
             it.execute(
               """
-                INSERT INTO producer_output_evidence (
-                  workflow_id, phase_id, generation, attempt, agent_id, model, recorded_at,
-                  byte_size, sha256, payload
-                )
-                SELECT workflow_id, phase_id, 0, attempt, agent_id, model, recorded_at,
-                       byte_size, sha256, payload
-                FROM producer_output_evidence_pre_generation
+              INSERT INTO producer_output_evidence (
+                workflow_id, phase_id, generation, attempt, agent_id, model, recorded_at,
+                byte_size, sha256, payload
+              )
+              SELECT workflow_id, phase_id, 0, attempt, agent_id, model, recorded_at,
+                     byte_size, sha256, payload
+              FROM producer_output_evidence_pre_generation
               """.trimIndent(),
             )
             it.execute("DROP TABLE producer_output_evidence_pre_generation")
@@ -504,19 +505,19 @@ internal val databaseMigrations: List<DatabaseMigration> =
         connection.createStatement().use { statement ->
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS agent_activity_stamps (
-                workflow_id TEXT PRIMARY KEY,
-                recorded_at TEXT NOT NULL,
-                label TEXT NOT NULL CHECK (
-                  label IN (
-                    'worktree write',
-                    'stdout',
-                    'durable progress',
-                    'evidence read',
-                    'tool stream'
-                  )
+            CREATE TABLE IF NOT EXISTS agent_activity_stamps (
+              workflow_id TEXT PRIMARY KEY,
+              recorded_at TEXT NOT NULL,
+              label TEXT NOT NULL CHECK (
+                label IN (
+                  'worktree write',
+                  'stdout',
+                  'durable progress',
+                  'evidence read',
+                  'tool stream'
                 )
               )
+            )
             """.trimIndent(),
           )
         }
@@ -534,16 +535,16 @@ internal val databaseMigrations: List<DatabaseMigration> =
         connection.createStatement().use { statement ->
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS worktree_edit_journal (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                workflow_id TEXT NOT NULL,
-                phase_id TEXT,
-                recorded_at TEXT NOT NULL,
-                path TEXT NOT NULL,
-                lines_added INTEGER NOT NULL,
-                lines_removed INTEGER NOT NULL,
-                source TEXT NOT NULL CHECK (source IN ('worktree_probe'))
-              )
+            CREATE TABLE IF NOT EXISTS worktree_edit_journal (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              workflow_id TEXT NOT NULL,
+              phase_id TEXT,
+              recorded_at TEXT NOT NULL,
+              path TEXT NOT NULL,
+              lines_added INTEGER NOT NULL,
+              lines_removed INTEGER NOT NULL,
+              source TEXT NOT NULL CHECK (source IN ('worktree_probe'))
+            )
             """.trimIndent(),
           )
           statement.execute(
@@ -575,48 +576,48 @@ internal val databaseMigrations: List<DatabaseMigration> =
         connection.createStatement().use { statement ->
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS experiment_pairs (
-                pair_id TEXT PRIMARY KEY,
-                contract_version TEXT NOT NULL CHECK (contract_version = '0.1'),
-                execution_mode TEXT NOT NULL,
-                selected_experiment_names_json TEXT NOT NULL,
-                arm_order_json TEXT NOT NULL,
-                random_seed TEXT,
-                delivery_arm TEXT NOT NULL,
-                pair_status TEXT NOT NULL,
-                frozen_input_identity_json TEXT NOT NULL,
-                delivery_status TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-              )
+            CREATE TABLE IF NOT EXISTS experiment_pairs (
+              pair_id TEXT PRIMARY KEY,
+              contract_version TEXT NOT NULL CHECK (contract_version = '0.1'),
+              execution_mode TEXT NOT NULL,
+              selected_experiment_names_json TEXT NOT NULL,
+              arm_order_json TEXT NOT NULL,
+              random_seed TEXT,
+              delivery_arm TEXT NOT NULL,
+              pair_status TEXT NOT NULL,
+              frozen_input_identity_json TEXT NOT NULL,
+              delivery_status TEXT NOT NULL,
+              created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
             """.trimIndent(),
           )
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS experiment_observations (
-                observation_id TEXT PRIMARY KEY,
-                pair_id TEXT NOT NULL,
-                arm_id TEXT NOT NULL,
-                event_identity_json TEXT NOT NULL,
-                recorded_at TEXT NOT NULL,
-                measurements_json TEXT NOT NULL,
-                UNIQUE(pair_id, arm_id, event_identity_json),
-                FOREIGN KEY(pair_id) REFERENCES experiment_pairs(pair_id) ON DELETE CASCADE
-              )
+            CREATE TABLE IF NOT EXISTS experiment_observations (
+              observation_id TEXT PRIMARY KEY,
+              pair_id TEXT NOT NULL,
+              arm_id TEXT NOT NULL,
+              event_identity_json TEXT NOT NULL,
+              recorded_at TEXT NOT NULL,
+              measurements_json TEXT NOT NULL,
+              UNIQUE(pair_id, arm_id, event_identity_json),
+              FOREIGN KEY(pair_id) REFERENCES experiment_pairs(pair_id) ON DELETE CASCADE
+            )
             """.trimIndent(),
           )
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS experiment_arm_outcomes (
-                pair_id TEXT NOT NULL,
-                arm_id TEXT NOT NULL,
-                workflow_id TEXT,
-                terminal_status TEXT NOT NULL,
-                worktree_path TEXT,
-                deferred_publication INTEGER NOT NULL DEFAULT 1,
-                PRIMARY KEY(pair_id, arm_id),
-                FOREIGN KEY(pair_id) REFERENCES experiment_pairs(pair_id) ON DELETE CASCADE
-              )
+            CREATE TABLE IF NOT EXISTS experiment_arm_outcomes (
+              pair_id TEXT NOT NULL,
+              arm_id TEXT NOT NULL,
+              workflow_id TEXT,
+              terminal_status TEXT NOT NULL,
+              worktree_path TEXT,
+              deferred_publication INTEGER NOT NULL DEFAULT 1,
+              PRIMARY KEY(pair_id, arm_id),
+              FOREIGN KEY(pair_id) REFERENCES experiment_pairs(pair_id) ON DELETE CASCADE
+            )
             """.trimIndent(),
           )
         }
@@ -629,22 +630,22 @@ internal val databaseMigrations: List<DatabaseMigration> =
         connection.createStatement().use { statement ->
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS experiment_pair_leases (
-                pair_id TEXT PRIMARY KEY,
-                owner_token TEXT NOT NULL,
-                generation INTEGER NOT NULL,
-                expires_at INTEGER NOT NULL
-              )
+            CREATE TABLE IF NOT EXISTS experiment_pair_leases (
+              pair_id TEXT PRIMARY KEY,
+              owner_token TEXT NOT NULL,
+              generation INTEGER NOT NULL,
+              expires_at INTEGER NOT NULL
+            )
             """.trimIndent(),
           )
           statement.execute(
             """
-              CREATE TABLE IF NOT EXISTS experiment_reports (
-                pair_id TEXT PRIMARY KEY,
-                report_json TEXT NOT NULL,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(pair_id) REFERENCES experiment_pairs(pair_id) ON DELETE CASCADE
-              )
+            CREATE TABLE IF NOT EXISTS experiment_reports (
+              pair_id TEXT PRIMARY KEY,
+              report_json TEXT NOT NULL,
+              updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY(pair_id) REFERENCES experiment_pairs(pair_id) ON DELETE CASCADE
+            )
             """.trimIndent(),
           )
         }
@@ -657,7 +658,7 @@ internal val databaseMigrations: List<DatabaseMigration> =
         connection.createStatement().use { statement ->
           statement.execute(
             """
-              ALTER TABLE experiment_arm_outcomes ADD COLUMN outcome_json TEXT
+            ALTER TABLE experiment_arm_outcomes ADD COLUMN outcome_json TEXT
             """.trimIndent(),
           )
         }

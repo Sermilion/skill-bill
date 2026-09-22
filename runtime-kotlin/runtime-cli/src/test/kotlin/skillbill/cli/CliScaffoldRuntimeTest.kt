@@ -18,17 +18,19 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class CliScaffoldRuntimeTest {
   @Test
   fun `attached payload stdin form is consumed after parsing`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-scaffold-payload-stdin")
-    val result = CliRuntime.run(
-      listOf("new-skill", "--payload=-", "--dry-run", "--format", "json"),
-      CliRuntimeContext(
-        userHome = tempDir,
-        stdinText = """{"scaffold_payload_version":"1.0","kind":"horizontal","name":"bill-payload-stdin"}""",
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("new-skill", "--payload=-", "--dry-run", "--format", "json"),
+        CliRuntimeContext(
+          userHome = tempDir,
+          stdinText = """{"scaffold_payload_version":"1.0","kind":"horizontal","name":"bill-payload-stdin"}""",
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "bill-payload-stdin")
@@ -62,11 +64,11 @@ class CliScaffoldRuntimeTest {
         listOf("new", "--dry-run", "--format", "json"),
         CliRuntimeContext(
           stdinText =
-          """
-          horizontal
-          bill-wizard-skill
-          Wizard-created skill.
-          """.trimIndent(),
+            """
+            horizontal
+            bill-wizard-skill
+            Wizard-created skill.
+            """.trimIndent(),
           userHome = tempDir,
         ),
       )
@@ -310,13 +312,13 @@ class CliScaffoldRuntimeTest {
     val context =
       CliRuntimeContext(
         stdinText =
-        """
-        {
-          "scaffold_payload_version": "1.0",
-          "kind": "horizontal",
-          "name": "bill-horizontal-fill"
-        }
-        """.trimIndent(),
+          """
+          {
+            "scaffold_payload_version": "1.0",
+            "kind": "horizontal",
+            "name": "bill-horizontal-fill"
+          }
+          """.trimIndent(),
         userHome = tempDir,
       )
 
@@ -414,26 +416,26 @@ class CliScaffoldRuntimeTest {
         listOf("new", "--payload", "-", "--dry-run", "--format", "json"),
         CliRuntimeContext(
           stdinText =
-          """
-          {
-            "scaffold_payload_version": "1.0",
-            "kind": "platform-pack",
-            "platform": "$platform",
-            "repo_root": "$repoRoot",
-            "routing_signals": {
-              "strong": ["$platform.marker"]
-            },
-            "baseline_layers": [
-              {
-                "platform": "kotlin",
-                "skill": "bill-kotlin-code-review",
-                "scope": "same-review-scope",
-                "required": true,
-                "mode": "kmp-baseline"
-              }
-            ]
-          }
-          """.trimIndent(),
+            """
+            {
+              "scaffold_payload_version": "1.0",
+              "kind": "platform-pack",
+              "platform": "$platform",
+              "repo_root": "$repoRoot",
+              "routing_signals": {
+                "strong": ["$platform.marker"]
+              },
+              "baseline_layers": [
+                {
+                  "platform": "kotlin",
+                  "skill": "bill-kotlin-code-review",
+                  "scope": "same-review-scope",
+                  "required": true,
+                  "mode": "kmp-baseline"
+                }
+              ]
+            }
+            """.trimIndent(),
           userHome = tempDir,
         ),
       )
@@ -555,7 +557,10 @@ private fun assertNewSkillScaffoldGolden(result: CliExecutionResult) {
   assertContains(readmePreview, "/bill-horizontal-kotlin")
 }
 
-private fun assertCreateAndFillNativePayloads(context: CliRuntimeContext, bodyFile: Path) {
+private fun assertCreateAndFillNativePayloads(
+  context: CliRuntimeContext,
+  bodyFile: Path,
+) {
   val payload =
     scaffoldPayload(
       listOf(
@@ -613,18 +618,22 @@ private fun assertAddonScaffoldPayload(payload: JsonObject) {
   assertContains(payload["manifest_edits"].toString(), "platform-packs/kmp/platform.yaml")
 }
 
-private fun assertNativeBodyConflictErrors(prefix: List<String>, context: CliRuntimeContext) {
+private fun assertNativeBodyConflictErrors(
+  prefix: List<String>,
+  context: CliRuntimeContext,
+) {
   val result =
     CliRuntime.run(
-      prefix + listOf(
-        "--body",
-        "inline body",
-        "--body-file",
-        "-",
-        "--dry-run",
-        "--format",
-        "json",
-      ),
+      prefix +
+        listOf(
+          "--body",
+          "inline body",
+          "--body-file",
+          "-",
+          "--dry-run",
+          "--format",
+          "json",
+        ),
       context,
     )
   val payload = parseJsonObject(result.stdout)
@@ -634,30 +643,41 @@ private fun assertNativeBodyConflictErrors(prefix: List<String>, context: CliRun
   assertEquals("--body and --body-file are mutually exclusive.", payload.stringValue("error"))
 }
 
-private fun scaffoldPayloadContext(tempDir: Path): CliRuntimeContext = CliRuntimeContext(
-  stdinText =
-  """
-        {
-          "scaffold_payload_version": "1.0",
-          "kind": "horizontal",
-          "name": "bill-horizontal-kotlin"
-        }
-  """.trimIndent(),
-  userHome = tempDir,
-)
+private fun scaffoldPayloadContext(tempDir: Path): CliRuntimeContext =
+  CliRuntimeContext(
+    stdinText =
+      """
+      {
+        "scaffold_payload_version": "1.0",
+        "kind": "horizontal",
+        "name": "bill-horizontal-kotlin"
+      }
+      """.trimIndent(),
+    userHome = tempDir,
+  )
 
-private fun scaffoldPayload(command: String, context: CliRuntimeContext): JsonObject =
-  scaffoldPayload(listOf(command, "--payload", "-", "--dry-run", "--format", "json"), context)
+private fun scaffoldPayload(
+  command: String,
+  context: CliRuntimeContext,
+): JsonObject = scaffoldPayload(listOf(command, "--payload", "-", "--dry-run", "--format", "json"), context)
 
-private fun scaffoldPayload(arguments: List<String>, context: CliRuntimeContext): JsonObject {
+private fun scaffoldPayload(
+  arguments: List<String>,
+  context: CliRuntimeContext,
+): JsonObject {
   val result = scaffoldResult(arguments, context)
   return parseJsonObject(result.stdout)
 }
 
-private fun scaffoldResult(command: String, context: CliRuntimeContext): CliExecutionResult =
-  scaffoldResult(listOf(command, "--payload", "-", "--dry-run", "--format", "json"), context)
+private fun scaffoldResult(
+  command: String,
+  context: CliRuntimeContext,
+): CliExecutionResult = scaffoldResult(listOf(command, "--payload", "-", "--dry-run", "--format", "json"), context)
 
-private fun scaffoldResult(arguments: List<String>, context: CliRuntimeContext): CliExecutionResult {
+private fun scaffoldResult(
+  arguments: List<String>,
+  context: CliRuntimeContext,
+): CliExecutionResult {
   val result = CliRuntime.run(arguments, context)
   assertEquals(0, result.exitCode, result.stdout)
   return result
@@ -688,7 +708,7 @@ private fun compositionFixtureRepo(kmpLayerRequired: Boolean = true): Path {
     repoRoot = repoRoot,
     slug = "kmp",
     composition =
-    """
+      """
     |code_review_composition:
     |  baseline_layers:
     |    - platform: "kotlin"
@@ -696,12 +716,16 @@ private fun compositionFixtureRepo(kmpLayerRequired: Boolean = true): Path {
     |      scope: "same-review-scope"
     |      required: $kmpLayerRequired
     |      mode: "kmp-baseline"
-    """.trimMargin(),
+      """.trimMargin(),
   )
   return repoRoot
 }
 
-private fun seedCompositionPack(repoRoot: Path, slug: String, composition: String = "") {
+private fun seedCompositionPack(
+  repoRoot: Path,
+  slug: String,
+  composition: String = "",
+) {
   val skillName = "bill-$slug-code-review"
   val packRoot = repoRoot.resolve("platform-packs").resolve(slug)
   val skillRoot = packRoot.resolve("code-review").resolve(skillName)

@@ -26,13 +26,14 @@ class CliInstallApplyExternalAddonsRuntimeTest {
     Files.createDirectories(repo.resolve("platform-packs"))
     val home = Files.createTempDirectory("ext-addon-apply-home")
 
-    val result = CliRuntime.run(
-      listOf("install", "apply-external-addons", "--repo-root", repo.toString()),
-      CliRuntimeContext(
-        userHome = home,
-        environment = mapOf(CONFIG_ENVIRONMENT_KEY to home.resolve("config.json").toString()),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("install", "apply-external-addons", "--repo-root", repo.toString()),
+        CliRuntimeContext(
+          userHome = home,
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to home.resolve("config.json").toString()),
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "no external addon sources")
@@ -65,13 +66,14 @@ class CliInstallApplyExternalAddonsRuntimeTest {
       ),
     )
 
-    val result = CliRuntime.run(
-      listOf("install", "apply-external-addons", "--repo-root", repo.toString()),
-      CliRuntimeContext(
-        userHome = home,
-        environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString()),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("install", "apply-external-addons", "--repo-root", repo.toString()),
+        CliRuntimeContext(
+          userHome = home,
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString()),
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "skipped\tandroid")
@@ -85,13 +87,14 @@ class CliInstallApplyExternalAddonsRuntimeTest {
     val home = Files.createTempDirectory("ext-addon-apply-happy-home")
     val sourceDir = seedAcmeSource(home)
 
-    val result = CliRuntime.run(
-      listOf("install", "apply-external-addons", "--repo-root", repo.toString()),
-      CliRuntimeContext(
-        userHome = home,
-        environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString()),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("install", "apply-external-addons", "--repo-root", repo.toString()),
+        CliRuntimeContext(
+          userHome = home,
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString()),
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "applied\tios")
@@ -154,7 +157,10 @@ class CliInstallApplyExternalAddonsRuntimeTest {
 
   private fun configPath(home: Path): Path = home.resolve(".skill-bill").resolve("config.json")
 
-  private fun writeConfig(home: Path, payload: Map<String, Any?>) {
+  private fun writeConfig(
+    home: Path,
+    payload: Map<String, Any?>,
+  ) {
     Files.createDirectories(home.resolve(".skill-bill"))
     Files.writeString(configPath(home), JsonCodec.mapToJsonString(payload) + "\n")
   }

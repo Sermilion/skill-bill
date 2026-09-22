@@ -45,9 +45,10 @@ class FeatureTaskRuntimeSubtaskCommitResolverTest {
 
   @Test
   fun `an absent pointer recovers the amend target from the HEAD trailer and flags the fallback`() {
-    val decision = assertIs<FeatureTaskRuntimeSubtaskCommitAmend>(
-      decide(durableCommitSha = null, headCommitMessage = "wip\n\nSkill-Bill-Subtask: $ISSUE/3\n"),
-    )
+    val decision =
+      assertIs<FeatureTaskRuntimeSubtaskCommitAmend>(
+        decide(durableCommitSha = null, headCommitMessage = "wip\n\nSkill-Bill-Subtask: $ISSUE/3\n"),
+      )
 
     assertEquals(HEAD_SHA, decision.ownedHeadSha)
     assertEquals(4, decision.sequenceNumber)
@@ -56,12 +57,13 @@ class FeatureTaskRuntimeSubtaskCommitResolverTest {
 
   @Test
   fun `a stale pointer still amends a matching HEAD trailer`() {
-    val decision = assertIs<FeatureTaskRuntimeSubtaskCommitAmend>(
-      decide(
-        durableCommitSha = OTHER_SHA,
-        headCommitMessage = "wip\n\nSkill-Bill-Subtask: $ISSUE/3\n",
-      ),
-    )
+    val decision =
+      assertIs<FeatureTaskRuntimeSubtaskCommitAmend>(
+        decide(
+          durableCommitSha = OTHER_SHA,
+          headCommitMessage = "wip\n\nSkill-Bill-Subtask: $ISSUE/3\n",
+        ),
+      )
 
     assertEquals(HEAD_SHA, decision.ownedHeadSha)
     assertEquals(true, decision.recoveredFromTrailer)
@@ -75,11 +77,12 @@ class FeatureTaskRuntimeSubtaskCommitResolverTest {
   ) = FeatureTaskRuntimeSubtaskCommitResolver.decide(
     identity = identity,
     durableCommitSha = durableCommitSha,
-    head = FeatureTaskRuntimeSubtaskCommitHeadState(
-      sha = headSha,
-      commitMessage = headCommitMessage,
-      isUnpushed = headIsUnpushed,
-    ),
+    head =
+      FeatureTaskRuntimeSubtaskCommitHeadState(
+        sha = headSha,
+        commitMessage = headCommitMessage,
+        isUnpushed = headIsUnpushed,
+      ),
     sequenceNumber = 4,
   )
 }

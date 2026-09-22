@@ -9,6 +9,7 @@ import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class TelemetryCliResultMappersTest {
   @Test
   fun `remote stats mapper preserves explicit null capabilities`() {
@@ -21,15 +22,15 @@ class TelemetryCliResultMappersTest {
         statsUrl = "https://telemetry.example.dev/ingest/stats",
         groupBy = null,
         capabilities =
-        TelemetryProxyCapabilities(
-          contractVersion = "1",
-          source = "remote_proxy",
-          proxyUrl = "https://telemetry.example.dev/ingest",
-          capabilitiesUrl = "https://telemetry.example.dev/ingest/capabilities",
-          supportsIngest = true,
-          supportsStats = true,
-          supportedWorkflows = listOf("bill-feature-verify"),
-        ),
+          TelemetryProxyCapabilities(
+            contractVersion = "1",
+            source = "remote_proxy",
+            proxyUrl = "https://telemetry.example.dev/ingest",
+            capabilitiesUrl = "https://telemetry.example.dev/ingest/capabilities",
+            supportsIngest = true,
+            supportsStats = true,
+            supportedWorkflows = listOf("bill-feature-verify"),
+          ),
         metrics = TelemetryOpenDocument.from(linkedMapOf("status" to "ok", "capabilities" to null)),
       )
 
@@ -50,15 +51,15 @@ class TelemetryCliResultMappersTest {
         statsUrl = "https://telemetry.example.dev/ingest/stats",
         groupBy = null,
         capabilities =
-        TelemetryProxyCapabilities(
-          contractVersion = "1",
-          source = "remote_proxy",
-          proxyUrl = "https://telemetry.example.dev/ingest",
-          capabilitiesUrl = "https://telemetry.example.dev/ingest/capabilities",
-          supportsIngest = true,
-          supportsStats = true,
-          supportedWorkflows = listOf("bill-feature-verify"),
-        ),
+          TelemetryProxyCapabilities(
+            contractVersion = "1",
+            source = "remote_proxy",
+            proxyUrl = "https://telemetry.example.dev/ingest",
+            capabilitiesUrl = "https://telemetry.example.dev/ingest/capabilities",
+            supportsIngest = true,
+            supportsStats = true,
+            supportedWorkflows = listOf("bill-feature-verify"),
+          ),
         metrics = TelemetryOpenDocument.from(linkedMapOf("status" to "ok")),
       )
 

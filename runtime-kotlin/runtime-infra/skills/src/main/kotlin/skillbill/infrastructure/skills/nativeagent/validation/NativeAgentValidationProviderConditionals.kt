@@ -2,15 +2,17 @@ package skillbill.infrastructure.skills.nativeagent.validation
 
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 
-private val PROVIDER_CONDITIONAL_HANDLEBARS_REGEX: Regex = Regex(
-  "\\{\\{\\s*#\\s*(${NativeAgentProvider.entries.joinToString("|") { it.name.lowercase() }})\\s*\\}\\}",
-  RegexOption.IGNORE_CASE,
-)
+private val PROVIDER_CONDITIONAL_HANDLEBARS_REGEX: Regex =
+  Regex(
+    "\\{\\{\\s*#\\s*(${NativeAgentProvider.entries.joinToString("|") { it.name.lowercase() }})\\s*\\}\\}",
+    RegexOption.IGNORE_CASE,
+  )
 
-private val PROVIDER_CONDITIONAL_CASE_INSENSITIVE: List<String> = listOf(
-  "if provider ==",
-  "if (provider",
-)
+private val PROVIDER_CONDITIONAL_CASE_INSENSITIVE: List<String> =
+  listOf(
+    "if provider ==",
+    "if (provider",
+  )
 
 internal fun containsNativeAgentProviderConditional(body: String): Boolean {
   if (PROVIDER_CONDITIONAL_HANDLEBARS_REGEX.containsMatchIn(body)) {

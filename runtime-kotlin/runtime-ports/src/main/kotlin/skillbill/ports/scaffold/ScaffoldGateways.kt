@@ -17,19 +17,45 @@ import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import java.nio.file.Path
 
 interface ScaffoldGateway {
-  fun list(repoRoot: Path, skillNames: List<String>): ScaffoldListResult
+  fun list(
+    repoRoot: Path,
+    skillNames: List<String>,
+  ): ScaffoldListResult
 
-  fun show(repoRoot: Path, skillName: String, contentMode: String): ScaffoldShowResult
+  fun show(
+    repoRoot: Path,
+    skillName: String,
+    contentMode: String,
+  ): ScaffoldShowResult
 
-  fun explain(repoRoot: Path, skillName: String?): ScaffoldExplainResult
+  fun explain(
+    repoRoot: Path,
+    skillName: String?,
+  ): ScaffoldExplainResult
 
-  fun validate(repoRoot: Path, skillNames: List<String>): ScaffoldValidateResult
+  fun validate(
+    repoRoot: Path,
+    skillNames: List<String>,
+  ): ScaffoldValidateResult
 
-  fun upgrade(repoRoot: Path, skillNames: List<String>, validate: Boolean): ScaffoldUpgradeResult
+  fun upgrade(
+    repoRoot: Path,
+    skillNames: List<String>,
+    validate: Boolean,
+  ): ScaffoldUpgradeResult
 
-  fun fill(repoRoot: Path, skillName: String, body: String, sectionName: String?): ScaffoldFillResult
+  fun fill(
+    repoRoot: Path,
+    skillName: String,
+    body: String,
+    sectionName: String?,
+  ): ScaffoldFillResult
 
-  fun saveExactContent(repoRoot: Path, skillName: String, content: String): ScaffoldSaveExactContentResult
+  fun saveExactContent(
+    repoRoot: Path,
+    skillName: String,
+    content: String,
+  ): ScaffoldSaveExactContentResult
 
   fun editWithBodyFile(
     repoRoot: Path,
@@ -38,9 +64,15 @@ interface ScaffoldGateway {
     sectionName: String?,
   ): ScaffoldEditWithBodyFileResult
 
-  fun scaffold(request: ScaffoldCommandRequest, dryRun: Boolean): ScaffoldResult
+  fun scaffold(
+    request: ScaffoldCommandRequest,
+    dryRun: Boolean,
+  ): ScaffoldResult
 
-  fun render(repoRoot: Path, skillName: String): ScaffoldRenderResult
+  fun render(
+    repoRoot: Path,
+    skillName: String,
+  ): ScaffoldRenderResult
 }
 
 interface ScaffoldCatalogGateway {
@@ -62,5 +94,9 @@ interface ScaffoldCatalogGateway {
 }
 
 interface UnsupportedScaffoldGateway {
-  fun retiredUnsupportedMessage(command: String, replacement: String, editor: Boolean): String
+  fun retiredUnsupportedMessage(
+    command: String,
+    replacement: String,
+    editor: Boolean,
+  ): String
 }

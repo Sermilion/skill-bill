@@ -3,6 +3,7 @@ package skillbill.error.featuretask
 import skillbill.error.core.FailureWireCode
 import skillbill.error.core.failureWireByValue
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
+
 enum class FeatureTaskRuntimePhaseOutputFailureCode(
   override val wireValue: String,
 ) : FailureWireCode {
@@ -20,21 +21,22 @@ enum class FeatureTaskRuntimePhaseOutputFailureCode(
   ;
 
   val coarseFailureKind: FeatureTaskRuntimePhaseOutputFailureKind
-    get() = when (this) {
-      MALFORMED,
-      ROOT_NOT_OBJECT,
-      NO_REPAIR_CANDIDATE,
-      AMBIGUOUS_REPAIR,
-      REPAIR_LIMIT_EXCEEDED,
-      UNSUPPORTED_REPAIR,
-      DUPLICATE_KEY,
-      -> FeatureTaskRuntimePhaseOutputFailureKind.MALFORMED
-      SCHEMA_INVALID,
-      PHASE_ID_MISMATCH,
-      SEMANTIC_INVALID,
-      MULTIPLE_OUTPUT_CANDIDATES,
-      -> FeatureTaskRuntimePhaseOutputFailureKind.SCHEMA_INVALID
-    }
+    get() =
+      when (this) {
+        MALFORMED,
+        ROOT_NOT_OBJECT,
+        NO_REPAIR_CANDIDATE,
+        AMBIGUOUS_REPAIR,
+        REPAIR_LIMIT_EXCEEDED,
+        UNSUPPORTED_REPAIR,
+        DUPLICATE_KEY,
+        -> FeatureTaskRuntimePhaseOutputFailureKind.MALFORMED
+        SCHEMA_INVALID,
+        PHASE_ID_MISMATCH,
+        SEMANTIC_INVALID,
+        MULTIPLE_OUTPUT_CANDIDATES,
+        -> FeatureTaskRuntimePhaseOutputFailureKind.SCHEMA_INVALID
+      }
 
   companion object {
     private const val HIERARCHY = "FeatureTaskRuntimePhaseOutputFailureCode"

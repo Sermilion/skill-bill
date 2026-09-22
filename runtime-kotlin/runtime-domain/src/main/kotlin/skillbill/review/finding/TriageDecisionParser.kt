@@ -4,7 +4,10 @@ import skillbill.review.model.NumberedFinding
 import skillbill.review.model.TriageDecision
 
 object TriageDecisionParser {
-  fun expandBulkDecisions(rawDecisions: List<String>, numberedFindings: List<NumberedFinding>): List<String> =
+  fun expandBulkDecisions(
+    rawDecisions: List<String>,
+    numberedFindings: List<NumberedFinding>,
+  ): List<String> =
     buildList {
       rawDecisions.forEach { rawDecision ->
         val stripped = rawDecision.trim()
@@ -41,7 +44,10 @@ object TriageDecisionParser {
     return expanded
   }
 
-  fun parseTriageDecisions(rawDecisions: List<String>, numberedFindings: List<NumberedFinding>): List<TriageDecision> {
+  fun parseTriageDecisions(
+    rawDecisions: List<String>,
+    numberedFindings: List<NumberedFinding>,
+  ): List<TriageDecision> {
     val expandedDecisions = expandBulkDecisions(rawDecisions, numberedFindings)
     val numberToFinding = numberedFindings.associateBy({ it.number }, { it.findingId })
     val seenNumbers = mutableSetOf<Int>()
@@ -85,7 +91,10 @@ object TriageDecisionParser {
     return if (note.isNotEmpty() && !meaningfulNotePattern.containsMatchIn(note)) "" else note
   }
 
-  private fun expandBulkDecision(rawDecision: String, numberedFindings: List<NumberedFinding>): List<String> {
+  private fun expandBulkDecision(
+    rawDecision: String,
+    numberedFindings: List<NumberedFinding>,
+  ): List<String> {
     val bulkMatch = bulkTriagePattern.matchEntire(rawDecision) ?: return listOf(rawDecision)
     val action = bulkMatch.groups["action"]?.value.orEmpty()
     val note = bulkMatch.groups["note"]?.value.orEmpty()
@@ -95,7 +104,10 @@ object TriageDecisionParser {
     }
   }
 
-  private fun expandStructuredNumbers(numbersBlock: String, action: String): List<String> {
+  private fun expandStructuredNumbers(
+    numbersBlock: String,
+    action: String,
+  ): List<String> {
     if (numbersBlock.isEmpty()) {
       return emptyList()
     }

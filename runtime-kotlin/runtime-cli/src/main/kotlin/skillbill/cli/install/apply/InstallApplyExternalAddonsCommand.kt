@@ -16,9 +16,9 @@ class InstallApplyExternalAddonsCommand(
   private val inputs: CliRunInputs,
   private val service: ExternalAddonOverlayService,
 ) : DocumentedCliCommand(
-  "apply-external-addons",
-  "Apply the external addon overlay onto installed platform packs (after reconcile, before staging).",
-) {
+    "apply-external-addons",
+    "Apply the external addon overlay onto installed platform packs (after reconcile, before staging).",
+  ) {
   private val repoRoot by option(
     "--repo-root",
     help = "Repository root containing platform-packs/. Defaults to the current working directory.",
@@ -33,18 +33,20 @@ class InstallApplyExternalAddonsCommand(
       return
     }
     val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, inputs)
-    val resolvedPlatformPacks = platformPacksRoot?.let(Path::of)?.toAbsolutePath()?.normalize()
-      ?: resolvedRepoRoot.resolve("platform-packs")
-    val result = try {
-      service.applyOverlay(resolvedPlatformPacks, inputs.userHome, inputs.environment)
-    } catch (error: ShellContentContractException) {
-      state.completeText(
-        "${error.message}\n",
-        mapOf(SharedPayloadKeys.STATUS to "failed", "error" to error.message.orEmpty()),
-        exitCode = 1,
-      )
-      return
-    }
+    val resolvedPlatformPacks =
+      platformPacksRoot?.let(Path::of)?.toAbsolutePath()?.normalize()
+        ?: resolvedRepoRoot.resolve("platform-packs")
+    val result =
+      try {
+        service.applyOverlay(resolvedPlatformPacks, inputs.userHome, inputs.environment)
+      } catch (error: ShellContentContractException) {
+        state.completeText(
+          "${error.message}\n",
+          mapOf(SharedPayloadKeys.STATUS to "failed", "error" to error.message.orEmpty()),
+          exitCode = 1,
+        )
+        return
+      }
     if (result.appliedSources.isEmpty() && result.skippedSources.isEmpty()) {
       state.completeText(
         "no external addon sources\n",
@@ -52,12 +54,14 @@ class InstallApplyExternalAddonsCommand(
       )
       return
     }
-    val applied = result.appliedSources.joinToString("") { source ->
-      "applied\t${source.platform}\t${source.sourcePath}\n"
-    }
-    val skipped = result.skippedSources.joinToString("") { source ->
-      "skipped\t${source.platform}\t${source.sourcePath}\t${source.reason}\n"
-    }
+    val applied =
+      result.appliedSources.joinToString("") { source ->
+        "applied\t${source.platform}\t${source.sourcePath}\n"
+      }
+    val skipped =
+      result.skippedSources.joinToString("") { source ->
+        "skipped\t${source.platform}\t${source.sourcePath}\t${source.reason}\n"
+      }
     state.completeText(
       applied + skipped,
       mapOf(

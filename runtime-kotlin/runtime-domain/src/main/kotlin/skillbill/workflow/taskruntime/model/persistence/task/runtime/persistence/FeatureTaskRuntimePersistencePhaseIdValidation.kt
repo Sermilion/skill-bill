@@ -7,7 +7,10 @@ private val REMOVED_FEATURE_TASK_RUNTIME_PHASE_IDS: Set<String> = setOf("plan_fi
 private val KNOWN_FEATURE_TASK_RUNTIME_PHASE_IDS: Set<String> =
   FeatureTaskRuntimePhaseIds.all.toSet()
 
-internal fun requireKnownFeatureTaskRuntimePhaseId(phaseId: String, fieldPath: String): String {
+internal fun requireKnownFeatureTaskRuntimePhaseId(
+  phaseId: String,
+  fieldPath: String,
+): String {
   if (phaseId in REMOVED_FEATURE_TASK_RUNTIME_PHASE_IDS) {
     throw InvalidWorkflowStateSchemaError(
       "Feature-task-runtime artifact field '$fieldPath' names removed phase '$phaseId'.",

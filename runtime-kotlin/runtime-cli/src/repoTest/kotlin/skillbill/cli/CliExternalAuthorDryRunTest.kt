@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class CliExternalAuthorDryRunTest {
   @Test
   fun `external author flow scaffolds validates refuses direct internal links and removes a temporary platform pack`() {
@@ -51,10 +52,11 @@ class CliExternalAuthorDryRunTest {
         CliRuntime.run(
           listOf("new", "--payload", "-", "--format", "json"),
           context.copy(
-            stdinText = CliOutput.emit(
-              externalAddonPayload(fixture.repoRoot, fixture.platform, externalDir),
-              CliFormat.JSON,
-            ),
+            stdinText =
+              CliOutput.emit(
+                externalAddonPayload(fixture.repoRoot, fixture.platform, externalDir),
+                CliFormat.JSON,
+              ),
           ),
         )
       val resolved =
@@ -98,7 +100,10 @@ private fun createExternalAuthorDryRunFixture(): ExternalAuthorDryRunFixture {
   )
 }
 
-private fun createIsolatedRepoFixture(sourceRepoRoot: Path, targetRepoRoot: Path): Path {
+private fun createIsolatedRepoFixture(
+  sourceRepoRoot: Path,
+  targetRepoRoot: Path,
+): Path {
   val directories = listOf("skills", "platform-packs", "orchestration", ".agents", ".claude-plugin")
   directories.forEach { relativePath ->
     copyTree(sourceRepoRoot.resolve(relativePath), targetRepoRoot.resolve(relativePath))
@@ -111,17 +116,26 @@ private fun createIsolatedRepoFixture(sourceRepoRoot: Path, targetRepoRoot: Path
   return targetRepoRoot
 }
 
-private fun copyTree(source: Path, target: Path) {
+private fun copyTree(
+  source: Path,
+  target: Path,
+) {
   Files.walkFileTree(
     source,
     object : SimpleFileVisitor<Path>() {
-      override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
+      override fun preVisitDirectory(
+        dir: Path,
+        attrs: BasicFileAttributes,
+      ): FileVisitResult {
         val targetDir = target.resolve(source.relativize(dir))
         Files.createDirectories(targetDir)
         return FileVisitResult.CONTINUE
       }
 
-      override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+      override fun visitFile(
+        file: Path,
+        attrs: BasicFileAttributes,
+      ): FileVisitResult {
         val targetFile = target.resolve(source.relativize(file))
         Files.copy(file, targetFile, StandardCopyOption.COPY_ATTRIBUTES)
         return FileVisitResult.CONTINUE
@@ -150,23 +164,27 @@ private fun scaffoldPlatformPack(fixture: ExternalAuthorDryRunFixture): Path {
   return baselineSkill
 }
 
-private fun refuseDirectBaselineSkillLink(fixture: ExternalAuthorDryRunFixture, baselineSkill: Path): Path {
+private fun refuseDirectBaselineSkillLink(
+  fixture: ExternalAuthorDryRunFixture,
+  baselineSkill: Path,
+): Path {
   val targetDir = fixture.tempRoot.resolve("agent").resolve("skills")
-  val error = assertFailsWith<InvalidInternalSkillClassificationError> {
-    CliRuntime.run(
-      listOf(
-        "install",
-        "link-skill",
-        "--source",
-        baselineSkill.toString(),
-        "--target-dir",
-        targetDir.toString(),
-        "--agent",
-        "codex",
-      ),
-      fixture.context,
-    )
-  }
+  val error =
+    assertFailsWith<InvalidInternalSkillClassificationError> {
+      CliRuntime.run(
+        listOf(
+          "install",
+          "link-skill",
+          "--source",
+          baselineSkill.toString(),
+          "--target-dir",
+          targetDir.toString(),
+          "--agent",
+          "codex",
+        ),
+        fixture.context,
+      )
+    }
   val installedLink = targetDir.resolve("bill-${fixture.platform}-code-review")
 
   assertContains(error.message.orEmpty(), "internal skills install as '<skill-name>.md' sidecars")
@@ -174,29 +192,42 @@ private fun refuseDirectBaselineSkillLink(fixture: ExternalAuthorDryRunFixture, 
   return installedLink
 }
 
-private fun externalPackPayload(repoRoot: Path, platform: String): Map<String, Any?> = mapOf(
-  "scaffold_payload_version" to "1.0",
-  "kind" to "platform-pack",
-  "platform" to platform,
-  "display_name" to "External",
-  "description" to "Use when reviewing external author fixture changes.",
-  "routing_signals" to mapOf(
-    "strong" to listOf("external.toml", "src/external"),
-    "tie_breakers" to listOf("Prefer External when fixture markers dominate."),
-  ),
-  "repo_root" to repoRoot.toString(),
-)
+private fun externalPackPayload(
+  repoRoot: Path,
+  platform: String,
+): Map<String, Any?> =
+  mapOf(
+    "scaffold_payload_version" to "1.0",
+    "kind" to "platform-pack",
+    "platform" to platform,
+    "display_name" to "External",
+    "description" to "Use when reviewing external author fixture changes.",
+    "routing_signals" to
+      mapOf(
+        "strong" to listOf("external.toml", "src/external"),
+        "tie_breakers" to listOf("Prefer External when fixture markers dominate."),
+      ),
+    "repo_root" to repoRoot.toString(),
+  )
 
-private fun externalAddonPayload(repoRoot: Path, platform: String, externalDir: Path): Map<String, Any?> = mapOf(
-  "scaffold_payload_version" to "1.0",
-  "kind" to "add-on",
-  "platform" to platform,
-  "name" to "awesome-review",
-  "addon_location_path" to externalDir.toString(),
-  "repo_root" to repoRoot.toString(),
-)
+private fun externalAddonPayload(
+  repoRoot: Path,
+  platform: String,
+  externalDir: Path,
+): Map<String, Any?> =
+  mapOf(
+    "scaffold_payload_version" to "1.0",
+    "kind" to "add-on",
+    "platform" to platform,
+    "name" to "awesome-review",
+    "addon_location_path" to externalDir.toString(),
+    "repo_root" to repoRoot.toString(),
+  )
 
-private fun assertValidationPasses(repoRoot: Path, context: CliRuntimeContext) {
+private fun assertValidationPasses(
+  repoRoot: Path,
+  context: CliRuntimeContext,
+) {
   val result =
     CliRuntime.run(
       listOf("validate", "--repo-root", repoRoot.toString(), "--format", "json"),
@@ -207,7 +238,10 @@ private fun assertValidationPasses(repoRoot: Path, context: CliRuntimeContext) {
   assertEquals("pass", result.payload?.get("status"), result.stdout)
 }
 
-private fun <T> withTemporaryUserHome(userHome: Path, block: () -> T): T {
+private fun <T> withTemporaryUserHome(
+  userHome: Path,
+  block: () -> T,
+): T {
   val previous = System.getProperty("user.home")
   System.setProperty("user.home", userHome.toString())
   return try {

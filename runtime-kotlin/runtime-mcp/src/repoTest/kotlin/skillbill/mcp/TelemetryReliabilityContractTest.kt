@@ -30,8 +30,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-class TelemetryReliabilityContractTest {
 
+class TelemetryReliabilityContractTest {
   private val schemaNode: JsonNode by lazy {
     val schemaFile = repoRootFromTest().resolve(TelemetryEventSchemaPaths.REPO_RELATIVE_PATH)
     assertTrue(Files.isRegularFile(schemaFile), "Canonical schema file is missing at $schemaFile.")
@@ -58,12 +58,13 @@ class TelemetryReliabilityContractTest {
 
   @Test
   fun `representative finished telemetry carries nonblank routing labels and plausible durations`() {
-    val schemaEnvelopes = listOf(
-      goalFinishedEnvelope(),
-      goalIssueFinishedEnvelope(),
-      qualityCheckFinishedEnvelope(),
-      featureVerifyFinishedEnvelope(),
-    )
+    val schemaEnvelopes =
+      listOf(
+        goalFinishedEnvelope(),
+        goalIssueFinishedEnvelope(),
+        qualityCheckFinishedEnvelope(),
+        featureVerifyFinishedEnvelope(),
+      )
     val runtimeEnvelope = featureTaskRuntimeFinishedEnvelope()
 
     (schemaEnvelopes + runtimeEnvelope).forEach(::assertPositiveBoundedDuration)
@@ -95,10 +96,11 @@ class TelemetryReliabilityContractTest {
     assertEquals(setOf("completed", "paused", "blocked", "abandoned"), goalStatuses)
     assertEquals(GoalRunnerStopReason.entries.map { it.name }.toSet(), stopReasons)
 
-    val blockedSubtask = goalSubtaskFinishedEnvelope(
-      "status" to "blocked",
-      "blocked_reason" to "validation: tests failed",
-    )
+    val blockedSubtask =
+      goalSubtaskFinishedEnvelope(
+        "status" to "blocked",
+        "blocked_reason" to "validation: tests failed",
+      )
     val blockedGoal = goalFinishedEnvelope("status" to "blocked", "stop_reason" to "BLOCKED")
     val pausedGoal = goalFinishedEnvelope("status" to "paused", "stop_reason" to "PAUSED")
 
@@ -169,10 +171,11 @@ class TelemetryReliabilityContractTest {
 
   @Test
   fun `stale reconciled terminal payloads validate against the canonical schema`() {
-    val schemaEnvelopes = listOf(
-      featureVerifyFinishedEnvelope("completion_status" to "stale"),
-      qualityCheckFinishedEnvelope().apply { put("result", "stale") },
-    )
+    val schemaEnvelopes =
+      listOf(
+        featureVerifyFinishedEnvelope("completion_status" to "stale"),
+        qualityCheckFinishedEnvelope().apply { put("result", "stale") },
+      )
     val runtimeEnvelope = featureTaskRuntimeFinishedEnvelope("completion_status" to "stale")
 
     assertEquals("stale", runtimeEnvelope["completion_status"])
@@ -198,13 +201,19 @@ class TelemetryReliabilityContractTest {
     assertTrue(duration < 86_400, "duration_seconds must stay below the existing health threshold.")
   }
 
-  private fun assertNonBlankString(envelope: Map<String, Any?>, key: String) {
+  private fun assertNonBlankString(
+    envelope: Map<String, Any?>,
+    key: String,
+  ) {
     val value = envelope[key] as? String
     assertNotNull(value, "$key must be present as a string.")
     assertTrue(value.trim().isNotEmpty(), "$key must not be blank.")
   }
 
-  private fun assertNormalizedSlug(envelope: Map<String, Any?>, key: String) {
+  private fun assertNormalizedSlug(
+    envelope: Map<String, Any?>,
+    key: String,
+  ) {
     val value = envelope[key] as? String
     assertNotNull(value, "$key must be present as a string.")
     assertEquals(
@@ -214,7 +223,10 @@ class TelemetryReliabilityContractTest {
     )
   }
 
-  private fun assertAccurateInvocationAggregate(envelope: Map<String, Any?>, expectedSegmentStarts: Int) {
+  private fun assertAccurateInvocationAggregate(
+    envelope: Map<String, Any?>,
+    expectedSegmentStarts: Int,
+  ) {
     val totalInvocations = envelope["total_invocations"] as? Int
     assertNotNull(totalInvocations, "total_invocations must be present as an integer.")
     assertEquals(
@@ -350,15 +362,16 @@ class TelemetryReliabilityContractTest {
 
   private fun qualityCheckFinishedEnvelope(): LinkedHashMap<String, Any?> =
     emittedEnvelope("skillbill_quality_check_finished") { store, connection ->
-      val started = QualityCheckStartedRecord(
-        "qck-reliability",
-        "bill-kotlin-code-check",
-        "kotlin",
-        false,
-        null,
-        "branch_diff",
-        2,
-      )
+      val started =
+        QualityCheckStartedRecord(
+          "qck-reliability",
+          "bill-kotlin-code-check",
+          "kotlin",
+          false,
+          null,
+          "branch_diff",
+          2,
+        )
       store.qualityCheckStarted(started, "full")
       ageTelemetryReliabilitySession(connection, "quality_check_sessions", started.sessionId, 420)
       store.qualityCheckFinished(
@@ -380,8 +393,9 @@ class TelemetryReliabilityContractTest {
       )
     }
 
-  private fun reviewFinishedEnvelope(): LinkedHashMap<String, Any?> = telemetryReliabilityReviewFinishedEnvelope(
-    """
+  private fun reviewFinishedEnvelope(): LinkedHashMap<String, Any?> =
+    telemetryReliabilityReviewFinishedEnvelope(
+      """
       Review session ID: rvs-reliability
       Review run ID: rvw-reliability
       Routed to: bill-kmp-code-review
@@ -391,10 +405,10 @@ class TelemetryReliabilityContractTest {
 
       ### 2. Risk Register
       No findings.
-    """.trimIndent(),
-    TELEMETRY_EVENT_CONTRACT_VERSION,
-    mapOf("bill-kmp-code-review" to "kmp"),
-  )
+      """.trimIndent(),
+      TELEMETRY_EVENT_CONTRACT_VERSION,
+      mapOf("bill-kmp-code-review" to "kmp"),
+    )
 
   private fun emittedEnvelope(
     eventName: String,
@@ -402,27 +416,29 @@ class TelemetryReliabilityContractTest {
   ): LinkedHashMap<String, Any?> =
     telemetryReliabilityEmittedEnvelope(eventName, TELEMETRY_EVENT_CONTRACT_VERSION, emit)
 
-  private fun goalStartedRecord(parentWorkflowId: String? = null): GoalStartedRecord = GoalStartedRecord(
-    issueKey = "SKILL-109",
-    featureName = "reliability",
-    workflowId = "wfl-skill-109",
-    subtaskTotal = 6,
-    resumed = false,
-    startedAt = "2026-07-09T08:00:00Z",
-    mode = "runtime",
-    parentWorkflowId = parentWorkflowId,
-  )
+  private fun goalStartedRecord(parentWorkflowId: String? = null): GoalStartedRecord =
+    GoalStartedRecord(
+      issueKey = "SKILL-109",
+      featureName = "reliability",
+      workflowId = "wfl-skill-109",
+      subtaskTotal = 6,
+      resumed = false,
+      startedAt = "2026-07-09T08:00:00Z",
+      mode = "runtime",
+      parentWorkflowId = parentWorkflowId,
+    )
 
-  private fun goalFinishedRecord(): GoalFinishedRecord = GoalFinishedRecord(
-    issueKey = "SKILL-109",
-    workflowId = "wfl-skill-109",
-    status = "completed",
-    startedAt = "2026-07-09T08:00:00Z",
-    finishedAt = "2026-07-09T08:20:00Z",
-    durationMs = 1_200_000,
-    subtasksComplete = 6,
-    subtasksBlocked = 0,
-    subtasksSkipped = 0,
-    mode = "runtime",
-  )
+  private fun goalFinishedRecord(): GoalFinishedRecord =
+    GoalFinishedRecord(
+      issueKey = "SKILL-109",
+      workflowId = "wfl-skill-109",
+      status = "completed",
+      startedAt = "2026-07-09T08:00:00Z",
+      finishedAt = "2026-07-09T08:20:00Z",
+      durationMs = 1_200_000,
+      subtasksComplete = 6,
+      subtasksBlocked = 0,
+      subtasksSkipped = 0,
+      mode = "runtime",
+    )
 }

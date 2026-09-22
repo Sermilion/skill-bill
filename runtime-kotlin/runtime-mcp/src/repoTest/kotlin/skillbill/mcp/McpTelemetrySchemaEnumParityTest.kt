@@ -18,6 +18,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class McpTelemetrySchemaEnumParityTest {
   private val runtimeInternalEmissionEvents =
     setOf(
@@ -140,23 +141,31 @@ class McpTelemetrySchemaEnumParityTest {
     }
   }
 
-  private fun enumOnBranch(defs: JsonNode, branchName: String, propertyName: String): List<String> =
-    enumOnRef(defs.path(branchName).path("properties").path(propertyName), defs)
+  private fun enumOnBranch(
+    defs: JsonNode,
+    branchName: String,
+    propertyName: String,
+  ): List<String> = enumOnRef(defs.path(branchName).path("properties").path(propertyName), defs)
 
-  private fun enumOnRef(propertyNode: JsonNode, defs: JsonNode): List<String> {
+  private fun enumOnRef(
+    propertyNode: JsonNode,
+    defs: JsonNode,
+  ): List<String> {
     val ref = propertyNode.path("\$ref")
-    val resolved = if (!ref.isMissingNode) {
-      defs.path(ref.asText().removePrefix("#/\$defs/"))
-    } else {
-      propertyNode
-    }
+    val resolved =
+      if (!ref.isMissingNode) {
+        defs.path(ref.asText().removePrefix("#/\$defs/"))
+      } else {
+        propertyNode
+      }
     return resolved.path("enum").map { it.asText() }
   }
 
   private fun branchNameFor(eventName: String): String {
     val parts = eventName.split('_')
-    return parts.first() + parts.drop(1).joinToString("") { segment ->
-      segment.replaceFirstChar { it.uppercase() }
-    } + "Event"
+    return parts.first() +
+      parts.drop(1).joinToString("") { segment ->
+        segment.replaceFirstChar { it.uppercase() }
+      } + "Event"
   }
 }

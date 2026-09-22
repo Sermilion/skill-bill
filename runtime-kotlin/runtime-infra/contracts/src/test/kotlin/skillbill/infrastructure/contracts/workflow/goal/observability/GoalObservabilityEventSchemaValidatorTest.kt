@@ -8,15 +8,16 @@ import kotlin.test.assertFailsWith
 class GoalObservabilityEventSchemaValidatorTest {
   @Test
   fun `missing required event fields fail with typed schema error`() {
-    val error = assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
-      GoalObservabilityEventSchemaValidator.validate(
-        mapOf(
-          "contract_version" to GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION,
-          "issue_key" to "SKILL-61",
-        ),
-        "goal_observability_latest_event",
-      )
-    }
+    val error =
+      assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+        GoalObservabilityEventSchemaValidator.validate(
+          mapOf(
+            "contract_version" to GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION,
+            "issue_key" to "SKILL-61",
+          ),
+          "goal_observability_latest_event",
+        )
+      }
 
     assertContains(error.message.orEmpty(), "Goal observability event")
     assertContains(error.reason, "required")

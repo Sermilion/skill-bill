@@ -11,6 +11,7 @@ import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.DocumentedNoOpCliCommand
 import skillbill.cli.kernel.cli.formatOption
+
 @Inject
 class TelemetryLocalCommands(
   statusCommand: TelemetryStatusCommand,

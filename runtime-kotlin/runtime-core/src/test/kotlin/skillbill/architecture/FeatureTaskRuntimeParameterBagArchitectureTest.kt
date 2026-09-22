@@ -8,11 +8,13 @@ import kotlin.test.assertTrue
 class FeatureTaskRuntimeParameterBagArchitectureTest {
   @Test
   fun `single-use facts and port bags stay dissolved`() {
-    val runtimeEngine = ArchitectureScanSupport.runtimeRoot.resolve(
-      "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine",
-    )
-    val production = ArchitectureScanSupport.kotlinFilesUnder(runtimeEngine)
-      .joinToString("\n") { path -> path.readText() }
+    val runtimeEngine =
+      ArchitectureScanSupport.runtimeRoot.resolve(
+        "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine",
+      )
+    val production =
+      ArchitectureScanSupport.kotlinFilesUnder(runtimeEngine)
+        .joinToString("\n") { path -> path.readText() }
 
     assertFalse(production.contains("SettleValidationGateCycleArgs"))
     assertFalse(production.contains("RuntimeOwnedValidationSettlementArgs"))

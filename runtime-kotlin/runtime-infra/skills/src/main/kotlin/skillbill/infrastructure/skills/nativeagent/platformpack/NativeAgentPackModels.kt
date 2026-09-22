@@ -52,26 +52,34 @@ internal interface NativeAgentPlatformPackLoader {
 }
 
 internal object NativeAgentAddonSelectionPolicy {
-  fun select(manifest: NativeAgentPlatformPack, specialistSkillName: String): List<NativeAgentGovernedAddonSelection> {
+  fun select(
+    manifest: NativeAgentPlatformPack,
+    specialistSkillName: String,
+  ): List<NativeAgentGovernedAddonSelection> {
     val consumer = "code-review/$specialistSkillName"
     val baselineConsumer = manifest.routedSkillName?.let { name -> "code-review/$name" }
     val area = specialistArea(manifest.routedSkillName, specialistSkillName)
-    val declared = manifest.addonUsage
-      .filter { usage -> usage.skillRelativeDir == consumer }
-      .flatMap { usage -> usage.addons }
-    val inherited = if (area == null) {
-      emptyList()
-    } else {
+    val declared =
       manifest.addonUsage
-        .filter { usage -> usage.skillRelativeDir == baselineConsumer }
-        .flatMap { usage -> usage.addons.filter { addon -> area in addon.specialistAreas } }
-    }
+        .filter { usage -> usage.skillRelativeDir == consumer }
+        .flatMap { usage -> usage.addons }
+    val inherited =
+      if (area == null) {
+        emptyList()
+      } else {
+        manifest.addonUsage
+          .filter { usage -> usage.skillRelativeDir == baselineConsumer }
+          .flatMap { usage -> usage.addons.filter { addon -> area in addon.specialistAreas } }
+      }
     val selected = linkedMapOf<String, NativeAgentGovernedAddonSelection>()
     (declared + inherited).forEach { addon -> selected.putIfAbsent(addon.slug, addon) }
     return selected.values.toList()
   }
 
-  private fun specialistArea(baselineSkillName: String?, specialistSkillName: String): String? {
+  private fun specialistArea(
+    baselineSkillName: String?,
+    specialistSkillName: String,
+  ): String? {
     if (baselineSkillName == null || specialistSkillName == baselineSkillName) {
       return null
     }

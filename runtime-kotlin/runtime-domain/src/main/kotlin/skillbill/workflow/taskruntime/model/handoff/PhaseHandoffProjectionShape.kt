@@ -4,6 +4,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeCompa
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionBudget
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeHandoffPromptVisibility
+
 data class PhaseHandoffProjectionShape(
   val projectionName: String,
   val projectionContractId: String,

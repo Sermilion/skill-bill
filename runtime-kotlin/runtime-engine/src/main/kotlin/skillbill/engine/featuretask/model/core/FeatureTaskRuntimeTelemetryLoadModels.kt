@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.core
+
 internal data class FeatureTaskRuntimeRegenerationTelemetry(
   val activationCount: Int = 0,
   val attemptCount: Int = 0,

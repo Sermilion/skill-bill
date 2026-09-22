@@ -55,18 +55,19 @@ class FileSystemDecompositionManifestFileStoreTest {
         mapOf(
           "contract_version" to "0.1",
           "staging_directory" to stagingDirectory.toString(),
-          "entries" to listOf(
-            mapOf(
-              "target" to firstTarget.toString(),
-              "staged" to firstStaged.toString(),
-              "sha256" to sha256("new spec"),
+          "entries" to
+            listOf(
+              mapOf(
+                "target" to firstTarget.toString(),
+                "staged" to firstStaged.toString(),
+                "sha256" to sha256("new spec"),
+              ),
+              mapOf(
+                "target" to secondTarget.toString(),
+                "staged" to secondStaged.toString(),
+                "sha256" to sha256("new manifest"),
+              ),
             ),
-            mapOf(
-              "target" to secondTarget.toString(),
-              "staged" to secondStaged.toString(),
-              "sha256" to sha256("new manifest"),
-            ),
-          ),
         ),
       ),
     )
@@ -108,11 +109,12 @@ class FileSystemDecompositionManifestFileStoreTest {
       store.writeBundleAtomically(
         listOf(firstTarget to "new spec", secondTarget to "new manifest"),
       ) {
-        val markers = Files.list(parent).use { paths ->
-          paths.iterator().asSequence()
-            .filter { path -> path.fileName.toString().endsWith(".commit") }
-            .toList()
-        }
+        val markers =
+          Files.list(parent).use { paths ->
+            paths.iterator().asSequence()
+              .filter { path -> path.fileName.toString().endsWith(".commit") }
+              .toList()
+          }
         assertEquals(1, markers.size)
         error("verification failed")
       }
@@ -129,9 +131,10 @@ class FileSystemDecompositionManifestFileStoreTest {
     )
   }
 
-  private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
-    .digest(value.toByteArray(Charsets.UTF_8))
-    .joinToString("") { byte -> "%02x".format(byte) }
+  private fun sha256(value: String): String =
+    MessageDigest.getInstance("SHA-256")
+      .digest(value.toByteArray(Charsets.UTF_8))
+      .joinToString("") { byte -> "%02x".format(byte) }
 
   private companion object {
     const val BUNDLE_LOCK_FILE_NAME = ".decomposition-manifest-bundle.lock"

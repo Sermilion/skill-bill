@@ -7,7 +7,10 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 interface GoalRunnerControlRepository {
   fun controlState(parentWorkflowId: String): GoalRunnerControlState
 
-  fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState
+  fun persistControlState(
+    parentWorkflowId: String,
+    state: GoalRunnerControlState,
+  ): GoalRunnerControlState
 
   fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState
 
@@ -15,7 +18,10 @@ interface GoalRunnerControlRepository {
 
   fun reviewPolicy(parentWorkflowId: String): GoalRunnerReviewPolicy?
 
-  fun persistReviewPolicy(parentWorkflowId: String, policy: GoalRunnerReviewPolicy): GoalRunnerReviewPolicy
+  fun persistReviewPolicy(
+    parentWorkflowId: String,
+    policy: GoalRunnerReviewPolicy,
+  ): GoalRunnerReviewPolicy
 
   fun outOfBandAcceptances(parentWorkflowId: String): Map<Int, GoalRunnerOutOfBandAcceptance>
 

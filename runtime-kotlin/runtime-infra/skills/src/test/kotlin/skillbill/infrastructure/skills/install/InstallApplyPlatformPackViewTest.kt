@@ -9,17 +9,19 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
   @Test
   fun `apply materializes selected platform pack manifests under each agent skill root`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -62,12 +64,13 @@ class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
     )
     Files.createDirectories(fixture.home.resolve(".codex"))
 
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -94,12 +97,13 @@ class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
     }
     Files.createDirectories(fixture.home.resolve(".codex"))
 
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("ios", "python"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("ios", "python"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -118,12 +122,13 @@ class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
 
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 

@@ -46,5 +46,4 @@ class RuntimeImageConventionPluginTest {
   }
 }
 
-private fun TaskDependency.dependencyNames(task: Task): Set<String> =
-  getDependencies(task).map(Task::getName).toSet()
+private fun TaskDependency.dependencyNames(task: Task): Set<String> = getDependencies(task).map(Task::getName).toSet()

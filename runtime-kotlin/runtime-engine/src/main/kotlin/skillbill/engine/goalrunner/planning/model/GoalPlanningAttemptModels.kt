@@ -12,6 +12,7 @@ import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalProgressOutcome
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
+
 internal data class GoalPlanningAttemptScope(
   val shared: GoalPlanningSharedContext,
   val phaseId: String,

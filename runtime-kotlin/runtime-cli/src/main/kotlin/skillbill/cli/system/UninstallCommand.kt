@@ -12,6 +12,7 @@ import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
+
 @Inject
 class UninstallCommand(
   private val state: CliRunState,
@@ -42,19 +43,21 @@ class UninstallCommand(
       return
     }
 
-    val request = UninstallRequest(
-      home = inputs.userHome,
-      environment = inputs.environment,
-      desktopAppDir = desktopAppDir,
-    )
+    val request =
+      UninstallRequest(
+        home = inputs.userHome,
+        environment = inputs.environment,
+        desktopAppDir = desktopAppDir,
+      )
     val plan = uninstallService.plan(request)
     if (!dryRun && !yes && !confirmed(plan)) {
-      val payload = plan.toPayload(
-        status = "aborted",
-        removed = emptyList(),
-        skipped = emptyList(),
-        warnings = emptyList(),
-      )
+      val payload =
+        plan.toPayload(
+          status = "aborted",
+          removed = emptyList(),
+          skipped = emptyList(),
+          warnings = emptyList(),
+        )
       completeUninstall("uninstall_status: aborted\n", payload, exitCode = 1)
       return
     }
@@ -74,7 +77,11 @@ class UninstallCommand(
     return answer.equals("y", ignoreCase = true) || answer.equals("yes", ignoreCase = true)
   }
 
-  private fun completeUninstall(text: String, payload: Map<String, Any?>, exitCode: Int = 0) {
+  private fun completeUninstall(
+    text: String,
+    payload: Map<String, Any?>,
+    exitCode: Int = 0,
+  ) {
     if (format.wireName == "json") {
       state.complete(payload, format, exitCode)
     } else {
@@ -91,29 +98,33 @@ private fun UninstallPlan.toPayload(
   removed: List<String>,
   skipped: List<String>,
   warnings: List<String>,
-): Map<String, Any?> = linkedMapOf(
-  SharedPayloadKeys.STATUS to status,
-  "state_root" to stateRoot.toString(),
-  "skill_names" to skillNames,
-  "legacy_names" to legacyNames,
-  "agent_targets" to agentTargets.map { it.toString() },
-  "mcp_agents" to mcpAgents,
-  "launchers" to launchers.map {
-    mapOf("path" to it.path.toString(), "expected_target" to it.expectedTarget.toString())
-  },
-  "desktop" to mapOf(
-    "launcher" to desktop.launcher?.path?.toString(),
-    "files" to desktop.files.map { it.toString() },
-    "directories" to desktop.directories.map { it.toString() },
-  ),
-  "removed" to removed,
-  "skipped" to skipped,
-  "warnings" to warnings,
-)
+): Map<String, Any?> =
+  linkedMapOf(
+    SharedPayloadKeys.STATUS to status,
+    "state_root" to stateRoot.toString(),
+    "skill_names" to skillNames,
+    "legacy_names" to legacyNames,
+    "agent_targets" to agentTargets.map { it.toString() },
+    "mcp_agents" to mcpAgents,
+    "launchers" to
+      launchers.map {
+        mapOf("path" to it.path.toString(), "expected_target" to it.expectedTarget.toString())
+      },
+    "desktop" to
+      mapOf(
+        "launcher" to desktop.launcher?.path?.toString(),
+        "files" to desktop.files.map { it.toString() },
+        "directories" to desktop.directories.map { it.toString() },
+      ),
+    "removed" to removed,
+    "skipped" to skipped,
+    "warnings" to warnings,
+  )
 
-private fun UninstallResult.toPayload(): Map<String, Any?> = linkedMapOf(
-  SharedPayloadKeys.STATUS to status,
-  "removed" to removed,
-  "skipped" to skipped,
-  "warnings" to warnings,
-)
+private fun UninstallResult.toPayload(): Map<String, Any?> =
+  linkedMapOf(
+    SharedPayloadKeys.STATUS to status,
+    "removed" to removed,
+    "skipped" to skipped,
+    "warnings" to warnings,
+  )

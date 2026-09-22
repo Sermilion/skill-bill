@@ -6,6 +6,7 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePlanningProjectionContract
+
 private const val SCHEMA_GATE_DETAIL_MAX_CHARS = 500
 
 private fun boundedSchemaGateDetail(validationReason: String): String =
@@ -21,8 +22,9 @@ fun producerProjectionGateReason(
   planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 ): String? {
   if ((outputMap[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return null
-  val expectedKind = FeatureTaskRuntimePlanningProjectionContract.producedProjectionKindFor(phaseId)
-    ?: return null
+  val expectedKind =
+    FeatureTaskRuntimePlanningProjectionContract.producedProjectionKindFor(phaseId)
+      ?: return null
   return unresolvedProducerProjectionKindReason(phaseId, expectedKind, planningProjectionValidator)
 }
 
@@ -47,8 +49,9 @@ private fun unresolvedProducerProjectionKindReason(
   expectedKind: String,
   planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 ): String {
-  val validatorLabel = planningProjectionValidator::class.qualifiedName
-    ?: planningProjectionValidator::class.java.name
+  val validatorLabel =
+    planningProjectionValidator::class.qualifiedName
+      ?: planningProjectionValidator::class.java.name
   return "Phase '$phaseId' reported 'completed' but producedProjectionKindFor names '$expectedKind' " +
     "while no producer-side planning projection parser is wired for that kind " +
     "(validator=$validatorLabel)."

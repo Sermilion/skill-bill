@@ -9,13 +9,15 @@ internal fun governedAddonSelectionMatches(
   selection: GovernedAddonSelection,
   evidence: List<ReviewOwnedFileEvidence>,
 ): Boolean {
-  val condition = requireNotNull(selection.activation) {
-    "Governed review add-on '${selection.slug}' has no structured activation."
-  }
-  val eligible = evidence.filterNot { file ->
-    condition.excludePath.any { ReviewPathMatcher.matches(file.path, it) } ||
-      condition.excludeContent.any { ReviewContentMatcher.contains(file.changedContent, it) }
-  }
+  val condition =
+    requireNotNull(selection.activation) {
+      "Governed review add-on '${selection.slug}' has no structured activation."
+    }
+  val eligible =
+    evidence.filterNot { file ->
+      condition.excludePath.any { ReviewPathMatcher.matches(file.path, it) } ||
+        condition.excludeContent.any { ReviewContentMatcher.contains(file.changedContent, it) }
+    }
   val eligibleContent = eligible.joinToString("\n") { it.changedContent }
   return eligible.isNotEmpty() &&
     ReviewContentMatcher.containsAll(eligibleContent, condition.allContent) &&

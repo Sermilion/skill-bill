@@ -3,6 +3,7 @@ package skillbill.ports.workflow.model
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
+
 enum class WorkflowFamily(
   val definition: WorkflowDefinition,
   val humanName: String,

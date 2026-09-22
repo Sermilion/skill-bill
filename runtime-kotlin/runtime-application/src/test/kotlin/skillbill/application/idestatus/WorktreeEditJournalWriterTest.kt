@@ -29,21 +29,24 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class WorktreeEditJournalWriterTest {
   @Test
   fun `observe persists changed paths once, skips runtime-private paths, and dedups across restart`() {
     val clock = Clock.fixed(Instant.parse("2026-09-18T12:00:00Z"), ZoneOffset.UTC)
     val repository = InMemoryWorktreeEditJournalRepository()
     val database = JournalDatabaseSessionFactory(repository)
-    val git = ScriptedWorkflowGitOperations(
-      WorkflowWorktreeNumstatResult(
-        status = WorkflowGitOperationStatus.OK,
-        files = listOf(
-          GoalObservabilityFileDiffStat("src/A.kt", insertions = 2, deletions = 1),
-          GoalObservabilityFileDiffStat(".skill-bill/config.yaml", insertions = 4, deletions = 0),
+    val git =
+      ScriptedWorkflowGitOperations(
+        WorkflowWorktreeNumstatResult(
+          status = WorkflowGitOperationStatus.OK,
+          files =
+            listOf(
+              GoalObservabilityFileDiffStat("src/A.kt", insertions = 2, deletions = 1),
+              GoalObservabilityFileDiffStat(".skill-bill/config.yaml", insertions = 4, deletions = 0),
+            ),
         ),
-      ),
-    )
+      )
     val writer = WorktreeEditJournalWriter(database, clock, NoopJournalDiagnostics, git)
     val repoRoot = Path.of("/tmp/worktree-edit-journal")
     val observer = writer.observer(repoRoot, { "wfl-a" }, { "implement" })
@@ -66,10 +69,11 @@ class WorktreeEditJournalWriterTest {
     restarted.observer(repoRoot, { "wfl-a" }, { "implement" }).observe()
     assertEquals(1, repository.appends.size)
 
-    git.result = WorkflowWorktreeNumstatResult(
-      status = WorkflowGitOperationStatus.OK,
-      files = listOf(GoalObservabilityFileDiffStat("src/B.kt", insertions = 3, deletions = 0)),
-    )
+    git.result =
+      WorkflowWorktreeNumstatResult(
+        status = WorkflowGitOperationStatus.OK,
+        files = listOf(GoalObservabilityFileDiffStat("src/B.kt", insertions = 3, deletions = 0)),
+      )
     observer.observe()
     assertEquals(2, repository.appends.size)
     assertEquals(
@@ -82,19 +86,29 @@ class WorktreeEditJournalWriterTest {
   fun `cap truncation emits diagnostics and store failures stay inside the observer`() {
     val clock = Clock.fixed(Instant.parse("2026-09-18T12:00:00Z"), ZoneOffset.UTC)
     val repoRoot = Path.of("/tmp/worktree-edit-journal-cap")
-    val git = ScriptedWorkflowGitOperations(
-      WorkflowWorktreeNumstatResult(
-        status = WorkflowGitOperationStatus.OK,
-        files = listOf(GoalObservabilityFileDiffStat("src/A.kt", insertions = 1, deletions = 0)),
-      ),
-    )
+    val git =
+      ScriptedWorkflowGitOperations(
+        WorkflowWorktreeNumstatResult(
+          status = WorkflowGitOperationStatus.OK,
+          files = listOf(GoalObservabilityFileDiffStat("src/A.kt", insertions = 1, deletions = 0)),
+        ),
+      )
 
     val capDiagnostics = RecordingJournalDiagnostics()
-    val cappingRepository = object : WorktreeEditJournalRepository {
-      override fun append(workflowId: String, tick: WorktreeEditTick) = Unit
-      override fun latestTick(workflowId: String): WorktreeEditTick? = null
-      override fun trimToCap(workflowId: String, maxRows: Int): Int = 3
-    }
+    val cappingRepository =
+      object : WorktreeEditJournalRepository {
+        override fun append(
+          workflowId: String,
+          tick: WorktreeEditTick,
+        ) = Unit
+
+        override fun latestTick(workflowId: String): WorktreeEditTick? = null
+
+        override fun trimToCap(
+          workflowId: String,
+          maxRows: Int,
+        ): Int = 3
+      }
     WorktreeEditJournalWriter(
       JournalDatabaseSessionFactory(cappingRepository),
       clock,
@@ -105,14 +119,22 @@ class WorktreeEditJournalWriterTest {
     assertTrue(capDiagnostics.warnings.single().contains("seam=worktree_edit_journal_cap"))
 
     val persistDiagnostics = RecordingJournalDiagnostics()
-    val failingRepository = object : WorktreeEditJournalRepository {
-      override fun append(workflowId: String, tick: WorktreeEditTick) {
-        error("journal write failed")
-      }
+    val failingRepository =
+      object : WorktreeEditJournalRepository {
+        override fun append(
+          workflowId: String,
+          tick: WorktreeEditTick,
+        ) {
+          error("journal write failed")
+        }
 
-      override fun latestTick(workflowId: String): WorktreeEditTick? = null
-      override fun trimToCap(workflowId: String, maxRows: Int): Int = 0
-    }
+        override fun latestTick(workflowId: String): WorktreeEditTick? = null
+
+        override fun trimToCap(
+          workflowId: String,
+          maxRows: Int,
+        ): Int = 0
+      }
     WorktreeEditJournalWriter(
       JournalDatabaseSessionFactory(failingRepository),
       clock,
@@ -128,12 +150,13 @@ class WorktreeEditJournalWriterTest {
     val repository = InMemoryWorktreeEditJournalRepository()
     val diagnostics = RecordingJournalDiagnostics()
     val database = JournalDatabaseSessionFactory(repository, busyWrites = 3)
-    val git = ScriptedWorkflowGitOperations(
-      WorkflowWorktreeNumstatResult(
-        status = WorkflowGitOperationStatus.OK,
-        files = listOf(GoalObservabilityFileDiffStat("src/A.kt", insertions = 1, deletions = 0)),
-      ),
-    )
+    val git =
+      ScriptedWorkflowGitOperations(
+        WorkflowWorktreeNumstatResult(
+          status = WorkflowGitOperationStatus.OK,
+          files = listOf(GoalObservabilityFileDiffStat("src/A.kt", insertions = 1, deletions = 0)),
+        ),
+      )
 
     WorktreeEditJournalWriter(
       database,
@@ -161,14 +184,20 @@ private class InMemoryWorktreeEditJournalRepository : WorktreeEditJournalReposit
   val appends = mutableListOf<Appended>()
   private val latest = mutableMapOf<String, WorktreeEditTick>()
 
-  override fun append(workflowId: String, tick: WorktreeEditTick) {
+  override fun append(
+    workflowId: String,
+    tick: WorktreeEditTick,
+  ) {
     appends += Appended(workflowId, tick)
     latest[workflowId] = tick
   }
 
   override fun latestTick(workflowId: String): WorktreeEditTick? = latest[workflowId]
 
-  override fun trimToCap(workflowId: String, maxRows: Int): Int = 0
+  override fun trimToCap(
+    workflowId: String,
+    maxRows: Int,
+  ): Int = 0
 }
 
 private class JournalDatabaseSessionFactory(
@@ -196,42 +225,55 @@ private class JournalDatabaseSessionFactory(
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unit())
 
-  private fun unit(): UnitOfWork = object : UnitOfWorkDefaults() {
-    override val dbPath: Path = this@JournalDatabaseSessionFactory.dbPath
-    override val worktreeEditJournal: WorktreeEditJournalRepository = journal
-    override val workflowStates: WorkflowStateRepository
-      get() = error("Workflow states are not exercised.")
-    override val learnings: LearningRepository
-      get() = error("Learnings are not exercised.")
-    override val reviews: ReviewRepository
-      get() = error("Reviews are not exercised.")
-    override val lifecycleTelemetry: LifecycleTelemetryRepository
-      get() = error("Lifecycle telemetry is not exercised.")
-    override val telemetryReconciliation: TelemetryReconciliationRepository
-      get() = error("Telemetry reconciliation is not exercised.")
-    override val telemetryOutbox: TelemetryOutboxRepository
-      get() = error("Telemetry outbox is not exercised.")
-    override val workList: WorkListRepository
-      get() = error("Work list is not exercised.")
-    override val goalPlanningPreparations: GoalPlanningPreparationRepository
-      get() = error("Goal planning preparations are not exercised.")
-    override val goalRunnerControls: GoalRunnerControlRepository
-      get() = error("Goal runner controls are not exercised.")
-  }
+  private fun unit(): UnitOfWork =
+    object : UnitOfWorkDefaults() {
+      override val dbPath: Path = this@JournalDatabaseSessionFactory.dbPath
+      override val worktreeEditJournal: WorktreeEditJournalRepository = journal
+      override val workflowStates: WorkflowStateRepository
+        get() = error("Workflow states are not exercised.")
+      override val learnings: LearningRepository
+        get() = error("Learnings are not exercised.")
+      override val reviews: ReviewRepository
+        get() = error("Reviews are not exercised.")
+      override val lifecycleTelemetry: LifecycleTelemetryRepository
+        get() = error("Lifecycle telemetry is not exercised.")
+      override val telemetryReconciliation: TelemetryReconciliationRepository
+        get() = error("Telemetry reconciliation is not exercised.")
+      override val telemetryOutbox: TelemetryOutboxRepository
+        get() = error("Telemetry outbox is not exercised.")
+      override val workList: WorkListRepository
+        get() = error("Work list is not exercised.")
+      override val goalPlanningPreparations: GoalPlanningPreparationRepository
+        get() = error("Goal planning preparations are not exercised.")
+      override val goalRunnerControls: GoalRunnerControlRepository
+        get() = error("Goal runner controls are not exercised.")
+    }
 }
 
 private object NoopJournalDiagnostics : RuntimeDiagnostics {
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private class RecordingJournalDiagnostics : RuntimeDiagnostics {
   val warnings = mutableListOf<String>()
 
-  override fun warning(message: String, error: Throwable?) {
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
     warnings += message
   }
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }

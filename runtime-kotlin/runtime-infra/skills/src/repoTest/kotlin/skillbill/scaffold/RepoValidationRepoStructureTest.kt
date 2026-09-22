@@ -9,6 +9,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class RepoValidationRepoStructureTest {
   @Test
   fun `current repository validation passes without the retired over-engineering skill`() {

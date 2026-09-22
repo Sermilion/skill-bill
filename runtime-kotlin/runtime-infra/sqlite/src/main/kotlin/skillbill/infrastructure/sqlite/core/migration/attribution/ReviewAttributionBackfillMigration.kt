@@ -72,8 +72,9 @@ internal object ReviewAttributionBackfillMigration {
     }
   }
 
-  private fun pendingRows(connection: Connection): List<PendingRow> = connection.prepareStatement(
-    """
+  private fun pendingRows(connection: Connection): List<PendingRow> =
+    connection.prepareStatement(
+      """
       SELECT review_run_id, routed_skill, detected_stack, detected_scope,
              routed_skill_canonical, detected_stack_canonical, detected_scope_canonical,
              detected_scope_detail
@@ -81,31 +82,33 @@ internal object ReviewAttributionBackfillMigration {
       WHERE routed_skill_canonical = '$UNRESOLVED_ATTRIBUTION'
          OR detected_stack_canonical = '$UNRESOLVED_ATTRIBUTION'
          OR detected_scope_canonical = '$UNRESOLVED_ATTRIBUTION'
-    """.trimIndent(),
-  ).use { statement ->
-    statement.executeQuery().use { rows ->
-      buildList {
-        while (rows.next()) {
-          add(
-            PendingRow(
-              reviewRunId = rows.getString(ReviewVerificationSignalKeys.REVIEW_RUN_ID),
-              raw = RawAttribution(
-                routedSkill = rows.getString("routed_skill"),
-                stack = rows.getString("detected_stack"),
-                scope = rows.getString("detected_scope"),
+      """.trimIndent(),
+    ).use { statement ->
+      statement.executeQuery().use { rows ->
+        buildList {
+          while (rows.next()) {
+            add(
+              PendingRow(
+                reviewRunId = rows.getString(ReviewVerificationSignalKeys.REVIEW_RUN_ID),
+                raw =
+                  RawAttribution(
+                    routedSkill = rows.getString("routed_skill"),
+                    stack = rows.getString("detected_stack"),
+                    scope = rows.getString("detected_scope"),
+                  ),
+                stored =
+                  CanonicalAttributionColumns(
+                    routedSkill = rows.getString("routed_skill_canonical"),
+                    stack = rows.getString("detected_stack_canonical"),
+                    scope = rows.getString("detected_scope_canonical"),
+                    scopeDetail = rows.getString("detected_scope_detail"),
+                  ),
               ),
-              stored = CanonicalAttributionColumns(
-                routedSkill = rows.getString("routed_skill_canonical"),
-                stack = rows.getString("detected_stack_canonical"),
-                scope = rows.getString("detected_scope_canonical"),
-                scopeDetail = rows.getString("detected_scope_detail"),
-              ),
-            ),
-          )
+            )
+          }
         }
       }
     }
-  }
 
   private class RawAttribution(val routedSkill: String?, val stack: String?, val scope: String?)
 
@@ -125,10 +128,12 @@ internal object ReviewAttributionBackfillMigration {
       val scope = resolveCanonicalScope(raw.scope)
       val scopeWasUnresolved = stored.scope == UNRESOLVED_ATTRIBUTION
       return CanonicalAttributionColumns(
-        routedSkill = stored.routedSkill.takeUnless { it == UNRESOLVED_ATTRIBUTION }
-          ?: resolveCanonicalRoutedSkill(raw.routedSkill, canonicalPackSkillNames).canonical,
-        stack = stored.stack.takeUnless { it == UNRESOLVED_ATTRIBUTION }
-          ?: resolveCanonicalStack(raw.stack, canonicalPlatformSlugs).canonical,
+        routedSkill =
+          stored.routedSkill.takeUnless { it == UNRESOLVED_ATTRIBUTION }
+            ?: resolveCanonicalRoutedSkill(raw.routedSkill, canonicalPackSkillNames).canonical,
+        stack =
+          stored.stack.takeUnless { it == UNRESOLVED_ATTRIBUTION }
+            ?: resolveCanonicalStack(raw.stack, canonicalPlatformSlugs).canonical,
         scope = if (scopeWasUnresolved) scope.canonical else stored.scope,
         scopeDetail = if (scopeWasUnresolved) scope.detail else stored.scopeDetail,
       )

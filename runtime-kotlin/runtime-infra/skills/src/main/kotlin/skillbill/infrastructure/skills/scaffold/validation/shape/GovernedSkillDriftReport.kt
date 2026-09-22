@@ -24,14 +24,18 @@ internal typealias AuthoringTargetRenderer = (Path, AuthoringTarget) -> Authorin
 internal fun validateGovernedSkillDrift(repoRoot: Path): GovernedSkillDriftReport =
   validateGovernedSkillDrift(repoRoot, ::renderAuthoringTarget)
 
-internal fun validateGovernedSkillDrift(repoRoot: Path, renderer: AuthoringTargetRenderer): GovernedSkillDriftReport {
+internal fun validateGovernedSkillDrift(
+  repoRoot: Path,
+  renderer: AuthoringTargetRenderer,
+): GovernedSkillDriftReport {
   val root = repoRoot.toAbsolutePath().normalize()
-  val targets = runCatching { discoverTargets(root) }.getOrElse { error ->
-    return GovernedSkillDriftReport(
-      issues = listOf("governed skill drift: cannot discover governed skills: ${error.message.orEmpty()}"),
-      skillCount = 0,
-    )
-  }
+  val targets =
+    runCatching { discoverTargets(root) }.getOrElse { error ->
+      return GovernedSkillDriftReport(
+        issues = listOf("governed skill drift: cannot discover governed skills: ${error.message.orEmpty()}"),
+        skillCount = 0,
+      )
+    }
   val issues = mutableListOf<String>()
   targets.values.sortedBy { target -> target.skillName }.forEach { target ->
     validateTargetRender(root, target, renderer, issues)
@@ -61,12 +65,13 @@ private fun renderTarget(
   renderer: AuthoringTargetRenderer,
   pass: String,
   issues: MutableList<String>,
-): AuthoringRenderResult? = runCatching { renderer(root, target) }
-  .getOrElse { error ->
-    issues += "${driftDisplayPath(root, target.contentFile)}: cannot render governed skill '${target.skillName}' " +
-      "on $pass pass: ${error.message.orEmpty()}"
-    null
-  }
+): AuthoringRenderResult? =
+  runCatching { renderer(root, target) }
+    .getOrElse { error ->
+      issues += "${driftDisplayPath(root, target.contentFile)}: cannot render governed skill '${target.skillName}' " +
+        "on $pass pass: ${error.message.orEmpty()}"
+      null
+    }
 
 private fun validateRenderOutput(
   root: Path,
@@ -87,7 +92,10 @@ private fun validateRenderOutput(
   }
 }
 
-private fun validatePointerRenderability(root: Path, issues: MutableList<String>) {
+private fun validatePointerRenderability(
+  root: Path,
+  issues: MutableList<String>,
+) {
   val packsRoot = root.resolve("platform-packs")
   if (!packsRoot.isDirectory()) {
     return
@@ -97,13 +105,14 @@ private fun validatePointerRenderability(root: Path, issues: MutableList<String>
       .filter { packRoot -> packRoot.isDirectory() && !packRoot.fileName.toString().startsWith(".") }
       .sorted()
       .forEach { packRoot ->
-        val pack = try {
-          loadPlatformManifest(packRoot)
-        } catch (error: ShellContentContractException) {
-          issues += "${driftDisplayPath(root, packRoot)}: cannot parse platform.yaml for drift check: " +
-            error.message.orEmpty()
-          return@forEach
-        }
+        val pack =
+          try {
+            loadPlatformManifest(packRoot)
+          } catch (error: ShellContentContractException) {
+            issues += "${driftDisplayPath(root, packRoot)}: cannot parse platform.yaml for drift check: " +
+              error.message.orEmpty()
+            return@forEach
+          }
         pack.pointers.forEach { spec ->
           runCatching { renderPointer(root, pack.packRoot.toPath(), spec) }
             .onFailure { error ->
@@ -119,7 +128,10 @@ private fun validatePointerRenderability(root: Path, issues: MutableList<String>
   }
 }
 
-private fun driftDisplayPath(root: Path, path: Path): String {
+private fun driftDisplayPath(
+  root: Path,
+  path: Path,
+): String {
   val resolvedRoot = root.toAbsolutePath().normalize()
   val resolvedPath = path.toAbsolutePath().normalize()
   return runCatching { resolvedPath.relativeTo(resolvedRoot).toString().replace('\\', '/') }

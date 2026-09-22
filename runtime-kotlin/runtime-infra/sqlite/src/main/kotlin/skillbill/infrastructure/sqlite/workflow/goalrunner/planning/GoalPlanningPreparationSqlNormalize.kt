@@ -14,16 +14,21 @@ import java.sql.SQLException
 
 internal object GoalPlanningPreparationSqlNormalize
 
-internal inline fun <T> translateSqlFailure(workflowId: String, subtaskId: Int, block: () -> T): T = try {
-  block()
-} catch (failure: SQLException) {
-  throw IncompatibleGoalPlanningPreparationRecoveryError(
-    workflowId,
-    subtaskId,
-    "SQLite rejected the immutable planning checkpoint: ${failure.message.orEmpty()}",
-    failure,
-  )
-}
+internal inline fun <T> translateSqlFailure(
+  workflowId: String,
+  subtaskId: Int,
+  block: () -> T,
+): T =
+  try {
+    block()
+  } catch (failure: SQLException) {
+    throw IncompatibleGoalPlanningPreparationRecoveryError(
+      workflowId,
+      subtaskId,
+      "SQLite rejected the immutable planning checkpoint: ${failure.message.orEmpty()}",
+      failure,
+    )
+  }
 
 internal fun Connection.rejectLegacy(workflowId: String) {
   prepareStatement(
@@ -52,7 +57,10 @@ internal fun requireParentGoalWorkflowId(parentGoalWorkflowId: String) {
   }
 }
 
-internal fun requirePositiveSubtaskId(parentGoalWorkflowId: String, subtaskId: Int) {
+internal fun requirePositiveSubtaskId(
+  parentGoalWorkflowId: String,
+  subtaskId: Int,
+) {
   if (subtaskId < 1) {
     throw InvalidGoalPlanningPreparationSchemaError(
       "$parentGoalWorkflowId#$subtaskId",
@@ -62,66 +70,71 @@ internal fun requirePositiveSubtaskId(parentGoalWorkflowId: String, subtaskId: I
   }
 }
 
-internal fun normalizedIdentityFailure(identity: GoalPlanningIdentity): Pair<String, String>? = when {
-  identity.parentGoalWorkflowId.isBlank() ->
-    "identity.parent_goal_workflow_id" to "parent_goal_workflow_id is required"
-  identity.normalizedIssueKey.isBlank() -> "identity.normalized_issue_key" to "normalized_issue_key is required"
-  identity.repositoryIdentity.isBlank() -> "identity.repository_identity" to "repository_identity is required"
-  else -> null
-}
+internal fun normalizedIdentityFailure(identity: GoalPlanningIdentity): Pair<String, String>? =
+  when {
+    identity.parentGoalWorkflowId.isBlank() ->
+      "identity.parent_goal_workflow_id" to "parent_goal_workflow_id is required"
+    identity.normalizedIssueKey.isBlank() -> "identity.normalized_issue_key" to "normalized_issue_key is required"
+    identity.repositoryIdentity.isBlank() -> "identity.repository_identity" to "repository_identity is required"
+    else -> null
+  }
 
-internal fun normalizedProvenanceFailure(provenance: GoalPlanningContractProvenance): Pair<String, String>? = when {
-  !provenance.parentSpecHash.isSha256() ->
-    "provenance.parent_spec_hash" to "parent_spec_hash must be a lowercase SHA-256"
-  !provenance.decompositionManifestHash.isSha256() ->
-    "provenance.decomposition_manifest_hash" to "decomposition_manifest_hash must be a lowercase SHA-256"
-  provenance.planningContractId != GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID ->
-    "provenance.planning_contract_id" to "planning_contract_id is incompatible"
-  provenance.planningContractVersion != GOAL_PLANNING_PREPARATION_CONTRACT_VERSION ->
-    "provenance.planning_contract_version" to "planning_contract_version is incompatible"
-  provenance.phaseOutputContractId != FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID ->
-    "provenance.phase_output_contract_id" to "phase_output_contract_id is incompatible"
-  provenance.phaseOutputContractVersion != FEATURE_TASK_RUNTIME_CONTRACT_VERSION ->
-    "provenance.phase_output_contract_version" to
-      "phase_output_contract_version is incompatible; hard-reset the workflow with " +
-      "'skill-bill goal reset <issue-key> --hard --yes'"
-  else -> null
-}
+internal fun normalizedProvenanceFailure(provenance: GoalPlanningContractProvenance): Pair<String, String>? =
+  when {
+    !provenance.parentSpecHash.isSha256() ->
+      "provenance.parent_spec_hash" to "parent_spec_hash must be a lowercase SHA-256"
+    !provenance.decompositionManifestHash.isSha256() ->
+      "provenance.decomposition_manifest_hash" to "decomposition_manifest_hash must be a lowercase SHA-256"
+    provenance.planningContractId != GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID ->
+      "provenance.planning_contract_id" to "planning_contract_id is incompatible"
+    provenance.planningContractVersion != GOAL_PLANNING_PREPARATION_CONTRACT_VERSION ->
+      "provenance.planning_contract_version" to "planning_contract_version is incompatible"
+    provenance.phaseOutputContractId != FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID ->
+      "provenance.phase_output_contract_id" to "phase_output_contract_id is incompatible"
+    provenance.phaseOutputContractVersion != FEATURE_TASK_RUNTIME_CONTRACT_VERSION ->
+      "provenance.phase_output_contract_version" to
+        "phase_output_contract_version is incompatible; hard-reset the workflow with " +
+        "'skill-bill goal reset <issue-key> --hard --yes'"
+    else -> null
+  }
 
 internal fun normalizedEnvelopeFailure(
   contractVersion: String,
   status: GoalPlanningPreparationState,
   payloadSha256: String,
   payload: String,
-): Pair<String, String>? = when {
-  contractVersion != GOAL_PLANNING_PREPARATION_CONTRACT_VERSION ->
-    "contract_version" to "contract_version is incompatible"
-  status != GoalPlanningPreparationState.PREPARED ->
-    "preparation_status" to "preparation_status must be prepared"
-  !payloadSha256.isSha256() -> "payload_sha256" to "payload_sha256 must be a lowercase SHA-256"
-  payload.isBlank() -> "payload" to "payload is required"
-  else -> null
-}
+): Pair<String, String>? =
+  when {
+    contractVersion != GOAL_PLANNING_PREPARATION_CONTRACT_VERSION ->
+      "contract_version" to "contract_version is incompatible"
+    status != GoalPlanningPreparationState.PREPARED ->
+      "preparation_status" to "preparation_status must be prepared"
+    !payloadSha256.isSha256() -> "payload_sha256" to "payload_sha256 must be a lowercase SHA-256"
+    payload.isBlank() -> "payload" to "payload is required"
+    else -> null
+  }
 
-internal fun hydratedProvenanceFailure(provenance: GoalPlanningContractProvenance): Pair<String, String>? = when {
-  !provenance.parentSpecHash.isSha256() ->
-    "provenance.parent_spec_hash" to "parent_spec_hash must be a lowercase SHA-256"
-  !provenance.decompositionManifestHash.isSha256() ->
-    "provenance.decomposition_manifest_hash" to "decomposition_manifest_hash must be a lowercase SHA-256"
-  else -> null
-}
+internal fun hydratedProvenanceFailure(provenance: GoalPlanningContractProvenance): Pair<String, String>? =
+  when {
+    !provenance.parentSpecHash.isSha256() ->
+      "provenance.parent_spec_hash" to "parent_spec_hash must be a lowercase SHA-256"
+    !provenance.decompositionManifestHash.isSha256() ->
+      "provenance.decomposition_manifest_hash" to "decomposition_manifest_hash must be a lowercase SHA-256"
+    else -> null
+  }
 
 internal fun hydratedEnvelopeFailure(
   status: GoalPlanningPreparationState,
   payloadSha256: String,
   payload: String,
-): Pair<String, String>? = when {
-  status != GoalPlanningPreparationState.PREPARED ->
-    "preparation_status" to "preparation_status must be prepared"
-  !payloadSha256.isSha256() -> "payload_sha256" to "payload_sha256 must be a lowercase SHA-256"
-  payload.isBlank() -> "payload" to "payload is required"
-  else -> null
-}
+): Pair<String, String>? =
+  when {
+    status != GoalPlanningPreparationState.PREPARED ->
+      "preparation_status" to "preparation_status must be prepared"
+    !payloadSha256.isSha256() -> "payload_sha256" to "payload_sha256 must be a lowercase SHA-256"
+    payload.isBlank() -> "payload" to "payload is required"
+    else -> null
+  }
 
 internal fun String.isSha256(): Boolean = length == SHA256_HEX_LENGTH && all { it in '0'..'9' || it in 'a'..'f' }
 

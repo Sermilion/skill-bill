@@ -55,7 +55,10 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
-private fun focusedMatrix(scope: ReviewScopeFacts, lanes: List<String>) = ReviewCommitLaneRoutingMatrix(
+private fun focusedMatrix(
+  scope: ReviewScopeFacts,
+  lanes: List<String>,
+) = ReviewCommitLaneRoutingMatrix(
   scope.commitUnits.sortedBy { it.orderIndex }.map { it.commitSha },
   lanes,
   scope.commitUnits.sortedBy { it.orderIndex }.flatMap { unit ->
@@ -80,20 +83,34 @@ private class CountingPorts(
   ReviewLaneSelectionPort {
   val calls: MutableMap<String, Int> = linkedMapOf()
 
-  private fun <T> record(name: String, value: T): T {
+  private fun <T> record(
+    name: String,
+    value: T,
+  ): T {
     calls[name] = calls.getOrDefault(name, 0) + 1
     return value
   }
 
   override fun resolveScope(reviewId: String) = record("scope", scope)
-  override fun resolveStackRouting(scope: ReviewScopeFacts) = record("routing", routing)
-  override fun resolveMatchedRules(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts) = record("rules", rules)
 
-  override fun resolveLearnings(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts) =
-    record("learnings", learnings)
+  override fun resolveStackRouting(scope: ReviewScopeFacts) = record("routing", routing)
+
+  override fun resolveMatchedRules(
+    scope: ReviewScopeFacts,
+    routing: ReviewStackRoutingFacts,
+  ) = record("rules", rules)
+
+  override fun resolveLearnings(
+    scope: ReviewScopeFacts,
+    routing: ReviewStackRoutingFacts,
+  ) = record("learnings", learnings)
 
   override fun resolveBuildTestFacts(scope: ReviewScopeFacts) = record("facts", facts)
-  override fun decideLanes(scope: ReviewScopeFacts, routing: ReviewStackRoutingFacts) = record(
+
+  override fun decideLanes(
+    scope: ReviewScopeFacts,
+    routing: ReviewStackRoutingFacts,
+  ) = record(
     "lanes",
     run {
       val included = decisions.filter { it.included }.map { it.lane }
@@ -105,7 +122,11 @@ private class CountingPorts(
 
 private class RecordingValidator : ReviewContextEnvelopeValidator {
   val labels: MutableList<String> = mutableListOf()
-  override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) {
+
+  override fun validate(
+    envelope: ReviewContextWireMap,
+    sourceLabel: String,
+  ) {
     labels += sourceLabel
   }
 }
@@ -126,7 +147,11 @@ class ReviewPreparationServiceTest {
   private val hunkA = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+alpha")
   private val hunkB = ReviewChangedHunk("src/B.kt", 4, 1, 4, 1, "+beta")
 
-  internal fun includedDecision(lane: String, reason: String, path: String) = ReviewLaneDecision(
+  internal fun includedDecision(
+    lane: String,
+    reason: String,
+    path: String,
+  ) = ReviewLaneDecision(
     lane = lane,
     included = true,
     reason = reason,
@@ -138,40 +163,45 @@ class ReviewPreparationServiceTest {
 
   private fun ports(
     hunks: List<ReviewChangedHunk> = listOf(hunkB, hunkA),
-    decisions: List<ReviewLaneDecision> = listOf(
-      includedDecision("testing", "test sources changed", "src/A.kt"),
-      includedDecision("security", "auth surface changed", "src/B.kt"),
-      ReviewLaneDecision("ui", false, "no UI files changed"),
-    ),
-  ) = CountingPorts(
-    scope = ReviewScopeFacts(
-      "acme/repo",
-      "base",
-      "head",
-      "clean",
-      hunks,
-      listOf(ReviewCommitUnit("head", "base", "one commit", 0, hunks, ReviewCommitSource.COMMIT_RANGE)),
-      ReviewCommitCoverageFact("base", "head", 1, chainVerified = true, pathCoverageVerified = true),
-    ),
-    routing = ReviewStackRoutingFacts("kotlin", "kotlin", listOf("addon-b", "addon-a"), listOf("kotlin")),
-    rules = listOf(
-      ReviewRuleReference(
-        "rule-1",
-        "AGENTS.md",
-        "Prefer named strategies.",
-        ReviewRuleReference.digestOf("Prefer named strategies."),
+    decisions: List<ReviewLaneDecision> =
+      listOf(
+        includedDecision("testing", "test sources changed", "src/A.kt"),
+        includedDecision("security", "auth surface changed", "src/B.kt"),
+        ReviewLaneDecision("ui", false, "no UI files changed"),
       ),
-    ),
+  ) = CountingPorts(
+    scope =
+      ReviewScopeFacts(
+        "acme/repo",
+        "base",
+        "head",
+        "clean",
+        hunks,
+        listOf(ReviewCommitUnit("head", "base", "one commit", 0, hunks, ReviewCommitSource.COMMIT_RANGE)),
+        ReviewCommitCoverageFact("base", "head", 1, chainVerified = true, pathCoverageVerified = true),
+      ),
+    routing = ReviewStackRoutingFacts("kotlin", "kotlin", listOf("addon-b", "addon-a"), listOf("kotlin")),
+    rules =
+      listOf(
+        ReviewRuleReference(
+          "rule-1",
+          "AGENTS.md",
+          "Prefer named strategies.",
+          ReviewRuleReference.digestOf("Prefer named strategies."),
+        ),
+      ),
     learnings = listOf(ReviewLearningsReference("learn-1", "telemetry", "c".repeat(64))),
     facts = listOf(ReviewBuildTestFact("test", "gradle test", "passed")),
     decisions = decisions,
   )
 
-  private fun service(counting: CountingPorts, validator: ReviewContextEnvelopeValidator = RecordingValidator()) =
-    ReviewPreparationService(
-      ReviewFactPorts(counting, counting, counting, counting, counting, counting),
-      validator,
-    )
+  private fun service(
+    counting: CountingPorts,
+    validator: ReviewContextEnvelopeValidator = RecordingValidator(),
+  ) = ReviewPreparationService(
+    ReviewFactPorts(counting, counting, counting, counting, counting, counting),
+    validator,
+  )
 
   private fun request(allowlist: ReviewDependencyAllowlist = ReviewDependencyAllowlist(listOf("src/Dep.kt"))) =
     ReviewPreparationRequest(
@@ -182,15 +212,17 @@ class ReviewPreparationServiceTest {
     )
 
   @Test fun `baseline untracked policy is packet and assignment authority`() {
-    val policy = ReviewBaselineUntrackedPolicy(
-      includedPaths = listOf("baseline/kept.kt"),
-      excludedPaths = listOf("baseline/ignored.kt"),
-    )
-    val result = service(ports()).prepare(request()).let { baseline ->
-      service(ports()).prepare(
-        request().copy(baselineUntrackedPolicy = policy),
-      ) to baseline
-    }
+    val policy =
+      ReviewBaselineUntrackedPolicy(
+        includedPaths = listOf("baseline/kept.kt"),
+        excludedPaths = listOf("baseline/ignored.kt"),
+      )
+    val result =
+      service(ports()).prepare(request()).let { baseline ->
+        service(ports()).prepare(
+          request().copy(baselineUntrackedPolicy = policy),
+        ) to baseline
+      }
 
     val withPolicy = result.first
     val withoutPolicy = result.second
@@ -225,16 +257,18 @@ class ReviewPreparationServiceTest {
   }
 
   @Test fun `projection emits sorted values regardless of the order ports return them`() {
-    val unsorted = service(
-      ports(
-        hunks = listOf(hunkB, hunkA),
-        decisions = listOf(
-          includedDecision("testing", "test sources changed", "src/A.kt"),
-          includedDecision("security", "auth surface changed", "src/B.kt"),
-          ReviewLaneDecision("ui", false, "no UI files changed"),
+    val unsorted =
+      service(
+        ports(
+          hunks = listOf(hunkB, hunkA),
+          decisions =
+            listOf(
+              includedDecision("testing", "test sources changed", "src/A.kt"),
+              includedDecision("security", "auth surface changed", "src/B.kt"),
+              ReviewLaneDecision("ui", false, "no UI files changed"),
+            ),
         ),
-      ),
-    ).prepare(request()).packetEnvelope.asWireMap()
+      ).prepare(request()).packetEnvelope.asWireMap()
 
     assertEquals(listOf("security", "testing"), unsorted["selected_lanes"])
     assertEquals(listOf("addon-a", "addon-b"), unsorted["add_ons"])
@@ -284,11 +318,13 @@ class ReviewPreparationServiceTest {
   }
 
   @Test fun `a lane claiming a path the packet does not own is rejected`() {
-    val counting = ports(
-      decisions = listOf(
-        includedDecision("testing", "test sources changed", "src/Absent.kt"),
-      ),
-    )
+    val counting =
+      ports(
+        decisions =
+          listOf(
+            includedDecision("testing", "test sources changed", "src/Absent.kt"),
+          ),
+      )
     val failure = assertFailsWith<InvalidReviewContextSchemaError> { service(counting).prepare(request()) }
     assertTrue("claims paths the packet does not own" in failure.message.orEmpty())
   }
@@ -300,18 +336,20 @@ class ReviewPreparationServiceTest {
   }
 
   @Test fun `dependency allowlist overlapping a changed path is rejected`() {
-    val failure = assertFailsWith<InvalidReviewContextSchemaError> {
-      service(ports()).prepare(request(ReviewDependencyAllowlist(listOf("src/A.kt"))))
-    }
+    val failure =
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        service(ports()).prepare(request(ReviewDependencyAllowlist(listOf("src/A.kt"))))
+      }
     assertTrue("overlap changed paths" in failure.message.orEmpty())
   }
 
   @Test fun `assignment claiming an unowned path is rejected`() {
     val prepared = service(ports()).prepare(request())
     val foreign = prepared.assignments.first().copy(assignedPaths = listOf("src/Elsewhere.kt"))
-    val failure = assertFailsWith<InvalidReviewContextSchemaError> {
-      service(ports()).validateAgainstPacket(prepared.packet, listOf(foreign) + prepared.assignments.drop(1))
-    }
+    val failure =
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        service(ports()).validateAgainstPacket(prepared.packet, listOf(foreign) + prepared.assignments.drop(1))
+      }
     assertTrue("paths not owned by the packet" in failure.message.orEmpty())
   }
 
@@ -320,13 +358,15 @@ class ReviewPreparationServiceTest {
     val forged = "f".repeat(64)
 
     val owning = prepared.assignments.first().assignedBundle.entries.first()
-    val foreign = prepared.assignments.first().copy(
-      assignedHunks = listOf(forged),
-      assignedBundle = ReviewLaneBundle(listOf(owning.copy(hunkIds = listOf(forged)))),
-    )
-    val failure = assertFailsWith<InvalidReviewContextSchemaError> {
-      service(ports()).validateAgainstPacket(prepared.packet, listOf(foreign) + prepared.assignments.drop(1))
-    }
+    val foreign =
+      prepared.assignments.first().copy(
+        assignedHunks = listOf(forged),
+        assignedBundle = ReviewLaneBundle(listOf(owning.copy(hunkIds = listOf(forged)))),
+      )
+    val failure =
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        service(ports()).validateAgainstPacket(prepared.packet, listOf(foreign) + prepared.assignments.drop(1))
+      }
     assertTrue("hunk ids not owned by the packet" in failure.message.orEmpty())
   }
 
@@ -334,43 +374,49 @@ class ReviewPreparationServiceTest {
     val prepared = service(ports()).prepare(request())
     val staleDigest = prepared.assignments.first().copy(packetDigest = "a".repeat(64))
     assertTrue(
-      "different review revision" in assertFailsWith<InvalidReviewContextSchemaError> {
-        service(ports()).validateAgainstPacket(prepared.packet, listOf(staleDigest) + prepared.assignments.drop(1))
-      }.message.orEmpty(),
+      "different review revision" in
+        assertFailsWith<InvalidReviewContextSchemaError> {
+          service(ports()).validateAgainstPacket(prepared.packet, listOf(staleDigest) + prepared.assignments.drop(1))
+        }.message.orEmpty(),
     )
     val staleRevision = prepared.assignments.first().copy(reviewRevision = ReviewRevision("rvs-1", 9))
     assertTrue(
-      "does not match packet revision" in assertFailsWith<InvalidReviewContextSchemaError> {
-        service(ports()).validateAgainstPacket(prepared.packet, listOf(staleRevision) + prepared.assignments.drop(1))
-      }.message.orEmpty(),
+      "does not match packet revision" in
+        assertFailsWith<InvalidReviewContextSchemaError> {
+          service(ports()).validateAgainstPacket(prepared.packet, listOf(staleRevision) + prepared.assignments.drop(1))
+        }.message.orEmpty(),
     )
   }
 
   @Test fun `assignment baseline-untracked policy is immutable`() {
     val prepared = service(ports()).prepare(request())
-    val forged = prepared.assignments.first().copy(
-      baselineUntrackedPolicy = ReviewBaselineUntrackedPolicy(includedPaths = listOf("src/New.kt")),
-    )
-    val failure = assertFailsWith<InvalidReviewContextSchemaError> {
-      service(ports()).validateAgainstPacket(prepared.packet, listOf(forged) + prepared.assignments.drop(1))
-    }
+    val forged =
+      prepared.assignments.first().copy(
+        baselineUntrackedPolicy = ReviewBaselineUntrackedPolicy(includedPaths = listOf("src/New.kt")),
+      )
+    val failure =
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        service(ports()).validateAgainstPacket(prepared.packet, listOf(forged) + prepared.assignments.drop(1))
+      }
     assertTrue("baseline-untracked policy differs" in failure.message.orEmpty())
   }
 
   @Test fun `duplicate lane assignments are rejected`() {
     val prepared = service(ports()).prepare(request())
     val duplicated: List<ReviewAssignment> = listOf(prepared.assignments.first(), prepared.assignments.first())
-    val failure = assertFailsWith<InvalidReviewContextSchemaError> {
-      service(ports()).validateAgainstPacket(prepared.packet, duplicated)
-    }
+    val failure =
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        service(ports()).validateAgainstPacket(prepared.packet, duplicated)
+      }
     assertTrue("duplicate lanes" in failure.message.orEmpty())
   }
 
   @Test fun `missing selected lane assignment is rejected`() {
     val prepared = service(ports()).prepare(request())
-    val failure = assertFailsWith<InvalidReviewContextSchemaError> {
-      service(ports()).validateAgainstPacket(prepared.packet, prepared.assignments.dropLast(1))
-    }
+    val failure =
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        service(ports()).validateAgainstPacket(prepared.packet, prepared.assignments.dropLast(1))
+      }
 
     assertTrue("exactly one specialist lane per selected lane" in failure.message.orEmpty(), failure.message.orEmpty())
   }
@@ -381,35 +427,44 @@ class ReviewPreparationServiceTest {
     val other = prepared.assignments.last()
     val changedDecision = first.copy(laneDecision = first.laneDecision.copy(reason = "forged"))
     assertTrue(
-      "lane decision differs" in assertFailsWith<InvalidReviewContextSchemaError> {
-        service(ports()).validateAgainstPacket(prepared.packet, listOf(changedDecision, other))
-      }.message.orEmpty(),
+      "lane decision differs" in
+        assertFailsWith<InvalidReviewContextSchemaError> {
+          service(ports()).validateAgainstPacket(prepared.packet, listOf(changedDecision, other))
+        }.message.orEmpty(),
     )
     val crossLaneHunk = first.copy(assignedHunks = other.assignedHunks, assignedBundle = other.assignedBundle)
     assertTrue(
-      "focused-commit hunks" in assertFailsWith<InvalidReviewContextSchemaError> {
-        service(ports()).validateAgainstPacket(prepared.packet, listOf(crossLaneHunk, other))
-      }.message.orEmpty(),
+      "focused-commit hunks" in
+        assertFailsWith<InvalidReviewContextSchemaError> {
+          service(ports()).validateAgainstPacket(prepared.packet, listOf(crossLaneHunk, other))
+        }.message.orEmpty(),
     )
     val missingRules = first.copy(matchedRules = emptyList())
     assertTrue(
-      "matched rules differ" in assertFailsWith<InvalidReviewContextSchemaError> {
-        service(ports()).validateAgainstPacket(prepared.packet, listOf(missingRules, other))
-      }.message.orEmpty(),
+      "matched rules differ" in
+        assertFailsWith<InvalidReviewContextSchemaError> {
+          service(ports()).validateAgainstPacket(prepared.packet, listOf(missingRules, other))
+        }.message.orEmpty(),
     )
   }
 
   @Test fun `assignment dependency entries outside the packet allowlist are rejected`() {
     val prepared = service(ports()).prepare(request())
-    val escaping = prepared.assignments.first()
-      .copy(dependencyAllowlist = ReviewDependencyAllowlist(listOf("src/Other.kt")))
-    val failure = assertFailsWith<InvalidReviewContextSchemaError> {
-      service(ports()).validateAgainstPacket(prepared.packet, listOf(escaping) + prepared.assignments.drop(1))
-    }
+    val escaping =
+      prepared.assignments.first()
+        .copy(dependencyAllowlist = ReviewDependencyAllowlist(listOf("src/Other.kt")))
+    val failure =
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        service(ports()).validateAgainstPacket(prepared.packet, listOf(escaping) + prepared.assignments.drop(1))
+      }
     assertTrue("escapes the packet allowlist" in failure.message.orEmpty())
   }
 
-  private fun expansion(assignmentDigest: String, id: String = "exp-1", sequence: Int = 0) = ReviewExpansionRecord(
+  private fun expansion(
+    assignmentDigest: String,
+    id: String = "exp-1",
+    sequence: Int = 0,
+  ) = ReviewExpansionRecord(
     expansionId = id,
     assignmentDigest = assignmentDigest,
     requestedPath = "src/Dep.kt",
@@ -437,9 +492,10 @@ class ReviewPreparationServiceTest {
   @Test fun `an expansion referencing an unrelated assignment digest is rejected`() {
     val prepared = service(ports()).prepare(request())
     val stray = expansion("f".repeat(64))
-    val failure = assertFailsWith<IllegalArgumentException> {
-      prepared.assignments.first().copy(expansions = listOf(stray))
-    }
+    val failure =
+      assertFailsWith<IllegalArgumentException> {
+        prepared.assignments.first().copy(expansions = listOf(stray))
+      }
     assertTrue("enclosing assignment digest" in failure.message.orEmpty())
   }
 
@@ -454,29 +510,33 @@ class ReviewPreparationServiceTest {
 
   @Test fun `a packet ledger entry referencing an unknown assignment digest is rejected`() {
     val prepared = service(ports()).prepare(request())
-    val failure = assertFailsWith<InvalidReviewContextSchemaError> {
-      service(ports()).validateAgainstPacket(
-        prepared.packet.copy(expansionLedger = listOf(expansion("e".repeat(64)))),
-        prepared.assignments,
-      )
-    }
+    val failure =
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        service(ports()).validateAgainstPacket(
+          prepared.packet.copy(expansionLedger = listOf(expansion("e".repeat(64)))),
+          prepared.assignments,
+        )
+      }
     assertTrue("Packet expansion ledger records" in failure.message.orEmpty())
   }
 
   @Test fun `an assignment over the former expansion bound still validates at preparation`() {
     val counting = ports()
-    val service = ReviewPreparationService(
-      ReviewFactPorts(counting, counting, counting, counting, counting, counting),
-      RecordingValidator(),
-    )
+    val service =
+      ReviewPreparationService(
+        ReviewFactPorts(counting, counting, counting, counting, counting, counting),
+        RecordingValidator(),
+      )
     val prepared = service.prepare(request())
     val assignment = prepared.assignments.first()
-    val overBound = assignment.copy(
-      expansions = listOf(
-        expansion(assignment.digest, id = "exp-1", sequence = 0),
-        expansion(assignment.digest, id = "exp-2", sequence = 1),
-      ),
-    )
+    val overBound =
+      assignment.copy(
+        expansions =
+          listOf(
+            expansion(assignment.digest, id = "exp-1", sequence = 0),
+            expansion(assignment.digest, id = "exp-2", sequence = 1),
+          ),
+      )
     service.validateAgainstPacket(prepared.packet, listOf(overBound) + prepared.assignments.drop(1))
   }
 
@@ -498,9 +558,10 @@ class ReviewPreparationServiceTest {
     payload: String,
     storePath: String = ".skill-bill/run-evidence/code-review/fp-store",
     reader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort = PayloadLocatorReader(mapOf(storePath to payload)),
-    decisions: List<ReviewLaneDecision> = listOf(
-      includedDecision("testing", "test sources changed", hunks.first().path),
-    ),
+    decisions: List<ReviewLaneDecision> =
+      listOf(
+        includedDecision("testing", "test sources changed", hunks.first().path),
+      ),
   ): ReviewPreparationResult {
     val counting = ports(hunks = hunks, decisions = decisions)
     val factPorts = ReviewFactPorts(counting, counting, counting, counting, counting, counting)
@@ -512,18 +573,20 @@ class ReviewPreparationServiceTest {
   @Test fun `blank store path with a live locator reader fails compose without launching workers`() {
     val hunk = hunkA
     var workerLaunches = 0
-    val counting = ports(
-      hunks = listOf(hunk),
-      decisions = listOf(includedDecision("testing", "test sources changed", hunk.path)),
-    )
+    val counting =
+      ports(
+        hunks = listOf(hunk),
+        decisions = listOf(includedDecision("testing", "test sources changed", hunk.path)),
+      )
     val factPorts = ReviewFactPorts(counting, counting, counting, counting, counting, counting)
-    val failure = assertFailsWith<ReviewHunkEvidenceLocatorMissingError> {
-      ReviewPreparationService(
-        factPorts,
-        RecordingValidator(),
-        hunkLocatorReader = PayloadLocatorReader(emptyMap()),
-      ).prepare(request().copy(evidenceStorePath = "", repoRoot = Path.of(".")))
-    }
+    val failure =
+      assertFailsWith<ReviewHunkEvidenceLocatorMissingError> {
+        ReviewPreparationService(
+          factPorts,
+          RecordingValidator(),
+          hunkLocatorReader = PayloadLocatorReader(emptyMap()),
+        ).prepare(request().copy(evidenceStorePath = "", repoRoot = Path.of(".")))
+      }
     assertTrue(failure.message.orEmpty().contains("review_hunk_evidence_locator_missing"))
     assertEquals(0, workerLaunches)
   }
@@ -531,14 +594,15 @@ class ReviewPreparationServiceTest {
   @Test fun `missing locator store path fails compose without launching workers`() {
     val hunk = hunkA
     var workerLaunches = 0
-    val failure = assertFailsWith<ReviewHunkEvidenceLocatorMissingError> {
-      storePrepare(
-        listOf(hunk),
-        "unused",
-        storePath = ".skill-bill/run-evidence/code-review/missing",
-        reader = PayloadLocatorReader(emptyMap()),
-      )
-    }
+    val failure =
+      assertFailsWith<ReviewHunkEvidenceLocatorMissingError> {
+        storePrepare(
+          listOf(hunk),
+          "unused",
+          storePath = ".skill-bill/run-evidence/code-review/missing",
+          reader = PayloadLocatorReader(emptyMap()),
+        )
+      }
     assertTrue(failure.message.orEmpty().contains("review_hunk_evidence_locator_missing"))
     assertEquals(0, workerLaunches)
   }
@@ -547,14 +611,15 @@ class ReviewPreparationServiceTest {
     val hunk = hunkA
     var workerLaunches = 0
     val storePath = ".skill-bill/run-evidence/code-review/fp-unreadable"
-    val failure = assertFailsWith<ReviewHunkEvidenceLocatorUnreadableError> {
-      storePrepare(
-        listOf(hunk),
-        "not-a-diff",
-        storePath,
-        reader = PayloadLocatorReader(mapOf(storePath to "not-a-diff")),
-      )
-    }
+    val failure =
+      assertFailsWith<ReviewHunkEvidenceLocatorUnreadableError> {
+        storePrepare(
+          listOf(hunk),
+          "not-a-diff",
+          storePath,
+          reader = PayloadLocatorReader(mapOf(storePath to "not-a-diff")),
+        )
+      }
     assertTrue(failure.message.orEmpty().contains("review_hunk_evidence_locator_unreadable"))
     assertEquals(0, workerLaunches)
   }
@@ -562,20 +627,22 @@ class ReviewPreparationServiceTest {
   @Test fun `fingerprint contradiction at compose-time locator dereference is not composed`() {
     var workerLaunches = 0
     val storePath = ".skill-bill/run-evidence/code-review/fp-wrong"
-    val failure = assertFailsWith<FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError> {
-      storePrepare(
-        listOf(hunkA),
-        oversizedPatch("src/A.kt"),
-        storePath,
-        reader = ThrowingLocatorReader {
-          throw FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError(
-            addressedFingerprint = "fp-wrong",
-            recordedFingerprint = "fp-other",
-            sourceLabel = storePath,
-          )
-        },
-      )
-    }
+    val failure =
+      assertFailsWith<FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError> {
+        storePrepare(
+          listOf(hunkA),
+          oversizedPatch("src/A.kt"),
+          storePath,
+          reader =
+            ThrowingLocatorReader {
+              throw FeatureTaskRuntimeSharedEvidenceFingerprintContradictionError(
+                addressedFingerprint = "fp-wrong",
+                recordedFingerprint = "fp-other",
+                sourceLabel = storePath,
+              )
+            },
+        )
+      }
     assertEquals("fp-wrong", failure.addressedFingerprint)
     assertEquals("fp-other", failure.recordedFingerprint)
     assertEquals(0, workerLaunches)
@@ -586,22 +653,24 @@ class ReviewPreparationServiceTest {
     val overwritten = "diff --git a/src/A.kt b/src/A.kt\n--- a/src/A.kt\n+++ b/src/A.kt\n@@ -1,1 +1,2 @@\n+omega\n"
     val hunk = ReviewDiffEvidence.parse(original).hunks.single()
     val storePath = ".skill-bill/run-evidence/code-review/fp-integrity"
-    val indexed = hunk.asIndex(
-      ReviewHunkEvidenceLocator.atStore(
-        storePath,
-        hunk.oldStart,
-        hunk.oldCount,
-        hunk.newStart,
-        hunk.newCount,
-      ),
-      hunk.content,
-    )
+    val indexed =
+      hunk.asIndex(
+        ReviewHunkEvidenceLocator.atStore(
+          storePath,
+          hunk.oldStart,
+          hunk.oldCount,
+          hunk.newStart,
+          hunk.newCount,
+        ),
+        hunk.content,
+      )
     assertEquals("", indexed.content)
     val expected = indexed.contentDigest
     val observed = ReviewChangedHunk.digestOfBody(ReviewDiffEvidence.parse(overwritten).hunks.single().content)
-    val failure = assertFailsWith<ReviewHunkEvidenceIntegrityError> {
-      storePrepare(listOf(indexed), overwritten, storePath)
-    }
+    val failure =
+      assertFailsWith<ReviewHunkEvidenceIntegrityError> {
+        storePrepare(listOf(indexed), overwritten, storePath)
+      }
     assertEquals(storePath, failure.storePath)
     assertEquals(expected, failure.expectedDigest)
     assertEquals(observed, failure.observedDigest)
@@ -615,25 +684,29 @@ class ReviewPreparationServiceTest {
       "diff --git a/src/A.kt b/src/A.kt\n--- a/src/A.kt\n+++ b/src/A.kt\n@@ -1,1 +1,2 @@\n+alpha\n"
     val commitDiff =
       "diff --git a/src/Other.kt b/src/Other.kt\n--- a/src/Other.kt\n+++ b/src/Other.kt\n@@ -1,1 +1,2 @@\n+other\n"
-    val hunk = ReviewDiffEvidence.parse(aggregate).hunks.single().copy(
-      commitScope = ReviewCommitUnit.commitScopeKey("head", 0),
-    )
+    val hunk =
+      ReviewDiffEvidence.parse(aggregate).hunks.single().copy(
+        commitScope = ReviewCommitUnit.commitScopeKey("head", 0),
+      )
     val storePath = ".skill-bill/run-evidence/code-review/fp-commit-scope"
-    val payload = SharedReviewEvidenceCodec.encode(
-      SharedReviewEvidenceRecord(
-        aggregateDiff = aggregate,
-        sequence = SharedReviewEvidenceCommits(
-          baseRevision = "base",
-          headRevision = "head",
-          commits = listOf(RawCommitDiff("head", "base", "one commit", commitDiff)),
-          syntheticSource = null,
-          syntheticReason = null,
+    val payload =
+      SharedReviewEvidenceCodec.encode(
+        SharedReviewEvidenceRecord(
+          aggregateDiff = aggregate,
+          sequence =
+            SharedReviewEvidenceCommits(
+              baseRevision = "base",
+              headRevision = "head",
+              commits = listOf(RawCommitDiff("head", "base", "one commit", commitDiff)),
+              syntheticSource = null,
+              syntheticReason = null,
+            ),
         ),
-      ),
-    )
-    val failure = assertFailsWith<ReviewHunkEvidenceLocatorUnreadableError> {
-      storePrepare(listOf(hunk), payload, storePath)
-    }
+      )
+    val failure =
+      assertFailsWith<ReviewHunkEvidenceLocatorUnreadableError> {
+        storePrepare(listOf(hunk), payload, storePath)
+      }
     assertEquals(storePath, failure.storePath)
     assertTrue(failure.message.orEmpty().contains("review_hunk_evidence_locator_unreadable"))
   }
@@ -645,18 +718,20 @@ class ReviewPreparationServiceTest {
     val hunk = storedHunk.copy(commitScope = ReviewCommitUnit.commitScopeKey("head", 0))
     val aggregateHunk = ReviewDiffEvidence.parse(aggregate).hunks.single()
     val storePath = ".skill-bill/run-evidence/code-review/fp-commit-scope-hit"
-    val payload = SharedReviewEvidenceCodec.encode(
-      SharedReviewEvidenceRecord(
-        aggregateDiff = aggregate,
-        sequence = SharedReviewEvidenceCommits(
-          baseRevision = "base",
-          headRevision = "head",
-          commits = listOf(RawCommitDiff("head", "base", "one commit", commitDiff)),
-          syntheticSource = null,
-          syntheticReason = null,
+    val payload =
+      SharedReviewEvidenceCodec.encode(
+        SharedReviewEvidenceRecord(
+          aggregateDiff = aggregate,
+          sequence =
+            SharedReviewEvidenceCommits(
+              baseRevision = "base",
+              headRevision = "head",
+              commits = listOf(RawCommitDiff("head", "base", "one commit", commitDiff)),
+              syntheticSource = null,
+              syntheticReason = null,
+            ),
         ),
-      ),
-    )
+      )
     val result = storePrepare(listOf(hunk), payload, storePath)
     val first = (result.packetEnvelope.asWireMap()["changed_hunks"] as List<*>).single() as Map<*, *>
     val fromStored = ReviewChangedHunk.idFor(storedHunk.copy(commitScope = hunk.commitScope))
@@ -698,14 +773,15 @@ class ReviewPreparationServiceBudgetTest {
     val assignmentBytes = assignmentWire.toString().toByteArray().size
     assertTrue(assignmentBytes < patch.toByteArray().size / 10, "assignment envelope $assignmentBytes")
     result.packet.changedHunks.forEach { assertEquals("", it.content) }
-    val launch = GovernedReviewLaunch(
-      result.assignments.single(),
-      result.packet,
-      "contract",
-      "rubric",
-      "broker",
-      ReviewContextBudgetPolicy.DEFAULT,
-    )
+    val launch =
+      GovernedReviewLaunch(
+        result.assignments.single(),
+        result.packet,
+        "contract",
+        "rubric",
+        "broker",
+        ReviewContextBudgetPolicy.DEFAULT,
+      )
     assertEquals(ReviewLaneReviewDisposition.COMPLETE, launch.completionState.disposition)
     assertEquals(null, launch.completionState.budgetDimension)
     assertTrue(launch.completionState.unreviewedUnits.isEmpty())
@@ -719,33 +795,37 @@ class ReviewPreparationServiceBudgetTest {
     val huge = parsed.single { it.path == "src/A.kt" }
     val small = parsed.single { it.path == "src/B.kt" }
     val storePath = ".skill-bill/run-evidence/code-review/fp-sibling"
-    val result = fixture.storePrepare(
-      listOf(huge, small),
-      stored,
-      storePath,
-      decisions = listOf(
-        fixture.includedDecision("testing", "test sources changed", "src/A.kt").copy(required = true),
-        fixture.includedDecision("security", "auth surface changed", "src/B.kt"),
-      ),
-    )
+    val result =
+      fixture.storePrepare(
+        listOf(huge, small),
+        stored,
+        storePath,
+        decisions =
+          listOf(
+            fixture.includedDecision("testing", "test sources changed", "src/A.kt").copy(required = true),
+            fixture.includedDecision("security", "auth surface changed", "src/B.kt"),
+          ),
+      )
     assertEquals(listOf("security", "testing"), result.packet.selectedLanes)
     assertTrue(result.packet.canonicalBytes < 524_288)
-    val testing = GovernedReviewLaunch(
-      result.assignments.single { it.lane == "testing" },
-      result.packet,
-      "contract",
-      "rubric",
-      "broker",
-      ReviewContextBudgetPolicy.DEFAULT,
-    )
-    val security = GovernedReviewLaunch(
-      result.assignments.single { it.lane == "security" },
-      result.packet,
-      "contract",
-      "rubric",
-      "broker",
-      ReviewContextBudgetPolicy.DEFAULT,
-    )
+    val testing =
+      GovernedReviewLaunch(
+        result.assignments.single { it.lane == "testing" },
+        result.packet,
+        "contract",
+        "rubric",
+        "broker",
+        ReviewContextBudgetPolicy.DEFAULT,
+      )
+    val security =
+      GovernedReviewLaunch(
+        result.assignments.single { it.lane == "security" },
+        result.packet,
+        "contract",
+        "rubric",
+        "broker",
+        ReviewContextBudgetPolicy.DEFAULT,
+      )
     assertEquals(ReviewLaneReviewDisposition.COMPLETE, testing.completionState.disposition)
     assertEquals(null, testing.completionState.budgetDimension)
     assertTrue(testing.completionState.unreviewedUnits.isEmpty())
@@ -758,26 +838,30 @@ class ReviewPreparationServiceBudgetTest {
     val smallPatch = "diff --git a/src/B.kt b/src/B.kt\n--- a/src/B.kt\n+++ b/src/B.kt\n@@ -1,1 +1,2 @@\n+beta\n"
     val stored = hugePatch + smallPatch
     val parsed = ReviewDiffEvidence.parse(stored).hunks
-    val result = fixture.storePrepare(
-      parsed,
-      stored,
-      ".skill-bill/run-evidence/code-review/fp-budget-scale",
-      decisions = listOf(
-        fixture.includedDecision("testing", "test sources changed", "src/A.kt").copy(required = true),
-        fixture.includedDecision("security", "auth surface changed", "src/B.kt"),
-      ),
-    )
+    val result =
+      fixture.storePrepare(
+        parsed,
+        stored,
+        ".skill-bill/run-evidence/code-review/fp-budget-scale",
+        decisions =
+          listOf(
+            fixture.includedDecision("testing", "test sources changed", "src/A.kt").copy(required = true),
+            fixture.includedDecision("security", "auth surface changed", "src/B.kt"),
+          ),
+      )
     val base = ReviewContextBudgetPolicy.DEFAULT
-    val testingBudget = deriveSpecialistBudget(
-      base,
-      result.assignments.single { it.lane == "testing" },
-      result.packet,
-    ).maxLaneEvidenceBytes
-    val securityBudget = deriveSpecialistBudget(
-      base,
-      result.assignments.single { it.lane == "security" },
-      result.packet,
-    ).maxLaneEvidenceBytes
+    val testingBudget =
+      deriveSpecialistBudget(
+        base,
+        result.assignments.single { it.lane == "testing" },
+        result.packet,
+      ).maxLaneEvidenceBytes
+    val securityBudget =
+      deriveSpecialistBudget(
+        base,
+        result.assignments.single { it.lane == "security" },
+        result.packet,
+      ).maxLaneEvidenceBytes
     assertNotEquals(testingBudget, securityBudget)
     assertTrue(testingBudget > securityBudget)
   }

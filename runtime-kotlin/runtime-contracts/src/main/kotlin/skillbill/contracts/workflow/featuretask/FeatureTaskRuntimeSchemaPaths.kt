@@ -11,7 +11,6 @@ const val FEATURE_TASK_RUNTIME_REPAIR_PLAN_CONTRACT_VERSION: String = "0.1"
 const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_CONTRACT_VERSION: String = "0.1"
 
 object FeatureTaskRuntimePhaseOutputSchemaPaths {
-
   const val REPO_RELATIVE_PATH: String =
     "orchestration/contracts/feature-task-runtime-phase-output-schema.yaml"
 

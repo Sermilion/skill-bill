@@ -30,6 +30,9 @@ internal fun invalidValidationGateDeclaration(message: String): Nothing {
   throw InvalidValidationGateDeclarationError(message)
 }
 
-internal fun invalidManifestSchemaFromPath(message: String, cause: Throwable): Nothing {
+internal fun invalidManifestSchemaFromPath(
+  message: String,
+  cause: Throwable,
+): Nothing {
   throw InvalidManifestSchemaError(message, cause)
 }

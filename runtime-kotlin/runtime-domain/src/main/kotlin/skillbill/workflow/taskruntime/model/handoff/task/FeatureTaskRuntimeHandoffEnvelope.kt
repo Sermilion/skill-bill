@@ -26,13 +26,15 @@ data class FeatureTaskRuntimeHandoffEnvelope(
 
   val promptVisibleProjections: List<FeatureTaskRuntimeHandoffProjection>
     get() = projections.filter { it.promptVisibility == FeatureTaskRuntimeHandoffPromptVisibility.PROMPT_VISIBLE }
-  internal fun toEnvelopeMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
-    "consumer_phase_id" to consumerPhaseId,
-    "projections" to projections.map { it.toEnvelopeMap() },
-  ).apply {
-    repositoryCheckpoint?.let { put(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT, it.toEnvelopeMap()) }
-  }
+
+  internal fun toEnvelopeMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
+      "consumer_phase_id" to consumerPhaseId,
+      "projections" to projections.map { it.toEnvelopeMap() },
+    ).apply {
+      repositoryCheckpoint?.let { put(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT, it.toEnvelopeMap()) }
+    }
 
   companion object {
     internal fun fromEnvelopeMap(raw: Map<String, Any?>): FeatureTaskRuntimeHandoffEnvelope {
@@ -41,17 +43,19 @@ data class FeatureTaskRuntimeHandoffEnvelope(
         FeatureTaskRuntimeHandoffEnvelope(
           consumerPhaseId = reader.requiredString("consumer_phase_id"),
           projections = reader.requiredList("projections").map(::projectionFromWire),
-          repositoryCheckpoint = reader.optionalNestedObject(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT)?.let {
-            val checkpointReader = handoffReader(it)
-            FeatureTaskRuntimeRepositoryCheckpoint(
-              fingerprint = checkpointReader.requiredString(
-                ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT,
-              ),
-              baseRef = checkpointReader.optionalString("base_ref"),
-              headRef = checkpointReader.optionalString("head_ref"),
-              workingTreeOwnedPaths = checkpointReader.optionalStringList("working_tree_owned_paths"),
-            )
-          },
+          repositoryCheckpoint =
+            reader.optionalNestedObject(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT)?.let {
+              val checkpointReader = handoffReader(it)
+              FeatureTaskRuntimeRepositoryCheckpoint(
+                fingerprint =
+                  checkpointReader.requiredString(
+                    ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT,
+                  ),
+                baseRef = checkpointReader.optionalString("base_ref"),
+                headRef = checkpointReader.optionalString("head_ref"),
+                workingTreeOwnedPaths = checkpointReader.optionalStringList("working_tree_owned_paths"),
+              )
+            },
           contractVersion = reader.requiredString(SharedPayloadKeys.CONTRACT_VERSION),
         )
       } catch (error: IllegalArgumentException) {
@@ -70,15 +74,17 @@ data class FeatureTaskRuntimeHandoffEnvelope(
         sourceRef = FeatureTaskRuntimeHandoffSourceRef.fromWire(reader.requiredString("source_ref")),
         projectionContractId = reader.requiredString("projection_contract_id"),
         projectionContractVersion = reader.requiredString("projection_contract_version"),
-        promptVisibility = FeatureTaskRuntimeHandoffPromptVisibility
-          .fromWire(reader.requiredString("prompt_visibility")),
-        producerIteration = reader.requiredNestedObject("producer_iteration").let {
-          val iterationReader = handoffReader(it)
-          FeatureTaskRuntimeProducerIteration(
-            phaseId = iterationReader.requiredString(SharedPayloadKeys.PHASE_ID),
-            iteration = iterationReader.requiredInt("iteration"),
-          )
-        },
+        promptVisibility =
+          FeatureTaskRuntimeHandoffPromptVisibility
+            .fromWire(reader.requiredString("prompt_visibility")),
+        producerIteration =
+          reader.requiredNestedObject("producer_iteration").let {
+            val iterationReader = handoffReader(it)
+            FeatureTaskRuntimeProducerIteration(
+              phaseId = iterationReader.requiredString(SharedPayloadKeys.PHASE_ID),
+              iteration = iterationReader.requiredInt("iteration"),
+            )
+          },
         fields = reader.requiredList("fields").map(::fieldFromWire),
       )
     }
@@ -88,17 +94,20 @@ data class FeatureTaskRuntimeHandoffEnvelope(
       val name = reader.requiredString(DecompositionPlanningPayloadKeys.NAME)
       return FeatureTaskRuntimeHandoffProjectionField(
         name = name,
-        value = when (val kind = reader.requiredString("kind")) {
-          "text" -> FeatureTaskRuntimeHandoffProjectionValue.Text(reader.requiredString("text"))
-          "text_list" -> FeatureTaskRuntimeHandoffProjectionValue.TextList(
-            reader.optionalStringList("items"),
-          )
-          "compact_reference" -> FeatureTaskRuntimeHandoffProjectionValue.CompactReference(
-            kind = FeatureTaskRuntimeCompactReferenceKind.fromWire(reader.requiredString("reference_kind")),
-            value = reader.requiredString("reference_value"),
-          )
-          else -> decodeError("projection field '$name' has unknown value kind '$kind'.")
-        },
+        value =
+          when (val kind = reader.requiredString("kind")) {
+            "text" -> FeatureTaskRuntimeHandoffProjectionValue.Text(reader.requiredString("text"))
+            "text_list" ->
+              FeatureTaskRuntimeHandoffProjectionValue.TextList(
+                reader.optionalStringList("items"),
+              )
+            "compact_reference" ->
+              FeatureTaskRuntimeHandoffProjectionValue.CompactReference(
+                kind = FeatureTaskRuntimeCompactReferenceKind.fromWire(reader.requiredString("reference_kind")),
+                value = reader.requiredString("reference_value"),
+              )
+            else -> decodeError("projection field '$name' has unknown value kind '$kind'.")
+          },
       )
     }
 

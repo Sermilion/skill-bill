@@ -5,6 +5,7 @@ import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvide
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceFileEntry
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceHunkEntry
 import java.nio.file.Path
+
 data class FeatureTaskRuntimeSharedEvidenceRequest(
   val repoRoot: Path,
   val workflowId: String,
@@ -30,7 +31,6 @@ data class FeatureTaskRuntimeSharedEvidenceResolution(
   val artifact: FeatureTaskRuntimeSharedEvidenceArtifact,
   val diffPayload: String,
   val storePath: String? = null,
-
   val outcome: FeatureTaskRuntimeSharedEvidenceResolveOutcome =
     FeatureTaskRuntimeSharedEvidenceResolveOutcome.DERIVATION,
 )

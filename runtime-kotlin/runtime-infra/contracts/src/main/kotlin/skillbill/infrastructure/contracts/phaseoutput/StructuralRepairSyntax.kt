@@ -3,6 +3,7 @@ package skillbill.infrastructure.contracts.phaseoutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 import skillbill.infrastructure.contracts.sha256Hex as contentSha256Hex
+
 internal object StructuralRepairSyntax {
   fun generateCandidates(
     text: String,
@@ -13,44 +14,53 @@ internal object StructuralRepairSyntax {
       return emptyList()
     }
     val scan = scanDelimiters(text)
-    val candidates = buildList {
-      scan.unmatchedClosingOffsets.asSequence().take(maxCandidates + 1).forEach { offset ->
-        add(Candidate(text.removeRange(offset, offset + 1), format, offset))
-      }
-      scan.firstMismatchedClosing?.let { mismatch ->
-        mismatch.missingCloser?.let { missingCloser ->
-          add(
-            Candidate(
-              text.substring(0, mismatch.offset) + missingCloser + text.substring(mismatch.offset),
-              format,
-              mismatch.offset,
-            ),
-          )
+    val candidates =
+      buildList {
+        scan.unmatchedClosingOffsets.asSequence().take(maxCandidates + 1).forEach { offset ->
+          add(Candidate(text.removeRange(offset, offset + 1), format, offset))
+        }
+        scan.firstMismatchedClosing?.let { mismatch ->
+          mismatch.missingCloser?.let { missingCloser ->
+            add(
+              Candidate(
+                text.substring(0, mismatch.offset) + missingCloser + text.substring(mismatch.offset),
+                format,
+                mismatch.offset,
+              ),
+            )
+          }
+        }
+        if (scan.openingStack.size == 1) {
+          add(Candidate(text + scan.openingStack.single(), format, text.length))
+        }
+        balancedTopLevelObjectSpans(text).forEach { span ->
+          if (looksLikeObjectFieldContinuation(text, span.last + 1)) {
+            add(Candidate(text.removeRange(span.last, span.last + 1), format, span.last))
+          }
         }
       }
-      if (scan.openingStack.size == 1) {
-        add(Candidate(text + scan.openingStack.single(), format, text.length))
-      }
-      balancedTopLevelObjectSpans(text).forEach { span ->
-        if (looksLikeObjectFieldContinuation(text, span.last + 1)) {
-          add(Candidate(text.removeRange(span.last, span.last + 1), format, span.last))
-        }
-      }
-    }
     return candidates.distinctBy(Candidate::text)
   }
 
-  fun exceedsCandidateLimit(text: String, format: FeatureTaskRuntimePhaseOutputFormat, maxCandidates: Int): Boolean {
+  fun exceedsCandidateLimit(
+    text: String,
+    format: FeatureTaskRuntimePhaseOutputFormat,
+    maxCandidates: Int,
+  ): Boolean {
     if (format == FeatureTaskRuntimePhaseOutputFormat.YAML && !isConservativeYamlFlow(text)) return false
     val scan = scanDelimiters(text)
-    val candidateCount = scan.unmatchedClosingOffsets.size +
-      (if (scan.firstMismatchedClosing?.missingCloser != null) 1 else 0) +
-      (if (scan.openingStack.size == 1) 1 else 0) +
-      balancedTopLevelObjectSpans(text).count { span -> looksLikeObjectFieldContinuation(text, span.last + 1) }
+    val candidateCount =
+      scan.unmatchedClosingOffsets.size +
+        (if (scan.firstMismatchedClosing?.missingCloser != null) 1 else 0) +
+        (if (scan.openingStack.size == 1) 1 else 0) +
+        balancedTopLevelObjectSpans(text).count { span -> looksLikeObjectFieldContinuation(text, span.last + 1) }
     return candidateCount > maxCandidates
   }
 
-  fun looksLikeObjectFieldContinuation(text: String, offset: Int): Boolean {
+  fun looksLikeObjectFieldContinuation(
+    text: String,
+    offset: Int,
+  ): Boolean {
     var index = offset
     while (index < text.length && text[index].isWhitespace()) index++
     if (index >= text.length || text[index] != ',') return false
@@ -92,19 +102,24 @@ internal object StructuralRepairSyntax {
           if (depth == 0) start = index
           depth += 1
         }
-        '}' -> if (depth > 0) {
-          depth -= 1
-          if (depth == 0 && start >= 0) {
-            spans += start..index
-            start = -1
+        '}' ->
+          if (depth > 0) {
+            depth -= 1
+            if (depth == 0 && start >= 0) {
+              spans += start..index
+              start = -1
+            }
           }
-        }
       }
     }
     return spans
   }
 
-  fun sourceLocation(sourceLabel: String, text: String, offset: Int): FeatureTaskRuntimePhaseOutputSourceLocation {
+  fun sourceLocation(
+    sourceLabel: String,
+    text: String,
+    offset: Int,
+  ): FeatureTaskRuntimePhaseOutputSourceLocation {
     var line = 1
     var column = 1
     text.take(offset.coerceIn(0, text.length)).forEach { ch ->

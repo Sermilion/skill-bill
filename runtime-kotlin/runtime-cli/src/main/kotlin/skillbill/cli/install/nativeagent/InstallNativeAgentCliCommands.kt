@@ -39,12 +39,13 @@ class InstallLinkClaudeAgentsCommand(
     )
   }
 
-  private fun nativeAgentLinkRequest(): NativeAgentLinkRequest = NativeAgentLinkRequest(
-    platformPacksRoot = Path.of(platformPacks),
-    skillsRoot = skills?.let(Path::of),
-    home = inputs.userHome,
-    selectedPlatforms = platforms.ifEmpty { null },
-  )
+  private fun nativeAgentLinkRequest(): NativeAgentLinkRequest =
+    NativeAgentLinkRequest(
+      platformPacksRoot = Path.of(platformPacks),
+      skillsRoot = skills?.let(Path::of),
+      home = inputs.userHome,
+      selectedPlatforms = platforms.ifEmpty { null },
+    )
 }
 
 @Inject
@@ -65,12 +66,13 @@ class InstallUnlinkClaudeAgentsCommand(
       installNativeAgentLinkPort.unlinkNativeAgents(
         InstallNativeAgentLinkOperationRequest(
           provider = NativeAgentLinkProvider.CLAUDE,
-          linkRequest = NativeAgentLinkRequest(
-            platformPacksRoot = Path.of(platformPacks),
-            skillsRoot = skills?.let(Path::of),
-            home = inputs.userHome,
-            selectedPlatforms = platforms.ifEmpty { null },
-          ),
+          linkRequest =
+            NativeAgentLinkRequest(
+              platformPacksRoot = Path.of(platformPacks),
+              skillsRoot = skills?.let(Path::of),
+              home = inputs.userHome,
+              selectedPlatforms = platforms.ifEmpty { null },
+            ),
         ),
       ).unlinked
     state.completeText(removed.joinToString("\n"), mapOf("removed" to removed.map(Path::toString)))
@@ -96,12 +98,13 @@ class InstallLinkCodexAgentsCommand(
       installNativeAgentLinkPort.linkNativeAgents(
         InstallNativeAgentLinkOperationRequest(
           provider = NativeAgentLinkProvider.CODEX,
-          linkRequest = NativeAgentLinkRequest(
-            platformPacksRoot = Path.of(platformPacks),
-            skillsRoot = skills?.let(Path::of),
-            home = inputs.userHome,
-            selectedPlatforms = platforms.ifEmpty { null },
-          ),
+          linkRequest =
+            NativeAgentLinkRequest(
+              platformPacksRoot = Path.of(platformPacks),
+              skillsRoot = skills?.let(Path::of),
+              home = inputs.userHome,
+              selectedPlatforms = platforms.ifEmpty { null },
+            ),
         ),
       ).outcome,
     )
@@ -126,12 +129,13 @@ class InstallUnlinkCodexAgentsCommand(
       installNativeAgentLinkPort.unlinkNativeAgents(
         InstallNativeAgentLinkOperationRequest(
           provider = NativeAgentLinkProvider.CODEX,
-          linkRequest = NativeAgentLinkRequest(
-            platformPacksRoot = Path.of(platformPacks),
-            skillsRoot = skills?.let(Path::of),
-            home = inputs.userHome,
-            selectedPlatforms = platforms.ifEmpty { null },
-          ),
+          linkRequest =
+            NativeAgentLinkRequest(
+              platformPacksRoot = Path.of(platformPacks),
+              skillsRoot = skills?.let(Path::of),
+              home = inputs.userHome,
+              selectedPlatforms = platforms.ifEmpty { null },
+            ),
         ),
       ).unlinked
     state.completeText(removed.joinToString("\n"), mapOf("removed" to removed.map(Path::toString)))
@@ -157,12 +161,13 @@ class InstallLinkJunieAgentsCommand(
       installNativeAgentLinkPort.linkNativeAgents(
         InstallNativeAgentLinkOperationRequest(
           provider = NativeAgentLinkProvider.JUNIE,
-          linkRequest = NativeAgentLinkRequest(
-            platformPacksRoot = Path.of(platformPacks),
-            skillsRoot = skills?.let(Path::of),
-            home = inputs.userHome,
-            selectedPlatforms = platforms.ifEmpty { null },
-          ),
+          linkRequest =
+            NativeAgentLinkRequest(
+              platformPacksRoot = Path.of(platformPacks),
+              skillsRoot = skills?.let(Path::of),
+              home = inputs.userHome,
+              selectedPlatforms = platforms.ifEmpty { null },
+            ),
         ),
       ).outcome,
     )
@@ -187,12 +192,13 @@ class InstallUnlinkJunieAgentsCommand(
       installNativeAgentLinkPort.unlinkNativeAgents(
         InstallNativeAgentLinkOperationRequest(
           provider = NativeAgentLinkProvider.JUNIE,
-          linkRequest = NativeAgentLinkRequest(
-            platformPacksRoot = Path.of(platformPacks),
-            skillsRoot = skills?.let(Path::of),
-            home = inputs.userHome,
-            selectedPlatforms = platforms.ifEmpty { null },
-          ),
+          linkRequest =
+            NativeAgentLinkRequest(
+              platformPacksRoot = Path.of(platformPacks),
+              skillsRoot = skills?.let(Path::of),
+              home = inputs.userHome,
+              selectedPlatforms = platforms.ifEmpty { null },
+            ),
         ),
       ).unlinked
     state.completeText(removed.joinToString("\n"), mapOf("removed" to removed.map(Path::toString)))
@@ -218,12 +224,13 @@ class InstallLinkCursorAgentsCommand(
       installNativeAgentLinkPort.linkNativeAgents(
         InstallNativeAgentLinkOperationRequest(
           provider = NativeAgentLinkProvider.CURSOR,
-          linkRequest = NativeAgentLinkRequest(
-            platformPacksRoot = Path.of(platformPacks),
-            skillsRoot = skills?.let(Path::of),
-            home = inputs.userHome,
-            selectedPlatforms = platforms.ifEmpty { null },
-          ),
+          linkRequest =
+            NativeAgentLinkRequest(
+              platformPacksRoot = Path.of(platformPacks),
+              skillsRoot = skills?.let(Path::of),
+              home = inputs.userHome,
+              selectedPlatforms = platforms.ifEmpty { null },
+            ),
         ),
       ).outcome,
     )
@@ -248,12 +255,13 @@ class InstallUnlinkCursorAgentsCommand(
       installNativeAgentLinkPort.unlinkNativeAgents(
         InstallNativeAgentLinkOperationRequest(
           provider = NativeAgentLinkProvider.CURSOR,
-          linkRequest = NativeAgentLinkRequest(
-            platformPacksRoot = Path.of(platformPacks),
-            skillsRoot = skills?.let(Path::of),
-            home = inputs.userHome,
-            selectedPlatforms = platforms.ifEmpty { null },
-          ),
+          linkRequest =
+            NativeAgentLinkRequest(
+              platformPacksRoot = Path.of(platformPacks),
+              skillsRoot = skills?.let(Path::of),
+              home = inputs.userHome,
+              selectedPlatforms = platforms.ifEmpty { null },
+            ),
         ),
       ).unlinked
     state.completeText(removed.joinToString("\n"), mapOf("removed" to removed.map(Path::toString)))

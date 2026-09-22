@@ -16,7 +16,6 @@ data class GoalRunnerManifestState(
   val dbPath: String,
   val manifest: DecompositionManifest,
   val controlState: GoalRunnerControlState = GoalRunnerControlState(),
-
   val repoRoot: Path? = null,
 )
 
@@ -34,7 +33,6 @@ data class GoalRunnerScopedReplanWriteResult(
   val sharedPreplanPreparedBefore: Boolean = sharedPreplanPrepared,
   val discardedSharedPreplan: Boolean = false,
   val cascadedPlanSubtaskIds: List<Int> = emptyList(),
-
   val clearedChildSubtaskIds: List<Int> = emptyList(),
 )
 
@@ -73,7 +71,6 @@ data class GoalRunnerWorkflowProgress(
   val progressToken: String,
   val latestDurableProgressEvent: GoalRunnerProgressEvent? = null,
   val latestGoalObservabilityEvent: GoalObservabilityProgressEvent? = null,
-
   val latestDeclaredProgressEvent: GoalProgressEvent? = null,
   val latestLivenessSignal: String? = null,
   val lastSnapshotUpdatedAt: String? = null,
@@ -90,9 +87,10 @@ data class GoalRunnerWorkflowProgress(
     lastSnapshotUpdatedAt: String? = null,
   ) : this(
     workflowId = workflowId,
-    workflowStatus = requireNotNull(WorkflowStatus.fromWire(workflowStatus)) {
-      "Unknown workflow status '$workflowStatus'."
-    },
+    workflowStatus =
+      requireNotNull(WorkflowStatus.fromWire(workflowStatus)) {
+        "Unknown workflow status '$workflowStatus'."
+      },
     currentStepId = currentStepId,
     progressToken = progressToken,
     latestDurableProgressEvent = latestDurableProgressEvent,
@@ -153,6 +151,8 @@ data class GoalPullRequestRequest(
 
 sealed interface GoalPullRequestResult {
   data class Opened(val url: String) : GoalPullRequestResult
+
   data class Existing(val url: String) : GoalPullRequestResult
+
   data class Failed(val reason: String) : GoalPullRequestResult
 }

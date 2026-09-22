@@ -7,6 +7,7 @@ import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFa
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionFailureClassification
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+
 data class GoalReviewPhaseCompletionRequest(
   val phaseState: FeatureTaskRuntimePhaseStateRequest,
   val verdict: FeatureTaskRuntimeVerdict,
@@ -29,7 +30,9 @@ data class FeatureTaskRuntimeProjectionRejection(
 
 sealed class FeatureTaskRuntimeProducerOutputRead {
   data class Found(val evidence: ProducerOutputEvidence) : FeatureTaskRuntimeProducerOutputRead()
+
   data object Absent : FeatureTaskRuntimeProducerOutputRead()
+
   data class Unreadable(
     val failureClass: FeatureTaskRuntimeDiagnosticFailureClass,
   ) : FeatureTaskRuntimeProducerOutputRead()

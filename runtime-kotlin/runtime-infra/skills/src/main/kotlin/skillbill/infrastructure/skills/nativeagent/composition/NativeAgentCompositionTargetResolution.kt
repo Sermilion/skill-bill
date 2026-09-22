@@ -34,7 +34,10 @@ internal fun resolvePlatformManifestContentTarget(
     }
 }
 
-internal fun resolveSiblingContentTarget(sourcePath: Path, source: NativeAgentSource): NativeAgentCompositionTarget? =
+internal fun resolveSiblingContentTarget(
+  sourcePath: Path,
+  source: NativeAgentSource,
+): NativeAgentCompositionTarget? =
   sourcePath.parent
     ?.parent
     ?.resolve("content.md")
@@ -49,7 +52,10 @@ internal fun resolveSiblingContentTarget(sourcePath: Path, source: NativeAgentSo
       )
     }
 
-internal fun platformPackRoot(repoRoot: Path, sourcePath: Path): Path? {
+internal fun platformPackRoot(
+  repoRoot: Path,
+  sourcePath: Path,
+): Path? {
   val packsRoot = repoRoot.resolve("platform-packs")
   val canonicalPacksRoot = canonicalize(packsRoot)
   val canonicalSourcePath = canonicalize(sourcePath)
@@ -63,7 +69,10 @@ internal fun platformPackRoot(repoRoot: Path, sourcePath: Path): Path? {
     ?.let(packsRoot::resolve)
 }
 
-internal fun displayPath(root: Path, path: Path): String {
+internal fun displayPath(
+  root: Path,
+  path: Path,
+): String {
   val resolvedRoot = root.toAbsolutePath().normalize()
   val resolvedPath = path.toAbsolutePath().normalize()
   return runCatching { resolvedPath.relativeTo(resolvedRoot).toString() }

@@ -22,6 +22,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupport() {
   @Test
   fun `apply removes inventory-recorded dangling baseline orchestrator links`() {
@@ -29,9 +30,10 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
     Files.createDirectories(fixture.home.resolve(".codex"))
     val agentDir = fixture.home.resolve(".codex/agents")
     Files.createDirectories(agentDir)
-    val managedRoot = fixture.home.resolve(
-      ".skill-bill/installed-skills/native-agents-skill-bill-0123456789abcdef/codex-agents",
-    )
+    val managedRoot =
+      fixture.home.resolve(
+        ".skill-bill/installed-skills/native-agents-skill-bill-0123456789abcdef/codex-agents",
+      )
     Files.createDirectories(managedRoot)
     val kotlinTarget = managedRoot.resolve("bill-kotlin-code-review.toml")
     val kmpTarget = managedRoot.resolve("bill-kmp-code-review.toml")
@@ -56,9 +58,10 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
       ]}
       """.trimIndent(),
     )
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -72,20 +75,23 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
     val fixture = setupApplyFixture()
     listOf(".claude", ".codex", ".junie", ".cursor")
       .forEach { Files.createDirectories(fixture.home.resolve(it)) }
-    val cacheRoot = fixture.home.resolve(
-      ".skill-bill/installed-skills/native-agents-moved-checkout-0123456789abcdef",
-    )
-    val danglingLinks = NativeAgentProvider.entries.map { provider ->
-      val agentDir = provider.homeAgentDirs(fixture.home).first()
-      Files.createDirectories(agentDir)
-      val logicalName = "bill-obsolete-${provider.name.lowercase()}-worker"
-      val target = provider.cacheArtifactPath(cacheRoot, logicalName)
-      agentDir.resolve(provider.fileName(logicalName)).also { createSymlinkOrSkip(it, target) }
-    }
+    val cacheRoot =
+      fixture.home.resolve(
+        ".skill-bill/installed-skills/native-agents-moved-checkout-0123456789abcdef",
+      )
+    val danglingLinks =
+      NativeAgentProvider.entries.map { provider ->
+        val agentDir = provider.homeAgentDirs(fixture.home).first()
+        Files.createDirectories(agentDir)
+        val logicalName = "bill-obsolete-${provider.name.lowercase()}-worker"
+        val target = provider.cacheArtifactPath(cacheRoot, logicalName)
+        agentDir.resolve(provider.fileName(logicalName)).also { createSymlinkOrSkip(it, target) }
+      }
     Files.deleteIfExists(fixture.home.resolve(".skill-bill/native-agent-link-inventory.json"))
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -101,14 +107,16 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
     Files.createDirectories(fixture.home.resolve(".codex"))
     val agentDir = fixture.home.resolve(".codex/agents")
     Files.createDirectories(agentDir)
-    val target = fixture.home.resolve(
-      ".skill-bill/installed-skills/codex-agents/bill-user-managed-worker.toml",
-    )
+    val target =
+      fixture.home.resolve(
+        ".skill-bill/installed-skills/codex-agents/bill-user-managed-worker.toml",
+      )
     val link = agentDir.resolve(target.fileName)
     createSymlinkOrSkip(link, target)
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -126,9 +134,10 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
         val logicalName = "bill-code-review-worker"
         val agentDir = fixture.home.resolve(".codex/agents")
         Files.createDirectories(agentDir)
-        val obsoleteRoot = fixture.home.resolve(
-          ".skill-bill/installed-skills/native-agents-old-checkout-0123456789abcdef",
-        )
+        val obsoleteRoot =
+          fixture.home.resolve(
+            ".skill-bill/installed-skills/native-agents-old-checkout-0123456789abcdef",
+          )
         val obsoleteTarget = NativeAgentProvider.Codex.cacheArtifactPath(obsoleteRoot, logicalName)
         if (!dangling) {
           Files.createDirectories(obsoleteTarget.parent)
@@ -141,18 +150,20 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
           Files.createDirectories(inventory.parent)
           Files.writeString(inventory, inventoryJson(logicalName, installed, obsoleteTarget, fixture.repoRoot))
         }
-        val plan = planInstallForTest(
-          fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-        )
+        val plan =
+          planInstallForTest(
+            fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+          )
 
         val result = applyInstallForTest(plan)
 
         assertEquals(InstallApplyStatus.SUCCESS, result.status)
-        val currentRoot = currentNativeAgentApplyCacheRoot(
-          fixture.home,
-          fixture.repoRoot.resolve("platform-packs"),
-          fixture.repoRoot.resolve("skills"),
-        )
+        val currentRoot =
+          currentNativeAgentApplyCacheRoot(
+            fixture.home,
+            fixture.repoRoot.resolve("platform-packs"),
+            fixture.repoRoot.resolve("skills"),
+          )
         assertEquals(
           NativeAgentProvider.Codex.cacheArtifactPath(currentRoot, logicalName),
           readSymlinkTarget(installed),
@@ -172,12 +183,13 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
     Files.createDirectories(fixture.home.resolve(".junie"))
     Files.createDirectories(fixture.home.resolve(".cursor"))
     val sourceBefore = snapshotSource(fixture.repoRoot)
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = allInstallAgents,
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = allInstallAgents,
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -241,11 +253,12 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
     val linkPath = targetDir.resolve("bill-worker.md")
     createSymlinkOrSkip(linkPath, userSource)
 
-    val result = installNativeAgentFile(
-      source = newSource,
-      agentTarget = AgentTarget("codex", targetDir.toFileLocation()),
-      managedSourceRoots = listOf(managedRoot),
-    )
+    val result =
+      installNativeAgentFile(
+        source = newSource,
+        agentTarget = AgentTarget("codex", targetDir.toFileLocation()),
+        managedSourceRoots = listOf(managedRoot),
+      )
 
     assertTrue(result is InstallNativeAgentResult.Skipped)
     assertEquals(userSource.toAbsolutePath().normalize(), readSymlinkTarget(linkPath))
@@ -258,17 +271,19 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
     val foreignHome = Files.createTempDirectory("skillbill-native-foreign-home").also(tempDirs::add)
     val newSource = managedRoot.resolve("bill-worker.md")
     Files.writeString(newSource, "new")
-    val absentTarget = foreignHome.resolve(
-      ".skill-bill/installed-skills/native-agents-other-0123456789abcdef/claude-agents/bill-worker.md",
-    )
+    val absentTarget =
+      foreignHome.resolve(
+        ".skill-bill/installed-skills/native-agents-other-0123456789abcdef/claude-agents/bill-worker.md",
+      )
     val linkPath = targetDir.resolve("bill-worker.md")
     createSymlinkOrSkip(linkPath, absentTarget)
 
-    val result = installNativeAgentFile(
-      source = newSource,
-      agentTarget = AgentTarget("claude", targetDir.toFileLocation()),
-      managedSourceRoots = listOf(managedRoot),
-    )
+    val result =
+      installNativeAgentFile(
+        source = newSource,
+        agentTarget = AgentTarget("claude", targetDir.toFileLocation()),
+        managedSourceRoots = listOf(managedRoot),
+      )
 
     assertTrue(result is InstallNativeAgentResult.Linked)
     assertEquals(newSource.toAbsolutePath().normalize(), readSymlinkTarget(linkPath))
@@ -313,12 +328,13 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
         val installed = targetDir.resolve(provider.fileName(logicalName))
         createSymlinkOrSkip(installed, provider.cacheArtifactPath(obsoleteRoot, logicalName))
 
-        val result = installNativeAgentFile(
-          source = currentSource,
-          agentTarget = AgentTarget(provider.name, targetDir.toFileLocation()),
-          managedSourceRoots = listOf(currentRoot),
-          ownership = NativeAgentLinkOwnership(home, provider, logicalName),
-        )
+        val result =
+          installNativeAgentFile(
+            source = currentSource,
+            agentTarget = AgentTarget(provider.name, targetDir.toFileLocation()),
+            managedSourceRoots = listOf(currentRoot),
+            ownership = NativeAgentLinkOwnership(home, provider, logicalName),
+          )
 
         assertTrue(result is InstallNativeAgentResult.Linked)
         assertEquals(currentSource.toAbsolutePath().normalize(), readSymlinkTarget(installed))

@@ -30,16 +30,17 @@ internal fun skillStatus(
     sectionCount = parseContentSections(contentText).second.size,
     sections = sectionStatuses(contentText),
     recommendedCommands = recommendedCommands(repoRoot, target, completionStatus, issues),
-    reviewComposition = target.codeReviewComposition
-      ?.baselineLayers
-      ?.takeIf { it.isNotEmpty() }
-      ?.let { baselineLayers ->
-        ScaffoldReviewComposition(
-          source = "platform.yaml",
-          summary = baselineLayerSummary(baselineLayers),
-          baselineLayers = baselineLayers.map(::baselineLayer),
-        )
-      },
+    reviewComposition =
+      target.codeReviewComposition
+        ?.baselineLayers
+        ?.takeIf { it.isNotEmpty() }
+        ?.let { baselineLayers ->
+          ScaffoldReviewComposition(
+            source = "platform.yaml",
+            summary = baselineLayerSummary(baselineLayers),
+            baselineLayers = baselineLayers.map(::baselineLayer),
+          )
+        },
     contentPreview = if (contentMode == "preview") previewText(contentText, CONTENT_PREVIEW_LIMIT) else null,
     content = if (contentMode == "full") contentText else null,
     issues = issues.takeIf { it.isNotEmpty() },
@@ -49,20 +50,22 @@ internal fun skillStatus(
 private fun baselineLayerSummary(baselineLayers: List<CodeReviewBaselineLayer>): String {
   val requiredCount = baselineLayers.count { it.required }
   val optionalCount = baselineLayers.size - requiredCount
-  val layerText = buildList {
-    if (requiredCount > 0) add("$requiredCount required")
-    if (optionalCount > 0) add("$optionalCount optional")
-  }.joinToString(" and ")
+  val layerText =
+    buildList {
+      if (requiredCount > 0) add("$requiredCount required")
+      if (optionalCount > 0) add("$optionalCount optional")
+    }.joinToString(" and ")
   return "Run $layerText baseline layer(s) before pack-local specialists."
 }
 
-private fun baselineLayer(layer: CodeReviewBaselineLayer): ScaffoldBaselineLayer = ScaffoldBaselineLayer(
-  platform = layer.platform,
-  skill = layer.skill,
-  scope = layer.scope.wireValue,
-  required = layer.required,
-  mode = layer.mode.wireValue,
-)
+private fun baselineLayer(layer: CodeReviewBaselineLayer): ScaffoldBaselineLayer =
+  ScaffoldBaselineLayer(
+    platform = layer.platform,
+    skill = layer.skill,
+    scope = layer.scope.wireValue,
+    required = layer.required,
+    mode = layer.mode.wireValue,
+  )
 
 internal fun recommendedCommands(
   repoRoot: Path,

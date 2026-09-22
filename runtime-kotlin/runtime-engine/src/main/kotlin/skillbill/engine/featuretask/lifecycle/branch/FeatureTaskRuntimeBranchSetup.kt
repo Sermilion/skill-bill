@@ -9,7 +9,10 @@ object FeatureTaskRuntimeBranchSetup {
   private val PROTECTED_BRANCHES: Set<String> = ProtectedBranches.names
   private const val DEFAULT_BASE_BRANCH: String = "main"
 
-  internal fun targetBranch(issueKey: String, specReference: String): FeatureTaskRuntimeTargetBranch {
+  internal fun targetBranch(
+    issueKey: String,
+    specReference: String,
+  ): FeatureTaskRuntimeTargetBranch {
     val parentName = Path.of(specReference).parent?.fileName?.toString().orEmpty()
     if (parentName.isBlank()) {
       return FeatureTaskRuntimeTargetBranch.invalid(
@@ -53,20 +56,23 @@ object FeatureTaskRuntimeBranchSetup {
     val normalized = goalBranch.trim()
     val protected = protectedBranchName(normalized)
     return when {
-      normalized.isBlank() -> FeatureTaskRuntimeBranchDecision.invalid(
-        "Goal-continuation branch is blank; refusing to run file-mutating phases.",
-      )
-      protected != null -> FeatureTaskRuntimeBranchDecision.invalid(
-        "Goal-continuation branch '$protected' is protected; refusing to run file-mutating phases.",
-      )
+      normalized.isBlank() ->
+        FeatureTaskRuntimeBranchDecision.invalid(
+          "Goal-continuation branch is blank; refusing to run file-mutating phases.",
+        )
+      protected != null ->
+        FeatureTaskRuntimeBranchDecision.invalid(
+          "Goal-continuation branch '$protected' is protected; refusing to run file-mutating phases.",
+        )
       else -> FeatureTaskRuntimeBranchDecision.resolved(branch = normalized, baseBranch = null, create = false)
     }
   }
 
-  fun protectedBranchName(branch: String?): String? = branch
-    ?.trim()
-    ?.takeIf(String::isNotBlank)
-    ?.takeIf { normalized -> normalized.lowercase() in PROTECTED_BRANCHES }
+  fun protectedBranchName(branch: String?): String? =
+    branch
+      ?.trim()
+      ?.takeIf(String::isNotBlank)
+      ?.takeIf { normalized -> normalized.lowercase() in PROTECTED_BRANCHES }
 }
 
 internal sealed interface FeatureTaskRuntimeTargetBranch {
@@ -94,8 +100,11 @@ internal sealed interface FeatureTaskRuntimeBranchDecision {
   val invalidReason: String?
 
   companion object {
-    fun resolved(branch: String, baseBranch: String?, create: Boolean): FeatureTaskRuntimeBranchDecision =
-      FeatureTaskRuntimeBranchDecisionResolved(branch, baseBranch, create)
+    fun resolved(
+      branch: String,
+      baseBranch: String?,
+      create: Boolean,
+    ): FeatureTaskRuntimeBranchDecision = FeatureTaskRuntimeBranchDecisionResolved(branch, baseBranch, create)
 
     fun invalid(reason: String): FeatureTaskRuntimeBranchDecision = FeatureTaskRuntimeBranchDecisionInvalid(reason)
   }

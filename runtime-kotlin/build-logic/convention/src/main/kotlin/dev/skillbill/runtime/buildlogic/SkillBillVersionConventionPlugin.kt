@@ -11,10 +11,11 @@ class SkillBillVersionConventionPlugin : Plugin<Project> {
 }
 
 private fun gitListedVersionTags(project: Project): List<String> {
-  val listed = project.providers.exec {
-    commandLine("git", "tag", "-l", "v[0-9]*")
-    isIgnoreExitValue = true
-  }
+  val listed =
+    project.providers.exec {
+      commandLine("git", "tag", "-l", "v[0-9]*")
+      isIgnoreExitValue = true
+    }
   return try {
     val exitValue = listed.result.get().exitValue
     if (exitValue != 0) {

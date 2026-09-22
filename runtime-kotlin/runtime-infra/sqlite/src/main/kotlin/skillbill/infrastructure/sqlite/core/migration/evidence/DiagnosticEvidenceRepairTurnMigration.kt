@@ -44,16 +44,21 @@ private fun rekeyRejectedOutputDiagnosticsByRepairTurn(connection: Connection) {
   rebuildRejectedOutputDiagnosticsForRepairTurn(connection)
 }
 
-private fun tableDdlMentions(connection: Connection, table: String, column: String): Boolean {
-  val ddl = connection.prepareStatement(
-    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
-  ).use { statement ->
-    statement.bindAll(table)
-    statement.executeQuery().use { rows ->
+private fun tableDdlMentions(
+  connection: Connection,
+  table: String,
+  column: String,
+): Boolean {
+  val ddl =
+    connection.prepareStatement(
+      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
+    ).use { statement ->
+      statement.bindAll(table)
+      statement.executeQuery().use { rows ->
 
-      if (!rows.next()) return true
-      rows.getString("sql").orEmpty()
+        if (!rows.next()) return true
+        rows.getString("sql").orEmpty()
+      }
     }
-  }
   return Regex("""\b$column\b""", RegexOption.IGNORE_CASE).containsMatchIn(ddl)
 }

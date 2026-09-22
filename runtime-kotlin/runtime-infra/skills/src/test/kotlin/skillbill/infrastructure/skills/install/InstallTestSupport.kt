@@ -23,21 +23,23 @@ private class InstallTestMcpRegistrationPort(
 ) : InstallMcpRegistrationPort {
   override fun registerMcp(request: InstallMcpRegistrationRequest): InstallMcpRegistrationResult =
     InstallMcpRegistrationResult(
-      mutation = McpRegistrationOperations.register(
-        request.agent,
-        request.runtimeMcpBin,
-        request.home,
-        environment,
-      ),
+      mutation =
+        McpRegistrationOperations.register(
+          request.agent,
+          request.runtimeMcpBin,
+          request.home,
+          environment,
+        ),
     )
 
   override fun unregisterMcp(request: InstallMcpUnregistrationRequest): InstallMcpRegistrationResult =
     InstallMcpRegistrationResult(
-      mutation = McpRegistrationOperations.unregister(
-        request.agent,
-        request.home,
-        environment,
-      ),
+      mutation =
+        McpRegistrationOperations.unregister(
+          request.agent,
+          request.home,
+          environment,
+        ),
     )
 }
 
@@ -49,10 +51,11 @@ internal fun applyInstallForTest(
   telemetryLevelMutator: TelemetryLevelMutator? = null,
 ): InstallApplyResult {
   val environment = plan.request.environment.ifEmpty { installTestEnvironment(plan.request.home.toPath()) }
-  val environmentContext = EnvironmentContext(
-    environment = environment,
-    userHome = plan.request.home.toPath(),
-  )
+  val environmentContext =
+    EnvironmentContext(
+      environment = environment,
+      userHome = plan.request.home.toPath(),
+    )
   return InstallOperations.applyInstall(
     plan,
     telemetryLevelMutator,

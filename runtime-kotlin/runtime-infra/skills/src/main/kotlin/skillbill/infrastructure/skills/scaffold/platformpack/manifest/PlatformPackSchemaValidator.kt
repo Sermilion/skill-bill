@@ -14,11 +14,14 @@ internal val platformPackSchemaLog: Logger =
   Logger.getLogger("skillbill.scaffold.platformpack.PlatformPackSchemaValidator")
 
 internal class PlatformPackSchemaValidator {
-
   private val mapper: ObjectMapper
     get() = ClasspathContractSchemaLoader.sharedObjectMapper()
 
-  fun validate(parsedYaml: Map<String, Any?>, slug: String, enforceContractVersion: Boolean = true) {
+  fun validate(
+    parsedYaml: Map<String, Any?>,
+    slug: String,
+    enforceContractVersion: Boolean = true,
+  ) {
     val instance: JsonNode = mapper.valueToTree(parsedYaml)
     val errors: Set<ValidationMessage> = loadSchema().validate(instance)
 
@@ -28,19 +31,24 @@ internal class PlatformPackSchemaValidator {
         buildContractVersionMismatchMessage(slug, instance, contractVersionConst),
       )
     }
-    val remainingErrors = if (contractVersionConst != null) {
-      recordToleratedContractVersion(slug, instance, contractVersionConst)
-      errors - contractVersionConst
-    } else {
-      errors
-    }
+    val remainingErrors =
+      if (contractVersionConst != null) {
+        recordToleratedContractVersion(slug, instance, contractVersionConst)
+        errors - contractVersionConst
+      } else {
+        errors
+      }
     if (remainingErrors.isEmpty()) {
       return
     }
     throw InvalidManifestSchemaError(formatValidationMessage(slug, remainingErrors, instance))
   }
 
-  private fun recordToleratedContractVersion(slug: String, instance: JsonNode, error: ValidationMessage) {
+  private fun recordToleratedContractVersion(
+    slug: String,
+    instance: JsonNode,
+    error: ValidationMessage,
+  ) {
     val actual = extractOffendingValue(instance, error.instanceLocation?.toString().orEmpty())
     platformPackSchemaLog.warning(
       "platform pack contract_version enforcement degraded: " +
@@ -57,7 +65,11 @@ internal class PlatformPackSchemaValidator {
     return dotted == "contract_version" && type == "const"
   }
 
-  private fun buildContractVersionMismatchMessage(slug: String, instance: JsonNode, error: ValidationMessage): String {
+  private fun buildContractVersionMismatchMessage(
+    slug: String,
+    instance: JsonNode,
+    error: ValidationMessage,
+  ): String {
     val actual = extractOffendingValue(instance, error.instanceLocation?.toString().orEmpty())
     return buildString {
       append("Platform pack '")
@@ -74,7 +86,11 @@ internal class PlatformPackSchemaValidator {
     }
   }
 
-  private fun formatValidationMessage(slug: String, errors: Set<ValidationMessage>, instance: JsonNode): String {
+  private fun formatValidationMessage(
+    slug: String,
+    errors: Set<ValidationMessage>,
+    instance: JsonNode,
+  ): String {
     val sorted = errors.sortedBy { it.instanceLocation?.toString().orEmpty() }
     val firstError = sorted.first()
     val instanceLocation = firstError.instanceLocation?.toString().orEmpty()
@@ -102,7 +118,10 @@ internal class PlatformPackSchemaValidator {
     }
   }
 
-  private fun extractOffendingValue(instance: JsonNode, instanceLocation: String): String {
+  private fun extractOffendingValue(
+    instance: JsonNode,
+    instanceLocation: String,
+  ): String {
     val dotted = dottedFieldPath(instanceLocation)
     if (dotted.isBlank()) return ""
     var node: JsonNode = instance
@@ -127,7 +146,10 @@ internal class PlatformPackSchemaValidator {
     }
   }
 
-  private fun humanReadableHintFor(error: ValidationMessage, fieldPath: String): String {
+  private fun humanReadableHintFor(
+    error: ValidationMessage,
+    fieldPath: String,
+  ): String {
     val keyword = error.type.orEmpty()
     val isPointerName = fieldPath.startsWith("pointers") && fieldPath.endsWith(".name")
     val isPointerTarget = fieldPath.startsWith("pointers") && fieldPath.endsWith(".target")
@@ -146,17 +168,17 @@ internal class PlatformPackSchemaValidator {
     }
   }
 
-  private fun dottedFieldPath(instanceLocation: String): String = when {
-    instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
-    instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
-    instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
+  private fun dottedFieldPath(instanceLocation: String): String =
+    when {
+      instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
+      instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
+      instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
 
-    else -> instanceLocation.trimStart('/').replace('/', '.')
-  }
+      else -> instanceLocation.trimStart('/').replace('/', '.')
+    }
 }
 
 object PlatformPackSchemaPaths {
-
   const val REPO_RELATIVE_PATH: String =
     "orchestration/contracts/platform-pack-schema.yaml"
 
@@ -173,41 +195,43 @@ internal const val PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val PLATFORM_PACK_SCHEMA_REPO_RELATIVE_PATH: String =
   PlatformPackSchemaPaths.REPO_RELATIVE_PATH
 
-private fun loadSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  CompiledSchemaRequest(
-    cacheKey = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
-    classLoader = PlatformPackSchemaValidator::class.java.classLoader,
-    classpathResource = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidManifestSchemaError(
-        "Canonical platform-pack schema is missing. Expected to find it on the JVM classpath at " +
-          "'$PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidManifestSchemaError(cause.message ?: cause::class.simpleName.orEmpty())
-    },
-    loadFailureLogger = {},
-    expectedSchemaId = PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = SHELL_CONTRACT_VERSION,
-    identityFailure = { reason -> InvalidManifestSchemaError(reason) },
-  ),
-)
-
-internal fun anchoredTopLevelFieldNames(): Set<String> = ANCHORED_TOP_LEVEL_FIELD_NAMES
-
-private val ANCHORED_TOP_LEVEL_FIELD_NAMES: Set<String>
-  get() {
-    val yamlText = ClasspathContractSchemaLoader.readClasspathYamlText(
+private fun loadSchema(): JsonSchema =
+  ClasspathContractSchemaLoader.compiledSchema(
+    CompiledSchemaRequest(
+      cacheKey = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
       classLoader = PlatformPackSchemaValidator::class.java.classLoader,
-      resource = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
-      missingError = {
+      classpathResource = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
+      missingResource = {
         InvalidManifestSchemaError(
           "Canonical platform-pack schema is missing. Expected to find it on the JVM classpath at " +
             "'$PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE'.",
         )
       },
-    )
+      processingFailure = { cause ->
+        InvalidManifestSchemaError(cause.message ?: cause::class.simpleName.orEmpty())
+      },
+      loadFailureLogger = {},
+      expectedSchemaId = PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID,
+      expectedContractVersion = SHELL_CONTRACT_VERSION,
+      identityFailure = { reason -> InvalidManifestSchemaError(reason) },
+    ),
+  )
+
+internal fun anchoredTopLevelFieldNames(): Set<String> = ANCHORED_TOP_LEVEL_FIELD_NAMES
+
+private val ANCHORED_TOP_LEVEL_FIELD_NAMES: Set<String>
+  get() {
+    val yamlText =
+      ClasspathContractSchemaLoader.readClasspathYamlText(
+        classLoader = PlatformPackSchemaValidator::class.java.classLoader,
+        resource = PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE,
+        missingError = {
+          InvalidManifestSchemaError(
+            "Canonical platform-pack schema is missing. Expected to find it on the JVM classpath at " +
+              "'$PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE'.",
+          )
+        },
+      )
     val yamlNode: JsonNode = ClasspathContractSchemaLoader.sharedYamlMapper().readTree(yamlText)
     val properties = yamlNode.path("properties")
     if (properties.isMissingNode || !properties.isObject) {

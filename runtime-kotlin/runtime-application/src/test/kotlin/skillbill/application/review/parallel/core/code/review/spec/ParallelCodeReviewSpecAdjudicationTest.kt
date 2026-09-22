@@ -23,11 +23,12 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ParallelCodeReviewSpecAdjudicationTest {
-  private val pack = sparseReviewPack(
-    slug = "kotlin",
-    requiredArea = "architecture",
-    pathAreas = mapOf("testing" to listOf("src/test/")),
-  )
+  private val pack =
+    sparseReviewPack(
+      slug = "kotlin",
+      requiredArea = "architecture",
+      pathAreas = mapOf("testing" to listOf("src/test/")),
+    )
 
   @Test
   fun `a review that produced findings records the adjudication boundary`() {
@@ -78,11 +79,12 @@ class ParallelCodeReviewSpecAdjudicationTest {
   fun `a crash after verification resumes into adjudication without relaunching lanes`() {
     val recorder = ReviewRecorder()
     val repo = specRepo()
-    val request = harnessRequest(
-      repoRoot = repo,
-      reviewRunId = "adj-resume",
-      codeReviewMode = CodeReviewExecutionMode.DELEGATED,
-    ).copy(specPath = repo.resolve("spec.md"))
+    val request =
+      harnessRequest(
+        repoRoot = repo,
+        reviewRunId = "adj-resume",
+        codeReviewMode = CodeReviewExecutionMode.DELEGATED,
+      ).copy(specPath = repo.resolve("spec.md"))
     val first = reviewHarness(adjudicationConfig(), recorder).run(request)
     assertTrue(assertNotNull(first.stageResume).holdsDurableResult(ReviewStage.VERIFICATION))
     val specialistCount = recorder.specialistLaunches.size
@@ -125,21 +127,27 @@ class ParallelCodeReviewSpecAdjudicationTest {
     return repo
   }
 
-  private fun adjudicationConfig(): ReviewHarnessConfig = workerConfig(
-    verificationStdout = CONFIRMED,
-    adjudicationStdout = IN_SCOPE,
-  )
+  private fun adjudicationConfig(): ReviewHarnessConfig =
+    workerConfig(
+      verificationStdout = CONFIRMED,
+      adjudicationStdout = IN_SCOPE,
+    )
 
-  private fun refutedConfig(): ReviewHarnessConfig = workerConfig(
-    verificationStdout = REFUTED,
-    adjudicationStdout = IN_SCOPE,
-  )
+  private fun refutedConfig(): ReviewHarnessConfig =
+    workerConfig(
+      verificationStdout = REFUTED,
+      adjudicationStdout = IN_SCOPE,
+    )
 
-  private fun workerConfig(verificationStdout: String, adjudicationStdout: String): ReviewHarnessConfig {
+  private fun workerConfig(
+    verificationStdout: String,
+    adjudicationStdout: String,
+  ): ReviewHarnessConfig {
     val paths = listOf("src/Main.kt", "src/test/AppTest.kt")
-    val shas = paths.indices.map { index ->
-      if (index == paths.lastIndex) HARNESS_HEAD_REVISION else "c$index"
-    }
+    val shas =
+      paths.indices.map { index ->
+        if (index == paths.lastIndex) HARNESS_HEAD_REVISION else "c$index"
+      }
     return ReviewHarnessConfig(
       manifests = listOf(pack),
       diff = diffForPaths(*paths.toTypedArray()),
@@ -151,9 +159,10 @@ class ParallelCodeReviewSpecAdjudicationTest {
           else -> RecordedWorkerResponse()
         }
       },
-      commits = paths.mapIndexed { index, path ->
-        RecordedCommit(shas[index], "commit touching $path", diffForPaths(path))
-      },
+      commits =
+        paths.mapIndexed { index, path ->
+          RecordedCommit(shas[index], "commit touching $path", diffForPaths(path))
+        },
     )
   }
 

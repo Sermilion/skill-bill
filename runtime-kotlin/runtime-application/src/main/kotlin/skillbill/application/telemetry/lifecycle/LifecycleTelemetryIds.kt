@@ -10,7 +10,10 @@ private val sessionIdTimestampFormatter: DateTimeFormatter = DateTimeFormatter.o
 private val suffixChars = "abcdefghijklmnopqrstuvwxyz0123456789".toCharArray()
 private val random = SecureRandom()
 
-fun generateLifecycleSessionId(prefix: String, clock: Clock): String {
+fun generateLifecycleSessionId(
+  prefix: String,
+  clock: Clock,
+): String {
   val timestamp = clock.instant().atOffset(ZoneOffset.UTC).format(sessionIdTimestampFormatter)
   val suffix = CharArray(SESSION_SUFFIX_LENGTH) { suffixChars[random.nextInt(suffixChars.size)] }.concatToString()
   return "$prefix-$timestamp-$suffix"

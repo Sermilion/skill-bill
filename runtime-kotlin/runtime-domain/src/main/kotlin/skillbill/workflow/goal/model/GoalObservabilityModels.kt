@@ -5,6 +5,7 @@ import skillbill.contracts.workflow.goal.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSI
 import skillbill.contracts.workflow.goal.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.workflow.goal.invalidGoalObservabilityEvent
+
 const val GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY: String = "goal_observability_latest_event"
 const val GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY: String = "goal_observability_run_history"
 const val GOAL_OBSERVABILITY_HISTORY_LIMIT: Int = 50
@@ -20,8 +21,9 @@ enum class GoalObservabilityRecordKind(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalObservabilityRecordKind = entries.firstOrNull { it.wireValue == value }
-      ?: throw invalidGoalObservabilityEvent("record_kind", "record_kind", "unrecognized value '$value'.")
+    fun fromWire(value: String): GoalObservabilityRecordKind =
+      entries.firstOrNull { it.wireValue == value }
+        ?: throw invalidGoalObservabilityEvent("record_kind", "record_kind", "unrecognized value '$value'.")
   }
 }
 
@@ -37,8 +39,9 @@ enum class GoalProgressEventKind(val wireValue: String) {
     get() = this == OPERATION_STARTED || this == OPERATION_HEARTBEAT || this == OPERATION_COMPLETED
 
   companion object {
-    fun fromWire(value: String): GoalProgressEventKind = entries.firstOrNull { it.wireValue == value }
-      ?: throw InvalidGoalProgressEventSchemaError("<wire>", "event_kind", "unrecognized value '$value'.")
+    fun fromWire(value: String): GoalProgressEventKind =
+      entries.firstOrNull { it.wireValue == value }
+        ?: throw InvalidGoalProgressEventSchemaError("<wire>", "event_kind", "unrecognized value '$value'.")
   }
 }
 
@@ -51,8 +54,9 @@ enum class GoalProgressOutcome(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalProgressOutcome = entries.firstOrNull { it.wireValue == value }
-      ?: throw InvalidGoalProgressEventSchemaError("<wire>", "outcome", "unrecognized value '$value'.")
+    fun fromWire(value: String): GoalProgressOutcome =
+      entries.firstOrNull { it.wireValue == value }
+        ?: throw InvalidGoalProgressEventSchemaError("<wire>", "outcome", "unrecognized value '$value'.")
   }
 }
 
@@ -84,25 +88,26 @@ data class GoalProgressEvent(
 
   fun toPersistenceWire(): Any = toArtifactMap()
 
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
-    "event_kind" to eventKind.wireValue,
-    SharedPayloadKeys.WORKFLOW_ID to workflowId,
-    "workflow_phase" to workflowPhase,
-    "process_alive" to processAlive,
-    "sequence_number" to sequenceNumber,
-    "timestamp" to timestamp,
-  ).apply {
-    stepId?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.STEP_ID, it) }
-    operationName?.takeIf(String::isNotBlank)?.let { put("operation_name", it) }
-    operationKind?.takeIf(String::isNotBlank)?.let { put("operation_kind", it) }
-    if (eventKind.isOperationEvent) {
-      put("expected_long", expectedLong)
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
+      "event_kind" to eventKind.wireValue,
+      SharedPayloadKeys.WORKFLOW_ID to workflowId,
+      "workflow_phase" to workflowPhase,
+      "process_alive" to processAlive,
+      "sequence_number" to sequenceNumber,
+      "timestamp" to timestamp,
+    ).apply {
+      stepId?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.STEP_ID, it) }
+      operationName?.takeIf(String::isNotBlank)?.let { put("operation_name", it) }
+      operationKind?.takeIf(String::isNotBlank)?.let { put("operation_kind", it) }
+      if (eventKind.isOperationEvent) {
+        put("expected_long", expectedLong)
+      }
+      if (outcome != GoalProgressOutcome.NONE) {
+        put("outcome", outcome.wireValue)
+      }
     }
-    if (outcome != GoalProgressOutcome.NONE) {
-      put("outcome", outcome.wireValue)
-    }
-  }
 }
 
 data class GoalProgressHistory(
@@ -116,6 +121,7 @@ data class GoalProgressHistory(
 
   fun latest(): GoalProgressEvent? = events.maxByOrNull(GoalProgressEvent::sequenceNumber)
 }
+
 private const val GOAL_OBSERVABILITY_SAMPLE_PATH_LIMIT: Int = 10
 
 data class GoalObservabilityChangedFileSummary(
@@ -170,69 +176,72 @@ data class GoalObservabilityEvent(
   val diffStatByFile: List<GoalObservabilityFileDiffStat> = emptyList(),
   val contractVersion: String = GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION,
 ) {
-  internal fun toArtifactMap(includeHeavyFields: Boolean = false): Map<String, Any?> = linkedMapOf<String, Any?>(
-    SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
-    "record_kind" to recordKind.wireValue,
-    SharedPayloadKeys.ISSUE_KEY to issueKey,
-    SharedPayloadKeys.SUBTASK_ID to subtaskId,
-    SharedPayloadKeys.WORKFLOW_ID to workflowId,
-    "workflow_phase" to workflowPhase,
-    "worker_role" to workerRole,
-    "liveness_class" to livenessClass,
-    "activity_summary" to activitySummary,
-    "timestamp" to timestamp,
-    "sequence_number" to sequenceNumber,
-  ).apply {
-    changedFileSummary?.let { summary -> put("changed_file_summary", summary.toArtifactMap()) }
-    diffStat?.let { stat -> put("diff_stat", stat.toArtifactMap()) }
-    if (includeHeavyFields && changedFiles.isNotEmpty()) {
-      put("changed_files", changedFiles)
-    }
-    if (includeHeavyFields && diffStatByFile.isNotEmpty()) {
-      put("diff_stat_by_file", diffStatByFile.map(GoalObservabilityFileDiffStat::toArtifactMap))
-    }
-  }.filterValues { value -> value != null }
+  internal fun toArtifactMap(includeHeavyFields: Boolean = false): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
+      "record_kind" to recordKind.wireValue,
+      SharedPayloadKeys.ISSUE_KEY to issueKey,
+      SharedPayloadKeys.SUBTASK_ID to subtaskId,
+      SharedPayloadKeys.WORKFLOW_ID to workflowId,
+      "workflow_phase" to workflowPhase,
+      "worker_role" to workerRole,
+      "liveness_class" to livenessClass,
+      "activity_summary" to activitySummary,
+      "timestamp" to timestamp,
+      "sequence_number" to sequenceNumber,
+    ).apply {
+      changedFileSummary?.let { summary -> put("changed_file_summary", summary.toArtifactMap()) }
+      diffStat?.let { stat -> put("diff_stat", stat.toArtifactMap()) }
+      if (includeHeavyFields && changedFiles.isNotEmpty()) {
+        put("changed_files", changedFiles)
+      }
+      if (includeHeavyFields && diffStatByFile.isNotEmpty()) {
+        put("diff_stat_by_file", diffStatByFile.map(GoalObservabilityFileDiffStat::toArtifactMap))
+      }
+    }.filterValues { value -> value != null }
 
-  fun compactLivenessSummary(): String = buildString {
-    append("liveness=")
-    append(livenessClass)
-    append(" phase=")
-    append(workflowPhase)
-    append(" role=")
-    append(workerRole)
-    append(" sequence=")
-    append(sequenceNumber)
-    append(" at=")
-    append(timestamp)
-    append(" activity=")
-    append(activitySummary)
-    changedFileSummary?.let { summary ->
-      append(" files=")
-      append(summary.total)
+  fun compactLivenessSummary(): String =
+    buildString {
+      append("liveness=")
+      append(livenessClass)
+      append(" phase=")
+      append(workflowPhase)
+      append(" role=")
+      append(workerRole)
+      append(" sequence=")
+      append(sequenceNumber)
+      append(" at=")
+      append(timestamp)
+      append(" activity=")
+      append(activitySummary)
+      changedFileSummary?.let { summary ->
+        append(" files=")
+        append(summary.total)
+      }
+      diffStat?.let { stat ->
+        append(" diff=+")
+        append(stat.insertions)
+        append("/-")
+        append(stat.deletions)
+      }
     }
-    diffStat?.let { stat ->
-      append(" diff=+")
-      append(stat.insertions)
-      append("/-")
-      append(stat.deletions)
-    }
-  }
 
   fun toCompactSummaryWire(): Any = toCompactSummaryMap()
 
-  internal fun toCompactSummaryMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    SharedPayloadKeys.ISSUE_KEY to issueKey,
-    SharedPayloadKeys.SUBTASK_ID to subtaskId,
-    "workflow_phase" to workflowPhase,
-    "worker_role" to workerRole,
-    "liveness_class" to livenessClass,
-    "activity_summary" to activitySummary,
-    "sequence_number" to sequenceNumber,
-    "timestamp" to timestamp,
-  ).apply {
-    changedFileSummary?.let { summary -> put("changed_file_summary", summary.toArtifactMap()) }
-    diffStat?.let { stat -> put("diff_stat", stat.toArtifactMap()) }
-  }
+  internal fun toCompactSummaryMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      SharedPayloadKeys.ISSUE_KEY to issueKey,
+      SharedPayloadKeys.SUBTASK_ID to subtaskId,
+      "workflow_phase" to workflowPhase,
+      "worker_role" to workerRole,
+      "liveness_class" to livenessClass,
+      "activity_summary" to activitySummary,
+      "sequence_number" to sequenceNumber,
+      "timestamp" to timestamp,
+    ).apply {
+      changedFileSummary?.let { summary -> put("changed_file_summary", summary.toArtifactMap()) }
+      diffStat?.let { stat -> put("diff_stat", stat.toArtifactMap()) }
+    }
 }
 
 data class GoalObservabilityHistory(
@@ -246,24 +255,27 @@ data class GoalObservabilityHistory(
     events.map { event -> event.toArtifactMap(includeHeavyFields) }
 }
 
-private fun GoalObservabilityChangedFileSummary.toArtifactMap(): Map<String, Any?> = linkedMapOf(
-  "total" to total,
-  "added" to added,
-  "modified" to modified,
-  "deleted" to deleted,
-  "renamed" to renamed,
-  "untracked" to untracked,
-  "sample_paths" to samplePaths.take(GOAL_OBSERVABILITY_SAMPLE_PATH_LIMIT),
-)
+private fun GoalObservabilityChangedFileSummary.toArtifactMap(): Map<String, Any?> =
+  linkedMapOf(
+    "total" to total,
+    "added" to added,
+    "modified" to modified,
+    "deleted" to deleted,
+    "renamed" to renamed,
+    "untracked" to untracked,
+    "sample_paths" to samplePaths.take(GOAL_OBSERVABILITY_SAMPLE_PATH_LIMIT),
+  )
 
-private fun GoalObservabilityDiffStat.toArtifactMap(): Map<String, Any?> = linkedMapOf(
-  "files_changed" to filesChanged,
-  "insertions" to insertions,
-  "deletions" to deletions,
-)
+private fun GoalObservabilityDiffStat.toArtifactMap(): Map<String, Any?> =
+  linkedMapOf(
+    "files_changed" to filesChanged,
+    "insertions" to insertions,
+    "deletions" to deletions,
+  )
 
-private fun GoalObservabilityFileDiffStat.toArtifactMap(): Map<String, Any?> = linkedMapOf(
-  "path" to path,
-  "insertions" to insertions,
-  "deletions" to deletions,
-)
+private fun GoalObservabilityFileDiffStat.toArtifactMap(): Map<String, Any?> =
+  linkedMapOf(
+    "path" to path,
+    "insertions" to insertions,
+    "deletions" to deletions,
+  )

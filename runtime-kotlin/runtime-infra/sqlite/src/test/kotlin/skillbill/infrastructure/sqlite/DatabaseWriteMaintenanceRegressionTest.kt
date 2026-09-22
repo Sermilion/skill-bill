@@ -12,17 +12,19 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 @Execution(ExecutionMode.SAME_THREAD)
 class DatabaseWriteMaintenanceRegressionTest {
   @Test
   fun `warm and fresh readiness opens avoid pragma table info probes`() {
     val tempDir = Files.createTempDirectory("skillbill-write-maintenance")
     val dbPath = tempDir.resolve("metrics.db")
-    val database = sqliteDatabaseSessionFactory(
-      userHome = tempDir,
-      dbPathOverride = dbPath.toString(),
-      environment = emptyMap(),
-    )
+    val database =
+      sqliteDatabaseSessionFactory(
+        userHome = tempDir,
+        dbPathOverride = dbPath.toString(),
+        environment = emptyMap(),
+      )
 
     val delegate = DriverManager.getDriver("jdbc:sqlite:$dbPath")
     val recordingDriver = SqliteConnectionRecordingDriver(delegate)
@@ -65,18 +67,19 @@ class DatabaseWriteMaintenanceRegressionTest {
     }
   }
 
-  private fun sampleWorkflow(workflowId: String) = WorkflowStateRecord(
-    workflowId = workflowId,
-    sessionId = "ftr-maintenance",
-    workflowName = "bill-feature-task",
-    contractVersion = "",
-    workflowStatus = WorkflowStatus.RUNNING.wireValue,
-    currentStepId = "implement",
-    stepsJson = "[]",
-    artifactsJson = "{}",
-    startedAt = null,
-    updatedAt = null,
-    finishedAt = null,
-    mode = FeatureTaskWorkflowMode.RUNTIME,
-  )
+  private fun sampleWorkflow(workflowId: String) =
+    WorkflowStateRecord(
+      workflowId = workflowId,
+      sessionId = "ftr-maintenance",
+      workflowName = "bill-feature-task",
+      contractVersion = "",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
+      currentStepId = "implement",
+      stepsJson = "[]",
+      artifactsJson = "{}",
+      startedAt = null,
+      updatedAt = null,
+      finishedAt = null,
+      mode = FeatureTaskWorkflowMode.RUNTIME,
+    )
 }

@@ -13,6 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
   @Test
   fun `stored blocked outcome with standing durable cause is returned with reason text byte-identical`() {
@@ -29,10 +30,11 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
         ),
       ),
     )
-    val store = testWorkflowGoalRunnerOutcomeStore(
-      FakeDatabaseSessionFactory(workflows),
-      testWorkflowSnapshotValidator,
-    )
+    val store =
+      testWorkflowGoalRunnerOutcomeStore(
+        FakeDatabaseSessionFactory(workflows),
+        testWorkflowSnapshotValidator,
+      )
 
     val outcome = requireNotNull(store.terminalOutcome("wftr-standing-block", "SKILL-176.4", 4))
 
@@ -55,28 +57,31 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
         ),
       ),
     )
-    val store = testWorkflowGoalRunnerOutcomeStore(
-      FakeDatabaseSessionFactory(workflows),
-      testWorkflowSnapshotValidator,
-    )
+    val store =
+      testWorkflowGoalRunnerOutcomeStore(
+        FakeDatabaseSessionFactory(workflows),
+        testWorkflowSnapshotValidator,
+      )
 
     val readOnly = requireNotNull(store.terminalOutcome("wftr-standing-nested-reason", "SKILL-176.4", 4))
     assertEquals(GoalRunnerTerminalStatus.BLOCKED, readOnly.status)
     assertEquals(reason, readOnly.blockedReason)
 
-    val recovered = requireNotNull(
-      store.recoverAndPersistTerminalOutcome(
-        workflowId = "wftr-standing-nested-reason",
-        issueKey = "SKILL-176.4",
-        subtaskId = 4,
-        repoRoot = Path.of("."),
-      ),
-    )
+    val recovered =
+      requireNotNull(
+        store.recoverAndPersistTerminalOutcome(
+          workflowId = "wftr-standing-nested-reason",
+          issueKey = "SKILL-176.4",
+          subtaskId = 4,
+          repoRoot = Path.of("."),
+        ),
+      )
     assertEquals(GoalRunnerTerminalStatus.BLOCKED, recovered.status)
     assertEquals(reason, recovered.blockedReason)
-    val artifacts = decodeWorkflowArtifacts(
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-standing-nested-reason")).artifactsJson,
-    )
+    val artifacts =
+      decodeWorkflowArtifacts(
+        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-standing-nested-reason")).artifactsJson,
+      )
     assertNull(artifacts["goal_continuation_outcome_displacement"])
     assertEquals(reason, (artifacts["goal_continuation_outcome"] as Map<*, *>)["blocked_reason"])
   }
@@ -98,11 +103,12 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
       ),
     )
     workflows.seedWorkerOwnership(expiredLeaseOwnership("wftr-20260808-175505-c5po"))
-    val store = testWorkflowGoalRunnerOutcomeStore(
-      database = FakeDatabaseSessionFactory(workflows),
-      workflowSnapshotValidator = testWorkflowSnapshotValidator,
-      workerSupervisor = DeadProcessSupervisor,
-    )
+    val store =
+      testWorkflowGoalRunnerOutcomeStore(
+        database = FakeDatabaseSessionFactory(workflows),
+        workflowSnapshotValidator = testWorkflowSnapshotValidator,
+        workerSupervisor = DeadProcessSupervisor,
+      )
 
     val readOnly = store.terminalOutcome("wftr-20260808-175505-c5po", "SKILL-176.4", 4)
     assertTrue(
@@ -110,20 +116,22 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
       "read path must not replay the stale blocked reason; got $readOnly",
     )
 
-    val recovered = requireNotNull(
-      store.recoverAndPersistTerminalOutcome(
-        workflowId = "wftr-20260808-175505-c5po",
-        issueKey = "SKILL-176.4",
-        subtaskId = 4,
-        repoRoot = Path.of("."),
-      ),
-    )
+    val recovered =
+      requireNotNull(
+        store.recoverAndPersistTerminalOutcome(
+          workflowId = "wftr-20260808-175505-c5po",
+          issueKey = "SKILL-176.4",
+          subtaskId = 4,
+          repoRoot = Path.of("."),
+        ),
+      )
     assertEquals(GoalRunnerTerminalStatus.RECONCILABLE, recovered.status)
     assertTrue(recovered.blockedReason != staleReason)
 
-    val artifacts = decodeWorkflowArtifacts(
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-20260808-175505-c5po")).artifactsJson,
-    )
+    val artifacts =
+      decodeWorkflowArtifacts(
+        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-20260808-175505-c5po")).artifactsJson,
+      )
     val displacement = artifacts["goal_continuation_outcome_displacement"] as Map<*, *>
     assertEquals(staleReason, displacement["original_blocked_reason"])
     assertNull(artifacts["goal_continuation_outcome"])
@@ -146,19 +154,22 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
         ),
       ),
     )
-    val store = testWorkflowGoalRunnerOutcomeStore(
-      FakeDatabaseSessionFactory(workflows),
-      testWorkflowSnapshotValidator,
-    )
+    val store =
+      testWorkflowGoalRunnerOutcomeStore(
+        FakeDatabaseSessionFactory(workflows),
+        testWorkflowSnapshotValidator,
+      )
 
-    val first = store.reconcileAuthoritativeOutcomes(
-      issueKey = "SKILL-176.4",
-      activeWorkflowIds = setOf("wftr-stale-idempotent"),
-      gate = GoalRunnerReconcileGate(requireStalenessEvidence = true),
-    )
-    val artifactsAfterFirst = decodeWorkflowArtifacts(
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).artifactsJson,
-    )
+    val first =
+      store.reconcileAuthoritativeOutcomes(
+        issueKey = "SKILL-176.4",
+        activeWorkflowIds = setOf("wftr-stale-idempotent"),
+        gate = GoalRunnerReconcileGate(requireStalenessEvidence = true),
+      )
+    val artifactsAfterFirst =
+      decodeWorkflowArtifacts(
+        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).artifactsJson,
+      )
     assertEquals(
       staleReason,
       (artifactsAfterFirst["goal_continuation_outcome_displacement"] as Map<*, *>)["original_blocked_reason"],
@@ -169,15 +180,17 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).workflowStatus,
     )
 
-    val second = store.reconcileAuthoritativeOutcomes(
-      issueKey = "SKILL-176.4",
-      activeWorkflowIds = setOf("wftr-stale-idempotent"),
-      gate = GoalRunnerReconcileGate(requireStalenessEvidence = true),
-    )
+    val second =
+      store.reconcileAuthoritativeOutcomes(
+        issueKey = "SKILL-176.4",
+        activeWorkflowIds = setOf("wftr-stale-idempotent"),
+        gate = GoalRunnerReconcileGate(requireStalenessEvidence = true),
+      )
     assertEquals(first, second)
-    val artifactsAfterSecond = decodeWorkflowArtifacts(
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).artifactsJson,
-    )
+    val artifactsAfterSecond =
+      decodeWorkflowArtifacts(
+        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).artifactsJson,
+      )
     assertEquals(
       artifactsAfterFirst["goal_continuation_outcome_displacement"],
       artifactsAfterSecond["goal_continuation_outcome_displacement"],
@@ -192,24 +205,26 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
   fun `COMPLETE without sha still falls through to the measure branch alongside corroboration`() {
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureTaskRuntimeWorkflow(completeWithoutShaContinuationRecord("wftr-complete-no-sha"))
-    val store = testWorkflowGoalRunnerOutcomeStore(
-      database = FakeDatabaseSessionFactory(workflows),
-      workflowSnapshotValidator = testWorkflowSnapshotValidator,
-      gitOperations = MeasuringHeadShaGitOperations,
-    )
+    val store =
+      testWorkflowGoalRunnerOutcomeStore(
+        database = FakeDatabaseSessionFactory(workflows),
+        workflowSnapshotValidator = testWorkflowSnapshotValidator,
+        gitOperations = MeasuringHeadShaGitOperations,
+      )
 
     val readOnly = requireNotNull(store.terminalOutcome("wftr-complete-no-sha", "SKILL-176.4", 4))
     assertEquals(GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME, readOnly.status)
     assertNull(readOnly.commitSha)
 
-    val recovered = requireNotNull(
-      store.recoverAndPersistTerminalOutcome(
-        workflowId = "wftr-complete-no-sha",
-        issueKey = "SKILL-176.4",
-        subtaskId = 4,
-        repoRoot = Path.of("."),
-      ),
-    )
+    val recovered =
+      requireNotNull(
+        store.recoverAndPersistTerminalOutcome(
+          workflowId = "wftr-complete-no-sha",
+          issueKey = "SKILL-176.4",
+          subtaskId = 4,
+          repoRoot = Path.of("."),
+        ),
+      )
     assertEquals(GoalRunnerTerminalStatus.COMPLETE, recovered.status)
     assertEquals("measured-head-sha", recovered.commitSha)
   }

@@ -75,11 +75,12 @@ class NativeAgentValidationTest {
     val skillDir = repo.resolve("skills/bill-validation-fixture/native-agents")
     Files.createDirectories(skillDir)
     val sourceFile = skillDir.resolve("bill-validation-fixture.md")
-    val text = "---\n" +
-      "name: bill-validation-fixture\n" +
-      "description: Validation fixture.\n" +
-      "---\n\n" +
-      body + "\n"
+    val text =
+      "---\n" +
+        "name: bill-validation-fixture\n" +
+        "description: Validation fixture.\n" +
+        "---\n\n" +
+        body + "\n"
     Files.writeString(sourceFile, text)
     return repo
   }
@@ -98,9 +99,10 @@ class NativeAgentValidationTest {
     val source = parseNativeAgentSource(sourcePath)
 
     val target = testResolveNativeAgentCompositionTarget(repo, source)
-    val expectedTarget = repo.resolve(
-      "platform-packs/fixture/code-review/bill-fixture-code-review-architecture/content.md",
-    )
+    val expectedTarget =
+      repo.resolve(
+        "platform-packs/fixture/code-review/bill-fixture-code-review-architecture/content.md",
+      )
 
     assertEquals(expectedTarget, target?.contentPath)
     assertEquals(NativeAgentCompositionTargetSource.PlatformManifest, target?.source)
@@ -121,10 +123,11 @@ class NativeAgentValidationTest {
 
   @Test
   fun `platform pack composition does not fall back to undeclared sibling content`() {
-    val repo = newRepoWithComposedPlatformAgent(
-      writeAreaContent = true,
-      declaredSourceName = "bill-fixture-unregistered",
-    )
+    val repo =
+      newRepoWithComposedPlatformAgent(
+        writeAreaContent = true,
+        declaredSourceName = "bill-fixture-unregistered",
+      )
 
     val report = validateRepoNativeAgents(repo, testNativeAgentCompositionContext(repo))
 
@@ -247,16 +250,17 @@ class NativeAgentValidationTest {
   fun `install render output is self contained with declared KMP sidecars inlined recursively`() {
     val repo = newRepoWithKmpPointerSidecars()
 
-    val result = NativeAgentOperations.renderInstallArtifacts(
-      NativeAgentInstallRenderRequest(
-        platformPacksRoot = repo.resolve("platform-packs"),
-        skillsRoot = null,
-        selectedPlatforms = listOf("kmp"),
-        provider = NativeAgentProvider.Claude,
-        home = repo.resolve("home"),
-        compositionContext = testNativeAgentCompositionContext(repo),
-      ),
-    )
+    val result =
+      NativeAgentOperations.renderInstallArtifacts(
+        NativeAgentInstallRenderRequest(
+          platformPacksRoot = repo.resolve("platform-packs"),
+          skillsRoot = null,
+          selectedPlatforms = listOf("kmp"),
+          provider = NativeAgentProvider.Claude,
+          home = repo.resolve("home"),
+          compositionContext = testNativeAgentCompositionContext(repo),
+        ),
+      )
 
     val rendered = Files.readString(result.generatedFiles.single())
     assertContains(rendered, "Scan sidecar.md first.")
@@ -271,18 +275,19 @@ class NativeAgentValidationTest {
     val repo = newRepoWithComposedPlatformAgent(writeAreaContent = true, composeDirective = "local-file")
     val home = repo.resolve("home")
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      NativeAgentOperations.renderInstallArtifacts(
-        NativeAgentInstallRenderRequest(
-          platformPacksRoot = repo.resolve("platform-packs"),
-          skillsRoot = null,
-          selectedPlatforms = listOf("fixture"),
-          provider = NativeAgentProvider.Claude,
-          home = home,
-          compositionContext = testNativeAgentCompositionContext(repo),
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        NativeAgentOperations.renderInstallArtifacts(
+          NativeAgentInstallRenderRequest(
+            platformPacksRoot = repo.resolve("platform-packs"),
+            skillsRoot = null,
+            selectedPlatforms = listOf("fixture"),
+            provider = NativeAgentProvider.Claude,
+            home = home,
+            compositionContext = testNativeAgentCompositionContext(repo),
+          ),
+        )
+      }
 
     assertContains(error.message.orEmpty(), "unsupported native agent compose directive 'local-file'")
     assertFalse(
@@ -349,11 +354,12 @@ class NativeAgentValidationTest {
 
   @Test
   fun `composition is manifest driven for arbitrary platform slugs`() {
-    val repo = newRepoWithComposedPlatformAgent(
-      platformSlug = "swift",
-      writeAreaContent = true,
-      declaredSourceName = "bill-swift-code-review-architecture",
-    )
+    val repo =
+      newRepoWithComposedPlatformAgent(
+        platformSlug = "swift",
+        writeAreaContent = true,
+        declaredSourceName = "bill-swift-code-review-architecture",
+      )
     val sourcePath = discoverRepoNativeAgentSources(repo).single()
     val source = parseNativeAgentSource(sourcePath)
 
@@ -381,8 +387,9 @@ class NativeAgentValidationTest {
       """.trimIndent() + "\n",
     )
 
-    val source = discoverRepoNativeAgentSourceEntries(repo)
-      .single { source -> source.name == "bill-fixture-code-review-architecture" }
+    val source =
+      discoverRepoNativeAgentSourceEntries(repo)
+        .single { source -> source.name == "bill-fixture-code-review-architecture" }
     val target = testResolveNativeAgentCompositionTarget(repo, source)
 
     assertEquals(
@@ -395,10 +402,11 @@ class NativeAgentValidationTest {
 
   @Test
   fun `bundled platform composition rejects undeclared agent structurally`() {
-    val repo = newRepoWithComposedPlatformAgent(
-      writeAreaContent = true,
-      declaredSourceName = "bill-fixture-unregistered",
-    )
+    val repo =
+      newRepoWithComposedPlatformAgent(
+        writeAreaContent = true,
+        declaredSourceName = "bill-fixture-unregistered",
+      )
     val nativeAgentDir = repo.resolve("platform-packs/fixture/code-review/bill-fixture-code-review/native-agents")
     Files.delete(nativeAgentDir.resolve("bill-fixture-unregistered.md"))
     Files.writeString(
@@ -481,19 +489,21 @@ class NativeAgentValidationTest {
   @Test
   fun `bundled custom body renders same provider output as markdown source`() {
     val body = "# Worker\n\nDo the work."
-    val bundled = NativeAgentSource(
-      name = "bill-custom",
-      description = "Custom worker.",
-      body = body,
-      path = Path.of("native-agents/agents.yaml"),
-      bundleEntryName = "bill-custom",
-    )
-    val markdown = NativeAgentSource(
-      name = "bill-custom",
-      description = "Custom worker.",
-      body = body,
-      path = Path.of("native-agents/bill-custom.md"),
-    )
+    val bundled =
+      NativeAgentSource(
+        name = "bill-custom",
+        description = "Custom worker.",
+        body = body,
+        path = Path.of("native-agents/agents.yaml"),
+        bundleEntryName = "bill-custom",
+      )
+    val markdown =
+      NativeAgentSource(
+        name = "bill-custom",
+        description = "Custom worker.",
+        body = body,
+        path = Path.of("native-agents/bill-custom.md"),
+      )
 
     NativeAgentProvider.entries.forEach { provider ->
       assertEquals(provider.render(markdown), provider.render(bundled), provider.name)
@@ -518,16 +528,17 @@ class NativeAgentValidationTest {
       """.trimIndent() + "\n",
     )
 
-    val result = NativeAgentOperations.renderInstallArtifacts(
-      NativeAgentInstallRenderRequest(
-        platformPacksRoot = repo.resolve("platform-packs"),
-        skillsRoot = null,
-        selectedPlatforms = listOf("fixture"),
-        provider = NativeAgentProvider.Claude,
-        home = repo.resolve("home"),
-        compositionContext = testNativeAgentCompositionContext(repo),
-      ),
-    )
+    val result =
+      NativeAgentOperations.renderInstallArtifacts(
+        NativeAgentInstallRenderRequest(
+          platformPacksRoot = repo.resolve("platform-packs"),
+          skillsRoot = null,
+          selectedPlatforms = listOf("fixture"),
+          provider = NativeAgentProvider.Claude,
+          home = repo.resolve("home"),
+          compositionContext = testNativeAgentCompositionContext(repo),
+        ),
+      )
 
     assertEquals(
       listOf("bill-fixture-code-review-architecture.md", "bill-fixture-code-review.md"),
@@ -604,21 +615,22 @@ class NativeAgentValidationTest {
     val repo = Files.createTempDirectory("skillbill-kmp-sidecar-test")
     val packRoot = repo.resolve("platform-packs/kmp")
     Files.createDirectories(packRoot)
-    val pointersBlock = if (declareSidecarPointer) {
-      """
-      pointers:
-        code-review/bill-kmp-code-review-ui:
-          - name: sidecar.md
-            target: platform-packs/kmp/addons/sidecar.md
-          - name: nested.md
-            target: platform-packs/kmp/addons/nested.md
-      """.trimIndent()
-    } else {
-      """
-      pointers:
-        code-review/bill-kmp-code-review-ui: []
-      """.trimIndent()
-    }
+    val pointersBlock =
+      if (declareSidecarPointer) {
+        """
+        pointers:
+          code-review/bill-kmp-code-review-ui:
+            - name: sidecar.md
+              target: platform-packs/kmp/addons/sidecar.md
+            - name: nested.md
+              target: platform-packs/kmp/addons/nested.md
+        """.trimIndent()
+      } else {
+        """
+        pointers:
+          code-review/bill-kmp-code-review-ui: []
+        """.trimIndent()
+      }
     Files.writeString(packRoot.resolve("platform.yaml"), kmpPointerSidecarManifest(pointersBlock))
     writeContent(packRoot.resolve("code-review/bill-kmp-code-review/content.md"), "bill-kmp-code-review")
     writeContent(
@@ -629,9 +641,10 @@ class NativeAgentValidationTest {
     val addons = Files.createDirectories(packRoot.resolve("addons"))
     Files.writeString(addons.resolve("sidecar.md"), "# Sidecar\n\nSidecar details. Read [nested.md](nested.md).\n")
     Files.writeString(addons.resolve("nested.md"), "# Nested\n\nNested details.\n")
-    val nativeAgentDir = Files.createDirectories(
-      packRoot.resolve("code-review/bill-kmp-code-review/native-agents"),
-    )
+    val nativeAgentDir =
+      Files.createDirectories(
+        packRoot.resolve("code-review/bill-kmp-code-review/native-agents"),
+      )
     Files.writeString(
       nativeAgentDir.resolve("bill-kmp-code-review-ui.md"),
       "---\n" +
@@ -643,26 +656,31 @@ class NativeAgentValidationTest {
     return repo
   }
 
-  private fun kmpPointerSidecarManifest(pointersBlock: String): String = listOf(
-    "platform: kmp",
-    "contract_version: \"1.8\"",
-    "routing_signals:",
-    "  strong:",
-    "    - \"commonMain\"",
-    "  tie_breakers: []",
-    "declared_code_review_areas:",
-    "  - ui",
-    "declared_files:",
-    "  baseline: code-review/bill-kmp-code-review/content.md",
-    "  areas:",
-    "    ui: code-review/bill-kmp-code-review-ui/content.md",
-    "area_metadata:",
-    "  ui:",
-    "    focus: \"ui review\"",
-    pointersBlock,
-  ).joinToString("\n") + "\n"
+  private fun kmpPointerSidecarManifest(pointersBlock: String): String =
+    listOf(
+      "platform: kmp",
+      "contract_version: \"1.8\"",
+      "routing_signals:",
+      "  strong:",
+      "    - \"commonMain\"",
+      "  tie_breakers: []",
+      "declared_code_review_areas:",
+      "  - ui",
+      "declared_files:",
+      "  baseline: code-review/bill-kmp-code-review/content.md",
+      "  areas:",
+      "    ui: code-review/bill-kmp-code-review-ui/content.md",
+      "area_metadata:",
+      "  ui:",
+      "    focus: \"ui review\"",
+      pointersBlock,
+    ).joinToString("\n") + "\n"
 
-  private fun writeContent(path: Path, name: String, body: String = "# Fixture\n\nUse this governed content.") {
+  private fun writeContent(
+    path: Path,
+    name: String,
+    body: String = "# Fixture\n\nUse this governed content.",
+  ) {
     Files.createDirectories(path.parent)
     Files.writeString(
       path,

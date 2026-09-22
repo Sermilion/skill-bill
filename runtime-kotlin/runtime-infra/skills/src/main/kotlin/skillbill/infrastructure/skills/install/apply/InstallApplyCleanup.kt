@@ -11,24 +11,27 @@ import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path
+
 internal fun cleanupExistingSkillBillLinks(
   plan: InstallPlan,
   platformManifests: List<PlatformManifest>,
   failures: MutableList<InstallApplyIssue>,
 ) {
   if (!plan.request.replaceExistingSkillBillLinks) return
-  val cleanupSkillNames = (
-    plan.skills +
-      platformManifests.flatMap(::platformSkills)
+  val cleanupSkillNames =
+    (
+      plan.skills +
+        platformManifests.flatMap(::platformSkills)
     )
-    .map(InstallPlanSkill::name)
-    .distinct()
+      .map(InstallPlanSkill::name)
+      .distinct()
   val legacyNames = legacySkillBillCleanupNames(cleanupSkillNames)
-  val cleanupContext = InstallCleanupContext(
-    skillNames = cleanupSkillNames,
-    legacyNames = legacyNames,
-    installedSkillsRoot = installedSkillsCacheRoot(plan.request.home.toPath()),
-  )
+  val cleanupContext =
+    InstallCleanupContext(
+      skillNames = cleanupSkillNames,
+      legacyNames = legacyNames,
+      installedSkillsRoot = installedSkillsCacheRoot(plan.request.home.toPath()),
+    )
   plan.agents.forEach { agentTarget ->
     cleanupOneTarget(agentTarget.agent, agentTarget.path.toPath(), cleanupContext, failures)
 
@@ -71,7 +74,10 @@ private fun cleanupOneTarget(
   }
 }
 
-private fun legacyClaudeCommandsDir(agent: InstallAgent, targetDir: Path): Path? =
+private fun legacyClaudeCommandsDir(
+  agent: InstallAgent,
+  targetDir: Path,
+): Path? =
   if (agent == InstallAgent.CLAUDE && targetDir.fileName?.toString() == "skills") {
     targetDir.resolveSibling("commands")
   } else {

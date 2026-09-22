@@ -12,18 +12,20 @@ import skillbill.ports.install.selection.model.ReadLatestSuccessfulInstallSelect
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+
 class InstallSelectionRuntimeBoundaryTest {
   @Test
   fun `runtime component exposes shared install selection persistence port`() {
     val home = Files.createTempDirectory("skillbill-install-selection-di")
-    val component = RuntimeComponent::class.create(
-      RuntimeContext(
-        environment = EnvironmentContext(environment = emptyMap(), userHome = home),
-        transport = TransportContext(),
-        workflowOps = WorkflowOpsContext(),
-        callbacks = OptionalCallbacks(),
-      ),
-    )
+    val component =
+      RuntimeComponent::class.create(
+        RuntimeContext(
+          environment = EnvironmentContext(environment = emptyMap(), userHome = home),
+          transport = TransportContext(),
+          workflowOps = WorkflowOpsContext(),
+          callbacks = OptionalCallbacks(),
+        ),
+      )
 
     assertFailsWith<MissingInstallSelectionRecordError> {
       component.installSelectionPersistencePort.readLatestSuccessfulSelection(

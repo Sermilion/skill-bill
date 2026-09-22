@@ -1,7 +1,6 @@
 package skillbill.domain.skillremove.model
 
 sealed class SkillRemovalTarget {
-
   data class HorizontalSkill(
     val skillName: String,
     val allowShipped: Boolean = false,
@@ -23,7 +22,6 @@ sealed class SkillRemovalTarget {
   ) : SkillRemovalTarget()
 
   companion object {
-
     val BUILT_IN_NAMES: Set<String> = setOf(".bill-shared")
 
     const val HORIZONTAL_PRODUCT_PREFIX: String = "bill-"

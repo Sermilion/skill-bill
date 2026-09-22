@@ -11,6 +11,7 @@ import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepair
 import skillbill.workflow.taskruntime.model.repair.task.featureTaskRuntimeFoldRepairLedger
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewPassSequence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+
 data class GoalSubtaskReviewRevision(
   val commitFocusedAccounting: GoalSubtaskCommitFocusedAccounting? = null,
   val reviewedRevision: GoalSubtaskReviewedRevision? = null,
@@ -91,7 +92,7 @@ data class GoalSubtaskReviewState(
         (
           completedPassCount >= 1 &&
             passResults.lastOrNull()?.blocksAdvance == true
-          ),
+        ),
     ) { "review_cap_reached requires unresolved Blocker or Major findings on a completed pass." }
     require(
       blockerDispositions.map(GoalSubtaskBlockerDisposition::findingId).distinct().size == blockerDispositions.size,
@@ -117,26 +118,28 @@ data class GoalSubtaskReviewState(
     get() = featureTaskRuntimeFoldRepairLedger(repairReceipts, passResults)
 
   val priorReviewContext: FeatureTaskRuntimePriorReviewContext?
-    get() = passResults.lastOrNull()?.let { previous ->
-      FeatureTaskRuntimePriorReviewContext(
-        passNumber = previous.passNumber,
-        findings = previous.findings,
-        dispositions = blockerDispositions,
-      ).takeUnless(FeatureTaskRuntimePriorReviewContext::isEmpty)
-    }
+    get() =
+      passResults.lastOrNull()?.let { previous ->
+        FeatureTaskRuntimePriorReviewContext(
+          passNumber = previous.passNumber,
+          findings = previous.findings,
+          dispositions = blockerDispositions,
+        ).takeUnless(FeatureTaskRuntimePriorReviewContext::isEmpty)
+      }
 
   val reviewCapReached: Boolean get() = disposition == GoalSubtaskReviewDisposition.REVIEW_CAP_REACHED
 
   val reviewSkippedByUser: Boolean get() =
     passResults.lastOrNull()?.verdict == FeatureTaskRuntimeVerdict.REVIEW_SKIPPED_BY_USER
 
-  fun reserveNextPass(): GoalSubtaskReviewState = when {
-    reviewCapReached -> this
-    reviewSkippedByUser -> this
-    reservedPassNumber != null -> this
-    completedPassCount >= 1 -> this
-    else -> copy(reservedPassNumber = 1)
-  }
+  fun reserveNextPass(): GoalSubtaskReviewState =
+    when {
+      reviewCapReached -> this
+      reviewSkippedByUser -> this
+      reservedPassNumber != null -> this
+      completedPassCount >= 1 -> this
+      else -> copy(reservedPassNumber = 1)
+    }
 
   fun completeReservedPass(
     verdict: FeatureTaskRuntimeVerdict,
@@ -155,17 +158,18 @@ data class GoalSubtaskReviewState(
     }
     val disposedPass = blockerDispositions.isNotEmpty()
     val executedMode = FeatureTaskRuntimeReviewPassSequence.modeForPass(codeReviewMode, passNumber)
-    val result = GoalSubtaskReviewPassResult(
-      passNumber = passNumber,
-      verdict = verdict,
-      reviewResultArtifact = "$GOAL_SUBTASK_REVIEW_RESULT_ARTIFACT_PREFIX.$passNumber",
-      unresolvedFindingCount = unresolvedFindingCount,
-      findings = findings,
-      executedMode = executedMode,
-
-      commitFocusedAccounting = effectiveCommitFocusedAccounting
-        ?.takeIf { executedMode != CodeReviewExecutionMode.INLINE },
-    )
+    val result =
+      GoalSubtaskReviewPassResult(
+        passNumber = passNumber,
+        verdict = verdict,
+        reviewResultArtifact = "$GOAL_SUBTASK_REVIEW_RESULT_ARTIFACT_PREFIX.$passNumber",
+        unresolvedFindingCount = unresolvedFindingCount,
+        findings = findings,
+        executedMode = executedMode,
+        commitFocusedAccounting =
+          effectiveCommitFocusedAccounting
+            ?.takeIf { executedMode != CodeReviewExecutionMode.INLINE },
+      )
     return copy(
       reservedPassNumber = null,
       completedPassCount = passNumber,
@@ -190,55 +194,62 @@ data class GoalSubtaskReviewState(
   val unresolvedBlockerDispositions: List<GoalSubtaskBlockerDisposition>
     get() = blockerDispositions.filter { it.verdict == GoalSubtaskBlockerDispositionVerdict.UNRESOLVED }
 
-  internal fun boundedDispositionSummary(): Map<String, Any?> = linkedMapOf(
-    "pass" to completedPassCount,
-    "disposition_counts" to GoalSubtaskBlockerDispositionVerdict.entries.associate { verdict ->
-      verdict.wireValue to blockerDispositions.count { it.verdict == verdict }
-    },
-    "verdicts" to blockerDispositions.map { it.verdict.wireValue },
-  )
+  internal fun boundedDispositionSummary(): Map<String, Any?> =
+    linkedMapOf(
+      "pass" to completedPassCount,
+      "disposition_counts" to
+        GoalSubtaskBlockerDispositionVerdict.entries.associate { verdict ->
+          verdict.wireValue to blockerDispositions.count { it.verdict == verdict }
+        },
+      "verdicts" to blockerDispositions.map { it.verdict.wireValue },
+    )
 
   fun acknowledgeSummariesThrough(passNumber: Int): GoalSubtaskReviewState =
     copy(emittedPassCount = passNumber.coerceIn(emittedPassCount, completedPassCount))
 
   fun toPersistenceWire(): Any = toArtifactMap()
 
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
-    "review_base_sha" to reviewBaseSha,
-    "code_review_mode" to codeReviewMode.wireValue,
-    "completed_pass_count" to completedPassCount,
-    "disposition" to disposition.wireValue,
-    "pass_results" to passResults.map(GoalSubtaskReviewPassResult::toArtifactMap),
-    "emitted_pass_count" to emittedPassCount,
-    "blocker_dispositions" to blockerDispositions.map(GoalSubtaskBlockerDisposition::toArtifactMap),
-  ).apply {
-    if (baselineUntrackedPaths.isNotEmpty()) put("baseline_untracked_paths", baselineUntrackedPaths)
-    reservedPassNumber?.let { put("reserved_pass_number", it) }
-    reviewInputArtifact?.let { put("review_input_artifact", it) }
-    reviewedDeltaDigest?.let { put("reviewed_delta_digest", it) }
-    reviewedTargetSha?.let { put("reviewed_target_sha", it) }
-    reviewedTreeSha?.let { put("reviewed_tree_sha", it) }
-    operatorDecision?.let { put("operator_decision", it.wireValue) }
-    if (operatorRetryRounds > 0) put("operator_retry_rounds", operatorRetryRounds)
-    resolvedTier?.let { put("resolved_tier", it.wireValue) }
-    decidingRule?.let { put("deciding_rule", it) }
-    remediationBaseSha?.let { put("remediation_base_sha", it) }
-    if (repairReceipts.isNotEmpty()) {
-      put("repair_receipts", repairReceipts.map(FeatureTaskRuntimeRepairReceipt::toArtifactMap))
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
+      "review_base_sha" to reviewBaseSha,
+      "code_review_mode" to codeReviewMode.wireValue,
+      "completed_pass_count" to completedPassCount,
+      "disposition" to disposition.wireValue,
+      "pass_results" to passResults.map(GoalSubtaskReviewPassResult::toArtifactMap),
+      "emitted_pass_count" to emittedPassCount,
+      "blocker_dispositions" to blockerDispositions.map(GoalSubtaskBlockerDisposition::toArtifactMap),
+    ).apply {
+      if (baselineUntrackedPaths.isNotEmpty()) put("baseline_untracked_paths", baselineUntrackedPaths)
+      reservedPassNumber?.let { put("reserved_pass_number", it) }
+      reviewInputArtifact?.let { put("review_input_artifact", it) }
+      reviewedDeltaDigest?.let { put("reviewed_delta_digest", it) }
+      reviewedTargetSha?.let { put("reviewed_target_sha", it) }
+      reviewedTreeSha?.let { put("reviewed_tree_sha", it) }
+      operatorDecision?.let { put("operator_decision", it.wireValue) }
+      if (operatorRetryRounds > 0) put("operator_retry_rounds", operatorRetryRounds)
+      resolvedTier?.let { put("resolved_tier", it.wireValue) }
+      decidingRule?.let { put("deciding_rule", it) }
+      remediationBaseSha?.let { put("remediation_base_sha", it) }
+      if (repairReceipts.isNotEmpty()) {
+        put("repair_receipts", repairReceipts.map(FeatureTaskRuntimeRepairReceipt::toArtifactMap))
+      }
     }
-  }
 
   companion object {
     fun initial(
       reviewBaseSha: String,
       baselineUntrackedPaths: Collection<String> = emptyList(),
       codeReviewMode: CodeReviewExecutionMode,
-    ): GoalSubtaskReviewState = GoalSubtaskReviewState(
-      reviewBaseSha = reviewBaseSha,
-      baselineUntrackedPaths = baselineUntrackedPaths.map(String::trim).filter(String::isNotBlank).distinct().sorted(),
-      codeReviewMode = codeReviewMode,
-    )
+    ): GoalSubtaskReviewState =
+      GoalSubtaskReviewState(
+        reviewBaseSha = reviewBaseSha,
+        baselineUntrackedPaths =
+          baselineUntrackedPaths.map(
+            String::trim,
+          ).filter(String::isNotBlank).distinct().sorted(),
+        codeReviewMode = codeReviewMode,
+      )
 
     internal fun fromArtifactMap(
       raw: Map<String, Any?>,
@@ -261,15 +272,17 @@ data class GoalSubtaskReviewState(
         GoalSubtaskReviewState(
           contractVersion = reader.requiredString("contract_version"),
           reviewBaseSha = reader.requiredString("review_base_sha"),
-          baselineUntrackedPaths = reader.optionalList("baseline_untracked_paths")
-            ?.mapIndexed { index, value ->
-              (value as? String)?.takeIf(String::isNotBlank)
-                ?: reviewStateError("$sourceLabel.baseline_untracked_paths[$index]", "must be a non-blank string.")
-            }
-            .orEmpty(),
-          codeReviewMode = CodeReviewExecutionMode.fromWire(
-            reader.requiredString("code_review_mode"),
-          ),
+          baselineUntrackedPaths =
+            reader.optionalList("baseline_untracked_paths")
+              ?.mapIndexed { index, value ->
+                (value as? String)?.takeIf(String::isNotBlank)
+                  ?: reviewStateError("$sourceLabel.baseline_untracked_paths[$index]", "must be a non-blank string.")
+              }
+              .orEmpty(),
+          codeReviewMode =
+            CodeReviewExecutionMode.fromWire(
+              reader.requiredString("code_review_mode"),
+            ),
           reservedPassNumber = reader.optionalInt("reserved_pass_number"),
           completedPassCount = reader.requiredInt("completed_pass_count"),
           disposition = GoalSubtaskReviewDisposition.fromWire(reader.requiredString("disposition")),
@@ -280,11 +293,13 @@ data class GoalSubtaskReviewState(
           passResults = decodePassResults(raw, sourceLabel),
           emittedPassCount = reader.requiredInt("emitted_pass_count"),
           blockerDispositions = decodeBlockerDispositions(raw, sourceLabel),
-          operatorDecision = reader.optionalString("operator_decision")
-            ?.let(GoalSubtaskOperatorDecision::fromWire),
+          operatorDecision =
+            reader.optionalString("operator_decision")
+              ?.let(GoalSubtaskOperatorDecision::fromWire),
           operatorRetryRounds = reader.optionalInt("operator_retry_rounds") ?: 0,
-          resolvedTier = reader.optionalString("resolved_tier")
-            ?.let(CodeReviewExecutionMode::fromWire),
+          resolvedTier =
+            reader.optionalString("resolved_tier")
+              ?.let(CodeReviewExecutionMode::fromWire),
           decidingRule = reader.optionalString("deciding_rule"),
           remediationBaseSha = reader.optionalString("remediation_base_sha"),
           repairReceipts = decodeRepairReceipts(raw, sourceLabel),
@@ -296,7 +311,10 @@ data class GoalSubtaskReviewState(
       }
     }
 
-    private fun decodePassResults(raw: Map<String, Any?>, sourceLabel: String): List<GoalSubtaskReviewPassResult> =
+    private fun decodePassResults(
+      raw: Map<String, Any?>,
+      sourceLabel: String,
+    ): List<GoalSubtaskReviewPassResult> =
       reviewStateReader(raw, sourceLabel).requiredList("pass_results").mapIndexed { index, value ->
         GoalSubtaskReviewPassResult.fromArtifactMap(
           value.toReviewStateMap("$sourceLabel.pass_results[$index]"),
@@ -307,32 +325,37 @@ data class GoalSubtaskReviewState(
     private fun decodeBlockerDispositions(
       raw: Map<String, Any?>,
       sourceLabel: String,
-    ): List<GoalSubtaskBlockerDisposition> = reviewStateReader(raw, sourceLabel).optionalList("blocker_dispositions")
-      ?.mapIndexed { index, value ->
-        GoalSubtaskBlockerDisposition.fromArtifactMap(
-          value.toReviewStateMap("$sourceLabel.blocker_dispositions[$index]"),
-          "$sourceLabel.blocker_dispositions[$index]",
-        )
-      }.orEmpty()
+    ): List<GoalSubtaskBlockerDisposition> =
+      reviewStateReader(raw, sourceLabel).optionalList("blocker_dispositions")
+        ?.mapIndexed { index, value ->
+          GoalSubtaskBlockerDisposition.fromArtifactMap(
+            value.toReviewStateMap("$sourceLabel.blocker_dispositions[$index]"),
+            "$sourceLabel.blocker_dispositions[$index]",
+          )
+        }.orEmpty()
 
     private fun decodeRepairReceipts(
       raw: Map<String, Any?>,
       sourceLabel: String,
-    ): List<FeatureTaskRuntimeRepairReceipt> = reviewStateReader(raw, sourceLabel).optionalList("repair_receipts")
-      ?.mapIndexed { index, value ->
-        try {
-          FeatureTaskRuntimeRepairReceipt.fromArtifactMap(
-            value.toReviewStateMap("$sourceLabel.repair_receipts[$index]"),
-            "$sourceLabel.repair_receipts[$index]",
-          )
-        } catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {
-          reviewStateError("$sourceLabel.repair_receipts[$index]", error.payloadFreeReason, error)
-        }
-      }.orEmpty()
+    ): List<FeatureTaskRuntimeRepairReceipt> =
+      reviewStateReader(raw, sourceLabel).optionalList("repair_receipts")
+        ?.mapIndexed { index, value ->
+          try {
+            FeatureTaskRuntimeRepairReceipt.fromArtifactMap(
+              value.toReviewStateMap("$sourceLabel.repair_receipts[$index]"),
+              "$sourceLabel.repair_receipts[$index]",
+            )
+          } catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {
+            reviewStateError("$sourceLabel.repair_receipts[$index]", error.payloadFreeReason, error)
+          }
+        }.orEmpty()
   }
 }
 
-internal fun blocksAdvance(unresolvedFindingCount: Int, findings: List<GoalSubtaskReviewCompactFinding>): Boolean =
+internal fun blocksAdvance(
+  unresolvedFindingCount: Int,
+  findings: List<GoalSubtaskReviewCompactFinding>,
+): Boolean =
   unresolvedFindingCount > 0 && (findings.isEmpty() || findings.any(GoalSubtaskReviewCompactFinding::blocksAdvance))
 
 data class GoalSubtaskReviewedRevision(val targetSha: String, val treeSha: String) {
@@ -345,7 +368,11 @@ data class GoalSubtaskReviewedRevision(val targetSha: String, val treeSha: Strin
 
 private val GIT_COMMIT_SHA = Regex("^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
 
-fun reviewStateError(fieldPath: String, reason: String, cause: Throwable? = null): Nothing =
+fun reviewStateError(
+  fieldPath: String,
+  reason: String,
+  cause: Throwable? = null,
+): Nothing =
   throw InvalidGoalSubtaskReviewStateSchemaError(
     sourceLabel = GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
     fieldPath = fieldPath,

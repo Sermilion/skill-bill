@@ -11,19 +11,21 @@ internal class SharedGoalPreplanStore(
   private val statusProjection: GoalPlanningStatusProjectionSql,
   private val sharedPreplan: GoalSharedPreplanSql,
 ) : SharedGoalPreplanRepository {
-  override fun hasPreparedSharedPreplan(parentGoalWorkflowId: String): Boolean = translateSqlFailure(
-    parentGoalWorkflowId,
-    0,
-  ) {
-    statusProjection.hasPreparedSharedPreplan(parentGoalWorkflowId)
-  }
+  override fun hasPreparedSharedPreplan(parentGoalWorkflowId: String): Boolean =
+    translateSqlFailure(
+      parentGoalWorkflowId,
+      0,
+    ) {
+      statusProjection.hasPreparedSharedPreplan(parentGoalWorkflowId)
+    }
 
-  override fun listPreparedPlanSubtaskIds(parentGoalWorkflowId: String): List<Int> = translateSqlFailure(
-    parentGoalWorkflowId,
-    0,
-  ) {
-    statusProjection.listPreparedPlanSubtaskIds(parentGoalWorkflowId)
-  }
+  override fun listPreparedPlanSubtaskIds(parentGoalWorkflowId: String): List<Int> =
+    translateSqlFailure(
+      parentGoalWorkflowId,
+      0,
+    ) {
+      statusProjection.listPreparedPlanSubtaskIds(parentGoalWorkflowId)
+    }
 
   override fun checkpointSharedPreplan(checkpoint: SharedGoalPreplanCheckpoint) {
     translateSqlFailure(checkpoint.identity.parentGoalWorkflowId, 0) {
@@ -54,21 +56,28 @@ internal class SharedGoalPreplanStore(
   override fun cascadeSiblingPlansAfterSharedPreplanRefresh(
     parentGoalWorkflowId: String,
     cascadePlanSubtaskIds: List<Int>,
-  ): List<Int> = translateSqlFailure(parentGoalWorkflowId, 0) {
-    sharedPreplan.cascadeSiblingPlansAfterSharedPreplanRefresh(parentGoalWorkflowId, cascadePlanSubtaskIds)
-  }
+  ): List<Int> =
+    translateSqlFailure(parentGoalWorkflowId, 0) {
+      sharedPreplan.cascadeSiblingPlansAfterSharedPreplanRefresh(parentGoalWorkflowId, cascadePlanSubtaskIds)
+    }
 
   override fun findSharedPreplan(expectedIdentity: GoalPlanningIdentity): SharedGoalPreplanCheckpoint? =
     translateSqlFailure(expectedIdentity.parentGoalWorkflowId, 0) {
       sharedPreplan.findSharedPreplan(expectedIdentity)
     }
 
-  override fun deleteSharedPreplan(identity: GoalPlanningIdentity, expectedPayloadSha256: String): Int =
+  override fun deleteSharedPreplan(
+    identity: GoalPlanningIdentity,
+    expectedPayloadSha256: String,
+  ): Int =
     translateSqlFailure(identity.parentGoalWorkflowId, 0) {
       sharedPreplan.deleteSharedPreplan(identity, expectedPayloadSha256)
     }
 
-  override fun invalidateSharedPreplan(identity: GoalPlanningIdentity, expectedPayloadSha256: String): Int =
+  override fun invalidateSharedPreplan(
+    identity: GoalPlanningIdentity,
+    expectedPayloadSha256: String,
+  ): Int =
     translateSqlFailure(identity.parentGoalWorkflowId, 0) {
       sharedPreplan.invalidateSharedPreplan(identity, expectedPayloadSha256)
     }

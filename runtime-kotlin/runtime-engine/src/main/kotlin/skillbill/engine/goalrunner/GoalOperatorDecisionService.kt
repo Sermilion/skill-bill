@@ -8,6 +8,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
+
 @Inject
 class GoalOperatorDecisionService(
   private val manifestStore: GoalRunnerManifestStore,
@@ -37,15 +38,16 @@ class GoalOperatorDecisionService(
     val loaded = manifestStore.loadByIssueKey(request.issueKey, request.repoRoot)
     val subtask = loaded?.manifest?.subtasks?.firstOrNull { it.id == request.subtaskId }
     val workflowId = subtask?.workflowId?.takeIf(String::isNotBlank)
-    val rejectReason = when {
-      loaded == null ->
-        "No prepared goal exists for '${request.issueKey}'."
-      subtask == null ->
-        "Subtask ${request.subtaskId} is not part of this goal."
-      workflowId == null ->
-        "Subtask ${request.subtaskId} has no child workflow to record an operator decision against."
-      else -> null
-    }
+    val rejectReason =
+      when {
+        loaded == null ->
+          "No prepared goal exists for '${request.issueKey}'."
+        subtask == null ->
+          "Subtask ${request.subtaskId} is not part of this goal."
+        workflowId == null ->
+          "Subtask ${request.subtaskId} has no child workflow to record an operator decision against."
+        else -> null
+      }
     return if (rejectReason != null) {
       ResolvedChildWorkflow.Rejected(GoalRunnerOperatorDecisionResult.Rejected(request.issueKey, rejectReason))
     } else {

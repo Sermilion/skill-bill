@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
+
 class ReviewRunLaneSegmentAccountingJsonTest {
   @Test
   fun `empty and legacy encoded rows preserve the storage boundary`() {
@@ -31,12 +32,13 @@ class ReviewRunLaneSegmentAccountingJsonTest {
 
   @Test
   fun `segment accounting json round trips control characters and unicode escapes`() {
-    val segment = ReviewLaneSegmentAccounting(
-      segmentId = "seg-\u000A\t\"\\u0041",
-      measuredBytes = 42,
-      entryCount = 3,
-      compositionDigest = "d".repeat(64),
-    )
+    val segment =
+      ReviewLaneSegmentAccounting(
+        segmentId = "seg-\u000A\t\"\\u0041",
+        measuredBytes = 42,
+        entryCount = 3,
+        compositionDigest = "d".repeat(64),
+      )
     val encoded = ReviewRunLaneSegmentAccountingJson.encode(listOf(segment))
     val decoded = ReviewRunLaneSegmentAccountingJson.decode(encoded).single()
     assertEquals(segment, decoded)

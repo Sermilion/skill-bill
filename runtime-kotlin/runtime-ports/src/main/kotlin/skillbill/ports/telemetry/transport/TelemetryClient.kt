@@ -7,9 +7,15 @@ import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
 
 interface TelemetryClient {
-  fun sendBatch(settings: TelemetrySettings, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport
+  fun sendBatch(
+    settings: TelemetrySettings,
+    rows: List<TelemetryOutboxRecord>,
+  ): TelemetryDeliveryReport
 
   fun fetchProxyCapabilities(settings: TelemetrySettings): TelemetryProxyCapabilities
 
-  fun fetchRemoteStats(settings: TelemetrySettings, request: RemoteStatsRequest): TelemetryRemoteStatsResult
+  fun fetchRemoteStats(
+    settings: TelemetrySettings,
+    request: RemoteStatsRequest,
+  ): TelemetryRemoteStatsResult
 }

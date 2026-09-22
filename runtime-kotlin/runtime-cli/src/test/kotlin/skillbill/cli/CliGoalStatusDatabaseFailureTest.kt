@@ -69,10 +69,11 @@ class CliGoalStatusDatabaseFailureTest {
     val fixture = goalFixture(subtaskCount = 1)
     val unopenable = unopenableDatabasePath(fixture.tempDir)
 
-    val result = CliRuntime.run(
-      listOf("--db", unopenable.toString(), "goal", "status", "SKILL-901"),
-      fixture.context(launcher = UnusedStatusAgentRunLauncher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--db", unopenable.toString(), "goal", "status", "SKILL-901"),
+        fixture.context(launcher = UnusedStatusAgentRunLauncher),
+      )
 
     assertEquals(1, result.exitCode, result.stdout)
     assertFalse(result.stdout.contains("org.sqlite"), result.stdout)
@@ -85,27 +86,28 @@ class CliGoalStatusDatabaseFailureTest {
     val fixture = goalFixture(subtaskCount = 1)
     val missingSource = fixture.tempDir.resolve("absent-skill")
 
-    val thrown = runCatching {
-      CliRuntime.run(
-        listOf(
-          "install",
-          "link-skill",
-          "--source",
-          missingSource.toString(),
-          "--target-dir",
-          fixture.tempDir.resolve("agent/skills").toString(),
-          "--agent",
-          "codex",
-        ),
+    val thrown =
+      runCatching {
+        CliRuntime.run(
+          listOf(
+            "install",
+            "link-skill",
+            "--source",
+            missingSource.toString(),
+            "--target-dir",
+            fixture.tempDir.resolve("agent/skills").toString(),
+            "--agent",
+            "codex",
+          ),
+          fixture.context(launcher = UnusedStatusAgentRunLauncher).copy(environment = emptyMap()),
+        )
+      }
 
-        fixture.context(launcher = UnusedStatusAgentRunLauncher).copy(environment = emptyMap()),
+    val error =
+      assertNotNull(
+        thrown.exceptionOrNull(),
+        "the new database catch swallowed an unrelated failure instead of letting it propagate",
       )
-    }
-
-    val error = assertNotNull(
-      thrown.exceptionOrNull(),
-      "the new database catch swallowed an unrelated failure instead of letting it propagate",
-    )
     val rendered = error.toString()
     assertFalse(
       rendered.contains("Database open failed") || rendered.contains("Database read failed"),
@@ -114,7 +116,11 @@ class CliGoalStatusDatabaseFailureTest {
     assertFalse(rendered.contains("database_unavailable"), rendered)
   }
 
-  private fun monitorStatus(fixture: GoalCliFixture, dbPath: Path, issueKey: String = "SKILL-901") = CliRuntime.run(
+  private fun monitorStatus(
+    fixture: GoalCliFixture,
+    dbPath: Path,
+    issueKey: String = "SKILL-901",
+  ) = CliRuntime.run(
     listOf(
       "--db",
       dbPath.toString(),

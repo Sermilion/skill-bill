@@ -42,9 +42,10 @@ class GoalStatusCommand(
   ).flag(default = false)
   private val agent by option(
     "--agent",
-    help = "Agent invoking this read-only status view. Resolution order: --agent, then SKILL_BILL_AGENT, " +
-      "then the detected invoking-agent execution context. Optional and never required: active_agent " +
-      "comes from persisted run state, not from this option.",
+    help =
+      "Agent invoking this read-only status view. Resolution order: --agent, then SKILL_BILL_AGENT, " +
+        "then the detected invoking-agent execution context. Optional and never required: active_agent " +
+        "comes from persisted run state, not from this option.",
   )
   private val agentOverride by option(
     "--agent-override",
@@ -83,37 +84,41 @@ class GoalStatusCommand(
     if (options.monitorOnly && (diffStat || diffHunks.isNotEmpty())) {
       throw UsageError("Monitor accepts only one bounded status snapshot; omit diff options.")
     }
-    val projection = try {
-      goalRunnerStatusService.status(inputs.goalStatusRequest(options))
-    } catch (error: DatabaseAccessError) {
-      if (!options.monitorOnly) throw error
-      val payload = databaseUnavailableGoalStatusCliMap(issueKey, error)
-      state.completeText(goalMonitorStatusText(payload), payload, exitCode = payload.goalStatusExitCode())
-      return
-    }
-    val payload = if (options.monitorOnly) {
-      projection.toBoundedGoalStatusCliMap(issueKey)
-    } else {
-      projection.toGoalStatusCliMap(issueKey)
-    }
+    val projection =
+      try {
+        goalRunnerStatusService.status(inputs.goalStatusRequest(options))
+      } catch (error: DatabaseAccessError) {
+        if (!options.monitorOnly) throw error
+        val payload = databaseUnavailableGoalStatusCliMap(issueKey, error)
+        state.completeText(goalMonitorStatusText(payload), payload, exitCode = payload.goalStatusExitCode())
+        return
+      }
+    val payload =
+      if (options.monitorOnly) {
+        projection.toBoundedGoalStatusCliMap(issueKey)
+      } else {
+        projection.toGoalStatusCliMap(issueKey)
+      }
     val text = if (options.monitorOnly) goalMonitorStatusText(payload) else goalStatusText(payload)
     state.completeText(text, payload, exitCode = payload.goalStatusExitCode())
   }
 
-  private fun statusCliRequestOptions(): GoalStatusCliRequestOptions = GoalStatusCliRequestOptions(
-    issueKey = issueKey,
-    monitorOnly = monitorOnly,
-    agent = agent,
-    agentOverride = agentOverride,
-    repoRoot = repoRoot,
-    diff = GoalStatusCliDiffOptions(
-      includeDiffStat = diffStat,
-      selectedDiffHunkPaths = diffHunks,
-      selectedDiffMaxHunks = diffHunkMaxHunks,
-      selectedDiffMaxLines = diffHunkMaxLines,
-      selectedDiffMaxBytes = diffHunkMaxBytes,
-    ),
-  )
+  private fun statusCliRequestOptions(): GoalStatusCliRequestOptions =
+    GoalStatusCliRequestOptions(
+      issueKey = issueKey,
+      monitorOnly = monitorOnly,
+      agent = agent,
+      agentOverride = agentOverride,
+      repoRoot = repoRoot,
+      diff =
+        GoalStatusCliDiffOptions(
+          includeDiffStat = diffStat,
+          selectedDiffHunkPaths = diffHunks,
+          selectedDiffMaxHunks = diffHunkMaxHunks,
+          selectedDiffMaxLines = diffHunkMaxLines,
+          selectedDiffMaxBytes = diffHunkMaxBytes,
+        ),
+    )
 }
 
 @Inject
@@ -125,9 +130,10 @@ class GoalWatchCommand(
   private val issueKey by argument(help = "Parent issue key for the decomposed goal.")
   private val agent by option(
     "--agent",
-    help = "Agent invoking this read-only status view. Resolution order: --agent, then SKILL_BILL_AGENT, " +
-      "then the detected invoking-agent execution context. Optional and never required: active_agent " +
-      "comes from persisted run state, not from this option.",
+    help =
+      "Agent invoking this read-only status view. Resolution order: --agent, then SKILL_BILL_AGENT, " +
+        "then the detected invoking-agent execution context. Optional and never required: active_agent " +
+        "comes from persisted run state, not from this option.",
   )
   private val agentOverride by option(
     "--agent-override",
@@ -136,13 +142,15 @@ class GoalWatchCommand(
   private val repoRoot by option("--repo-root", help = "Repository root for checked-in manifest recovery.")
   private val diffStat by option(
     "--diff-stat",
-    help = "Include one current worktree diff stat snapshot per refresh. " +
-      "Runs git diff --numstat each refresh.",
+    help =
+      "Include one current worktree diff stat snapshot per refresh. " +
+        "Runs git diff --numstat each refresh.",
   ).flag(default = false)
   private val diffHunks by option(
     "--diff-hunk",
-    help = "Include bounded selected diff hunks for this path on each refresh. " +
-      "Repeat for multiple paths; can be noisy.",
+    help =
+      "Include bounded selected diff hunks for this path on each refresh. " +
+        "Repeat for multiple paths; can be noisy.",
   ).multiple()
   private val diffHunkMaxHunks by option(
     "--diff-hunk-max-hunks",
@@ -183,25 +191,28 @@ class GoalWatchCommand(
     var consecutiveIdleRefreshes = 0
     while (true) {
       refreshCount += 1
-      val projection = goalRunnerStatusService.statusRefresh(
-        inputs.goalStatusRequest(statusCliRequestOptions()),
-      )
+      val projection =
+        goalRunnerStatusService.statusRefresh(
+          inputs.goalStatusRequest(statusCliRequestOptions()),
+        )
       val refresh = projection.toGoalStatusCliMap(issueKey).withWatchRefresh(refreshCount)
       latestRefresh = refresh
-      consecutiveIdleRefreshes = if (projection?.executionLiveness == ExecutionLiveness.IDLE) {
-        consecutiveIdleRefreshes + 1
-      } else {
-        0
-      }
+      consecutiveIdleRefreshes =
+        if (projection?.executionLiveness == ExecutionLiveness.IDLE) {
+          consecutiveIdleRefreshes + 1
+        } else {
+          0
+        }
       stopReason = refresh.goalWatchStopReason(
         refreshCount = refreshCount,
         maxRefreshes = maxRefreshes,
         idleStop = consecutiveIdleRefreshes >= IDLE_STOP_CONSECUTIVE_REFRESHES,
       ) ?: ""
       val renderedRefresh = goalWatchRefreshText(refresh)
-      val normalizedRefresh = goalWatchRefreshText(
-        refresh.toMutableMap().apply { this["refresh_index"] = "<refresh_index>" },
-      )
+      val normalizedRefresh =
+        goalWatchRefreshText(
+          refresh.toMutableMap().apply { this["refresh_index"] = "<refresh_index>" },
+        )
       val endsLoop = stopReason.isNotEmpty()
       val refreshChanged = lastPrintedRefresh == null || normalizedRefresh != lastPrintedRefresh
       val shouldPrintRefresh = endsLoop || showUnchanged || !suppressUnchanged || refreshChanged
@@ -216,28 +227,31 @@ class GoalWatchCommand(
         Thread.sleep(intervalSeconds * MILLIS_PER_SECOND)
       }
     }
-    val payload = linkedMapOf<String, Any?>(
-      SharedPayloadKeys.STATUS to latestRefresh.get(SharedPayloadKeys.STATUS),
-      SharedPayloadKeys.ISSUE_KEY to issueKey,
-      "refresh_count" to refreshCount,
-      "interval_seconds" to intervalSeconds,
-      "latest_refresh" to latestRefresh,
-      "stop_reason" to stopReason,
-    )
+    val payload =
+      linkedMapOf<String, Any?>(
+        SharedPayloadKeys.STATUS to latestRefresh.get(SharedPayloadKeys.STATUS),
+        SharedPayloadKeys.ISSUE_KEY to issueKey,
+        "refresh_count" to refreshCount,
+        "interval_seconds" to intervalSeconds,
+        "latest_refresh" to latestRefresh,
+        "stop_reason" to stopReason,
+      )
     state.completeText(goalWatchText(payload), payload, exitCode = payload.goalStatusExitCode())
   }
 
-  private fun statusCliRequestOptions(): GoalStatusCliRequestOptions = GoalStatusCliRequestOptions(
-    issueKey = issueKey,
-    agent = agent,
-    agentOverride = agentOverride,
-    repoRoot = repoRoot,
-    diff = GoalStatusCliDiffOptions(
-      includeDiffStat = diffStat,
-      selectedDiffHunkPaths = diffHunks,
-      selectedDiffMaxHunks = diffHunkMaxHunks,
-      selectedDiffMaxLines = diffHunkMaxLines,
-      selectedDiffMaxBytes = diffHunkMaxBytes,
-    ),
-  )
+  private fun statusCliRequestOptions(): GoalStatusCliRequestOptions =
+    GoalStatusCliRequestOptions(
+      issueKey = issueKey,
+      agent = agent,
+      agentOverride = agentOverride,
+      repoRoot = repoRoot,
+      diff =
+        GoalStatusCliDiffOptions(
+          includeDiffStat = diffStat,
+          selectedDiffHunkPaths = diffHunks,
+          selectedDiffMaxHunks = diffHunkMaxHunks,
+          selectedDiffMaxLines = diffHunkMaxLines,
+          selectedDiffMaxBytes = diffHunkMaxBytes,
+        ),
+    )
 }

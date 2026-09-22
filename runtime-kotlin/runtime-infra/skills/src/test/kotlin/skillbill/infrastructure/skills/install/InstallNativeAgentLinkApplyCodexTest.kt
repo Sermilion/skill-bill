@@ -20,15 +20,17 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupport() {
   @Test
   fun `inventory rejects a logical name whose installed filename identifies another worker`() {
     val fixture = setupApplyFixture()
-    val cacheRoot = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    )
+    val cacheRoot =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      )
     val inventory = fixture.home.resolve(".skill-bill/native-agent-link-inventory.json")
     Files.createDirectories(inventory.parent)
     Files.writeString(
@@ -49,11 +51,12 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
   @Test
   fun `inventory rejects an entry object with a duplicated field key`() {
     val fixture = setupApplyFixture()
-    val cacheRoot = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    )
+    val cacheRoot =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      )
     val inventory = fixture.home.resolve(".skill-bill/native-agent-link-inventory.json")
     Files.createDirectories(inventory.parent)
     val installedPath = fixture.home.resolve(".codex/agents/bill-code-review-worker.toml")
@@ -77,11 +80,12 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
   @Test
   fun `preflight rejects stale Codex inventory when provider root disappeared`() {
     val fixture = setupApplyFixture()
-    val cacheRoot = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    )
+    val cacheRoot =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      )
     val inventory = fixture.home.resolve(".skill-bill/native-agent-link-inventory.json")
     Files.createDirectories(inventory.parent)
     Files.writeString(
@@ -94,15 +98,16 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
       ),
     )
 
-    val error = assertFailsWith<MissingInstalledNativeAgentError> {
-      FileSystemReviewNativeAgentPreflight(preflightContext(fixture.home)).verify(
-        ReviewNativeAgentPreflightRequest(
-          repoRoot = fixture.repoRoot,
-          agentIds = listOf("codex"),
-          logicalNames = listOf("bill-code-review-worker"),
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<MissingInstalledNativeAgentError> {
+        FileSystemReviewNativeAgentPreflight(preflightContext(fixture.home)).verify(
+          ReviewNativeAgentPreflightRequest(
+            repoRoot = fixture.repoRoot,
+            agentIds = listOf("codex"),
+            logicalNames = listOf("bill-code-review-worker"),
+          ),
+        )
+      }
 
     assertTrue(error.message.orEmpty().contains("active provider directory is missing"))
     assertEquals("skill-bill install apply", error.repairCommand)
@@ -113,11 +118,12 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
     val providerDir = fixture.home.resolve(".codex/agents")
-    val cacheRoot = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    )
+    val cacheRoot =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      )
     val sentinel = cacheRoot.resolve("sentinel")
     Files.createDirectories(cacheRoot)
     Files.writeString(sentinel, "prior cache")
@@ -127,9 +133,10 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     Files.createDirectories(inventory.parent)
     val invalidInventory = "not-json"
     Files.writeString(inventory, invalidInventory)
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -147,15 +154,17 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     val inventory = fixture.home.resolve(".skill-bill/native-agent-link-inventory.json")
     Files.createDirectories(inventory.parent)
     Files.writeString(inventory, "not-json")
-    val nativeAgentCache = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    )
+    val nativeAgentCache =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      )
     val providerAgents = fixture.home.resolve(".codex/agents")
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -169,9 +178,10 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
   fun `preflight accepts the current installed-skills native-agent generation`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+      )
     val result = applyInstallForTest(plan)
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
 
@@ -192,9 +202,10 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     Files.createDirectories(agentDir)
     val userFile = agentDir.resolve("user-owned.md")
     Files.writeString(userFile, "user cursor file\n")
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -204,13 +215,15 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     assertEquals(setOf(NativeAgentProviderId.CURSOR), linked.map { native -> native.provider }.toSet())
     assertEquals("user cursor file\n", Files.readString(userFile))
 
-    val currentRoot = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    )
-    val entries = NativeAgentLinkInventory.read(fixture.home, listOf(currentRoot), fixture.repoRoot)
-      .filter { entry -> entry.provider == "cursor" }
+    val currentRoot =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      )
+    val entries =
+      NativeAgentLinkInventory.read(fixture.home, listOf(currentRoot), fixture.repoRoot)
+        .filter { entry -> entry.provider == "cursor" }
     assertTrue(entries.isNotEmpty(), "cursor links were not inventoried")
     entries.forEach { entry ->
       assertEquals(agentDir, entry.installedPath.parent)
@@ -223,11 +236,12 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
       assertTrue(Files.isSymbolicLink(entry.installedPath))
     }
 
-    val repeat = applyInstallForTest(
-      planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
-      ),
-    )
+    val repeat =
+      applyInstallForTest(
+        planInstallForTest(
+          fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
+        ),
+      )
 
     assertEquals(InstallApplyStatus.SUCCESS, repeat.status)
     assertEquals(
@@ -247,27 +261,30 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     val agentDir = fixture.home.resolve(".cursor/agents")
     Files.createDirectories(agentDir)
     val logicalName = "bill-code-review-worker"
-    val obsoleteRoot = fixture.home.resolve(
-      ".skill-bill/installed-skills/native-agents-old-checkout-0123456789abcdef",
-    )
+    val obsoleteRoot =
+      fixture.home.resolve(
+        ".skill-bill/installed-skills/native-agents-old-checkout-0123456789abcdef",
+      )
     val obsoleteTarget = NativeAgentProvider.Cursor.cacheArtifactPath(obsoleteRoot, logicalName)
     Files.createDirectories(obsoleteTarget.parent)
     Files.writeString(obsoleteTarget, "---\nname: $logicalName\n---\n")
     val installed = agentDir.resolve(NativeAgentProvider.Cursor.fileName(logicalName))
     createSymlinkOrSkip(installed, obsoleteTarget)
 
-    val result = applyInstallForTest(
-      planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
-      ),
-    )
+    val result =
+      applyInstallForTest(
+        planInstallForTest(
+          fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
+        ),
+      )
 
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
-    val currentRoot = currentNativeAgentApplyCacheRoot(
-      fixture.home,
-      fixture.repoRoot.resolve("platform-packs"),
-      fixture.repoRoot.resolve("skills"),
-    )
+    val currentRoot =
+      currentNativeAgentApplyCacheRoot(
+        fixture.home,
+        fixture.repoRoot.resolve("platform-packs"),
+        fixture.repoRoot.resolve("skills"),
+      )
     assertEquals(
       NativeAgentProvider.Cursor.cacheArtifactPath(currentRoot, logicalName),
       readSymlinkTarget(installed),
@@ -278,23 +295,26 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
   fun `cursor preflight fails with the repair command when a managed link is deleted`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".cursor"))
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
+      )
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(plan).status)
-    val installed = fixture.home.resolve(".cursor/agents")
-      .resolve(NativeAgentProvider.Cursor.fileName("bill-code-review-worker"))
+    val installed =
+      fixture.home.resolve(".cursor/agents")
+        .resolve(NativeAgentProvider.Cursor.fileName("bill-code-review-worker"))
     Files.delete(installed)
 
-    val failure = assertFailsWith<MissingInstalledNativeAgentError> {
-      FileSystemReviewNativeAgentPreflight(preflightContext(fixture.home)).verify(
-        ReviewNativeAgentPreflightRequest(
-          repoRoot = fixture.repoRoot,
-          agentIds = listOf("cursor"),
-          logicalNames = listOf("bill-code-review-worker"),
-        ),
-      )
-    }
+    val failure =
+      assertFailsWith<MissingInstalledNativeAgentError> {
+        FileSystemReviewNativeAgentPreflight(preflightContext(fixture.home)).verify(
+          ReviewNativeAgentPreflightRequest(
+            repoRoot = fixture.repoRoot,
+            agentIds = listOf("cursor"),
+            logicalNames = listOf("bill-code-review-worker"),
+          ),
+        )
+      }
 
     assertContains(failure.message.orEmpty(), "skill-bill install apply")
   }
@@ -303,9 +323,10 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
   fun `preflight accepts installed native agents after source checkout is removed`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan = planInstallForTest(
-      fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+      )
     val result = applyInstallForTest(plan)
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
     Files.walk(fixture.repoRoot).use { paths ->

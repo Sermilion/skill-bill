@@ -60,26 +60,30 @@ class GoalRunnerHardResetOrphanTrapTest {
 
   @Test
   fun `inspection refuses when checkout does not land on the feature branch`() {
-    val git = orphanTrapGit().apply {
-      currentBranchResult = WorkflowGitOperationResult.Ok(value = "other")
-      landedBranchAfterCheckout = "other"
-    }
-    val inspection = assertIs<GoalRunnerHardResetOrphanTrapInspection.Unavailable>(
-      inspectHardResetOrphanTrap(manifest(), repoRoot, git),
-    )
+    val git =
+      orphanTrapGit().apply {
+        currentBranchResult = WorkflowGitOperationResult.Ok(value = "other")
+        landedBranchAfterCheckout = "other"
+      }
+    val inspection =
+      assertIs<GoalRunnerHardResetOrphanTrapInspection.Unavailable>(
+        inspectHardResetOrphanTrap(manifest(), repoRoot, git),
+      )
     assertContains(inspection.reason, "instead of '$branch'")
   }
 
   @Test
   fun `review baseline block for subtask 2 includes one hard reset command`() {
-    val manifest = skillbill.engine.goalrunner.manifest(2).copy(
-      issueKey = issueKey,
-      subtasks = listOf(
-        skillbill.engine.goalrunner.manifest(2).subtasks[0].copy(status = "complete", commitSha = parentSha),
-        skillbill.engine.goalrunner.manifest(2).subtasks[1].copy(status = "pending"),
-      ),
-      currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 2, action = "start"),
-    )
+    val manifest =
+      skillbill.engine.goalrunner.manifest(2).copy(
+        issueKey = issueKey,
+        subtasks =
+          listOf(
+            skillbill.engine.goalrunner.manifest(2).subtasks[0].copy(status = "complete", commitSha = parentSha),
+            skillbill.engine.goalrunner.manifest(2).subtasks[1].copy(status = "pending"),
+          ),
+        currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 2, action = "start"),
+      )
     val reason = reviewBaselineBlockedReason(manifest, 2, "Could not capture review baseline.")
     assertEquals(
       "Could not capture review baseline. Recover with: '${goalPlanningHardResetRemedy(issueKey)}' " +
@@ -96,35 +100,38 @@ class GoalRunnerHardResetOrphanTrapTest {
     )
   }
 
-  private fun manifest() = skillbill.engine.goalrunner.manifest(1).copy(
-    issueKey = issueKey,
-    status = "in_progress",
-    featureBranch = branch,
-    currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
-    subtasks = listOf(
-      skillbill.engine.goalrunner.manifest(1).subtasks.single().copy(
-        status = "in_progress",
-        workflowId = "wfl-child",
-      ),
-    ),
-  )
+  private fun manifest() =
+    skillbill.engine.goalrunner.manifest(1).copy(
+      issueKey = issueKey,
+      status = "in_progress",
+      featureBranch = branch,
+      currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
+      subtasks =
+        listOf(
+          skillbill.engine.goalrunner.manifest(1).subtasks.single().copy(
+            status = "in_progress",
+            workflowId = "wfl-child",
+          ),
+        ),
+    )
 
   private fun orphanTrapGit(
     unpushed: Boolean = true,
     headMessage: String = "wip\n\n${identity.trailer}\n",
-  ): RecordingWorkflowGitOperations = RecordingWorkflowGitOperations(
-    currentBranchValue = branch,
-    currentBranchResult = WorkflowGitOperationResult.Ok(value = branch),
-  ).apply {
-    headCommitShaValue = headSha
-    headCommitMessageValue = headMessage
-    localBranchHasUnpushedCommitsValue = unpushed
-    onResolveCommit = { revision ->
-      if (revision == "$headSha~1") {
-        WorkflowGitOperationResult.Ok(value = parentSha)
-      } else {
-        null
+  ): RecordingWorkflowGitOperations =
+    RecordingWorkflowGitOperations(
+      currentBranchValue = branch,
+      currentBranchResult = WorkflowGitOperationResult.Ok(value = branch),
+    ).apply {
+      headCommitShaValue = headSha
+      headCommitMessageValue = headMessage
+      localBranchHasUnpushedCommitsValue = unpushed
+      onResolveCommit = { revision ->
+        if (revision == "$headSha~1") {
+          WorkflowGitOperationResult.Ok(value = parentSha)
+        } else {
+          null
+        }
       }
     }
-  }
 }

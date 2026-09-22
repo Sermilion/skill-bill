@@ -54,24 +54,27 @@ data class FeatureTaskRuntimeProjectionMeasurement(
       "FeatureTaskRuntimeProjectionMeasurement counts must be non-negative."
     }
   }
-  internal fun toTelemetryMap(): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PROJECTION_MEASUREMENT_CONTRACT_VERSION,
-    SharedPayloadKeys.WORKFLOW_ID to workflowId,
-    "consumer_phase_id" to consumerPhaseId,
-    "projection_contract_id" to projectionContractId,
-    "producer_iteration" to mapOf(
-      SharedPayloadKeys.PHASE_ID to producerIteration.phaseId,
-      "iteration" to producerIteration.iteration,
-    ),
-    "repository_checkpoint_fingerprint" to repositoryCheckpointFingerprint,
-    "projected_utf8_bytes" to projectedUtf8Bytes,
-    "projected_collection_items" to projectedCollectionItems,
-    "estimated_tokens" to estimatedTokens,
-    "private_evidence_utf8_bytes" to privateEvidenceUtf8Bytes,
-    "delivered_projection_utf8_bytes" to deliveredProjectionUtf8Bytes,
-  ).apply {
-    failureClassification?.let { put("failure_classification", it.wireValue) }
-  }
+
+  internal fun toTelemetryMap(): Map<String, Any?> =
+    linkedMapOf(
+      SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PROJECTION_MEASUREMENT_CONTRACT_VERSION,
+      SharedPayloadKeys.WORKFLOW_ID to workflowId,
+      "consumer_phase_id" to consumerPhaseId,
+      "projection_contract_id" to projectionContractId,
+      "producer_iteration" to
+        mapOf(
+          SharedPayloadKeys.PHASE_ID to producerIteration.phaseId,
+          "iteration" to producerIteration.iteration,
+        ),
+      "repository_checkpoint_fingerprint" to repositoryCheckpointFingerprint,
+      "projected_utf8_bytes" to projectedUtf8Bytes,
+      "projected_collection_items" to projectedCollectionItems,
+      "estimated_tokens" to estimatedTokens,
+      "private_evidence_utf8_bytes" to privateEvidenceUtf8Bytes,
+      "delivered_projection_utf8_bytes" to deliveredProjectionUtf8Bytes,
+    ).apply {
+      failureClassification?.let { put("failure_classification", it.wireValue) }
+    }
 }
 
 data class FeatureTaskRuntimeSharedEvidenceMeasurement(
@@ -96,15 +99,17 @@ data class FeatureTaskRuntimeSharedEvidenceMeasurement(
       "FeatureTaskRuntimeSharedEvidenceMeasurement counts must be non-negative."
     }
   }
-  internal fun toTelemetryMap(): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_SHARED_EVIDENCE_PROJECTION_CONTRACT_VERSION,
-    SharedPayloadKeys.WORKFLOW_ID to workflowId,
-    "checkpoint_fingerprint" to checkpointFingerprint,
-    "consumer_phase_id" to consumerPhaseId,
-    "outcome" to outcome.wireValue,
-    "file_index_count" to fileIndexCount,
-    "hunk_index_count" to hunkIndexCount,
-  )
+
+  internal fun toTelemetryMap(): Map<String, Any?> =
+    linkedMapOf(
+      SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_SHARED_EVIDENCE_PROJECTION_CONTRACT_VERSION,
+      SharedPayloadKeys.WORKFLOW_ID to workflowId,
+      "checkpoint_fingerprint" to checkpointFingerprint,
+      "consumer_phase_id" to consumerPhaseId,
+      "outcome" to outcome.wireValue,
+      "file_index_count" to fileIndexCount,
+      "hunk_index_count" to hunkIndexCount,
+    )
 }
 
 enum class FeatureTaskRuntimeSharedEvidenceOutcome(val wireValue: String) {
@@ -122,7 +127,6 @@ data class FeatureTaskRuntimeRejectionMeasurement(
   val violationClass: FeatureTaskRuntimeRejectionViolationClass,
   val declaredCap: Int? = null,
   val observedLength: Int? = null,
-
   val exhaustedFixLoop: Boolean? = null,
 ) {
   init {
@@ -140,25 +144,28 @@ data class FeatureTaskRuntimeRejectionMeasurement(
       "FeatureTaskRuntimeRejectionMeasurement.observedLength must be non-negative."
     }
   }
-  private fun exhaustedFixLoopAvailability(): TelemetryMeasurementAvailability = when (exhaustedFixLoop) {
-    null -> TelemetryMeasurementAvailability.UNAVAILABLE_UNSUPPORTED
-    else -> TelemetryMeasurementAvailability.MEASURED
-  }
 
-  internal fun toTelemetryMap(): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_REJECTION_MEASUREMENT_CONTRACT_VERSION,
-    SharedPayloadKeys.WORKFLOW_ID to workflowId,
-    SharedPayloadKeys.PHASE_ID to phaseId,
-    "iteration" to iteration,
-    "rule" to rule,
-    "pointer_path" to pointerPath,
-    "violation_class" to violationClass.wireValue,
-    "exhausted_fix_loop_availability" to exhaustedFixLoopAvailability().wireValue,
-    "exhausted_fix_loop" to exhaustedFixLoop,
-  ).apply {
-    declaredCap?.let { put("declared_cap", it) }
-    observedLength?.let { put("observed_length", it) }
-  }
+  private fun exhaustedFixLoopAvailability(): TelemetryMeasurementAvailability =
+    when (exhaustedFixLoop) {
+      null -> TelemetryMeasurementAvailability.UNAVAILABLE_UNSUPPORTED
+      else -> TelemetryMeasurementAvailability.MEASURED
+    }
+
+  internal fun toTelemetryMap(): Map<String, Any?> =
+    linkedMapOf(
+      SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_REJECTION_MEASUREMENT_CONTRACT_VERSION,
+      SharedPayloadKeys.WORKFLOW_ID to workflowId,
+      SharedPayloadKeys.PHASE_ID to phaseId,
+      "iteration" to iteration,
+      "rule" to rule,
+      "pointer_path" to pointerPath,
+      "violation_class" to violationClass.wireValue,
+      "exhausted_fix_loop_availability" to exhaustedFixLoopAvailability().wireValue,
+      "exhausted_fix_loop" to exhaustedFixLoop,
+    ).apply {
+      declaredCap?.let { put("declared_cap", it) }
+      observedLength?.let { put("observed_length", it) }
+    }
 }
 
 data class FeatureTaskRuntimeDiagnosticDegradationMeasurement(
@@ -192,18 +199,20 @@ data class FeatureTaskRuntimeDiagnosticDegradationMeasurement(
       "FeatureTaskRuntimeDiagnosticDegradationMeasurement.conflictingKey must be non-blank."
     }
   }
-  internal fun toTelemetryMap(): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_DIAGNOSTIC_DEGRADATION_MEASUREMENT_CONTRACT_VERSION,
-    SharedPayloadKeys.WORKFLOW_ID to workflowId,
-    SharedPayloadKeys.PHASE_ID to phaseId,
-    "attempt" to attempt,
-    "generation" to generation,
-    "operation" to operation,
-    "failure_class" to failureClass.wireValue,
-    "conflicting_key" to conflictingKey,
-  ).apply {
-    repairTurn?.let { put("repair_turn", it) }
-  }
+
+  internal fun toTelemetryMap(): Map<String, Any?> =
+    linkedMapOf(
+      SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_DIAGNOSTIC_DEGRADATION_MEASUREMENT_CONTRACT_VERSION,
+      SharedPayloadKeys.WORKFLOW_ID to workflowId,
+      SharedPayloadKeys.PHASE_ID to phaseId,
+      "attempt" to attempt,
+      "generation" to generation,
+      "operation" to operation,
+      "failure_class" to failureClass.wireValue,
+      "conflicting_key" to conflictingKey,
+    ).apply {
+      repairTurn?.let { put("repair_turn", it) }
+    }
 }
 
 enum class FeatureTaskRuntimeRejectionViolationClass(val wireValue: String) {

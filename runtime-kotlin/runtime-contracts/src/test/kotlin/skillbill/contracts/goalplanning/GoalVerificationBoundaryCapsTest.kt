@@ -4,13 +4,15 @@ import skillbill.error.shellcontent.InvalidGoalVerificationBoundaryCapsSchemaErr
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
 class GoalVerificationBoundaryCapsTest {
   @Test
   fun `effective verification caps load from the packaged contract document`() {
-    val document = GoalVerificationBoundaryCaps::class.java.classLoader
-      .getResourceAsStream(GoalVerificationBoundaryCaps.RESOURCE_PATH)
-      ?.use { stream -> stream.readBytes().decodeToString() }
-      ?: error("goal verification boundary caps contract is missing from the classpath")
+    val document =
+      GoalVerificationBoundaryCaps::class.java.classLoader
+        .getResourceAsStream(GoalVerificationBoundaryCaps.RESOURCE_PATH)
+        ?.use { stream -> stream.readBytes().decodeToString() }
+        ?: error("goal verification boundary caps contract is missing from the classpath")
     val parsed = GoalVerificationBoundaryCaps.parse(document)
     assertEquals(parsed.maxDiscoveryFileCount, GoalVerificationBoundaryCaps.maxDiscoveryFileCount)
     assertEquals(parsed.maxHeadingsPerFile, GoalVerificationBoundaryCaps.maxHeadingsPerFile)
@@ -24,7 +26,8 @@ class GoalVerificationBoundaryCapsTest {
 
   @Test
   fun `fractional and overflow cap values are rejected instead of coerced`() {
-    val base = """
+    val base =
+      """
       contract_version: "0.2"
       max_discovery_file_count: 10
       max_headings_per_file: 10
@@ -34,7 +37,7 @@ class GoalVerificationBoundaryCapsTest {
       max_body_bytes: 10
       max_total_body_bytes: 10
       max_boundary_file_bytes: 10
-    """.trimIndent()
+      """.trimIndent()
     assertFailsWith<InvalidGoalVerificationBoundaryCapsSchemaError> {
       GoalVerificationBoundaryCaps.parse(
         base.replace("max_discovery_file_count: 10", "max_discovery_file_count: 1.9"),
@@ -59,7 +62,8 @@ class GoalVerificationBoundaryCapsTest {
 
   @Test
   fun `Long-backed boundary bytes retain the Long range without narrowing`() {
-    val base = """
+    val base =
+      """
       contract_version: "0.2"
       max_discovery_file_count: 10
       max_headings_per_file: 10
@@ -69,7 +73,7 @@ class GoalVerificationBoundaryCapsTest {
       max_body_bytes: 10
       max_total_body_bytes: 10
       max_boundary_file_bytes: 9223372036854775807
-    """.trimIndent()
+      """.trimIndent()
 
     assertEquals(Long.MAX_VALUE, GoalVerificationBoundaryCaps.parse(base).maxBoundaryFileBytes)
     assertFailsWith<InvalidGoalVerificationBoundaryCapsSchemaError> {

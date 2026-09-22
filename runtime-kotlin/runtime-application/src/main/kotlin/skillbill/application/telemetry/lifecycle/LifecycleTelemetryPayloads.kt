@@ -15,8 +15,10 @@ internal fun lifecycleOkPayload(sessionId: String): JsonPayloadContract = Lifecy
 
 internal fun lifecycleSkippedPayload(sessionId: String): JsonPayloadContract = LifecycleSkippedContract(sessionId)
 
-internal fun lifecycleErrorPayload(sessionId: String, error: String): JsonPayloadContract =
-  LifecycleErrorContract(sessionId, error)
+internal fun lifecycleErrorPayload(
+  sessionId: String,
+  error: String,
+): JsonPayloadContract = LifecycleErrorContract(sessionId, error)
 
 internal fun orchestratedStartedSkippedPayload(): JsonPayloadContract = LifecycleOrchestratedStartedSkippedContract()
 
@@ -87,26 +89,27 @@ private data class QualityCheckFinishedTelemetryPayload(
   val failingCheckNames: List<String>,
   val unsupportedReason: String?,
 ) : JsonPayloadContract {
-  override fun toPayload(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    LifecycleTelemetryPayloadKeys.ROUTED_SKILL to routedSkill,
-    LifecycleTelemetryPayloadKeys.DETECTED_STACK to detectedStack,
-    LifecycleTelemetryPayloadKeys.FALLBACK to fallback,
-    LifecycleTelemetryPayloadKeys.SCOPE_TYPE to scopeType,
-    LifecycleTelemetryPayloadKeys.INITIAL_FAILURE_COUNT to initialFailureCount,
-    LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT to finalFailureCount,
-    LifecycleTelemetryPayloadKeys.ITERATIONS to iterations,
-    LifecycleTelemetryPayloadKeys.RESULT to result,
-    LifecycleTelemetryPayloadKeys.DURATION_SECONDS to durationSeconds,
-    LifecycleTelemetryPayloadKeys.SKILL to "bill-code-check",
-  ).apply {
-    if (fallback && !fallbackReason.isNullOrBlank()) {
-      put(LifecycleTelemetryPayloadKeys.FALLBACK_REASON, fallbackReason)
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      LifecycleTelemetryPayloadKeys.ROUTED_SKILL to routedSkill,
+      LifecycleTelemetryPayloadKeys.DETECTED_STACK to detectedStack,
+      LifecycleTelemetryPayloadKeys.FALLBACK to fallback,
+      LifecycleTelemetryPayloadKeys.SCOPE_TYPE to scopeType,
+      LifecycleTelemetryPayloadKeys.INITIAL_FAILURE_COUNT to initialFailureCount,
+      LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT to finalFailureCount,
+      LifecycleTelemetryPayloadKeys.ITERATIONS to iterations,
+      LifecycleTelemetryPayloadKeys.RESULT to result,
+      LifecycleTelemetryPayloadKeys.DURATION_SECONDS to durationSeconds,
+      LifecycleTelemetryPayloadKeys.SKILL to "bill-code-check",
+    ).apply {
+      if (fallback && !fallbackReason.isNullOrBlank()) {
+        put(LifecycleTelemetryPayloadKeys.FALLBACK_REASON, fallbackReason)
+      }
+      if (level == "full") {
+        put(LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES, failingCheckNames)
+        put(LifecycleTelemetryPayloadKeys.UNSUPPORTED_REASON, unsupportedReason)
+      }
     }
-    if (level == "full") {
-      put(LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES, failingCheckNames)
-      put(LifecycleTelemetryPayloadKeys.UNSUPPORTED_REASON, unsupportedReason)
-    }
-  }
 }
 
 private data class FeatureVerifyFinishedTelemetryPayload(
@@ -123,23 +126,24 @@ private data class FeatureVerifyFinishedTelemetryPayload(
   val specSummary: String,
   val gapsFound: List<String>,
 ) : JsonPayloadContract {
-  override fun toPayload(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    LifecycleTelemetryPayloadKeys.ACCEPTANCE_CRITERIA_COUNT to acceptanceCriteriaCount,
-    LifecycleTelemetryPayloadKeys.ROLLOUT_RELEVANT to rolloutRelevant,
-    LifecycleTelemetryPayloadKeys.FEATURE_FLAG_AUDIT_PERFORMED to featureFlagAuditPerformed,
-    LifecycleTelemetryPayloadKeys.REVIEW_ITERATIONS to reviewIterations,
-    LifecycleTelemetryPayloadKeys.AUDIT_RESULT to auditResult,
-    LifecycleTelemetryPayloadKeys.COMPLETION_STATUS to completionStatus,
-    LifecycleTelemetryPayloadKeys.HISTORY_RELEVANCE to historyRelevance,
-    LifecycleTelemetryPayloadKeys.HISTORY_HELPFULNESS to historyHelpfulness,
-    LifecycleTelemetryPayloadKeys.DURATION_SECONDS to durationSeconds,
-    LifecycleTelemetryPayloadKeys.SKILL to "bill-feature-verify",
-  ).apply {
-    if (level == "full") {
-      put(LifecycleTelemetryPayloadKeys.SPEC_SUMMARY, specSummary)
-      put(LifecycleTelemetryPayloadKeys.GAPS_FOUND, gapsFound)
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      LifecycleTelemetryPayloadKeys.ACCEPTANCE_CRITERIA_COUNT to acceptanceCriteriaCount,
+      LifecycleTelemetryPayloadKeys.ROLLOUT_RELEVANT to rolloutRelevant,
+      LifecycleTelemetryPayloadKeys.FEATURE_FLAG_AUDIT_PERFORMED to featureFlagAuditPerformed,
+      LifecycleTelemetryPayloadKeys.REVIEW_ITERATIONS to reviewIterations,
+      LifecycleTelemetryPayloadKeys.AUDIT_RESULT to auditResult,
+      LifecycleTelemetryPayloadKeys.COMPLETION_STATUS to completionStatus,
+      LifecycleTelemetryPayloadKeys.HISTORY_RELEVANCE to historyRelevance,
+      LifecycleTelemetryPayloadKeys.HISTORY_HELPFULNESS to historyHelpfulness,
+      LifecycleTelemetryPayloadKeys.DURATION_SECONDS to durationSeconds,
+      LifecycleTelemetryPayloadKeys.SKILL to "bill-feature-verify",
+    ).apply {
+      if (level == "full") {
+        put(LifecycleTelemetryPayloadKeys.SPEC_SUMMARY, specSummary)
+        put(LifecycleTelemetryPayloadKeys.GAPS_FOUND, gapsFound)
+      }
     }
-  }
 }
 
 private data class PrDescriptionGeneratedTelemetryPayload(
@@ -150,15 +154,16 @@ private data class PrDescriptionGeneratedTelemetryPayload(
   val level: String,
   val prTitle: String,
 ) : JsonPayloadContract {
-  override fun toPayload(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    LifecycleTelemetryPayloadKeys.COMMIT_COUNT to commitCount,
-    LifecycleTelemetryPayloadKeys.FILES_CHANGED_COUNT to filesChangedCount,
-    LifecycleTelemetryPayloadKeys.WAS_EDITED_BY_USER to wasEditedByUser,
-    LifecycleTelemetryPayloadKeys.PR_CREATED to prCreated,
-    LifecycleTelemetryPayloadKeys.SKILL to "bill-pr-description",
-  ).apply {
-    if (level == "full") {
-      put(LifecycleTelemetryPayloadKeys.PR_TITLE, prTitle)
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      LifecycleTelemetryPayloadKeys.COMMIT_COUNT to commitCount,
+      LifecycleTelemetryPayloadKeys.FILES_CHANGED_COUNT to filesChangedCount,
+      LifecycleTelemetryPayloadKeys.WAS_EDITED_BY_USER to wasEditedByUser,
+      LifecycleTelemetryPayloadKeys.PR_CREATED to prCreated,
+      LifecycleTelemetryPayloadKeys.SKILL to "bill-pr-description",
+    ).apply {
+      if (level == "full") {
+        put(LifecycleTelemetryPayloadKeys.PR_TITLE, prTitle)
+      }
     }
-  }
 }

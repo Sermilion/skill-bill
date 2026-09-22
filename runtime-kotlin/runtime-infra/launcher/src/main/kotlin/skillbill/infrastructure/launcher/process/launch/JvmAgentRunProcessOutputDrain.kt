@@ -19,25 +19,32 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.concurrent.thread
 
-internal fun String.withTimeoutMessage(wait: ProcessWait, request: AgentRunProcessRequest): String = when {
-  wait.progressIdleTimedOut -> withProgressTimeoutMessage(request, wait.fileActivityGraceExhausted, wait.liveness)
-  wait.wallClockTimedOut -> withWallClockTimeoutMessage(request, wait.liveness)
-  else -> this
-}
+internal fun String.withTimeoutMessage(
+  wait: ProcessWait,
+  request: AgentRunProcessRequest,
+): String =
+  when {
+    wait.progressIdleTimedOut -> withProgressTimeoutMessage(request, wait.fileActivityGraceExhausted, wait.liveness)
+    wait.wallClockTimedOut -> withWallClockTimeoutMessage(request, wait.liveness)
+    else -> this
+  }
 
 internal fun String.withProgressTimeoutMessage(
   request: AgentRunProcessRequest,
   fileActivityGraceExhausted: Boolean,
   liveness: AgentRunLivenessSnapshot?,
 ): String {
-  val fileActivityDetail = if (fileActivityGraceExhausted) {
-    " File activity was observed, but the ${request.fileActivityGraceTimeout} file-activity grace window was exhausted."
-  } else {
-    " No file activity was observed."
-  }
+  val fileActivityDetail =
+    if (fileActivityGraceExhausted) {
+      " File activity was observed, but the ${request.fileActivityGraceTimeout} " +
+        "file-activity grace window was exhausted."
+    } else {
+      " No file activity was observed."
+    }
   val livenessDetail = liveness.detailsSuffix()
-  val message = "Agent run stopped after ${request.progressIdleTimeout} " +
-    "without durable workflow progress.$fileActivityDetail$livenessDetail"
+  val message =
+    "Agent run stopped after ${request.progressIdleTimeout} " +
+      "without durable workflow progress.$fileActivityDetail$livenessDetail"
   return if (isBlank()) message else "$this\n$message"
 }
 
@@ -49,19 +56,22 @@ internal fun String.withWallClockTimeoutMessage(
   return if (isBlank()) message else "$this\n$message"
 }
 
-internal fun AgentRunLivenessSnapshot?.detailsSuffix(): String = this?.let { snapshot ->
-  val detail = listOfNotNull(
-    snapshot.workflowId?.let { workflowId -> "workflow_id=$workflowId" },
-    snapshot.workflowStep?.let { workflowStep -> "step=$workflowStep" },
-    snapshot.lastDurableProgressAt?.let { timestamp -> "last_durable_progress_at=$timestamp" },
-    snapshot.lastFileActivityAt?.let { timestamp -> "last_file_activity_at=$timestamp" },
-    snapshot.lastOutputAt?.let { timestamp -> "last_output_at=$timestamp" },
-  ).joinToString(", ")
-  if (detail.isBlank()) "" else " Last observations: $detail."
-} ?: ""
+internal fun AgentRunLivenessSnapshot?.detailsSuffix(): String =
+  this?.let { snapshot ->
+    val detail =
+      listOfNotNull(
+        snapshot.workflowId?.let { workflowId -> "workflow_id=$workflowId" },
+        snapshot.workflowStep?.let { workflowStep -> "step=$workflowStep" },
+        snapshot.lastDurableProgressAt?.let { timestamp -> "last_durable_progress_at=$timestamp" },
+        snapshot.lastFileActivityAt?.let { timestamp -> "last_file_activity_at=$timestamp" },
+        snapshot.lastOutputAt?.let { timestamp -> "last_output_at=$timestamp" },
+      ).joinToString(", ")
+    if (detail.isBlank()) "" else " Last observations: $detail."
+  } ?: ""
 
 internal sealed interface ProcessStart {
   data class Started(val process: Process) : ProcessStart
+
   data class Failed(val error: Exception) : ProcessStart
 }
 
@@ -81,9 +91,10 @@ internal class CappedUtf8Drain(
   internal val outputSink: AgentRunOutputSink,
   internal val onChunkRead: (String) -> Unit,
 ) {
-  internal val output = ByteArrayOutputStream(
-    limitBytes?.coerceAtMost(INITIAL_OUTPUT_BUFFER_BYTES) ?: INITIAL_OUTPUT_BUFFER_BYTES,
-  )
+  internal val output =
+    ByteArrayOutputStream(
+      limitBytes?.coerceAtMost(INITIAL_OUTPUT_BUFFER_BYTES) ?: INITIAL_OUTPUT_BUFFER_BYTES,
+    )
 
   @Volatile internal var truncated = false
   internal var totalByteSize = 0L
@@ -97,55 +108,58 @@ internal class CappedUtf8Drain(
 
   @Volatile private var frozenCapture: CappedUtf8DrainCapture? = null
   internal val stateLock = Any()
-  internal val worker = thread(start = false, isDaemon = true, name = "skillbill-agent-run-output-drain") {
-    runCatching {
-      input.use { stream ->
-        val buffer = ByteArray(DEFAULT_DRAIN_BUFFER_BYTES)
-        var remaining = limitBytes
-        val decoder = StandardCharsets.UTF_8.newDecoder()
-          .onMalformedInput(CodingErrorAction.REPLACE)
-          .onUnmappableCharacter(CodingErrorAction.REPLACE)
-        val carry = ByteBuffer.allocate(DEFAULT_DRAIN_BUFFER_BYTES + UTF8_MAX_BYTES_PER_CODE_POINT)
-        val decoded = CharBuffer.allocate(DEFAULT_DRAIN_BUFFER_BYTES)
-        while (!frozen) {
-          val read = stream.read(buffer)
-          if (read == -1) {
-            break
-          }
-          val frozenBeforeRead = synchronized(stateLock) {
-            if (frozen) {
-              true
-            } else {
-              totalByteSize += read
-              digest.update(buffer, 0, read)
-              false
+  internal val worker =
+    thread(start = false, isDaemon = true, name = "skillbill-agent-run-output-drain") {
+      runCatching {
+        input.use { stream ->
+          val buffer = ByteArray(DEFAULT_DRAIN_BUFFER_BYTES)
+          var remaining = limitBytes
+          val decoder =
+            StandardCharsets.UTF_8.newDecoder()
+              .onMalformedInput(CodingErrorAction.REPLACE)
+              .onUnmappableCharacter(CodingErrorAction.REPLACE)
+          val carry = ByteBuffer.allocate(DEFAULT_DRAIN_BUFFER_BYTES + UTF8_MAX_BYTES_PER_CODE_POINT)
+          val decoded = CharBuffer.allocate(DEFAULT_DRAIN_BUFFER_BYTES)
+          while (!frozen) {
+            val read = stream.read(buffer)
+            if (read == -1) {
+              break
+            }
+            val frozenBeforeRead =
+              synchronized(stateLock) {
+                if (frozen) {
+                  true
+                } else {
+                  totalByteSize += read
+                  digest.update(buffer, 0, read)
+                  false
+                }
+              }
+            if (frozenBeforeRead) return@use
+            val withinCap = remaining == null || remaining > 0
+            carry.put(buffer, 0, read)
+            carry.flip()
+            decodeAvailable(decoded, withinCap) { decoder.decode(carry, decoded, false) }
+            carry.compact()
+
+            val forwarded = remaining?.coerceAtMost(read) ?: read
+            if (forwarded > 0) remaining = remaining?.minus(forwarded)
+            synchronized(stateLock) {
+              if (!frozen) retain(buffer, read)
             }
           }
-          if (frozenBeforeRead) return@use
+          if (frozen) return@use
           val withinCap = remaining == null || remaining > 0
-          carry.put(buffer, 0, read)
           carry.flip()
-          decodeAvailable(decoded, withinCap) { decoder.decode(carry, decoded, false) }
-          carry.compact()
-
-          val forwarded = remaining?.coerceAtMost(read) ?: read
-          if (forwarded > 0) remaining = remaining?.minus(forwarded)
-          synchronized(stateLock) {
-            if (!frozen) retain(buffer, read)
-          }
+          decodeAvailable(decoded, withinCap) { decoder.decode(carry, decoded, true) }
+          decodeAvailable(decoded, withinCap) { decoder.flush(decoded) }
         }
-        if (frozen) return@use
-        val withinCap = remaining == null || remaining > 0
-        carry.flip()
-        decodeAvailable(decoded, withinCap) { decoder.decode(carry, decoded, true) }
-        decodeAvailable(decoded, withinCap) { decoder.flush(decoded) }
+      }.onFailure { failure ->
+        workerFailure = failure
+      }.also {
+        workerCompleted = true
       }
-    }.onFailure { failure ->
-      workerFailure = failure
-    }.also {
-      workerCompleted = true
     }
-  }
 
   fun start() {
     worker.start()
@@ -175,14 +189,15 @@ internal class CappedUtf8Drain(
       frozenCapture?.let { return it }
       frozen = true
       val bytes = materializeBytes()
-      val capture = CappedUtf8DrainCapture(
-        text = String(bytes, StandardCharsets.UTF_8),
-        bytes = bytes,
-        truncated = truncated,
-        totalByteSize = totalByteSize,
-        sha256 = digest.digest().joinToString("") { "%02x".format(it) },
-        incomplete = incomplete || workerFailure != null,
-      )
+      val capture =
+        CappedUtf8DrainCapture(
+          text = String(bytes, StandardCharsets.UTF_8),
+          bytes = bytes,
+          truncated = truncated,
+          totalByteSize = totalByteSize,
+          sha256 = digest.digest().joinToString("") { "%02x".format(it) },
+          incomplete = incomplete || workerFailure != null,
+        )
       frozenCapture = capture
       return capture
     }
@@ -213,9 +228,10 @@ internal class OutputObservationTracker {
     lastObservedMillis.set(System.currentTimeMillis())
   }
 
-  fun lastObservedAt(): Instant? = lastObservedMillis.get()
-    .takeIf { millis -> millis > 0L }
-    ?.let(Instant::ofEpochMilli)
+  fun lastObservedAt(): Instant? =
+    lastObservedMillis.get()
+      .takeIf { millis -> millis > 0L }
+      ?.let(Instant::ofEpochMilli)
 }
 
 internal fun parseWorkflowIdAndStep(label: String?): Pair<String?, String?> {
@@ -225,8 +241,9 @@ internal fun parseWorkflowIdAndStep(label: String?): Pair<String?, String?> {
   return workflow to step
 }
 
-internal fun Instant.toIsoUtc(): String = DateTimeFormatter.ISO_OFFSET_DATE_TIME
-  .format(atOffset(ZoneOffset.UTC))
+internal fun Instant.toIsoUtc(): String =
+  DateTimeFormatter.ISO_OFFSET_DATE_TIME
+    .format(atOffset(ZoneOffset.UTC))
 
 internal const val DEFAULT_DRAIN_BUFFER_BYTES = 8192
 internal const val UTF8_MAX_BYTES_PER_CODE_POINT = 4

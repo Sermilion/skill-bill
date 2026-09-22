@@ -22,7 +22,10 @@ import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewSummary
 import java.sql.Connection
 
-internal fun upsertReviewAccounting(connection: Connection, record: ReviewAccountingRecord) {
+internal fun upsertReviewAccounting(
+  connection: Connection,
+  record: ReviewAccountingRecord,
+) {
   connection.prepareStatement(
     """
     INSERT INTO review_accounting (review_id, packet_digest, bounded_payload_json, updated_at)
@@ -44,16 +47,20 @@ internal fun upsertReviewAccounting(connection: Connection, record: ReviewAccoun
   }
 }
 
-internal fun loadReviewAccounting(connection: Connection, reviewId: String): ReviewAccountingRecord? =
+internal fun loadReviewAccounting(
+  connection: Connection,
+  reviewId: String,
+): ReviewAccountingRecord? =
   connection.prepareStatement(
     "SELECT packet_digest, bounded_payload_json FROM review_accounting WHERE review_id = ?",
   ).use { statement ->
     statement.bindAll(reviewId)
     statement.executeQuery().use { rows ->
       if (!rows.next()) return@use null
-      val payload = requireNotNull(decodeBoundedAccounting(rows.getString("bounded_payload_json"))) {
-        "Malformed bounded review accounting for '$reviewId'."
-      }
+      val payload =
+        requireNotNull(decodeBoundedAccounting(rows.getString("bounded_payload_json"))) {
+          "Malformed bounded review accounting for '$reviewId'."
+        }
       val declaredVersion = payload[SharedPayloadKeys.CONTRACT_VERSION]?.toString()
       if (
         declaredVersion != REVIEW_CONTEXT_CONTRACT_VERSION &&
@@ -78,7 +85,11 @@ private const val ACCOUNTING_LOAD_SEAM: String = "ReviewAccountingPersistence.lo
 
 private const val LEGACY_REVIEW_CONTEXT_CONTRACT_VERSION: String = "2.1"
 
-private fun quarantineReviewAccounting(connection: Connection, reviewId: String, declaredVersion: String?) {
+private fun quarantineReviewAccounting(
+  connection: Connection,
+  reviewId: String,
+  declaredVersion: String?,
+) {
   LifecycleTelemetryStore(connection).reviewStageDegradation(
     ReviewStageDegradationMeasurement(
       reviewRunId = reviewId,
@@ -90,11 +101,15 @@ private fun quarantineReviewAccounting(connection: Connection, reviewId: String,
   )
 }
 
-private fun decodeBoundedAccounting(rawJson: String): Map<String, Any?>? = JsonCodec.parseObjectOrNull(rawJson)?.let {
-  JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
-}
+private fun decodeBoundedAccounting(rawJson: String): Map<String, Any?>? =
+  JsonCodec.parseObjectOrNull(rawJson)?.let {
+    JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
+  }
 
-internal fun existingReviewSummary(connection: Connection, reviewRunId: String): ReviewSummary? =
+internal fun existingReviewSummary(
+  connection: Connection,
+  reviewRunId: String,
+): ReviewSummary? =
   connection.prepareStatement(reviewSummarySql).use { statement ->
     statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet ->
@@ -106,20 +121,25 @@ internal fun reviewSummaryChanged(
   existingReviewSummary: ReviewSummary?,
   review: ImportedReview,
   existingFindings: List<ImportedFinding>,
-): Boolean = existingReviewSummary == null ||
-  existingReviewSummary.reviewSessionId != review.reviewSessionId ||
-  existingReviewSummary.routedSkill != review.routedSkill ||
-  existingReviewSummary.detectedScope != review.detectedScope ||
-  existingReviewSummary.detectedStack != review.detectedStack ||
-  existingReviewSummary.executionMode != review.executionMode ||
-  existingReviewSummary.routedSkillCanonical != review.routedSkillCanonical ||
-  existingReviewSummary.detectedStackCanonical != review.detectedStackCanonical ||
-  existingReviewSummary.detectedScopeCanonical != review.detectedScopeCanonical ||
-  existingReviewSummary.detectedScopeDetail != review.detectedScopeDetail ||
-  existingReviewSummary.specialistReviewsRaw != review.specialistReviews.joinToString(",") ||
-  existingFindings != review.findings
+): Boolean =
+  existingReviewSummary == null ||
+    existingReviewSummary.reviewSessionId != review.reviewSessionId ||
+    existingReviewSummary.routedSkill != review.routedSkill ||
+    existingReviewSummary.detectedScope != review.detectedScope ||
+    existingReviewSummary.detectedStack != review.detectedStack ||
+    existingReviewSummary.executionMode != review.executionMode ||
+    existingReviewSummary.routedSkillCanonical != review.routedSkillCanonical ||
+    existingReviewSummary.detectedStackCanonical != review.detectedStackCanonical ||
+    existingReviewSummary.detectedScopeCanonical != review.detectedScopeCanonical ||
+    existingReviewSummary.detectedScopeDetail != review.detectedScopeDetail ||
+    existingReviewSummary.specialistReviewsRaw != review.specialistReviews.joinToString(",") ||
+    existingFindings != review.findings
 
-internal fun upsertReviewRun(connection: Connection, review: ImportedReview, sourcePath: String?) {
+internal fun upsertReviewRun(
+  connection: Connection,
+  review: ImportedReview,
+  sourcePath: String?,
+) {
   connection.prepareStatement(
     """
     INSERT INTO review_runs (
@@ -171,7 +191,11 @@ internal fun upsertReviewRun(connection: Connection, review: ImportedReview, sou
   }
 }
 
-internal fun persistImportedReview(connection: Connection, review: ImportedReview, sourcePath: String?) {
+internal fun persistImportedReview(
+  connection: Connection,
+  review: ImportedReview,
+  sourcePath: String?,
+) {
   val existingReviewSummary = existingReviewSummary(connection, review.reviewRunId)
   val existingFindings = ReviewRuntime.fetchImportedFindings(connection, review.reviewRunId)
   val summarySnapshotChanged = reviewSummaryChanged(existingReviewSummary, review, existingFindings)

@@ -17,7 +17,10 @@ interface ReviewRepository :
 
   fun loadAccounting(reviewId: String): ReviewAccountingRecord?
 
-  fun saveImportedReview(review: ImportedReview, sourcePath: String?)
+  fun saveImportedReview(
+    review: ImportedReview,
+    sourcePath: String?,
+  )
 
   fun markOrchestrated(runId: String)
 
@@ -36,9 +39,15 @@ interface ReviewRepository :
 
   fun fetchNumberedFindings(runId: String): List<NumberedFinding>
 
-  fun findingExists(runId: String, findingId: String): Boolean
+  fun findingExists(
+    runId: String,
+    findingId: String,
+  ): Boolean
 
-  fun latestRejectedLearningSourceOutcome(runId: String, findingId: String): RejectedLearningSourceOutcome?
+  fun latestRejectedLearningSourceOutcome(
+    runId: String,
+    findingId: String,
+  ): RejectedLearningSourceOutcome?
 
   fun reviewStats(runId: String?): ReviewRepositoryStatsSnapshot
 }

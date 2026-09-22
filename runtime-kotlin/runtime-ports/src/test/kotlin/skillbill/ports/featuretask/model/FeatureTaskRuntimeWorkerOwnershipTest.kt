@@ -3,6 +3,7 @@ package skillbill.ports.featuretask.model
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+
 class FeatureTaskRuntimeWorkerOwnershipTest {
   @Test
   fun `malformed lease timestamp fails with the ownership schema error`() {

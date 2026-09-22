@@ -7,10 +7,11 @@ enum class AgentAddonConsumer(val id: String) {
   ;
 
   companion object {
-    fun fromId(id: String): AgentAddonConsumer = entries.firstOrNull { it.id == id }
-      ?: throw IllegalArgumentException(
-        "Unknown agent add-on consumer '$id'. Supported: ${entries.joinToString { it.id }}.",
-      )
+    fun fromId(id: String): AgentAddonConsumer =
+      entries.firstOrNull { it.id == id }
+        ?: throw IllegalArgumentException(
+          "Unknown agent add-on consumer '$id'. Supported: ${entries.joinToString { it.id }}.",
+        )
   }
 }
 

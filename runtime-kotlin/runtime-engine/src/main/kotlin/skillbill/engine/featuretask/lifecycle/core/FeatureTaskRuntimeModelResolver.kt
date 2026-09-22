@@ -7,6 +7,7 @@ object FeatureTaskRuntimeModelResolver {
     phaseId: String,
     resolvedAgentId: String,
     assignment: FeatureTaskRuntimeModelAssignment,
-  ): PhaseModelDirective? = assignment.perPhaseDirectives[phaseId]
-    ?: assignment.matrix?.directiveFor(resolvedAgentId, phaseId)
+  ): PhaseModelDirective? =
+    assignment.perPhaseDirectives[phaseId]
+      ?: assignment.matrix?.directiveFor(resolvedAgentId, phaseId)
 }

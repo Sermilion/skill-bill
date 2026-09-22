@@ -21,10 +21,11 @@ class FileSystemGoalPlanningVerificationDiscoveryTest {
     val otherAgent = Files.createDirectories(repo.resolve("runtime-kotlin/runtime-domain/agent"))
     writeEntries(otherAgent.resolve("history.md"), "other-history", "other body")
 
-    val discovery = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
-      repo,
-      listOf("runtime-kotlin/runtime-application/src/Foo.kt"),
-    )
+    val discovery =
+      FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
+        repo,
+        listOf("runtime-kotlin/runtime-application/src/Foo.kt"),
+      )
 
     assertFalse(discovery.boundaryContextUnavailable)
     assertEquals(
@@ -44,14 +45,16 @@ class FileSystemGoalPlanningVerificationDiscoveryTest {
     val ownerAgent = Files.createDirectories(repo.resolve("modules/safe/agent"))
     writeEntries(ownerAgent.resolve("history.md"), "safe-history", "safe body")
 
-    val fromPackPath = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
-      repo,
-      listOf("platform-packs/kmp/content.md"),
-    )
-    val fromSafePath = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
-      repo,
-      listOf("modules/safe/src/Main.kt"),
-    )
+    val fromPackPath =
+      FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
+        repo,
+        listOf("platform-packs/kmp/content.md"),
+      )
+    val fromSafePath =
+      FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
+        repo,
+        listOf("modules/safe/src/Main.kt"),
+      )
 
     assertTrue(fromPackPath.boundaryContextUnavailable)
     assertTrue(fromPackPath.boundaryCatalog.isEmpty())
@@ -65,10 +68,11 @@ class FileSystemGoalPlanningVerificationDiscoveryTest {
   @Test
   fun `no eligible boundary marks context unavailable`() {
     val repo = Files.createTempDirectory("goal-verification-scope-none")
-    val discovery = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
-      repo,
-      listOf("FeatureTaskRuntimeRunLoop.kt"),
-    )
+    val discovery =
+      FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
+        repo,
+        listOf("FeatureTaskRuntimeRunLoop.kt"),
+      )
     assertTrue(discovery.boundaryContextUnavailable)
     assertTrue(discovery.boundaryCatalog.isEmpty())
   }
@@ -80,24 +84,27 @@ class FileSystemGoalPlanningVerificationDiscoveryTest {
     writeEntries(ownerAgent.resolve("history.md"), "owner-history", "owner body")
     val discovery = FileSystemGoalPlanningContextDiscovery(JvmSystemClock)
 
-    val fromAbsolute = discovery.discoverForFindingPaths(
-      repo,
-      listOf("/runtime-kotlin/runtime-application/src/Foo.kt"),
-    )
-    val fromTraversal = discovery.discoverForFindingPaths(
-      repo,
-      listOf("../runtime-kotlin/runtime-application/src/Foo.kt"),
-    )
+    val fromAbsolute =
+      discovery.discoverForFindingPaths(
+        repo,
+        listOf("/runtime-kotlin/runtime-application/src/Foo.kt"),
+      )
+    val fromTraversal =
+      discovery.discoverForFindingPaths(
+        repo,
+        listOf("../runtime-kotlin/runtime-application/src/Foo.kt"),
+      )
 
     assertTrue(fromAbsolute.boundaryContextUnavailable)
     assertTrue(fromAbsolute.boundaryCatalog.isEmpty())
     assertTrue(fromTraversal.boundaryContextUnavailable)
     assertTrue(fromTraversal.boundaryCatalog.isEmpty())
 
-    val fromBackslashTraversal = discovery.discoverForFindingPaths(
-      repo,
-      listOf("runtime-kotlin\\runtime-application\\..\\src\\Foo.kt"),
-    )
+    val fromBackslashTraversal =
+      discovery.discoverForFindingPaths(
+        repo,
+        listOf("runtime-kotlin\\runtime-application\\..\\src\\Foo.kt"),
+      )
     assertTrue(fromBackslashTraversal.boundaryContextUnavailable)
     assertTrue(fromBackslashTraversal.boundaryCatalog.isEmpty())
   }
@@ -123,10 +130,11 @@ class FileSystemGoalPlanningVerificationDiscoveryTest {
       """.trimIndent() + "\n",
     )
 
-    val discovery = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
-      repo,
-      listOf("modules/a/src/Main.kt"),
-    )
+    val discovery =
+      FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
+        repo,
+        listOf("modules/a/src/Main.kt"),
+      )
 
     assertFalse(discovery.boundaryContextUnavailable)
     assertEquals(1, discovery.boundaryCatalog.size)
@@ -144,10 +152,11 @@ class FileSystemGoalPlanningVerificationDiscoveryTest {
       "# Boundary Decisions\n\n## [$stale] stale-decision\n\nstale decision body\n",
     )
 
-    val discovery = FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
-      repo,
-      listOf("modules/a/src/Main.kt"),
-    )
+    val discovery =
+      FileSystemGoalPlanningContextDiscovery(JvmSystemClock).discoverForFindingPaths(
+        repo,
+        listOf("modules/a/src/Main.kt"),
+      )
 
     assertFalse(discovery.boundaryContextUnavailable)
     assertEquals(1, discovery.boundaryCatalog.size)
@@ -155,7 +164,11 @@ class FileSystemGoalPlanningVerificationDiscoveryTest {
     assertFalse(discovery.boundaryCatalogTruncated)
   }
 
-  private fun writeEntries(file: Path, title: String, body: String) {
+  private fun writeEntries(
+    file: Path,
+    title: String,
+    body: String,
+  ) {
     val entryDate = LocalDate.now(ZoneOffset.UTC)
     Files.writeString(
       file,

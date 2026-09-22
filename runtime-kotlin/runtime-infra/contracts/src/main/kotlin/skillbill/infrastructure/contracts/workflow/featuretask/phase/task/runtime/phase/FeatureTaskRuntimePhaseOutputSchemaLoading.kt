@@ -17,36 +17,38 @@ internal const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE: 
 internal const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_REPO_RELATIVE_PATH: String =
   FeatureTaskRuntimePhaseOutputSchemaPaths.REPO_RELATIVE_PATH
 
-internal fun loadFeatureTaskRuntimePhaseOutputSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  CompiledSchemaRequest(
-    cacheKey = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-    classLoader = FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader,
-    classpathResource = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-        sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-        reason = "Canonical feature-task-runtime phase output schema is missing. Expected to find it on the JVM " +
-          "classpath at '$FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-        sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-        reason = cause.message ?: cause::class.simpleName.orEmpty(),
-        cause = cause,
-      )
-    },
-    loadFailureLogger = { error -> logFeatureTaskRuntimePhaseOutputSchemaLoadFailure(error) },
-    expectedSchemaId = FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
-    identityFailure = { reason ->
-      InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-        sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-        reason = reason,
-      )
-    },
-  ),
-)
+internal fun loadFeatureTaskRuntimePhaseOutputSchema(): JsonSchema =
+  ClasspathContractSchemaLoader.compiledSchema(
+    CompiledSchemaRequest(
+      cacheKey = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+      classLoader = FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader,
+      classpathResource = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+      missingResource = {
+        InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+          sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+          reason =
+            "Canonical feature-task-runtime phase output schema is missing. Expected to find it on the JVM " +
+              "classpath at '$FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE'.",
+        )
+      },
+      processingFailure = { cause ->
+        InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+          sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+          reason = cause.message ?: cause::class.simpleName.orEmpty(),
+          cause = cause,
+        )
+      },
+      loadFailureLogger = { error -> logFeatureTaskRuntimePhaseOutputSchemaLoadFailure(error) },
+      expectedSchemaId = FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID,
+      expectedContractVersion = FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
+      identityFailure = { reason ->
+        InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+          sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+          reason = reason,
+        )
+      },
+    ),
+  )
 
 private fun logFeatureTaskRuntimePhaseOutputSchemaLoadFailure(error: Throwable) {
   featureTaskRuntimePhaseOutputLog.log(
@@ -66,8 +68,9 @@ internal fun readFeatureTaskRuntimePhaseOutputSchemaText(): String =
     missingError = {
       InvalidFeatureTaskRuntimePhaseOutputSchemaError(
         sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-        reason = "Canonical feature-task-runtime phase output schema is missing. Expected to find it on the JVM " +
-          "classpath at '$FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE'.",
+        reason =
+          "Canonical feature-task-runtime phase output schema is missing. Expected to find it on the JVM " +
+            "classpath at '$FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE'.",
       )
     },
   )
@@ -119,7 +122,10 @@ private class TopLevelObjectScanner(private val text: String) {
     }
   }
 
-  private fun advanceStructuralState(ch: Char, index: Int): String? {
+  private fun advanceStructuralState(
+    ch: Char,
+    index: Int,
+  ): String? {
     when (ch) {
       '"' -> inString = true
       '{' -> openObject(index)

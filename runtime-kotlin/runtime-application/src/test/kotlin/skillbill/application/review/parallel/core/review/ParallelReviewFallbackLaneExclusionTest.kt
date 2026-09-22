@@ -20,49 +20,55 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ParallelReviewFallbackLaneExclusionTest {
-  private val genericAreas = listOf(
-    "architecture",
-    "performance",
-    "platform-correctness",
-    "security",
-    "testing",
-    "api-contracts",
-    "persistence",
-    "reliability",
-    "ui",
-    "ux-accessibility",
-  )
+  private val genericAreas =
+    listOf(
+      "architecture",
+      "performance",
+      "platform-correctness",
+      "security",
+      "testing",
+      "api-contracts",
+      "persistence",
+      "reliability",
+      "ui",
+      "ux-accessibility",
+    )
   private val kotlinAreas = genericAreas
-  private val kmpAreas = listOf(
-    "architecture",
-    "platform-correctness",
-    "security",
-    "persistence",
-    "reliability",
-    "ui",
-    "ux-accessibility",
-  )
+  private val kmpAreas =
+    listOf(
+      "architecture",
+      "platform-correctness",
+      "security",
+      "persistence",
+      "reliability",
+      "ui",
+      "ux-accessibility",
+    )
 
-  private val generic = reviewPack("generic", genericAreas, routingSignals = listOf("*.py"), fallback = true).copy(
-    laneConditions = genericLaneConditions(),
-  )
-  private val kotlin = reviewPack("kotlin", kotlinAreas, routingSignals = listOf("*.kt")).copy(
-    laneConditions = nativeLaneConditions(),
-  )
-  private val kmp = reviewPack(
-    "kmp",
-    kmpAreas,
-    layers = listOf(reviewLayer("kotlin")),
-    routingSignals = listOf("commonMain"),
-    contentSignals = listOf("expect", "actual"),
-  ).copy(laneConditions = nativeLaneConditions())
+  private val generic =
+    reviewPack("generic", genericAreas, routingSignals = listOf("*.py"), fallback = true).copy(
+      laneConditions = genericLaneConditions(),
+    )
+  private val kotlin =
+    reviewPack("kotlin", kotlinAreas, routingSignals = listOf("*.kt")).copy(
+      laneConditions = nativeLaneConditions(),
+    )
+  private val kmp =
+    reviewPack(
+      "kmp",
+      kmpAreas,
+      layers = listOf(reviewLayer("kotlin")),
+      routingSignals = listOf("commonMain"),
+      contentSignals = listOf("expect", "actual"),
+    ).copy(laneConditions = nativeLaneConditions())
   private val manifests = listOf(generic, kotlin, kmp)
 
-  private val crossStackDiff = diffForChanges(
-    "src/commonMain/kotlin/App.kt" to "expect fun platformName(): String",
-    "src/main/kotlin/Repo.kt" to "class Repo",
-    "scripts/fallback_route.py" to "print('fallback')",
-  )
+  private val crossStackDiff =
+    diffForChanges(
+      "src/commonMain/kotlin/App.kt" to "expect fun platformName(): String",
+      "src/main/kotlin/Repo.kt" to "class Repo",
+      "scripts/fallback_route.py" to "print('fallback')",
+    )
 
   @Test fun `generic kotlin and kmp cross-stack plan keeps one lane per area with no generic owner`() {
     val recorder = delegatedRun(manifests, crossStackDiff)
@@ -118,7 +124,10 @@ class ParallelReviewFallbackLaneExclusionTest {
     )
   }
 
-  private fun delegatedRun(packs: List<PlatformManifest>, diff: String): ReviewRecorder {
+  private fun delegatedRun(
+    packs: List<PlatformManifest>,
+    diff: String,
+  ): ReviewRecorder {
     val recorder = ReviewRecorder()
     reviewHarness(ReviewHarnessConfig(manifests = packs, diff = diff), recorder)
       .run(
@@ -130,51 +139,67 @@ class ParallelReviewFallbackLaneExclusionTest {
     return recorder
   }
 
-  private fun buildRootLanes(packs: List<PlatformManifest>, diff: String) = rootLanesFromRouting(packs, diff)
+  private fun buildRootLanes(
+    packs: List<PlatformManifest>,
+    diff: String,
+  ) = rootLanesFromRouting(packs, diff)
 
-  private fun areasFromRootLanesBeforeFallbackExclusion(packs: List<PlatformManifest>, diff: String): Set<String> =
-    buildRootLanes(packs, diff).flatMap { it.lanes }.map { it.area }.toSet()
+  private fun areasFromRootLanesBeforeFallbackExclusion(
+    packs: List<PlatformManifest>,
+    diff: String,
+  ): Set<String> = buildRootLanes(packs, diff).flatMap { it.lanes }.map { it.area }.toSet()
 
-  private fun laneCountFromRootLanesBeforeFallbackExclusion(packs: List<PlatformManifest>, diff: String): Int =
-    buildRootLanes(packs, diff).sumOf { it.lanes.size }
+  private fun laneCountFromRootLanesBeforeFallbackExclusion(
+    packs: List<PlatformManifest>,
+    diff: String,
+  ): Int = buildRootLanes(packs, diff).sumOf { it.lanes.size }
 
-  private fun rootLanesFromRouting(packs: List<PlatformManifest>, diff: String): List<ReviewRootLanes> {
-    val evidenceFiles = diff.lines()
-      .filter { it.startsWith("+++ b/") }
-      .map { it.removePrefix("+++ b/") }
-      .distinct()
-      .map { ReviewRoutingChangedFile(it, diff) }
+  private fun rootLanesFromRouting(
+    packs: List<PlatformManifest>,
+    diff: String,
+  ): List<ReviewRootLanes> {
+    val evidenceFiles =
+      diff.lines()
+        .filter { it.startsWith("+++ b/") }
+        .map { it.removePrefix("+++ b/") }
+        .distinct()
+        .map { ReviewRoutingChangedFile(it, diff) }
     val routing = ReviewStackRouting.route(packs, evidenceFiles)
     val routed = packs.filter { it.slug in routing.routedSlugs }
-    val depthOffsets = ReviewCrossRootLaneReconciliation
-      .compositionDepthOffsets(routed.map { it.slug }, packs)
-    val rootLanes = routed.map { root ->
-      val rootOwnedPaths = routing.ownedPathsBySlug[root.slug].orEmpty()
-      val selectedAreas = ReviewLaunchPlanPolicy.composedAreas(root.slug, packs)
-      val lanes = ReviewLaunchPlanPolicy.flatten(root.slug, packs, selectedAreas).lanes
-        .map { lane ->
-          lane.copy(
-            ownedPaths = rootOwnedPaths.toList().sorted(),
-            changedHunkIds = emptyList(),
-          )
-        }
-        .filter { it.ownedPaths.isNotEmpty() }
-      ReviewRootLanes(depthOffsets[root.slug] ?: 0, lanes)
-    }
+    val depthOffsets =
+      ReviewCrossRootLaneReconciliation
+        .compositionDepthOffsets(routed.map { it.slug }, packs)
+    val rootLanes =
+      routed.map { root ->
+        val rootOwnedPaths = routing.ownedPathsBySlug[root.slug].orEmpty()
+        val selectedAreas = ReviewLaunchPlanPolicy.composedAreas(root.slug, packs)
+        val lanes =
+          ReviewLaunchPlanPolicy.flatten(root.slug, packs, selectedAreas).lanes
+            .map { lane ->
+              lane.copy(
+                ownedPaths = rootOwnedPaths.toList().sorted(),
+                changedHunkIds = emptyList(),
+              )
+            }
+            .filter { it.ownedPaths.isNotEmpty() }
+        ReviewRootLanes(depthOffsets[root.slug] ?: 0, lanes)
+      }
     return rootLanes
   }
 
-  private fun genericLaneConditions(): Map<String, ReviewLaneCondition> = buildMap {
-    put("architecture", ReviewLaneCondition(required = true))
-    put("platform-correctness", ReviewLaneCondition(required = true))
-    genericAreas.filter { it !in setOf("architecture", "platform-correctness") }
-      .forEach { put(it, ReviewLaneCondition(path = listOf("*"))) }
-  }
+  private fun genericLaneConditions(): Map<String, ReviewLaneCondition> =
+    buildMap {
+      put("architecture", ReviewLaneCondition(required = true))
+      put("platform-correctness", ReviewLaneCondition(required = true))
+      genericAreas.filter { it !in setOf("architecture", "platform-correctness") }
+        .forEach { put(it, ReviewLaneCondition(path = listOf("*"))) }
+    }
 
-  private fun nativeLaneConditions(): Map<String, ReviewLaneCondition> = buildMap {
-    put("architecture", ReviewLaneCondition(required = true))
-    put("platform-correctness", ReviewLaneCondition(required = true))
-    (genericAreas + kmpAreas).distinct().filter { it !in setOf("architecture", "platform-correctness") }
-      .forEach { put(it, ReviewLaneCondition(path = listOf("*"))) }
-  }
+  private fun nativeLaneConditions(): Map<String, ReviewLaneCondition> =
+    buildMap {
+      put("architecture", ReviewLaneCondition(required = true))
+      put("platform-correctness", ReviewLaneCondition(required = true))
+      (genericAreas + kmpAreas).distinct().filter { it !in setOf("architecture", "platform-correctness") }
+        .forEach { put(it, ReviewLaneCondition(path = listOf("*"))) }
+    }
 }

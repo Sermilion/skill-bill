@@ -11,7 +11,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ClaudeConfigRootsTest {
-  private fun markedProfile(home: Path, name: String): Path {
+  private fun markedProfile(
+    home: Path,
+    name: String,
+  ): Path {
     val root = home.resolve(name)
     Files.createDirectories(root)
     Files.createFile(root.resolve(".claude.json"))
@@ -66,17 +69,18 @@ class ClaudeConfigRootsTest {
   fun `each marker kind qualifies a profile`() {
     val home = Files.createTempDirectory("skillbill-roots-markers")
     val default = home.resolve(".claude").also { Files.createDirectories(it) }
-    val qualified = listOf(".claude.json", ".credentials.json", "commands", "agents", "history.jsonl")
-      .mapIndexed { index, marker ->
-        val root = home.resolve(".claude-m$index")
-        Files.createDirectories(root)
-        if (marker == "commands" || marker == "agents") {
-          Files.createDirectories(root.resolve(marker))
-        } else {
-          Files.createFile(root.resolve(marker))
+    val qualified =
+      listOf(".claude.json", ".credentials.json", "commands", "agents", "history.jsonl")
+        .mapIndexed { index, marker ->
+          val root = home.resolve(".claude-m$index")
+          Files.createDirectories(root)
+          if (marker == "commands" || marker == "agents") {
+            Files.createDirectories(root.resolve(marker))
+          } else {
+            Files.createFile(root.resolve(marker))
+          }
+          root
         }
-        root
-      }
 
     val roots = claudeConfigRoots(home, environment = emptyMap())
 

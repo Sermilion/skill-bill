@@ -11,6 +11,7 @@ internal fun composePhasePrompt(
   issueKey: String,
   briefing: FeatureTaskRuntimePhaseLaunchBriefing,
   configure: FeatureTaskRuntimePhasePromptComposeInputs.() -> FeatureTaskRuntimePhasePromptComposeInputs = { this },
-): String = composePhasePrompt(
-  FeatureTaskRuntimePhasePromptComposeInputs(issueKey = issueKey, briefing = briefing).configure(),
-)
+): String =
+  composePhasePrompt(
+    FeatureTaskRuntimePhasePromptComposeInputs(issueKey = issueKey, briefing = briefing).configure(),
+  )

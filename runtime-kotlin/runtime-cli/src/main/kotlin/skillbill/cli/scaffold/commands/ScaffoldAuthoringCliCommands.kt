@@ -49,9 +49,9 @@ class ShowSkillCommand(
   private val inputs: CliRunInputs,
   private val scaffoldGateway: ScaffoldGateway,
 ) : DocumentedCliCommand(
-  "show",
-  "Show one governed skill or agent-addon:<slug> with authored source and metadata.",
-) {
+    "show",
+    "Show one governed skill or agent-addon:<slug> with authored source and metadata.",
+  ) {
   private val skillName by argument(help = "Governed skill name to inspect.")
   private val repoRoot by option(
     "--repo-root",
@@ -77,9 +77,9 @@ class ExplainSkillCommand(
   private val inputs: CliRunInputs,
   private val scaffoldGateway: ScaffoldGateway,
 ) : DocumentedCliCommand(
-  "explain",
-  "Explain the governed authoring boundary and the CLI workflow for content-managed skills.",
-) {
+    "explain",
+    "Explain the governed authoring boundary and the CLI workflow for content-managed skills.",
+  ) {
   private val skillName by argument(help = "Optional governed skill name to explain with concrete paths.").optional()
   private val repoRoot by option(
     "--repo-root",
@@ -196,20 +196,21 @@ class EditSkillCommand(
   private val format by formatOption()
 
   override fun run() {
-    state.result = editSkillResult(
-      EditSkillRunArgs(
-        state = state,
-        inputs = inputs,
-        scaffoldGateway = scaffoldGateway,
-        unsupportedScaffoldGateway = unsupportedScaffoldGateway,
-        skillName = skillName,
-        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs).toString(),
-        bodyFile = bodyFile,
-        editor = editor,
-        section = section,
-        format = format,
-      ),
-    )
+    state.result =
+      editSkillResult(
+        EditSkillRunArgs(
+          state = state,
+          inputs = inputs,
+          scaffoldGateway = scaffoldGateway,
+          unsupportedScaffoldGateway = unsupportedScaffoldGateway,
+          skillName = skillName,
+          repoRoot = resolveCliRepositoryRoot(repoRoot, inputs).toString(),
+          bodyFile = bodyFile,
+          editor = editor,
+          section = section,
+          format = format,
+        ),
+      )
   }
 }
 
@@ -230,18 +231,19 @@ class FillSkillCommand(
   private val format by formatOption()
 
   override fun run() {
-    state.result = fillSkillResult(
-      FillSkillRunArgs(
-        state = state,
-        inputs = inputs,
-        scaffoldGateway = scaffoldGateway,
-        skillName = skillName,
-        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs).toString(),
-        body = body,
-        bodyFile = bodyFile,
-        section = section,
-        format = format,
-      ),
-    )
+    state.result =
+      fillSkillResult(
+        FillSkillRunArgs(
+          state = state,
+          inputs = inputs,
+          scaffoldGateway = scaffoldGateway,
+          skillName = skillName,
+          repoRoot = resolveCliRepositoryRoot(repoRoot, inputs).toString(),
+          body = body,
+          bodyFile = bodyFile,
+          section = section,
+          format = format,
+        ),
+      )
   }
 }

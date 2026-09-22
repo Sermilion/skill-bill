@@ -28,17 +28,20 @@ class SkillBillUninstallService(
     val stateRoot = home.resolve(".skill-bill")
     val skillNames = installedSkillNames(uninstallFileSystem, stateRoot.resolve("installed-skills"))
     val legacyNames = legacySkillNames(skillNames)
-    val claudeTargets = installAgentService.claudeRoots(home, request.environment).flatMap { root ->
-      listOf(root.resolve("skills"), root.resolve("commands"))
-    }
-    val codexTargets = installAgentService.codexRoots(home, request.environment)
-      .map { root -> root.resolve("skills") }
-    val agentTargets = listOf(
-      home.resolve(".copilot/skills"),
-      home.resolve(".agents/skills"),
-      home.resolve(".junie/skills"),
-      home.resolve(".cursor/skills"),
-    ) + claudeTargets + codexTargets
+    val claudeTargets =
+      installAgentService.claudeRoots(home, request.environment).flatMap { root ->
+        listOf(root.resolve("skills"), root.resolve("commands"))
+      }
+    val codexTargets =
+      installAgentService.codexRoots(home, request.environment)
+        .map { root -> root.resolve("skills") }
+    val agentTargets =
+      listOf(
+        home.resolve(".copilot/skills"),
+        home.resolve(".agents/skills"),
+        home.resolve(".junie/skills"),
+        home.resolve(".cursor/skills"),
+      ) + claudeTargets + codexTargets
     val stateRuntimeRoot = stateRoot.resolve("runtime")
     val binDir = request.environment["SKILL_BILL_BIN_DIR"]?.let(Path::of) ?: home.resolve(".local/bin")
     return UninstallPlan(
@@ -49,17 +52,19 @@ class SkillBillUninstallService(
       agentTargets = agentTargets.distinct(),
       nativeSourceRoots = listOf(stateRoot.resolve("platform-packs"), stateRoot.resolve("skills")),
       mcpAgents = listOf("claude", "codex", "junie", "cursor"),
-      launchers = listOf(
-        LauncherRemoval(binDir.resolve("skill-bill"), stateRuntimeRoot.resolve("runtime-cli/bin/runtime-cli")),
-        LauncherRemoval(binDir.resolve("skill-bill-mcp"), stateRuntimeRoot.resolve("runtime-mcp/bin/runtime-mcp")),
-      ),
-      desktop = desktopPlan(
-        home = home,
-        binDir = binDir,
-        desktopAppDir = request.desktopAppDir,
-        environment = request.environment,
-        os = currentOs(hostPlatform.osName),
-      ),
+      launchers =
+        listOf(
+          LauncherRemoval(binDir.resolve("skill-bill"), stateRuntimeRoot.resolve("runtime-cli/bin/runtime-cli")),
+          LauncherRemoval(binDir.resolve("skill-bill-mcp"), stateRuntimeRoot.resolve("runtime-mcp/bin/runtime-mcp")),
+        ),
+      desktop =
+        desktopPlan(
+          home = home,
+          binDir = binDir,
+          desktopAppDir = request.desktopAppDir,
+          environment = request.environment,
+          os = currentOs(hostPlatform.osName),
+        ),
     )
   }
 
@@ -89,12 +94,16 @@ class SkillBillUninstallService(
 
 private val STAGED_SKILL_DIRECTORY = Regex("""^(.+)-[0-9a-f]{16}$""")
 
-private val RENAMED_SKILL_PAIRS = listOf(
-  "bill-kotlin-code-review-correctness" to "bill-kotlin-code-review-platform-correctness",
-  "bill-kmp-code-review-correctness" to "bill-kmp-code-review-platform-correctness",
-)
+private val RENAMED_SKILL_PAIRS =
+  listOf(
+    "bill-kotlin-code-review-correctness" to "bill-kotlin-code-review-platform-correctness",
+    "bill-kmp-code-review-correctness" to "bill-kmp-code-review-platform-correctness",
+  )
 
-private fun installedSkillNames(fileSystem: UninstallPathsPort, installedSkillsRoot: Path): List<String> {
+private fun installedSkillNames(
+  fileSystem: UninstallPathsPort,
+  installedSkillsRoot: Path,
+): List<String> {
   val names = mutableSetOf<String>()
   fileSystem.listImmediateDirectoryNames(installedSkillsRoot).forEach { name ->
     val match = STAGED_SKILL_DIRECTORY.matchEntire(name)
@@ -126,43 +135,54 @@ private fun desktopPlan(
   os: DesktopOs,
 ): DesktopRemoval {
   val appDir = desktopAppDir?.let(Path::of) ?: defaultDesktopAppDir(home, environment, os)
-  val executable = when (os) {
-    DesktopOs.WINDOWS -> appDir.resolve("SkillBill.exe")
-    DesktopOs.MAC,
-    DesktopOs.LINUX,
-    -> appDir.resolve("bin/skillbill-desktop")
-  }
-  val launcher = when (os) {
-    DesktopOs.WINDOWS -> null
-    DesktopOs.MAC,
-    DesktopOs.LINUX,
-    -> LauncherRemoval(binDir.resolve("skillbill-desktop"), executable)
-  }
+  val executable =
+    when (os) {
+      DesktopOs.WINDOWS -> appDir.resolve("SkillBill.exe")
+      DesktopOs.MAC,
+      DesktopOs.LINUX,
+      -> appDir.resolve("bin/skillbill-desktop")
+    }
+  val launcher =
+    when (os) {
+      DesktopOs.WINDOWS -> null
+      DesktopOs.MAC,
+      DesktopOs.LINUX,
+      -> LauncherRemoval(binDir.resolve("skillbill-desktop"), executable)
+    }
   val dataHome = environment["XDG_DATA_HOME"]?.let(Path::of) ?: home.resolve(".local/share")
-  val linuxFiles = if (os == DesktopOs.LINUX) {
-    listOf(
-      dataHome.resolve("applications/skillbill.desktop"),
-      dataHome.resolve("icons/hicolor/256x256/apps/skillbill.png"),
-    )
-  } else {
-    emptyList()
-  }
-  val windowsLauncher = if (os == DesktopOs.WINDOWS) {
-    listOf(binDir.resolve("skillbill-desktop.cmd"))
-  } else {
-    emptyList()
-  }
+  val linuxFiles =
+    if (os == DesktopOs.LINUX) {
+      listOf(
+        dataHome.resolve("applications/skillbill.desktop"),
+        dataHome.resolve("icons/hicolor/256x256/apps/skillbill.png"),
+      )
+    } else {
+      emptyList()
+    }
+  val windowsLauncher =
+    if (os == DesktopOs.WINDOWS) {
+      listOf(binDir.resolve("skillbill-desktop.cmd"))
+    } else {
+      emptyList()
+    }
   return DesktopRemoval(launcher = launcher, files = linuxFiles + windowsLauncher, directories = listOf(appDir))
 }
 
-private fun defaultDesktopAppDir(home: Path, environment: Map<String, String>, os: DesktopOs): Path = when (os) {
-  DesktopOs.MAC -> Path.of("/Applications/SkillBill.app")
-  DesktopOs.WINDOWS -> environment["LOCALAPPDATA"]?.let(Path::of)
-    ?.resolve("SkillBill/Desktop/SkillBill")
-    ?: home.resolve("AppData/Local/SkillBill/Desktop/SkillBill")
-  DesktopOs.LINUX -> (environment["XDG_DATA_HOME"]?.let(Path::of) ?: home.resolve(".local/share"))
-    .resolve("skillbill/desktop/SkillBill")
-}
+private fun defaultDesktopAppDir(
+  home: Path,
+  environment: Map<String, String>,
+  os: DesktopOs,
+): Path =
+  when (os) {
+    DesktopOs.MAC -> Path.of("/Applications/SkillBill.app")
+    DesktopOs.WINDOWS ->
+      environment["LOCALAPPDATA"]?.let(Path::of)
+        ?.resolve("SkillBill/Desktop/SkillBill")
+        ?: home.resolve("AppData/Local/SkillBill/Desktop/SkillBill")
+    DesktopOs.LINUX ->
+      (environment["XDG_DATA_HOME"]?.let(Path::of) ?: home.resolve(".local/share"))
+        .resolve("skillbill/desktop/SkillBill")
+  }
 
 private fun currentOs(rawOsName: String): DesktopOs {
   val osName = rawOsName.lowercase()

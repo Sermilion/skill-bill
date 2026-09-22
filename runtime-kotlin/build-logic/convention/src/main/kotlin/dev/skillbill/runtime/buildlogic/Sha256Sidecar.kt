@@ -7,6 +7,7 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 import java.security.MessageDigest
 
@@ -20,8 +21,8 @@ fun sha256Hex(file: File): String {
 
 fun sha256SidecarLine(archive: File): String = "${sha256Hex(archive)}  ${archive.name}\n"
 
+@DisableCachingByDefault(because = "Hashing one archive is cheaper than a build cache round trip.")
 abstract class Sha256SidecarTask : DefaultTask() {
-
   @get:InputFile
   @get:PathSensitive(PathSensitivity.NONE)
   abstract val archive: RegularFileProperty

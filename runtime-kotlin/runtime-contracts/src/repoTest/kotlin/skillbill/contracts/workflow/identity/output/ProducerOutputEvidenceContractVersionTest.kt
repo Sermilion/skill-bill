@@ -8,9 +8,10 @@ import kotlin.test.assertTrue
 class ProducerOutputEvidenceContractVersionTest {
   @Test
   fun `schema and Kotlin contract versions match`() {
-    val schema = Files.readString(
-      producerEvidenceRepoRoot().resolve(ProducerOutputEvidenceSchemaPaths.REPOSITORY_PATH),
-    )
+    val schema =
+      Files.readString(
+        producerEvidenceRepoRoot().resolve(ProducerOutputEvidenceSchemaPaths.REPOSITORY_PATH),
+      )
 
     assertTrue("additionalProperties: false" in schema)
     val version = Regex("""const:\s*"([^"]+)"""").find(schema)?.groupValues?.get(1)
@@ -19,9 +20,10 @@ class ProducerOutputEvidenceContractVersionTest {
 
   @Test
   fun `schema never validates raw payload bytes`() {
-    val schema = Files.readString(
-      producerEvidenceRepoRoot().resolve(ProducerOutputEvidenceSchemaPaths.REPOSITORY_PATH),
-    )
+    val schema =
+      Files.readString(
+        producerEvidenceRepoRoot().resolve(ProducerOutputEvidenceSchemaPaths.REPOSITORY_PATH),
+      )
 
     assertTrue("payload" !in schema)
   }

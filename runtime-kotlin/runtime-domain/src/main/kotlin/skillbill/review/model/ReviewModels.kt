@@ -1,5 +1,6 @@
 package skillbill.review.model
 import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
+
 data class ImportedFinding(
   val findingId: String,
   val severity: String,
@@ -20,7 +21,6 @@ data class ReviewRunLane(
   val orderIndex: Int,
   val originLayerChain: List<String>,
   val resolutionState: ReviewLaneResolutionState,
-
   val reviewDisposition: ReviewLaneReviewDisposition,
   val bundleCompositionDigest: String? = null,
   val segmentAccountingJson: String? = null,
@@ -62,7 +62,6 @@ data class ImportedReview(
   val detectedStackCanonical: String = "unresolved",
   val detectedScopeCanonical: String = "unresolved",
   val detectedScopeDetail: String? = null,
-
   val planLanes: List<ReviewRunLane> = emptyList(),
 )
 

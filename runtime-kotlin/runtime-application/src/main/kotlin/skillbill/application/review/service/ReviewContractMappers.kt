@@ -39,87 +39,95 @@ internal fun classifyReviewOutput(
   val processOutcome = facts.reviewProcessOutcome()
   return ReviewOutputClassification(
     processOutcome = processOutcome,
-    admission = when {
-      processOutcome != ReviewProcessOutcome.ZERO_EXIT -> ReviewOutputAdmission.REJECTED
-      facts.stdout.isBlank() -> ReviewOutputAdmission.REJECTED
-      resultEnvelopeValid -> ReviewOutputAdmission.SUCCESS
-      else -> ReviewOutputAdmission.SCHEMA_REPAIR_ELIGIBLE
-    },
+    admission =
+      when {
+        processOutcome != ReviewProcessOutcome.ZERO_EXIT -> ReviewOutputAdmission.REJECTED
+        facts.stdout.isBlank() -> ReviewOutputAdmission.REJECTED
+        resultEnvelopeValid -> ReviewOutputAdmission.SUCCESS
+        else -> ReviewOutputAdmission.SCHEMA_REPAIR_ELIGIBLE
+      },
   )
 }
 
-fun ImportedReview.toReviewPreviewResult(): ReviewPreviewResult = ReviewPreviewResult(
-  reviewRunId = reviewRunId,
-  reviewSessionId = reviewSessionId,
-  findingCount = findings.size,
-  routedSkill = routedSkill,
-  detectedScope = detectedScope,
-  detectedStack = detectedStack,
-  executionMode = executionMode,
-)
+fun ImportedReview.toReviewPreviewResult(): ReviewPreviewResult =
+  ReviewPreviewResult(
+    reviewRunId = reviewRunId,
+    reviewSessionId = reviewSessionId,
+    findingCount = findings.size,
+    routedSkill = routedSkill,
+    detectedScope = detectedScope,
+    detectedStack = detectedStack,
+    executionMode = executionMode,
+  )
 
 fun ImportedReview.toImportedReviewResult(dbPath: String): ImportedReviewResult =
   ImportedReviewResult(dbPath = dbPath, preview = toReviewPreviewResult())
 
-fun ReviewPreviewResult.toReviewPreviewContract(): ReviewPreviewContract = ReviewPreviewContract(
-  reviewRunId = reviewRunId,
-  reviewSessionId = reviewSessionId,
-  findingCount = findingCount,
-  routedSkill = routedSkill,
-  detectedScope = detectedScope,
-  detectedStack = detectedStack,
-  executionMode = executionMode?.wireValue,
-)
+fun ReviewPreviewResult.toReviewPreviewContract(): ReviewPreviewContract =
+  ReviewPreviewContract(
+    reviewRunId = reviewRunId,
+    reviewSessionId = reviewSessionId,
+    findingCount = findingCount,
+    routedSkill = routedSkill,
+    detectedScope = detectedScope,
+    detectedStack = detectedStack,
+    executionMode = executionMode?.wireValue,
+  )
 
 fun ImportedReviewResult.toImportedReviewContract(): ImportedReviewContract =
   ImportedReviewContract(dbPath = dbPath, review = preview.toReviewPreviewContract())
 
-fun NumberedFinding.toNumberedFindingContract(): NumberedFindingContract = NumberedFindingContract(
-  number = number,
-  findingId = findingId,
-  severity = severity,
-  confidence = confidence,
-  location = location,
-  description = description,
-  claimVerdict = claimVerdict?.wireValue,
-  scopeDisposition = scopeDisposition?.wireValue,
-  citations = citations.map { citation -> linkedMapOf("path" to citation.path, "line" to citation.line) },
-  severityAdjustment = severityAdjustment?.let { adjustment ->
-    linkedMapOf(
-      "direction" to adjustment.direction.wireValue,
-      "justification" to adjustment.justification,
-    )
-  },
-)
+fun NumberedFinding.toNumberedFindingContract(): NumberedFindingContract =
+  NumberedFindingContract(
+    number = number,
+    findingId = findingId,
+    severity = severity,
+    confidence = confidence,
+    location = location,
+    description = description,
+    claimVerdict = claimVerdict?.wireValue,
+    scopeDisposition = scopeDisposition?.wireValue,
+    citations = citations.map { citation -> linkedMapOf("path" to citation.path, "line" to citation.line) },
+    severityAdjustment =
+      severityAdjustment?.let { adjustment ->
+        linkedMapOf(
+          "direction" to adjustment.direction.wireValue,
+          "justification" to adjustment.justification,
+        )
+      },
+  )
 
-fun TriageDecision.toTriageDecisionContract(): TriageDecisionContract = TriageDecisionContract(
-  number = number,
-  findingId = findingId,
-  outcomeType = outcomeType,
-  note = note,
-)
+fun TriageDecision.toTriageDecisionContract(): TriageDecisionContract =
+  TriageDecisionContract(
+    number = number,
+    findingId = findingId,
+    outcomeType = outcomeType,
+    note = note,
+  )
 
-fun ReviewFeedbackResult.toReviewFeedbackPayload(): JsonPayloadContract = ReviewFeedbackContract(
-  dbPath = dbPath,
-  reviewRunId = reviewRunId,
-  outcomeType = outcomeType,
-  recordedFindings = recordedFindings,
-)
+fun ReviewFeedbackResult.toReviewFeedbackPayload(): JsonPayloadContract =
+  ReviewFeedbackContract(
+    dbPath = dbPath,
+    reviewRunId = reviewRunId,
+    outcomeType = outcomeType,
+    recordedFindings = recordedFindings,
+  )
 
-fun TriageResult.toTriagePayload(): JsonPayloadContract = when (kind) {
-  TriageResultKind.LIST ->
-    TriageListContract(
-      dbPath = dbPath,
-      reviewRunId = reviewRunId,
-      findings = findings.map { finding -> finding.toNumberedFindingContract() },
-    )
-  TriageResultKind.RECORDED ->
-    TriageRecordedContract(
-      dbPath = dbPath,
-      reviewRunId = reviewRunId,
-      recorded = recorded.map { decision -> decision.toTriageDecisionContract() },
-    )
-}
+fun TriageResult.toTriagePayload(): JsonPayloadContract =
+  when (kind) {
+    TriageResultKind.LIST ->
+      TriageListContract(
+        dbPath = dbPath,
+        reviewRunId = reviewRunId,
+        findings = findings.map { finding -> finding.toNumberedFindingContract() },
+      )
+    TriageResultKind.RECORDED ->
+      TriageRecordedContract(
+        dbPath = dbPath,
+        reviewRunId = reviewRunId,
+        recorded = recorded.map { decision -> decision.toTriageDecisionContract() },
+      )
+  }
 
 fun ReviewFinishedTelemetry.toReviewFinishedTelemetryPayload(): JsonPayloadContract =
   this.toPortReviewFinishedTelemetryPayload()

@@ -9,13 +9,24 @@ import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 
 val testDecompositionManifestValidator: DecompositionManifestValidator =
   object : DecompositionManifestValidator {
-    override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String) = Unit
-    override fun validateYamlText(yamlText: String, sourceLabel: String) = decodeManifest(
+    override fun validate(
+      manifest: DecompositionManifestWireMap,
+      sourceLabel: String,
+    ) = Unit
+
+    override fun validateYamlText(
+      yamlText: String,
+      sourceLabel: String,
+    ) = decodeManifest(
       DecompositionManifestWireMap.from(
         requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
       ),
       sourceLabel,
     )
-    override fun validateYamlTextResult(yamlText: String, sourceLabel: String): DecompositionManifestValidationResult =
+
+    override fun validateYamlTextResult(
+      yamlText: String,
+      sourceLabel: String,
+    ): DecompositionManifestValidationResult =
       DecompositionManifestValidationResult.AcceptedUnchanged(validateYamlText(yamlText, sourceLabel), yamlText)
   }

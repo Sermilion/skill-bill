@@ -12,7 +12,9 @@ sealed interface FeatureSpecPathResolveResult {
   val specPath: String?
 
   data class Explicit(override val specPath: String) : FeatureSpecPathResolveResult
+
   data class SingleMatch(override val specPath: String) : FeatureSpecPathResolveResult
+
   data class NoMatch(val issueKey: String, val specsRoot: Path) : FeatureSpecPathResolveResult {
     override val specPath: String? = null
   }

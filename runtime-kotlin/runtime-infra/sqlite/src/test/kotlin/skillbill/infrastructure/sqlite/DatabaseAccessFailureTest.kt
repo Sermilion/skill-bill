@@ -14,18 +14,20 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class DatabaseAccessFailureTest {
   @Test
   fun `unopenable database on the read path raises the typed error with the resolved path`() {
     val unopenable = unopenableDatabasePath()
 
-    val error = assertFailsWith<DatabaseAccessError> {
-      DatabaseRuntime.openReadDb(
-        cliValue = unopenable.toString(),
-        environment = emptyMap(),
-        userHome = unopenable.parent,
-      )
-    }
+    val error =
+      assertFailsWith<DatabaseAccessError> {
+        DatabaseRuntime.openReadDb(
+          cliValue = unopenable.toString(),
+          environment = emptyMap(),
+          userHome = unopenable.parent,
+        )
+      }
 
     assertEquals(unopenable.toAbsolutePath().normalize().toString(), error.dbPath)
     assertEquals(DatabaseAccessOperation.READ, error.operation)
@@ -36,13 +38,14 @@ class DatabaseAccessFailureTest {
   fun `no sqlite exception escapes the read path`() {
     val unopenable = unopenableDatabasePath()
 
-    val thrown = runCatching {
-      DatabaseRuntime.openReadDb(
-        cliValue = unopenable.toString(),
-        environment = emptyMap(),
-        userHome = unopenable.parent,
-      )
-    }.exceptionOrNull()
+    val thrown =
+      runCatching {
+        DatabaseRuntime.openReadDb(
+          cliValue = unopenable.toString(),
+          environment = emptyMap(),
+          userHome = unopenable.parent,
+        )
+      }.exceptionOrNull()
 
     assertFalse(thrown is SQLiteException, "raw JDBC exception escaped: $thrown")
     assertTrue(thrown is DatabaseAccessError, "expected the typed error, got $thrown")

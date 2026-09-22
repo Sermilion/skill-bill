@@ -4,13 +4,14 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 
 internal object ProsePhaseOutputRecover {
-  private val LEGACY_VALUE_KEYS: List<String> = listOf(
-    "implementation_receipt",
-    "simplification_receipt",
-    "executable_plan",
-    "preplanning_digest",
-    "gaps",
-  )
+  private val LEGACY_VALUE_KEYS: List<String> =
+    listOf(
+      "implementation_receipt",
+      "simplification_receipt",
+      "executable_plan",
+      "preplanning_digest",
+      "gaps",
+    )
   private val AUDIT_VERDICTS: Set<String> = setOf("satisfied")
   private const val SUMMARY_MAX_CHARS: Int = 240
   private const val SUMMARY_ELLIPSIS_PREFIX: Int = 237
@@ -34,11 +35,12 @@ internal object ProsePhaseOutputRecover {
 
   private fun listValue(producedOutputs: Any?): String? {
     val entries = (producedOutputs as? List<*>)?.takeIf { it.isNotEmpty() } ?: return null
-    val singleValue = entries.singleOrNull()
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?.get(SharedPayloadKeys.VALUE)
-      ?.toString()
-      ?.takeIf { it.any { ch -> !ch.isWhitespace() } }
+    val singleValue =
+      entries.singleOrNull()
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?.get(SharedPayloadKeys.VALUE)
+        ?.toString()
+        ?.takeIf { it.any { ch -> !ch.isWhitespace() } }
     return singleValue ?: stuffSibling(entries)
   }
 
@@ -48,12 +50,16 @@ internal object ProsePhaseOutputRecover {
       ?: parsed?.get(SharedPayloadKeys.PROMPT)?.toString()?.takeIf { it.any { ch -> !ch.isWhitespace() } }
   }
 
-  fun recoverSummary(parsed: Map<String, Any?>?, value: String): String {
-    val fromField = parsed
-      ?.get(SharedPayloadKeys.SUMMARY)
-      ?.toString()
-      ?.trim()
-      ?.takeIf { it.any { ch -> !ch.isWhitespace() } }
+  fun recoverSummary(
+    parsed: Map<String, Any?>?,
+    value: String,
+  ): String {
+    val fromField =
+      parsed
+        ?.get(SharedPayloadKeys.SUMMARY)
+        ?.toString()
+        ?.trim()
+        ?.takeIf { it.any { ch -> !ch.isWhitespace() } }
     if (fromField != null) return fromField
     val compact = value.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }.orEmpty()
     return when {
@@ -62,7 +68,10 @@ internal object ProsePhaseOutputRecover {
     }
   }
 
-  fun recoverAuditVerdict(parsed: Map<String, Any?>?, rawText: String): String? {
+  fun recoverAuditVerdict(
+    parsed: Map<String, Any?>?,
+    rawText: String,
+  ): String? {
     val fromField = parsed?.get(SharedPayloadKeys.VERDICT)?.toString()?.trim()?.lowercase()
     if (fromField != null) return fromField.takeIf { it in AUDIT_VERDICTS }
     val produced = JsonCodec.anyToStringAnyMap(parsed?.get(SharedPayloadKeys.PRODUCED_OUTPUTS))
@@ -74,17 +83,19 @@ internal object ProsePhaseOutputRecover {
     return if (hasSatisfied) "satisfied" else null
   }
 
-  fun recoverFailureDisposition(parsed: Map<String, Any?>?): String? = parsed
-    ?.get(SharedPayloadKeys.FAILURE_DISPOSITION)
-    ?.toString()
-    ?.trim()
-    ?.takeIf { it.any { ch -> !ch.isWhitespace() } }
+  fun recoverFailureDisposition(parsed: Map<String, Any?>?): String? =
+    parsed
+      ?.get(SharedPayloadKeys.FAILURE_DISPOSITION)
+      ?.toString()
+      ?.trim()
+      ?.takeIf { it.any { ch -> !ch.isWhitespace() } }
 }
 
-private fun stuffSibling(sibling: Any?): String? = when (sibling) {
-  null -> null
-  is String -> sibling.takeIf { it.any { ch -> !ch.isWhitespace() } }
-  is Map<*, *> -> JsonCodec.anyToStringAnyMap(sibling)?.let(JsonCodec::mapToJsonString)
-  is List<*> -> JsonCodec.mapToJsonString(linkedMapOf("entries" to sibling))
-  else -> sibling.toString().takeIf { it.any { ch -> !ch.isWhitespace() } }
-}
+private fun stuffSibling(sibling: Any?): String? =
+  when (sibling) {
+    null -> null
+    is String -> sibling.takeIf { it.any { ch -> !ch.isWhitespace() } }
+    is Map<*, *> -> JsonCodec.anyToStringAnyMap(sibling)?.let(JsonCodec::mapToJsonString)
+    is List<*> -> JsonCodec.mapToJsonString(linkedMapOf("entries" to sibling))
+    else -> sibling.toString().takeIf { it.any { ch -> !ch.isWhitespace() } }
+  }

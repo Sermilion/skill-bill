@@ -11,10 +11,11 @@ import kotlin.test.assertTrue
 class AgentRunProcessExperimentCapabilityTest {
   @Test
   fun `request builder preserves experiment capability policy`() {
-    val request = testAgentRunProcessRequest(listOf("agent"), Path.of(".")) {
-      treatmentCapabilitiesEnabled = setOf("fixture-treatment")
-      denyRemotePublication = true
-    }
+    val request =
+      testAgentRunProcessRequest(listOf("agent"), Path.of(".")) {
+        treatmentCapabilitiesEnabled = setOf("fixture-treatment")
+        denyRemotePublication = true
+      }
 
     assertEquals(setOf("fixture-treatment"), request.treatmentCapabilitiesEnabled)
     assertTrue(request.denyRemotePublication)
@@ -32,9 +33,11 @@ class AgentRunProcessExperimentCapabilityTest {
     }
   }
 
-  private fun requestCapabilities(denied: Set<String>, denyRemotePublication: Boolean) =
-    AgentRunProcessExperimentCapabilityFields(
-      treatmentCapabilitiesDenied = denied,
-      denyRemotePublication = denyRemotePublication,
-    )
+  private fun requestCapabilities(
+    denied: Set<String>,
+    denyRemotePublication: Boolean,
+  ) = AgentRunProcessExperimentCapabilityFields(
+    treatmentCapabilitiesDenied = denied,
+    denyRemotePublication = denyRemotePublication,
+  )
 }

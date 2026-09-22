@@ -24,21 +24,35 @@ internal data class OpenDatabase(
 internal object DatabaseRuntime {
   private var writeReadinessGate = DatabaseWriteReadinessGate()
 
-  fun ensureWriteReady(path: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics) {
+  fun ensureWriteReady(
+    path: Path,
+    diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+  ) {
     val normalized = path.toAbsolutePath().normalize()
     writeReadinessGate.ensureReady(normalized) {
       establishSchemaReadiness(normalized, diagnostics)
     }
   }
-  fun resolveDbPath(cliValue: String?, environment: Map<String, String>, userHome: Path): Path =
-    DatabasePaths.resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
 
-  fun openDb(cliValue: String?, environment: Map<String, String>, userHome: Path): OpenDatabase {
+  fun resolveDbPath(
+    cliValue: String?,
+    environment: Map<String, String>,
+    userHome: Path,
+  ): Path = DatabasePaths.resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
+
+  fun openDb(
+    cliValue: String?,
+    environment: Map<String, String>,
+    userHome: Path,
+  ): OpenDatabase {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openDbAt(dbPath)
   }
 
-  fun openDbAt(dbPath: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics): OpenDatabase {
+  fun openDbAt(
+    dbPath: Path,
+    diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+  ): OpenDatabase {
     ensureWriteReady(dbPath, diagnostics)
     return openWriteDbAt(dbPath)
   }
@@ -46,7 +60,10 @@ internal object DatabaseRuntime {
   fun openWriteDbAt(dbPath: Path): OpenDatabase =
     OpenDatabase(connection = openWriteConnectionAt(dbPath), dbPath = dbPath)
 
-  fun establishSchemaReadiness(path: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics) {
+  fun establishSchemaReadiness(
+    path: Path,
+    diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+  ) {
     path.parent?.toAbsolutePath()?.normalize()?.toFile()?.mkdirs()
     asTypedFailure(path, DatabaseAccessOperation.OPEN) {
       DriverManager.getConnection("jdbc:sqlite:${path.toAbsolutePath().normalize()}").use { connection ->
@@ -62,9 +79,10 @@ internal object DatabaseRuntime {
   }
 
   fun openWriteConnectionAt(path: Path): Connection {
-    val connection = asTypedFailure(path, DatabaseAccessOperation.OPEN) {
-      DriverManager.getConnection("jdbc:sqlite:${path.toAbsolutePath().normalize()}")
-    }
+    val connection =
+      asTypedFailure(path, DatabaseAccessOperation.OPEN) {
+        DriverManager.getConnection("jdbc:sqlite:${path.toAbsolutePath().normalize()}")
+      }
     return connection.closingOnFailure {
       asTypedFailure(path, DatabaseAccessOperation.OPEN) {
         configureConnection(connection, enableWal = true)
@@ -73,12 +91,19 @@ internal object DatabaseRuntime {
     }
   }
 
-  fun openReadDb(cliValue: String?, environment: Map<String, String>, userHome: Path): OpenDatabase {
+  fun openReadDb(
+    cliValue: String?,
+    environment: Map<String, String>,
+    userHome: Path,
+  ): OpenDatabase {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openReadDbAt(dbPath)
   }
 
-  fun openReadDbAt(dbPath: Path, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics): OpenDatabase {
+  fun openReadDbAt(
+    dbPath: Path,
+    diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+  ): OpenDatabase {
     if (!Files.exists(dbPath) || isSchemaless(dbPath)) {
       return openDbAt(dbPath, diagnostics)
     }
@@ -87,7 +112,11 @@ internal object DatabaseRuntime {
 
   internal fun openReadConnectionAt(dbPath: Path): OpenDatabase = openReadOnlyDb(dbPath)
 
-  fun openReadDbIfPresent(cliValue: String?, environment: Map<String, String>, userHome: Path): OpenDatabase? {
+  fun openReadDbIfPresent(
+    cliValue: String?,
+    environment: Map<String, String>,
+    userHome: Path,
+  ): OpenDatabase? {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openReadDbIfPresentAt(dbPath)
   }
@@ -105,12 +134,13 @@ internal object DatabaseRuntime {
   }
 
   private fun openReadOnlyDb(dbPath: Path): OpenDatabase {
-    val connection = asTypedFailure(dbPath, DatabaseAccessOperation.READ) {
-      DriverManager.getConnection(
-        "jdbc:sqlite:${dbPath.toAbsolutePath().normalize()}",
-        SQLiteConfig().apply { setReadOnly(true) }.toProperties(),
-      )
-    }
+    val connection =
+      asTypedFailure(dbPath, DatabaseAccessOperation.READ) {
+        DriverManager.getConnection(
+          "jdbc:sqlite:${dbPath.toAbsolutePath().normalize()}",
+          SQLiteConfig().apply { setReadOnly(true) }.toProperties(),
+        )
+      }
     return connection.closingOnFailure {
       asTypedFailure(dbPath, DatabaseAccessOperation.READ) {
         configureConnection(connection, enableWal = false)
@@ -124,20 +154,24 @@ internal object DatabaseRuntime {
     return openWriteConnectionAt(path)
   }
 
-  private fun isSchemaless(dbPath: Path): Boolean = asTypedFailure(dbPath, DatabaseAccessOperation.READ) {
-    DriverManager.getConnection(
-      "jdbc:sqlite:${dbPath.toAbsolutePath().normalize()}",
-      SQLiteConfig().apply { setReadOnly(true) }.toProperties(),
-    ).use { connection ->
-      connection.createStatement().use { statement ->
-        statement.executeQuery("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'").use { resultSet ->
-          resultSet.next() && resultSet.getInt(1) == 0
+  private fun isSchemaless(dbPath: Path): Boolean =
+    asTypedFailure(dbPath, DatabaseAccessOperation.READ) {
+      DriverManager.getConnection(
+        "jdbc:sqlite:${dbPath.toAbsolutePath().normalize()}",
+        SQLiteConfig().apply { setReadOnly(true) }.toProperties(),
+      ).use { connection ->
+        connection.createStatement().use { statement ->
+          statement.executeQuery("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'").use { resultSet ->
+            resultSet.next() && resultSet.getInt(1) == 0
+          }
         }
       }
     }
-  }
 
-  private fun configureConnection(connection: Connection, enableWal: Boolean) {
+  private fun configureConnection(
+    connection: Connection,
+    enableWal: Boolean,
+  ) {
     connection.createStatement().use { statement ->
 
       statement.execute("PRAGMA busy_timeout = ${ReviewMetricsDatabasePolicy.BUSY_TIMEOUT_MILLIS}")
@@ -153,11 +187,16 @@ internal fun Connection.databasePath(): Path {
   return Path.of(raw).toAbsolutePath().normalize()
 }
 
-private fun <T> asTypedFailure(dbPath: Path, operation: DatabaseAccessOperation, block: () -> T): T = try {
-  block()
-} catch (error: SQLException) {
-  throw databaseAccessError(dbPath, operation, error)
-}
+private fun <T> asTypedFailure(
+  dbPath: Path,
+  operation: DatabaseAccessOperation,
+  block: () -> T,
+): T =
+  try {
+    block()
+  } catch (error: SQLException) {
+    throw databaseAccessError(dbPath, operation, error)
+  }
 
 private fun <T> Connection.closingOnFailure(block: () -> T): T {
   var succeeded = false
@@ -174,8 +213,9 @@ internal fun databaseAccessError(
   dbPath: Path,
   operation: DatabaseAccessOperation,
   error: SQLException,
-): DatabaseAccessError = DatabaseAccessError(
-  dbPath = dbPath.toAbsolutePath().normalize().toString(),
-  operation = operation,
-  condition = "sqlite result code ${error.errorCode}: ${error.message.orEmpty()}",
-)
+): DatabaseAccessError =
+  DatabaseAccessError(
+    dbPath = dbPath.toAbsolutePath().normalize().toString(),
+    operation = operation,
+    condition = "sqlite result code ${error.errorCode}: ${error.message.orEmpty()}",
+  )

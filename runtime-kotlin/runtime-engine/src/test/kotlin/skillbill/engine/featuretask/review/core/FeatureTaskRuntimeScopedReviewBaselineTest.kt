@@ -7,6 +7,7 @@ import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranc
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+
 private const val NUL: Char = '\u0000'
 
 private class OwnedPathsGitOperations(private val result: WorkflowGitOperationResult) :
@@ -21,20 +22,23 @@ class FeatureTaskRuntimeScopedReviewBaselineTest {
   private val repoRoot: Path = Path.of("/tmp/scoped-review-baseline")
   private val baseSha = "a".repeat(40)
 
-  private fun resolved() = FeatureTaskRuntimeResolvedBranch(
-    branch = "feat/SKILL-150",
-    baselineUntrackedPaths = listOf("baseline/pre-existing.txt"),
-    workflowOwnedPaths = listOf("src/Owned.kt", "untracked/owned-new.kt"),
-  )
+  private fun resolved() =
+    FeatureTaskRuntimeResolvedBranch(
+      branch = "feat/SKILL-150",
+      baselineUntrackedPaths = listOf("baseline/pre-existing.txt"),
+      workflowOwnedPaths = listOf("src/Owned.kt", "untracked/owned-new.kt"),
+    )
 
   @Test
   fun `scoped baseline carries the owned inventory and excludes foreign untracked paths`() {
-    val git = OwnedPathsGitOperations(
-      WorkflowGitOperationResult.Ok(
-        value = listOf("untracked/owned-new.kt", "foreign/sibling.kt", ".feature-specs/OTHER-1/spec.md")
-          .joinToString(NUL.toString()),
-      ),
-    )
+    val git =
+      OwnedPathsGitOperations(
+        WorkflowGitOperationResult.Ok(
+          value =
+            listOf("untracked/owned-new.kt", "foreign/sibling.kt", ".feature-specs/OTHER-1/spec.md")
+              .joinToString(NUL.toString()),
+        ),
+      )
 
     val baseline = FeatureTaskRuntimeScopedReviewBaseline.of(git, repoRoot, resolved(), baseSha)
 

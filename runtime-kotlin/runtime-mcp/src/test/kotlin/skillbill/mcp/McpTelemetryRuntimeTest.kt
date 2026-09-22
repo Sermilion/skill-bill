@@ -100,7 +100,10 @@ class McpTelemetryRuntimeTest {
   }
 }
 
-private fun writeMcpTelemetryConfig(tempDir: Path, level: String): Path {
+private fun writeMcpTelemetryConfig(
+  tempDir: Path,
+  level: String,
+): Path {
   val configPath = tempDir.resolve("config.json")
   Files.writeString(
     configPath,
@@ -163,63 +166,67 @@ private fun mcpTelemetryRequester(capturedRequests: MutableList<Map<String, Any?
     }
   }
 
-private fun expectedMcpRemoteStatsRequests(): List<Map<String, Any?>> = listOf(
-  linkedMapOf<String, Any?>(
-    "method" to "GET",
-    "url" to "https://telemetry.example.dev/ingest/capabilities",
-    "body" to null,
-    "authorization" to "Bearer stats-token-123",
-  ),
-  linkedMapOf<String, Any?>(
-    "method" to "GET",
-    "url" to "https://telemetry.example.dev/ingest/capabilities",
-    "body" to null,
-    "authorization" to "Bearer stats-token-123",
-  ),
-  linkedMapOf<String, Any?>(
-    "method" to "POST",
-    "url" to "https://telemetry.example.dev/ingest/stats",
-    "body" to "{\"workflow\":\"bill-feature-verify\",\"date_from\":\"2026-04-01\",\"date_to\":\"2026-04-22\"}",
-    "authorization" to "Bearer stats-token-123",
-  ),
-)
-
-private fun expectedMcpCapabilitiesPayload(): Map<String, Any?> = linkedMapOf(
-  "contract_version" to "2",
-  "source" to "remote_proxy",
-  "proxy_url" to "https://telemetry.example.dev/ingest",
-  "capabilities_url" to "https://telemetry.example.dev/ingest/capabilities",
-  "supports_ingest" to true,
-  "supports_stats" to true,
-  "supported_workflows" to listOf("bill-feature-verify"),
-  "supports_event_deduplication" to true,
-  "region" to "eu",
-)
-
-private fun expectedMcpRemoteStatsPayload(): Map<String, Any?> = linkedMapOf(
-  "status" to "ok",
-  "started_runs" to 14,
-  "finished_runs" to 12,
-  "in_progress_runs" to 2,
-  "capabilities" to
+private fun expectedMcpRemoteStatsRequests(): List<Map<String, Any?>> =
+  listOf(
     linkedMapOf<String, Any?>(
-      "source" to "stats_inline",
-      "supports_stats" to true,
-      "inline_only" to true,
+      "method" to "GET",
+      "url" to "https://telemetry.example.dev/ingest/capabilities",
+      "body" to null,
+      "authorization" to "Bearer stats-token-123",
     ),
-  "workflow" to "bill-feature-verify",
-  "date_from" to "2026-04-01",
-  "date_to" to "2026-04-22",
-  "source" to "remote_proxy",
-  "stats_url" to "https://telemetry.example.dev/ingest/stats",
-)
+    linkedMapOf<String, Any?>(
+      "method" to "GET",
+      "url" to "https://telemetry.example.dev/ingest/capabilities",
+      "body" to null,
+      "authorization" to "Bearer stats-token-123",
+    ),
+    linkedMapOf<String, Any?>(
+      "method" to "POST",
+      "url" to "https://telemetry.example.dev/ingest/stats",
+      "body" to "{\"workflow\":\"bill-feature-verify\",\"date_from\":\"2026-04-01\",\"date_to\":\"2026-04-22\"}",
+      "authorization" to "Bearer stats-token-123",
+    ),
+  )
 
-private fun typedCapabilities(): TelemetryProxyCapabilities = TelemetryProxyCapabilities(
-  contractVersion = "1",
-  source = "remote_proxy",
-  proxyUrl = "https://telemetry.example.dev/ingest",
-  capabilitiesUrl = "https://telemetry.example.dev/ingest/capabilities",
-  supportsIngest = true,
-  supportsStats = true,
-  supportedWorkflows = listOf("bill-feature-verify"),
-)
+private fun expectedMcpCapabilitiesPayload(): Map<String, Any?> =
+  linkedMapOf(
+    "contract_version" to "2",
+    "source" to "remote_proxy",
+    "proxy_url" to "https://telemetry.example.dev/ingest",
+    "capabilities_url" to "https://telemetry.example.dev/ingest/capabilities",
+    "supports_ingest" to true,
+    "supports_stats" to true,
+    "supported_workflows" to listOf("bill-feature-verify"),
+    "supports_event_deduplication" to true,
+    "region" to "eu",
+  )
+
+private fun expectedMcpRemoteStatsPayload(): Map<String, Any?> =
+  linkedMapOf(
+    "status" to "ok",
+    "started_runs" to 14,
+    "finished_runs" to 12,
+    "in_progress_runs" to 2,
+    "capabilities" to
+      linkedMapOf<String, Any?>(
+        "source" to "stats_inline",
+        "supports_stats" to true,
+        "inline_only" to true,
+      ),
+    "workflow" to "bill-feature-verify",
+    "date_from" to "2026-04-01",
+    "date_to" to "2026-04-22",
+    "source" to "remote_proxy",
+    "stats_url" to "https://telemetry.example.dev/ingest/stats",
+  )
+
+private fun typedCapabilities(): TelemetryProxyCapabilities =
+  TelemetryProxyCapabilities(
+    contractVersion = "1",
+    source = "remote_proxy",
+    proxyUrl = "https://telemetry.example.dev/ingest",
+    capabilitiesUrl = "https://telemetry.example.dev/ingest/capabilities",
+    supportsIngest = true,
+    supportsStats = true,
+    supportedWorkflows = listOf("bill-feature-verify"),
+  )

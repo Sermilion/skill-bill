@@ -6,6 +6,7 @@ import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimeSchemaFailureCo
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairContext
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 fun retryCorrectionDirective(
   briefing: FeatureTaskRuntimePhaseLaunchBriefing,
   priorSchemaFailure: String?,
@@ -16,7 +17,8 @@ fun retryCorrectionDirective(
   ) {
     return ""
   }
-  val base = """
+  val base =
+    """
     ## Previous attempt was REJECTED by the schema gate — salvage the capture
     Programmatic extraction and shape repair could not accept the previous output. Reason:
     $priorSchemaFailure
@@ -26,22 +28,24 @@ fun retryCorrectionDirective(
     if it still fails, the run blocks.
 
     Expected shape:
-  """.trimIndent() + "\n" + retrySkeleton(briefing)
-  val structuralRepairNote = correctiveRepairContext?.structuralRepairEvidence?.let { evidence ->
-    "\nDeterministic syntax repair previously succeeded on this capture (delimiter-only; " +
-      "original_digest=${evidence.originalDigest} repaired_digest=${evidence.repairedDigest} " +
-      "source=${evidence.sourceLocation.sourceLabel}:" +
-      "${evidence.sourceLocation.line}:${evidence.sourceLocation.column}). " +
-      "That does not mean the phase schema accepted it; correct the named schema or semantic violation."
-  } ?: if (correctiveRepairContext?.acceptedAfterStructuralRepair == true) {
-    "\nDeterministic syntax repair previously succeeded on this capture (delimiter-only). " +
-      "That does not mean the phase schema accepted it; correct the named schema or semantic violation."
-  } else {
-    ""
-  }
-  val repairProjection = correctiveRepairContext?.let { context ->
-    "\n\n" + context.promptProjection().renderAuthorizedRepairSection()
-  }.orEmpty()
+    """.trimIndent() + "\n" + retrySkeleton(briefing)
+  val structuralRepairNote =
+    correctiveRepairContext?.structuralRepairEvidence?.let { evidence ->
+      "\nDeterministic syntax repair previously succeeded on this capture (delimiter-only; " +
+        "original_digest=${evidence.originalDigest} repaired_digest=${evidence.repairedDigest} " +
+        "source=${evidence.sourceLocation.sourceLabel}:" +
+        "${evidence.sourceLocation.line}:${evidence.sourceLocation.column}). " +
+        "That does not mean the phase schema accepted it; correct the named schema or semantic violation."
+    } ?: if (correctiveRepairContext?.acceptedAfterStructuralRepair == true) {
+      "\nDeterministic syntax repair previously succeeded on this capture (delimiter-only). " +
+        "That does not mean the phase schema accepted it; correct the named schema or semantic violation."
+    } else {
+      ""
+    }
+  val repairProjection =
+    correctiveRepairContext?.let { context ->
+      "\n\n" + context.promptProjection().renderAuthorizedRepairSection()
+    }.orEmpty()
   return base + structuralRepairNote + repairProjection +
     unparseableRootCorrection(priorSchemaFailure) +
     FeatureTaskRuntimeSchemaFailureCorrections.lengthViolation(priorSchemaFailure) +
@@ -49,8 +53,9 @@ fun retryCorrectionDirective(
 }
 
 private fun unparseableRootCorrection(priorSchemaFailure: String): String {
-  val rootNotParseable = priorSchemaFailure.contains("<root> must be an object") ||
-    priorSchemaFailure.contains("Phase output is malformed")
+  val rootNotParseable =
+    priorSchemaFailure.contains("<root> must be an object") ||
+      priorSchemaFailure.contains("Phase output is malformed")
   if (!rootNotParseable) {
     return ""
   }
@@ -59,19 +64,20 @@ private fun unparseableRootCorrection(priorSchemaFailure: String): String {
     "that capture into the expected shape above."
 }
 
-private fun retrySkeleton(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String = buildList {
-  val phaseId = briefing.phaseId
-  add("```json")
-  add("{")
-  add("  \"contract_version\": \"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION\",")
-  add("  \"phase_id\": \"$phaseId\",")
-  add("  \"status\": \"completed\",")
-  verdictSkeletonLine(phaseId)?.let(::add)
-  add("  \"summary\": \"<one sentence describing what this phase did>\",")
-  add("  \"produced_outputs\": { ${producedOutputsSkeletonEntry(briefing)} }")
-  add("}")
-  add("```")
-}.joinToString(separator = "\n")
+private fun retrySkeleton(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String =
+  buildList {
+    val phaseId = briefing.phaseId
+    add("```json")
+    add("{")
+    add("  \"contract_version\": \"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION\",")
+    add("  \"phase_id\": \"$phaseId\",")
+    add("  \"status\": \"completed\",")
+    verdictSkeletonLine(phaseId)?.let(::add)
+    add("  \"summary\": \"<one sentence describing what this phase did>\",")
+    add("  \"produced_outputs\": { ${producedOutputsSkeletonEntry(briefing)} }")
+    add("}")
+    add("```")
+  }.joinToString(separator = "\n")
 
 private fun verdictSkeletonLine(phaseId: String): String? {
   val verdict = FeatureTaskRuntimeVerificationSignalKeys.VERDICT

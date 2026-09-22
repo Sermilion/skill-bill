@@ -109,10 +109,11 @@ class GitScopedStagingOperationsTest {
     write("owned/Live.kt", "owned\n")
     write("feature/sitejournals/agent/history.md", "boundary history\n")
 
-    val result = GitScopedStagingOperations.stagePaths(
-      repo,
-      listOf("owned/Live.kt", "feature/sitejournals/agent/history.md"),
-    )
+    val result =
+      GitScopedStagingOperations.stagePaths(
+        repo,
+        listOf("owned/Live.kt", "feature/sitejournals/agent/history.md"),
+      )
 
     assertTrue(result is WorkflowGitOperationResult.Ok, result.error)
     assertTrue("owned/Live.kt" in indexSnapshot().keys)
@@ -203,8 +204,9 @@ class GitScopedStagingOperationsTest {
     val snapshot = GitScopedStagingOperations.captureIndexState(repo, listOf("owned/Owned.kt"))
 
     assertTrue(snapshot is WorkflowGitOperationResult.Ok, snapshot.error)
-    val paths = snapshot.value.orEmpty().split(GIT_NUL).filter(String::isNotBlank)
-      .map { it.substringAfter('\t') }
+    val paths =
+      snapshot.value.orEmpty().split(GIT_NUL).filter(String::isNotBlank)
+        .map { it.substringAfter('\t') }
     assertEquals(listOf("owned/Owned.kt"), paths)
   }
 
@@ -244,9 +246,10 @@ class GitScopedStagingOperationsTest {
     assertEquals(setOf("owned/Owned.kt", "owned/Spaced Path.kt"), identities.keys)
 
     write("owned/Owned.kt", "edited by someone else\n")
-    val second = contentIdentities(
-      GitScopedStagingOperations.pathContentIdentities(repo, paths).value.orEmpty(),
-    )
+    val second =
+      contentIdentities(
+        GitScopedStagingOperations.pathContentIdentities(repo, paths).value.orEmpty(),
+      )
 
     assertTrue(
       second["owned/Owned.kt"] != identities["owned/Owned.kt"],
@@ -259,18 +262,23 @@ class GitScopedStagingOperationsTest {
     )
   }
 
-  private fun contentIdentities(raw: String): Map<String, String> = raw
-    .split(GIT_NUL)
-    .filter(String::isNotBlank)
-    .associate { record -> record.substringAfter('\t') to record.substringBefore('\t') }
+  private fun contentIdentities(raw: String): Map<String, String> =
+    raw
+      .split(GIT_NUL)
+      .filter(String::isNotBlank)
+      .associate { record -> record.substringAfter('\t') to record.substringBefore('\t') }
 
-  private fun indexSnapshot(): Map<String, String> = runGitCommand(repo, "ls-files", "--stage", "-z")
-    .value.orEmpty()
-    .split(GIT_NUL)
-    .filter(String::isNotBlank)
-    .associate { entry -> entry.substringAfter('\t') to entry.substringBefore('\t') }
+  private fun indexSnapshot(): Map<String, String> =
+    runGitCommand(repo, "ls-files", "--stage", "-z")
+      .value.orEmpty()
+      .split(GIT_NUL)
+      .filter(String::isNotBlank)
+      .associate { entry -> entry.substringAfter('\t') to entry.substringBefore('\t') }
 
-  private fun write(relative: String, content: String) {
+  private fun write(
+    relative: String,
+    content: String,
+  ) {
     val target = repo.resolve(relative)
     target.parent?.createDirectories()
     target.writeText(content)
@@ -278,7 +286,10 @@ class GitScopedStagingOperationsTest {
 
   private fun read(relative: String): ByteArray = repo.resolve(relative).readBytes()
 
-  private fun assertContentEquals(expected: ByteArray, actual: ByteArray) {
+  private fun assertContentEquals(
+    expected: ByteArray,
+    actual: ByteArray,
+  ) {
     assertTrue(expected.contentEquals(actual), "file content must be byte-for-byte unchanged")
   }
 

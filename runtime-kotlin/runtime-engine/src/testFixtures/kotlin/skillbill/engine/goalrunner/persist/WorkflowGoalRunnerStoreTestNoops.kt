@@ -18,11 +18,12 @@ object NoopGoalChildPlanningHydrator : GoalChildPlanningHydratorPort {
     unitOfWork: GoalRunnerPersistenceSession,
     setup: GoalRunnerChildWorkflowSetup,
     request: GoalChildPlanningHydrationRequest,
-  ): GoalChildPlanningHydrationResult = GoalChildPlanningHydrationResult(
-    currentStepId = setup.workflowId,
-    stepUpdates = emptyList(),
-    artifacts = emptyMap<String, Any?>(),
-  )
+  ): GoalChildPlanningHydrationResult =
+    GoalChildPlanningHydrationResult(
+      currentStepId = setup.workflowId,
+      stepUpdates = emptyList(),
+      artifacts = emptyMap<String, Any?>(),
+    )
 
   override fun requireMatchingImport(
     unitOfWork: GoalRunnerPersistenceSession,
@@ -38,11 +39,12 @@ object NoopGoalRunnerChildRepairRunner : GoalRunnerChildRepairRunnerPort {
     issueKey: String,
     subtaskId: Int,
     repoRoot: Path,
-  ): GoalRunnerChildWedgeDiagnosis = GoalRunnerChildWedgeDiagnosis(
-    subtaskId = subtaskId,
-    workflowId = workflowId,
-    passedChecks = emptyList(),
-  )
+  ): GoalRunnerChildWedgeDiagnosis =
+    GoalRunnerChildWedgeDiagnosis(
+      subtaskId = subtaskId,
+      workflowId = workflowId,
+      passedChecks = emptyList(),
+    )
 
   override fun apply(request: GoalRunnerChildRepairApplyRequest): GoalRunnerChildRepairApplyResult =
     GoalRunnerChildRepairApplyResult()

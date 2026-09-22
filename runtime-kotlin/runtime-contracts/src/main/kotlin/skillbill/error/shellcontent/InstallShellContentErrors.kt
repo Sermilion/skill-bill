@@ -5,18 +5,18 @@ class InvalidInstallPlanSchemaError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Install plan fails schema validation at '${fieldPath.ifBlank { "<root>" }}': $reason",
-  cause,
-)
+    "Install plan fails schema validation at '${fieldPath.ifBlank { "<root>" }}': $reason",
+    cause,
+  )
 
 class InvalidNativeAgentCompositionSchemaError(
   val sourceLabel: String,
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Native agent composition source '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation: $reason",
-  cause,
-)
+    "Native agent composition source '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation: $reason",
+    cause,
+  )
 
 class InvalidTelemetryEventSchemaError(
   val fieldPath: String,
@@ -24,10 +24,10 @@ class InvalidTelemetryEventSchemaError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Telemetry event '${eventName ?: "<unknown>"}' fails schema validation at " +
-    "'${fieldPath.ifBlank { "<root>" }}': $reason",
-  cause,
-)
+    "Telemetry event '${eventName ?: "<unknown>"}' fails schema validation at " +
+      "'${fieldPath.ifBlank { "<root>" }}': $reason",
+    cause,
+  )
 
 class InvalidGoalObservabilityEventSchemaError(
   val sourceLabel: String,
@@ -35,10 +35,10 @@ class InvalidGoalObservabilityEventSchemaError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Goal observability event '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation at " +
-    "'${fieldPath.ifBlank { "<root>" }}': $reason",
-  cause,
-)
+    "Goal observability event '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation at " +
+      "'${fieldPath.ifBlank { "<root>" }}': $reason",
+    cause,
+  )
 
 class InvalidGoalProgressEventSchemaError(
   val sourceLabel: String,
@@ -46,10 +46,10 @@ class InvalidGoalProgressEventSchemaError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Goal progress event '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation at " +
-    "'${fieldPath.ifBlank { "<root>" }}': $reason",
-  cause,
-)
+    "Goal progress event '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation at " +
+      "'${fieldPath.ifBlank { "<root>" }}': $reason",
+    cause,
+  )
 
 class InvalidIdeStatusSchemaError(
   val sourceLabel: String,
@@ -57,10 +57,10 @@ class InvalidIdeStatusSchemaError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "IDE status '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation at " +
-    "'${fieldPath.ifBlank { "<root>" }}': $reason",
-  cause,
-)
+    "IDE status '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation at " +
+      "'${fieldPath.ifBlank { "<root>" }}': $reason",
+    cause,
+  )
 
 class InvalidGoalSubtaskReviewStateSchemaError(
   val sourceLabel: String,
@@ -68,10 +68,10 @@ class InvalidGoalSubtaskReviewStateSchemaError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Goal subtask review state '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation at " +
-    "'${fieldPath.ifBlank { "<root>" }}': $reason",
-  cause,
-)
+    "Goal subtask review state '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation at " +
+      "'${fieldPath.ifBlank { "<root>" }}': $reason",
+    cause,
+  )
 
 class InvalidGoalPlanningPreparationSchemaError(
   val sourceLabel: String,
@@ -79,10 +79,10 @@ class InvalidGoalPlanningPreparationSchemaError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Goal planning preparation '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation at " +
-    "'${fieldPath.ifBlank { "<root>" }}': $reason",
-  cause,
-)
+    "Goal planning preparation '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation at " +
+      "'${fieldPath.ifBlank { "<root>" }}': $reason",
+    cause,
+  )
 
 class IncompatibleGoalPlanningPreparationRecoveryError(
   val workflowId: String,
@@ -90,61 +90,61 @@ class IncompatibleGoalPlanningPreparationRecoveryError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Goal planning preparation '$workflowId' subtask $subtaskId cannot be recovered: $reason",
-  cause,
-)
+    "Goal planning preparation '$workflowId' subtask $subtaskId cannot be recovered: $reason",
+    cause,
+  )
 
 class MissingInstallSelectionRecordError(
   val path: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Install selection record is missing at '${path.ifBlank { "<unknown>" }}'.",
-  cause,
-)
+    "Install selection record is missing at '${path.ifBlank { "<unknown>" }}'.",
+    cause,
+  )
 
 class UnreadableInstallSelectionRecordError(
   val path: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Install selection record at '${path.ifBlank { "<unknown>" }}' cannot be read.",
-  cause,
-)
+    "Install selection record at '${path.ifBlank { "<unknown>" }}' cannot be read.",
+    cause,
+  )
 
 class MalformedInstallSelectionRecordError(
   val path: String,
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Install selection record at '${path.ifBlank { "<unknown>" }}' is malformed: $reason",
-  cause,
-)
+    "Install selection record at '${path.ifBlank { "<unknown>" }}' is malformed: $reason",
+    cause,
+  )
 
 class UnreadableBaselineManifestError(
   val path: String,
   val reason: String? = null,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Baseline manifest at '${path.ifBlank { "<unknown>" }}' cannot be read" +
-    (reason?.let { ": $it." } ?: "."),
-  cause,
-)
+    "Baseline manifest at '${path.ifBlank { "<unknown>" }}' cannot be read" +
+      (reason?.let { ": $it." } ?: "."),
+    cause,
+  )
 
 class ReconciliationConflictError(
   val skillRelativePath: String,
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Reconciliation failed for skill '${skillRelativePath.ifBlank { "<unknown>" }}': $reason",
-  cause,
-)
+    "Reconciliation failed for skill '${skillRelativePath.ifBlank { "<unknown>" }}': $reason",
+    cause,
+  )
 
 class UnreadableRepoLocalConfigError(
   val path: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Repo-local config at '${path.ifBlank { "<unknown>" }}' cannot be read.",
-  cause,
-)
+    "Repo-local config at '${path.ifBlank { "<unknown>" }}' cannot be read.",
+    cause,
+  )
 
 class MalformedRepoLocalConfigError(
   val path: String,
@@ -153,10 +153,10 @@ class MalformedRepoLocalConfigError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Repo-local config at '${path.ifBlank { "<unknown>" }}' is malformed: " +
-    "key '${key.ifBlank { "<root>" }}' value '$value' $reason",
-  cause,
-)
+    "Repo-local config at '${path.ifBlank { "<unknown>" }}' is malformed: " +
+      "key '${key.ifBlank { "<root>" }}' value '$value' $reason",
+    cause,
+  )
 
 class MalformedMachineConfigError(
   val path: String,
@@ -165,10 +165,10 @@ class MalformedMachineConfigError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Machine config at '${path.ifBlank { "<unknown>" }}' is malformed: " +
-    "key '${key.ifBlank { "<root>" }}' value '$value' $reason",
-  cause,
-)
+    "Machine config at '${path.ifBlank { "<unknown>" }}' is malformed: " +
+      "key '${key.ifBlank { "<root>" }}' value '$value' $reason",
+    cause,
+  )
 
 class ContractVersionMismatchError(
   message: String,

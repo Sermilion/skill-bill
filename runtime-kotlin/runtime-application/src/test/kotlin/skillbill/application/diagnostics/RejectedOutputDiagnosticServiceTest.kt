@@ -19,6 +19,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
+
 class RejectedOutputDiagnosticServiceTest {
   private val now = Instant.parse("2026-07-28T10:00:00Z")
 
@@ -84,13 +85,14 @@ class RejectedOutputDiagnosticServiceTest {
   @Test
   fun `truncated capture stores deterministic full stream oversized evidence`() {
     val service = service(MemoryRepository())
-    val metadata = service.record(
-      request(byteArrayOf(1)).copy(
-        observedByteSize = 1_048_577,
-        observedSha256 = "a".repeat(64),
-        truncated = true,
-      ),
-    )
+    val metadata =
+      service.record(
+        request(byteArrayOf(1)).copy(
+          observedByteSize = 1_048_577,
+          observedSha256 = "a".repeat(64),
+          truncated = true,
+        ),
+      )
 
     assertEquals(RejectedOutputLifecycle.OVERSIZED, metadata.lifecycle)
     assertEquals(1_048_577, metadata.byteSize)
@@ -110,10 +112,11 @@ class RejectedOutputDiagnosticServiceTest {
     val repository = MemoryRepository()
     val service = service(repository)
     val first = service.record(request(byteArrayOf(1, 2)))
-    repository.records[first.identity] = repository.records.getValue(first.identity).copy(
-      metadata = first.copy(lifecycle = RejectedOutputLifecycle.EXPIRED),
-      payload = null,
-    )
+    repository.records[first.identity] =
+      repository.records.getValue(first.identity).copy(
+        metadata = first.copy(lifecycle = RejectedOutputLifecycle.EXPIRED),
+        payload = null,
+      )
 
     val replay = service.record(request(byteArrayOf(1, 2)))
 
@@ -125,12 +128,13 @@ class RejectedOutputDiagnosticServiceTest {
   fun `producer evidence applies permissions and retention before insertion`() {
     val repository = MemoryRepository()
     var permissionCalls = 0
-    val service = RejectedOutputDiagnosticService(
-      repository,
-      permissions = { permissionCalls += 1 },
-      metadataValidator = RejectedOutputDiagnosticMetadataValidator { },
-      clock = Clock.fixed(now, ZoneOffset.UTC),
-    )
+    val service =
+      RejectedOutputDiagnosticService(
+        repository,
+        permissions = { permissionCalls += 1 },
+        metadataValidator = RejectedOutputDiagnosticMetadataValidator { },
+        clock = Clock.fixed(now, ZoneOffset.UTC),
+      )
     service.retainProducerOutput(
       ProducerOutputEvidence(
         "workflow-1", "plan", 1, "codex", "gpt", now, 1, "a".repeat(64), byteArrayOf(1),
@@ -147,9 +151,10 @@ class RejectedOutputDiagnosticServiceTest {
     val repository = MemoryRepository()
     val service = service(repository)
     val metadata = service.record(request(byteArrayOf(1, 2)))
-    repository.records[metadata.identity] = repository.records.getValue(
-      metadata.identity,
-    ).copy(payload = byteArrayOf(9))
+    repository.records[metadata.identity] =
+      repository.records.getValue(
+        metadata.identity,
+      ).copy(payload = byteArrayOf(9))
 
     assertFailsWith<RejectedOutputDiagnosticError.Corrupt> { service.readRaw(metadata.identity) }
   }
@@ -159,9 +164,10 @@ class RejectedOutputDiagnosticServiceTest {
     val repository = MemoryRepository()
     val service = service(repository)
     val metadata = service.record(request(byteArrayOf(1, 2)))
-    repository.records[metadata.identity] = repository.records.getValue(metadata.identity).copy(
-      metadata = metadata.copy(sha256 = "not-a-digest"),
-    )
+    repository.records[metadata.identity] =
+      repository.records.getValue(metadata.identity).copy(
+        metadata = metadata.copy(sha256 = "not-a-digest"),
+      )
 
     assertFailsWith<InvalidRejectedOutputDiagnosticSchemaError> { service.readRaw(metadata.identity) }
   }
@@ -179,19 +185,26 @@ class RejectedOutputDiagnosticServiceTest {
     }
   }
 
-  private fun service(repository: MemoryRepository, maximumPayloadBytes: Long = 100) = RejectedOutputDiagnosticService(
+  private fun service(
+    repository: MemoryRepository,
+    maximumPayloadBytes: Long = 100,
+  ) = RejectedOutputDiagnosticService(
     repository,
     permissions = { },
-    metadataValidator = RejectedOutputDiagnosticMetadataValidator { metadata ->
-      if (!Regex("[0-9a-f]{64}").matches(metadata.sha256)) {
-        throw InvalidRejectedOutputDiagnosticSchemaError("sha256 is invalid")
-      }
-    },
+    metadataValidator =
+      RejectedOutputDiagnosticMetadataValidator { metadata ->
+        if (!Regex("[0-9a-f]{64}").matches(metadata.sha256)) {
+          throw InvalidRejectedOutputDiagnosticSchemaError("sha256 is invalid")
+        }
+      },
     config = RejectedOutputDiagnosticConfig(maximumPayloadBytes = maximumPayloadBytes),
     clock = Clock.fixed(now, ZoneOffset.UTC),
   )
 
-  private fun request(bytes: ByteArray, attempt: Int = 1) = RejectedOutputDiagnosticRequest(
+  private fun request(
+    bytes: ByteArray,
+    attempt: Int = 1,
+  ) = RejectedOutputDiagnosticRequest(
     workflowId = "workflow-1",
     phaseId = "plan",
     attempt = attempt,
@@ -234,14 +247,15 @@ private class MemoryRepository : RejectedOutputDiagnosticRepository {
 
   override fun retainProducerOutput(evidence: ProducerOutputEvidence) {
     producerOutputs += 1
-    val key = listOf(
-      evidence.workflowId,
-      evidence.phaseId,
-      evidence.generation,
-      evidence.attempt,
-      evidence.repairTurn,
-      evidence.agentId,
-    )
+    val key =
+      listOf(
+        evidence.workflowId,
+        evidence.phaseId,
+        evidence.generation,
+        evidence.attempt,
+        evidence.repairTurn,
+        evidence.agentId,
+      )
     producerEvidence.putIfAbsent(key, evidence)
     val retained = producerEvidence.getValue(key)
     if (retained.sha256 != evidence.sha256 || retained.byteSize != evidence.byteSize) {
@@ -258,10 +272,11 @@ private class MemoryRepository : RejectedOutputDiagnosticRepository {
     attempt: Int,
     agentId: String,
     generation: Int,
-  ): ProducerOutputEvidence? = producerEvidence.values
-    .filter {
-      it.workflowId == workflowId && it.phaseId == phaseId &&
-        it.attempt == attempt && it.agentId == agentId && it.generation <= generation
-    }
-    .maxWithOrNull(compareBy({ it.generation }, { it.repairTurn }))
+  ): ProducerOutputEvidence? =
+    producerEvidence.values
+      .filter {
+        it.workflowId == workflowId && it.phaseId == phaseId &&
+          it.attempt == attempt && it.agentId == agentId && it.generation <= generation
+      }
+      .maxWithOrNull(compareBy({ it.generation }, { it.repairTurn }))
 }

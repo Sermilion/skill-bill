@@ -13,14 +13,15 @@ data class RepoValidationReport(
 ) {
   val passed: Boolean = issues.isEmpty()
 
-  fun toContract(): RepoValidationReportContract = RepoValidationReportContract(
-    passed = passed,
-    skillCount = skillCount,
-    addonCount = addonCount,
-    platformPackCount = platformPackCount,
-    nativeAgentCount = nativeAgentCount,
-    issues = issues,
-  )
+  fun toContract(): RepoValidationReportContract =
+    RepoValidationReportContract(
+      passed = passed,
+      skillCount = skillCount,
+      addonCount = addonCount,
+      platformPackCount = platformPackCount,
+      nativeAgentCount = nativeAgentCount,
+      issues = issues,
+    )
 }
 
 data class RepoValidationIssue(
@@ -69,14 +70,15 @@ data class ReleaseRefMetadata(
   val prereleaseIdentifier: String?,
   val buildMetadata: String?,
 ) {
-  fun toContract(): ReleaseRefMetadataContract = ReleaseRefMetadataContract(
-    tag = tag,
-    version = version,
-    major = major,
-    minor = minor,
-    patch = patch,
-    prerelease = prerelease,
-    prereleaseIdentifier = prereleaseIdentifier,
-    buildMetadata = buildMetadata,
-  )
+  fun toContract(): ReleaseRefMetadataContract =
+    ReleaseRefMetadataContract(
+      tag = tag,
+      version = version,
+      major = major,
+      minor = minor,
+      patch = patch,
+      prerelease = prerelease,
+      prereleaseIdentifier = prereleaseIdentifier,
+      buildMetadata = buildMetadata,
+    )
 }

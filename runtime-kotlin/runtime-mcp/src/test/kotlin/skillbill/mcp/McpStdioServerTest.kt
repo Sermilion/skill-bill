@@ -118,19 +118,21 @@ class McpStdioServerTest {
           toolCallRequest(
             id = 100,
             name = "feature_verify_workflow_update",
-            arguments = mapOf(
-              "workflow_id" to "wfl-test",
-              "workflow_status" to "running",
-              "current_step_id" to "code_review",
-              "step_updates" to listOf(
-                mapOf(
-                  "step_id" to "code_review",
-                  "status" to "running",
-                  "attempt_count" to 1,
-                  "unexpected" to true,
-                ),
+            arguments =
+              mapOf(
+                "workflow_id" to "wfl-test",
+                "workflow_status" to "running",
+                "current_step_id" to "code_review",
+                "step_updates" to
+                  listOf(
+                    mapOf(
+                      "step_id" to "code_review",
+                      "status" to "running",
+                      "attempt_count" to 1,
+                      "unexpected" to true,
+                    ),
+                  ),
               ),
-            ),
           ),
         ),
       )

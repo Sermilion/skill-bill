@@ -6,22 +6,30 @@ import java.nio.file.Path
 import kotlin.io.path.name
 
 internal object ReviewSkillStructureValidatorContent {
-
-  fun contentViolations(pack: Path, manifest: Map<*, *>, file: Path): List<ReviewSkillStructureViolation> {
-    val parentViolation = if (hasInternalParent(file, "bill-code-review")) {
-      emptyList()
-    } else {
-      listOf(violation(file, "code-review internal parent"))
-    }
+  fun contentViolations(
+    pack: Path,
+    manifest: Map<*, *>,
+    file: Path,
+  ): List<ReviewSkillStructureViolation> {
+    val parentViolation =
+      if (hasInternalParent(file, "bill-code-review")) {
+        emptyList()
+      } else {
+        listOf(violation(file, "code-review internal parent"))
+      }
     val relativeFile = pack.relativize(file).let(::portablePath)
-    return parentViolation + if (relativeFile == declaredBaseline(manifest)) {
-      baselineViolations(file)
-    } else {
-      specialistViolations(file, declaredAreaForFile(manifest, relativeFile))
-    }
+    return parentViolation +
+      if (relativeFile == declaredBaseline(manifest)) {
+        baselineViolations(file)
+      } else {
+        specialistViolations(file, declaredAreaForFile(manifest, relativeFile))
+      }
   }
 
-  private fun specialistViolations(file: Path, area: String?): List<ReviewSkillStructureViolation> {
+  private fun specialistViolations(
+    file: Path,
+    area: String?,
+  ): List<ReviewSkillStructureViolation> {
     val required = listOf("Focus", "Ignore", "Applicability", "Project-Specific Rules")
     val content = Files.readString(file)
     val projectRules = h2Section(content, "Project-Specific Rules")
@@ -64,49 +72,60 @@ internal object ReviewSkillStructureValidatorContent {
     }
   }
 
-  fun nativeAgentViolations(pack: Path, manifest: Map<*, *>): List<ReviewSkillStructureViolation> {
+  fun nativeAgentViolations(
+    pack: Path,
+    manifest: Map<*, *>,
+  ): List<ReviewSkillStructureViolation> {
     val baseline = declaredBaseline(manifest) ?: return emptyList()
     val agentsFile = pack.resolve(baseline).parent.resolve("native-agents/agents.yaml")
     if (!Files.isRegularFile(agentsFile)) {
       return listOf(violation(agentsFile, "native-agent source bundle"))
     }
-    val agents = try {
-      parseNativeAgentBundle(agentsFile)
-    } catch (error: IllegalArgumentException) {
-      invalidNativeAgentBundle(agentsFile, error)
-    } catch (error: IOException) {
-      invalidNativeAgentBundle(agentsFile, error)
-    }
+    val agents =
+      try {
+        parseNativeAgentBundle(agentsFile)
+      } catch (error: IllegalArgumentException) {
+        invalidNativeAgentBundle(agentsFile, error)
+      } catch (error: IOException) {
+        invalidNativeAgentBundle(agentsFile, error)
+      }
     val displayName = (manifest["display_name"] ?: manifest["platform"]).toString()
     val areaMetadata = manifest["area_metadata"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
-    val expectedDescriptions = areaMetadata.mapNotNull { (rawArea, rawMetadata) ->
-      val area = rawArea as? String ?: return@mapNotNull null
-      val focus = (rawMetadata as? Map<*, *>)?.get("focus") as? String
-        ?: return@mapNotNull null
-      "bill-${pack.name}-code-review-$area" to
-        "$displayName ${area.replace('-', ' ')} specialist — $focus."
-    }.toMap()
+    val expectedDescriptions =
+      areaMetadata.mapNotNull { (rawArea, rawMetadata) ->
+        val area = rawArea as? String ?: return@mapNotNull null
+        val focus =
+          (rawMetadata as? Map<*, *>)?.get("focus") as? String
+            ?: return@mapNotNull null
+        "bill-${pack.name}-code-review-$area" to
+          "$displayName ${area.replace('-', ' ')} specialist — $focus."
+      }.toMap()
     return buildList {
       if (agents.any { agent -> expectedDescriptions[agent.name] != agent.description }) {
         add(violation(agentsFile, "native-agent description pattern"))
       }
-      val expectedNames = declaredAreas(manifest)
-        .map { "bill-${pack.name}-code-review-$it" }
-        .toSet()
+      val expectedNames =
+        declaredAreas(manifest)
+          .map { "bill-${pack.name}-code-review-$it" }
+          .toSet()
       if (agents.map { it.name }.toSet() != expectedNames) {
         add(violation(agentsFile, "native-agent specialist coverage"))
       }
     }
   }
 
-  fun authoredSidecarViolations(reviewFiles: List<Path>, manifest: Map<*, *>): List<ReviewSkillStructureViolation> =
+  fun authoredSidecarViolations(
+    reviewFiles: List<Path>,
+    manifest: Map<*, *>,
+  ): List<ReviewSkillStructureViolation> =
     reviewFiles
       .filter { !it.parent.name.endsWith("code-review") }
       .flatMap { contentFile ->
         Files.list(contentFile.parent).use { siblings ->
-          val sidecars = siblings
-            .filter { it.fileName.toString().endsWith(".md") && it != contentFile }
-            .toList()
+          val sidecars =
+            siblings
+              .filter { it.fileName.toString().endsWith(".md") && it != contentFile }
+              .toList()
           if (sidecars.size > 1) {
             return@use listOf(violation(contentFile, "one authored rubric sidecar"))
           }

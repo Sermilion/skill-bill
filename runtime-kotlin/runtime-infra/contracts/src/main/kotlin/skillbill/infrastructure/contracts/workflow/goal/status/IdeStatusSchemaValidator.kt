@@ -27,13 +27,19 @@ private val ideStatusLog: Logger =
 
 @Inject
 class IdeStatusSchemaValidator : IdeStatusValidator {
-  override fun validate(snapshot: IdeStatusSnapshot, sourceLabel: String) {
+  override fun validate(
+    snapshot: IdeStatusSnapshot,
+    sourceLabel: String,
+  ) {
     validate(ideStatusSchemaWireMap(snapshot), sourceLabel)
   }
 
   override fun toWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> = ideStatusSchemaWireMap(snapshot)
 
-  fun validate(snapshot: Map<String, Any?>, sourceLabel: String) {
+  fun validate(
+    snapshot: Map<String, Any?>,
+    sourceLabel: String,
+  ) {
     val instance: JsonNode = ClasspathContractSchemaLoader.valueToTree(snapshot)
     val errors = ClasspathContractSchemaLoader.validate(ideStatusSchema(), instance)
     if (errors.isEmpty()) return
@@ -41,9 +47,10 @@ class IdeStatusSchemaValidator : IdeStatusValidator {
     val sortedErrors = errors.sortedWith(violationOrdering)
     throw InvalidIdeStatusSchemaError(
       sourceLabel = sourceLabel,
-      fieldPath = goalObservabilityDottedFieldPath(
-        sortedErrors.first().instanceLocation?.toString().orEmpty(),
-      ),
+      fieldPath =
+        goalObservabilityDottedFieldPath(
+          sortedErrors.first().instanceLocation?.toString().orEmpty(),
+        ),
       reason = formatValidationReason(sortedErrors, instance),
     )
   }
@@ -51,23 +58,34 @@ class IdeStatusSchemaValidator : IdeStatusValidator {
   companion object {
     private val canonical: IdeStatusSchemaValidator by lazy(::IdeStatusSchemaValidator)
 
-    fun validate(snapshot: Map<String, Any?>, sourceLabel: String) = canonical.validate(snapshot, sourceLabel)
+    fun validate(
+      snapshot: Map<String, Any?>,
+      sourceLabel: String,
+    ) = canonical.validate(snapshot, sourceLabel)
 
     fun wireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> = ideStatusSchemaWireMap(snapshot)
   }
 
-  private fun buildSchemaDriftLog(sourceLabel: String, errors: Set<ValidationMessage>, instance: JsonNode): String {
-    val parts = errors.sortedWith(violationOrdering).take(2).map { error ->
-      val location = error.instanceLocation?.toString().orEmpty()
-      val fieldPath = goalObservabilityDottedFieldPath(location).ifBlank { "<root>" }
-      val offendingValue = extractGoalObservabilityOffendingValue(instance, location)
-      if (offendingValue.isNotBlank()) "$fieldPath=$offendingValue" else fieldPath
-    }
+  private fun buildSchemaDriftLog(
+    sourceLabel: String,
+    errors: Set<ValidationMessage>,
+    instance: JsonNode,
+  ): String {
+    val parts =
+      errors.sortedWith(violationOrdering).take(2).map { error ->
+        val location = error.instanceLocation?.toString().orEmpty()
+        val fieldPath = goalObservabilityDottedFieldPath(location).ifBlank { "<root>" }
+        val offendingValue = extractGoalObservabilityOffendingValue(instance, location)
+        if (offendingValue.isNotBlank()) "$fieldPath=$offendingValue" else fieldPath
+      }
     return "IDE status failed schema validation: source='$sourceLabel' " +
       "violations=${parts.joinToString(", ")} totalViolations=${errors.size}"
   }
 
-  private fun formatValidationReason(sorted: List<ValidationMessage>, instance: JsonNode): String =
+  private fun formatValidationReason(
+    sorted: List<ValidationMessage>,
+    instance: JsonNode,
+  ): String =
     sorted.joinToString(" | ") { error ->
       val instanceLocation = error.instanceLocation?.toString().orEmpty()
       val fieldPath = goalObservabilityDottedFieldPath(instanceLocation).ifBlank { "<root>" }
@@ -83,11 +101,12 @@ class IdeStatusSchemaValidator : IdeStatusValidator {
       }
     }
 
-  private val violationOrdering: Comparator<ValidationMessage> = compareBy(
-    { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
-    { it.instanceLocation?.toString().orEmpty() },
-    { it.message.orEmpty() },
-  )
+  private val violationOrdering: Comparator<ValidationMessage> =
+    compareBy(
+      { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
+      { it.instanceLocation?.toString().orEmpty() },
+      { it.message.orEmpty() },
+    )
 }
 
 internal const val IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE: String =
@@ -96,57 +115,66 @@ internal const val IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val IDE_STATUS_SCHEMA_REPO_RELATIVE_PATH: String =
   IdeStatusSchemaPaths.REPO_RELATIVE_PATH
 
-private fun ideStatusSchemaWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> = buildMap {
-  put(SharedPayloadKeys.CONTRACT_VERSION, snapshot.contractVersion)
-  put("repository_identity", snapshot.repositoryIdentity)
-  snapshot.issueKey?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.ISSUE_KEY, it) }
-  snapshot.workflowId?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.WORKFLOW_ID, it) }
-  snapshot.workflowFamily?.let { put("workflow_family", it.wireValue) }
-  put("lifecycle_state", snapshot.lifecycleState.wireValue)
-  put("current_step", currentStepWireMap(snapshot))
-  snapshot.progress?.let { put("progress", progressWireMap(it.completed, it.total)) }
-  snapshot.startedAt?.let { put("started_at", it.toString()) }
-  snapshot.currentSubtask?.let { put("current_subtask", currentSubtaskWireMap(it)) }
-  snapshot.currentModel?.let { put("current_model", currentModelWireMap(it)) }
-  snapshot.planning?.let { put("planning", ideStatusPlanningWireMap(it)) }
-  snapshot.currentPhaseExecution?.let { put("current_phase_execution", phaseExecutionWireMap(it)) }
-  putPauseFields(snapshot)
-  putActivityFields(snapshot)
-  put("updated_at", snapshot.updatedAt.toString())
-  put("freshness", snapshot.freshness.wireValue)
-  put(SharedPayloadKeys.SUMMARY, snapshot.summary)
-  snapshot.problem?.let { put("problem", problemWireMap(it)) }
-}
+private fun ideStatusSchemaWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> =
+  buildMap {
+    put(SharedPayloadKeys.CONTRACT_VERSION, snapshot.contractVersion)
+    put("repository_identity", snapshot.repositoryIdentity)
+    snapshot.issueKey?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.ISSUE_KEY, it) }
+    snapshot.workflowId?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.WORKFLOW_ID, it) }
+    snapshot.workflowFamily?.let { put("workflow_family", it.wireValue) }
+    put("lifecycle_state", snapshot.lifecycleState.wireValue)
+    put("current_step", currentStepWireMap(snapshot))
+    snapshot.progress?.let { put("progress", progressWireMap(it.completed, it.total)) }
+    snapshot.startedAt?.let { put("started_at", it.toString()) }
+    snapshot.currentSubtask?.let { put("current_subtask", currentSubtaskWireMap(it)) }
+    snapshot.currentModel?.let { put("current_model", currentModelWireMap(it)) }
+    snapshot.planning?.let { put("planning", ideStatusPlanningWireMap(it)) }
+    snapshot.currentPhaseExecution?.let { put("current_phase_execution", phaseExecutionWireMap(it)) }
+    putPauseFields(snapshot)
+    putActivityFields(snapshot)
+    put("updated_at", snapshot.updatedAt.toString())
+    put("freshness", snapshot.freshness.wireValue)
+    put(SharedPayloadKeys.SUMMARY, snapshot.summary)
+    snapshot.problem?.let { put("problem", problemWireMap(it)) }
+  }
 
-private fun currentStepWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> = linkedMapOf(
-  "id" to snapshot.currentStep.id,
-  "label" to snapshot.currentStep.label,
-)
+private fun currentStepWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> =
+  linkedMapOf(
+    "id" to snapshot.currentStep.id,
+    "label" to snapshot.currentStep.label,
+  )
 
-private fun progressWireMap(completed: Int, total: Int): Map<String, Any?> = linkedMapOf(
-  "completed" to completed,
-  "total" to total,
-)
+private fun progressWireMap(
+  completed: Int,
+  total: Int,
+): Map<String, Any?> =
+  linkedMapOf(
+    "completed" to completed,
+    "total" to total,
+  )
 
-private fun currentSubtaskWireMap(subtask: IdeStatusCurrentSubtask): Map<String, Any?> = buildMap {
-  put("id", subtask.id)
-  subtask.startedAt?.let { put("started_at", it.toString()) }
-  subtask.activeDurationMs?.let { put("active_duration_ms", it) }
-  subtask.activeDurationAsOf?.let { put("active_duration_as_of", it.toString()) }
-}
+private fun currentSubtaskWireMap(subtask: IdeStatusCurrentSubtask): Map<String, Any?> =
+  buildMap {
+    put("id", subtask.id)
+    subtask.startedAt?.let { put("started_at", it.toString()) }
+    subtask.activeDurationMs?.let { put("active_duration_ms", it) }
+    subtask.activeDurationAsOf?.let { put("active_duration_as_of", it.toString()) }
+  }
 
-private fun currentModelWireMap(model: IdeStatusCurrentModel): Map<String, Any?> = buildMap {
-  put("model", model.model)
-  model.effort?.let { put("effort", it) }
-  model.phaseId?.let { put(SharedPayloadKeys.PHASE_ID, it) }
-}
+private fun currentModelWireMap(model: IdeStatusCurrentModel): Map<String, Any?> =
+  buildMap {
+    put("model", model.model)
+    model.effort?.let { put("effort", it) }
+    model.phaseId?.let { put(SharedPayloadKeys.PHASE_ID, it) }
+  }
 
-private fun phaseExecutionWireMap(execution: IdeStatusCurrentPhaseExecution): Map<String, Any?> = buildMap {
-  put(SharedPayloadKeys.PHASE_ID, execution.phaseId)
-  put("kind", execution.kind.wireValue)
-  put("count", execution.count)
-  execution.total?.let { put("total", it) }
-}
+private fun phaseExecutionWireMap(execution: IdeStatusCurrentPhaseExecution): Map<String, Any?> =
+  buildMap {
+    put(SharedPayloadKeys.PHASE_ID, execution.phaseId)
+    put("kind", execution.kind.wireValue)
+    put("count", execution.count)
+    execution.total?.let { put("total", it) }
+  }
 
 private fun MutableMap<String, Any?>.putPauseFields(snapshot: IdeStatusSnapshot) {
   snapshot.pauseRequested?.takeIf { it }?.let { put("pause_requested", true) }
@@ -173,62 +201,66 @@ private fun MutableMap<String, Any?>.putActivityFields(snapshot: IdeStatusSnapsh
   }
 }
 
-private fun problemWireMap(problem: IdeStatusProblem): Map<String, Any?> = buildMap {
-  put("code", problem.code.wireValue)
-  put("message", problem.message)
-  problem.details?.asWireEntries()?.takeIf { it.isNotEmpty() }?.let { put("details", it) }
-}
+private fun problemWireMap(problem: IdeStatusProblem): Map<String, Any?> =
+  buildMap {
+    put("code", problem.code.wireValue)
+    put("message", problem.message)
+    problem.details?.asWireEntries()?.takeIf { it.isNotEmpty() }?.let { put("details", it) }
+  }
 
-private fun ideStatusPlanningWireMap(planning: IdeStatusPlanning): Map<String, Any?> = buildMap {
-  put("state", planning.state.wireValue)
-  put("shared_preplan_prepared", planning.sharedPreplanPrepared)
-  put("planned_subtask_count", planning.plannedSubtaskCount)
-  put("total_subtask_count", planning.totalSubtaskCount)
-  planning.currentPlanningSubtaskId?.takeIf(String::isNotBlank)
-    ?.let { put("current_planning_subtask_id", it) }
-  planning.planningWaveSubtaskIds.takeIf { it.isNotEmpty() }
-    ?.let { put("planning_wave_subtask_ids", it) }
-  planning.reason?.takeIf(String::isNotBlank)?.let { put("reason", it) }
-}
+private fun ideStatusPlanningWireMap(planning: IdeStatusPlanning): Map<String, Any?> =
+  buildMap {
+    put("state", planning.state.wireValue)
+    put("shared_preplan_prepared", planning.sharedPreplanPrepared)
+    put("planned_subtask_count", planning.plannedSubtaskCount)
+    put("total_subtask_count", planning.totalSubtaskCount)
+    planning.currentPlanningSubtaskId?.takeIf(String::isNotBlank)
+      ?.let { put("current_planning_subtask_id", it) }
+    planning.planningWaveSubtaskIds.takeIf { it.isNotEmpty() }
+      ?.let { put("planning_wave_subtask_ids", it) }
+    planning.reason?.takeIf(String::isNotBlank)?.let { put("reason", it) }
+  }
 
-private fun ideStatusSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  CompiledSchemaRequest(
-    cacheKey = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-    classLoader = IdeStatusSchemaValidator::class.java.classLoader,
-    classpathResource = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidIdeStatusSchemaError(
-        sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-        fieldPath = "",
-        reason = "Canonical IDE status schema is missing. Expected classpath resource " +
-          "'$IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidIdeStatusSchemaError(
-        sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-        fieldPath = "",
-        reason = cause.message ?: cause::class.simpleName.orEmpty(),
-        cause = cause,
-      )
-    },
-    loadFailureLogger = { error ->
-      logSchemaLoadFailure(
-        ideStatusLog,
-        "IDE status",
-        IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-        IDE_STATUS_SCHEMA_REPO_RELATIVE_PATH,
-        error,
-      )
-    },
-    expectedSchemaId = IdeStatusSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = IDE_STATUS_CONTRACT_VERSION,
-    identityFailure = { reason ->
-      InvalidIdeStatusSchemaError(
-        sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
-        fieldPath = "<schema>",
-        reason = reason,
-      )
-    },
-  ),
-)
+private fun ideStatusSchema(): JsonSchema =
+  ClasspathContractSchemaLoader.compiledSchema(
+    CompiledSchemaRequest(
+      cacheKey = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+      classLoader = IdeStatusSchemaValidator::class.java.classLoader,
+      classpathResource = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+      missingResource = {
+        InvalidIdeStatusSchemaError(
+          sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+          fieldPath = "",
+          reason =
+            "Canonical IDE status schema is missing. Expected classpath resource " +
+              "'$IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE'.",
+        )
+      },
+      processingFailure = { cause ->
+        InvalidIdeStatusSchemaError(
+          sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+          fieldPath = "",
+          reason = cause.message ?: cause::class.simpleName.orEmpty(),
+          cause = cause,
+        )
+      },
+      loadFailureLogger = { error ->
+        logSchemaLoadFailure(
+          ideStatusLog,
+          "IDE status",
+          IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+          IDE_STATUS_SCHEMA_REPO_RELATIVE_PATH,
+          error,
+        )
+      },
+      expectedSchemaId = IdeStatusSchemaPaths.EXPECTED_SCHEMA_ID,
+      expectedContractVersion = IDE_STATUS_CONTRACT_VERSION,
+      identityFailure = { reason ->
+        InvalidIdeStatusSchemaError(
+          sourceLabel = IDE_STATUS_SCHEMA_CLASSPATH_RESOURCE,
+          fieldPath = "<schema>",
+          reason = reason,
+        )
+      },
+    ),
+  )

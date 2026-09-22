@@ -4,30 +4,50 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 
 interface WorkflowGitCommitHistoryOperations {
-  fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult
+  fun createCommit(
+    repoRoot: Path,
+    message: String,
+  ): WorkflowGitOperationResult
 
   fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult
 
-  fun resetSoftToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult =
+  fun resetSoftToCommit(
+    repoRoot: Path,
+    commitSha: String,
+  ): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Failed(
       error = "This git operations implementation cannot soft-reset HEAD to '$commitSha'.",
     )
 
-  fun resetHardToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult =
+  fun resetHardToCommit(
+    repoRoot: Path,
+    commitSha: String,
+  ): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Failed(
       error = "This git operations implementation cannot hard-reset HEAD to '$commitSha'.",
     )
 
-  fun isCommitAncestor(repoRoot: Path, ancestorSha: String, descendantSha: String): WorkflowGitOperationResult =
+  fun isCommitAncestor(
+    repoRoot: Path,
+    ancestorSha: String,
+    descendantSha: String,
+  ): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Failed(
       error = "This git operations implementation cannot test commit ancestry.",
     )
 
-  fun resolveCommit(repoRoot: Path, revision: String): WorkflowGitOperationResult = WorkflowGitOperationResult.Failed(
-    error = "This git operations implementation cannot resolve commit '$revision'.",
-  )
+  fun resolveCommit(
+    repoRoot: Path,
+    revision: String,
+  ): WorkflowGitOperationResult =
+    WorkflowGitOperationResult.Failed(
+      error = "This git operations implementation cannot resolve commit '$revision'.",
+    )
 
-  fun readHeadTrackedFile(repoRoot: Path, repoRelativePath: String): WorkflowGitOperationResult =
+  fun readHeadTrackedFile(
+    repoRoot: Path,
+    repoRelativePath: String,
+  ): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Failed(
       error = "This git operations implementation cannot read tracked file '$repoRelativePath' at HEAD.",
     )

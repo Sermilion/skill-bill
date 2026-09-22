@@ -6,6 +6,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+
 class ScaffoldCatalogTest {
   @Test
   fun `baseline review catalog projects manifest composition edges`() {
@@ -18,23 +19,26 @@ class ScaffoldCatalogTest {
     writeManifest(
       packsRoot = packsRoot,
       slug = "kmp",
-      body = manifest(
-        slug = "kmp",
-        composition = """
-          code_review_composition:
-            baseline_layers:
-              - platform: kotlin
-                skill: bill-kotlin-code-review
-                scope: same-review-scope
-                required: true
-                mode: kmp-baseline
-        """.trimIndent(),
-      ),
+      body =
+        manifest(
+          slug = "kmp",
+          composition =
+            """
+            code_review_composition:
+              baseline_layers:
+                - platform: kotlin
+                  skill: bill-kotlin-code-review
+                  scope: same-review-scope
+                  required: true
+                  mode: kmp-baseline
+            """.trimIndent(),
+        ),
     )
     writeManifest(
       packsRoot = packsRoot,
       slug = "docs",
-      body = """
+      body =
+        """
         platform: docs
         contract_version: "1.8"
         display_name: Docs
@@ -44,7 +48,7 @@ class ScaffoldCatalogTest {
           tie_breakers: []
         declared_code_review_areas: []
         area_metadata: {}
-      """.trimIndent(),
+        """.trimIndent(),
     )
 
     val catalog = ScaffoldCatalog.discoverBaselineReviewCatalog(packsRoot)
@@ -64,27 +68,35 @@ class ScaffoldCatalogTest {
     val targetSkill: String,
   )
 
-  private fun writeManifest(packsRoot: Path, slug: String, body: String) {
+  private fun writeManifest(
+    packsRoot: Path,
+    slug: String,
+    body: String,
+  ) {
     val packRoot = packsRoot.resolve(slug)
     Files.createDirectories(packRoot)
     Files.writeString(packRoot.resolve("platform.yaml"), body)
   }
 
-  private fun manifest(slug: String, composition: String = ""): String = buildString {
-    appendLine("platform: $slug")
-    appendLine("contract_version: \"1.8\"")
-    appendLine("display_name: ${slug.replaceFirstChar { it.uppercase() }}")
-    appendLine("routing_signals:")
-    appendLine("  strong:")
-    appendLine("    - \".$slug\"")
-    appendLine("  tie_breakers: []")
-    appendLine("declared_code_review_areas: []")
-    appendLine("declared_files:")
-    appendLine("  baseline: code-review/bill-$slug-code-review/content.md")
-    appendLine("  areas: {}")
-    appendLine("area_metadata: {}")
-    if (composition.isNotBlank()) {
-      appendLine(composition)
+  private fun manifest(
+    slug: String,
+    composition: String = "",
+  ): String =
+    buildString {
+      appendLine("platform: $slug")
+      appendLine("contract_version: \"1.8\"")
+      appendLine("display_name: ${slug.replaceFirstChar { it.uppercase() }}")
+      appendLine("routing_signals:")
+      appendLine("  strong:")
+      appendLine("    - \".$slug\"")
+      appendLine("  tie_breakers: []")
+      appendLine("declared_code_review_areas: []")
+      appendLine("declared_files:")
+      appendLine("  baseline: code-review/bill-$slug-code-review/content.md")
+      appendLine("  areas: {}")
+      appendLine("area_metadata: {}")
+      if (composition.isNotBlank()) {
+        appendLine(composition)
+      }
     }
-  }
 }

@@ -34,22 +34,24 @@ class JvmAgentRunProcessRunner(
 
   private fun runGoverned(request: AgentRunProcessRequest): AgentRunProcessResult {
     var startedProcess: ProcessStart? = null
-    val processStart = runCatching {
-      request.spawnAuthorization?.withAuthorization {
-        startProcess(request).also { startedProcess = it }
-      } ?: startProcess(request).also { startedProcess = it }
-    }.getOrElse { failure ->
-      cleanupProcessStart(startedProcess)
-      throw failure
-    }
+    val processStart =
+      runCatching {
+        request.spawnAuthorization?.withAuthorization {
+          startProcess(request).also { startedProcess = it }
+        } ?: startProcess(request).also { startedProcess = it }
+      }.getOrElse { failure ->
+        cleanupProcessStart(startedProcess)
+        throw failure
+      }
     return when (processStart) {
       is ProcessStart.Failed -> spawnFailure(processStart.error)
-      is ProcessStart.Started -> runStartedProcess(
-        process = processStart.process,
-        stdoutStream = processStart.process.inputStream,
-        stderrStream = processStart.process.errorStream,
-        request = request,
-      )
+      is ProcessStart.Started ->
+        runStartedProcess(
+          process = processStart.process,
+          stdoutStream = processStart.process.inputStream,
+          stderrStream = processStart.process.errorStream,
+          request = request,
+        )
     }
   }
 
@@ -59,27 +61,30 @@ class JvmAgentRunProcessRunner(
       ConcurrentHashMap.newKeySet<GovernedReviewEvidenceEndpointHandle>()
 
     init {
-      Runtime.getRuntime().addShutdownHook(object : Thread("skill-bill-agent-run-shutdown") {
-        override fun run() {
-          reapLiveProcesses(liveProcesses.toList())
-          liveEndpoints.toList().forEach { endpoint ->
-            liveEndpoints.remove(endpoint)
-            runCatching { endpoint.close() }
+      Runtime.getRuntime().addShutdownHook(
+        object : Thread("skill-bill-agent-run-shutdown") {
+          override fun run() {
+            reapLiveProcesses(liveProcesses.toList())
+            liveEndpoints.toList().forEach { endpoint ->
+              liveEndpoints.remove(endpoint)
+              runCatching { endpoint.close() }
+            }
           }
-        }
-      })
+        },
+      )
     }
 
     internal fun closeEndpoint(request: AgentRunProcessRequest) {
       val endpoint = request.reviewEvidenceEndpoint ?: return
       liveEndpoints.remove(endpoint)
       runCatching { endpoint.close() }.onFailure { failure ->
-        val sinkDelivered = runCatching {
-          request.outputSink.write(
-            AgentRunOutputStream.STDERR,
-            "governed review evidence endpoint teardown failed: ${failure.message.orEmpty()}\n",
-          )
-        }
+        val sinkDelivered =
+          runCatching {
+            request.outputSink.write(
+              AgentRunOutputStream.STDERR,
+              "governed review evidence endpoint teardown failed: ${failure.message.orEmpty()}\n",
+            )
+          }
         if (sinkDelivered.isFailure) {
           val sinkFailure = sinkDelivered.exceptionOrNull()
           agentRunTeardownLogger.warning(
@@ -140,9 +145,10 @@ class JvmAgentRunProcessRunner(
       resources.stderr.start()
       writeAndCloseStdin(process, request.stdinText, degradation)
       lifecycleEmitter.emitStarted(process.isAlive)
-      waitResult = runCatching {
-        waitForProcess(process, request, outputTracker, lifecycleEmitter, degradation)
-      }
+      waitResult =
+        runCatching {
+          waitForProcess(process, request, outputTracker, lifecycleEmitter, degradation)
+        }
       waitResult.exceptionOrNull()
         ?.takeUnless { it is InterruptedException }
         ?.let(::rethrow)
@@ -187,20 +193,22 @@ class JvmAgentRunProcessRunner(
   )
 
   private fun createProcessResources(args: ProcessResourceRequest): ProcessResources {
-    val stdout = CappedUtf8Drain(
-      input = args.stdoutStream,
-      limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
-      outputStream = AgentRunOutputStream.STDOUT,
-      outputSink = args.request.outputSink,
-      onChunkRead = { args.outputTracker.markObserved() },
-    )
-    val stderr = CappedUtf8Drain(
-      input = args.stderrStream,
-      limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
-      outputStream = AgentRunOutputStream.STDERR,
-      outputSink = args.request.outputSink,
-      onChunkRead = { args.outputTracker.markObserved() },
-    )
+    val stdout =
+      CappedUtf8Drain(
+        input = args.stdoutStream,
+        limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
+        outputStream = AgentRunOutputStream.STDOUT,
+        outputSink = args.request.outputSink,
+        onChunkRead = { args.outputTracker.markObserved() },
+      )
+    val stderr =
+      CappedUtf8Drain(
+        input = args.stderrStream,
+        limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
+        outputStream = AgentRunOutputStream.STDERR,
+        outputSink = args.request.outputSink,
+        onChunkRead = { args.outputTracker.markObserved() },
+      )
     return ProcessResources(
       stdout = stdout,
       stderr = stderr,
@@ -268,13 +276,14 @@ class JvmAgentRunProcessRunner(
     val stdout = release.stdoutCapture
     val stderr = release.stderrCapture
     val interruptMessage = "Agent run interrupted by parent signal before completion."
-    val stderrBody = stderr.text.let { existing ->
-      if (existing.isBlank()) {
-        interruptMessage
-      } else {
-        "$existing\n$interruptMessage"
+    val stderrBody =
+      stderr.text.let { existing ->
+        if (existing.isBlank()) {
+          interruptMessage
+        } else {
+          "$existing\n$interruptMessage"
+        }
       }
-    }
     return AgentRunProcessResult(
       exitStatus = null,
       stdout = stdout.text,
@@ -285,12 +294,13 @@ class JvmAgentRunProcessRunner(
       spawnFailed = false,
       processStarted = true,
       mcpStartupObserved = mcpStartupObserved,
-      liveness = AgentRunLivenessSnapshot(
-        phase = "watchdog",
-        reason = "parent_interrupted",
-        processState = GoalRunnerProcessState.KILLED,
-        lastOutputAt = outputTracker.lastObservedAt()?.toIsoUtc(),
-      ),
+      liveness =
+        AgentRunLivenessSnapshot(
+          phase = "watchdog",
+          reason = "parent_interrupted",
+          processState = GoalRunnerProcessState.KILLED,
+          lastOutputAt = outputTracker.lastObservedAt()?.toIsoUtc(),
+        ),
       stdoutTruncated = stdout.truncated,
       stdoutByteSize = stdout.totalByteSize,
       stdoutSha256 = stdout.sha256,
@@ -306,26 +316,29 @@ class JvmAgentRunProcessRunner(
     degradation: ProcessRunDegradationRecorder,
   ): ProcessWait = ProcessWaitLoop(process, request, outputTracker, lifecycleEmitter, clock, degradation).wait()
 
-  private fun spawnFailure(error: Exception): AgentRunProcessResult = AgentRunProcessResult(
-    exitStatus = null,
-    stdout = "",
-    stderr = error.message.orEmpty(),
-    timedOut = false,
-    interrupted = false,
-    spawnFailed = true,
-  )
+  private fun spawnFailure(error: Exception): AgentRunProcessResult =
+    AgentRunProcessResult(
+      exitStatus = null,
+      stdout = "",
+      stderr = error.message.orEmpty(),
+      timedOut = false,
+      interrupted = false,
+      spawnFailed = true,
+    )
 
-  private fun startProcess(request: AgentRunProcessRequest): ProcessStart = try {
-    ProcessStart.Started(buildProcess(request).start())
-  } catch (error: IOException) {
-    ProcessStart.Failed(error)
-  } catch (error: SecurityException) {
-    ProcessStart.Failed(error)
-  }
+  private fun startProcess(request: AgentRunProcessRequest): ProcessStart =
+    try {
+      ProcessStart.Started(buildProcess(request).start())
+    } catch (error: IOException) {
+      ProcessStart.Failed(error)
+    } catch (error: SecurityException) {
+      ProcessStart.Failed(error)
+    }
 
-  private fun buildProcess(request: AgentRunProcessRequest): ProcessBuilder = ProcessBuilder(request.command)
-    .directory(request.workingDirectory.toFile())
-    .also { configureLaunchEnvironment(it, request, gateJvmResolver) }
+  private fun buildProcess(request: AgentRunProcessRequest): ProcessBuilder =
+    ProcessBuilder(request.command)
+      .directory(request.workingDirectory.toFile())
+      .also { configureLaunchEnvironment(it, request, gateJvmResolver) }
 
   private fun cleanupProcessStart(start: ProcessStart?) {
     when (start) {

@@ -6,11 +6,12 @@ enum class FeatureTaskRuntimeQualityGateSelection(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String?): FeatureTaskRuntimeQualityGateSelection = when (value) {
-      BUILD.wireValue -> BUILD
-      null, VALIDATE.wireValue -> VALIDATE
-      else -> VALIDATE
-    }
+    fun fromWire(value: String?): FeatureTaskRuntimeQualityGateSelection =
+      when (value) {
+        BUILD.wireValue -> BUILD
+        null, VALIDATE.wireValue -> VALIDATE
+        else -> VALIDATE
+      }
   }
 }
 

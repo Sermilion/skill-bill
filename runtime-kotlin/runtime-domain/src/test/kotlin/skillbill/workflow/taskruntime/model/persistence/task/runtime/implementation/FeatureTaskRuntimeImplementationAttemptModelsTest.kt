@@ -12,10 +12,11 @@ import kotlin.test.assertTrue
 class FeatureTaskRuntimeImplementationAttemptModelsTest {
   @Test
   fun `history orders by sequence number regardless of append order`() {
-    val history = listOf(attempt(sequenceNumber = 3), attempt(sequenceNumber = 1))
-      .fold(emptyList<FeatureTaskRuntimeImplementationAttempt>()) { acc, entry ->
-        featureTaskRuntimeAppendImplementationAttempt(acc, entry)
-      }
+    val history =
+      listOf(attempt(sequenceNumber = 3), attempt(sequenceNumber = 1))
+        .fold(emptyList<FeatureTaskRuntimeImplementationAttempt>()) { acc, entry ->
+          featureTaskRuntimeAppendImplementationAttempt(acc, entry)
+        }
 
     val appended = featureTaskRuntimeAppendImplementationAttempt(history, attempt(sequenceNumber = 2))
 
@@ -28,11 +29,12 @@ class FeatureTaskRuntimeImplementationAttemptModelsTest {
     val closedA = attempt(sequenceNumber = 2, status = FeatureTaskRuntimeImplementationAttemptStatus.COMPLETED)
     val closedB = attempt(sequenceNumber = 3, status = FeatureTaskRuntimeImplementationAttemptStatus.COMPLETED)
 
-    val pruned = featureTaskRuntimeAppendImplementationAttempt(
-      existing = listOf(open, closedA, closedB),
-      entry = attempt(sequenceNumber = 4, status = FeatureTaskRuntimeImplementationAttemptStatus.COMPLETED),
-      retentionLimit = 3,
-    )
+    val pruned =
+      featureTaskRuntimeAppendImplementationAttempt(
+        existing = listOf(open, closedA, closedB),
+        entry = attempt(sequenceNumber = 4, status = FeatureTaskRuntimeImplementationAttemptStatus.COMPLETED),
+        retentionLimit = 3,
+      )
 
     assertEquals(3, pruned.size)
     assertTrue(pruned.any { it.sequenceNumber == 1 }, "The open-obligation attempt must survive pruning.")
@@ -50,19 +52,21 @@ class FeatureTaskRuntimeImplementationAttemptModelsTest {
 
   @Test
   fun `wire round-trip preserves value prompt and loop context`() {
-    val entry = attempt(
-      sequenceNumber = 7,
-      status = FeatureTaskRuntimeImplementationAttemptStatus.INCOMPLETE,
-    ).copy(
-      loopId = "audit_gap",
-      edgeIteration = 2,
-      prompt = "optional directive",
-      failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
-    )
+    val entry =
+      attempt(
+        sequenceNumber = 7,
+        status = FeatureTaskRuntimeImplementationAttemptStatus.INCOMPLETE,
+      ).copy(
+        loopId = "audit_gap",
+        edgeIteration = 2,
+        prompt = "optional directive",
+        failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
+      )
 
-    val decoded = featureTaskRuntimeImplementationAttemptsFromWire(
-      featureTaskRuntimeImplementationAttemptRecordToWire(listOf(entry)),
-    )
+    val decoded =
+      featureTaskRuntimeImplementationAttemptsFromWire(
+        featureTaskRuntimeImplementationAttemptRecordToWire(listOf(entry)),
+      )
 
     assertEquals(listOf(entry), decoded)
   }
@@ -109,13 +113,14 @@ class FeatureTaskRuntimeImplementationAttemptModelsTest {
     sequenceNumber: Int = 1,
     status: FeatureTaskRuntimeImplementationAttemptStatus =
       FeatureTaskRuntimeImplementationAttemptStatus.INCOMPLETE,
-  ): FeatureTaskRuntimeImplementationAttempt = FeatureTaskRuntimeImplementationAttempt(
-    sequenceNumber = sequenceNumber,
-    phaseId = "implement",
-    attemptNumber = 1,
-    agentId = "claude",
-    status = status,
-    recordedAt = "2026-08-04T10:00:00Z",
-    value = "segment-$sequenceNumber prose",
-  )
+  ): FeatureTaskRuntimeImplementationAttempt =
+    FeatureTaskRuntimeImplementationAttempt(
+      sequenceNumber = sequenceNumber,
+      phaseId = "implement",
+      attemptNumber = 1,
+      agentId = "claude",
+      status = status,
+      recordedAt = "2026-08-04T10:00:00Z",
+      value = "segment-$sequenceNumber prose",
+    )
 }

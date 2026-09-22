@@ -6,13 +6,14 @@ import kotlin.test.assertEquals
 class FeatureTaskRuntimePhaseSafetyPolicyTest {
   @Test
   fun `porcelain paths are normalized and rename uses destination`() {
-    val paths = FeatureTaskRuntimePhaseSafetyPolicy.changedPaths(
-      """
-       M src/Main.kt
-      ?? .feature-specs/SKILL-124-new/spec.md
-      R  old.txt -> new.txt
-      """.trimIndent(),
-    )
+    val paths =
+      FeatureTaskRuntimePhaseSafetyPolicy.changedPaths(
+        """
+         M src/Main.kt
+        ?? .feature-specs/SKILL-124-new/spec.md
+        R  old.txt -> new.txt
+        """.trimIndent(),
+      )
 
     assertEquals(
       listOf(".feature-specs/SKILL-124-new/spec.md", "new.txt", "src/Main.kt"),
@@ -22,14 +23,15 @@ class FeatureTaskRuntimePhaseSafetyPolicyTest {
 
   @Test
   fun `runtime-private skill-bill paths are omitted from phase manifests`() {
-    val paths = FeatureTaskRuntimePhaseSafetyPolicy.changedPaths(
-      """
-       M src/Main.kt
-      ?? .skill-bill/state.db
-      ?? .skill-bill/run-evidence/wf/fp/evidence.json
-      ?? .skill-bill/config.yaml
-      """.trimIndent(),
-    )
+    val paths =
+      FeatureTaskRuntimePhaseSafetyPolicy.changedPaths(
+        """
+         M src/Main.kt
+        ?? .skill-bill/state.db
+        ?? .skill-bill/run-evidence/wf/fp/evidence.json
+        ?? .skill-bill/config.yaml
+        """.trimIndent(),
+      )
 
     assertEquals(
       listOf(".skill-bill/config.yaml", ".skill-bill/run-evidence/wf/fp/evidence.json", "src/Main.kt"),

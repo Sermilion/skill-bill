@@ -11,17 +11,17 @@ internal data class FeatureTaskRuntimeChildOutput(
   val interrupted: Boolean,
   val spawnFailed: Boolean,
 ) {
-
-  fun storedBody(): String = buildString {
-    appendLine("### child process failure diagnostic")
-    appendLine("### exit_status=${exitStatus ?: "none"} timed_out=$timedOut interrupted=$interrupted")
-    appendLine("### spawn_failed=$spawnFailed")
-    appendLine("### --- stdout (${stdout.length} chars) ---")
-    appendLine(stdout.ifEmpty { "<empty>" })
-    appendLine("### --- stderr (${stderr.length} chars) ---")
-    appendLine(stderr.ifEmpty { "<empty>" })
-    appendLine("### end of child process failure diagnostic")
-  }
+  fun storedBody(): String =
+    buildString {
+      appendLine("### child process failure diagnostic")
+      appendLine("### exit_status=${exitStatus ?: "none"} timed_out=$timedOut interrupted=$interrupted")
+      appendLine("### spawn_failed=$spawnFailed")
+      appendLine("### --- stdout (${stdout.length} chars) ---")
+      appendLine(stdout.ifEmpty { "<empty>" })
+      appendLine("### --- stderr (${stderr.length} chars) ---")
+      appendLine(stderr.ifEmpty { "<empty>" })
+      appendLine("### end of child process failure diagnostic")
+    }
 
   val isEmpty: Boolean get() = stdout.isEmpty() && stderr.isEmpty()
 }

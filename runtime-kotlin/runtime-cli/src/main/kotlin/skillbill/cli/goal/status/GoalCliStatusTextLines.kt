@@ -26,7 +26,10 @@ internal fun StringBuilder.appendOperatorSurfaceLines(payload: Map<*, *>) {
   }
 }
 
-internal fun StringBuilder.appendDiffStatusLines(payload: Map<*, *>, watchIndex: String? = null) {
+internal fun StringBuilder.appendDiffStatusLines(
+  payload: Map<*, *>,
+  watchIndex: String? = null,
+) {
   val indexPrefix = watchIndex?.let { " index=$it" }.orEmpty()
   (payload["diff_stat"] as? Map<*, *>)?.let { stat ->
     appendLine(
@@ -60,6 +63,7 @@ internal fun StringBuilder.appendDiffStatusLines(payload: Map<*, *>, watchIndex:
   }
 }
 
-internal fun String.goalCliToken(): String = replace("\\", "\\\\")
-  .replace("\t", "\\t")
-  .replace(" ", "\\s")
+internal fun String.goalCliToken(): String =
+  replace("\\", "\\\\")
+    .replace("\t", "\\t")
+    .replace(" ", "\\s")

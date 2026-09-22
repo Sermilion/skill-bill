@@ -5,29 +5,32 @@ import skillbill.review.context.model.accounting.ReviewAccountingInput
 import skillbill.review.context.model.packet.ReviewLaneSegmentAccounting
 import kotlin.test.Test
 import kotlin.test.assertEquals
+
 class ReviewTreeAccountingTest {
   @Test fun `counters aggregate inclusively without double counting a session`() {
     val digest = "a".repeat(64)
-    val root = ReviewAccountingInput(
-      "parent",
-      "root",
-      counters = ReviewAccountingCounters(10, 1, 2, 1, 1, 1),
-      children = listOf(
-        ReviewAccountingInput(
-          "architecture",
-          "arch",
-          counters = ReviewAccountingCounters(100, 200, 300, 2, 3, 4),
-          bundleCompositionDigest = digest,
-          segmentAccounting = listOf(ReviewLaneSegmentAccounting("segment", 128, 2, digest)),
-          unreviewedSegmentIds = listOf("unreviewed"),
-        ),
-        ReviewAccountingInput(
-          "testing",
-          "test",
-          counters = ReviewAccountingCounters(1000, 2000, 3000, 5, 6, 7),
-        ),
-      ),
-    )
+    val root =
+      ReviewAccountingInput(
+        "parent",
+        "root",
+        counters = ReviewAccountingCounters(10, 1, 2, 1, 1, 1),
+        children =
+          listOf(
+            ReviewAccountingInput(
+              "architecture",
+              "arch",
+              counters = ReviewAccountingCounters(100, 200, 300, 2, 3, 4),
+              bundleCompositionDigest = digest,
+              segmentAccounting = listOf(ReviewLaneSegmentAccounting("segment", 128, 2, digest)),
+              unreviewedSegmentIds = listOf("unreviewed"),
+            ),
+            ReviewAccountingInput(
+              "testing",
+              "test",
+              counters = ReviewAccountingCounters(1000, 2000, 3000, 5, 6, 7),
+            ),
+          ),
+      )
 
     val summary = ReviewTreeAccounting.summarize("review", "packet", root)
 
@@ -47,15 +50,16 @@ class ReviewTreeAccountingTest {
   }
 
   @Test fun `lane ordering is stable and independent of input order`() {
-    fun tree(order: List<String>) = ReviewTreeAccounting.summarize(
-      "review",
-      "packet",
-      ReviewAccountingInput(
-        "parent",
-        "root",
-        children = order.map { ReviewAccountingInput(it, "digest-$it") },
-      ),
-    ).lanes.map { it.lane }
+    fun tree(order: List<String>) =
+      ReviewTreeAccounting.summarize(
+        "review",
+        "packet",
+        ReviewAccountingInput(
+          "parent",
+          "root",
+          children = order.map { ReviewAccountingInput(it, "digest-$it") },
+        ),
+      ).lanes.map { it.lane }
 
     val sorted = listOf("architecture", "security", "testing")
     assertEquals(sorted, tree(listOf("testing", "architecture", "security")))

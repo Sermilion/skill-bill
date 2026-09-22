@@ -17,14 +17,16 @@ import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFinding
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationVerdict
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 object FeatureTaskRuntimeOutputVerification {
   internal fun verdictFor(
     phaseId: String,
     outputObject: FeatureTaskRuntimeWorkflowArtifactMap?,
   ): FeatureTaskRuntimeVerdict {
-    val wireVerdict = (outputObject?.get(SharedPayloadKeys.VERDICT) as? String)
-      ?.takeIf(String::isNotBlank)
-      ?.let { value -> FeatureTaskRuntimeVerdict.rejectRemovedVerdict(value, "phase output verdict") }
+    val wireVerdict =
+      (outputObject?.get(SharedPayloadKeys.VERDICT) as? String)
+        ?.takeIf(String::isNotBlank)
+        ?.let { value -> FeatureTaskRuntimeVerdict.rejectRemovedVerdict(value, "phase output verdict") }
     return when (phaseId) {
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW -> reviewVerdict(outputObject, wireVerdict)
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS ->
@@ -69,14 +71,16 @@ private fun findingVerificationVerdict(wireVerdict: FeatureTaskRuntimeVerdict?):
 private fun findingVerificationVerdictFrom(
   outputObject: FeatureTaskRuntimeWorkflowArtifactMap?,
 ): FeatureTaskRuntimeFindingVerificationVerdict? {
-  val dispositionsRaw = outputObject?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?.get(FeatureTaskRuntimeVerificationSignalKeys.FINDINGS_VERIFICATION_DISPOSITIONS) as? List<*>
-    ?: return null
-  val dispositions = FeatureTaskRuntimeFindingVerificationDisposition.parseList(
-    dispositionsRaw,
-    "produced_outputs.${FeatureTaskRuntimeVerificationSignalKeys.FINDINGS_VERIFICATION_DISPOSITIONS}",
-  )
+  val dispositionsRaw =
+    outputObject?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?.get(FeatureTaskRuntimeVerificationSignalKeys.FINDINGS_VERIFICATION_DISPOSITIONS) as? List<*>
+      ?: return null
+  val dispositions =
+    FeatureTaskRuntimeFindingVerificationDisposition.parseList(
+      dispositionsRaw,
+      "produced_outputs.${FeatureTaskRuntimeVerificationSignalKeys.FINDINGS_VERIFICATION_DISPOSITIONS}",
+    )
   return FeatureTaskRuntimeFindingVerificationVerdict(dispositions)
 }
 
@@ -115,10 +119,11 @@ private fun auditVerdict(
 }
 
 private fun reviewVerdictFrom(outputObject: FeatureTaskRuntimeWorkflowArtifactMap?): FeatureTaskRuntimeReviewVerdict? {
-  val findingsRaw = outputObject?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?.get(FeatureTaskRuntimeVerificationSignalKeys.REVIEW_FINDINGS) as? List<*>
-    ?: return null
+  val findingsRaw =
+    outputObject?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?.get(FeatureTaskRuntimeVerificationSignalKeys.REVIEW_FINDINGS) as? List<*>
+      ?: return null
   val findings = findingsRaw.mapNotNull(::actionableReviewFinding)
   return FeatureTaskRuntimeReviewVerdict(findings)
 }

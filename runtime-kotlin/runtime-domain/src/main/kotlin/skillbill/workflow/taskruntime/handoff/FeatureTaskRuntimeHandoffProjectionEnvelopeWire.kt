@@ -28,20 +28,22 @@ internal object FeatureTaskRuntimeHandoffProjectionEnvelopeWire {
       return fields
     }
     val resolvedFingerprint = inputs.resolvedCheckpoint?.fingerprint ?: return fields
-    val refreshed = fields.map { field ->
-      resolvedCheckpointField(field, resolvedFingerprint, carried)
-    }
+    val refreshed =
+      fields.map { field ->
+        resolvedCheckpointField(field, resolvedFingerprint, carried)
+      }
     if (
       REPOSITORY_CHECKPOINT_FIELD in declaration.declaredFieldNames &&
       refreshed.none { it.name == REPOSITORY_CHECKPOINT_FIELD }
     ) {
-      return refreshed + FeatureTaskRuntimeHandoffProjectionField(
-        REPOSITORY_CHECKPOINT_FIELD,
-        FeatureTaskRuntimeHandoffProjectionValue.CompactReference(
-          kind = FeatureTaskRuntimeCompactReferenceKind.REPOSITORY_CHECKPOINT,
-          value = resolvedFingerprint,
-        ),
-      )
+      return refreshed +
+        FeatureTaskRuntimeHandoffProjectionField(
+          REPOSITORY_CHECKPOINT_FIELD,
+          FeatureTaskRuntimeHandoffProjectionValue.CompactReference(
+            kind = FeatureTaskRuntimeCompactReferenceKind.REPOSITORY_CHECKPOINT,
+            value = resolvedFingerprint,
+          ),
+        )
     }
     return refreshed
   }
@@ -49,41 +51,45 @@ internal object FeatureTaskRuntimeHandoffProjectionEnvelopeWire {
   private fun checkpointPolicyViolation(
     inputs: FeatureTaskRuntimeHandoffProjectionInputs,
     declaration: PhaseHandoffProjectionDeclaration,
-  ): String? = when (declaration.checkpointPolicy) {
-    FeatureTaskRuntimeRepositoryCheckpointPolicy.NOT_REQUIRED -> null
-    FeatureTaskRuntimeRepositoryCheckpointPolicy.REFRESH_FROM_REPOSITORY ->
-      if (inputs.resolvedCheckpoint == null) {
-        "checkpoint-aware policy requires a freshly resolved repository checkpoint, none was supplied."
-      } else {
-        null
-      }
-    FeatureTaskRuntimeRepositoryCheckpointPolicy.MUST_MATCH ->
-      if (inputs.resolvedCheckpoint == null) {
-        "must_match requires a freshly resolved repository checkpoint, none was supplied."
-      } else {
-        null
-      }
-  }
+  ): String? =
+    when (declaration.checkpointPolicy) {
+      FeatureTaskRuntimeRepositoryCheckpointPolicy.NOT_REQUIRED -> null
+      FeatureTaskRuntimeRepositoryCheckpointPolicy.REFRESH_FROM_REPOSITORY ->
+        if (inputs.resolvedCheckpoint == null) {
+          "checkpoint-aware policy requires a freshly resolved repository checkpoint, none was supplied."
+        } else {
+          null
+        }
+      FeatureTaskRuntimeRepositoryCheckpointPolicy.MUST_MATCH ->
+        if (inputs.resolvedCheckpoint == null) {
+          "must_match requires a freshly resolved repository checkpoint, none was supplied."
+        } else {
+          null
+        }
+    }
 
   private fun resolvedCheckpointField(
     field: FeatureTaskRuntimeHandoffProjectionField,
     resolvedFingerprint: String,
     carriedFingerprint: String?,
-  ): FeatureTaskRuntimeHandoffProjectionField = if (field.name == REPOSITORY_CHECKPOINT_FIELD) {
-    field.copy(
-      value = FeatureTaskRuntimeHandoffProjectionValue.CompactReference(
-        kind = FeatureTaskRuntimeCompactReferenceKind.REPOSITORY_CHECKPOINT,
-        value = resolvedFingerprint +
-          (
-            carriedFingerprint?.let {
-              FeatureTaskRuntimeHandoffProjectionValidator.CHECKPOINT_PRODUCER_CLAIM_SEPARATOR + it
-            }.orEmpty()
-            ),
-      ),
-    )
-  } else {
-    field
-  }
+  ): FeatureTaskRuntimeHandoffProjectionField =
+    if (field.name == REPOSITORY_CHECKPOINT_FIELD) {
+      field.copy(
+        value =
+          FeatureTaskRuntimeHandoffProjectionValue.CompactReference(
+            kind = FeatureTaskRuntimeCompactReferenceKind.REPOSITORY_CHECKPOINT,
+            value =
+              resolvedFingerprint +
+                (
+                  carriedFingerprint?.let {
+                    FeatureTaskRuntimeHandoffProjectionValidator.CHECKPOINT_PRODUCER_CLAIM_SEPARATOR + it
+                  }.orEmpty()
+                ),
+          ),
+      )
+    } else {
+      field
+    }
 
   private fun receiptCarriedCheckpointFingerprint(fields: List<FeatureTaskRuntimeHandoffProjectionField>): String? =
     fields.firstOrNull { it.name == REPOSITORY_CHECKPOINT_FIELD }

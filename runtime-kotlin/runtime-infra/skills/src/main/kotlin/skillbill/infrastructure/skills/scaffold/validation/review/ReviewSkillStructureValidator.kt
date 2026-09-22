@@ -29,9 +29,10 @@ internal object ReviewSkillStructureValidator {
         packDirectories.filter(Files::isDirectory).toList().flatMap(::violations)
       }
     }
-    val manifest = manifest(pack) ?: return listOf(
-      ReviewSkillStructureViolation(pack.resolve("platform.yaml"), "platform manifest mapping"),
-    )
+    val manifest =
+      manifest(pack) ?: return listOf(
+        ReviewSkillStructureViolation(pack.resolve("platform.yaml"), "platform manifest mapping"),
+      )
     val reviewFiles = contentFiles(pack)
     val hasReviewSurface =
       declaredBaseline(manifest) != null ||
@@ -68,9 +69,10 @@ internal fun validateReviewSkillStructure(pack: PlatformManifest) {
 
   val actualAgents = parseNativeAgentBundle(bundle)
   val actualNames = actualAgents.map { it.name }
-  val specialistNames = pack.declaredCodeReviewAreas
-    .map { area -> pack.declaredFiles.areas.getValue(area).toPath().parent.fileName.toString() }
-    .toSet()
+  val specialistNames =
+    pack.declaredCodeReviewAreas
+      .map { area -> pack.declaredFiles.areas.getValue(area).toPath().parent.fileName.toString() }
+      .toSet()
   val baselineName = baseline.toPath().parent.fileName.toString()
   val expectedNames = specialistNames + baselineName
   val actualNameSet = actualNames.toSet()

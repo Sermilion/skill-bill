@@ -15,7 +15,10 @@ import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
 import java.nio.file.Files
 import java.nio.file.Path
 
-internal fun snapshotManifest(txn: ScaffoldTransaction, manifestPath: Path) {
+internal fun snapshotManifest(
+  txn: ScaffoldTransaction,
+  manifestPath: Path,
+) {
   txn.manifestSnapshots += ManifestSnapshot(manifestPath, Files.readAllBytes(manifestPath))
 }
 
@@ -32,7 +35,11 @@ internal fun stageSubagentStubs(
   return listOf(sourcePath)
 }
 
-internal fun applyManifestEdits(txn: ScaffoldTransaction, plan: ScaffoldPlan, repoRoot: Path): List<Path> {
+internal fun applyManifestEdits(
+  txn: ScaffoldTransaction,
+  plan: ScaffoldPlan,
+  repoRoot: Path,
+): List<Path> {
   return when (plan.kind) {
     SKILL_KIND_HORIZONTAL -> applyHorizontalManifestEdit(txn, plan, repoRoot)
     SKILL_KIND_CODE_REVIEW_AREA -> applyCodeReviewAreaManifestEdit(txn, plan, repoRoot)
@@ -42,7 +49,11 @@ internal fun applyManifestEdits(txn: ScaffoldTransaction, plan: ScaffoldPlan, re
   }
 }
 
-private fun applyHorizontalManifestEdit(txn: ScaffoldTransaction, plan: ScaffoldPlan, repoRoot: Path): List<Path> {
+private fun applyHorizontalManifestEdit(
+  txn: ScaffoldTransaction,
+  plan: ScaffoldPlan,
+  repoRoot: Path,
+): List<Path> {
   val readmePath = repoRoot.resolve("README.md")
   if (!Files.exists(readmePath)) {
     return emptyList()
@@ -52,17 +63,26 @@ private fun applyHorizontalManifestEdit(txn: ScaffoldTransaction, plan: Scaffold
   return listOf(readmePath)
 }
 
-private fun applyCodeReviewAreaManifestEdit(txn: ScaffoldTransaction, plan: ScaffoldPlan, repoRoot: Path): List<Path> {
+private fun applyCodeReviewAreaManifestEdit(
+  txn: ScaffoldTransaction,
+  plan: ScaffoldPlan,
+  repoRoot: Path,
+): List<Path> {
   val manifestPath = repoRoot.resolve("platform-packs").resolve(plan.platform).resolve("platform.yaml")
   snapshotManifest(txn, manifestPath)
-  val declaredAreaPath = manifestPath.parent.relativize(
-    plan.contentFile ?: plan.skillPath.resolve("content.md"),
-  ).toString().replace('\\', '/')
+  val declaredAreaPath =
+    manifestPath.parent.relativize(
+      plan.contentFile ?: plan.skillPath.resolve("content.md"),
+    ).toString().replace('\\', '/')
   appendCodeReviewArea(manifestPath, plan.area, declaredAreaPath, defaultAreaFocus(plan.area))
   return listOf(manifestPath)
 }
 
-private fun applyAddonManifestEdit(txn: ScaffoldTransaction, plan: ScaffoldPlan, repoRoot: Path): List<Path> {
+private fun applyAddonManifestEdit(
+  txn: ScaffoldTransaction,
+  plan: ScaffoldPlan,
+  repoRoot: Path,
+): List<Path> {
   if (plan.addonConsumerSkillDirs.isEmpty()) {
     return emptyList()
   }
@@ -80,7 +100,10 @@ private fun applyAddonManifestEdit(txn: ScaffoldTransaction, plan: ScaffoldPlan,
   return listOf(manifestPath)
 }
 
-private fun applyExternalAddonManifestEdit(txn: ScaffoldTransaction, plan: ScaffoldPlan): List<Path> {
+private fun applyExternalAddonManifestEdit(
+  txn: ScaffoldTransaction,
+  plan: ScaffoldPlan,
+): List<Path> {
   val manifestPath = plan.externalAddonManifestPath()
   if (Files.exists(manifestPath)) {
     snapshotManifest(txn, manifestPath)

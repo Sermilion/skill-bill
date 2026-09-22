@@ -9,8 +9,9 @@ enum class SpecIntentAbsenceReason(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): SpecIntentAbsenceReason = entries.firstOrNull { it.wireValue == value }
-      ?: error("Unknown spec-intent absence reason '$value'.")
+    fun fromWire(value: String): SpecIntentAbsenceReason =
+      entries.firstOrNull { it.wireValue == value }
+        ?: error("Unknown spec-intent absence reason '$value'.")
   }
 }
 

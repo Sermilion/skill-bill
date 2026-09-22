@@ -165,7 +165,10 @@ data class ResolvedInstalledAgents(
   companion object {
     val EMPTY: ResolvedInstalledAgents = ResolvedInstalledAgents(emptySet())
 
-    fun fromApplyResult(status: InstallApplyStatus, skills: List<InstallAppliedSkill>): ResolvedInstalledAgents {
+    fun fromApplyResult(
+      status: InstallApplyStatus,
+      skills: List<InstallAppliedSkill>,
+    ): ResolvedInstalledAgents {
       if (status == InstallApplyStatus.FAILURE) {
         return EMPTY
       }

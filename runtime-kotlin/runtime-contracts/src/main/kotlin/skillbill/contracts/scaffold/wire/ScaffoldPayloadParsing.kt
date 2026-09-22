@@ -1,10 +1,15 @@
 package skillbill.contracts.scaffold.wire
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
-fun requireString(map: Map<String, Any?>, key: String): String {
-  val value = map[key] as? String
-    ?: throw InvalidScaffoldPayloadError(
-      "Scaffold payload field '$key' must be a non-empty string.",
-    )
+
+fun requireString(
+  map: Map<String, Any?>,
+  key: String,
+): String {
+  val value =
+    map[key] as? String
+      ?: throw InvalidScaffoldPayloadError(
+        "Scaffold payload field '$key' must be a non-empty string.",
+      )
   if (value.isBlank()) {
     throw InvalidScaffoldPayloadError(
       "Scaffold payload field '$key' must be a non-empty string.",
@@ -13,7 +18,11 @@ fun requireString(map: Map<String, Any?>, key: String): String {
   return value
 }
 
-fun requireStringOrDefault(map: Map<String, Any?>, key: String, default: String): String {
+fun requireStringOrDefault(
+  map: Map<String, Any?>,
+  key: String,
+  default: String,
+): String {
   if (!map.containsKey(key)) {
     return default
   }
@@ -27,7 +36,10 @@ fun requireStringOrDefault(map: Map<String, Any?>, key: String, default: String)
   }
 }
 
-fun optionalString(map: Map<String, Any?>, key: String): String? {
+fun optionalString(
+  map: Map<String, Any?>,
+  key: String,
+): String? {
   if (!map.containsKey(key)) {
     return null
   }
@@ -41,7 +53,10 @@ fun optionalString(map: Map<String, Any?>, key: String): String? {
   }
 }
 
-fun optionalList(map: Map<String, Any?>, key: String): List<*>? {
+fun optionalList(
+  map: Map<String, Any?>,
+  key: String,
+): List<*>? {
   val raw = map[key] ?: return null
   if (raw !is List<*>) {
     throw InvalidScaffoldPayloadError(

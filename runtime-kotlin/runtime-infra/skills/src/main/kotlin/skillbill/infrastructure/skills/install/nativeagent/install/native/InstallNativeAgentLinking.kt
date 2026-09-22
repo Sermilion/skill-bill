@@ -31,7 +31,10 @@ internal fun installNativeAgentFile(
   )
 }
 
-internal fun uninstallNativeAgentFiles(sources: List<Path>, candidateDirs: List<Path>): List<Path> {
+internal fun uninstallNativeAgentFiles(
+  sources: List<Path>,
+  candidateDirs: List<Path>,
+): List<Path> {
   val removed = mutableListOf<Path>()
   sources.forEach { source ->
     val resolvedSource = source.toAbsolutePath().normalize()
@@ -52,24 +55,26 @@ private fun applyInstallDecision(
   resolvedSource: Path,
   decision: InstallAction,
   beforeMutation: (Path) -> Unit,
-): InstallNativeAgentResult = when (decision) {
-  InstallAction.Skip -> InstallNativeAgentResult.Skipped(
-    linkPath,
-    "existing non-managed file at $linkPath was preserved",
-  )
-  InstallAction.AlreadyLinked -> InstallNativeAgentResult.Skipped(linkPath, "already linked to $resolvedSource")
-  InstallAction.Replace, InstallAction.Create -> {
-    beforeMutation(linkPath)
-    when (decision) {
-      InstallAction.Replace -> createReplacementSymlinkWithGuidance(linkPath, resolvedSource)
-      InstallAction.Create -> createNewSymlinkWithGuidance(linkPath, resolvedSource)
-      InstallAction.Skip,
-      InstallAction.AlreadyLinked,
-      -> error("Unexpected native-agent install decision '$decision'.")
+): InstallNativeAgentResult =
+  when (decision) {
+    InstallAction.Skip ->
+      InstallNativeAgentResult.Skipped(
+        linkPath,
+        "existing non-managed file at $linkPath was preserved",
+      )
+    InstallAction.AlreadyLinked -> InstallNativeAgentResult.Skipped(linkPath, "already linked to $resolvedSource")
+    InstallAction.Replace, InstallAction.Create -> {
+      beforeMutation(linkPath)
+      when (decision) {
+        InstallAction.Replace -> createReplacementSymlinkWithGuidance(linkPath, resolvedSource)
+        InstallAction.Create -> createNewSymlinkWithGuidance(linkPath, resolvedSource)
+        InstallAction.Skip,
+        InstallAction.AlreadyLinked,
+        -> error("Unexpected native-agent install decision '$decision'.")
+      }
+      InstallNativeAgentResult.Linked(linkPath)
     }
-    InstallNativeAgentResult.Linked(linkPath)
   }
-}
 
 private enum class InstallAction { Skip, AlreadyLinked, Replace, Create }
 
@@ -91,27 +96,32 @@ private fun decideInstallAction(
   val existingTarget = resolveSymlinkTarget(linkPath)
   return when {
     existingTarget == resolvedSource -> InstallAction.AlreadyLinked
-    existingTarget != null && ownership != null && isCanonicalNativeAgentArtifactTarget(
-      ownership.home,
-      ownership.provider,
-      ownership.logicalName,
-      existingTarget,
-      managedSourceRoots,
-    ) ->
+    existingTarget != null && ownership != null &&
+      isCanonicalNativeAgentArtifactTarget(
+        ownership.home,
+        ownership.provider,
+        ownership.logicalName,
+        existingTarget,
+        managedSourceRoots,
+      )
+    ->
       InstallAction.Replace
-    existingTarget != null && managedSourceRoots.any { root ->
-      val normalizedRoot = root.toAbsolutePath().normalize()
-      existingTarget == normalizedRoot.resolve(resolvedSource.fileName) ||
-        existingTarget == normalizedRoot.resolve(resolvedSource.parent.fileName).resolve(resolvedSource.fileName)
-    } ->
+    existingTarget != null &&
+      managedSourceRoots.any { root ->
+        val normalizedRoot = root.toAbsolutePath().normalize()
+        existingTarget == normalizedRoot.resolve(resolvedSource.fileName) ||
+          existingTarget == normalizedRoot.resolve(resolvedSource.parent.fileName).resolve(resolvedSource.fileName)
+      }
+    ->
       InstallAction.Replace
     existingTarget != null && Files.notExists(existingTarget) -> InstallAction.Replace
     else -> InstallAction.Skip
   }
 }
 
-internal fun resolveSymlinkTarget(linkPath: Path): Path? = runCatching {
-  val rawTarget = Files.readSymbolicLink(linkPath)
-  val resolvedTarget = if (rawTarget.isAbsolute) rawTarget else linkPath.parent.resolve(rawTarget)
-  resolvedTarget.toAbsolutePath().normalize()
-}.getOrNull()
+internal fun resolveSymlinkTarget(linkPath: Path): Path? =
+  runCatching {
+    val rawTarget = Files.readSymbolicLink(linkPath)
+    val resolvedTarget = if (rawTarget.isAbsolute) rawTarget else linkPath.parent.resolve(rawTarget)
+    resolvedTarget.toAbsolutePath().normalize()
+  }.getOrNull()

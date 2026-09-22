@@ -10,9 +10,10 @@ internal fun exceededEvidence(
   limit: Long,
   observed: Long,
 ): ReviewEvidenceResult {
-  val outcome = checkNotNull(ReviewBudgetEvaluator.exceededOrNull(state.identity, kind, limit, observed)) {
-    "Budget dimension '$kind' reported an excess of $observed against $limit that does not exceed it."
-  }
+  val outcome =
+    checkNotNull(ReviewBudgetEvaluator.exceededOrNull(state.identity, kind, limit, observed)) {
+      "Budget dimension '$kind' reported an excess of $observed against $limit that does not exceed it."
+    }
   state.terminalOutcome = outcome
   return terminalResult(outcome, state.cumulativeBytes, state.expansionLedger.size)
 }
@@ -48,18 +49,28 @@ internal fun evidenceBudgetOutcome(
   }
 }
 
-internal fun recordLaneEvidenceDenial(state: FileSystemReviewEvidenceBrokerReadState, unit: String) {
+internal fun recordLaneEvidenceDenial(
+  state: FileSystemReviewEvidenceBrokerReadState,
+  unit: String,
+) {
   state.deniedUnits += unit
 }
 
-internal fun unitForHunk(state: FileSystemReviewEvidenceBrokerReadState, hunk: ReviewChangedHunk): String =
-  "${commitShaForHunk(state, hunk.hunkId)}@${hunk.path}"
+internal fun unitForHunk(
+  state: FileSystemReviewEvidenceBrokerReadState,
+  hunk: ReviewChangedHunk,
+): String = "${commitShaForHunk(state, hunk.hunkId)}@${hunk.path}"
 
-internal fun unitAtPath(state: FileSystemReviewEvidenceBrokerReadState, path: String): String {
+internal fun unitAtPath(
+  state: FileSystemReviewEvidenceBrokerReadState,
+  path: String,
+): String {
   val hunkId = state.projectedHunks.firstOrNull { it.path == path }?.hunkId
   val commit = hunkId?.let { commitShaForHunk(state, it) } ?: state.assignment.headRevision
   return "$commit@$path"
 }
 
-internal fun commitShaForHunk(state: FileSystemReviewEvidenceBrokerReadState, hunkId: String): String =
-  state.hunkCommitById[hunkId] ?: state.assignment.headRevision
+internal fun commitShaForHunk(
+  state: FileSystemReviewEvidenceBrokerReadState,
+  hunkId: String,
+): String = state.hunkCommitById[hunkId] ?: state.assignment.headRevision

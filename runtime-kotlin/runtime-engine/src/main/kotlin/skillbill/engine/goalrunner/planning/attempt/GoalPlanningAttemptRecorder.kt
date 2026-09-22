@@ -29,24 +29,26 @@ class DurableGoalPlanningAttemptRecorder(
     outcomeStore.recordProgressEvent(
       GoalRunnerProgressEventRecordRequest(
         workflowId = attempt.parentWorkflowId,
-        event = GoalProgressEvent(
-          eventKind = attempt.eventKind,
-          workflowId = attempt.parentWorkflowId,
-          workflowPhase = "goal_planning",
-          processAlive = true,
-          sequenceNumber = nextSequenceByWorkflow.getOrPut(attempt.parentWorkflowId) {
-            outcomeStore.ledgerSequenceWatermarks(attempt.issueKey)
-              .maxProgressSequence
-              ?.plus(1)
-              ?: 0
-          },
-          timestamp = clock.instant().toString(),
-          stepId = attempt.phaseId,
-          operationName = "${attempt.phaseId}:${attempt.subtaskId}:attempt:${attempt.attempt}",
-          operationKind = "planning_projection_attempt",
-          expectedLong = true,
-          outcome = attempt.outcome,
-        ),
+        event =
+          GoalProgressEvent(
+            eventKind = attempt.eventKind,
+            workflowId = attempt.parentWorkflowId,
+            workflowPhase = "goal_planning",
+            processAlive = true,
+            sequenceNumber =
+              nextSequenceByWorkflow.getOrPut(attempt.parentWorkflowId) {
+                outcomeStore.ledgerSequenceWatermarks(attempt.issueKey)
+                  .maxProgressSequence
+                  ?.plus(1)
+                  ?: 0
+              },
+            timestamp = clock.instant().toString(),
+            stepId = attempt.phaseId,
+            operationName = "${attempt.phaseId}:${attempt.subtaskId}:attempt:${attempt.attempt}",
+            operationKind = "planning_projection_attempt",
+            expectedLong = true,
+            outcome = attempt.outcome,
+          ),
       ),
     )
     nextSequenceByWorkflow[attempt.parentWorkflowId] = nextSequenceByWorkflow.getValue(attempt.parentWorkflowId) + 1

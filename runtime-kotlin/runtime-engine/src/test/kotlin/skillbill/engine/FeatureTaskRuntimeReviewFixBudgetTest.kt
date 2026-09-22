@@ -9,6 +9,7 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+
 class FeatureTaskRuntimeReviewFixBudgetTest {
   @Test
   fun `a repair round that later completed spent no budget and an exhaustion stays readable after a resume`() {
@@ -79,20 +80,23 @@ private fun RunnerHarness.appendLedger(
   ).detail(),
 )
 
-private fun RunnerHarness.appendAuditContinuation(kind: FeatureTaskRuntimeContinuationKind) = appendLedger(
-  FeatureTaskRuntimePhaseLedgerAction.FIX_LOOP_ITERATION,
-  phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-) {
-  copy(
-    blockedReason = FeatureTaskRuntimeContinuationKind.LEDGER_DETAIL_PREFIX + kind.wireValue,
-    fixLoopIteration = 1,
-  )
-}
-
-private fun RunnerHarness.appendLoopEdge(loopId: String, edgeIteration: Int) =
-  appendLedger(FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE) {
-    copy(loopId = loopId, edgeIteration = edgeIteration)
+private fun RunnerHarness.appendAuditContinuation(kind: FeatureTaskRuntimeContinuationKind) =
+  appendLedger(
+    FeatureTaskRuntimePhaseLedgerAction.FIX_LOOP_ITERATION,
+    phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+  ) {
+    copy(
+      blockedReason = FeatureTaskRuntimeContinuationKind.LEDGER_DETAIL_PREFIX + kind.wireValue,
+      fixLoopIteration = 1,
+    )
   }
+
+private fun RunnerHarness.appendLoopEdge(
+  loopId: String,
+  edgeIteration: Int,
+) = appendLedger(FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE) {
+  copy(loopId = loopId, edgeIteration = edgeIteration)
+}
 
 private fun RunnerHarness.appendLoopCapExhausted(loopId: String) =
   appendLedger(FeatureTaskRuntimePhaseLedgerAction.LOOP_CAP_EXHAUSTED) {

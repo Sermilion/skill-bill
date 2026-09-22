@@ -14,6 +14,7 @@ import skillbill.install.model.InstallPlanWireMap
 import skillbill.install.model.InstallPlanWireValidator
 import java.util.logging.Level
 import java.util.logging.Logger
+
 private val log: Logger = Logger.getLogger("skillbill.contracts.install.InstallPlanSchemaValidator")
 
 @Inject
@@ -38,20 +39,27 @@ class InstallPlanSchemaValidator : InstallPlanWireValidator {
     throw InvalidInstallPlanSchemaError(fieldPath = fieldPath, reason = reason)
   }
 
-  private fun buildSchemaDriftLog(errors: Set<ValidationMessage>, instance: JsonNode): String {
+  private fun buildSchemaDriftLog(
+    errors: Set<ValidationMessage>,
+    instance: JsonNode,
+  ): String {
     val sorted = errors.sortedWith(violationOrdering)
     val topTwo = sorted.take(2)
-    val parts = topTwo.map { error ->
-      val location = error.instanceLocation?.toString().orEmpty()
-      val fieldPath = installPlanSchemaDottedFieldPath(location).ifBlank { "<root>" }
-      val offendingValue = extractOffendingValueFromInstance(instance, location)
-      if (offendingValue.isNotBlank()) "$fieldPath=$offendingValue" else fieldPath
-    }
+    val parts =
+      topTwo.map { error ->
+        val location = error.instanceLocation?.toString().orEmpty()
+        val fieldPath = installPlanSchemaDottedFieldPath(location).ifBlank { "<root>" }
+        val offendingValue = extractOffendingValueFromInstance(instance, location)
+        if (offendingValue.isNotBlank()) "$fieldPath=$offendingValue" else fieldPath
+      }
     return "Install plan failed schema validation: violations=${parts.joinToString(", ")} " +
       "totalViolations=${errors.size}"
   }
 
-  private fun formatValidationReason(sorted: List<ValidationMessage>, instance: JsonNode): String {
+  private fun formatValidationReason(
+    sorted: List<ValidationMessage>,
+    instance: JsonNode,
+  ): String {
     val firstError = sorted.first()
     val instanceLocation = firstError.instanceLocation?.toString().orEmpty()
     val detail = firstError.message
@@ -78,11 +86,12 @@ class InstallPlanSchemaValidator : InstallPlanWireValidator {
     }
   }
 
-  private val violationOrdering: Comparator<ValidationMessage> = compareBy(
-    { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
-    { it.instanceLocation?.toString().orEmpty() },
-    { it.message.orEmpty() },
-  )
+  private val violationOrdering: Comparator<ValidationMessage> =
+    compareBy(
+      { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
+      { it.instanceLocation?.toString().orEmpty() },
+      { it.message.orEmpty() },
+    )
 
   companion object {
     private val canonical: InstallPlanSchemaValidator by lazy(::InstallPlanSchemaValidator)
@@ -97,46 +106,51 @@ internal const val INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH: String =
   InstallPlanSchemaPaths.REPO_RELATIVE_PATH
 
-private fun installPlanSchema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  CompiledSchemaRequest(
-    cacheKey = INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
-    classLoader = InstallPlanSchemaValidator::class.java.classLoader,
-    classpathResource = INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidInstallPlanSchemaError(
-        fieldPath = "",
-        reason = "Canonical install-plan schema is missing. Expected to find it on the JVM classpath at " +
-          "'$INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidInstallPlanSchemaError(
-        fieldPath = "",
-        reason = cause.message ?: cause::class.simpleName.orEmpty(),
-        cause = cause,
-      )
-    },
-    loadFailureLogger = { error ->
-      logSchemaLoadFailure(
-        log,
-        "install-plan",
-        INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
-        INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH,
-        error,
-      )
-    },
-    expectedSchemaId = InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = INSTALL_PLAN_CONTRACT_VERSION,
-    identityFailure = { reason ->
-      InvalidInstallPlanSchemaError(
-        fieldPath = "<schema>",
-        reason = reason,
-      )
-    },
-  ),
-)
+private fun installPlanSchema(): JsonSchema =
+  ClasspathContractSchemaLoader.compiledSchema(
+    CompiledSchemaRequest(
+      cacheKey = INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
+      classLoader = InstallPlanSchemaValidator::class.java.classLoader,
+      classpathResource = INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
+      missingResource = {
+        InvalidInstallPlanSchemaError(
+          fieldPath = "",
+          reason =
+            "Canonical install-plan schema is missing. Expected to find it on the JVM classpath at " +
+              "'$INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE'.",
+        )
+      },
+      processingFailure = { cause ->
+        InvalidInstallPlanSchemaError(
+          fieldPath = "",
+          reason = cause.message ?: cause::class.simpleName.orEmpty(),
+          cause = cause,
+        )
+      },
+      loadFailureLogger = { error ->
+        logSchemaLoadFailure(
+          log,
+          "install-plan",
+          INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE,
+          INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH,
+          error,
+        )
+      },
+      expectedSchemaId = InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID,
+      expectedContractVersion = INSTALL_PLAN_CONTRACT_VERSION,
+      identityFailure = { reason ->
+        InvalidInstallPlanSchemaError(
+          fieldPath = "<schema>",
+          reason = reason,
+        )
+      },
+    ),
+  )
 
-internal fun extractOffendingValueFromInstance(instance: JsonNode, instanceLocation: String): String {
+internal fun extractOffendingValueFromInstance(
+  instance: JsonNode,
+  instanceLocation: String,
+): String {
   val dotted = installPlanSchemaDottedFieldPath(instanceLocation)
   if (dotted.isBlank()) return ""
   var node: JsonNode = instance
@@ -166,9 +180,10 @@ internal fun extractOffendingValueFromInstance(instance: JsonNode, instanceLocat
   }
 }
 
-internal fun installPlanSchemaDottedFieldPath(instanceLocation: String): String = when {
-  instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
-  instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
-  instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
-  else -> instanceLocation.trimStart('/').replace('/', '.')
-}
+internal fun installPlanSchemaDottedFieldPath(instanceLocation: String): String =
+  when {
+    instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
+    instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")
+    instanceLocation.startsWith("$") -> instanceLocation.removePrefix("$").trimStart('.')
+    else -> instanceLocation.trimStart('/').replace('/', '.')
+  }

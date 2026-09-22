@@ -6,11 +6,17 @@ internal class RecordingRuntimeDiagnostics : RuntimeDiagnostics {
   val warnings = mutableListOf<String>()
   val errors = mutableListOf<String>()
 
-  override fun warning(message: String, error: Throwable?) {
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
     warnings += message
   }
 
-  override fun error(message: String, error: Throwable?) {
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) {
     errors += message
   }
 }

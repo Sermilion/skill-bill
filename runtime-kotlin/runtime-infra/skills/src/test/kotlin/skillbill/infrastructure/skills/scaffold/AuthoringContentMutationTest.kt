@@ -12,11 +12,13 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
 class AuthoringContentMutationTest {
   @Test
   fun `renderContentBody rejects content body that already carries frontmatter`() {
     val context = TemplateContext("bill-example", "code-review", "kotlin", "", "Kotlin")
-    val bodyWithFrontmatter = """
+    val bodyWithFrontmatter =
+      """
       |---
       |name: bill-example
       |description: Pre-supplied frontmatter that would stack with the canonical block.
@@ -25,11 +27,12 @@ class AuthoringContentMutationTest {
       |# Body
       |
       |Content body.
-    """.trimMargin()
+      """.trimMargin()
 
-    val error = assertFailsWith<SkillBillRuntimeException> {
-      renderContentBody(context, "Some description", bodyWithFrontmatter)
-    }
+    val error =
+      assertFailsWith<SkillBillRuntimeException> {
+        renderContentBody(context, "Some description", bodyWithFrontmatter)
+      }
     assertContains(error.message.orEmpty(), "frontmatter")
   }
 
@@ -59,9 +62,10 @@ class AuthoringContentMutationTest {
   fun `coerceFullContentText fails with clear message when neither supplied nor existing carries frontmatter`() {
     val target = createOrphanTarget()
 
-    val error = assertFailsWith<SkillBillRuntimeException> {
-      coerceFullContentText(target, "Body without frontmatter, neither file has one either.")
-    }
+    val error =
+      assertFailsWith<SkillBillRuntimeException> {
+        coerceFullContentText(target, "Body without frontmatter, neither file has one either.")
+      }
     val message = error.message.orEmpty()
     assertContains(message, "content.md must already carry a YAML frontmatter block")
     assertContains(message, target.skillName)
@@ -86,16 +90,17 @@ class AuthoringContentMutationTest {
       """.trimMargin() + "\n",
     )
 
-    val target = AuthoringTarget(
-      skillName = "bill-orphan",
-      packageName = "base",
-      platform = "",
-      displayName = "orphan",
-      family = "advisor",
-      area = "",
-      skillFile = skillFile,
-      contentFile = contentFile,
-    )
+    val target =
+      AuthoringTarget(
+        skillName = "bill-orphan",
+        packageName = "base",
+        platform = "",
+        displayName = "orphan",
+        family = "advisor",
+        area = "",
+        skillFile = skillFile,
+        contentFile = contentFile,
+      )
 
     mutateContent(dir, target, Files.readString(contentFile).replace("Authored body.", "Updated body."))
 
@@ -122,16 +127,17 @@ class AuthoringContentMutationTest {
       """.trimMargin() + "\n",
     )
     Files.writeString(skillFile, "---\nname: bill-example\ndescription: x\n---\n\n## Descriptor\n")
-    val target = AuthoringTarget(
-      skillName = "bill-example",
-      packageName = "base",
-      platform = "",
-      displayName = "example",
-      family = "advisor",
-      area = "",
-      skillFile = skillFile,
-      contentFile = contentFile,
-    )
+    val target =
+      AuthoringTarget(
+        skillName = "bill-example",
+        packageName = "base",
+        platform = "",
+        displayName = "example",
+        family = "advisor",
+        area = "",
+        skillFile = skillFile,
+        contentFile = contentFile,
+      )
 
     val coerced = coerceFullContentText(target, "Replacement body without its own frontmatter.")
 

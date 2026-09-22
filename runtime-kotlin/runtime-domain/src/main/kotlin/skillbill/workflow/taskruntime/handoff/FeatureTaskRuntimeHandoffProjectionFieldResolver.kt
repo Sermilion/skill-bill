@@ -10,21 +10,22 @@ internal object FeatureTaskRuntimeHandoffProjectionFieldResolver {
   fun resolvedProducerIteration(
     inputs: FeatureTaskRuntimeHandoffProjectionInputs,
     declaration: PhaseHandoffProjectionDeclaration,
-  ): FeatureTaskRuntimeProducerIteration = when (val source = declaration.sourceRef) {
-    is FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput -> {
-      val output = inputs.resolvedUpstream.outputsByPhaseId[source.producingPhaseId]
-      if (output == null) {
-        declaration.producerIteration
-      } else {
-        FeatureTaskRuntimeProducerIteration(source.producingPhaseId, output.iteration)
+  ): FeatureTaskRuntimeProducerIteration =
+    when (val source = declaration.sourceRef) {
+      is FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput -> {
+        val output = inputs.resolvedUpstream.outputsByPhaseId[source.producingPhaseId]
+        if (output == null) {
+          declaration.producerIteration
+        } else {
+          FeatureTaskRuntimeProducerIteration(source.producingPhaseId, output.iteration)
+        }
       }
+      is FeatureTaskRuntimeHandoffSourceRef.RunInvariantField -> declaration.producerIteration
+      FeatureTaskRuntimeHandoffSourceRef.DerivedCeremonyScaling -> declaration.producerIteration
+      FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence -> declaration.producerIteration
+      FeatureTaskRuntimeHandoffSourceRef.RepairLedger -> declaration.producerIteration
+      is FeatureTaskRuntimeHandoffSourceRef.AddonContentRef -> declaration.producerIteration
     }
-    is FeatureTaskRuntimeHandoffSourceRef.RunInvariantField -> declaration.producerIteration
-    FeatureTaskRuntimeHandoffSourceRef.DerivedCeremonyScaling -> declaration.producerIteration
-    FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence -> declaration.producerIteration
-    FeatureTaskRuntimeHandoffSourceRef.RepairLedger -> declaration.producerIteration
-    is FeatureTaskRuntimeHandoffSourceRef.AddonContentRef -> declaration.producerIteration
-  }
 
   fun resolveFields(
     inputs: FeatureTaskRuntimeHandoffProjectionInputs,
@@ -45,16 +46,17 @@ internal object FeatureTaskRuntimeHandoffProjectionFieldResolver {
   private fun fieldsFor(
     inputs: FeatureTaskRuntimeHandoffProjectionInputs,
     declaration: PhaseHandoffProjectionDeclaration,
-  ): List<FeatureTaskRuntimeHandoffProjectionField>? = when (val sourceRef = declaration.sourceRef) {
-    is FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput ->
-      upstreamPhaseOutputFields(inputs, declaration, sourceRef)
-    is FeatureTaskRuntimeHandoffSourceRef.RunInvariantField ->
-      runInvariantProjectionFields(inputs.runInvariants, sourceRef.invariantField)
-    FeatureTaskRuntimeHandoffSourceRef.DerivedCeremonyScaling ->
-      derivedCeremonyScalingFields(inputs)
-    FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence ->
-      inputs.sharedReviewEvidence?.toProjectionFields()
-    FeatureTaskRuntimeHandoffSourceRef.RepairLedger -> repairLedgerProjectionFields(inputs)
-    is FeatureTaskRuntimeHandoffSourceRef.AddonContentRef -> addonContentProjectionFields(inputs, sourceRef.slug)
-  }
+  ): List<FeatureTaskRuntimeHandoffProjectionField>? =
+    when (val sourceRef = declaration.sourceRef) {
+      is FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput ->
+        upstreamPhaseOutputFields(inputs, declaration, sourceRef)
+      is FeatureTaskRuntimeHandoffSourceRef.RunInvariantField ->
+        runInvariantProjectionFields(inputs.runInvariants, sourceRef.invariantField)
+      FeatureTaskRuntimeHandoffSourceRef.DerivedCeremonyScaling ->
+        derivedCeremonyScalingFields(inputs)
+      FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence ->
+        inputs.sharedReviewEvidence?.toProjectionFields()
+      FeatureTaskRuntimeHandoffSourceRef.RepairLedger -> repairLedgerProjectionFields(inputs)
+      is FeatureTaskRuntimeHandoffSourceRef.AddonContentRef -> addonContentProjectionFields(inputs, sourceRef.slug)
+    }
 }

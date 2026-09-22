@@ -42,30 +42,36 @@ class FileSystemBaselineManifestPersistence : BaselineManifestPersistencePort {
   }
 }
 
-private fun writeBaselineRecord(path: Path, payload: String) {
+private fun writeBaselineRecord(
+  path: Path,
+  payload: String,
+) {
   atomicWriteString(path, payload)
 }
 
-private fun baselineRecordSize(path: Path): Long = try {
-  Files.size(path)
-} catch (error: IOException) {
-  throw unreadableBaseline(path, "size lookup failed", error)
-} catch (error: SecurityException) {
-  throw unreadableBaseline(path, "size lookup denied", error)
-}
+private fun baselineRecordSize(path: Path): Long =
+  try {
+    Files.size(path)
+  } catch (error: IOException) {
+    throw unreadableBaseline(path, "size lookup failed", error)
+  } catch (error: SecurityException) {
+    throw unreadableBaseline(path, "size lookup denied", error)
+  }
 
-private fun readBaselinePayload(path: Path): String = try {
-  Files.readString(path)
-} catch (error: IOException) {
-  throw unreadableBaseline(path, "read failed", error)
-} catch (error: SecurityException) {
-  throw unreadableBaseline(path, "read denied", error)
-}
+private fun readBaselinePayload(path: Path): String =
+  try {
+    Files.readString(path)
+  } catch (error: IOException) {
+    throw unreadableBaseline(path, "read failed", error)
+  } catch (error: SecurityException) {
+    throw unreadableBaseline(path, "read denied", error)
+  }
 
-private fun baselineManifestPath(installHome: Path): Path = installHome
-  .resolve(".skill-bill")
-  .resolve(BASELINE_MANIFEST_FILE_NAME)
-  .toAbsolutePath()
-  .normalize()
+private fun baselineManifestPath(installHome: Path): Path =
+  installHome
+    .resolve(".skill-bill")
+    .resolve(BASELINE_MANIFEST_FILE_NAME)
+    .toAbsolutePath()
+    .normalize()
 
 private const val MAX_BASELINE_MANIFEST_BYTES = 1024 * 1024

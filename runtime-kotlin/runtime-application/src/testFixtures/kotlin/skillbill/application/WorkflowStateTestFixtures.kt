@@ -29,22 +29,24 @@ import skillbill.workflow.model.WorkflowStatus
 import java.lang.reflect.Proxy
 import java.nio.file.Path
 import java.time.Instant
-private fun passThroughReviewRepository(): ReviewRepository = Proxy.newProxyInstance(
-  ReviewRepository::class.java.classLoader,
-  arrayOf(ReviewRepository::class.java),
-) { _, method, _ ->
-  if (method.name == "fetchFindingVerdicts") {
-    emptyList<ReviewFindingVerdict>()
-  } else {
-    when (method.returnType) {
-      Boolean::class.javaPrimitiveType -> false
-      Int::class.javaPrimitiveType -> 0
-      Long::class.javaPrimitiveType -> 0L
-      Void.TYPE -> Unit
-      else -> null
+
+private fun passThroughReviewRepository(): ReviewRepository =
+  Proxy.newProxyInstance(
+    ReviewRepository::class.java.classLoader,
+    arrayOf(ReviewRepository::class.java),
+  ) { _, method, _ ->
+    if (method.name == "fetchFindingVerdicts") {
+      emptyList<ReviewFindingVerdict>()
+    } else {
+      when (method.returnType) {
+        Boolean::class.javaPrimitiveType -> false
+        Int::class.javaPrimitiveType -> 0
+        Long::class.javaPrimitiveType -> 0L
+        Void.TYPE -> Unit
+        else -> null
+      }
     }
-  }
-} as ReviewRepository
+  } as ReviewRepository
 
 class FakeDatabaseSessionFactory(
   private val workflowStates: WorkflowStateRepository,
@@ -55,28 +57,32 @@ class FakeDatabaseSessionFactory(
     EmptyGoalRunnerControlRepository,
 ) : DatabaseSessionFactory {
   override fun resolveDbPath(): Path = fakeDbPath
+
   override fun databaseExists(): Boolean = true
+
   override fun <T> read(block: (UnitOfWork) -> T): T = block(unit())
+
   override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = transaction(block)
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unit())
 
-  private fun unit(): UnitOfWork = object : UnitOfWorkDefaults() {
-    override val dbPath: Path = fakeDbPath
-    override val workflowStates: WorkflowStateRepository = this@FakeDatabaseSessionFactory.workflowStates
-    override val learnings: LearningRepository
-      get() = error("LearningRepository is not exercised in WorkflowServiceTest.")
-    override val reviews: ReviewRepository = passThroughReviewRepository()
-    override val lifecycleTelemetry: LifecycleTelemetryRepository
-      get() = error("LifecycleTelemetryRepository is not exercised in WorkflowServiceTest.")
-    override val telemetryReconciliation: TelemetryReconciliationRepository
-      get() = error("TelemetryReconciliationRepository is not exercised in WorkflowServiceTest.")
-    override val telemetryOutbox: TelemetryOutboxRepository
-      get() = error("TelemetryOutboxRepository is not exercised in WorkflowServiceTest.")
-    override val workList = EmptyWorkListRepository
-    override val goalPlanningPreparations = planningPreparations
-    override val goalRunnerControls = this@FakeDatabaseSessionFactory.goalRunnerControls
-  }
+  private fun unit(): UnitOfWork =
+    object : UnitOfWorkDefaults() {
+      override val dbPath: Path = fakeDbPath
+      override val workflowStates: WorkflowStateRepository = this@FakeDatabaseSessionFactory.workflowStates
+      override val learnings: LearningRepository
+        get() = error("LearningRepository is not exercised in WorkflowServiceTest.")
+      override val reviews: ReviewRepository = passThroughReviewRepository()
+      override val lifecycleTelemetry: LifecycleTelemetryRepository
+        get() = error("LifecycleTelemetryRepository is not exercised in WorkflowServiceTest.")
+      override val telemetryReconciliation: TelemetryReconciliationRepository
+        get() = error("TelemetryReconciliationRepository is not exercised in WorkflowServiceTest.")
+      override val telemetryOutbox: TelemetryOutboxRepository
+        get() = error("TelemetryOutboxRepository is not exercised in WorkflowServiceTest.")
+      override val workList = EmptyWorkListRepository
+      override val goalPlanningPreparations = planningPreparations
+      override val goalRunnerControls = this@FakeDatabaseSessionFactory.goalRunnerControls
+    }
 }
 
 class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
@@ -107,37 +113,43 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
   override fun findStandaloneFeatureTaskCandidates(
     normalizedIssueKey: String,
     repositoryIdentity: String,
-  ): List<FeatureTaskWorkflowCandidate> = featureTaskRowsInInsertionOrder()
-    .filter { row ->
-      row.issueKey?.trim()?.uppercase() == normalizedIssueKey ||
-        identities[row.workflowId]?.normalizedIssueKey == normalizedIssueKey
-    }
-    .filter { row -> identities[row.workflowId] != null || !row.artifactsJson.contains("decomposition_runtime") }
-    .filter { row ->
-      identities[row.workflowId]?.let { identity ->
-        identity.repositoryIdentity == repositoryIdentity && identity.routeScope == FeatureTaskRouteScope.STANDALONE
-      } ?: true
-    }
-    .map { row -> FeatureTaskWorkflowCandidate(identities[row.workflowId], row) }
+  ): List<FeatureTaskWorkflowCandidate> =
+    featureTaskRowsInInsertionOrder()
+      .filter { row ->
+        row.issueKey?.trim()?.uppercase() == normalizedIssueKey ||
+          identities[row.workflowId]?.normalizedIssueKey == normalizedIssueKey
+      }
+      .filter { row -> identities[row.workflowId] != null || !row.artifactsJson.contains("decomposition_runtime") }
+      .filter { row ->
+        identities[row.workflowId]?.let { identity ->
+          identity.repositoryIdentity == repositoryIdentity && identity.routeScope == FeatureTaskRouteScope.STANDALONE
+        } ?: true
+      }
+      .map { row -> FeatureTaskWorkflowCandidate(identities[row.workflowId], row) }
 
   override fun findGoalChildFeatureTaskCandidates(
     normalizedIssueKey: String,
     repositoryIdentity: String,
-  ): List<FeatureTaskWorkflowCandidate> = featureTaskRowsInInsertionOrder()
-    .filter { row ->
-      identities[row.workflowId]?.let { identity ->
-        identity.normalizedIssueKey == normalizedIssueKey &&
-          identity.repositoryIdentity == repositoryIdentity &&
-          identity.routeScope == FeatureTaskRouteScope.GOAL_CHILD
-      } ?: false
+  ): List<FeatureTaskWorkflowCandidate> =
+    featureTaskRowsInInsertionOrder()
+      .filter { row ->
+        identities[row.workflowId]?.let { identity ->
+          identity.normalizedIssueKey == normalizedIssueKey &&
+            identity.repositoryIdentity == repositoryIdentity &&
+            identity.routeScope == FeatureTaskRouteScope.GOAL_CHILD
+        } ?: false
+      }
+      .map { row -> FeatureTaskWorkflowCandidate(identities[row.workflowId], row) }
+
+  override fun countGoalChildIdentities(normalizedIssueKey: String): Int =
+    identities.values.count { identity ->
+      identity.normalizedIssueKey == normalizedIssueKey && identity.routeScope == FeatureTaskRouteScope.GOAL_CHILD
     }
-    .map { row -> FeatureTaskWorkflowCandidate(identities[row.workflowId], row) }
 
-  override fun countGoalChildIdentities(normalizedIssueKey: String): Int = identities.values.count { identity ->
-    identity.normalizedIssueKey == normalizedIssueKey && identity.routeScope == FeatureTaskRouteScope.GOAL_CHILD
-  }
-
-  override fun claimFeatureTaskContinuation(workflowId: String, expectedUpdatedAt: String?): Boolean {
+  override fun claimFeatureTaskContinuation(
+    workflowId: String,
+    expectedUpdatedAt: String?,
+  ): Boolean {
     val rows = if (workflowId in implement) implement else taskRuntime
     val existing = rows[workflowId] ?: return false
     if (existing.updatedAt != expectedUpdatedAt ||
@@ -152,32 +164,43 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
   override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) {
     implement[row.workflowId] = row.copy(issueKey = row.issueKey ?: implement[row.workflowId]?.issueKey)
   }
+
   override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) {
     verify[row.workflowId] = row
   }
+
   override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? = implement[workflowId]
+
   override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? = verify[workflowId]
+
   override fun listFeatureImplementWorkflows(limit: Int): List<WorkflowStateRecord> =
     implement.values.filter { it.mode == null || it.mode == FeatureTaskWorkflowMode.PROSE }.take(limit)
+
   override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> = verify.values.toList().take(limit)
+
   override fun latestFeatureImplementWorkflow(): WorkflowStateRecord? =
     listFeatureImplementWorkflows(Int.MAX_VALUE).lastOrNull()
+
   override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = verify.values.lastOrNull()
+
   override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? = null
+
   override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? = null
 
   override fun terminalizeLegacyProseFeatureTaskWorkflow(row: WorkflowStateRecord) {
-    val existing = getFeatureTaskWorkflow(row.workflowId)
-      ?: error("Legacy prose feature-task workflow '${row.workflowId}' was not terminalized (missing row).")
+    val existing =
+      getFeatureTaskWorkflow(row.workflowId)
+        ?: error("Legacy prose feature-task workflow '${row.workflowId}' was not terminalized (missing row).")
     val effectiveMode = existing.mode ?: FeatureTaskWorkflowMode.PROSE
     require(effectiveMode == FeatureTaskWorkflowMode.PROSE) {
       "Legacy prose feature-task workflow '${row.workflowId}' was not terminalized (mode is not prose)."
     }
-    val preserved = row.copy(
-      mode = existing.mode,
-      implementationSkill = existing.implementationSkill,
-      issueKey = row.issueKey ?: existing.issueKey,
-    )
+    val preserved =
+      row.copy(
+        mode = existing.mode,
+        implementationSkill = existing.implementationSkill,
+        issueKey = row.issueKey ?: existing.issueKey,
+      )
     when {
       preserved.workflowId in implement -> implement[preserved.workflowId] = preserved
       preserved.workflowId in taskRuntime -> taskRuntime[preserved.workflowId] = preserved
@@ -185,7 +208,10 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
     }
   }
 
-  override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) {
+  override fun saveFeatureTaskWorkflow(
+    row: WorkflowStateRecord,
+    mode: FeatureTaskWorkflowMode,
+  ) {
     when (mode) {
       FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
       FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
@@ -194,7 +220,11 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
 
   override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? =
     taskRuntime[workflowId] ?: implement[workflowId]
-  override fun getFeatureTaskWorkflowAsMode(workflowId: String, mode: FeatureTaskWorkflowMode): WorkflowStateRecord? {
+
+  override fun getFeatureTaskWorkflowAsMode(
+    workflowId: String,
+    mode: FeatureTaskWorkflowMode,
+  ): WorkflowStateRecord? {
     val row = getFeatureTaskWorkflow(workflowId) ?: return null
     val effectiveMode = row.mode ?: FeatureTaskWorkflowMode.PROSE
     if (effectiveMode != mode) {
@@ -205,7 +235,10 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
     return row
   }
 
-  override fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int): List<WorkflowStateRecord> =
+  override fun listFeatureTaskWorkflows(
+    mode: FeatureTaskWorkflowMode,
+    limit: Int,
+  ): List<WorkflowStateRecord> =
     when (mode) {
       FeatureTaskWorkflowMode.RUNTIME -> listFeatureTaskRuntimeWorkflows(limit)
       FeatureTaskWorkflowMode.PROSE -> listFeatureImplementWorkflows(limit)
@@ -220,12 +253,15 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
     }
     taskRuntime[row.workflowId] = row.copy(issueKey = row.issueKey ?: taskRuntime[row.workflowId]?.issueKey)
   }
+
   override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? =
     taskRuntime[workflowId] ?: implement[workflowId]?.takeIf { it.mode == FeatureTaskWorkflowMode.RUNTIME }
+
   override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> =
     (taskRuntime.values + implement.values.filter { it.mode == FeatureTaskWorkflowMode.RUNTIME })
       .distinctBy(WorkflowStateRecord::workflowId)
       .take(limit)
+
   override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? =
     listFeatureTaskRuntimeWorkflows(Int.MAX_VALUE).lastOrNull()
 
@@ -260,14 +296,16 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
   ): Boolean {
     val current = workerOwnershipById[workflowId] ?: return false
     val row = taskRuntime[workflowId]
-    val leaseStillExpired = runCatching {
-      Instant.parse(current.expiresAt).isBefore(Instant.parse(nowInstant))
-    }.getOrDefault(false)
-    val eligible = current.ownerToken == ownerToken &&
-      current.generation == generation &&
-      leaseStillExpired &&
-      row != null &&
-      row.workflowStatus == "running"
+    val leaseStillExpired =
+      runCatching {
+        Instant.parse(current.expiresAt).isBefore(Instant.parse(nowInstant))
+      }.getOrDefault(false)
+    val eligible =
+      current.ownerToken == ownerToken &&
+        current.generation == generation &&
+        leaseStillExpired &&
+        row != null &&
+        row.workflowStatus == "running"
     if (!eligible) return false
     workerOwnershipById.remove(workflowId)
     taskRuntime[workflowId] = row.copy(workflowStatus = WorkflowStatus.PENDING.wireValue)

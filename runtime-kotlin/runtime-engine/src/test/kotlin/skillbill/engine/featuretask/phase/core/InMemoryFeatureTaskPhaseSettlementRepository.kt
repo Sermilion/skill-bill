@@ -10,11 +10,21 @@ class InMemoryFeatureTaskPhaseSettlementRepository : FeatureTaskPhaseSettlementR
     rows[key(settlement.workflowId, settlement.phaseId, settlement.attempt)] = settlement
   }
 
-  override fun find(workflowId: String, phaseId: String, attempt: Int): FeatureTaskPhaseSettlement? =
-    rows[key(workflowId, phaseId, attempt)]
+  override fun find(
+    workflowId: String,
+    phaseId: String,
+    attempt: Int,
+  ): FeatureTaskPhaseSettlement? = rows[key(workflowId, phaseId, attempt)]
 
-  override fun delete(workflowId: String, phaseId: String, attempt: Int): Boolean =
-    rows.remove(key(workflowId, phaseId, attempt)) != null
+  override fun delete(
+    workflowId: String,
+    phaseId: String,
+    attempt: Int,
+  ): Boolean = rows.remove(key(workflowId, phaseId, attempt)) != null
 
-  private fun key(workflowId: String, phaseId: String, attempt: Int): String = "$workflowId::$phaseId::$attempt"
+  private fun key(
+    workflowId: String,
+    phaseId: String,
+    attempt: Int,
+  ): String = "$workflowId::$phaseId::$attempt"
 }

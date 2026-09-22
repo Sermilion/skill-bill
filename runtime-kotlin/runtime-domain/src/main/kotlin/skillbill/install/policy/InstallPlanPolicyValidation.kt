@@ -11,6 +11,7 @@ import skillbill.install.model.InstallPlatformPackDiscoverySnapshot
 import skillbill.install.model.InstallPlatformPackSnapshot
 import skillbill.install.model.InstallPolicyInput
 import skillbill.install.model.PlatformPackSelectionMode
+
 internal fun validateAgentSelection(input: InstallPolicyInput) {
   val selection = input.request.agentSelection
   when (selection.mode) {
@@ -54,7 +55,10 @@ internal fun validateAgentSelection(input: InstallPolicyInput) {
   }
 }
 
-internal fun validateBaselineCoPresence(input: InstallPolicyInput, selectedPlatformSlugs: List<String>) {
+internal fun validateBaselineCoPresence(
+  input: InstallPolicyInput,
+  selectedPlatformSlugs: List<String>,
+) {
   val selected = selectedPlatformSlugs.toSet()
   val bySlug = input.platformPacks.associateBy(InstallPlatformPackSnapshot::slug)
   if (selected.containsAll(bySlug.keys)) {
@@ -83,15 +87,18 @@ internal fun validatePlatformSelection(request: InstallPlanRequest) {
     "Selected platform slugs must be non-blank."
   }
   when (selection.mode) {
-    PlatformPackSelectionMode.NONE -> require(selectedSlugs.isEmpty()) {
-      "Platform mode NONE must not include selected slugs: ${selectedSlugs.sorted().joinToString(", ")}."
-    }
-    PlatformPackSelectionMode.ALL -> require(selectedSlugs.isEmpty()) {
-      "Platform mode ALL must not include selected slugs: ${selectedSlugs.sorted().joinToString(", ")}."
-    }
-    PlatformPackSelectionMode.SELECTED -> require(selectedSlugs.isNotEmpty()) {
-      "Platform mode SELECTED requires at least one selected slug."
-    }
+    PlatformPackSelectionMode.NONE ->
+      require(selectedSlugs.isEmpty()) {
+        "Platform mode NONE must not include selected slugs: ${selectedSlugs.sorted().joinToString(", ")}."
+      }
+    PlatformPackSelectionMode.ALL ->
+      require(selectedSlugs.isEmpty()) {
+        "Platform mode ALL must not include selected slugs: ${selectedSlugs.sorted().joinToString(", ")}."
+      }
+    PlatformPackSelectionMode.SELECTED ->
+      require(selectedSlugs.isNotEmpty()) {
+        "Platform mode SELECTED requires at least one selected slug."
+      }
   }
 }
 
@@ -128,10 +135,11 @@ internal fun validateSnapshots(input: InstallPolicyInput) {
 }
 
 internal fun validatePlatformPackDiscoverySnapshots(platformPacks: List<InstallPlatformPackDiscoverySnapshot>) {
-  val duplicatePlatformSlugs = platformPacks
-    .groupBy(InstallPlatformPackDiscoverySnapshot::slug)
-    .filterValues { packs -> packs.size > 1 }
-    .keys
+  val duplicatePlatformSlugs =
+    platformPacks
+      .groupBy(InstallPlatformPackDiscoverySnapshot::slug)
+      .filterValues { packs -> packs.size > 1 }
+      .keys
   require(duplicatePlatformSlugs.isEmpty()) {
     "Discovered platform pack snapshots contain duplicate slug(s): " +
       duplicatePlatformSlugs.sorted().joinToString(", ") + "."
@@ -144,7 +152,10 @@ internal fun validatePlatformPackDiscoverySnapshots(platformPacks: List<InstallP
   }
 }
 
-internal fun validateSkillSnapshot(label: String, skill: InstallPlanSkill) {
+internal fun validateSkillSnapshot(
+  label: String,
+  skill: InstallPlanSkill,
+) {
   require(skill.name.isNotBlank()) {
     "$label must have a non-blank name."
   }

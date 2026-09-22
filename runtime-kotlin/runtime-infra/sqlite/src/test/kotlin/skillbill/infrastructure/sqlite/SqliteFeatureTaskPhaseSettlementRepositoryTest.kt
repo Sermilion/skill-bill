@@ -17,6 +17,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class SqliteFeatureTaskPhaseSettlementRepositoryTest {
   @Test
   fun `migration v35 creates settlement table and supports upsert find delete`() {
@@ -30,17 +31,19 @@ class SqliteFeatureTaskPhaseSettlementRepositoryTest {
         },
       )
     }
-    val repo = SqliteFeatureTaskPhaseSettlementRepository(
-      sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap()),
-    )
-    val settlement = FeatureTaskPhaseSettlement(
-      workflowId = "wftr-1",
-      phaseId = "implement",
-      attempt = 1,
-      kind = FeatureTaskPhaseSettlementKind.Complete,
-      envelopeJson = """{"status":"completed","produced_outputs":{"value":"x"}}""",
-      recordedAt = Instant.now().toString(),
-    )
+    val repo =
+      SqliteFeatureTaskPhaseSettlementRepository(
+        sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap()),
+      )
+    val settlement =
+      FeatureTaskPhaseSettlement(
+        workflowId = "wftr-1",
+        phaseId = "implement",
+        attempt = 1,
+        kind = FeatureTaskPhaseSettlementKind.Complete,
+        envelopeJson = """{"status":"completed","produced_outputs":{"value":"x"}}""",
+        recordedAt = Instant.now().toString(),
+      )
     repo.upsert(settlement)
     assertEquals(FeatureTaskPhaseSettlementKind.Complete, repo.find("wftr-1", "implement", 1)?.kind)
     assertTrue(repo.delete("wftr-1", "implement", 1))
@@ -53,22 +56,27 @@ class SqliteFeatureTaskPhaseSettlementRepositoryTest {
     val tempDir = Files.createTempDirectory("phase-settlement-evidence")
     val dbPath = tempDir.resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).close()
-    val repo = SqliteFeatureTaskPhaseSettlementRepository(
-      sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap()),
-    )
-    val evidence = FeatureTaskRuntimeValidationEvidence(
-      listOf(FeatureTaskRuntimeValidationCommandResult("./gradlew check", 0)),
-    )
-    val envelopeJson = JsonCodec.mapToJsonString(
-      mapOf(
-        "status" to "completed",
-        "produced_outputs" to mapOf(
-          "value" to JsonCodec.mapToJsonString(
-            mapOf(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to evidence.asWorkflowArtifactEntry()),
-          ),
+    val repo =
+      SqliteFeatureTaskPhaseSettlementRepository(
+        sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap()),
+      )
+    val evidence =
+      FeatureTaskRuntimeValidationEvidence(
+        listOf(FeatureTaskRuntimeValidationCommandResult("./gradlew check", 0)),
+      )
+    val envelopeJson =
+      JsonCodec.mapToJsonString(
+        mapOf(
+          "status" to "completed",
+          "produced_outputs" to
+            mapOf(
+              "value" to
+                JsonCodec.mapToJsonString(
+                  mapOf(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to evidence.asWorkflowArtifactEntry()),
+                ),
+            ),
         ),
-      ),
-    )
+      )
     repo.upsert(
       FeatureTaskPhaseSettlement(
         workflowId = "wftr-evidence",
@@ -80,18 +88,21 @@ class SqliteFeatureTaskPhaseSettlementRepositoryTest {
       ),
     )
     val stored = requireNotNull(repo.find("wftr-evidence", "implement", 1))
-    val produced = JsonCodec.anyToStringAnyMap(
-      JsonCodec.parseObjectOrNull(stored.envelopeJson)
+    val produced =
+      JsonCodec.anyToStringAnyMap(
+        JsonCodec.parseObjectOrNull(stored.envelopeJson)
+          ?.let(JsonCodec::jsonElementToValue)
+          ?.let(JsonCodec::anyToStringAnyMap)
+          ?.get("produced_outputs"),
+      )
+    val value =
+      (produced?.get("value") as? String)
+        ?.let(JsonCodec::parseObjectOrNull)
         ?.let(JsonCodec::jsonElementToValue)
         ?.let(JsonCodec::anyToStringAnyMap)
-        ?.get("produced_outputs"),
-    )
-    val value = (produced?.get("value") as? String)
-      ?.let(JsonCodec::parseObjectOrNull)
-      ?.let(JsonCodec::jsonElementToValue)
-      ?.let(JsonCodec::anyToStringAnyMap)
-    val results = JsonCodec.anyToStringAnyMap(value?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE))
-      ?.get(ValidationEvidencePayloadKeys.RESULTS) as? List<*>
+    val results =
+      JsonCodec.anyToStringAnyMap(value?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE))
+        ?.get(ValidationEvidencePayloadKeys.RESULTS) as? List<*>
     val first = results?.first() as? Map<*, *>
     assertEquals("./gradlew check", first?.get(ValidationEvidencePayloadKeys.COMMAND))
     assertEquals(0, first?.get(ValidationEvidencePayloadKeys.EXIT_CODE))
@@ -102,9 +113,10 @@ class SqliteFeatureTaskPhaseSettlementRepositoryTest {
     val tempDir = Files.createTempDirectory("phase-settlement-unknown")
     val dbPath = tempDir.resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).close()
-    val repo = SqliteFeatureTaskPhaseSettlementRepository(
-      sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap()),
-    )
+    val repo =
+      SqliteFeatureTaskPhaseSettlementRepository(
+        sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap()),
+      )
     val unknown = FeatureTaskPhaseSettlementKind.Unknown("future_kind")
     repo.upsert(
       FeatureTaskPhaseSettlement(
@@ -120,7 +132,10 @@ class SqliteFeatureTaskPhaseSettlementRepositoryTest {
     assertEquals(unknown, repo.find("wftr-unknown", "implement", 1)?.kind)
   }
 
-  private fun tableExists(connection: Connection, name: String): Boolean =
+  private fun tableExists(
+    connection: Connection,
+    name: String,
+  ): Boolean =
     connection.createStatement().use { statement ->
       statement.executeQuery(
         "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '$name'",

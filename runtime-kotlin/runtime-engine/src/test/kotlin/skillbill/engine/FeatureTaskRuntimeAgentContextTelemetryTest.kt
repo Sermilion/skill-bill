@@ -6,16 +6,18 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+
 class FeatureTaskRuntimeAgentContextTelemetryTest {
   @Test
   fun `a run whose phases resolved two agents reports both and reports only the models it launched`() {
-    val context = featureTaskRuntimeAgentContext(
-      mapOf(
-        "implement" to phaseRecord("implement", agentId = "codex", model = "gpt-5-codex"),
-        "review" to phaseRecord("review", agentId = "claude", model = null),
-        "validate" to phaseRecord("validate", agentId = "codex", model = "gpt-5-codex"),
-      ),
-    )
+    val context =
+      featureTaskRuntimeAgentContext(
+        mapOf(
+          "implement" to phaseRecord("implement", agentId = "codex", model = "gpt-5-codex"),
+          "review" to phaseRecord("review", agentId = "claude", model = null),
+          "validate" to phaseRecord("validate", agentId = "codex", model = "gpt-5-codex"),
+        ),
+      )
 
     assertEquals(
       listOf("claude", "codex"),
@@ -39,9 +41,10 @@ class FeatureTaskRuntimeAgentContextTelemetryTest {
 
   @Test
   fun `a run whose every phase launched without a model knows its agents and not its models`() {
-    val context = featureTaskRuntimeAgentContext(
-      mapOf("implement" to phaseRecord("implement", agentId = "claude", model = null)),
-    )
+    val context =
+      featureTaskRuntimeAgentContext(
+        mapOf("implement" to phaseRecord("implement", agentId = "claude", model = null)),
+      )
 
     assertEquals(listOf("claude"), context.resolvedAgentIds)
     assertNull(
@@ -50,7 +53,11 @@ class FeatureTaskRuntimeAgentContextTelemetryTest {
     )
   }
 
-  private fun phaseRecord(phaseId: String, agentId: String, model: String?) = FeatureTaskRuntimePhaseRecord(
+  private fun phaseRecord(
+    phaseId: String,
+    agentId: String,
+    model: String?,
+  ) = FeatureTaskRuntimePhaseRecord(
     phaseId = phaseId,
     status = WorkflowStepStatus.COMPLETED,
     attemptCount = 1,

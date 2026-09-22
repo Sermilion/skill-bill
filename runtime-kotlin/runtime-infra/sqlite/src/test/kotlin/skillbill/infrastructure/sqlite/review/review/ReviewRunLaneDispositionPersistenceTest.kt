@@ -20,25 +20,27 @@ class ReviewRunLaneDispositionPersistenceTest {
   @Test fun `disposition bundle digest and segment accounting round-trip`() {
     val (_, connection) = tempDbConnection("review-lane-disposition")
     connection.use {
-      val segments = listOf(
-        ReviewLaneSegmentAccounting("seg-000", 120, 2, "a".repeat(64)),
-        ReviewLaneSegmentAccounting("seg-001", 80, 1, "b".repeat(64)),
-      )
-      val lane = ReviewRunLane(
-        laneSkillName = "bill-kotlin-code-review-security",
-        packSlug = "kotlin",
-        area = "security",
-        depth = 0,
-        required = false,
-        orderIndex = 0,
-        originLayerChain = listOf("kotlin"),
-        resolutionState = ReviewLaneResolutionState.RESOLVED,
-        reviewDisposition = ReviewLaneReviewDisposition.INCOMPLETE,
-        bundleCompositionDigest = "c".repeat(64),
-        segmentAccountingJson = ReviewRunLaneSegmentAccountingJson.encode(segments),
-        unreviewedSegmentIds = listOf("unreviewable"),
-        budgetDimension = "lane_launch_bytes",
-      )
+      val segments =
+        listOf(
+          ReviewLaneSegmentAccounting("seg-000", 120, 2, "a".repeat(64)),
+          ReviewLaneSegmentAccounting("seg-001", 80, 1, "b".repeat(64)),
+        )
+      val lane =
+        ReviewRunLane(
+          laneSkillName = "bill-kotlin-code-review-security",
+          packSlug = "kotlin",
+          area = "security",
+          depth = 0,
+          required = false,
+          orderIndex = 0,
+          originLayerChain = listOf("kotlin"),
+          resolutionState = ReviewLaneResolutionState.RESOLVED,
+          reviewDisposition = ReviewLaneReviewDisposition.INCOMPLETE,
+          bundleCompositionDigest = "c".repeat(64),
+          segmentAccountingJson = ReviewRunLaneSegmentAccountingJson.encode(segments),
+          unreviewedSegmentIds = listOf("unreviewable"),
+          budgetDimension = "lane_launch_bytes",
+        )
       replaceReviewRunLanes(it, RUN_ID, listOf(lane))
 
       val persisted = fetchReviewRunLanes(it, RUN_ID).single()
@@ -57,13 +59,14 @@ class ReviewRunLaneDispositionPersistenceTest {
   }
 
   @Test fun `completed lane durable findings are excluded from resume selection`() {
-    val lanes = listOf(
-      lane(bundleCompositionDigest = "d".repeat(64)),
-      lane(
-        laneSkillName = "bill-kotlin-code-review-testing",
-        unreviewedSegmentIds = listOf("seg-001"),
-      ),
-    )
+    val lanes =
+      listOf(
+        lane(bundleCompositionDigest = "d".repeat(64)),
+        lane(
+          laneSkillName = "bill-kotlin-code-review-testing",
+          unreviewedSegmentIds = listOf("seg-001"),
+        ),
+      )
     val resume = ReviewRunLaneResolver.lanesToResume(lanes)
     assertEquals(1, resume.size)
     assertEquals("bill-kotlin-code-review-testing", resume.single().laneSkillName)
@@ -72,9 +75,10 @@ class ReviewRunLaneDispositionPersistenceTest {
   @Test fun `segment accounting json codec round-trips empty and populated arrays`() {
     assertEquals(emptyList(), ReviewRunLaneSegmentAccountingJson.decode(null))
     assertEquals(emptyList(), ReviewRunLaneSegmentAccountingJson.decode("[]"))
-    val encoded = ReviewRunLaneSegmentAccountingJson.encode(
-      listOf(ReviewLaneSegmentAccounting("seg-000", 10, 1, "e".repeat(64))),
-    )
+    val encoded =
+      ReviewRunLaneSegmentAccountingJson.encode(
+        listOf(ReviewLaneSegmentAccounting("seg-000", 10, 1, "e".repeat(64))),
+      )
     assertEquals(
       ReviewLaneSegmentAccounting("seg-000", 10, 1, "e".repeat(64)),
       ReviewRunLaneSegmentAccountingJson.decode(encoded).single(),
@@ -104,9 +108,10 @@ class ReviewRunLaneDispositionPersistenceTest {
         listOf(
           lane(
             bundleCompositionDigest = "f".repeat(64),
-            segmentAccountingJson = ReviewRunLaneSegmentAccountingJson.encode(
-              listOf(ReviewLaneSegmentAccounting("seg-000", 10, 1, "a".repeat(64))),
-            ),
+            segmentAccountingJson =
+              ReviewRunLaneSegmentAccountingJson.encode(
+                listOf(ReviewLaneSegmentAccounting("seg-000", 10, 1, "a".repeat(64))),
+              ),
             unreviewedSegmentIds = listOf("seg-000"),
           ),
         ),
@@ -171,18 +176,22 @@ class ReviewRunLaneDispositionPersistenceTest {
     orderIndex = 0,
     originLayerChain = listOf("kotlin"),
     resolutionState = ReviewLaneResolutionState.RESOLVED,
-    reviewDisposition = if (unreviewedSegmentIds.isEmpty()) {
-      ReviewLaneReviewDisposition.COMPLETE
-    } else {
-      ReviewLaneReviewDisposition.INCOMPLETE
-    },
+    reviewDisposition =
+      if (unreviewedSegmentIds.isEmpty()) {
+        ReviewLaneReviewDisposition.COMPLETE
+      } else {
+        ReviewLaneReviewDisposition.INCOMPLETE
+      },
     bundleCompositionDigest = bundleCompositionDigest,
     segmentAccountingJson = segmentAccountingJson,
     unreviewedSegmentIds = unreviewedSegmentIds,
     budgetDimension = "lane_launch_bytes".takeIf { unreviewedSegmentIds.isNotEmpty() },
   )
 
-  private fun columnNames(connection: Connection, table: String): Set<String> =
+  private fun columnNames(
+    connection: Connection,
+    table: String,
+  ): Set<String> =
     connection.createStatement().use { statement ->
       statement.executeQuery("PRAGMA table_info($table)").use { resultSet ->
         buildSet {

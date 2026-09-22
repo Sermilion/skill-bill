@@ -12,15 +12,22 @@ class McpCaptureDiagnosticsTest {
     var count = 0
     var diagnosticMessage = ""
     var captured: Throwable? = null
-    val diagnostics = object : RuntimeDiagnostics {
-      override fun warning(message: String, error: Throwable?) = Unit
+    val diagnostics =
+      object : RuntimeDiagnostics {
+        override fun warning(
+          message: String,
+          error: Throwable?,
+        ) = Unit
 
-      override fun error(message: String, error: Throwable?) {
-        count += 1
-        captured = error
-        diagnosticMessage = message
+        override fun error(
+          message: String,
+          error: Throwable?,
+        ) {
+          count += 1
+          captured = error
+          diagnosticMessage = message
+        }
       }
-    }
     val failure = IllegalStateException("capture failed")
 
     recordCaptureFailure("quality_check_finished", { throw failure }, diagnostics)

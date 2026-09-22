@@ -7,7 +7,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class TelemetryEventSchemaValidatesAllEventsTest {
-
   @Test
   fun `every McpToolRegistry tool emits a schema-clean representative envelope`() {
     val events = McpToolRegistry.tools
@@ -20,27 +19,34 @@ class TelemetryEventSchemaValidatesAllEventsTest {
     }
   }
 
-  private fun buildRepresentativeEnvelope(eventName: String, inputSchema: Map<String, Any?>): Map<String, Any?> {
-    val envelope = linkedMapOf<String, Any?>(
-      "event_name" to eventName,
-      "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
-    )
+  private fun buildRepresentativeEnvelope(
+    eventName: String,
+    inputSchema: Map<String, Any?>,
+  ): Map<String, Any?> {
+    val envelope =
+      linkedMapOf<String, Any?>(
+        "event_name" to eventName,
+        "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
+      )
 
-    val required = (inputSchema["required"] as? List<*>)
-      ?.mapNotNull { entry -> entry as? String }
-      .orEmpty()
-    val properties = (inputSchema["properties"] as? Map<*, *>)
-      ?.mapNotNull { (key, value) ->
-        val stringKey = key as? String ?: return@mapNotNull null
-        val fieldSchema = value as? Map<*, *> ?: return@mapNotNull null
-        stringKey to fieldSchema.entries
-          .mapNotNull { (fieldKey, fieldValue) ->
-            (fieldKey as? String)?.let { typedKey -> typedKey to fieldValue }
-          }
-          .toMap()
-      }
-      ?.toMap()
-      .orEmpty()
+    val required =
+      (inputSchema["required"] as? List<*>)
+        ?.mapNotNull { entry -> entry as? String }
+        .orEmpty()
+    val properties =
+      (inputSchema["properties"] as? Map<*, *>)
+        ?.mapNotNull { (key, value) ->
+          val stringKey = key as? String ?: return@mapNotNull null
+          val fieldSchema = value as? Map<*, *> ?: return@mapNotNull null
+          stringKey to
+            fieldSchema.entries
+              .mapNotNull { (fieldKey, fieldValue) ->
+                (fieldKey as? String)?.let { typedKey -> typedKey to fieldValue }
+              }
+              .toMap()
+        }
+        ?.toMap()
+        .orEmpty()
     required.forEach { fieldName ->
       val fieldSchema = properties[fieldName] ?: mapOf("type" to "string")
       envelope[fieldName] = representativeValue(fieldSchema)
@@ -49,11 +55,12 @@ class TelemetryEventSchemaValidatesAllEventsTest {
   }
 
   private fun representativeValue(fieldSchema: Map<String, Any?>): Any? {
-    val types = when (val type = fieldSchema["type"]) {
-      is String -> listOf(type)
-      is List<*> -> type.filterIsInstance<String>()
-      else -> emptyList()
-    }
+    val types =
+      when (val type = fieldSchema["type"]) {
+        is String -> listOf(type)
+        is List<*> -> type.filterIsInstance<String>()
+        else -> emptyList()
+      }
     return when {
       "string" in types -> representativeString(fieldSchema)
       "integer" in types -> representativeInteger(fieldSchema)
@@ -65,6 +72,7 @@ class TelemetryEventSchemaValidatesAllEventsTest {
       else -> ""
     }
   }
+
   private fun representativeString(fieldSchema: Map<String, Any?>): String {
     val enum = fieldSchema["enum"] as? List<*>
     if (enum != null && enum.isNotEmpty()) return enum.first().toString()

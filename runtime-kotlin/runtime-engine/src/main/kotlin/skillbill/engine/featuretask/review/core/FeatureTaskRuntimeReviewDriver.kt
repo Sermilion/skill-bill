@@ -31,6 +31,7 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.time.Duration
+
 fun interface FeatureTaskRuntimeReviewDriver {
   fun run(request: ParallelCodeReviewRequest): ParallelCodeReviewResult
 }
@@ -68,9 +69,10 @@ object FeatureTaskRuntimeReviewDriverMapper {
     pass: FeatureTaskRuntimeReviewDriverPass,
     workspace: FeatureTaskRuntimeReviewDriverWorkspace,
   ): ParallelCodeReviewRequest {
-    val executed = RuntimeOwnedReviewMode.execute(
-      FeatureTaskRuntimeReviewPassSequence.resolveForPass(pass.pinnedMode, pass.passNumber).resolvedTier,
-    )
+    val executed =
+      RuntimeOwnedReviewMode.execute(
+        FeatureTaskRuntimeReviewPassSequence.resolveForPass(pass.pinnedMode, pass.passNumber).resolvedTier,
+      )
     return ParallelCodeReviewRequest(
       agent1Id = agents.agent1Id,
       scope = ParallelReviewScope.WORKTREE_FROM_BASE,
@@ -84,10 +86,11 @@ object FeatureTaskRuntimeReviewDriverMapper {
       specPath = specPath(runInvariants.specReference),
       selectedAgentAddonsSection = AgentAddonPromptFormatter.format(workspace.agentAddonSelection),
       ownedPathspec = workspace.ownedPathspec.filter(String::isNotBlank).distinct(),
-      baselineUntrackedPolicy = ParallelCodeReviewRequest.baselineUntrackedPolicy(
-        includedPaths = emptyList(),
-        excludedPaths = workspace.baselineUntrackedPaths.filter(String::isNotBlank).distinct().sorted(),
-      ),
+      baselineUntrackedPolicy =
+        ParallelCodeReviewRequest.baselineUntrackedPolicy(
+          includedPaths = emptyList(),
+          excludedPaths = workspace.baselineUntrackedPaths.filter(String::isNotBlank).distinct().sorted(),
+        ),
     )
   }
 
@@ -106,26 +109,28 @@ object FeatureTaskRuntimeReviewEnvelope {
   ): String {
     val prose = result.output.trim().ifBlank { "Review completed." }
     val findings = result.mergeResult.findings.map(::findingPayload)
-    val produced = linkedMapOf<String, Any?>(
-      FeatureTaskRuntimeVerificationSignalKeys.REVIEW_FINDINGS to emptyList<Any?>(),
-      FeatureTaskRuntimeVerificationSignalKeys.REVIEW_RUN_ID to reviewRunId,
-      FeatureTaskRuntimeVerificationSignalKeys.REPOSITORY_CHECKPOINT to
-        mapOf(
-          FeatureTaskRuntimeVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT to cycle.repositoryFingerprint,
-        ),
-    )
+    val produced =
+      linkedMapOf<String, Any?>(
+        FeatureTaskRuntimeVerificationSignalKeys.REVIEW_FINDINGS to emptyList<Any?>(),
+        FeatureTaskRuntimeVerificationSignalKeys.REVIEW_RUN_ID to reviewRunId,
+        FeatureTaskRuntimeVerificationSignalKeys.REPOSITORY_CHECKPOINT to
+          mapOf(
+            FeatureTaskRuntimeVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT to cycle.repositoryFingerprint,
+          ),
+      )
     commitFocusedAccounting(result, cycle.resolvedTier)?.let { accounting ->
       produced["commit_focused_accounting"] = accounting.toPersistenceWire()
     }
     CRITERION_GAP_KEYS.forEach { key -> produced.remove(key) }
-    val envelope = linkedMapOf<String, Any?>(
-      SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
-      SharedPayloadKeys.PHASE_ID to "review",
-      SharedPayloadKeys.STATUS to STATUS_COMPLETED,
-      SharedPayloadKeys.SUMMARY to prose.take(SUMMARY_MAX_CHARS),
-      SharedPayloadKeys.PRODUCED_OUTPUTS to produced,
-      FeatureTaskRuntimeVerificationSignalKeys.VERDICT to extractReviewVerdict(prose).wireValue,
-    )
+    val envelope =
+      linkedMapOf<String, Any?>(
+        SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
+        SharedPayloadKeys.PHASE_ID to "review",
+        SharedPayloadKeys.STATUS to STATUS_COMPLETED,
+        SharedPayloadKeys.SUMMARY to prose.take(SUMMARY_MAX_CHARS),
+        SharedPayloadKeys.PRODUCED_OUTPUTS to produced,
+        FeatureTaskRuntimeVerificationSignalKeys.VERDICT to extractReviewVerdict(prose).wireValue,
+      )
     val outcome = GoalSubtaskReviewSummaryReducer.outcomeFor(envelope)
     produced[FeatureTaskRuntimeVerificationSignalKeys.REVIEW_FINDINGS] = findings
     mergeCitationDiagnostics(produced, result.citationDiagnostics)
@@ -134,51 +139,56 @@ object FeatureTaskRuntimeReviewEnvelope {
   }
 
   fun extractReviewVerdict(prose: String): FeatureTaskRuntimeVerdict {
-    val line = prose.lineSequence()
-      .map { it.trim() }
-      .lastOrNull { it.startsWith("verdict:", ignoreCase = true) }
-      ?: prose.lineSequence().map { it.trim() }.lastOrNull {
-        it.equals("approved", ignoreCase = true) ||
-          it.equals("changes_requested", ignoreCase = true) ||
-          it.equals("needs_fix", ignoreCase = true)
+    val line =
+      prose.lineSequence()
+        .map { it.trim() }
+        .lastOrNull { it.startsWith("verdict:", ignoreCase = true) }
+        ?: prose.lineSequence().map { it.trim() }.lastOrNull {
+          it.equals("approved", ignoreCase = true) ||
+            it.equals("changes_requested", ignoreCase = true) ||
+            it.equals("needs_fix", ignoreCase = true)
+        }
+    val token =
+      when {
+        line == null -> return FeatureTaskRuntimeVerdict.APPROVED
+        line.startsWith("verdict:", ignoreCase = true) ->
+          line.substringAfter(':').trim().lowercase()
+        else -> line.lowercase()
       }
-    val token = when {
-      line == null -> return FeatureTaskRuntimeVerdict.APPROVED
-      line.startsWith("verdict:", ignoreCase = true) ->
-        line.substringAfter(':').trim().lowercase()
-      else -> line.lowercase()
-    }
     return when (token) {
       "changes_requested", "needs_fix" -> FeatureTaskRuntimeVerdict.CHANGES_REQUESTED
       else -> FeatureTaskRuntimeVerdict.APPROVED
     }
   }
 
-  internal fun envelopeMap(outputText: String): Map<String, Any?> = JsonCodec.parseObjectOrNull(outputText)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    .orEmpty()
+  internal fun envelopeMap(outputText: String): Map<String, Any?> =
+    JsonCodec.parseObjectOrNull(outputText)
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      .orEmpty()
 
   fun mintReviewRunId(clock: Clock): String {
-    val stamp = LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)
-      .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
+    val stamp =
+      LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)
+        .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
     val alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
     val suffix = CharArray(REVIEW_RUN_ID_SUFFIX_LENGTH) { alphabet.random() }.concatToString()
     return "rvw-$stamp-$suffix"
   }
 
-  private fun findingPayload(finding: ParallelReviewMergedFinding): Map<String, Any?> = buildMap {
-    put(ReviewFindingPayloadKeys.FINDING_ID, finding.fNumber)
-    put("severity", finding.severity.name.lowercase())
-    put("message", finding.description)
-    put("location", finding.location)
-    finding.repositoryPath?.let { put(ReviewFindingPayloadKeys.REPOSITORY_PATH, it) }
-    finding.claimVerdict?.let { put(ReviewFindingPayloadKeys.CLAIM_VERDICT, it.wireValue) }
-    finding.scopeDisposition?.let { put(ReviewFindingPayloadKeys.SCOPE_DISPOSITION, it.wireValue) }
-    if (finding.citations.isNotEmpty()) {
-      put(ReviewFindingPayloadKeys.CITATIONS, finding.citations.map(::citationPayload))
+  private fun findingPayload(finding: ParallelReviewMergedFinding): Map<String, Any?> =
+    buildMap {
+      put(ReviewFindingPayloadKeys.FINDING_ID, finding.fNumber)
+      put("severity", finding.severity.name.lowercase())
+      put("message", finding.description)
+      put("location", finding.location)
+      finding.repositoryPath?.let { put(ReviewFindingPayloadKeys.REPOSITORY_PATH, it) }
+      finding.claimVerdict?.let { put(ReviewFindingPayloadKeys.CLAIM_VERDICT, it.wireValue) }
+      finding.scopeDisposition?.let { put(ReviewFindingPayloadKeys.SCOPE_DISPOSITION, it.wireValue) }
+      if (finding.citations.isNotEmpty()) {
+        put(ReviewFindingPayloadKeys.CITATIONS, finding.citations.map(::citationPayload))
+      }
     }
-  }
 
   private fun citationPayload(citation: ReviewFindingCitation): Map<String, Any?> =
     mapOf("path" to citation.path, "line" to citation.line)
@@ -188,21 +198,23 @@ object FeatureTaskRuntimeReviewEnvelope {
     diagnostics: List<ReviewFindingCitationDiagnosticWithFinding>,
   ) {
     if (diagnostics.isEmpty()) return
-    val existing = (produced[FeatureTaskRuntimeVerificationSignalKeys.CITATION_DIAGNOSTICS] as? List<*>)
-      ?.mapNotNull { entry ->
-        (entry as? Map<*, *>)?.mapKeys { (key, _) -> key.toString() }?.mapValues { (_, value) -> value }
-      }
-      .orEmpty()
-    val merged = (existing + diagnostics.map(::citationDiagnosticWireMap))
-      .distinctBy { entry ->
-        listOf(
-          entry["finding_ref"],
-          entry[ReviewFindingCitationDiagnosticKeys.CITATION_INDEX],
-          entry["path"],
-          entry[ReviewFindingCitationDiagnosticKeys.RAW_LINE],
-          entry["reason"],
-        )
-      }
+    val existing =
+      (produced[FeatureTaskRuntimeVerificationSignalKeys.CITATION_DIAGNOSTICS] as? List<*>)
+        ?.mapNotNull { entry ->
+          (entry as? Map<*, *>)?.mapKeys { (key, _) -> key.toString() }?.mapValues { (_, value) -> value }
+        }
+        .orEmpty()
+    val merged =
+      (existing + diagnostics.map(::citationDiagnosticWireMap))
+        .distinctBy { entry ->
+          listOf(
+            entry["finding_ref"],
+            entry[ReviewFindingCitationDiagnosticKeys.CITATION_INDEX],
+            entry["path"],
+            entry[ReviewFindingCitationDiagnosticKeys.RAW_LINE],
+            entry["reason"],
+          )
+        }
     produced[FeatureTaskRuntimeVerificationSignalKeys.CITATION_DIAGNOSTICS] = merged
   }
 
@@ -211,14 +223,16 @@ object FeatureTaskRuntimeReviewEnvelope {
     resolvedTier: CodeReviewExecutionMode,
   ): GoalSubtaskCommitFocusedAccounting? {
     val summary = result.accountingSummary ?: return null
-    val routing = summary.commitRouting
-      ?.takeIf { resolvedTier == CodeReviewExecutionMode.DELEGATED && it.commitCount >= 1 }
-      ?: return null
+    val routing =
+      summary.commitRouting
+        ?.takeIf { resolvedTier == CodeReviewExecutionMode.DELEGATED && it.commitCount >= 1 }
+        ?: return null
     val accounting = summary.integration
     val pass = result.integration
-    val terminalOutcome = accounting?.terminalOutcome
-      ?: pass?.terminalOutcome
-      ?: ReviewIntegrationTerminalOutcome.SKIPPED_NOT_APPLICABLE
+    val terminalOutcome =
+      accounting?.terminalOutcome
+        ?: pass?.terminalOutcome
+        ?: ReviewIntegrationTerminalOutcome.SKIPPED_NOT_APPLICABLE
     return GoalSubtaskCommitFocusedAccounting(
       commitSequenceDigest = routing.commitSequenceDigest,
       commitCount = routing.commitCount,
@@ -232,14 +246,15 @@ object FeatureTaskRuntimeReviewEnvelope {
       incompleteLanes = routing.incompleteLanes,
       parentAnalysisPairs = summary.parentAnalysis?.analyzedPairs,
       parentAnalysisBytes = summary.parentAnalysis?.analyzedBytes,
-      integrationSkipReason = when (terminalOutcome) {
-        ReviewIntegrationTerminalOutcome.SKIPPED_NOT_APPLICABLE ->
-          accounting?.skipReason?.takeIf { it.isNotBlank() }
-            ?: pass?.skipReason?.takeIf { it.isNotBlank() }
-            ?: result.coverage?.integrationNotApplicableReason?.takeIf { it.isNotBlank() }
-            ?: "commit-focused accounting was recorded without a settled integration pass"
-        else -> accounting?.skipReason ?: pass?.skipReason
-      },
+      integrationSkipReason =
+        when (terminalOutcome) {
+          ReviewIntegrationTerminalOutcome.SKIPPED_NOT_APPLICABLE ->
+            accounting?.skipReason?.takeIf { it.isNotBlank() }
+              ?: pass?.skipReason?.takeIf { it.isNotBlank() }
+              ?: result.coverage?.integrationNotApplicableReason?.takeIf { it.isNotBlank() }
+              ?: "commit-focused accounting was recorded without a settled integration pass"
+          else -> accounting?.skipReason ?: pass?.skipReason
+        },
       integrationFindingCount = accounting?.findingCount ?: pass?.findings?.size,
     )
   }

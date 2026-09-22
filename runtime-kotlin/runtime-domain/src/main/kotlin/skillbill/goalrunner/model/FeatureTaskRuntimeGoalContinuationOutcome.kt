@@ -3,6 +3,7 @@ package skillbill.goalrunner.model
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+
 data class FeatureTaskRuntimeGoalContinuationOutcome(
   val issueKey: String,
   val subtaskId: Int,
@@ -27,9 +28,10 @@ data class FeatureTaskRuntimeGoalContinuationOutcome(
   ) : this(
     issueKey = issueKey,
     subtaskId = subtaskId,
-    status = requireNotNull(GoalRunnerTerminalStatus.fromWire(status)) {
-      "Unknown goal-continuation outcome status '$status'."
-    },
+    status =
+      requireNotNull(GoalRunnerTerminalStatus.fromWire(status)) {
+        "Unknown goal-continuation outcome status '$status'."
+      },
     workflowId = workflowId,
     commitSha = commitSha,
     blockedReason = blockedReason,
@@ -49,30 +51,31 @@ data class FeatureTaskRuntimeGoalContinuationOutcome(
 
   fun toPersistenceWire(): Any = toArtifactMap()
 
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    SharedPayloadKeys.ISSUE_KEY to issueKey,
-    SharedPayloadKeys.SUBTASK_ID to subtaskId,
-    SharedPayloadKeys.STATUS to status.wireValue,
-    SharedPayloadKeys.WORKFLOW_ID to workflowId,
-    "last_resumable_step" to lastResumableStep,
-    "participating_agent_ids" to participatingAgentIds,
-  ).apply {
-    commitSha?.let { put("commit_sha", it) }
-    blockedReason?.let { put("blocked_reason", it) }
-    finalizingAgentId?.let { put("finalizing_agent_id", it) }
-  }
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      SharedPayloadKeys.ISSUE_KEY to issueKey,
+      SharedPayloadKeys.SUBTASK_ID to subtaskId,
+      SharedPayloadKeys.STATUS to status.wireValue,
+      SharedPayloadKeys.WORKFLOW_ID to workflowId,
+      "last_resumable_step" to lastResumableStep,
+      "participating_agent_ids" to participatingAgentIds,
+    ).apply {
+      commitSha?.let { put("commit_sha", it) }
+      blockedReason?.let { put("blocked_reason", it) }
+      finalizingAgentId?.let { put("finalizing_agent_id", it) }
+    }
 
   companion object {
-
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationOutcome {
       val reader = durableArtifactMapReader(raw)
       return try {
         FeatureTaskRuntimeGoalContinuationOutcome(
           issueKey = reader.requiredString("issue_key"),
           subtaskId = reader.requiredInt("subtask_id"),
-          status = requireNotNull(GoalRunnerTerminalStatus.fromWire(reader.requiredString("status"))) {
-            "Unknown goal-continuation outcome status '${raw[SharedPayloadKeys.STATUS]}'."
-          },
+          status =
+            requireNotNull(GoalRunnerTerminalStatus.fromWire(reader.requiredString("status"))) {
+              "Unknown goal-continuation outcome status '${raw[SharedPayloadKeys.STATUS]}'."
+            },
           workflowId = reader.requiredString("workflow_id"),
           commitSha = reader.optionalString("commit_sha"),
           blockedReason = reader.optionalString("blocked_reason"),

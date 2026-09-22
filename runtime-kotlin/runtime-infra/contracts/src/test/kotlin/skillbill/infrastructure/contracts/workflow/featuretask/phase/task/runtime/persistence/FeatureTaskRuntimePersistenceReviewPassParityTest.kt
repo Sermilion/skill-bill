@@ -66,21 +66,23 @@ class FeatureTaskRuntimePersistenceReviewPassParityTest {
 
   @Test
   fun `schema accepts duplicate-key merge repair evidence the model persists`() {
-    val record = FeatureTaskRuntimePhaseRecord(
-      phaseId = "validate",
-      status = "completed",
-      attemptCount = 1,
-      startedAt = "2026-08-16T12:00:00Z",
-      resolvedAgentId = "cursor",
-      outputArtifact = "{\"phase_id\":\"validate\"}",
-      repairEvidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
-        format = FeatureTaskRuntimePhaseOutputFormat.JSON,
-        originalDigest = "a".repeat(64),
-        repairedDigest = "b".repeat(64),
-        operation = FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS,
-        sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("validate", 12, 1, 13),
-      ),
-    )
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "validate",
+        status = "completed",
+        attemptCount = 1,
+        startedAt = "2026-08-16T12:00:00Z",
+        resolvedAgentId = "cursor",
+        outputArtifact = "{\"phase_id\":\"validate\"}",
+        repairEvidence =
+          FeatureTaskRuntimePhaseOutputRepairEvidence(
+            format = FeatureTaskRuntimePhaseOutputFormat.JSON,
+            originalDigest = "a".repeat(64),
+            repairedDigest = "b".repeat(64),
+            operation = FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS,
+            sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("validate", 12, 1, 13),
+          ),
+      )
 
     FeatureTaskRuntimePersistenceSchemaValidator.validate(
       record.asWorkflowArtifactEntry().toWorkflowArtifactMap(),
@@ -93,14 +95,15 @@ class FeatureTaskRuntimePersistenceReviewPassParityTest {
     )
   }
 
-  private fun reviewRecord(pass: Int): FeatureTaskRuntimePhaseRecord = FeatureTaskRuntimePhaseRecord(
-    phaseId = "review",
-    status = "running",
-    attemptCount = 1,
-    startedAt = "2026-08-03T10:00:00Z",
-    resolvedAgentId = "agent-review-1",
-    loopId = "review_fix",
-    edgeIteration = 1,
-    reviewPassNumber = pass,
-  )
+  private fun reviewRecord(pass: Int): FeatureTaskRuntimePhaseRecord =
+    FeatureTaskRuntimePhaseRecord(
+      phaseId = "review",
+      status = "running",
+      attemptCount = 1,
+      startedAt = "2026-08-03T10:00:00Z",
+      resolvedAgentId = "agent-review-1",
+      loopId = "review_fix",
+      edgeIteration = 1,
+      reviewPassNumber = pass,
+    )
 }

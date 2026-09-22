@@ -4,6 +4,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDispo
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
+
 data class FeatureTaskRuntimePhaseStateRequest(
   val workflowId: String,
   val phaseId: String,
@@ -16,20 +17,16 @@ data class FeatureTaskRuntimePhaseStateRequest(
   val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput? = null,
   val repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence? = null,
   val repositoryFingerprint: String? = null,
-
   val blockedReason: String? = null,
   val failureDisposition: FeatureTaskRuntimeFailureDisposition? = null,
   val fileManifestBefore: List<String> = emptyList(),
   val fileManifestAfter: List<String> = emptyList(),
   val fileManifestIntroduced: List<String> = emptyList(),
-
   val loopId: String? = null,
   val edgeIteration: Int? = null,
   val reviewPassNumber: Int? = null,
-
   val launchedModel: String? = null,
   val launchedEffort: String? = null,
-
   val launchOutcomeKnown: Boolean = false,
   val reviewRunId: String? = null,
   val findingVerificationCheckpoint: List<FeatureTaskRuntimeFindingVerificationDisposition>? = null,
@@ -43,7 +40,6 @@ data class FeatureTaskRuntimePhaseLedgerRequest(
   val resolvedAgentId: String? = null,
   val fixLoopIteration: Int? = null,
   val blockedReason: String? = null,
-
   val loopId: String? = null,
   val edgeIteration: Int? = null,
 )

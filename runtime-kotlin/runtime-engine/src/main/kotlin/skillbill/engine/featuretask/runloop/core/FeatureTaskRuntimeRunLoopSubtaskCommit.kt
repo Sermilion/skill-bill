@@ -18,6 +18,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRu
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
 import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
+
 object FeatureTaskRuntimeRunLoopSubtaskCommit {
   internal fun unownedWorktreeCommitSha(args: UnownedWorktreeCommitShaArgs): CommitPushFinalisation {
     val request = args.request
@@ -27,8 +28,9 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
     val run = args.run
     val normalizedOutput = args.normalizedOutput
     val head = phaseGates.gitOperations.headCommitSha(request.repoRoot)
-    val sha = head.value.orEmpty().trim().takeIf { head is WorkflowGitOperationResult.Ok && it.isNotBlank() }
-      ?: return CommitPushNotApplicable
+    val sha =
+      head.value.orEmpty().trim().takeIf { head is WorkflowGitOperationResult.Ok && it.isNotBlank() }
+        ?: return CommitPushNotApplicable
     RuntimeDiagnosticsBestEffortWarning.record(
       diagnostics,
       "seam=FeatureTaskRuntimeRunLoop.finaliseSubtaskCommit value_used='measured HEAD $sha' " +
@@ -68,9 +70,10 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
     session: FeatureTaskRuntimeRunLoopSession,
     phaseGates: FeatureTaskRuntimePhaseGates,
   ): String? {
-    val branch = session.resolvedBranch
-      ?.takeIf { FeatureTaskRuntimeBranchSetup.protectedBranchName(it) == null }
-      ?: return null
+    val branch =
+      session.resolvedBranch
+        ?.takeIf { FeatureTaskRuntimeBranchSetup.protectedBranchName(it) == null }
+        ?: return null
     val head = phaseGates.gitOperations.currentBranch(request.repoRoot)
     return branch.takeIf { head is WorkflowGitOperationResult.Ok && head.value.trim() == branch.trim() }
   }
@@ -87,23 +90,25 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
     val ledger = args.ledger
     val commitSha = args.commitSha
     val stagedPaths = args.stagedPaths
-    val appended = runCatching {
-      recorder.appendCheckpointIdentity(
-        AppendCheckpointIdentityArgs(
-          workflowId = request.workflowId,
-          issueKey = request.issueKey,
-          subtaskId = request.goalContinuation?.subtaskId?.toString()
-            ?: FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID,
-          branch = branch,
-          phaseId = phaseId,
-          loopId = null,
-          generation = FeatureTaskRuntimeRunLoopCheckpoint.checkpointGeneration(state, null),
-          parentSha = ledger.commitSha,
-          ownedPaths = stagedPaths,
-          commitSha = commitSha,
-        ),
-      )
-    }
+    val appended =
+      runCatching {
+        recorder.appendCheckpointIdentity(
+          AppendCheckpointIdentityArgs(
+            workflowId = request.workflowId,
+            issueKey = request.issueKey,
+            subtaskId =
+              request.goalContinuation?.subtaskId?.toString()
+                ?: FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID,
+            branch = branch,
+            phaseId = phaseId,
+            loopId = null,
+            generation = FeatureTaskRuntimeRunLoopCheckpoint.checkpointGeneration(state, null),
+            parentSha = ledger.commitSha,
+            ownedPaths = stagedPaths,
+            commitSha = commitSha,
+          ),
+        )
+      }
     if (appended.getOrDefault(false)) return null
     val cause = appended.exceptionOrNull()?.message ?: "the workflow row was absent"
     RuntimeDiagnosticsBestEffortWarning.record(
@@ -123,10 +128,11 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
     outputValidator: FeatureTaskRuntimePhaseOutputValidator,
     phaseId: String,
     envelope: Map<String, Any?>,
-  ): NormalizedFeatureTaskRuntimePhaseOutput = outputValidator
-    .validatePhaseOutput(JsonCodec.mapToJsonString(envelope), sourceLabel = phaseId)
-    .requireAcceptedOutput(phaseId)
-    .normalizedOutput
+  ): NormalizedFeatureTaskRuntimePhaseOutput =
+    outputValidator
+      .validatePhaseOutput(JsonCodec.mapToJsonString(envelope), sourceLabel = phaseId)
+      .requireAcceptedOutput(phaseId)
+      .normalizedOutput
 }
 
 internal data class ReadinessChangedPaths(

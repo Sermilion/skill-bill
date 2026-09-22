@@ -8,15 +8,20 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 object McpJsonConfig {
-  fun register(agent: String, path: Path, command: String): McpMutationResult {
+  fun register(
+    agent: String,
+    path: Path,
+    command: String,
+  ): McpMutationResult {
     val beforeContent = if (Files.exists(path)) Files.readString(path) else ""
     val settings = readJsonObject(path).toMutableMap()
     val servers = mutableStringAnyMap(settings["mcpServers"])
-    servers["skill-bill"] = linkedMapOf(
-      "type" to "stdio",
-      "command" to command,
-      "args" to emptyList<String>(),
-    )
+    servers["skill-bill"] =
+      linkedMapOf(
+        "type" to "stdio",
+        "command" to command,
+        "args" to emptyList<String>(),
+      )
     settings["mcpServers"] = servers
     val afterContent = JsonCodec.mapToJsonString(settings) + "\n"
     val changed = beforeContent != afterContent
@@ -26,7 +31,10 @@ object McpJsonConfig {
     return McpMutationResult(agent, path.toFileLocation(), changed = changed)
   }
 
-  fun unregister(agent: String, path: Path): McpMutationResult {
+  fun unregister(
+    agent: String,
+    path: Path,
+  ): McpMutationResult {
     val settings = readJsonObject(path).toMutableMap()
     val servers = mutableStringAnyMap(settings["mcpServers"])
     val changed = servers.remove("skill-bill") != null
@@ -52,7 +60,10 @@ fun readJsonObject(path: Path): Map<String, Any?> {
   }
 }
 
-fun writeJson(path: Path, settings: Map<String, Any?>) {
+fun writeJson(
+  path: Path,
+  settings: Map<String, Any?>,
+) {
   atomicWriteString(path, JsonCodec.mapToJsonString(settings) + "\n")
 }
 

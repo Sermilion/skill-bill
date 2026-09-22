@@ -11,40 +11,44 @@ class RuntimeCompositionGuardArchitectureTest {
 
   @Test
   fun `no main-source site outside skillbill di constructs a component-bound class`() {
-    val violations = ArchitectureScanSupport.directComponentConstructionViolations(
-      boundClassNames = boundClasses,
-      scanRoots = scanRoots,
-      compositionDiRoot = diRoot,
-      sanctionedEntrypoints = PrincipleEnforcementInventory.sanctionedCompositionEntrypoints,
-    )
+    val violations =
+      ArchitectureScanSupport.directComponentConstructionViolations(
+        boundClassNames = boundClasses,
+        scanRoots = scanRoots,
+        compositionDiRoot = diRoot,
+        sanctionedEntrypoints = PrincipleEnforcementInventory.sanctionedCompositionEntrypoints,
+      )
     assertEquals(emptyList(), violations, violations.joinToString("\n"))
   }
 
   @Test
   fun `composition guard fires on synthetic bound-class construction outside skillbill di`() {
-    val boundClasses = ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
-      """
+    val boundClasses =
+      ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
+        """
         import me.tatarka.inject.annotations.Provides
         @Provides
         fun bindStore(store: FileTelemetryConfigStore): FileTelemetryConfigStore = store
         @Provides
         fun bindService(service: TelemetryLevelMutationService): TelemetryLevelMutationService = service
-      """.trimIndent(),
-    )
-    val violations = ArchitectureScanSupport.directComponentConstructionViolationsForSource(
-      boundClassNames = boundClasses,
-      relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
-      source = """
-        package skillbill.example
-        import skillbill.infrastructure.host.FileTelemetryConfigStore
-        class Example {
-          fun leak() {
-            FileTelemetryConfigStore(context)
-            TelemetryLevelMutationService(database, settings, configStore)
+        """.trimIndent(),
+      )
+    val violations =
+      ArchitectureScanSupport.directComponentConstructionViolationsForSource(
+        boundClassNames = boundClasses,
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
+        source =
+          """
+          package skillbill.example
+          import skillbill.infrastructure.host.FileTelemetryConfigStore
+          class Example {
+            fun leak() {
+              FileTelemetryConfigStore(context)
+              TelemetryLevelMutationService(database, settings, configStore)
+            }
           }
-        }
-      """.trimIndent(),
-    )
+          """.trimIndent(),
+      )
     assertEquals(
       listOf(
         "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt constructs " +
@@ -58,15 +62,17 @@ class RuntimeCompositionGuardArchitectureTest {
 
   @Test
   fun `composition guard ignores sanctioned second entrypoints`() {
-    val violations = ArchitectureScanSupport.directComponentConstructionViolations(
-      boundClassNames = setOf("FileSystemScaffoldRepoValidation", "FileSystemScaffoldSourceLoader"),
-      scanRoots = listOf(
-        "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
-          "skillbill/infrastructure/skills/scaffold/runtime/ScaffoldStandaloneEntrypoint.kt",
-      ),
-      compositionDiRoot = diRoot,
-      sanctionedEntrypoints = PrincipleEnforcementInventory.sanctionedCompositionEntrypoints,
-    )
+    val violations =
+      ArchitectureScanSupport.directComponentConstructionViolations(
+        boundClassNames = setOf("FileSystemScaffoldRepoValidation", "FileSystemScaffoldSourceLoader"),
+        scanRoots =
+          listOf(
+            "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
+              "skillbill/infrastructure/skills/scaffold/runtime/ScaffoldStandaloneEntrypoint.kt",
+          ),
+        compositionDiRoot = diRoot,
+        sanctionedEntrypoints = PrincipleEnforcementInventory.sanctionedCompositionEntrypoints,
+      )
     assertEquals(emptyList(), violations)
   }
 
@@ -82,14 +88,15 @@ class RuntimeCompositionGuardArchitectureTest {
 
   @Test
   fun `bound-class census includes renamed provider parameter types`() {
-    val source = """
+    val source =
+      """
       package skillbill.di
       import me.tatarka.inject.annotations.Provides
       internal interface RuntimeExampleProvides {
         @Provides @JvmSynthetic
         fun bind(implementation: ExampleAdapter): ExamplePort = implementation
       }
-    """.trimIndent()
+      """.trimIndent()
     assertEquals(
       setOf("ExampleAdapter"),
       ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(source),
@@ -98,14 +105,15 @@ class RuntimeCompositionGuardArchitectureTest {
 
   @Test
   fun `bound-class census includes explicit Provides constructions`() {
-    val source = """
+    val source =
+      """
       package skillbill.di
       import me.tatarka.inject.annotations.Provides
       internal interface RuntimeWorkflowProvides {
         @Provides @JvmSynthetic
         fun gitWorkflowGitOperations(): GitWorkflowGitOperations = GitWorkflowGitOperations()
       }
-    """.trimIndent()
+      """.trimIndent()
     assertEquals(
       setOf("GitWorkflowGitOperations"),
       ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(source),
@@ -114,26 +122,29 @@ class RuntimeCompositionGuardArchitectureTest {
 
   @Test
   fun `composition guard rejects alias import construction`() {
-    val boundClasses = ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
-      """
+    val boundClasses =
+      ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
+        """
         import me.tatarka.inject.annotations.Provides
         @Provides
         fun bind(store: FileTelemetryConfigStore): FileTelemetryConfigStore = store
-      """.trimIndent(),
-    )
-    val violations = ArchitectureScanSupport.directComponentConstructionViolationsForSource(
-      boundClassNames = boundClasses,
-      relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
-      source = """
-        package skillbill.example
-        import skillbill.infrastructure.host.FileTelemetryConfigStore as StoreAlias
-        class Example {
-          fun leak() {
-            StoreAlias(context)
+        """.trimIndent(),
+      )
+    val violations =
+      ArchitectureScanSupport.directComponentConstructionViolationsForSource(
+        boundClassNames = boundClasses,
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
+        source =
+          """
+          package skillbill.example
+          import skillbill.infrastructure.host.FileTelemetryConfigStore as StoreAlias
+          class Example {
+            fun leak() {
+              StoreAlias(context)
+            }
           }
-        }
-      """.trimIndent(),
-    )
+          """.trimIndent(),
+      )
     assertEquals(
       listOf(
         "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt constructs " +
@@ -145,27 +156,30 @@ class RuntimeCompositionGuardArchitectureTest {
 
   @Test
   fun `composition guard preserves provider binding identity through aliases`() {
-    val boundClasses = ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
-      """
+    val boundClasses =
+      ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
+        """
         import me.tatarka.inject.annotations.Provides
         import skillbill.infrastructure.host.FileTelemetryConfigStore as StoreAlias
         @Provides
         fun bind(store: StoreAlias): TelemetryConfigStore = store
-      """.trimIndent(),
-    )
-    val violations = ArchitectureScanSupport.directComponentConstructionViolationsForSource(
-      boundClassNames = boundClasses,
-      relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
-      source = """
-        package skillbill.example
-        import skillbill.infrastructure.host.FileTelemetryConfigStore
-        class Example {
-          fun leak() {
-            FileTelemetryConfigStore(context)
+        """.trimIndent(),
+      )
+    val violations =
+      ArchitectureScanSupport.directComponentConstructionViolationsForSource(
+        boundClassNames = boundClasses,
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
+        source =
+          """
+          package skillbill.example
+          import skillbill.infrastructure.host.FileTelemetryConfigStore
+          class Example {
+            fun leak() {
+              FileTelemetryConfigStore(context)
+            }
           }
-        }
-      """.trimIndent(),
-    )
+          """.trimIndent(),
+      )
     assertEquals(
       setOf("FileTelemetryConfigStore"),
       boundClasses,
@@ -181,32 +195,36 @@ class RuntimeCompositionGuardArchitectureTest {
 
   @Test
   fun `composition guard ignores same-named functions strings and comments`() {
-    val violations = ArchitectureScanSupport.directComponentConstructionViolationsForSource(
-      boundClassNames = setOf("FileTelemetryConfigStore"),
-      relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
-      source = """
-        package skillbill.example
-        fun FileTelemetryConfigStore() = Unit
-        val message = "FileTelemetryConfigStore(context)"
-        // FileTelemetryConfigStore(ignored)
-      """.trimIndent(),
-    )
+    val violations =
+      ArchitectureScanSupport.directComponentConstructionViolationsForSource(
+        boundClassNames = setOf("FileTelemetryConfigStore"),
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
+        source =
+          """
+          package skillbill.example
+          fun FileTelemetryConfigStore() = Unit
+          val message = "FileTelemetryConfigStore(context)"
+          // FileTelemetryConfigStore(ignored)
+          """.trimIndent(),
+      )
     assertEquals(emptyList(), violations)
   }
 
   @Test
   fun `composition guard ignores multiline comments and constructor-like string delimiters`() {
-    val violations = ArchitectureScanSupport.directComponentConstructionViolationsForSource(
-      boundClassNames = setOf("FileTelemetryConfigStore"),
-      relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
-      source = """
-        package skillbill.example
-        /*
-          FileTelemetryConfigStore(ignored)
-        */
-        val message = "A // comment and /* block */ FileTelemetryConfigStore(context)"
-      """.trimIndent(),
-    )
+    val violations =
+      ArchitectureScanSupport.directComponentConstructionViolationsForSource(
+        boundClassNames = setOf("FileTelemetryConfigStore"),
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
+        source =
+          """
+          package skillbill.example
+          /*
+            FileTelemetryConfigStore(ignored)
+          */
+          val message = "A // comment and /* block */ FileTelemetryConfigStore(context)"
+          """.trimIndent(),
+      )
     assertEquals(emptyList(), violations)
   }
 }

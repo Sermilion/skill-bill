@@ -30,28 +30,29 @@ internal data class ReconciliationCandidate(
   internal val secondaryIdentity: String?,
 )
 
-private val lifecycleTargets = listOf(
-  LifecycleReconciliationTarget(
-    family = "feature_task_runtime",
-    tableName = "feature_task_runtime_sessions",
-    terminalColumn = "completion_status",
-    terminalValue = "stale",
-    workflowTableName = "feature_task_workflows",
-  ) { connection, sessionId, level -> emitFeatureTaskRuntimeFinished(connection, sessionId, level) },
-  LifecycleReconciliationTarget(
-    family = "feature_verify",
-    tableName = "feature_verify_sessions",
-    terminalColumn = "completion_status",
-    terminalValue = "stale",
-    workflowTableName = "feature_verify_workflows",
-  ) { connection, sessionId, level -> emitFeatureVerifyFinished(connection, sessionId, level) },
-  LifecycleReconciliationTarget(
-    family = "quality_check",
-    tableName = "quality_check_sessions",
-    terminalColumn = "result",
-    terminalValue = "stale",
-  ) { connection, sessionId, level -> emitQualityCheckFinished(connection, sessionId, level) },
-)
+private val lifecycleTargets =
+  listOf(
+    LifecycleReconciliationTarget(
+      family = "feature_task_runtime",
+      tableName = "feature_task_runtime_sessions",
+      terminalColumn = "completion_status",
+      terminalValue = "stale",
+      workflowTableName = "feature_task_workflows",
+    ) { connection, sessionId, level -> emitFeatureTaskRuntimeFinished(connection, sessionId, level) },
+    LifecycleReconciliationTarget(
+      family = "feature_verify",
+      tableName = "feature_verify_sessions",
+      terminalColumn = "completion_status",
+      terminalValue = "stale",
+      workflowTableName = "feature_verify_workflows",
+    ) { connection, sessionId, level -> emitFeatureVerifyFinished(connection, sessionId, level) },
+    LifecycleReconciliationTarget(
+      family = "quality_check",
+      tableName = "quality_check_sessions",
+      terminalColumn = "result",
+      terminalValue = "stale",
+    ) { connection, sessionId, level -> emitQualityCheckFinished(connection, sessionId, level) },
+  )
 
 internal fun reconcileStaleTelemetrySessions(
   connection: Connection,
@@ -59,17 +60,19 @@ internal fun reconcileStaleTelemetrySessions(
   level: String,
   sessionThresholdSeconds: Long = STALE_SESSION_THRESHOLD_SECONDS,
   goalIssueAbandonmentDays: Long = STALE_GOAL_ISSUE_ABANDONMENT_DAYS,
-): TelemetryReconciliationResult = reconcileStaleTelemetrySessions(
-  connection = connection,
-  request = TelemetryReconciliationRequest(
-    level = level,
-    cadenceSeconds = 0L,
-    maximumBatchSize = Int.MAX_VALUE,
-    sessionThresholdSeconds = sessionThresholdSeconds,
-    goalIssueAbandonmentDays = goalIssueAbandonmentDays,
-    now = clock.instant(),
-  ),
-)
+): TelemetryReconciliationResult =
+  reconcileStaleTelemetrySessions(
+    connection = connection,
+    request =
+      TelemetryReconciliationRequest(
+        level = level,
+        cadenceSeconds = 0L,
+        maximumBatchSize = Int.MAX_VALUE,
+        sessionThresholdSeconds = sessionThresholdSeconds,
+        goalIssueAbandonmentDays = goalIssueAbandonmentDays,
+        now = clock.instant(),
+      ),
+  )
 
 internal fun reconcileStaleTelemetrySessions(
   connection: Connection,
@@ -81,21 +84,23 @@ internal fun reconcileStaleTelemetrySessions(
   val candidates = reconciliationCandidates(connection, request)
   val counts = mutableMapOf<String, Int>()
   candidates.forEach { candidate ->
-    val emitted = if (candidate.family == GOAL_ISSUE_FAMILY) {
-      val issueKey = requireNotNull(candidate.secondaryIdentity)
-      val goal = GoalIssueIdentity(candidate.primaryIdentity, issueKey)
-      markGoalIssueAbandoned(connection, goal) && emitGoalIssueFinished(
-        connection,
-        goal.parentWorkflowId,
-        goal.issueKey,
-        request.level,
-      ).let { true }
-    } else {
-      val target = requireNotNull(lifecycleTargets.firstOrNull { it.family == candidate.family })
-      markLifecycleSessionStale(connection, target, candidate.primaryIdentity).also { marked ->
-        if (marked) target.emitFinished(connection, candidate.primaryIdentity, request.level)
+    val emitted =
+      if (candidate.family == GOAL_ISSUE_FAMILY) {
+        val issueKey = requireNotNull(candidate.secondaryIdentity)
+        val goal = GoalIssueIdentity(candidate.primaryIdentity, issueKey)
+        markGoalIssueAbandoned(connection, goal) &&
+          emitGoalIssueFinished(
+            connection,
+            goal.parentWorkflowId,
+            goal.issueKey,
+            request.level,
+          ).let { true }
+      } else {
+        val target = requireNotNull(lifecycleTargets.firstOrNull { it.family == candidate.family })
+        markLifecycleSessionStale(connection, target, candidate.primaryIdentity).also { marked ->
+          if (marked) target.emitFinished(connection, candidate.primaryIdentity, request.level)
+        }
       }
-    }
     if (emitted) counts[candidate.family] = counts.getOrDefault(candidate.family, 0) + 1
   }
   val processed = counts.values.sum()
@@ -115,7 +120,10 @@ internal fun reconcileStaleFeatureTaskRuntimeSessions(
   thresholdSeconds: Long = STALE_SESSION_THRESHOLD_SECONDS,
 ): Int = reconcileLifecycleTable(connection, lifecycleTargets[0], thresholdSeconds, "anonymous")
 
-private fun claimReconciliationCadence(connection: Connection, request: TelemetryReconciliationRequest): Boolean {
+private fun claimReconciliationCadence(
+  connection: Connection,
+  request: TelemetryReconciliationRequest,
+): Boolean {
   val completedAt = request.now.toString()
   val eligibleBefore = request.now.minus(request.cadenceSeconds, ChronoUnit.SECONDS).toString()
   return connection.prepareStatement(
@@ -150,21 +158,23 @@ private fun staleSessionIds(
   target: LifecycleReconciliationTarget,
   thresholdSeconds: Long,
 ): List<String> {
-  val workflowActivityGuard = target.workflowTableName?.let { workflowTableName ->
-    """
+  val workflowActivityGuard =
+    target.workflowTableName?.let { workflowTableName ->
+      """
       AND NOT EXISTS (
         SELECT 1 FROM $workflowTableName workflow
         WHERE workflow.session_id = ${target.tableName}.session_id
           AND workflow.workflow_status NOT IN ('completed', 'failed', 'abandoned')
           AND datetime(workflow.updated_at) > datetime('now', '-' || ? || ' seconds')
       )
-    """.trimIndent()
-  }.orEmpty()
-  val parameters = if (target.workflowTableName == null) {
-    listOf(thresholdSeconds)
-  } else {
-    listOf(thresholdSeconds, thresholdSeconds)
-  }
+      """.trimIndent()
+    }.orEmpty()
+  val parameters =
+    if (target.workflowTableName == null) {
+      listOf(thresholdSeconds)
+    } else {
+      listOf(thresholdSeconds, thresholdSeconds)
+    }
   return connection.prepareStatement(
     """
     SELECT session_id FROM ${target.tableName}
@@ -185,22 +195,26 @@ private fun markLifecycleSessionStale(
   connection: Connection,
   target: LifecycleReconciliationTarget,
   sessionId: String,
-): Boolean = connection.prepareStatement(
-  """
-  UPDATE ${target.tableName}
-  SET ${target.terminalColumn} = ?, stale_reason = ?, finished_at = CURRENT_TIMESTAMP
-  WHERE session_id = ? AND finished_at IS NULL AND finished_event_emitted_at IS NULL
-  """.trimIndent(),
-).use { statement ->
-  statement.bindAll(target.terminalValue, LifecycleStaleReason.NO_TERMINAL_BEFORE_THRESHOLD.wireValue, sessionId)
-  statement.executeUpdate() > 0
-}
+): Boolean =
+  connection.prepareStatement(
+    """
+    UPDATE ${target.tableName}
+    SET ${target.terminalColumn} = ?, stale_reason = ?, finished_at = CURRENT_TIMESTAMP
+    WHERE session_id = ? AND finished_at IS NULL AND finished_event_emitted_at IS NULL
+    """.trimIndent(),
+  ).use { statement ->
+    statement.bindAll(target.terminalValue, LifecycleStaleReason.NO_TERMINAL_BEFORE_THRESHOLD.wireValue, sessionId)
+    statement.executeUpdate() > 0
+  }
 
 internal enum class LifecycleStaleReason(val wireValue: String) {
   NO_TERMINAL_BEFORE_THRESHOLD("no_terminal_before_threshold"),
 }
 
-private fun markGoalIssueAbandoned(connection: Connection, goal: GoalIssueIdentity): Boolean =
+private fun markGoalIssueAbandoned(
+  connection: Connection,
+  goal: GoalIssueIdentity,
+): Boolean =
   connection.prepareStatement(
     """
     UPDATE goal_issue_progress

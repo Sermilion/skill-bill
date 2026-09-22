@@ -1,6 +1,9 @@
 package skillbill.application.agentoutput
 
-fun stderrExcerpt(stderr: String, maxChars: Int): String? {
+fun stderrExcerpt(
+  stderr: String,
+  maxChars: Int,
+): String? {
   val trimmed = stderr.takeIf(String::isNotBlank) ?: return null
   if (trimmed.length <= maxChars) {
     return trimmed
@@ -17,14 +20,19 @@ fun stderrExcerpt(stderr: String, maxChars: Int): String? {
   }
 }
 
-fun agentFailureExcerpt(stderr: String, stdout: String, maxChars: Int): String? {
+fun agentFailureExcerpt(
+  stderr: String,
+  stdout: String,
+  maxChars: Int,
+): String? {
   val preferred = stderr.takeIf(String::isNotBlank) ?: stdout.takeIf(String::isNotBlank) ?: return null
-  val signal = preferred.lineSequence()
-    .map(String::trim)
-    .filter { it.isNotBlank() }
-    .filterNot(::isHarnessStatusBanner)
-    .joinToString("\n")
-    .ifBlank { preferred.trim() }
+  val signal =
+    preferred.lineSequence()
+      .map(String::trim)
+      .filter { it.isNotBlank() }
+      .filterNot(::isHarnessStatusBanner)
+      .joinToString("\n")
+      .ifBlank { preferred.trim() }
   return stderrExcerpt(signal, maxChars)
 }
 
@@ -33,6 +41,7 @@ internal fun isHarnessStatusBanner(line: String): Boolean {
   return HARNESS_STATUS_BANNERS.any { banner -> normalized.equals(banner, ignoreCase = true) }
 }
 
-private val HARNESS_STATUS_BANNERS: List<String> = listOf(
-  "Reading prompt from stdin...",
-)
+private val HARNESS_STATUS_BANNERS: List<String> =
+  listOf(
+    "Reading prompt from stdin...",
+  )

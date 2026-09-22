@@ -17,9 +17,9 @@ class GoalPurgeCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "purge",
-  "Delete decomposed goal runtime state and restore the feature-spec tree to an unlaunched shape.",
-) {
+    "purge",
+    "Delete decomposed goal runtime state and restore the feature-spec tree to an unlaunched shape.",
+  ) {
   private val issueKey by argument(help = "Parent issue key for the decomposed goal.")
   private val force by option("--force", "--yes", help = "Bypass purge confirmation gate.")
     .flag(default = false)
@@ -35,12 +35,13 @@ class GoalPurgeCommand(
         "Goal purge requires explicit confirmation. Pass --confirm-issue-key $issueKey or --force.",
       )
     }
-    val result = goalRunnerStatusService.purge(
-      GoalRunnerPurgeRequest(
-        issueKey = issueKey,
-        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
-      ),
-    )
+    val result =
+      goalRunnerStatusService.purge(
+        GoalRunnerPurgeRequest(
+          issueKey = issueKey,
+          repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
+        ),
+      )
     val payload = result.toGoalPurgeCliMap()
     state.completeText(goalPurgeText(payload), payload, exitCode = payload.goalPurgeExitCode())
   }

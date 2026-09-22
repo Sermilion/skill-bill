@@ -11,14 +11,16 @@ import skillbill.scaffold.model.GovernedAddonSelection
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
+
 internal fun renderWrapper(target: AuthoringTarget): String {
   val contentText = Files.readString(target.contentFile)
   authoredContentFrontmatterBlock(contentText, target.contentFile, target.skillName)
   val sourceFrontmatter = parseSkillFrontmatter(contentText)
-  val frontmatter = renderFrontmatter(
-    skillName = sourceFrontmatter["name"].orEmpty(),
-    description = sourceFrontmatter["description"].orEmpty(),
-  )
+  val frontmatter =
+    renderFrontmatter(
+      skillName = sourceFrontmatter["name"].orEmpty(),
+      description = sourceFrontmatter["description"].orEmpty(),
+    )
   val executionBody = renderedAuthoredExecutionBody(contentText, target.contentFile, target.skillName)
   return assembleRenderedWrapper(
     target = target,
@@ -62,11 +64,12 @@ internal fun renderGovernedAddonsSection(target: AuthoringTarget): String {
 }
 
 private fun renderAddonSelection(addon: GovernedAddonSelection): String {
-  val companionText = if (addon.companionPointers.isEmpty()) {
-    "companions `none`"
-  } else {
-    "companions ${addon.companionPointers.joinToString(", ") { pointer -> "`$pointer`" }}"
-  }
+  val companionText =
+    if (addon.companionPointers.isEmpty()) {
+      "companions `none`"
+    } else {
+      "companions ${addon.companionPointers.joinToString(", ") { pointer -> "`$pointer`" }}"
+    }
   return "`${addon.slug}`: entrypoint `${addon.entrypoint}`; $companionText."
 }
 
@@ -111,19 +114,21 @@ internal fun renderGeneratedSubagentSpawnRuntimeNotes(target: AuthoringTarget): 
   if (!Files.isDirectory(nativeAgentDir)) {
     return ""
   }
-  val specialists = nativeAgentSourceFiles(nativeAgentDir)
-    .flatMap(::parseNativeAgentSourceFile)
-    .map { source -> source.name }
+  val specialists =
+    nativeAgentSourceFiles(nativeAgentDir)
+      .flatMap(::parseNativeAgentSourceFile)
+      .map { source -> source.name }
   return renderSubagentSpawnRuntimeNotes(target.skillName, specialists)
 }
 
-private fun nativeAgentSourceFiles(nativeAgentDir: Path): List<Path> = Files.list(nativeAgentDir).use { stream ->
-  stream
-    .filter { file -> Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) }
-    .filter { file -> isNativeAgentSourceFile(file) }
-    .sorted(Comparator.comparing { file -> file.fileName.toString() })
-    .toList()
-}
+private fun nativeAgentSourceFiles(nativeAgentDir: Path): List<Path> =
+  Files.list(nativeAgentDir).use { stream ->
+    stream
+      .filter { file -> Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) }
+      .filter { file -> isNativeAgentSourceFile(file) }
+      .sorted(Comparator.comparing { file -> file.fileName.toString() })
+      .toList()
+  }
 
 private fun isNativeAgentSourceFile(file: Path): Boolean {
   val fileName = file.fileName.toString()

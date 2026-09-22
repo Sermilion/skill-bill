@@ -7,10 +7,11 @@ import kotlin.test.assertFalse
 class AgentPhaseModelsTest {
   @Test
   fun `phase models keep string handoff separate from typed launch plumbing`() {
-    val input = AgentPhaseInput(
-      input = "review prose",
-      requestedAction = "verify claims",
-    )
+    val input =
+      AgentPhaseInput(
+        input = "review prose",
+        requestedAction = "verify claims",
+      )
     val output = AgentPhaseOutput(output = "verified prose")
     val phaseOutput = PhaseOutput(value = "preplan prose", prompt = "optional directive")
 
@@ -28,7 +29,7 @@ class AgentPhaseModelsTest {
         AgentPhaseInput::class.java.declaredFields +
           AgentPhaseOutput::class.java.declaredFields +
           PhaseOutput::class.java.declaredFields
-        )
+      )
         .any { it.name in setOf("repoRoot", "agentId", "evidenceBroker", "budget", "budgets") },
     )
   }

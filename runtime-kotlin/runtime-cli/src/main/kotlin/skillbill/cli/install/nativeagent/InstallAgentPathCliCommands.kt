@@ -47,9 +47,9 @@ class InstallLinkSkillCommand(
   private val inputs: CliRunInputs,
   private val installService: InstallService,
 ) : DocumentedCliCommand(
-  "link-skill",
-  "Symlink a skill DIRECTORY into an agent's install directory.",
-) {
+    "link-skill",
+    "Symlink a skill DIRECTORY into an agent's install directory.",
+  ) {
   private val source by option("--source", help = "Skill directory to install.").required()
   private val targetDir by option("--target-dir", help = "Target install directory.").required()
   private val agent by option("--agent", help = "Optional agent name to label the install.").default("")

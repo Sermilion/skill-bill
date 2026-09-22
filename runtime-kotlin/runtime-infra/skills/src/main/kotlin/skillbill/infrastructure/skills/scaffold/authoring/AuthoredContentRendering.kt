@@ -4,12 +4,17 @@ import skillbill.error.core.SkillBillRuntimeException
 import skillbill.infrastructure.skills.scaffold.validation.shape.markdownBodyAfterFrontmatter
 import java.nio.file.Files
 import java.nio.file.Path
+
 private const val FRONTMATTER_PREFIX_LENGTH = 4
 private val MARKDOWN_HEADING_PATTERN = Regex("""^(#{1,6})(\s+.*)$""")
 private val TITLE_HEADING_PATTERN = Regex("""^#\s+\S.*$""")
 private val FENCE_START_PATTERN = Regex("""^\s*(?:```|~~~)""")
 
-internal fun authoredContentFrontmatterBlock(contentText: String, contentFile: Path, skillName: String): String {
+internal fun authoredContentFrontmatterBlock(
+  contentText: String,
+  contentFile: Path,
+  skillName: String,
+): String {
   val normalized = normalizeMarkdownLineEndings(contentText)
   if (!normalized.startsWith("---\n")) {
     throw SkillBillRuntimeException(
@@ -25,22 +30,31 @@ internal fun authoredContentFrontmatterBlock(contentText: String, contentFile: P
   return normalized.substring(0, end + "\n---".length)
 }
 
-internal fun renderAuthoredContentBody(contentFile: Path, skillName: String): String = renderedAuthoredExecutionBody(
-  contentText = Files.readString(contentFile),
-  contentFile = contentFile,
-  skillName = skillName,
-)
+internal fun renderAuthoredContentBody(
+  contentFile: Path,
+  skillName: String,
+): String =
+  renderedAuthoredExecutionBody(
+    contentText = Files.readString(contentFile),
+    contentFile = contentFile,
+    skillName = skillName,
+  )
 
-internal fun renderedAuthoredExecutionBody(contentText: String, contentFile: Path, skillName: String): String {
+internal fun renderedAuthoredExecutionBody(
+  contentText: String,
+  contentFile: Path,
+  skillName: String,
+): String {
   val normalized = normalizeMarkdownLineEndings(contentText)
   authoredContentFrontmatterBlock(normalized, contentFile, skillName)
   val authoredBody = stripAuthoredTitle(markdownBodyAfterFrontmatter(normalized)).trim('\r', '\n')
   return demoteMarkdownHeadings(authoredBody).trimEnd() + "\n"
 }
 
-internal fun normalizeMarkdownLineEndings(text: String): String = text
-  .replace("\r\n", "\n")
-  .replace('\r', '\n')
+internal fun normalizeMarkdownLineEndings(text: String): String =
+  text
+    .replace("\r\n", "\n")
+    .replace('\r', '\n')
 
 private fun stripAuthoredTitle(body: String): String {
   val lines = body.lines().toMutableList()

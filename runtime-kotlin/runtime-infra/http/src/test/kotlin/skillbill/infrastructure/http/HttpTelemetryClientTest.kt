@@ -33,11 +33,11 @@ class HttpTelemetryClientTest {
       ).fetchRemoteStats(
         settings = settings,
         request =
-        RemoteStatsRequest(
-          workflow = "bill-feature-verify",
-          dateFrom = "2026-04-01",
-          dateTo = "2026-04-22",
-        ),
+          RemoteStatsRequest(
+            workflow = "bill-feature-verify",
+            dateFrom = "2026-04-01",
+            dateTo = "2026-04-22",
+          ),
       )
 
     assertEquals("bill-feature-verify", payload.workflow)
@@ -60,18 +60,18 @@ class HttpTelemetryClientTest {
     client(requester).sendBatch(
       settings = telemetrySettings(Files.createTempFile("telemetry-batch-body", ".json")),
       rows =
-      listOf(
-        TelemetryOutboxRecord(
-          id = 1,
-          eventName = "skillbill_goal_finished",
-          payloadJson = """{"name":"ok"}""",
-          createdAt = "2026-04-23 00:00:00",
-          syncedAt = null,
-          lastError = "",
-          skillBillVersion = null,
-          eventUuid = "",
+        listOf(
+          TelemetryOutboxRecord(
+            id = 1,
+            eventName = "skillbill_goal_finished",
+            payloadJson = """{"name":"ok"}""",
+            createdAt = "2026-04-23 00:00:00",
+            syncedAt = null,
+            lastError = "",
+            skillBillVersion = null,
+            eventUuid = "",
+          ),
         ),
-      ),
     )
 
     val expectedBody =
@@ -147,11 +147,11 @@ class HttpTelemetryClientTest {
       client(requester).fetchRemoteStats(
         settings = settings,
         request =
-        RemoteStatsRequest(
-          workflow = "bill-feature-verify",
-          dateFrom = "2026-04-01",
-          dateTo = "2026-04-22",
-        ),
+          RemoteStatsRequest(
+            workflow = "bill-feature-verify",
+            dateFrom = "2026-04-01",
+            dateTo = "2026-04-22",
+          ),
       )
 
     assertEquals(true, payload.metrics.containsKey("capabilities"))
@@ -163,27 +163,40 @@ private fun client(
   requester: RemoteTransportPort,
   environment: Map<String, String> = emptyMap(),
   diagnostics: RuntimeDiagnostics = SilentTelemetryDiagnostics,
-): HttpTelemetryClient = HttpTelemetryClient(
-  requester = requester,
-  environmentContext = EnvironmentContext(environment = environment),
-  clock = JvmSystemClock,
-  diagnostics = diagnostics,
-)
+): HttpTelemetryClient =
+  HttpTelemetryClient(
+    requester = requester,
+    environmentContext = EnvironmentContext(environment = environment),
+    clock = JvmSystemClock,
+    diagnostics = diagnostics,
+  )
 
 private class TelemetryRecordingDiagnostics : RuntimeDiagnostics {
   val warnings = mutableListOf<String>()
 
-  override fun warning(message: String, error: Throwable?) {
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
     warnings += message
   }
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private object SilentTelemetryDiagnostics : RuntimeDiagnostics {
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private fun remoteStatsRequester(requests: MutableList<Triple<String, String, String?>>): RemoteTransportPort =
@@ -203,23 +216,25 @@ private fun ingestCapabilitiesRequester(deduplicationSupported: Boolean?): Remot
   }
 }
 
-private fun capabilitiesResponse(): RemoteTransportResponse = RemoteTransportResponse(
-  statusCode = 200,
-  body =
-  """
+private fun capabilitiesResponse(): RemoteTransportResponse =
+  RemoteTransportResponse(
+    statusCode = 200,
+    body =
+      """
       {
         "contract_version": "1",
         "supports_ingest": true,
         "supports_stats": true,
         "supported_workflows": ["bill-feature-verify", "feature-task-runtime"]
       }
-  """.trimIndent(),
-)
+      """.trimIndent(),
+  )
 
-private fun remoteStatsResponse(): RemoteTransportResponse = RemoteTransportResponse(
-  statusCode = 200,
-  body =
-  """
+private fun remoteStatsResponse(): RemoteTransportResponse =
+  RemoteTransportResponse(
+    statusCode = 200,
+    body =
+      """
       {
         "status": "ok",
         "workflow": "bill-feature-verify",
@@ -228,13 +243,14 @@ private fun remoteStatsResponse(): RemoteTransportResponse = RemoteTransportResp
         "finished_runs": 12,
         "in_progress_runs": 2
       }
-  """.trimIndent(),
-)
+      """.trimIndent(),
+  )
 
-private fun remoteStatsResponseWithNullCapabilities(): RemoteTransportResponse = RemoteTransportResponse(
-  statusCode = 200,
-  body =
-  """
+private fun remoteStatsResponseWithNullCapabilities(): RemoteTransportResponse =
+  RemoteTransportResponse(
+    statusCode = 200,
+    body =
+      """
       {
         "status": "ok",
         "workflow": "bill-feature-verify",
@@ -242,19 +258,20 @@ private fun remoteStatsResponseWithNullCapabilities(): RemoteTransportResponse =
         "started_runs": 14,
         "capabilities": null
       }
-  """.trimIndent(),
-)
+      """.trimIndent(),
+  )
 
 private fun telemetrySettings(
   configPath: Path,
   proxyUrl: String = "https://telemetry.example.dev/ingest",
   customProxyUrl: String? = proxyUrl,
-): TelemetrySettings = TelemetrySettings(
-  configPath = configPath.toFileLocation(),
-  level = "anonymous",
-  enabled = true,
-  installId = "test-install-id",
-  proxyUrl = proxyUrl,
-  customProxyUrl = customProxyUrl,
-  batchSize = 50,
-)
+): TelemetrySettings =
+  TelemetrySettings(
+    configPath = configPath.toFileLocation(),
+    level = "anonymous",
+    enabled = true,
+    installId = "test-install-id",
+    proxyUrl = proxyUrl,
+    customProxyUrl = customProxyUrl,
+    batchSize = 50,
+  )

@@ -26,43 +26,49 @@ class ParallelCodeReviewRunnerFailureAdmission(
   internal fun softAdmitFindings(
     stdout: String,
     launch: ParallelCodeReviewInlineParentLaunch,
-  ): ParallelCodeReviewSoftRegisterAdmission = try {
-    val parsed = parseLaneRegisterSeam(stdout, launch.assignment.lane, registerParse)
-    ParallelCodeReviewSoftRegisterAdmission(
-      findings = attributeInlineFindings(parsed, launch.selected),
-      droppedCandidateDiagnostic = rejectedCandidateDiagnostic(parsed),
-      rejectedCandidateCount = parsed.rejections.size,
-      citationDiagnostics = parsed.citationDiagnostics,
-    )
-  } catch (cancellation: CancellationException) {
-    throw cancellation
-  } catch (_: ReviewRegisterParseSeamException) {
-    ParallelCodeReviewSoftRegisterAdmission(emptyList(), null, 0, emptyList())
-  }
+  ): ParallelCodeReviewSoftRegisterAdmission =
+    try {
+      val parsed = parseLaneRegisterSeam(stdout, launch.assignment.lane, registerParse)
+      ParallelCodeReviewSoftRegisterAdmission(
+        findings = attributeInlineFindings(parsed, launch.selected),
+        droppedCandidateDiagnostic = rejectedCandidateDiagnostic(parsed),
+        rejectedCandidateCount = parsed.rejections.size,
+        citationDiagnostics = parsed.citationDiagnostics,
+      )
+    } catch (cancellation: CancellationException) {
+      throw cancellation
+    } catch (_: ReviewRegisterParseSeamException) {
+      ParallelCodeReviewSoftRegisterAdmission(emptyList(), null, 0, emptyList())
+    }
 
   private fun attributeInlineFindings(
     parsed: ParallelReviewParseResult,
     selected: List<ReviewSpecialistLaunchRequest>,
   ): List<ParallelReviewRawFinding> {
     val fallbackLane = selected.minByOrNull { it.assignment.laneDecision.orderIndex }
-    val fallbackPath = fallbackLane?.assignment?.assignedPaths?.firstOrNull()
-      ?: ParallelReviewFindingParser.UNASSIGNED_REPOSITORY_PATH
+    val fallbackPath =
+      fallbackLane?.assignment?.assignedPaths?.firstOrNull()
+        ?: ParallelReviewFindingParser.UNASSIGNED_REPOSITORY_PATH
     return parsed.findings.map { finding ->
       val findingPath = finding.repositoryPath
-      val pathOwners = selected.filter { launch ->
-        findingPath != null && launch.assignment.assignedPaths.any { path -> path == findingPath }
-      }.distinctBy { it.assignment.laneDecision.specialistSkillName }
-      val owner = resolveInlineFindingOwner(finding.specialistSkillName, pathOwners, selected)
-        ?: fallbackLane
-      val path = when {
-        findingPath != null &&
-          findingPath != ParallelReviewFindingParser.UNASSIGNED_REPOSITORY_PATH -> findingPath
-        else -> fallbackPath
-      }
+      val pathOwners =
+        selected.filter { launch ->
+          findingPath != null && launch.assignment.assignedPaths.any { path -> path == findingPath }
+        }.distinctBy { it.assignment.laneDecision.specialistSkillName }
+      val owner =
+        resolveInlineFindingOwner(finding.specialistSkillName, pathOwners, selected)
+          ?: fallbackLane
+      val path =
+        when {
+          findingPath != null &&
+            findingPath != ParallelReviewFindingParser.UNASSIGNED_REPOSITORY_PATH -> findingPath
+          else -> fallbackPath
+        }
       val line = finding.line ?: PARALLEL_REVIEW_FIRST_SOURCE_LINE
       finding.copy(
-        specialistSkillName = owner?.assignment?.laneDecision?.specialistSkillName
-          ?: finding.specialistSkillName,
+        specialistSkillName =
+          owner?.assignment?.laneDecision?.specialistSkillName
+            ?: finding.specialistSkillName,
         originLayerChains = owner?.assignment?.laneDecision?.originLayerChains.orEmpty(),
         repositoryPath = path,
         line = line,
@@ -84,33 +90,36 @@ class ParallelCodeReviewRunnerFailureAdmission(
     return pathOwners.minByOrNull { it.assignment.laneDecision.orderIndex }
   }
 
-  fun laneFailureReason(facts: AgentRunLaunchFacts): String? = when {
-    facts.timedOut -> "agent timed out"
-    facts.spawnFailed -> buildString {
-      append("agent process failed to spawn")
-      agentFailureExcerpt(
-        facts.stderr,
-        facts.stdout,
-        PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH,
-      )?.let { excerpt ->
-        append(" — ${excerpt.lineSequence().first().take(PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH)}")
-      }
+  fun laneFailureReason(facts: AgentRunLaunchFacts): String? =
+    when {
+      facts.timedOut -> "agent timed out"
+      facts.spawnFailed ->
+        buildString {
+          append("agent process failed to spawn")
+          agentFailureExcerpt(
+            facts.stderr,
+            facts.stdout,
+            PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH,
+          )?.let { excerpt ->
+            append(" — ${excerpt.lineSequence().first().take(PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH)}")
+          }
+        }
+      facts.interrupted -> "agent was interrupted"
+      facts.exitStatus == null -> "agent exited with unknown status"
+      facts.exitStatus != 0 ->
+        buildString {
+          append("agent exited with status ${facts.exitStatus}")
+          agentFailureExcerpt(
+            facts.stderr,
+            facts.stdout,
+            PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH,
+          )?.let { excerpt ->
+            append(" — ${excerpt.lineSequence().first().take(PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH)}")
+          }
+        }
+      facts.stdoutTruncated -> "agent output exceeded the retention cap before completion"
+      else -> null
     }
-    facts.interrupted -> "agent was interrupted"
-    facts.exitStatus == null -> "agent exited with unknown status"
-    facts.exitStatus != 0 -> buildString {
-      append("agent exited with status ${facts.exitStatus}")
-      agentFailureExcerpt(
-        facts.stderr,
-        facts.stdout,
-        PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH,
-      )?.let { excerpt ->
-        append(" — ${excerpt.lineSequence().first().take(PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH)}")
-      }
-    }
-    facts.stdoutTruncated -> "agent output exceeded the retention cap before completion"
-    else -> null
-  }
 
   private fun rejectedCandidateDiagnostic(parsed: ParallelReviewParseResult): String? {
     val rejection = parsed.rejections.firstOrNull() ?: return null
@@ -124,56 +133,61 @@ internal fun parseLaneRegisterSeam(
   stdout: String,
   lane: String,
   parse: (String) -> ParallelReviewParseResult = ParallelReviewFindingParser::parse,
-): ParallelReviewParseResult = try {
-  parse(stdout)
-} catch (thrown: IllegalArgumentException) {
-  throw ReviewRegisterParseSeamException(seam = INLINE_FINDING_PARSE_SEAM, lane = lane, cause = thrown)
-} catch (thrown: IllegalStateException) {
-  throw ReviewRegisterParseSeamException(seam = INLINE_FINDING_PARSE_SEAM, lane = lane, cause = thrown)
-}
+): ParallelReviewParseResult =
+  try {
+    parse(stdout)
+  } catch (thrown: IllegalArgumentException) {
+    throw ReviewRegisterParseSeamException(seam = INLINE_FINDING_PARSE_SEAM, lane = lane, cause = thrown)
+  } catch (thrown: IllegalStateException) {
+    throw ReviewRegisterParseSeamException(seam = INLINE_FINDING_PARSE_SEAM, lane = lane, cause = thrown)
+  }
 
-internal fun parallelCodeReviewNoOpResumeOutcome(agentId: String) = ParallelReviewLaneOutcome(
-  success = true,
-  rawOutput = "",
-  accounting = ReviewLaneAccounting(
-    lane = agentId,
-    evidenceBytes = 0,
-    expansions = emptyList(),
-    toolCalls = 0,
-    modelTurns = 0,
-    resultBytes = 0,
-    terminalStatus = NO_OP_RESUME_TERMINAL_STATUS.wireValue,
+internal fun parallelCodeReviewNoOpResumeOutcome(agentId: String) =
+  ParallelReviewLaneOutcome(
+    success = true,
+    rawOutput = "",
+    accounting =
+      ReviewLaneAccounting(
+        lane = agentId,
+        evidenceBytes = 0,
+        expansions = emptyList(),
+        toolCalls = 0,
+        modelTurns = 0,
+        resultBytes = 0,
+        terminalStatus = NO_OP_RESUME_TERMINAL_STATUS.wireValue,
+        reviewDisposition = ReviewLaneReviewDisposition.COMPLETE,
+        bundleCompositionDigest = ReviewLaneAssembledBundle.EMPTY.compositionDigest,
+      ),
     reviewDisposition = ReviewLaneReviewDisposition.COMPLETE,
     bundleCompositionDigest = ReviewLaneAssembledBundle.EMPTY.compositionDigest,
-  ),
-  reviewDisposition = ReviewLaneReviewDisposition.COMPLETE,
-  bundleCompositionDigest = ReviewLaneAssembledBundle.EMPTY.compositionDigest,
-)
+  )
 
 internal fun parallelCodeReviewInlineTerminalStatus(
   facts: AgentRunLaunchFacts,
   disposition: ReviewLaneReviewDisposition,
-): ReviewAccountingTerminalOutcome = when {
-  disposition == ReviewLaneReviewDisposition.INCOMPLETE -> ReviewAccountingTerminalOutcome.INCOMPLETE
-  facts.timedOut -> ReviewAccountingTerminalOutcome.TIMEOUT
-  facts.interrupted -> ReviewAccountingTerminalOutcome.INTERRUPTED
-  facts.spawnFailed -> ReviewAccountingTerminalOutcome.SPAWN_FAILURE
-  facts.exitStatus != 0 -> ReviewAccountingTerminalOutcome.PROCESS_FAILURE
-  else -> ReviewAccountingTerminalOutcome.COMPLETED
-}
+): ReviewAccountingTerminalOutcome =
+  when {
+    disposition == ReviewLaneReviewDisposition.INCOMPLETE -> ReviewAccountingTerminalOutcome.INCOMPLETE
+    facts.timedOut -> ReviewAccountingTerminalOutcome.TIMEOUT
+    facts.interrupted -> ReviewAccountingTerminalOutcome.INTERRUPTED
+    facts.spawnFailed -> ReviewAccountingTerminalOutcome.SPAWN_FAILURE
+    facts.exitStatus != 0 -> ReviewAccountingTerminalOutcome.PROCESS_FAILURE
+    else -> ReviewAccountingTerminalOutcome.COMPLETED
+  }
 
 internal fun parallelCodeReviewCaptureLane(lane: () -> ParallelReviewLaneOutcome): ParallelReviewLaneOutcome {
   val outcome = runCatching { lane() }
   if (outcome.isSuccess) return outcome.getOrThrow()
   val error = outcome.exceptionOrNull()!!
-  val terminal = when (error) {
-    is ReviewRegisterParseSeamException, is CancellationException, is InterruptedException -> error
-    is Exception -> return ParallelReviewLaneOutcome(
-      success = false,
-      rawOutput = "",
-      failureReason = "lane launch threw ${error::class.simpleName}: ${error.message ?: "no detail"}",
-    )
-    else -> error
-  }
+  val terminal =
+    when (error) {
+      is ReviewRegisterParseSeamException, is CancellationException, is InterruptedException -> error
+      is Exception -> return ParallelReviewLaneOutcome(
+        success = false,
+        rawOutput = "",
+        failureReason = "lane launch threw ${error::class.simpleName}: ${error.message ?: "no detail"}",
+      )
+      else -> error
+    }
   throw terminal
 }

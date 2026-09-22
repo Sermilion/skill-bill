@@ -54,20 +54,22 @@ internal fun internalSidecarStagingNames(children: List<InternalSidecarTarget>):
   }.toSet()
 
 internal fun prepareInternalStaging(request: InternalStagingPreparation): PreparedInternalStaging {
-  val children = discoverInternalSidecarTargets(
-    repoRoot = request.repoRoot,
-    parentSkillName = request.parentSkillName,
-    skillsRoot = request.skillsRoot,
-    selectedPackSkills = request.selectedPackSkills,
-    enforceContractVersion = request.enforceContractVersion,
-  )
+  val children =
+    discoverInternalSidecarTargets(
+      repoRoot = request.repoRoot,
+      parentSkillName = request.parentSkillName,
+      skillsRoot = request.skillsRoot,
+      selectedPackSkills = request.selectedPackSkills,
+      enforceContractVersion = request.enforceContractVersion,
+    )
   val supportPointers = mergeInternalSupportPointers(request, children)
   val sidecarNames = internalSidecarStagingNames(children)
   validateInternalSidecarFileNames(
     parentSourceDir = request.parentSourceDir,
     children = children,
-    reservedStagingNames = request.parentPointerNames + supportPointers.map { pointer -> pointer.name } +
-      setOf("SKILL.md", ".content-hash"),
+    reservedStagingNames =
+      request.parentPointerNames + supportPointers.map { pointer -> pointer.name } +
+        setOf("SKILL.md", ".content-hash"),
   )
   return PreparedInternalStaging(children, sidecarNames, supportPointers)
 }
@@ -80,22 +82,23 @@ private fun mergeInternalSupportPointers(
 
   val parentName = request.parentSourceDir.fileName.toString()
   val merged = linkedMapOf<String, OwnedPointer>()
-  val candidates = buildList {
-    request.parentSupportPointers.forEach { pointer -> add(OwnedPointer(parentName, pointer)) }
-    children.forEach { child ->
-      applicablePointers(request.repoRoot, child.sourceDir, request.platformManifests).forEach { (_, spec) ->
-        val target = request.repoRoot.resolve(spec.target).normalize()
-        add(OwnedPointer(child.skillName, GeneratedSupportPointer(spec.name, target)))
+  val candidates =
+    buildList {
+      request.parentSupportPointers.forEach { pointer -> add(OwnedPointer(parentName, pointer)) }
+      children.forEach { child ->
+        applicablePointers(request.repoRoot, child.sourceDir, request.platformManifests).forEach { (_, spec) ->
+          val target = request.repoRoot.resolve(spec.target).normalize()
+          add(OwnedPointer(child.skillName, GeneratedSupportPointer(spec.name, target)))
+        }
+        generatedSupportPointersFor(
+          repoRoot = request.repoRoot,
+          sourceSkillDir = child.sourceDir,
+          skillName = child.skillName,
+          skillsRoot = request.skillsRoot,
+          selectedPlatformManifests = request.selectedPlatformManifests,
+        ).forEach { pointer -> add(OwnedPointer(child.skillName, pointer)) }
       }
-      generatedSupportPointersFor(
-        repoRoot = request.repoRoot,
-        sourceSkillDir = child.sourceDir,
-        skillName = child.skillName,
-        skillsRoot = request.skillsRoot,
-        selectedPlatformManifests = request.selectedPlatformManifests,
-      ).forEach { pointer -> add(OwnedPointer(child.skillName, pointer)) }
     }
-  }
   candidates.forEach { candidate ->
     val key = portableFileName(candidate.pointer.name)
     val existing = merged[key]
@@ -119,21 +122,23 @@ internal fun discoverInternalSidecarTargets(
   enforceContractVersion: Boolean = true,
 ): List<InternalSidecarTarget> {
   val baseChildren = discoverBaseSkillSidecarTargets(parentSkillName, skillsRoot)
-  val packChildren = selectedPackSkills
-    .filter { skill -> skill.internalFor == parentSkillName && skill.name != parentSkillName }
-    .sortedBy { skill -> skill.name }
+  val packChildren =
+    selectedPackSkills
+      .filter { skill -> skill.internalFor == parentSkillName && skill.name != parentSkillName }
+      .sortedBy { skill -> skill.name }
   if (baseChildren.isEmpty() && packChildren.isEmpty()) {
     return emptyList()
   }
   val discovered = discoverTargets(repoRoot.toAbsolutePath().normalize(), enforceContractVersion)
   val byName = sortedMapOf<String, InternalSidecarTarget>()
   baseChildren.forEach { (skillName, sourceDir) ->
-    byName[skillName] = InternalSidecarTarget(
-      skillName = skillName,
-      sourceDir = sourceDir,
-      renderedWrapper = renderWrapper(discovered.getValue(skillName)),
-      authoredCompanions = discoverAuthoredCompanions(sourceDir),
-    )
+    byName[skillName] =
+      InternalSidecarTarget(
+        skillName = skillName,
+        sourceDir = sourceDir,
+        renderedWrapper = renderWrapper(discovered.getValue(skillName)),
+        authoredCompanions = discoverAuthoredCompanions(sourceDir),
+      )
   }
   packChildren.forEach { skill ->
 
@@ -141,12 +146,13 @@ internal fun discoverInternalSidecarTargets(
       "Internal pack skill '${skill.name}' duplicates a base-skill sidecar name for parent " +
         "'$parentSkillName'."
     }
-    byName[skill.name] = InternalSidecarTarget(
-      skillName = skill.name,
-      sourceDir = skill.sourceDir.toPath(),
-      renderedWrapper = renderWrapper(discovered.getValue(skill.name)),
-      authoredCompanions = discoverAuthoredCompanions(skill.sourceDir.toPath()),
-    )
+    byName[skill.name] =
+      InternalSidecarTarget(
+        skillName = skill.name,
+        sourceDir = skill.sourceDir.toPath(),
+        renderedWrapper = renderWrapper(discovered.getValue(skill.name)),
+        authoredCompanions = discoverAuthoredCompanions(skill.sourceDir.toPath()),
+      )
   }
   return byName.values.toList()
 }
@@ -154,21 +160,22 @@ internal fun discoverInternalSidecarTargets(
 private fun discoverAuthoredCompanions(sourceDir: Path): List<InternalSidecarCompanion> {
   val normalizedSource = sourceDir.toAbsolutePath().normalize()
   val realSource = normalizedSource.toRealPath()
-  val companions = Files.list(normalizedSource).use { stream ->
-    stream
-      .filter { path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) }
-      .filter { path -> path.fileName.toString().endsWith(".md") }
-      .filter { path -> path.fileName.toString() != AUTHORED_SKILL_CONTENT_FILENAME }
-      .sorted(Comparator.comparing { path -> path.fileName.toString() })
-      .map { path ->
-        val normalized = path.toAbsolutePath().normalize()
-        require(normalized.parent == normalizedSource && normalized.toRealPath().startsWith(realSource)) {
-          "Authored companion '$path' escapes internal child source directory '$normalizedSource'."
+  val companions =
+    Files.list(normalizedSource).use { stream ->
+      stream
+        .filter { path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) }
+        .filter { path -> path.fileName.toString().endsWith(".md") }
+        .filter { path -> path.fileName.toString() != AUTHORED_SKILL_CONTENT_FILENAME }
+        .sorted(Comparator.comparing { path -> path.fileName.toString() })
+        .map { path ->
+          val normalized = path.toAbsolutePath().normalize()
+          require(normalized.parent == normalizedSource && normalized.toRealPath().startsWith(realSource)) {
+            "Authored companion '$path' escapes internal child source directory '$normalizedSource'."
+          }
+          InternalSidecarCompanion(path.fileName.toString(), Files.readAllBytes(path))
         }
-        InternalSidecarCompanion(path.fileName.toString(), Files.readAllBytes(path))
-      }
-      .toList()
-  }
+        .toList()
+    }
   if (companions.size > 1) {
     throw InvalidAuthoredSkillSidecarError(
       "Internal skill '${sourceDir.fileName}' may declare at most one authored Markdown rubric sidecar; " +
@@ -179,7 +186,10 @@ private fun discoverAuthoredCompanions(sourceDir: Path): List<InternalSidecarCom
   return companions
 }
 
-private fun validateAuthoredCompanion(sourceDir: Path, companion: InternalSidecarCompanion) {
+private fun validateAuthoredCompanion(
+  sourceDir: Path,
+  companion: InternalSidecarCompanion,
+) {
   if (portableFileName(companion.name) in reservedGeneratedSidecarNames.map(::portableFileName)) {
     throw InvalidAuthoredSkillSidecarError(
       "Internal skill '${sourceDir.fileName}' authored sidecar '${companion.name}' uses a reserved generated " +
@@ -202,13 +212,14 @@ internal fun validateInternalSidecarFileNames(
   reservedStagingNames: Set<String> = emptySet(),
 ) {
   val claimed = reservedStagingNames.associate { portableFileName(it) to "generated staging output" }.toMutableMap()
-  val authoredNames = Files.list(parentSourceDir).use { stream ->
-    stream
-      .filter { path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) }
-      .map { path -> portableFileName(path.fileName.toString()) }
-      .toList()
-      .toSet()
-  }
+  val authoredNames =
+    Files.list(parentSourceDir).use { stream ->
+      stream
+        .filter { path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) }
+        .map { path -> portableFileName(path.fileName.toString()) }
+        .toList()
+        .toSet()
+    }
   children.sortedBy { child -> child.skillName }.forEach { child ->
     val names = listOf("${child.skillName}.md") + child.authoredCompanions.map { companion -> companion.name }
     names.forEach { name ->
@@ -229,17 +240,21 @@ internal fun validateInternalSidecarFileNames(
 internal fun portableFileName(name: String): String =
   Normalizer.normalize(name, Normalizer.Form.NFC).lowercase(Locale.ROOT)
 
-private val reservedGeneratedSidecarNames = setOf(
-  "review-orchestrator.md",
-  "review-delegation.md",
-  "review-scope.md",
-  "shell-ceremony.md",
-  "specialist-contract.md",
-  "stack-routing.md",
-  "telemetry-contract.md",
-)
+private val reservedGeneratedSidecarNames =
+  setOf(
+    "review-orchestrator.md",
+    "review-delegation.md",
+    "review-scope.md",
+    "shell-ceremony.md",
+    "specialist-contract.md",
+    "stack-routing.md",
+    "telemetry-contract.md",
+  )
 
-private fun discoverBaseSkillSidecarTargets(parentSkillName: String, skillsRoot: Path): List<Pair<String, Path>> {
+private fun discoverBaseSkillSidecarTargets(
+  parentSkillName: String,
+  skillsRoot: Path,
+): List<Pair<String, Path>> {
   if (!Files.isDirectory(skillsRoot)) {
     return emptyList()
   }

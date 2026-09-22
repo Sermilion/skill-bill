@@ -14,6 +14,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunIn
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import java.nio.file.Path
 import kotlin.time.Duration
+
 data class FeatureTaskRuntimeRunRequest(
   val issueKey: String,
   val workflowId: String,
@@ -25,17 +26,12 @@ data class FeatureTaskRuntimeRunRequest(
   val compactionSettings: CompactionSettings = CompactionSettings.DEFAULT,
   val environment: Map<String, String> = emptyMap(),
   val repoRoot: Path,
-
   val timeout: Duration? = null,
   val requestedCodeReviewMode: CodeReviewExecutionMode? = null,
-
   val goalContinuation: FeatureTaskRuntimeGoalContinuationContext? = null,
-
   val operatorDecision: GoalSubtaskOperatorDecision? = null,
-
   val agentAddonSelection: HydratedAgentAddonSelection = HydratedAgentAddonSelection(),
   val eventSink: FeatureTaskRuntimeRunEventSink = FeatureTaskRuntimeRunEventSink.NONE,
-
   val transitionsOverride: FeatureTaskRuntimeTransitionDeclaration? = null,
   val deferRemotePublication: Boolean = false,
 ) {

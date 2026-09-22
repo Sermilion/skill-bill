@@ -10,7 +10,12 @@ internal class GoalRunnerStatusDurableReadTracker(
   var degraded: Boolean = false
     private set
 
-  fun recordDegradedRead(seam: String, expected: String, used: String, error: Throwable? = null) {
+  fun recordDegradedRead(
+    seam: String,
+    expected: String,
+    used: String,
+    error: Throwable? = null,
+  ) {
     error?.let(::rethrowControlSignal)
     degraded = true
     RuntimeDiagnosticsBestEffortWarning.record(
@@ -20,12 +25,13 @@ internal class GoalRunnerStatusDurableReadTracker(
     )
   }
 
-  private fun rethrowControlSignal(error: Throwable): Nothing? = when (error) {
-    is CancellationException -> throw error
-    is InterruptedException -> {
-      Thread.currentThread().interrupt()
-      throw error
+  private fun rethrowControlSignal(error: Throwable): Nothing? =
+    when (error) {
+      is CancellationException -> throw error
+      is InterruptedException -> {
+        Thread.currentThread().interrupt()
+        throw error
+      }
+      else -> null
     }
-    else -> null
-  }
 }

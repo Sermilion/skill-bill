@@ -33,6 +33,7 @@ import skillbill.workflow.model.workflowStepStatus
 import java.io.IOException
 import java.nio.file.Path
 import java.time.Instant
+
 internal data class IdeStatusProjectionContext(
   val unitOfWork: UnitOfWork,
   val repositoryIdentity: String,
@@ -60,7 +61,10 @@ class IdeStatusProjector(
 ) {
   private val workflowEngine = WorkflowEngine(workflowSnapshotValidator)
 
-  internal fun project(candidate: IdeStatusCandidate, context: IdeStatusProjectionContext): IdeStatusSnapshot {
+  internal fun project(
+    candidate: IdeStatusCandidate,
+    context: IdeStatusProjectionContext,
+  ): IdeStatusSnapshot {
     return when (candidate.workflowFamily) {
       IdeStatusWorkflowFamily.FEATURE_GOAL -> projectGoal(candidate, context)
       IdeStatusWorkflowFamily.FEATURE_TASK_RUNTIME -> projectRuntime(candidate, context)
@@ -69,15 +73,20 @@ class IdeStatusProjector(
     }
   }
 
-  private fun projectGoal(candidate: IdeStatusCandidate, context: IdeStatusProjectionContext): IdeStatusSnapshot {
-    val issueKey = candidate.issueKey
-      ?: return incompatible(candidate, context, "Goal work is missing an issue key.")
-    val projection = goalRunnerStatusService.status(
-      GoalRunnerStatusRequest(
-        issueKey = issueKey,
-        repoRoot = context.repoRoot,
-      ),
-    )
+  private fun projectGoal(
+    candidate: IdeStatusCandidate,
+    context: IdeStatusProjectionContext,
+  ): IdeStatusSnapshot {
+    val issueKey =
+      candidate.issueKey
+        ?: return incompatible(candidate, context, "Goal work is missing an issue key.")
+    val projection =
+      goalRunnerStatusService.status(
+        GoalRunnerStatusRequest(
+          issueKey = issueKey,
+          repoRoot = context.repoRoot,
+        ),
+      )
     return assembleGoalStatusSnapshot(candidate, context, issueKey, projection)
   }
 
@@ -89,25 +98,30 @@ class IdeStatusProjector(
   ): IdeStatusSnapshot {
     val preliminaryLifecycle = goalLifecycle(candidate, projection)
     val planning = projection?.planning?.toIdeStatusPlanning()
-    val planningStep = planning?.takeIf {
-      it.state != GoalPlanningStatusState.PREPARED && !preliminaryLifecycle.isSettled()
-    }
+    val planningStep =
+      planning?.takeIf {
+        it.state != GoalPlanningStatusState.PREPARED && !preliminaryLifecycle.isSettled()
+      }
     val freshness = IdeStatusFreshnessClassifier.classify(candidate.updatedAt, context.observedAt)
     val childContext = childOptionalContext(projection?.currentChildWorkflowId, preliminaryLifecycle)
     val lifecycle = goalLifecycleForOperatorBlock(preliminaryLifecycle, childContext)
-    val childPhaseStep = childContext.currentPhaseId
-      ?.takeIf { it.isNotBlank() && planningStep == null && lifecycle != IdeStatusLifecycleState.TERMINAL }
-    val step = goalStep(
-      planningStep,
-      childPhaseStep
-        ?: projection?.currentStep?.takeUnless { lifecycle == IdeStatusLifecycleState.TERMINAL },
-      lifecycle,
-    )
-    val total = (projection?.let { it.completeCount + it.pendingCount + it.blockedCount })
-      ?.takeIf { it > 0 }
-    val progress = total?.let {
-      IdeStatusProgress(completed = projection.completeCount, total = it)
-    }
+    val childPhaseStep =
+      childContext.currentPhaseId
+        ?.takeIf { it.isNotBlank() && planningStep == null && lifecycle != IdeStatusLifecycleState.TERMINAL }
+    val step =
+      goalStep(
+        planningStep,
+        childPhaseStep
+          ?: projection?.currentStep?.takeUnless { lifecycle == IdeStatusLifecycleState.TERMINAL },
+        lifecycle,
+      )
+    val total =
+      (projection?.let { it.completeCount + it.pendingCount + it.blockedCount })
+        ?.takeIf { it > 0 }
+    val progress =
+      total?.let {
+        IdeStatusProgress(completed = projection.completeCount, total = it)
+      }
     val currentSubtask = goalCurrentSubtask(projection, context)
     val (activityAt, activityLabel) = agentActivityFields(context.unitOfWork, candidate.workflowId)
     return IdeStatusSnapshot(
@@ -124,8 +138,9 @@ class IdeStatusProjector(
       planning = planning,
       currentPhaseExecution = planningStep?.let { null } ?: childContext.currentPhaseExecution,
       pauseRequested = projection?.pauseRequested == true && projection.paused != true,
-      pausedAt = parseInstantOrNull(projection?.pausedAt)
-        ?.takeIf { lifecycle == IdeStatusLifecycleState.PAUSED },
+      pausedAt =
+        parseInstantOrNull(projection?.pausedAt)
+          ?.takeIf { lifecycle == IdeStatusLifecycleState.PAUSED },
       pauseReason = goalPauseReason(lifecycle, projection, childContext),
       activeDurationMs = projection?.recordedActiveDurationMs(),
       activeDurationAsOf = projection?.liveActiveDurationAnchor(),
@@ -133,15 +148,16 @@ class IdeStatusProjector(
       lastAgentActivityLabel = activityLabel,
       updatedAt = candidate.updatedAt,
       freshness = freshness,
-      summary = planningStep?.takeIf { lifecycle != IdeStatusLifecycleState.PAUSED }
-        ?.let { goalPlanningSummary(issueKey, it) }
-        ?: goalSummary(
-          issueKey,
-          lifecycle,
-          step.label,
-          projection?.blockedCount ?: 0,
-          childContext.operatorDecisionPause,
-        ),
+      summary =
+        planningStep?.takeIf { lifecycle != IdeStatusLifecycleState.PAUSED }
+          ?.let { goalPlanningSummary(issueKey, it) }
+          ?: goalSummary(
+            issueKey,
+            lifecycle,
+            step.label,
+            projection?.blockedCount ?: 0,
+            childContext.operatorDecisionPause,
+          ),
     )
   }
 
@@ -149,11 +165,12 @@ class IdeStatusProjector(
     candidate: IdeStatusCandidate,
     projection: GoalRunnerStatusProjection?,
   ): IdeStatusLifecycleState {
-    val settledComplete = projection != null &&
-      projection.pendingCount == 0 &&
-      projection.blockedCount == 0 &&
-      projection.completeCount > 0 &&
-      projection.executionLiveness != ExecutionLiveness.LIVE
+    val settledComplete =
+      projection != null &&
+        projection.pendingCount == 0 &&
+        projection.blockedCount == 0 &&
+        projection.completeCount > 0 &&
+        projection.executionLiveness != ExecutionLiveness.LIVE
     if (settledComplete) return IdeStatusLifecycleState.TERMINAL
     if (candidate.lifecycleState != IdeStatusLifecycleState.ACTIVE) return candidate.lifecycleState
     return when {
@@ -196,46 +213,57 @@ class IdeStatusProjector(
   ): ChildOptionalContext {
     if (lifecycle == IdeStatusLifecycleState.TERMINAL) return ChildOptionalContext.EMPTY
     val workflowId = childWorkflowId?.takeIf(String::isNotBlank) ?: return ChildOptionalContext.EMPTY
-    val degraded = "IDE status omitted optional child context for workflow '$workflowId': " +
-      "the child's durable status could not be read."
-    val status = try {
-      featureTaskRuntimeStatusService.status(
-        FeatureTaskRuntimeStatusRequest(workflowId = workflowId),
-      )
-    } catch (error: ShellContentContractException) {
-      RuntimeDiagnosticsBestEffortWarning.record(diagnostics, degraded, error)
-      null
-    } catch (error: IOException) {
-      RuntimeDiagnosticsBestEffortWarning.record(diagnostics, degraded, error)
-      null
-    } ?: return ChildOptionalContext.EMPTY
+    val degraded =
+      "IDE status omitted optional child context for workflow '$workflowId': " +
+        "the child's durable status could not be read."
+    val status =
+      try {
+        featureTaskRuntimeStatusService.status(
+          FeatureTaskRuntimeStatusRequest(workflowId = workflowId),
+        )
+      } catch (error: ShellContentContractException) {
+        RuntimeDiagnosticsBestEffortWarning.record(diagnostics, degraded, error)
+        null
+      } catch (error: IOException) {
+        RuntimeDiagnosticsBestEffortWarning.record(diagnostics, degraded, error)
+        null
+      } ?: return ChildOptionalContext.EMPTY
     return ChildOptionalContext(
       currentPhaseId = status.currentPhaseId?.takeIf(String::isNotBlank),
-      currentModel = status.currentPhaseId?.let { phaseId ->
-        status.phases.firstOrNull { it.phaseId == phaseId }?.toIdeStatusCurrentModel()
-      },
+      currentModel =
+        status.currentPhaseId?.let { phaseId ->
+          status.phases.firstOrNull { it.phaseId == phaseId }?.toIdeStatusCurrentModel()
+        },
       currentPhaseExecution = status.currentPhaseExecution,
       operatorDecisionPause = status.operatorDecisionPause,
     )
   }
 
-  private fun projectRuntime(candidate: IdeStatusCandidate, context: IdeStatusProjectionContext): IdeStatusSnapshot {
-    val snapshot = WorkflowFamily.TASK_RUNTIME.get(context.unitOfWork.workflowStates, candidate.workflowId)
-      ?: return incompatible(candidate, context, "Runtime workflow snapshot is missing.")
-    val status = featureTaskRuntimeStatusService.status(
-      FeatureTaskRuntimeStatusRequest(
-        workflowId = candidate.workflowId,
-      ),
-    )
-    val stepId = status?.currentPhaseId?.takeIf(String::isNotBlank)
-      ?: snapshot.currentStepId.takeIf(String::isNotBlank)
-      ?: "unknown"
-    val stepLabel = WorkflowFamily.TASK_RUNTIME.definition.stepLabels[stepId]
-      ?: stepId.replace('_', ' ').replaceFirstChar { it.titlecase() }
+  private fun projectRuntime(
+    candidate: IdeStatusCandidate,
+    context: IdeStatusProjectionContext,
+  ): IdeStatusSnapshot {
+    val snapshot =
+      WorkflowFamily.TASK_RUNTIME.get(context.unitOfWork.workflowStates, candidate.workflowId)
+        ?: return incompatible(candidate, context, "Runtime workflow snapshot is missing.")
+    val status =
+      featureTaskRuntimeStatusService.status(
+        FeatureTaskRuntimeStatusRequest(
+          workflowId = candidate.workflowId,
+        ),
+      )
+    val stepId =
+      status?.currentPhaseId?.takeIf(String::isNotBlank)
+        ?: snapshot.currentStepId.takeIf(String::isNotBlank)
+        ?: "unknown"
+    val stepLabel =
+      WorkflowFamily.TASK_RUNTIME.definition.stepLabels[stepId]
+        ?: stepId.replace('_', ' ').replaceFirstChar { it.titlecase() }
     val phaseTotal = status?.phases?.size?.takeIf { it > 0 }
-    val progress = phaseTotal?.let {
-      IdeStatusProgress(completed = status.completeCount, total = it)
-    }
+    val progress =
+      phaseTotal?.let {
+        IdeStatusProgress(completed = status.completeCount, total = it)
+      }
     val startedAt = parseInstantOrNull(snapshot.startedAt) ?: candidate.startedAt
     val updatedAt = candidate.updatedAt
     val (activityAt, activityLabel) = agentActivityFields(context.unitOfWork, candidate.workflowId)
@@ -250,19 +278,21 @@ class IdeStatusProjector(
       startedAt = startedAt,
       currentModel = status?.phases?.firstOrNull { it.phaseId == stepId }?.toIdeStatusCurrentModel(),
       currentPhaseExecution = status?.currentPhaseExecution?.takeIf { it.phaseId == stepId },
-      pauseReason = status?.operatorDecisionPause?.let { pause ->
-        IdeStatusPauseReason.of(IdeStatusPauseReasonCode.AWAITING_OPERATOR_DECISION, pause.reason)
-      },
+      pauseReason =
+        status?.operatorDecisionPause?.let { pause ->
+          IdeStatusPauseReason.of(IdeStatusPauseReasonCode.AWAITING_OPERATOR_DECISION, pause.reason)
+        },
       lastAgentActivityAt = activityAt,
       lastAgentActivityLabel = activityLabel,
       updatedAt = updatedAt,
       freshness = IdeStatusFreshnessClassifier.classify(updatedAt, context.observedAt),
-      summary = familySummary(
-        IdeStatusWorkflowFamily.FEATURE_TASK_RUNTIME,
-        candidate.issueKey,
-        candidate.lifecycleState,
-        stepLabel,
-      ),
+      summary =
+        familySummary(
+          IdeStatusWorkflowFamily.FEATURE_TASK_RUNTIME,
+          candidate.issueKey,
+          candidate.lifecycleState,
+          stepLabel,
+        ),
     )
   }
 
@@ -271,28 +301,32 @@ class IdeStatusProjector(
     context: IdeStatusProjectionContext,
     family: WorkflowFamily,
   ): IdeStatusSnapshot {
-    val snapshot = family.get(context.unitOfWork.workflowStates, candidate.workflowId)
-      ?: return incompatible(
-        candidate,
-        context,
-        "${family.humanName} workflow snapshot is missing.",
-      )
+    val snapshot =
+      family.get(context.unitOfWork.workflowStates, candidate.workflowId)
+        ?: return incompatible(
+          candidate,
+          context,
+          "${family.humanName} workflow snapshot is missing.",
+        )
     val view = workflowEngine.snapshotView(family.definition, snapshot)
     val stepId = view.currentStepId.takeIf(String::isNotBlank) ?: "unknown"
-    val stepLabel = family.definition.stepLabels[stepId]
-      ?: stepId.replace('_', ' ').replaceFirstChar { it.titlecase() }
-    val completed = view.steps.count {
-      it.status.workflowStepStatus() in setOf(WorkflowStepStatus.COMPLETED, WorkflowStepStatus.SKIPPED)
-    }
+    val stepLabel =
+      family.definition.stepLabels[stepId]
+        ?: stepId.replace('_', ' ').replaceFirstChar { it.titlecase() }
+    val completed =
+      view.steps.count {
+        it.status.workflowStepStatus() in setOf(WorkflowStepStatus.COMPLETED, WorkflowStepStatus.SKIPPED)
+      }
     val total = family.definition.stepIds.size
     val progress = IdeStatusProgress(completed = completed, total = total).takeIf { total > 0 }
     val startedAt = parseInstantOrNull(snapshot.startedAt) ?: candidate.startedAt
     val updatedAt = candidate.updatedAt
     val (activityAt, activityLabel) = agentActivityFields(context.unitOfWork, candidate.workflowId)
-    val wireFamily = when (family) {
-      WorkflowFamily.VERIFY -> IdeStatusWorkflowFamily.FEATURE_VERIFY
-      WorkflowFamily.TASK_RUNTIME -> IdeStatusWorkflowFamily.FEATURE_TASK_RUNTIME
-    }
+    val wireFamily =
+      when (family) {
+        WorkflowFamily.VERIFY -> IdeStatusWorkflowFamily.FEATURE_VERIFY
+        WorkflowFamily.TASK_RUNTIME -> IdeStatusWorkflowFamily.FEATURE_TASK_RUNTIME
+      }
     return IdeStatusSnapshot(
       repositoryIdentity = context.repositoryIdentity,
       issueKey = candidate.issueKey,
@@ -314,10 +348,11 @@ class IdeStatusProjector(
     candidate: IdeStatusCandidate,
     context: IdeStatusProjectionContext,
     message: String,
-  ): IdeStatusSnapshot = IdeStatusProblemSnapshots.incompatibleRecord(
-    repositoryIdentity = context.repositoryIdentity,
-    observedAt = context.observedAt,
-    message = message,
-    workflowId = candidate.workflowId,
-  )
+  ): IdeStatusSnapshot =
+    IdeStatusProblemSnapshots.incompatibleRecord(
+      repositoryIdentity = context.repositoryIdentity,
+      observedAt = context.observedAt,
+      message = message,
+      workflowId = candidate.workflowId,
+    )
 }

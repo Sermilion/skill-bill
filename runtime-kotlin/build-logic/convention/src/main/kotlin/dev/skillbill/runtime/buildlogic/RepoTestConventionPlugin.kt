@@ -41,15 +41,16 @@ private fun Project.configureRepoTestSourceSet() {
 
   dependencies.add(repoTestSourceSet.implementationConfigurationName, testSourceSet.output)
 
-  val repoTest = tasks.register("repoTest", Test::class.java) {
-    group = "verification"
-    description = "Repository-contract suites that read governed sources outside runtime-kotlin."
-    testClassesDirs = repoTestSourceSet.output.classesDirs
-    classpath = repoTestSourceSet.runtimeClasspath
-    inputs.files(governedRepositorySources())
-      .withPathSensitivity(PathSensitivity.RELATIVE)
-      .withPropertyName("governedRepositorySources")
-  }
+  val repoTest =
+    tasks.register("repoTest", Test::class.java) {
+      group = "verification"
+      description = "Repository-contract suites that read governed sources outside runtime-kotlin."
+      testClassesDirs = repoTestSourceSet.output.classesDirs
+      classpath = repoTestSourceSet.runtimeClasspath
+      inputs.files(governedRepositorySources())
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("governedRepositorySources")
+    }
 
   tasks.named("check") {
     dependsOn(repoTest)

@@ -19,12 +19,13 @@ import kotlin.test.assertTrue
 class NativeAgentToolsetContractTest {
   @Test
   fun `a declared toolset round-trips through the bundle and reaches rendered frontmatter`() {
-    val agent = NativeAgentSource(
-      name = "fixture-reviewer",
-      description = "Fixture reviewer.",
-      body = "# Worker\n\nReview it.",
-      tools = listOf("Read", "Grep", "Glob", "Bash"),
-    )
+    val agent =
+      NativeAgentSource(
+        name = "fixture-reviewer",
+        description = "Fixture reviewer.",
+        body = "# Worker\n\nReview it.",
+        tools = listOf("Read", "Grep", "Glob", "Bash"),
+      )
 
     val bundle = renderNativeAgentBundle(listOf(agent))
     assertTrue(bundle.contains("tools: [Read, Grep, Glob, Bash]"), "Bundle render must emit the toolset: $bundle")
@@ -41,12 +42,13 @@ class NativeAgentToolsetContractTest {
 
   @Test
   fun `a toolset granting mutation is not projected as read-only`() {
-    val agent = NativeAgentSource(
-      name = "fixture-writer",
-      description = "Fixture writer.",
-      body = "# Worker\n\nWrite it.",
-      tools = listOf("Read", "Write"),
-    )
+    val agent =
+      NativeAgentSource(
+        name = "fixture-writer",
+        description = "Fixture writer.",
+        body = "# Worker\n\nWrite it.",
+        tools = listOf("Read", "Write"),
+      )
 
     assertFalse(NativeAgentProvider.Cursor.render(agent).contains("readonly:"))
   }
@@ -72,13 +74,15 @@ class NativeAgentToolsetContractTest {
   @Test
   fun `every governed review worker declares a toolset without mutation or delegation`() {
     val root = repoRoot()
-    val bundles = listOf(root.resolve("platform-packs"), root.resolve("skills")).flatMap { tree ->
-      Files.walk(tree).use { paths -> paths.filter { it.fileName?.toString() == "agents.yaml" }.toList() }
-    }
+    val bundles =
+      listOf(root.resolve("platform-packs"), root.resolve("skills")).flatMap { tree ->
+        Files.walk(tree).use { paths -> paths.filter { it.fileName?.toString() == "agents.yaml" }.toList() }
+      }
     assertTrue(bundles.isNotEmpty(), "Expected to discover native-agent bundles under $root")
 
-    val reviewWorkers = bundles.flatMap { bundle -> parseNativeAgentSourceFile(bundle).map { bundle to it } }
-      .filter { (_, agent) -> "code-review" in agent.name }
+    val reviewWorkers =
+      bundles.flatMap { bundle -> parseNativeAgentSourceFile(bundle).map { bundle to it } }
+        .filter { (_, agent) -> "code-review" in agent.name }
     assertTrue(reviewWorkers.isNotEmpty(), "Expected to discover governed review workers")
 
     reviewWorkers.forEach { (bundle, agent) ->
@@ -115,10 +119,11 @@ class NativeAgentToolsetContractTest {
   }
 
   private companion object {
-    val GOVERNED_EVIDENCE_TOOLS = listOf(
-      "mcp__skill-bill-review-evidence__read_evidence",
-      "mcp__skill-bill-review-evidence__request_expansion",
-    )
+    val GOVERNED_EVIDENCE_TOOLS =
+      listOf(
+        "mcp__skill-bill-review-evidence__read_evidence",
+        "mcp__skill-bill-review-evidence__request_expansion",
+      )
   }
 
   private fun repoRoot(): Path {

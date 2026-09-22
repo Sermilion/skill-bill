@@ -17,13 +17,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class CliGoalRepairRuntimeTest {
   @Test
   fun `goal repair help enumerates wedge classes and does-not-touch statement`() {
-    val result = CliRuntime.run(
-      listOf("goal", "repair", "--help"),
-      CliRuntimeContext(environment = emptyMap(), executableLookup = ExecutableLookup { true }),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("goal", "repair", "--help"),
+        CliRuntimeContext(environment = emptyMap(), executableLookup = ExecutableLookup { true }),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "validation_depth")
@@ -50,18 +52,19 @@ class CliGoalRepairRuntimeTest {
     CliRuntime.run(fixture.goalCommand(), fixture.context(launcher = launcher))
     val before = readAllRuntimeArtifactsJson(fixture)
 
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "repair",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-      ),
-      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "repair",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+        ),
+        fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: healthy")
@@ -71,18 +74,19 @@ class CliGoalRepairRuntimeTest {
   @Test
   fun `goal repair unknown issue exits non-zero as not_found`() {
     val fixture = goalFixture(subtaskCount = 1)
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "repair",
-        "SKILL-404",
-        "--repo-root",
-        fixture.tempDir.toString(),
-      ),
-      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "repair",
+          "SKILL-404",
+          "--repo-root",
+          fixture.tempDir.toString(),
+        ),
+        fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+      )
 
     assertEquals(1, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: not_found")
@@ -97,18 +101,19 @@ class CliGoalRepairRuntimeTest {
     stripValidationDepth(fixture, childWorkflowId)
     val before = readAllRuntimeArtifactsJson(fixture)
 
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "repair",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-      ),
-      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "repair",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+        ),
+        fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+      )
 
     assertEquals(2, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: inspected")
@@ -126,19 +131,20 @@ class CliGoalRepairRuntimeTest {
     val childWorkflowId = resolveCompletedChildWorkflowId(fixture)
     stripValidationDepth(fixture, childWorkflowId)
 
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "repair",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--apply",
-      ),
-      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "repair",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--apply",
+        ),
+        fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: repaired")
@@ -158,18 +164,19 @@ class CliGoalRepairRuntimeTest {
     seedIssue342StaleParentControlState(fixture)
     seedExpiredWorkerLease(fixture, childWorkflowId)
 
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "repair",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-      ),
-      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "repair",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+        ),
+        fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+      )
 
     assertEquals(2, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: inspected")
@@ -187,26 +194,28 @@ class CliGoalRepairRuntimeTest {
     seedIssue342StaleParentControlState(fixture)
     seedExpiredWorkerLease(fixture, childWorkflowId)
 
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "repair",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--apply",
-      ),
-      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "repair",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--apply",
+        ),
+        fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: repaired")
     assertEquals(0, workerLeaseRowCount(fixture, childWorkflowId))
-    val controlState = JsonCodec.anyToStringAnyMap(
-      JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(parentControlStateJson(fixture)))),
-    ).orEmpty()
+    val controlState =
+      JsonCodec.anyToStringAnyMap(
+        JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(parentControlStateJson(fixture)))),
+      ).orEmpty()
     assertNull(controlState["execution_lease"])
     assertFalse(controlState["pause_reason"] == "runner_interrupted")
     assertEquals(false, controlState["paused"])
@@ -220,19 +229,20 @@ class CliGoalRepairRuntimeTest {
     val childWorkflowId = resolveCompletedChildWorkflowId(fixture)
     seedCompletedUpstreamMissingOutput(fixture, childWorkflowId)
 
-    val result = CliRuntime.run(
-      listOf(
-        "--db",
-        fixture.dbPath.toString(),
-        "goal",
-        "repair",
-        "SKILL-901",
-        "--repo-root",
-        fixture.tempDir.toString(),
-        "--apply",
-      ),
-      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          fixture.dbPath.toString(),
+          "goal",
+          "repair",
+          "SKILL-901",
+          "--repo-root",
+          fixture.tempDir.toString(),
+          "--apply",
+        ),
+        fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: repaired")
@@ -272,7 +282,10 @@ class CliGoalRepairRuntimeTest {
       }
     }
 
-  private fun readChildArtifacts(fixture: GoalCliFixture, workflowId: String): String =
+  private fun readChildArtifacts(
+    fixture: GoalCliFixture,
+    workflowId: String,
+  ): String =
     ensureTestDatabase(fixture.dbPath).use { connection ->
       connection.prepareStatement(
         "SELECT artifacts_json FROM feature_task_workflows WHERE workflow_id = ?",
@@ -285,21 +298,26 @@ class CliGoalRepairRuntimeTest {
       }
     }
 
-  private fun stripValidationDepth(fixture: GoalCliFixture, workflowId: String) {
+  private fun stripValidationDepth(
+    fixture: GoalCliFixture,
+    workflowId: String,
+  ) {
     ensureTestDatabase(fixture.dbPath).use { connection ->
-      val current = connection.prepareStatement(
-        "SELECT artifacts_json FROM feature_task_workflows WHERE workflow_id = ?",
-      ).use { statement ->
-        statement.setString(1, workflowId)
-        statement.executeQuery().use { rows ->
-          check(rows.next()) { "missing child $workflowId" }
-          rows.getString(1)
+      val current =
+        connection.prepareStatement(
+          "SELECT artifacts_json FROM feature_task_workflows WHERE workflow_id = ?",
+        ).use { statement ->
+          statement.setString(1, workflowId)
+          statement.executeQuery().use { rows ->
+            check(rows.next()) { "missing child $workflowId" }
+            rows.getString(1)
+          }
         }
-      }
-      val stripped = current
-        .replace(Regex(""""validation_depth"\s*:\s*"full"\s*,?"""), "")
-        .replace(",}", "}")
-        .replace(",", ",")
+      val stripped =
+        current
+          .replace(Regex(""""validation_depth"\s*:\s*"full"\s*,?"""), "")
+          .replace(",}", "}")
+          .replace(",", ",")
       check(stripped != current) { "could not strip validation_depth from $workflowId" }
       connection.prepareStatement(
         "UPDATE feature_task_workflows SET artifacts_json = ? WHERE workflow_id = ?",
@@ -311,17 +329,21 @@ class CliGoalRepairRuntimeTest {
     }
   }
 
-  private fun seedCompletedUpstreamMissingOutput(fixture: GoalCliFixture, workflowId: String) {
+  private fun seedCompletedUpstreamMissingOutput(
+    fixture: GoalCliFixture,
+    workflowId: String,
+  ) {
     ensureTestDatabase(fixture.dbPath).use { connection ->
-      val current = connection.prepareStatement(
-        "SELECT artifacts_json FROM feature_task_workflows WHERE workflow_id = ?",
-      ).use { statement ->
-        statement.setString(1, workflowId)
-        statement.executeQuery().use { rows ->
-          check(rows.next()) { "missing child $workflowId" }
-          rows.getString(1)
+      val current =
+        connection.prepareStatement(
+          "SELECT artifacts_json FROM feature_task_workflows WHERE workflow_id = ?",
+        ).use { statement ->
+          statement.setString(1, workflowId)
+          statement.executeQuery().use { rows ->
+            check(rows.next()) { "missing child $workflowId" }
+            rows.getString(1)
+          }
         }
-      }
       val artifacts = decodeWorkflowArtifacts(current).toMutableMap()
       val records = phaseRecordsFromWorkflowArtifacts(artifacts).toMutableMap()
       val timestamp = "2026-09-12T08:00:00Z"
@@ -345,20 +367,22 @@ class CliGoalRepairRuntimeTest {
           resolvedAgentId = "codex",
         ),
       )
-      records["verify_findings"] = records.getValue("verify_findings").copy(
-        status = WorkflowStepStatus.COMPLETED,
-        finishedAt = null,
-        durationMillis = null,
-        outputArtifact = null,
-      )
-      records["implement_fix"] = records.getValue("implement_fix").copy(
-        status = WorkflowStepStatus.BLOCKED,
-        finishedAt = null,
-        durationMillis = null,
-        outputArtifact = null,
-        blockedReason =
-        "Phase 'implement_fix' requires upstream output(s) verify_findings that are not present",
-      )
+      records["verify_findings"] =
+        records.getValue("verify_findings").copy(
+          status = WorkflowStepStatus.COMPLETED,
+          finishedAt = null,
+          durationMillis = null,
+          outputArtifact = null,
+        )
+      records["implement_fix"] =
+        records.getValue("implement_fix").copy(
+          status = WorkflowStepStatus.BLOCKED,
+          finishedAt = null,
+          durationMillis = null,
+          outputArtifact = null,
+          blockedReason =
+            "Phase 'implement_fix' requires upstream output(s) verify_findings that are not present",
+        )
       artifacts[FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY] =
         records.mapValues { (_, record) -> record.asWorkflowArtifactEntry() }
       connection.prepareStatement(

@@ -4,6 +4,7 @@ import skillbill.contracts.workflow.identity.task.FEATURE_TASK_RUNTIME_WORKER_OW
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
 import java.time.Instant
 import java.time.format.DateTimeParseException
+
 data class FeatureTaskRuntimeWorkerOwnership(
   val workflowId: String,
   val generation: Long,
@@ -23,19 +24,27 @@ data class FeatureTaskRuntimeWorkerOwnership(
   val expiresAtInstant: Instant = parseLeaseInstant(workflowId, "expires_at", expiresAt)
 
   companion object {
-    internal fun parseLeaseInstant(workflowId: String, field: String, value: String): Instant = try {
-      Instant.parse(value)
-    } catch (_: DateTimeParseException) {
-      throw InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError(
-        workflowId,
-        "$field must be an RFC 3339 instant",
-      )
-    }
+    internal fun parseLeaseInstant(
+      workflowId: String,
+      field: String,
+      value: String,
+    ): Instant =
+      try {
+        Instant.parse(value)
+      } catch (_: DateTimeParseException) {
+        throw InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError(
+          workflowId,
+          "$field must be an RFC 3339 instant",
+        )
+      }
   }
 }
 
-fun parseFeatureTaskRuntimeWorkerLeaseInstant(workflowId: String, field: String, value: String): Instant =
-  FeatureTaskRuntimeWorkerOwnership.parseLeaseInstant(workflowId, field, value)
+fun parseFeatureTaskRuntimeWorkerLeaseInstant(
+  workflowId: String,
+  field: String,
+  value: String,
+): Instant = FeatureTaskRuntimeWorkerOwnership.parseLeaseInstant(workflowId, field, value)
 
 enum class FeatureTaskRuntimeWorkerLeaseState(val wireValue: String) {
   ACTIVE("active"),

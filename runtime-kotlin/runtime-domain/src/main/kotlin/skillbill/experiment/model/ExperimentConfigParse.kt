@@ -14,17 +14,18 @@ sealed interface ExperimentConfigParse {
   ) : ExperimentConfigParse
 }
 
-fun parseExperimentAvailabilityValue(value: Any?): ExperimentConfigParse = when {
-  value == null ->
-    ExperimentConfigParse.Invalid("experiments", "null", "must be a string array, not null.")
-  value is String ->
-    ExperimentConfigParse.Invalid("experiments", value, "must be a string array, not a scalar.")
-  value !is List<*> ->
-    ExperimentConfigParse.Invalid("experiments", value.toString(), "must be a string array.")
-  value.isEmpty() ->
-    ExperimentConfigParse.Valid(ExperimentAvailabilityPolicy.Disabled)
-  else -> parseExperimentStringEntries(value)
-}
+fun parseExperimentAvailabilityValue(value: Any?): ExperimentConfigParse =
+  when {
+    value == null ->
+      ExperimentConfigParse.Invalid("experiments", "null", "must be a string array, not null.")
+    value is String ->
+      ExperimentConfigParse.Invalid("experiments", value, "must be a string array, not a scalar.")
+    value !is List<*> ->
+      ExperimentConfigParse.Invalid("experiments", value.toString(), "must be a string array.")
+    value.isEmpty() ->
+      ExperimentConfigParse.Valid(ExperimentAvailabilityPolicy.Disabled)
+    else -> parseExperimentStringEntries(value)
+  }
 
 private fun parseExperimentStringEntries(entries: List<*>): ExperimentConfigParse {
   val invalidEntry = entries.firstOrNull { it !is String }

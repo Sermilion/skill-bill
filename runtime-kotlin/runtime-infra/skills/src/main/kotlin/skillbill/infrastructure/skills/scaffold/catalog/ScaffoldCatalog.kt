@@ -19,8 +19,8 @@ import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
 import skillbill.scaffold.policy.scaffold.PLATFORM_PACK_PRESETS
 import skillbill.scaffold.policy.scaffold.SCAFFOLD_PAYLOAD_VERSION
 import java.nio.file.Path
-object ScaffoldCatalog {
 
+object ScaffoldCatalog {
   val approvedCodeReviewAreas: Set<String>
     get() = APPROVED_CODE_REVIEW_AREAS
 
@@ -41,28 +41,31 @@ object ScaffoldCatalog {
   fun discoverBaselineReviewCatalog(packsRoot: Path): BaselineReviewCatalog {
     val packs = discoverPlatformPackManifests(packsRoot)
     return BaselineReviewCatalog(
-      packs = packs
-        .filter { pack -> pack.declaredFiles.baseline != null }
-        .map { pack ->
-          BaselineReviewPackEntry(
-            platform = pack.slug,
-            displayName = pack.displayName ?: pack.slug,
-            strongRoutingSignals = pack.routingSignals.strong,
-            skills = pack.declaredCodeReviewSkillNames()
-              .sorted()
-              .map { skill -> baselineSkillEntry(pack.slug, skill) },
-          )
-        }
-        .sortedBy { pack -> pack.platform },
-      compositionEdges = packs.flatMap { pack ->
-        pack.codeReviewComposition?.baselineLayers.orEmpty().map { layer ->
-          BaselineReviewCompositionEdge(
-            sourcePlatform = pack.slug,
-            targetPlatform = layer.platform,
-            targetSkill = layer.skill,
-          )
-        }
-      }.sortedWith(compareBy({ it.sourcePlatform }, { it.targetPlatform }, { it.targetSkill })),
+      packs =
+        packs
+          .filter { pack -> pack.declaredFiles.baseline != null }
+          .map { pack ->
+            BaselineReviewPackEntry(
+              platform = pack.slug,
+              displayName = pack.displayName ?: pack.slug,
+              strongRoutingSignals = pack.routingSignals.strong,
+              skills =
+                pack.declaredCodeReviewSkillNames()
+                  .sorted()
+                  .map { skill -> baselineSkillEntry(pack.slug, skill) },
+            )
+          }
+          .sortedBy { pack -> pack.platform },
+      compositionEdges =
+        packs.flatMap { pack ->
+          pack.codeReviewComposition?.baselineLayers.orEmpty().map { layer ->
+            BaselineReviewCompositionEdge(
+              sourcePlatform = pack.slug,
+              targetPlatform = layer.platform,
+              targetSkill = layer.skill,
+            )
+          }
+        }.sortedWith(compareBy({ it.sourcePlatform }, { it.targetPlatform }, { it.targetSkill })),
       layerSuggestions = baselineLayerSuggestions(packs),
     )
   }
@@ -73,24 +76,27 @@ private const val KOTLIN_BASELINE_SKILL = "bill-kotlin-code-review"
 private const val KMP_BASELINE_MODE = "kmp-baseline"
 private const val SAME_REVIEW_SCOPE = "same-review-scope"
 
-private val KMP_ANDROID_SUGGESTION_SIGNALS = listOf(
-  "kmp",
-  "android",
-  "com.android",
-  "kotlin-multiplatform",
-  "multiplatform",
-)
+private val KMP_ANDROID_SUGGESTION_SIGNALS =
+  listOf(
+    "kmp",
+    "android",
+    "com.android",
+    "kotlin-multiplatform",
+    "multiplatform",
+  )
 
 private fun baselineLayerSuggestions(packs: List<PlatformManifest>): List<BaselineReviewLayerSuggestion> {
-  val kotlinPack = packs.firstOrNull { pack ->
-    pack.slug == KOTLIN_BASELINE_PLATFORM &&
-      pack.declaredFiles.baseline != null &&
-      KOTLIN_BASELINE_SKILL in pack.declaredCodeReviewSkillNames()
-  }
+  val kotlinPack =
+    packs.firstOrNull { pack ->
+      pack.slug == KOTLIN_BASELINE_PLATFORM &&
+        pack.declaredFiles.baseline != null &&
+        KOTLIN_BASELINE_SKILL in pack.declaredCodeReviewSkillNames()
+    }
   val kotlinSkill = kotlinPack?.let { pack -> baselineSkillEntry(pack.slug, KOTLIN_BASELINE_SKILL) }
-  val supportsKmpBaseline = kotlinSkill != null &&
-    KMP_BASELINE_MODE in kotlinSkill.supportedModes &&
-    SAME_REVIEW_SCOPE in kotlinSkill.supportedScopes
+  val supportsKmpBaseline =
+    kotlinSkill != null &&
+      KMP_BASELINE_MODE in kotlinSkill.supportedModes &&
+      SAME_REVIEW_SCOPE in kotlinSkill.supportedScopes
   return if (supportsKmpBaseline) {
     listOf(
       BaselineReviewLayerSuggestion(
@@ -108,25 +114,30 @@ private fun baselineLayerSuggestions(packs: List<PlatformManifest>): List<Baseli
   }
 }
 
-private fun baselineSkillEntry(platform: String, skill: String): BaselineReviewSkillEntry {
-  val supportedModes = CodeReviewCompositionMode.entries
-    .filter { mode ->
-      unsupportedCompositionModeReason(
-        CodeReviewBaselineLayer(
-          platform = platform,
-          skill = skill,
-          scope = CodeReviewCompositionScope.SameReviewScope,
-          required = true,
-          mode = mode,
-        ),
-      ) == null
+private fun baselineSkillEntry(
+  platform: String,
+  skill: String,
+): BaselineReviewSkillEntry {
+  val supportedModes =
+    CodeReviewCompositionMode.entries
+      .filter { mode ->
+        unsupportedCompositionModeReason(
+          CodeReviewBaselineLayer(
+            platform = platform,
+            skill = skill,
+            scope = CodeReviewCompositionScope.SameReviewScope,
+            required = true,
+            mode = mode,
+          ),
+        ) == null
+      }
+      .map { mode -> mode.wireValue }
+  val supportedScopes =
+    if (supportedModes.isEmpty()) {
+      emptyList()
+    } else {
+      CodeReviewCompositionScope.entries.map { scope -> scope.wireValue }
     }
-    .map { mode -> mode.wireValue }
-  val supportedScopes = if (supportedModes.isEmpty()) {
-    emptyList()
-  } else {
-    CodeReviewCompositionScope.entries.map { scope -> scope.wireValue }
-  }
   return BaselineReviewSkillEntry(
     name = skill,
     supportedModes = supportedModes,

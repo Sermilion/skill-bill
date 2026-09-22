@@ -7,18 +7,24 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
 class GoalSubtaskBlockerDispositionParseTest {
   private fun output(vararg dispositions: Map<String, Any?>): Map<String, Any?> =
     mapOf("produced_outputs" to mapOf("blocker_dispositions" to dispositions.toList()))
 
   @Test
   fun `an evidenced disposition parses one verdict per prior blocker`() {
-    val parsed = GoalSubtaskReviewSummaryReducer.blockerDispositions(
-      output(
-        mapOf("finding_id" to "F-001", "verdict" to "resolved", "evidence" to listOf("guard added at the write seam")),
-        mapOf("finding_id" to "F-002", "verdict" to "unresolved", "evidence" to listOf("still reproduces")),
-      ),
-    )
+    val parsed =
+      GoalSubtaskReviewSummaryReducer.blockerDispositions(
+        output(
+          mapOf(
+            "finding_id" to "F-001",
+            "verdict" to "resolved",
+            "evidence" to listOf("guard added at the write seam"),
+          ),
+          mapOf("finding_id" to "F-002", "verdict" to "unresolved", "evidence" to listOf("still reproduces")),
+        ),
+      )
     assertEquals(listOf("F-001", "F-002"), parsed.map { it.findingId })
     assertEquals(GoalSubtaskBlockerDispositionVerdict.RESOLVED, parsed.first().verdict)
     assertEquals(GoalSubtaskBlockerDispositionVerdict.UNRESOLVED, parsed.last().verdict)
@@ -26,23 +32,25 @@ class GoalSubtaskBlockerDispositionParseTest {
 
   @Test
   fun `superseded verdict loud-fails at the parse seam`() {
-    val error = assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
-      GoalSubtaskReviewSummaryReducer.blockerDispositions(
-        output(
-          mapOf("finding_id" to "F-001", "verdict" to "superseded", "evidence" to listOf("call site deleted")),
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
+        GoalSubtaskReviewSummaryReducer.blockerDispositions(
+          output(
+            mapOf("finding_id" to "F-001", "verdict" to "superseded", "evidence" to listOf("call site deleted")),
+          ),
+        )
+      }
     assertTrue(error.message.orEmpty().contains("superseded"))
   }
 
   @Test
   fun `an unevidenced disposition is rejected at the parse seam`() {
-    val error = assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
-      GoalSubtaskReviewSummaryReducer.blockerDispositions(
-        output(mapOf("finding_id" to "F-001", "verdict" to "resolved")),
-      )
-    }
+    val error =
+      assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
+        GoalSubtaskReviewSummaryReducer.blockerDispositions(
+          output(mapOf("finding_id" to "F-001", "verdict" to "resolved")),
+        )
+      }
     assertTrue(error.message.orEmpty().contains("evidence"))
 
     assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
@@ -70,21 +78,23 @@ class GoalSubtaskBlockerDispositionParseTest {
   fun `a remediation pass dispositions blockers its immediately preceding pass introduced`() {
     val introducedByPassFour = listOf("F-041", "F-042")
 
-    val parsed = GoalSubtaskReviewSummaryReducer.blockerDispositions(
-      output(
-        mapOf("finding_id" to "F-041", "verdict" to "resolved", "evidence" to listOf("guard restored")),
-        mapOf("finding_id" to "F-042", "verdict" to "unresolved", "evidence" to listOf("still reproduces")),
-      ),
-      priorBlockerFindingIds = introducedByPassFour,
-    )
-    assertEquals(introducedByPassFour, parsed.map { it.findingId })
-
-    val error = assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
+    val parsed =
       GoalSubtaskReviewSummaryReducer.blockerDispositions(
-        output(mapOf("finding_id" to "F-001", "verdict" to "resolved", "evidence" to listOf("stale round"))),
+        output(
+          mapOf("finding_id" to "F-041", "verdict" to "resolved", "evidence" to listOf("guard restored")),
+          mapOf("finding_id" to "F-042", "verdict" to "unresolved", "evidence" to listOf("still reproduces")),
+        ),
         priorBlockerFindingIds = introducedByPassFour,
       )
-    }
+    assertEquals(introducedByPassFour, parsed.map { it.findingId })
+
+    val error =
+      assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
+        GoalSubtaskReviewSummaryReducer.blockerDispositions(
+          output(mapOf("finding_id" to "F-001", "verdict" to "resolved", "evidence" to listOf("stale round"))),
+          priorBlockerFindingIds = introducedByPassFour,
+        )
+      }
     assertTrue(
       error.message.orEmpty().contains("F-001"),
       "A disposition against an older round's Blocker must be rejected by name.",

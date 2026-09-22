@@ -37,24 +37,26 @@ internal fun seedHarborAddonPack(
   val baselineContent = packRoot.resolve("code-review/bill-harbor-code-review/content.md")
   val architectureContent = packRoot.resolve("$HARBOR_ARCHITECTURE_DIR/content.md")
   appendHarborMarker(baselineContent, HARBOR_BASELINE_MARKER)
-  val areaMarker = if (linkEntrypointFromArea) {
-    "$HARBOR_AREA_MARKER\n\nRead [$HARBOR_ENTRYPOINT_NAME]($HARBOR_ENTRYPOINT_NAME) as well."
-  } else {
-    HARBOR_AREA_MARKER
-  }
+  val areaMarker =
+    if (linkEntrypointFromArea) {
+      "$HARBOR_AREA_MARKER\n\nRead [$HARBOR_ENTRYPOINT_NAME]($HARBOR_ENTRYPOINT_NAME) as well."
+    } else {
+      HARBOR_AREA_MARKER
+    }
   appendHarborMarker(architectureContent, areaMarker)
   val manifest = packRoot.resolve("platform.yaml")
-  val rewritten = Files.readString(manifest).replace(
-    "  $HARBOR_ARCHITECTURE_DIR: []",
-    """
+  val rewritten =
+    Files.readString(manifest).replace(
+      "  $HARBOR_ARCHITECTURE_DIR: []",
+      """
     |  $HARBOR_ARCHITECTURE_DIR:
     |    - name: $HARBOR_ENTRYPOINT_NAME
     |      target: platform-packs/$HARBOR_PACK_SLUG/addons/$HARBOR_ENTRYPOINT_NAME
     |    - name: $HARBOR_COMPANION_NAME
     |      target: platform-packs/$HARBOR_PACK_SLUG/addons/$HARBOR_COMPANION_NAME
-    """.trimMargin(),
-  ) +
-    """
+      """.trimMargin(),
+    ) +
+      """
     |
     |addon_usage:
     |  $HARBOR_ARCHITECTURE_DIR:
@@ -62,7 +64,7 @@ internal fun seedHarborAddonPack(
     |      entrypoint: $HARBOR_ENTRYPOINT_NAME
     |      companion_pointers:
     |        - $HARBOR_COMPANION_NAME
-    """.trimMargin() + "\n"
+      """.trimMargin() + "\n"
   Files.writeString(manifest, rewritten)
   return HarborAddonPack(
     repoRoot = repoRoot,
@@ -74,6 +76,9 @@ internal fun seedHarborAddonPack(
   )
 }
 
-private fun appendHarborMarker(path: Path, marker: String) {
+private fun appendHarborMarker(
+  path: Path,
+  marker: String,
+) {
   Files.writeString(path, Files.readString(path).trimEnd() + "\n\n$marker\n")
 }

@@ -8,7 +8,10 @@ internal const val GOAL_EXIT_FAILED: Int = 1
 internal const val GOAL_EXIT_PAUSED: Int = 2
 internal const val GOAL_EXIT_BLOCKED: Int = 3
 
-internal fun goalRunExitCode(status: String?, reason: String?): Int {
+internal fun goalRunExitCode(
+  status: String?,
+  reason: String?,
+): Int {
   if (status?.let(GoalRunnerTerminalStatus::fromWire) == GoalRunnerTerminalStatus.COMPLETE) return GOAL_EXIT_COMPLETE
   val normalized = reason?.lowercase().orEmpty()
   return when {
@@ -21,21 +24,23 @@ internal fun goalRunExitCode(status: String?, reason: String?): Int {
 internal fun Map<String, Any?>.goalExitCode(): Int =
   goalRunExitCode(this[SharedPayloadKeys.STATUS]?.toString(), this["reason"]?.toString())
 
-internal fun Map<String, Any?>.goalStatusExitCode(): Int = if (!containsKey(
-    "status",
-  ) || this[SharedPayloadKeys.STATUS] == "ok"
-) {
-  0
-} else {
-  1
-}
+internal fun Map<String, Any?>.goalStatusExitCode(): Int =
+  if (!containsKey(
+      "status",
+    ) || this[SharedPayloadKeys.STATUS] == "ok"
+  ) {
+    0
+  } else {
+    1
+  }
 
 internal fun Map<String, Any?>.goalPauseExitCode(): Int = if (this[SharedPayloadKeys.STATUS] != "not_found") 0 else 1
 
-internal fun Map<String, Any?>.goalStopExitCode(): Int = when (this[SharedPayloadKeys.STATUS]) {
-  GoalRunnerStopStatus.STOPPED.wireValue,
-  GoalRunnerStopStatus.ALREADY_STOPPED.wireValue,
-  GoalRunnerStopStatus.NO_LIVE_LEASE.wireValue,
-  -> 0
-  else -> 1
-}
+internal fun Map<String, Any?>.goalStopExitCode(): Int =
+  when (this[SharedPayloadKeys.STATUS]) {
+    GoalRunnerStopStatus.STOPPED.wireValue,
+    GoalRunnerStopStatus.ALREADY_STOPPED.wireValue,
+    GoalRunnerStopStatus.NO_LIVE_LEASE.wireValue,
+    -> 0
+    else -> 1
+  }

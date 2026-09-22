@@ -8,6 +8,7 @@ import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitSource
 import skillbill.review.context.model.commit.ReviewCommitUnit
 import java.nio.file.Path
+
 internal data class SharedReviewEvidenceCommits(
   val baseRevision: String,
   val headRevision: String,
@@ -38,15 +39,16 @@ class SharedReviewEvidenceAssembler(private val diffResolver: DiffResolverPort) 
     range: ReviewCommitRange,
     suppliedDiff: Boolean,
   ): SharedReviewEvidenceCommits {
-    val declaredSynthetic = when {
-      suppliedDiff -> ReviewCommitSource.SYNTHETIC_SUPPLIED_DIFF
-      scope == ParallelReviewScope.STAGED ||
-        scope == ParallelReviewScope.UNSTAGED ||
-        scope == ParallelReviewScope.UNCOMMITTED ||
-        scope == ParallelReviewScope.WORKTREE_FROM_BASE ->
-        ReviewCommitSource.SYNTHETIC_WORKING_TREE
-      else -> null
-    }
+    val declaredSynthetic =
+      when {
+        suppliedDiff -> ReviewCommitSource.SYNTHETIC_SUPPLIED_DIFF
+        scope == ParallelReviewScope.STAGED ||
+          scope == ParallelReviewScope.UNSTAGED ||
+          scope == ParallelReviewScope.UNCOMMITTED ||
+          scope == ParallelReviewScope.WORKTREE_FROM_BASE ->
+          ReviewCommitSource.SYNTHETIC_WORKING_TREE
+        else -> null
+      }
     if (declaredSynthetic != null) {
       return synthetic(range, declaredSynthetic, "non-commit review scope")
     }
@@ -76,37 +78,53 @@ class SharedReviewEvidenceAssembler(private val diffResolver: DiffResolverPort) 
     )
   }
 
-  private fun synthetic(range: ReviewCommitRange, source: ReviewCommitSource, reason: String) =
-    SharedReviewEvidenceCommits(
-      baseRevision = range.baseRevision,
-      headRevision = range.headRevision,
-      commits = emptyList(),
-      syntheticSource = source,
-      syntheticReason = reason,
-    )
+  private fun synthetic(
+    range: ReviewCommitRange,
+    source: ReviewCommitSource,
+    reason: String,
+  ) = SharedReviewEvidenceCommits(
+    baseRevision = range.baseRevision,
+    headRevision = range.headRevision,
+    commits = emptyList(),
+    syntheticSource = source,
+    syntheticReason = reason,
+  )
 
-  private fun revList(repoRoot: Path, range: ReviewCommitRange): List<String> {
-    val output = diffResolver
-      .runProcess(listOf("git", "rev-list", "--first-parent", "--reverse", range.span), repoRoot)
-      ?: throw DiffResolutionException("Could not enumerate the commit sequence for ${range.span}.")
+  private fun revList(
+    repoRoot: Path,
+    range: ReviewCommitRange,
+  ): List<String> {
+    val output =
+      diffResolver
+        .runProcess(listOf("git", "rev-list", "--first-parent", "--reverse", range.span), repoRoot)
+        ?: throw DiffResolutionException("Could not enumerate the commit sequence for ${range.span}.")
     return output.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
   }
 
-  private fun readCommit(repoRoot: Path, sha: String, baseRevision: String): RawCommitDiff {
-    val metadata = diffResolver.runProcess(listOf("git", "show", "-s", "--format=%P%n%s", sha), repoRoot)
-      ?: throw DiffResolutionException("Could not read commit metadata for '$sha'.")
+  private fun readCommit(
+    repoRoot: Path,
+    sha: String,
+    baseRevision: String,
+  ): RawCommitDiff {
+    val metadata =
+      diffResolver.runProcess(listOf("git", "show", "-s", "--format=%P%n%s", sha), repoRoot)
+        ?: throw DiffResolutionException("Could not read commit metadata for '$sha'.")
     val lines = metadata.lines()
 
     val parent = lines.firstOrNull()?.trim()?.split(" ")?.firstOrNull()?.takeIf { it.isNotEmpty() } ?: baseRevision
     val subject = lines.drop(1).joinToString("\n").trim()
-    val diff = diffResolver.runProcess(listOf("git", "diff", parent, sha), repoRoot)
-      ?: throw DiffResolutionException("Could not read the incremental diff for commit '$sha'.")
+    val diff =
+      diffResolver.runProcess(listOf("git", "diff", parent, sha), repoRoot)
+        ?: throw DiffResolutionException("Could not read the incremental diff for commit '$sha'.")
     return RawCommitDiff(sha, parent, subject, diff)
   }
 }
 
 object SharedReviewEvidenceProjection {
-  internal fun project(record: SharedReviewEvidenceCommits, aggregate: ReviewDiffEvidence): ResolvedCommitSequence {
+  internal fun project(
+    record: SharedReviewEvidenceCommits,
+    aggregate: ReviewDiffEvidence,
+  ): ResolvedCommitSequence {
     val range = ReviewCommitRange(record.baseRevision, record.headRevision)
     record.syntheticSource?.let { source ->
       return ResolvedCommitSequence(
@@ -135,7 +153,11 @@ object SharedReviewEvidenceProjection {
     )
   }
 
-  private fun verifyCoverage(units: List<ReviewCommitUnit>, aggregate: ReviewDiffEvidence, range: ReviewCommitRange) {
+  private fun verifyCoverage(
+    units: List<ReviewCommitUnit>,
+    aggregate: ReviewDiffEvidence,
+    range: ReviewCommitRange,
+  ) {
     coverageViolation(units, aggregate, range)?.let { throw DiffResolutionException(it) }
   }
 
@@ -147,8 +169,9 @@ object SharedReviewEvidenceProjection {
     val shas = units.map { it.commitSha }
     val brokenLink = units.zipWithNext().firstOrNull { (previous, next) -> next.parentSha != previous.commitSha }
     val hunkIds = units.flatMap { it.hunkIds }
-    val uncovered = aggregate.hunks.map { it.path }.toSet() -
-      units.flatMap { unit -> unit.hunks.map { it.path } }.toSet()
+    val uncovered =
+      aggregate.hunks.map { it.path }.toSet() -
+        units.flatMap { unit -> unit.hunks.map { it.path } }.toSet()
     return when {
       units.last().commitSha != range.headRevision ->
         "Resolved commit sequence does not span ${range.span}; the review delta would be incomplete."

@@ -21,6 +21,7 @@ import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.io.IOException
+
 @Inject
 class FeatureTaskRuntimePlanningStopper(
   private val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
@@ -28,7 +29,6 @@ class FeatureTaskRuntimePlanningStopper(
   private val decomposeTerminalRecorder: FeatureTaskRuntimeDecomposeTerminalRecorder,
   private val diagnostics: RuntimeDiagnostics,
 ) {
-
   fun resolve(
     request: FeatureTaskRuntimeRunRequest,
     completedOutput: FeatureTaskRuntimePhaseOutput,
@@ -73,13 +73,15 @@ class FeatureTaskRuntimePlanningStopper(
     resolvedBranch: String?,
     specSource: SpecSource,
   ): FeatureTaskRuntimePlanningStopDecision {
-    val parsed = outputValidator
-      .validatePhaseOutput(completedOutput.payload, FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN)
-      .requireAcceptedOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN)
-      .normalizedOutput
-      .envelopePayload()
-    val outcome = decomposePlanOutcomeFromPhaseOutput(parsed, specSource)
-      ?: return FeatureTaskRuntimePlanningStopDecision.Proceed
+    val parsed =
+      outputValidator
+        .validatePhaseOutput(completedOutput.payload, FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN)
+        .requireAcceptedOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN)
+        .normalizedOutput
+        .envelopePayload()
+    val outcome =
+      decomposePlanOutcomeFromPhaseOutput(parsed, specSource)
+        ?: return FeatureTaskRuntimePlanningStopDecision.Proceed
     val terminal = writeDecompositionTerminal(request, outcome)
     decomposeTerminalRecorder.recordDecomposeTerminal(request.workflowId, terminal)
     emitDecomposedAtPlanning(request, terminal)
@@ -92,18 +94,20 @@ class FeatureTaskRuntimePlanningStopper(
     request: FeatureTaskRuntimeRunRequest,
     outcome: FeatureTaskRuntimeDecomposePlanOutcome,
   ): FeatureTaskRuntimeDecomposeTerminal {
-    val writeResult = decompositionPlanner.writeDecomposition(
-      repoRoot = request.repoRoot,
-      issueKey = request.issueKey,
-      runInvariants = request.runInvariants,
-      outcome = outcome,
-    )
+    val writeResult =
+      decompositionPlanner.writeDecomposition(
+        repoRoot = request.repoRoot,
+        issueKey = request.issueKey,
+        runInvariants = request.runInvariants,
+        outcome = outcome,
+      )
     return FeatureTaskRuntimeDecomposeTerminal(
       reason = outcome.reason,
       parentSpecPath = writeResult.parentSpecPath,
-      decompositionManifestPath = requireNotNull(writeResult.decompositionManifestPath) {
-        "Decomposed feature-spec write result must include a decomposition manifest path."
-      },
+      decompositionManifestPath =
+        requireNotNull(writeResult.decompositionManifestPath) {
+          "Decomposed feature-spec write result must include a decomposition manifest path."
+        },
       subtaskSpecPaths = writeResult.subtaskSpecPaths,
     )
   }
@@ -133,22 +137,24 @@ class FeatureTaskRuntimePlanningStopper(
     request: FeatureTaskRuntimeRunRequest,
     completedPhaseIds: List<String>,
     resolvedBranch: String?,
-  ): FeatureTaskRuntimeRunReport.Decomposed = FeatureTaskRuntimeRunReport.Decomposed(
-    issueKey = request.issueKey,
-    workflowId = request.workflowId,
-    featureSize = request.runInvariants.featureSize.name,
-    reason = reason,
-    completedPhaseIds = completedPhaseIds,
-    parentSpecPath = parentSpecPath,
-    decompositionManifestPath = decompositionManifestPath,
-    subtaskSpecPaths = subtaskSpecPaths,
-    resolvedBranch = resolvedBranch,
-  )
+  ): FeatureTaskRuntimeRunReport.Decomposed =
+    FeatureTaskRuntimeRunReport.Decomposed(
+      issueKey = request.issueKey,
+      workflowId = request.workflowId,
+      featureSize = request.runInvariants.featureSize.name,
+      reason = reason,
+      completedPhaseIds = completedPhaseIds,
+      parentSpecPath = parentSpecPath,
+      decompositionManifestPath = decompositionManifestPath,
+      subtaskSpecPaths = subtaskSpecPaths,
+      resolvedBranch = resolvedBranch,
+    )
 
   private fun malformedDecomposeReason(detail: String): String {
-    val bounded = detail.takeIf(String::isNotBlank)?.let {
-      if (it.length <= MALFORMED_DETAIL_MAX_CHARS) it else it.take(MALFORMED_DETAIL_MAX_CHARS) + "… [truncated]"
-    }
+    val bounded =
+      detail.takeIf(String::isNotBlank)?.let {
+        if (it.length <= MALFORMED_DETAIL_MAX_CHARS) it else it.take(MALFORMED_DETAIL_MAX_CHARS) + "… [truncated]"
+      }
     return "Plan declared mode 'decompose' but emitted a malformed decomposition package; the runtime " +
       "blocks at planning rather than crashing or advancing to implement." +
       (bounded?.let { " Schema problem: $it" } ?: "")

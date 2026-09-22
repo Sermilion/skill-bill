@@ -32,7 +32,10 @@ class ParallelCodeReviewRunnerVerificationStages(
   val runtimeOwnedPersistence: RuntimeOwnedPersistenceBoundary,
   val clock: Clock,
 ) {
-  fun recordedFindingVerdicts(reviewRunId: String?, inMemory: List<ReviewFindingVerdict>): List<ReviewFindingVerdict> {
+  fun recordedFindingVerdicts(
+    reviewRunId: String?,
+    inMemory: List<ReviewFindingVerdict>,
+  ): List<ReviewFindingVerdict> {
     if (reviewRunId == null) return inMemory
     return runtimeOwnedPersistence.requiredRead(
       seam = "ParallelCodeReviewRunner.recordedFindingVerdicts",
@@ -48,10 +51,11 @@ class ParallelCodeReviewRunnerVerificationStages(
     val boundaries = reviewStageBoundaries(reviewRunId)
     val claims = claimVerificationClaims(reviewRunId, boundaries, result.mergeResult.findings)
     val existing = reviewFindingVerdicts(reviewRunId)
-    val verifiedRefs = existing
-      .filter { it.stage == ReviewStage.VERIFICATION }
-      .map { it.findingRef }
-      .toSet()
+    val verifiedRefs =
+      existing
+        .filter { it.stage == ReviewStage.VERIFICATION }
+        .map { it.findingRef }
+        .toSet()
     if (claims.isNotEmpty() && claims.all { it.fNumber in verifiedRefs }) {
       if (reviewRunId != null) recordVerificationBoundary(reviewRunId)
       return ReviewClaimVerificationOutcome(verdicts = existing)
@@ -68,25 +72,27 @@ class ParallelCodeReviewRunnerVerificationStages(
         ),
       )?.let { return it }
     }
-    val outcome = ReviewClaimVerificationRunner(parentReviewLauncher, reviewContextEnvelopeValidator, clock).run(
-      ReviewClaimVerificationRunRequest(
-        packet = initial.compiledLaunchRequests.firstOrNull()?.packet,
-        reviewOutput = verificationInput,
-        findings = claims,
-        existingVerdicts = existing,
-        mode = initial.resolvedMode,
-        launch = initial.delegatedStageLaunch(),
-      ),
-    )
-    val verdicts = persistClaimVerificationOutcome(
-      PersistClaimVerificationInput(
-        reviewRunId = reviewRunId,
-        claims = claims,
-        existing = existing,
-        outcome = outcome,
-        lane = result.lane1,
-      ),
-    )
+    val outcome =
+      ReviewClaimVerificationRunner(parentReviewLauncher, reviewContextEnvelopeValidator, clock).run(
+        ReviewClaimVerificationRunRequest(
+          packet = initial.compiledLaunchRequests.firstOrNull()?.packet,
+          reviewOutput = verificationInput,
+          findings = claims,
+          existingVerdicts = existing,
+          mode = initial.resolvedMode,
+          launch = initial.delegatedStageLaunch(),
+        ),
+      )
+    val verdicts =
+      persistClaimVerificationOutcome(
+        PersistClaimVerificationInput(
+          reviewRunId = reviewRunId,
+          claims = claims,
+          existing = existing,
+          outcome = outcome,
+          lane = result.lane1,
+        ),
+      )
     return ReviewClaimVerificationOutcome(
       verdicts = verdicts,
       output = outcome.output,
@@ -103,33 +109,36 @@ class ParallelCodeReviewRunnerVerificationStages(
     val reviewRunId = initial.request.reviewRunId
     durableAdjudication(reviewRunId)?.let { return ReviewSpecAdjudicationOutcome(verdicts = it) }
     val projection = (initial.specIntentResolution as? SpecIntentResolution.Resolved)?.projection
-    val claims = if (reviewRunId == null) {
-      result.mergeResult.findings
-    } else {
-      runtimeOwnedPersistence.requiredRead(
-        seam = "ParallelCodeReviewRunner.runSpecAdjudication.claims",
-        expected = "runtime-owned review pass claims",
-      ) { unitOfWork -> unitOfWork.reviews.fetchReviewPassClaims(reviewRunId) }
-        ?.findings
-        .orEmpty()
-    }
-    val existing = if (reviewRunId == null) {
-      emptyList()
-    } else {
-      runtimeOwnedPersistence.requiredRead(
-        seam = "ParallelCodeReviewRunner.runSpecAdjudication.verdicts",
-        expected = "runtime-owned finding verdicts",
-      ) { unitOfWork -> unitOfWork.reviews.fetchFindingVerdicts(reviewRunId) }
-    }
-    val outcome = ReviewSpecAdjudicationRunner(parentReviewLauncher, reviewContextEnvelopeValidator, clock).run(
-      ReviewSpecAdjudicationRunRequest(
-        packet = initial.compiledLaunchRequests.firstOrNull()?.packet,
-        findings = claims,
-        existingVerdicts = existing,
-        projection = projection,
-        launch = initial.delegatedStageLaunch(),
-      ),
-    )
+    val claims =
+      if (reviewRunId == null) {
+        result.mergeResult.findings
+      } else {
+        runtimeOwnedPersistence.requiredRead(
+          seam = "ParallelCodeReviewRunner.runSpecAdjudication.claims",
+          expected = "runtime-owned review pass claims",
+        ) { unitOfWork -> unitOfWork.reviews.fetchReviewPassClaims(reviewRunId) }
+          ?.findings
+          .orEmpty()
+      }
+    val existing =
+      if (reviewRunId == null) {
+        emptyList()
+      } else {
+        runtimeOwnedPersistence.requiredRead(
+          seam = "ParallelCodeReviewRunner.runSpecAdjudication.verdicts",
+          expected = "runtime-owned finding verdicts",
+        ) { unitOfWork -> unitOfWork.reviews.fetchFindingVerdicts(reviewRunId) }
+      }
+    val outcome =
+      ReviewSpecAdjudicationRunner(parentReviewLauncher, reviewContextEnvelopeValidator, clock).run(
+        ReviewSpecAdjudicationRunRequest(
+          packet = initial.compiledLaunchRequests.firstOrNull()?.packet,
+          findings = claims,
+          existingVerdicts = existing,
+          projection = projection,
+          launch = initial.delegatedStageLaunch(),
+        ),
+      )
     val verdicts = persistAdjudication(reviewRunId, outcome)
     return outcome.copy(verdicts = verdicts)
   }
@@ -154,47 +163,51 @@ class ParallelCodeReviewRunnerVerificationStages(
 
 internal fun ParallelCodeReviewRunnerVerificationStages.reviewStageBoundaries(
   reviewRunId: String?,
-): List<ReviewStageBoundary> = if (reviewRunId == null) {
-  emptyList()
-} else {
-  runtimeOwnedPersistence.requiredRead(
-    seam = "ParallelCodeReviewRunner.reviewStageBoundaries",
-    expected = "runtime-owned review stage boundaries",
-  ) { unitOfWork -> unitOfWork.reviews.fetchStageBoundaries(reviewRunId) }
-}
+): List<ReviewStageBoundary> =
+  if (reviewRunId == null) {
+    emptyList()
+  } else {
+    runtimeOwnedPersistence.requiredRead(
+      seam = "ParallelCodeReviewRunner.reviewStageBoundaries",
+      expected = "runtime-owned review stage boundaries",
+    ) { unitOfWork -> unitOfWork.reviews.fetchStageBoundaries(reviewRunId) }
+  }
 
 internal fun ParallelCodeReviewRunnerVerificationStages.claimVerificationClaims(
   reviewRunId: String?,
   boundaries: List<ReviewStageBoundary>,
   mergedFindings: List<ParallelReviewMergedFinding>,
-): List<ParallelReviewMergedFinding> = if (reviewRunId == null) {
-  mergedFindings
-} else {
-  val reviewReached = boundaries.any {
-    it.stage == ReviewStage.REVIEW && it.reached == ReviewStageReached.REACHED
-  }
-  if (!reviewReached) {
-    emptyList()
+): List<ParallelReviewMergedFinding> =
+  if (reviewRunId == null) {
+    mergedFindings
   } else {
-    runtimeOwnedPersistence.requiredRead(
-      seam = "ParallelCodeReviewRunner.claimVerificationClaims",
-      expected = "runtime-owned review pass claims",
-    ) { unitOfWork -> unitOfWork.reviews.fetchReviewPassClaims(reviewRunId) }
-      ?.findings
-      .orEmpty()
+    val reviewReached =
+      boundaries.any {
+        it.stage == ReviewStage.REVIEW && it.reached == ReviewStageReached.REACHED
+      }
+    if (!reviewReached) {
+      emptyList()
+    } else {
+      runtimeOwnedPersistence.requiredRead(
+        seam = "ParallelCodeReviewRunner.claimVerificationClaims",
+        expected = "runtime-owned review pass claims",
+      ) { unitOfWork -> unitOfWork.reviews.fetchReviewPassClaims(reviewRunId) }
+        ?.findings
+        .orEmpty()
+    }
   }
-}
 
 internal fun ParallelCodeReviewRunnerVerificationStages.reviewFindingVerdicts(
   reviewRunId: String?,
-): List<ReviewFindingVerdict> = if (reviewRunId == null) {
-  emptyList()
-} else {
-  runtimeOwnedPersistence.requiredRead(
-    seam = "ParallelCodeReviewRunner.reviewFindingVerdicts",
-    expected = "runtime-owned finding verdicts",
-  ) { unitOfWork -> unitOfWork.reviews.fetchFindingVerdicts(reviewRunId) }
-}
+): List<ReviewFindingVerdict> =
+  if (reviewRunId == null) {
+    emptyList()
+  } else {
+    runtimeOwnedPersistence.requiredRead(
+      seam = "ParallelCodeReviewRunner.reviewFindingVerdicts",
+      expected = "runtime-owned finding verdicts",
+    ) { unitOfWork -> unitOfWork.reviews.fetchFindingVerdicts(reviewRunId) }
+  }
 
 internal data class EmptyClaimsShortCircuitInput(
   val reviewRunId: String?,
@@ -216,8 +229,9 @@ internal fun reviewPassNonSuccess(lane: ParallelReviewLaneStatus): ReviewVerific
   if (lane.success && lane.reviewDisposition == ReviewLaneReviewDisposition.COMPLETE) return null
   return ReviewVerificationNonSuccess(
     reason = ReviewStageDegradationReason.REVIEW_PASS_OUTPUT_ABSENT,
-    detail = lane.failureReason?.takeIf(String::isNotBlank)
-      ?: "the review pass returned ${lane.reviewDisposition.wireValue} output, so there is no disposition to verify",
+    detail =
+      lane.failureReason?.takeIf(String::isNotBlank)
+        ?: "the review pass returned ${lane.reviewDisposition.wireValue} output, so there is no disposition to verify",
   )
 }
 
@@ -265,10 +279,11 @@ internal fun ParallelCodeReviewRunnerVerificationStages.persistClaimVerification
       unitOfWork.reviews.recordFindingVerdicts(reviewRunId, outcome.verdicts)
     }
   }
-  val recordedRefs = (input.existing + outcome.verdicts)
-    .filter { it.stage == ReviewStage.VERIFICATION }
-    .map { it.findingRef }
-    .toSet()
+  val recordedRefs =
+    (input.existing + outcome.verdicts)
+      .filter { it.stage == ReviewStage.VERIFICATION }
+      .map { it.findingRef }
+      .toSet()
   if (claims.isNotEmpty() && claims.all { it.fNumber in recordedRefs }) {
     recordVerificationBoundary(reviewRunId)
   } else if (claims.isEmpty() && outcome.skipReason == null && reviewPassNonSuccess(input.lane) == null) {
@@ -298,19 +313,22 @@ internal fun ParallelCodeReviewRunnerVerificationStages.durableAdjudication(
   reviewRunId: String?,
 ): List<ReviewFindingVerdict>? {
   if (reviewRunId == null) return null
-  val boundaries = runtimeOwnedPersistence.requiredRead(
-    seam = "ParallelCodeReviewRunner.durableAdjudication",
-    expected = "runtime-owned adjudication stage boundaries",
-  ) { unitOfWork ->
-    unitOfWork.reviews.fetchStageBoundaries(reviewRunId)
-  }
-  val verificationReached = boundaries.any {
-    it.stage == ReviewStage.VERIFICATION && it.reached == ReviewStageReached.REACHED
-  }
+  val boundaries =
+    runtimeOwnedPersistence.requiredRead(
+      seam = "ParallelCodeReviewRunner.durableAdjudication",
+      expected = "runtime-owned adjudication stage boundaries",
+    ) { unitOfWork ->
+      unitOfWork.reviews.fetchStageBoundaries(reviewRunId)
+    }
+  val verificationReached =
+    boundaries.any {
+      it.stage == ReviewStage.VERIFICATION && it.reached == ReviewStageReached.REACHED
+    }
   if (!verificationReached) return emptyList()
-  val adjudicationReached = boundaries.any {
-    it.stage == ReviewStage.ADJUDICATION && it.reached == ReviewStageReached.REACHED
-  }
+  val adjudicationReached =
+    boundaries.any {
+      it.stage == ReviewStage.ADJUDICATION && it.reached == ReviewStageReached.REACHED
+    }
   if (!adjudicationReached) return null
   return runtimeOwnedPersistence.requiredRead(
     seam = "ParallelCodeReviewRunner.durableAdjudication.verdicts",

@@ -69,29 +69,32 @@ internal fun decodeParallelReviewStructuredString(encoded: String): String {
 private fun applyTrailingStructuredToken(
   token: String,
   current: ParallelReviewTrailingStructuredFields,
-): ParallelReviewTrailingStructuredFields? = when {
-  token.startsWith("claim_verdict=") -> {
-    val parsed = ReviewClaimVerdict.entries.firstOrNull {
-      it.wireValue == token.removePrefix("claim_verdict=").trim()
-    } ?: return null
-    current.copy(claimVerdict = parsed)
+): ParallelReviewTrailingStructuredFields? =
+  when {
+    token.startsWith("claim_verdict=") -> {
+      val parsed =
+        ReviewClaimVerdict.entries.firstOrNull {
+          it.wireValue == token.removePrefix("claim_verdict=").trim()
+        } ?: return null
+      current.copy(claimVerdict = parsed)
+    }
+    token.startsWith("scope_disposition=") -> {
+      val parsed =
+        ReviewScopeDisposition.entries.firstOrNull {
+          it.wireValue == token.removePrefix("scope_disposition=").trim()
+        } ?: return null
+      current.copy(scopeDisposition = parsed)
+    }
+    token.startsWith("citations=") -> {
+      val decoded = parseCitationToken(token.removePrefix("citations="))
+      current.copy(citations = decoded.citations, citationDiagnostics = decoded.diagnostics)
+    }
+    token.startsWith("severity_adjustment=") -> {
+      val parsed = parseSeverityAdjustmentToken(token.removePrefix("severity_adjustment=")) ?: return null
+      current.copy(severityAdjustment = parsed)
+    }
+    else -> null
   }
-  token.startsWith("scope_disposition=") -> {
-    val parsed = ReviewScopeDisposition.entries.firstOrNull {
-      it.wireValue == token.removePrefix("scope_disposition=").trim()
-    } ?: return null
-    current.copy(scopeDisposition = parsed)
-  }
-  token.startsWith("citations=") -> {
-    val decoded = parseCitationToken(token.removePrefix("citations="))
-    current.copy(citations = decoded.citations, citationDiagnostics = decoded.diagnostics)
-  }
-  token.startsWith("severity_adjustment=") -> {
-    val parsed = parseSeverityAdjustmentToken(token.removePrefix("severity_adjustment=")) ?: return null
-    current.copy(severityAdjustment = parsed)
-  }
-  else -> null
-}
 
 private fun parseCitationToken(raw: String): ReviewFindingCitationsDecode {
   val citations = mutableListOf<ReviewFindingCitation>()
@@ -117,11 +120,12 @@ private fun parseCitationToken(raw: String): ReviewFindingCitationsDecode {
         when {
           parsed == null -> diagnostics += ReviewFindingCitationDiagnostic(index, path, lineRaw, "non_numeric_line")
           parsed < 0 -> diagnostics += ReviewFindingCitationDiagnostic(index, path, lineRaw, "non_positive_line")
-          else -> try {
-            citations += ReviewFindingCitation(path, if (parsed == 0) 1 else parsed)
-          } catch (_: IllegalArgumentException) {
-            diagnostics += ReviewFindingCitationDiagnostic(index, path, lineRaw, "invalid_path")
-          }
+          else ->
+            try {
+              citations += ReviewFindingCitation(path, if (parsed == 0) 1 else parsed)
+            } catch (_: IllegalArgumentException) {
+              diagnostics += ReviewFindingCitationDiagnostic(index, path, lineRaw, "invalid_path")
+            }
         }
       }
     }
@@ -132,9 +136,10 @@ private fun parseCitationToken(raw: String): ReviewFindingCitationsDecode {
 private fun parseSeverityAdjustmentToken(raw: String): ReviewSeverityAdjustment? {
   val separator = raw.indexOf(": ")
   if (separator <= 0) return null
-  val direction = ReviewSeverityAdjustmentDirection.entries.firstOrNull {
-    it.wireValue == raw.substring(0, separator).trim()
-  } ?: return null
+  val direction =
+    ReviewSeverityAdjustmentDirection.entries.firstOrNull {
+      it.wireValue == raw.substring(0, separator).trim()
+    } ?: return null
   val justification = raw.substring(separator + 2).trim().takeIf(String::isNotBlank) ?: return null
   return ReviewSeverityAdjustment(direction, justification)
 }

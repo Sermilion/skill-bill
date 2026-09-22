@@ -65,10 +65,11 @@ class FeatureTaskRuntimeSharedReviewEvidenceReferenceTest {
   @Test
   fun `rendered size stays constant as changed file and hunk counts grow`() {
     val oneFile = FeatureTaskRuntimeSharedReviewEvidenceReference.of("store", artifact(fileCount = 1))
-    val manyFiles = FeatureTaskRuntimeSharedReviewEvidenceReference.of(
-      "store",
-      artifact(fileCount = FEATURE_TASK_RUNTIME_CHANGED_PATH_MAX_COUNT * 2, hunksPerFile = 8),
-    )
+    val manyFiles =
+      FeatureTaskRuntimeSharedReviewEvidenceReference.of(
+        "store",
+        artifact(fileCount = FEATURE_TASK_RUNTIME_CHANGED_PATH_MAX_COUNT * 2, hunksPerFile = 8),
+      )
 
     assertEquals(
       oneFile.toProjectionFields().sumOf { it.value.itemCount },
@@ -86,10 +87,11 @@ class FeatureTaskRuntimeSharedReviewEvidenceReferenceTest {
   @Test
   fun `the digest separates two artifacts that index different files`() {
     val original = FeatureTaskRuntimeSharedReviewEvidenceReference.of("store", artifact(fileCount = 2))
-    val renamed = FeatureTaskRuntimeSharedReviewEvidenceReference.of(
-      "store",
-      artifact(fileCount = 2).let { it.copy(files = it.files.map { file -> file.copy(path = "x-${file.path}") }) },
-    )
+    val renamed =
+      FeatureTaskRuntimeSharedReviewEvidenceReference.of(
+        "store",
+        artifact(fileCount = 2).let { it.copy(files = it.files.map { file -> file.copy(path = "x-${file.path}") }) },
+      )
 
     assertNotEquals(original.fileHunkIndexDigest, renamed.fileHunkIndexDigest)
     assertEquals(
@@ -103,27 +105,34 @@ class FeatureTaskRuntimeSharedReviewEvidenceReferenceTest {
     assertFailsWith<IllegalArgumentException> { reference(digest = "not-a-digest") }
   }
 
-  private fun artifact(fileCount: Int = 1, hunksPerFile: Int = 1) = FeatureTaskRuntimeSharedEvidenceArtifact(
+  private fun artifact(
+    fileCount: Int = 1,
+    hunksPerFile: Int = 1,
+  ) = FeatureTaskRuntimeSharedEvidenceArtifact(
     fingerprint = "fp",
     baseRef = "base",
     headRef = "head",
     files = (1..fileCount).map { FeatureTaskRuntimeSharedEvidenceFileEntry("f$it.kt", "modified") },
-    hunks = (1..fileCount).flatMap { file ->
-      (1..hunksPerFile).map { FeatureTaskRuntimeSharedEvidenceHunkEntry("f$file.kt", "@@ -$it +$it @@") }
-    },
+    hunks =
+      (1..fileCount).flatMap { file ->
+        (1..hunksPerFile).map { FeatureTaskRuntimeSharedEvidenceHunkEntry("f$file.kt", "@@ -$it +$it @@") }
+      },
     diffPayload = FeatureTaskRuntimeSharedEvidenceDiffPayloadRef("diff.patch", 1),
   )
 
-  private fun reference(storePath: String = "store", fingerprint: String = "fp", digest: String = "0".repeat(64)) =
-    FeatureTaskRuntimeSharedReviewEvidenceReference(
-      storePath = storePath,
-      checkpointFingerprint = fingerprint,
-      baseRef = "base",
-      headRef = "head",
-      changedFileCount = 1,
-      changedHunkCount = 1,
-      fileHunkIndexDigest = digest,
-    )
+  private fun reference(
+    storePath: String = "store",
+    fingerprint: String = "fp",
+    digest: String = "0".repeat(64),
+  ) = FeatureTaskRuntimeSharedReviewEvidenceReference(
+    storePath = storePath,
+    checkpointFingerprint = fingerprint,
+    baseRef = "base",
+    headRef = "head",
+    changedFileCount = 1,
+    changedHunkCount = 1,
+    fileHunkIndexDigest = digest,
+  )
 
   private companion object {
     const val PATH_FREE_GROWTH_BYTES = 16

@@ -7,10 +7,11 @@ import kotlin.test.assertNotNull
 class PackageClusteringArchitectureTest {
   @Test
   fun `clustered packages do not hold loose files bound to sibling area clusters`() {
-    val violations = ArchitectureScanSupport.packageClusteringViolations(
-      sourceRoots = PrincipleEnforcementInventory.packageClusteringSourceRoots,
-      genericSegments = PrincipleEnforcementInventory.packageClusteringGenericSegments,
-    )
+    val violations =
+      ArchitectureScanSupport.packageClusteringViolations(
+        sourceRoots = PrincipleEnforcementInventory.packageClusteringSourceRoots,
+        genericSegments = PrincipleEnforcementInventory.packageClusteringGenericSegments,
+      )
     assertEquals(
       emptyList(),
       violations,
@@ -20,12 +21,13 @@ class PackageClusteringArchitectureTest {
 
   @Test
   fun `package clustering scanner fires on synthetic cross-area loose file fixture`() {
-    val violation = ArchitectureScanSupport.packageClusteringViolationMessage(
-      packageName = "skillbill.application",
-      primaryName = "FeatureTaskRuntimeLeaky",
-      areaChildren = setOf("featuretask", "goalrunner", "review", "model"),
-      genericSegments = PrincipleEnforcementInventory.packageClusteringGenericSegments,
-    )
+    val violation =
+      ArchitectureScanSupport.packageClusteringViolationMessage(
+        packageName = "skillbill.application",
+        primaryName = "FeatureTaskRuntimeLeaky",
+        areaChildren = setOf("featuretask", "goalrunner", "review", "model"),
+        genericSegments = PrincipleEnforcementInventory.packageClusteringGenericSegments,
+      )
     assertNotNull(
       violation,
       "Regression if a FeatureTask type can live loose under skillbill.application while featuretask is already a" +

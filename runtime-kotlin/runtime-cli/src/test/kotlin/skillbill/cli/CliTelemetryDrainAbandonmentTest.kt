@@ -15,7 +15,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class CliTelemetryDrainAbandonmentTest {
-
   @Test
   fun `an abandoned drain records the degradation without printing to the run surfaces`() {
     val home = Files.createTempDirectory("skillbill-drain-abandon")
@@ -49,13 +48,14 @@ class CliTelemetryDrainAbandonmentTest {
     requester: RemoteTransportPort,
     stdout: StringBuilder,
     stderr: StringBuilder,
-  ): CliRuntimeContext = CliRuntimeContext(
-    dbPathOverride = dbPath.toString(),
-    userHome = home,
-    requester = requester,
-    liveStdout = { stdout.append(it) },
-    liveStderr = { stderr.append(it) },
-  )
+  ): CliRuntimeContext =
+    CliRuntimeContext(
+      dbPathOverride = dbPath.toString(),
+      userHome = home,
+      requester = requester,
+      liveStdout = { stdout.append(it) },
+      liveStderr = { stderr.append(it) },
+    )
 }
 
 private class BlockingTelemetryRequester : RemoteTransportPort {

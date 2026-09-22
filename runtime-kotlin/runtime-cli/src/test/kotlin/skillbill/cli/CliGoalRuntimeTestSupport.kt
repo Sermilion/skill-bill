@@ -44,10 +44,11 @@ import kotlin.test.assertTrue
 
 internal fun startRunningRuntimeGoalChild(fixture: GoalCliFixture): String {
   val childWorkflowId = startRunningGoalChild(fixture)
-  val runtimeWorkflow = RuntimeWorkflowTestSupport.open(
-    fixture.dbPath,
-    fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-  )
+  val runtimeWorkflow =
+    RuntimeWorkflowTestSupport.open(
+      fixture.dbPath,
+      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+    )
   ensureTestDatabase(fixture.dbPath).use { connection ->
     connection.prepareStatement(
       "UPDATE feature_task_workflows SET artifacts_json = replace(artifacts_json, ?, ?) " +
@@ -62,7 +63,10 @@ internal fun startRunningRuntimeGoalChild(fixture: GoalCliFixture): String {
   return runtimeWorkflow["workflow_id"] as String
 }
 
-internal fun seedLiveWorkerLease(fixture: GoalCliFixture, workflowId: String) {
+internal fun seedLiveWorkerLease(
+  fixture: GoalCliFixture,
+  workflowId: String,
+) {
   ensureTestDatabase(fixture.dbPath).use { connection ->
     connection.prepareStatement(
       """
@@ -85,7 +89,10 @@ internal fun seedLiveWorkerLease(fixture: GoalCliFixture, workflowId: String) {
   }
 }
 
-internal fun clearWorkerLease(fixture: GoalCliFixture, workflowId: String) {
+internal fun clearWorkerLease(
+  fixture: GoalCliFixture,
+  workflowId: String,
+) {
   ensureTestDatabase(fixture.dbPath).use { connection ->
     connection.prepareStatement(
       "DELETE FROM feature_task_runtime_worker_leases WHERE workflow_id = ?",
@@ -96,7 +103,10 @@ internal fun clearWorkerLease(fixture: GoalCliFixture, workflowId: String) {
   }
 }
 
-internal fun seedExpiredWorkerLease(fixture: GoalCliFixture, workflowId: String) {
+internal fun seedExpiredWorkerLease(
+  fixture: GoalCliFixture,
+  workflowId: String,
+) {
   ensureTestDatabase(fixture.dbPath).use { connection ->
     connection.prepareStatement(
       """
@@ -130,24 +140,26 @@ internal fun seedIssue342StaleParentControlState(fixture: GoalCliFixture) {
       }
     }
     rows.forEach { (parentWorkflowId, json) ->
-      val state = JsonCodec.anyToStringAnyMap(
-        JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(json))),
-      ).orEmpty().toMutableMap()
+      val state =
+        JsonCodec.anyToStringAnyMap(
+          JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(json))),
+        ).orEmpty().toMutableMap()
       state["paused"] = true
       state["pause_requested"] = true
       state["pause_consumed"] = true
       state["pause_reason"] = "runner_interrupted"
       state["paused_at"] = "2000-01-01T00:00:00Z"
-      state["execution_lease"] = mapOf(
-        "generation" to 1,
-        "owner_token" to "parent-owner-cli",
-        "host_identity" to "test-host",
-        "boot_identity" to "test-boot",
-        "pid" to 1234,
-        "process_birth_token" to "birth-1234",
-        "heartbeat_at" to "2000-01-01T00:00:00Z",
-        "expires_at" to "2000-01-01T00:00:30Z",
-      )
+      state["execution_lease"] =
+        mapOf(
+          "generation" to 1,
+          "owner_token" to "parent-owner-cli",
+          "host_identity" to "test-host",
+          "boot_identity" to "test-boot",
+          "pid" to 1234,
+          "process_birth_token" to "birth-1234",
+          "heartbeat_at" to "2000-01-01T00:00:00Z",
+          "expires_at" to "2000-01-01T00:00:30Z",
+        )
       connection.prepareStatement(
         "UPDATE goal_runner_controls SET control_state_json = ? WHERE parent_workflow_id = ?",
       ).use { statement ->
@@ -159,7 +171,10 @@ internal fun seedIssue342StaleParentControlState(fixture: GoalCliFixture) {
   }
 }
 
-internal fun workerLeaseRowCount(fixture: GoalCliFixture, workflowId: String): Int =
+internal fun workerLeaseRowCount(
+  fixture: GoalCliFixture,
+  workflowId: String,
+): Int =
   ensureTestDatabase(fixture.dbPath).use { connection ->
     connection.prepareStatement(
       "SELECT COUNT(*) FROM feature_task_runtime_worker_leases WHERE workflow_id = ?",
@@ -184,12 +199,13 @@ internal fun parentControlStateJson(fixture: GoalCliFixture): String =
     }
   }
 
-internal fun startRunningGoalChild(fixture: GoalCliFixture): String = RuntimeWorkflowTestSupport.continueByIssueKey(
-  dbPath = fixture.dbPath,
-  issueKey = "SKILL-901",
-  subtaskId = 1,
-  context = fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-)["workflow_id"] as String
+internal fun startRunningGoalChild(fixture: GoalCliFixture): String =
+  RuntimeWorkflowTestSupport.continueByIssueKey(
+    dbPath = fixture.dbPath,
+    issueKey = "SKILL-901",
+    subtaskId = 1,
+    context = fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+  )["workflow_id"] as String
 
 internal fun recordRunningGoalChildProgress(
   fixture: GoalCliFixture,
@@ -204,26 +220,31 @@ internal fun recordRunningGoalChildProgress(
       workflowId = childWorkflowId,
       currentStep = "implement",
       stepUpdates = """[{"step_id":"implement","status":"running","attempt_count":1}]""",
-      artifactsPatch = jsonString(
-        mapOf(
-          "preplan_digest" to mapOf("ready" to true),
-          "plan" to mapOf("mode" to "implement", "task_count" to 1),
-          "progress_event" to mapOf(
-            "step_id" to "implement",
-            "attempt_count" to 1,
-            "source" to "phase_subagent",
-            "kind" to "durable_progress",
-            "message" to message,
-            "sequence" to sequence,
-            "timestamp" to "2026-06-01T00:00:00Z",
+      artifactsPatch =
+        jsonString(
+          mapOf(
+            "preplan_digest" to mapOf("ready" to true),
+            "plan" to mapOf("mode" to "implement", "task_count" to 1),
+            "progress_event" to
+              mapOf(
+                "step_id" to "implement",
+                "attempt_count" to 1,
+                "source" to "phase_subagent",
+                "kind" to "durable_progress",
+                "message" to message,
+                "sequence" to sequence,
+                "timestamp" to "2026-06-01T00:00:00Z",
+              ),
           ),
         ),
-      ),
     ),
   )
 }
 
-internal fun advanceRunningGoalChildToReview(fixture: GoalCliFixture, childWorkflowId: String) {
+internal fun advanceRunningGoalChildToReview(
+  fixture: GoalCliFixture,
+  childWorkflowId: String,
+) {
   runtimeWorkflowUpdate(
     fixture,
     WorkflowUpdateFixture(
@@ -236,7 +257,10 @@ internal fun advanceRunningGoalChildToReview(fixture: GoalCliFixture, childWorkf
   )
 }
 
-internal fun completeRunningGoalChild(fixture: GoalCliFixture, childWorkflowId: String) {
+internal fun completeRunningGoalChild(
+  fixture: GoalCliFixture,
+  childWorkflowId: String,
+) {
   runtimeWorkflowUpdate(
     fixture,
     WorkflowUpdateFixture(
@@ -245,28 +269,31 @@ internal fun completeRunningGoalChild(fixture: GoalCliFixture, childWorkflowId: 
       workflowStatus = WorkflowStatus.COMPLETED.wireValue,
       currentStep = "commit_push",
       stepUpdates = """[{"step_id":"commit_push","status":"completed","attempt_count":1}]""",
-      artifactsPatch = jsonString(
-        mapOf(
-          "commit_push_result" to mapOf("commit_sha" to "sha-1"),
-          "goal_continuation_outcome" to mapOf(
-            "issue_key" to "SKILL-901",
-            "subtask_id" to 1,
-            "status" to "complete",
-            "workflow_id" to childWorkflowId,
-            "commit_sha" to "sha-1",
-            "last_resumable_step" to "commit_push",
+      artifactsPatch =
+        jsonString(
+          mapOf(
+            "commit_push_result" to mapOf("commit_sha" to "sha-1"),
+            "goal_continuation_outcome" to
+              mapOf(
+                "issue_key" to "SKILL-901",
+                "subtask_id" to 1,
+                "status" to "complete",
+                "workflow_id" to childWorkflowId,
+                "commit_sha" to "sha-1",
+                "last_resumable_step" to "commit_push",
+              ),
           ),
         ),
-      ),
     ),
   )
 }
 
 internal fun seedAuthoritativeCompleteChild(fixture: GoalCliFixture) {
-  val authoritativeChild = RuntimeWorkflowTestSupport.open(
-    fixture.dbPath,
-    fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-  )["workflow_id"] as String
+  val authoritativeChild =
+    RuntimeWorkflowTestSupport.open(
+      fixture.dbPath,
+      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+    )["workflow_id"] as String
   runtimeWorkflowUpdate(
     fixture,
     WorkflowUpdateFixture(
@@ -274,23 +301,26 @@ internal fun seedAuthoritativeCompleteChild(fixture: GoalCliFixture) {
       workflowId = authoritativeChild,
       currentStep = "commit_push",
       stepUpdates = """[{"step_id":"commit_push","status":"completed","attempt_count":1}]""",
-      artifactsPatch = jsonString(
-        mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "SKILL-901",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
-          ),
-          "goal_continuation_outcome" to mapOf(
-            "issue_key" to "SKILL-901",
-            "subtask_id" to 1,
-            "status" to "complete",
-            "workflow_id" to authoritativeChild,
-            "commit_sha" to "sha-1",
-            "last_resumable_step" to "commit_push",
+      artifactsPatch =
+        jsonString(
+          mapOf(
+            "goal_continuation" to
+              mapOf(
+                "issue_key" to "SKILL-901",
+                "subtask_id" to 1,
+                "suppress_pr" to true,
+              ),
+            "goal_continuation_outcome" to
+              mapOf(
+                "issue_key" to "SKILL-901",
+                "subtask_id" to 1,
+                "status" to "complete",
+                "workflow_id" to authoritativeChild,
+                "commit_sha" to "sha-1",
+                "last_resumable_step" to "commit_push",
+              ),
           ),
         ),
-      ),
     ),
   )
 }
@@ -308,27 +338,34 @@ internal data class GoalCliFixture(
     liveStderr: (String) -> Unit = {},
     workflowGitOperations: WorkflowGitOperations = GoalTestWorkflowGitOperations,
     requester: RemoteTransportPort? = null,
-  ): CliRuntimeContext = CliRuntimeContext(
-    userHome = tempDir.also { installFakeRuntimeMcpBin(it) },
-    environment = isolatedCliEnvironment(tempDir),
-    requester = requester,
-    workflowGitOperations = workflowGitOperations,
-    agentRunLauncher = launcher,
-    goalPullRequestPort = pullRequests,
-    liveStdout = liveStdout,
-    liveStderr = liveStderr,
-    executableLookup = ExecutableLookup { true },
-    runtimeTimingPort = NoopRuntimeTimingPort,
-  )
+  ): CliRuntimeContext =
+    CliRuntimeContext(
+      userHome = tempDir.also { installFakeRuntimeMcpBin(it) },
+      environment = isolatedCliEnvironment(tempDir),
+      requester = requester,
+      workflowGitOperations = workflowGitOperations,
+      agentRunLauncher = launcher,
+      goalPullRequestPort = pullRequests,
+      liveStdout = liveStdout,
+      liveStderr = liveStderr,
+      executableLookup = ExecutableLookup { true },
+      runtimeTimingPort = NoopRuntimeTimingPort,
+    )
 
-  fun materializeDatabaseWithTelemetry(level: String, requester: RemoteTransportPort) = materializeTelemetryDatabase(
+  fun materializeDatabaseWithTelemetry(
+    level: String,
+    requester: RemoteTransportPort,
+  ) = materializeTelemetryDatabase(
     tempDir,
     dbPath,
     level,
     context(launcher = NoopGoalTestAgentRunLauncher, requester = requester),
   )
 
-  fun goalCommand(dbPath: Path = this@GoalCliFixture.dbPath, extra: List<String> = emptyList()): List<String> =
+  fun goalCommand(
+    dbPath: Path = this@GoalCliFixture.dbPath,
+    extra: List<String> = emptyList(),
+  ): List<String> =
     buildList {
       add("--db")
       add(dbPath.toString())
@@ -394,10 +431,11 @@ internal class GoalFixtureAgentRunLauncher(
   }
 
   private fun planningLaunchOutcome(skillRequest: SkillRunRequest): AgentRunLaunchOutcome {
-    val phaseId = Regex("""Phase: (\w+) \(""")
-      .find(skillRequest.promptOverride.orEmpty())
-      ?.groupValues?.get(1)
-      ?: "preplan"
+    val phaseId =
+      Regex("""Phase: (\w+) \(""")
+        .find(skillRequest.promptOverride.orEmpty())
+        ?.groupValues?.get(1)
+        ?: "preplan"
     return AgentRunLaunchFacts(
       agent = InstallAgent.CODEX,
       exitStatus = 0,
@@ -408,13 +446,18 @@ internal class GoalFixtureAgentRunLauncher(
     )
   }
 
-  private fun startSubtaskWorkflow(skillRequest: SkillRunRequest, dbPath: String): String {
-    val continuation = requireNotNull(skillRequest.goalContinuation) {
-      "Goal child launch requires goalContinuation with a pre-opened workflow id."
-    }
-    val workflowId = continuation.assignedWorkflowId?.takeIf(String::isNotBlank)
-      ?: continuation.childWorkflowId?.takeIf(String::isNotBlank)
-      ?: error("Goal child launch requires assignedWorkflowId or childWorkflowId.")
+  private fun startSubtaskWorkflow(
+    skillRequest: SkillRunRequest,
+    dbPath: String,
+  ): String {
+    val continuation =
+      requireNotNull(skillRequest.goalContinuation) {
+        "Goal child launch requires goalContinuation with a pre-opened workflow id."
+      }
+    val workflowId =
+      continuation.assignedWorkflowId?.takeIf(String::isNotBlank)
+        ?: continuation.childWorkflowId?.takeIf(String::isNotBlank)
+        ?: error("Goal child launch requires assignedWorkflowId or childWorkflowId.")
     RuntimeWorkflowTestSupport.get(
       Path.of(dbPath),
       workflowId,
@@ -423,7 +466,10 @@ internal class GoalFixtureAgentRunLauncher(
     return workflowId
   }
 
-  private fun stampImplementRunning(workflowId: String, dbPath: Path) {
+  private fun stampImplementRunning(
+    workflowId: String,
+    dbPath: Path,
+  ) {
     runtimeWorkflowUpdate(
       fixture,
       WorkflowUpdateFixture(
@@ -437,7 +483,11 @@ internal class GoalFixtureAgentRunLauncher(
     )
   }
 
-  private fun completeSubtaskWorkflow(workflowId: String, subtaskId: Int, dbPath: Path) {
+  private fun completeSubtaskWorkflow(
+    workflowId: String,
+    subtaskId: Int,
+    dbPath: Path,
+  ) {
     runtimeWorkflowUpdate(
       fixture,
       WorkflowUpdateFixture(
@@ -452,7 +502,10 @@ internal class GoalFixtureAgentRunLauncher(
     )
   }
 
-  private fun failSubtaskWorkflow(workflowId: String, dbPath: Path) {
+  private fun failSubtaskWorkflow(
+    workflowId: String,
+    dbPath: Path,
+  ) {
     runtimeWorkflowUpdate(
       fixture,
       WorkflowUpdateFixture(
@@ -477,15 +530,19 @@ internal class RecordingGoalPullRequestPort : GoalPullRequestPort {
   }
 }
 
-internal fun goalControlCommand(fixture: GoalCliFixture, subcommand: String): List<String> = listOf(
-  "--db",
-  fixture.dbPath.toString(),
-  "goal",
-  subcommand,
-  "SKILL-901",
-  "--repo-root",
-  fixture.tempDir.toString(),
-)
+internal fun goalControlCommand(
+  fixture: GoalCliFixture,
+  subcommand: String,
+): List<String> =
+  listOf(
+    "--db",
+    fixture.dbPath.toString(),
+    "goal",
+    subcommand,
+    "SKILL-901",
+    "--repo-root",
+    fixture.tempDir.toString(),
+  )
 
 internal fun forcePendingPauseRequest(dbPath: Path) {
   DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
@@ -498,9 +555,10 @@ internal fun forcePendingPauseRequest(dbPath: Path) {
       }
     }
     rows.forEach { (parentWorkflowId, json) ->
-      val state = JsonCodec.anyToStringAnyMap(
-        JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(json))),
-      ).orEmpty().toMutableMap()
+      val state =
+        JsonCodec.anyToStringAnyMap(
+          JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(json))),
+        ).orEmpty().toMutableMap()
       state["paused"] = false
       state["pause_requested"] = true
       state["pause_consumed"] = false
@@ -516,31 +574,36 @@ internal fun forcePendingPauseRequest(dbPath: Path) {
   }
 }
 
-internal fun goalFixture(subtaskCount: Int, seedWorkflow: Boolean = true): GoalCliFixture {
+internal fun goalFixture(
+  subtaskCount: Int,
+  seedWorkflow: Boolean = true,
+): GoalCliFixture {
   val tempDir = Files.createTempDirectory("skillbill-cli-goal")
   val parentSpec = tempDir.resolve(".feature-specs/SKILL-901-goal/spec.md")
   Files.createDirectories(parentSpec.parent)
   Files.writeString(
     parentSpec,
     """
-      # Parent
+    # Parent
 
-      ## Acceptance Criteria
+    ## Acceptance Criteria
 
-      1. The decomposed goal completes every governed subtask.
+    1. The decomposed goal completes every governed subtask.
     """.trimIndent(),
   )
-  val subtaskSpecs = (1..subtaskCount).map { id ->
-    parentSpec.parent.resolve("spec_subtask_${id}_part.md").also { path ->
-      Files.writeString(path, subtaskSpecText(id))
+  val subtaskSpecs =
+    (1..subtaskCount).map { id ->
+      parentSpec.parent.resolve("spec_subtask_${id}_part.md").also { path ->
+        Files.writeString(path, subtaskSpecText(id))
+      }
     }
-  }
-  val fixture = GoalCliFixture(
-    tempDir = tempDir,
-    dbPath = tempDir.resolve("metrics.db"),
-    parentSpec = parentSpec,
-    subtaskSpecs = subtaskSpecs,
-  )
+  val fixture =
+    GoalCliFixture(
+      tempDir = tempDir,
+      dbPath = tempDir.resolve("metrics.db"),
+      parentSpec = parentSpec,
+      subtaskSpecs = subtaskSpecs,
+    )
   if (seedWorkflow) {
     seedParentWorkflow(fixture)
   }
@@ -548,10 +611,11 @@ internal fun goalFixture(subtaskCount: Int, seedWorkflow: Boolean = true): GoalC
 }
 
 internal fun seedParentWorkflow(fixture: GoalCliFixture) {
-  val opened = RuntimeWorkflowTestSupport.open(
-    fixture.dbPath,
-    fixture.context(launcher = NoopGoalTestAgentRunLauncher),
-  )
+  val opened =
+    RuntimeWorkflowTestSupport.open(
+      fixture.dbPath,
+      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+    )
   val workflowId = opened["workflow_id"] as String
   runtimeWorkflowUpdate(
     fixture,
@@ -565,24 +629,27 @@ internal fun seedParentWorkflow(fixture: GoalCliFixture) {
   )
 }
 
-internal fun parentArtifactsPatch(fixture: GoalCliFixture): String = jsonString(
-  mapOf(
-    "branch" to mapOf("branch" to "feat/SKILL-901-goal"),
-    "plan" to mapOf(
-      "mode" to "decompose",
-      "parent_spec_path" to fixture.parentSpec.toString(),
-      "recommended_first_subtask_id" to 1,
-      "subtasks" to fixture.subtaskSpecs.mapIndexed { index, path ->
+internal fun parentArtifactsPatch(fixture: GoalCliFixture): String =
+  jsonString(
+    mapOf(
+      "branch" to mapOf("branch" to "feat/SKILL-901-goal"),
+      "plan" to
         mapOf(
-          "id" to index + 1,
-          "name" to "Part ${index + 1}",
-          "spec_path" to path.toString(),
-          "depends_on" to if (index == 0) emptyList<Int>() else listOf(index),
-        )
-      },
+          "mode" to "decompose",
+          "parent_spec_path" to fixture.parentSpec.toString(),
+          "recommended_first_subtask_id" to 1,
+          "subtasks" to
+            fixture.subtaskSpecs.mapIndexed { index, path ->
+              mapOf(
+                "id" to index + 1,
+                "name" to "Part ${index + 1}",
+                "spec_path" to path.toString(),
+                "depends_on" to if (index == 0) emptyList<Int>() else listOf(index),
+              )
+            },
+        ),
     ),
-  ),
-)
+  )
 
 internal data class WorkflowUpdateFixture(
   val dbPath: Path,
@@ -597,35 +664,38 @@ internal fun runtimeWorkflowUpdate(
   fixture: GoalCliFixture,
   update: WorkflowUpdateFixture,
   launcher: AgentRunLauncher = NoopGoalTestAgentRunLauncher,
-): Map<String, Any?> = RuntimeWorkflowTestSupport.update(
-  RuntimeWorkflowTestSupport.UpdateArgs(
-    dbPath = update.dbPath,
-    workflowId = update.workflowId,
-    workflowStatus = update.workflowStatus,
-    currentStepId = update.currentStep,
-    stepUpdates = RuntimeWorkflowTestSupport.parseStepUpdates(update.stepUpdates),
-    artifactsPatch = RuntimeWorkflowTestSupport.parseArtifactsPatch(update.artifactsPatch),
-    context = fixture.context(launcher = launcher),
-  ),
-)
+): Map<String, Any?> =
+  RuntimeWorkflowTestSupport.update(
+    RuntimeWorkflowTestSupport.UpdateArgs(
+      dbPath = update.dbPath,
+      workflowId = update.workflowId,
+      workflowStatus = update.workflowStatus,
+      currentStepId = update.currentStep,
+      stepUpdates = RuntimeWorkflowTestSupport.parseStepUpdates(update.stepUpdates),
+      artifactsPatch = RuntimeWorkflowTestSupport.parseArtifactsPatch(update.artifactsPatch),
+      context = fixture.context(launcher = launcher),
+    ),
+  )
 
-internal fun jsonString(value: Any?): String = JsonCodec.json.encodeToString(
-  JsonElement.serializer(),
-  JsonCodec.valueToJsonElement(value),
-)
+internal fun jsonString(value: Any?): String =
+  JsonCodec.json.encodeToString(
+    JsonElement.serializer(),
+    JsonCodec.valueToJsonElement(value),
+  )
 
 internal fun phasePlanningPayload(phaseId: String): String =
   """{"contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"$phaseId",""" +
     """"status":"completed","summary":"$phaseId","produced_outputs":""" +
     (planningProjectionOutputs(phaseId) ?: """{"result":"$phaseId"}""") + "}"
 
-internal fun planningProjectionOutputs(phaseId: String): String? = when (phaseId) {
-  "preplan" ->
-    """{"value":"Fixture preplan prose for downstream plan."}"""
-  "plan" ->
-    """{"value":"Fixture plan prose for downstream implement and audit."}"""
-  else -> null
-}
+internal fun planningProjectionOutputs(phaseId: String): String? =
+  when (phaseId) {
+    "preplan" ->
+      """{"value":"Fixture preplan prose for downstream plan."}"""
+    "plan" ->
+      """{"value":"Fixture plan prose for downstream implement and audit."}"""
+    else -> null
+  }
 
 internal fun subtaskSpecText(id: Int): String =
   "---\nstatus: Pending\n---\n\n# Subtask $id\n\n## Acceptance Criteria\n\n1. Subtask $id delivers its part.\n"
@@ -639,55 +709,80 @@ internal object GoalTestWorkflowGitOperations : WorkflowGitOperationsTestBase() 
 
   override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations = TestRepositoryFingerprintOperations
 
-  override val scopedStagingOperations: ScopedStagingGitOperations = object : ScopedStagingGitOperations {
-    override fun stagePaths(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult =
-      WorkflowGitOperationResult.Ok(value = "")
+  override val scopedStagingOperations: ScopedStagingGitOperations =
+    object : ScopedStagingGitOperations {
+      override fun stagePaths(
+        repoRoot: Path,
+        paths: List<String>,
+      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
-    override fun captureIndexState(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult =
-      WorkflowGitOperationResult.Ok(value = "")
+      override fun captureIndexState(
+        repoRoot: Path,
+        paths: List<String>,
+      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
-    override fun restoreIndexState(repoRoot: Path, paths: List<String>, snapshot: String): WorkflowGitOperationResult =
-      WorkflowGitOperationResult.Ok(value = "")
+      override fun restoreIndexState(
+        repoRoot: Path,
+        paths: List<String>,
+        snapshot: String,
+      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
-    override fun stagedPaths(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+      override fun stagedPaths(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
-    override fun pathContentIdentities(repoRoot: Path, paths: List<String>): WorkflowGitOperationResult =
-      WorkflowGitOperationResult.Ok(
-        value = paths.joinToString(separator = "\u0000") { path -> "identity\t$path" },
-      )
-  }
+      override fun pathContentIdentities(
+        repoRoot: Path,
+        paths: List<String>,
+      ): WorkflowGitOperationResult =
+        WorkflowGitOperationResult.Ok(
+          value = paths.joinToString(separator = "\u0000") { path -> "identity\t$path" },
+        )
+    }
 
-  override fun checkoutBranch(repoRoot: Path, branch: String, baseBranch: String?): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Ok(value = branch)
+  override fun checkoutBranch(
+    repoRoot: Path,
+    branch: String,
+    baseBranch: String?,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = branch)
 
-  override fun branchExists(repoRoot: Path, branch: String): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Ok(value = "true")
+  override fun branchExists(
+    repoRoot: Path,
+    branch: String,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "true")
 
   override fun currentBranch(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
   override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations =
     object : GoalSubtaskReviewGitOperations {
-      override fun captureBaseline(repoRoot: Path, expectedBranch: String): GoalSubtaskReviewBaselineResult =
+      override fun captureBaseline(
+        repoRoot: Path,
+        expectedBranch: String,
+      ): GoalSubtaskReviewBaselineResult =
         GoalSubtaskReviewBaselineResult(
           status = WorkflowGitOperationStatus.OK,
           baseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
         )
 
-      override fun buildInput(repoRoot: Path, baseline: GoalSubtaskReviewBaseline, expectedBranch: String): Nothing =
-        error("Goal review input is not used by this goal CLI fixture.")
+      override fun buildInput(
+        repoRoot: Path,
+        baseline: GoalSubtaskReviewBaseline,
+        expectedBranch: String,
+      ): Nothing = error("Goal review input is not used by this goal CLI fixture.")
 
       override fun recoverBaseline(
         repoRoot: Path,
         request: GoalSubtaskReviewBaselineRecoveryRequest,
         expectedBranch: String,
-      ): GoalSubtaskReviewBaselineResult = GoalSubtaskReviewBaselineResult(
-        status = WorkflowGitOperationStatus.ERROR,
-        error = "Goal review baseline recovery is not used by this goal CLI fixture.",
-      )
+      ): GoalSubtaskReviewBaselineResult =
+        GoalSubtaskReviewBaselineResult(
+          status = WorkflowGitOperationStatus.ERROR,
+          error = "Goal review baseline recovery is not used by this goal CLI fixture.",
+        )
     }
 
-  override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Ok(value = "test-commit")
+  override fun createCommit(
+    repoRoot: Path,
+    message: String,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "test-commit")
 
   override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Ok(value = "test-commit")
@@ -706,29 +801,33 @@ internal object GoalTestWorkflowGitOperations : WorkflowGitOperationsTestBase() 
 
   override fun worktreeStatus(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
-  override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult = WorkflowWorktreeActivityResult(
-    status = WorkflowGitOperationStatus.OK,
-    diffStat = GoalObservabilityDiffStat(filesChanged = 1, insertions = 2, deletions = 1),
-  )
+  override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult =
+    WorkflowWorktreeActivityResult(
+      status = WorkflowGitOperationStatus.OK,
+      diffStat = GoalObservabilityDiffStat(filesChanged = 1, insertions = 2, deletions = 1),
+    )
 
   override fun selectedDiffHunks(
     repoRoot: Path,
     request: WorkflowSelectedDiffHunksRequest,
-  ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(
-    status = WorkflowGitOperationStatus.OK,
-    selectedDiffHunks = GoalObservabilitySelectedDiffHunks(
-      hunks = listOf(
-        GoalObservabilitySelectedDiffHunk(
-          path = request.paths.firstOrNull().orEmpty(),
-          staged = false,
-          header = "@@ -1 +1 @@",
-          lines = listOf("-old", "+new"),
+  ): WorkflowSelectedDiffHunksResult =
+    WorkflowSelectedDiffHunksResult(
+      status = WorkflowGitOperationStatus.OK,
+      selectedDiffHunks =
+        GoalObservabilitySelectedDiffHunks(
+          hunks =
+            listOf(
+              GoalObservabilitySelectedDiffHunk(
+                path = request.paths.firstOrNull().orEmpty(),
+                staged = false,
+                header = "@@ -1 +1 @@",
+                lines = listOf("-old", "+new"),
+                truncated = false,
+              ),
+            ),
           truncated = false,
         ),
-      ),
-      truncated = false,
-    ),
-  )
+    )
 }
 
 internal class RecordingGoalTestWorkflowGitOperations : WorkflowGitOperations by GoalTestWorkflowGitOperations {

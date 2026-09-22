@@ -15,20 +15,24 @@ class ExternalAddonOverlayService(
   private val configPort: ExternalAddonSourceConfigPort,
   private val overlayPort: ExternalAddonOverlayPort,
 ) {
-  fun resolveSources(home: Path, environment: Map<String, String> = emptyMap()): List<ExternalAddonSource> =
+  fun resolveSources(
+    home: Path,
+    environment: Map<String, String> = emptyMap(),
+  ): List<ExternalAddonSource> =
     configPort.readExternalAddonSources(ExternalAddonSourceConfigRequest(home, environment)).sources
 
   fun registerSource(
     home: Path,
     source: ExternalAddonSource,
     environment: Map<String, String> = emptyMap(),
-  ): List<ExternalAddonSource> = configPort.registerExternalAddonSource(
-    ExternalAddonSourceRegistrationRequest(
-      userHome = home,
-      environment = environment,
-      source = source,
-    ),
-  ).sources
+  ): List<ExternalAddonSource> =
+    configPort.registerExternalAddonSource(
+      ExternalAddonSourceRegistrationRequest(
+        userHome = home,
+        environment = environment,
+        source = source,
+      ),
+    ).sources
 
   fun applyOverlay(
     platformPacksRoot: Path,

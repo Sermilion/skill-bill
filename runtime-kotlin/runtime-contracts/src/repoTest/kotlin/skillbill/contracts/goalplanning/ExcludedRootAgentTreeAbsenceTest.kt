@@ -12,9 +12,10 @@ class ExcludedRootAgentTreeAbsenceTest {
   fun `no working tree path under an excluded root contains an agent segment`() {
     val repoRoot = assertNotNull(repoRoot(), "this invariant is asserted against the checked-in working tree")
 
-    val offenders = workingTreeDirectories(repoRoot).filter { path ->
-      GoalPlanningDiscoveryExclusions.isExcluded(path) && path.split("/").contains("agent")
-    }
+    val offenders =
+      workingTreeDirectories(repoRoot).filter { path ->
+        GoalPlanningDiscoveryExclusions.isExcluded(path) && path.split("/").contains("agent")
+      }
 
     assertEquals(emptyList(), offenders, "delete these agent/ trees; excluded roots carry no boundary memory")
   }
@@ -50,11 +51,12 @@ class ExcludedRootAgentTreeAbsenceTest {
     val found = mutableListOf<String>()
     val pending = ArrayDeque(listOf(repoRoot))
     while (pending.isNotEmpty()) {
-      val children = runCatching {
-        Files.list(pending.removeFirst()).use { entries ->
-          entries.filter { path -> Files.isDirectory(path) }.toList()
-        }
-      }.getOrDefault(emptyList())
+      val children =
+        runCatching {
+          Files.list(pending.removeFirst()).use { entries ->
+            entries.filter { path -> Files.isDirectory(path) }.toList()
+          }
+        }.getOrDefault(emptyList())
       for (child in children) {
         if (child.fileName.toString() in GoalPlanningDiscoveryExclusions.excludedDirectoryNames) continue
         found.add(repoRoot.relativize(child).joinToString("/"))

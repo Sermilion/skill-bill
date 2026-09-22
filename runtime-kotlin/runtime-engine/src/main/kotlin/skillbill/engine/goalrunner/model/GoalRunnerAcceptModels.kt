@@ -34,5 +34,6 @@ sealed interface GoalRunnerAcceptResult {
 
 sealed interface GoalRunnerAcceptanceEvidence {
   data class Resolved(val commitSha: String) : GoalRunnerAcceptanceEvidence
+
   data class Rejected(val reason: String) : GoalRunnerAcceptanceEvidence
 }

@@ -28,11 +28,12 @@ class FeatureTaskRuntimeWorkerCoordinatorTest {
   fun `unowned acquire still claims after a concurrent updated_at bump`() {
     val repository = InMemoryRuntimeWorkflowRepository()
     repository.saveFeatureTaskRuntimeWorkflow(unownedRuntimeRow(updatedAt = "2026-08-15T20:57:11Z"))
-    val coordinator = FeatureTaskRuntimeWorkerCoordinator(
-      BumpUpdatedAtAfterReadDatabase(repository),
-      FakeWorkerSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
-      testHarnessClock,
-    )
+    val coordinator =
+      FeatureTaskRuntimeWorkerCoordinator(
+        BumpUpdatedAtAfterReadDatabase(repository),
+        FakeWorkerSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
+        testHarnessClock,
+      )
 
     coordinator.runOwned(WORKFLOW_ID) {
       val owned = requireNotNull(repository.getFeatureTaskRuntimeWorkerOwnership(WORKFLOW_ID))
@@ -47,11 +48,12 @@ class FeatureTaskRuntimeWorkerCoordinatorTest {
   fun `orphaned worker lease is atomically reclaimed with a new generation`() {
     val repository = InMemoryRuntimeWorkflowRepository()
     repository.seedWorkerOwnership(ownership())
-    val coordinator = FeatureTaskRuntimeWorkerCoordinator(
-      RuntimeFakeDatabaseSessionFactory(repository),
-      FakeWorkerSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
-      testHarnessClock,
-    )
+    val coordinator =
+      FeatureTaskRuntimeWorkerCoordinator(
+        RuntimeFakeDatabaseSessionFactory(repository),
+        FakeWorkerSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
+        testHarnessClock,
+      )
 
     coordinator.runOwned(WORKFLOW_ID) {
       val replacement = requireNotNull(repository.getFeatureTaskRuntimeWorkerOwnership(WORKFLOW_ID))
@@ -67,11 +69,12 @@ class FeatureTaskRuntimeWorkerCoordinatorTest {
     val repository = InMemoryRuntimeWorkflowRepository()
     repository.seedWorkerOwnership(ownership())
     val supervisor = FakeWorkerSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive)
-    val coordinator = FeatureTaskRuntimeWorkerCoordinator(
-      RuntimeFakeDatabaseSessionFactory(repository),
-      supervisor,
-      testHarnessClock,
-    )
+    val coordinator =
+      FeatureTaskRuntimeWorkerCoordinator(
+        RuntimeFakeDatabaseSessionFactory(repository),
+        supervisor,
+        testHarnessClock,
+      )
 
     coordinator.runOwned(WORKFLOW_ID) { Unit }
 
@@ -83,14 +86,16 @@ class FeatureTaskRuntimeWorkerCoordinatorTest {
   fun `PID reuse ownership mismatch rejects takeover without terminating`() {
     val repository = InMemoryRuntimeWorkflowRepository()
     repository.seedWorkerOwnership(ownership())
-    val supervisor = FakeWorkerSupervisor(
-      FeatureTaskRuntimeProcessInspection.OwnershipMismatch("Worker PID was reused by a different process."),
-    )
-    val coordinator = FeatureTaskRuntimeWorkerCoordinator(
-      RuntimeFakeDatabaseSessionFactory(repository),
-      supervisor,
-      testHarnessClock,
-    )
+    val supervisor =
+      FakeWorkerSupervisor(
+        FeatureTaskRuntimeProcessInspection.OwnershipMismatch("Worker PID was reused by a different process."),
+      )
+    val coordinator =
+      FeatureTaskRuntimeWorkerCoordinator(
+        RuntimeFakeDatabaseSessionFactory(repository),
+        supervisor,
+        testHarnessClock,
+      )
 
     val failure = assertFailsWith<IllegalStateException> { coordinator.runOwned(WORKFLOW_ID) { Unit } }
 
@@ -102,14 +107,16 @@ class FeatureTaskRuntimeWorkerCoordinatorTest {
   fun `expired ownership mismatch is reclaimed without terminating an unrelated process`() {
     val repository = InMemoryRuntimeWorkflowRepository()
     repository.seedWorkerOwnership(ownership(expiresAt = "2000-01-01T00:00:30Z"))
-    val supervisor = FakeWorkerSupervisor(
-      FeatureTaskRuntimeProcessInspection.OwnershipMismatch("Worker ownership belongs to a different host."),
-    )
-    val coordinator = FeatureTaskRuntimeWorkerCoordinator(
-      RuntimeFakeDatabaseSessionFactory(repository),
-      supervisor,
-      testHarnessClock,
-    )
+    val supervisor =
+      FakeWorkerSupervisor(
+        FeatureTaskRuntimeProcessInspection.OwnershipMismatch("Worker ownership belongs to a different host."),
+      )
+    val coordinator =
+      FeatureTaskRuntimeWorkerCoordinator(
+        RuntimeFakeDatabaseSessionFactory(repository),
+        supervisor,
+        testHarnessClock,
+      )
 
     coordinator.runOwned(WORKFLOW_ID) {
       val replacement = requireNotNull(repository.getFeatureTaskRuntimeWorkerOwnership(WORKFLOW_ID))
@@ -125,14 +132,16 @@ class FeatureTaskRuntimeWorkerCoordinatorTest {
   fun `expired unsupported inspection is reclaimed without terminating an unrelated process`() {
     val repository = InMemoryRuntimeWorkflowRepository()
     repository.seedWorkerOwnership(ownership(expiresAt = "2000-01-01T00:00:30Z"))
-    val supervisor = FakeWorkerSupervisor(
-      FeatureTaskRuntimeProcessInspection.Unsupported("Process inspection is unavailable on this host."),
-    )
-    val coordinator = FeatureTaskRuntimeWorkerCoordinator(
-      RuntimeFakeDatabaseSessionFactory(repository),
-      supervisor,
-      testHarnessClock,
-    )
+    val supervisor =
+      FakeWorkerSupervisor(
+        FeatureTaskRuntimeProcessInspection.Unsupported("Process inspection is unavailable on this host."),
+      )
+    val coordinator =
+      FeatureTaskRuntimeWorkerCoordinator(
+        RuntimeFakeDatabaseSessionFactory(repository),
+        supervisor,
+        testHarnessClock,
+      )
 
     coordinator.runOwned(WORKFLOW_ID) {
       val replacement = requireNotNull(repository.getFeatureTaskRuntimeWorkerOwnership(WORKFLOW_ID))
@@ -150,11 +159,12 @@ class FeatureTaskRuntimeWorkerCoordinatorTest {
     val stale = ownership()
     repository.seedWorkerOwnership(stale)
     assertTrue(repository.reserveFeatureTaskRuntimeWorkerTakeover(WORKFLOW_ID, stale.ownerToken, stale.generation))
-    val coordinator = FeatureTaskRuntimeWorkerCoordinator(
-      RuntimeFakeDatabaseSessionFactory(repository),
-      FakeWorkerSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
-      testHarnessClock,
-    )
+    val coordinator =
+      FeatureTaskRuntimeWorkerCoordinator(
+        RuntimeFakeDatabaseSessionFactory(repository),
+        FakeWorkerSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
+        testHarnessClock,
+      )
 
     val failure = assertFailsWith<IllegalStateException> { coordinator.runOwned(WORKFLOW_ID) { Unit } }
 
@@ -166,11 +176,12 @@ class FeatureTaskRuntimeWorkerCoordinatorTest {
     val repository = InMemoryRuntimeWorkflowRepository()
     repository.seedWorkerOwnership(ownership())
     val supervisor = FakeWorkerSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning)
-    val coordinator = FeatureTaskRuntimeWorkerCoordinator(
-      RuntimeFakeDatabaseSessionFactory(repository),
-      supervisor,
-      testHarnessClock,
-    )
+    val coordinator =
+      FeatureTaskRuntimeWorkerCoordinator(
+        RuntimeFakeDatabaseSessionFactory(repository),
+        supervisor,
+        testHarnessClock,
+      )
 
     coordinator.runOwned(WORKFLOW_ID) {
       val owned = requireNotNull(repository.getFeatureTaskRuntimeWorkerOwnership(WORKFLOW_ID))
@@ -189,18 +200,20 @@ class FeatureTaskRuntimeWorkerCoordinatorTest {
     val repository = InMemoryRuntimeWorkflowRepository()
     repository.seedWorkerOwnership(ownership())
     val supervisor = FakeWorkerSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning)
-    val coordinator = FeatureTaskRuntimeWorkerCoordinator(
-      RuntimeFakeDatabaseSessionFactory(repository),
-      supervisor,
-      testHarnessClock,
-    )
+    val coordinator =
+      FeatureTaskRuntimeWorkerCoordinator(
+        RuntimeFakeDatabaseSessionFactory(repository),
+        supervisor,
+        testHarnessClock,
+      )
 
-    val failure = assertFailsWith<IllegalStateException> {
-      coordinator.runOwned(WORKFLOW_ID) {
-        repository.seedWorkerOwnership(ownership(ownerToken = "usurper-token-0002", generation = 9))
-        assertTrue(supervisor.runHeartbeatTick() is FeatureTaskRuntimeHeartbeatTick.FencingLost)
+    val failure =
+      assertFailsWith<IllegalStateException> {
+        coordinator.runOwned(WORKFLOW_ID) {
+          repository.seedWorkerOwnership(ownership(ownerToken = "usurper-token-0002", generation = 9))
+          assertTrue(supervisor.runHeartbeatTick() is FeatureTaskRuntimeHeartbeatTick.FencingLost)
+        }
       }
-    }
 
     assertTrue(failure.message.orEmpty().contains("lost lease fencing mid-phase"))
   }
@@ -223,7 +236,10 @@ private class FakeWorkerSupervisor(
 
   override fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership) = inspection
 
-  override fun awaitExit(ownership: FeatureTaskRuntimeWorkerOwnership, timeout: Duration) = Unit
+  override fun awaitExit(
+    ownership: FeatureTaskRuntimeWorkerOwnership,
+    timeout: Duration,
+  ) = Unit
 
   override fun terminateGracefully(ownership: FeatureTaskRuntimeWorkerOwnership): Boolean {
     gracefulTerminationRequested = true
@@ -279,20 +295,21 @@ private class BumpUpdatedAtAfterReadDatabase(
   override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = inner.selfManagedWrite(block)
 }
 
-private fun unownedRuntimeRow(updatedAt: String) = WorkflowStateRecord(
-  workflowId = WORKFLOW_ID,
-  sessionId = "ftr-unowned",
-  workflowName = "bill-feature-task",
-  contractVersion = "0.1",
-  workflowStatus = WorkflowStatus.PENDING.wireValue,
-  currentStepId = "implement",
-  stepsJson = "[]",
-  artifactsJson = "{}",
-  startedAt = "2026-08-15T20:57:11Z",
-  updatedAt = updatedAt,
-  finishedAt = null,
-  mode = FeatureTaskWorkflowMode.RUNTIME,
-)
+private fun unownedRuntimeRow(updatedAt: String) =
+  WorkflowStateRecord(
+    workflowId = WORKFLOW_ID,
+    sessionId = "ftr-unowned",
+    workflowName = "bill-feature-task",
+    contractVersion = "0.1",
+    workflowStatus = WorkflowStatus.PENDING.wireValue,
+    currentStepId = "implement",
+    stepsJson = "[]",
+    artifactsJson = "{}",
+    startedAt = "2026-08-15T20:57:11Z",
+    updatedAt = updatedAt,
+    finishedAt = null,
+    mode = FeatureTaskWorkflowMode.RUNTIME,
+  )
 
 private fun ownership(
   expiresAt: String = "2999-01-01T00:00:30Z",

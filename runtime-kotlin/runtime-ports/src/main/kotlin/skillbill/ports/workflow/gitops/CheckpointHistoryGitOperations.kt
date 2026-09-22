@@ -20,9 +20,20 @@ interface CheckpointHistoryGitOperations {
     targetSha: String,
   ): WorkflowGitOperationResult
 
-  fun resolveRef(repoRoot: Path, namespacePrefix: String, refName: String): WorkflowGitOperationResult
+  fun resolveRef(
+    repoRoot: Path,
+    namespacePrefix: String,
+    refName: String,
+  ): WorkflowGitOperationResult
 
-  fun listRefs(repoRoot: Path, namespacePrefix: String): WorkflowGitOperationResult
+  fun listRefs(
+    repoRoot: Path,
+    namespacePrefix: String,
+  ): WorkflowGitOperationResult
 
-  fun deleteRef(repoRoot: Path, namespacePrefix: String, refName: String): WorkflowGitOperationResult
+  fun deleteRef(
+    repoRoot: Path,
+    namespacePrefix: String,
+    refName: String,
+  ): WorkflowGitOperationResult
 }

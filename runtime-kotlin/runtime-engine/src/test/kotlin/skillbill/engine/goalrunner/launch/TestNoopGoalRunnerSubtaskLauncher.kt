@@ -7,12 +7,13 @@ import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 
 internal object TestNoopGoalRunnerSubtaskLauncher : GoalRunnerSubtaskLauncher {
-  override fun launch(request: GoalRunnerSubtaskLaunchRequest): AgentRunLaunchOutcome = AgentRunLaunchFacts(
-    agent = InstallAgent.CLAUDE,
-    exitStatus = 0,
-    stdout = "",
-    stderr = "",
-    timedOut = false,
-    spawnFailed = false,
-  )
+  override fun launch(request: GoalRunnerSubtaskLaunchRequest): AgentRunLaunchOutcome =
+    AgentRunLaunchFacts(
+      agent = InstallAgent.CLAUDE,
+      exitStatus = 0,
+      stdout = "",
+      stderr = "",
+      timedOut = false,
+      spawnFailed = false,
+    )
 }

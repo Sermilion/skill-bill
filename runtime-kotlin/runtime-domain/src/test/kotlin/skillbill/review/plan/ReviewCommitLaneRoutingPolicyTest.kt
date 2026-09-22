@@ -15,6 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class ReviewCommitLaneRoutingPolicyTest {
   private fun lane(
     area: String,
@@ -39,37 +40,45 @@ class ReviewCommitLaneRoutingPolicyTest {
   )
 
   private val ui = lane("ui", pathSignals = listOf("ui/", "*.compose.kt"), contentSignals = listOf("@Composable"))
-  private val uxAccessibility = lane(
-    "ux-accessibility",
-    pathSignals = listOf("ui/"),
-    contentSignals = listOf("contentDescription", "semantics"),
-  )
-  private val persistence = lane(
-    "persistence",
-    pathSignals = listOf("db/", "migrations/"),
-    contentSignals = listOf("CREATE TABLE", "@Entity"),
-  )
-  private val apiContracts = lane(
-    "api-contracts",
-    pathSignals = listOf("api/", "contracts/"),
-    contentSignals = listOf("@Serializable", "openapi"),
-  )
-  private val security = lane(
-    "security",
-    pathSignals = listOf("auth/"),
-    contentSignals = listOf("authorize", "jwt", "tenantId"),
-  )
+  private val uxAccessibility =
+    lane(
+      "ux-accessibility",
+      pathSignals = listOf("ui/"),
+      contentSignals = listOf("contentDescription", "semantics"),
+    )
+  private val persistence =
+    lane(
+      "persistence",
+      pathSignals = listOf("db/", "migrations/"),
+      contentSignals = listOf("CREATE TABLE", "@Entity"),
+    )
+  private val apiContracts =
+    lane(
+      "api-contracts",
+      pathSignals = listOf("api/", "contracts/"),
+      contentSignals = listOf("@Serializable", "openapi"),
+    )
+  private val security =
+    lane(
+      "security",
+      pathSignals = listOf("auth/"),
+      contentSignals = listOf("authorize", "jwt", "tenantId"),
+    )
   private val testing = lane("testing", pathSignals = listOf("src/test/"), contentSignals = listOf("@Test"))
-  private val architecture = lane(
-    "architecture",
-    pathSignals = listOf("ports/"),
-    contentSignals = listOf("interface ", "internal "),
-  )
+  private val architecture =
+    lane(
+      "architecture",
+      pathSignals = listOf("ports/"),
+      contentSignals = listOf("interface ", "internal "),
+    )
   private val baseline = lane("platform-correctness", required = true)
 
   private val allLanes = listOf(ui, uxAccessibility, persistence, apiContracts, security, testing, architecture)
 
-  private fun commit(order: Int, vararg hunks: ReviewChangedHunk) = ReviewCommitUnit.ofCommit(
+  private fun commit(
+    order: Int,
+    vararg hunks: ReviewChangedHunk,
+  ) = ReviewCommitUnit.ofCommit(
     commitSha = "c$order",
     parentSha = if (order == 0) "base" else "c${order - 1}",
     subject = "commit $order",
@@ -77,10 +86,16 @@ class ReviewCommitLaneRoutingPolicyTest {
     hunks = hunks.toList(),
   )
 
-  private fun hunk(path: String, content: String) = ReviewChangedHunk(path, 1, 1, 1, 2, content)
+  private fun hunk(
+    path: String,
+    content: String,
+  ) = ReviewChangedHunk(path, 1, 1, 1, 2, content)
 
-  private fun disposition(matrix: ReviewCommitLaneRoutingMatrix, commitSha: String, lane: ReviewRoutedLane) =
-    matrix.decisions.single { it.commitSha == commitSha && it.lane == lane.laneKey }.disposition
+  private fun disposition(
+    matrix: ReviewCommitLaneRoutingMatrix,
+    commitSha: String,
+    lane: ReviewRoutedLane,
+  ) = matrix.decisions.single { it.commitSha == commitSha && it.lane == lane.laneKey }.disposition
 
   @Test fun `a pure UI commit never enters the security lane`() {
     val uiCommit = commit(0, hunk("ui/ProfileScreen.kt", "+@Composable fun Profile() {}"))
@@ -137,11 +152,12 @@ class ReviewCommitLaneRoutingPolicyTest {
   }
 
   @Test fun `an authentication and API commit reaches both the security and api-contract lanes`() {
-    val authCommit = commit(
-      0,
-      hunk("auth/TokenVerifier.kt", "+fun authorize(jwt: String): Boolean"),
-      hunk("api/SessionResponse.kt", "+@Serializable data class SessionResponse(val token: String)"),
-    )
+    val authCommit =
+      commit(
+        0,
+        hunk("auth/TokenVerifier.kt", "+fun authorize(jwt: String): Boolean"),
+        hunk("api/SessionResponse.kt", "+@Serializable data class SessionResponse(val token: String)"),
+      )
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(authCommit), allLanes)
 
     assertEquals(ReviewCommitLaneDisposition.FOCUSED, disposition(matrix, "c0", security))
@@ -150,11 +166,12 @@ class ReviewCommitLaneRoutingPolicyTest {
   }
 
   @Test fun `a cross-cutting commit enters several lanes and each inclusion cites changed evidence`() {
-    val crossCutting = commit(
-      0,
-      hunk("ports/TenantPort.kt", "+interface TenantPort { fun authorize(tenantId: String): Boolean }"),
-      hunk("db/TenantEntity.kt", "+@Entity data class TenantEntity(val tenantId: String)"),
-    )
+    val crossCutting =
+      commit(
+        0,
+        hunk("ports/TenantPort.kt", "+interface TenantPort { fun authorize(tenantId: String): Boolean }"),
+        hunk("db/TenantEntity.kt", "+@Entity data class TenantEntity(val tenantId: String)"),
+      )
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(crossCutting), allLanes)
 
     listOf(security, persistence, architecture).forEach { entered ->
@@ -174,13 +191,14 @@ class ReviewCommitLaneRoutingPolicyTest {
   }
 
   @Test fun `disguised risk still reaches its owning lane despite an unrelated path and misleading subject`() {
-    val disguised = ReviewCommitUnit.ofCommit(
-      commitSha = "c0",
-      parentSha = "base",
-      subject = "chore: tidy up whitespace in docs",
-      orderIndex = 0,
-      hunks = listOf(hunk("misc/Helpers.kt", "+fun check(tenantId: String) = authorize(tenantId)")),
-    )
+    val disguised =
+      ReviewCommitUnit.ofCommit(
+        commitSha = "c0",
+        parentSha = "base",
+        subject = "chore: tidy up whitespace in docs",
+        orderIndex = 0,
+        hunks = listOf(hunk("misc/Helpers.kt", "+fun check(tenantId: String) = authorize(tenantId)")),
+      )
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(disguised), allLanes)
 
     assertEquals(ReviewCommitLaneDisposition.FOCUSED, disposition(matrix, "c0", security))
@@ -194,24 +212,26 @@ class ReviewCommitLaneRoutingPolicyTest {
   }
 
   @Test fun `a commit subject alone can never focus a lane`() {
-    val subjectOnly = ReviewCommitUnit.ofCommit(
-      commitSha = "c0",
-      parentSha = "base",
-      subject = "security: authorize every jwt against the tenantId in api/contracts",
-      orderIndex = 0,
-      hunks = listOf(hunk("docs/README.md", "+Some prose about nothing in particular.")),
-    )
+    val subjectOnly =
+      ReviewCommitUnit.ofCommit(
+        commitSha = "c0",
+        parentSha = "base",
+        subject = "security: authorize every jwt against the tenantId in api/contracts",
+        orderIndex = 0,
+        hunks = listOf(hunk("docs/README.md", "+Some prose about nothing in particular.")),
+      )
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(subjectOnly), allLanes)
 
     assertTrue(matrix.decisions.none { it.focused }, "a commit message alone focused a lane")
   }
 
   @Test fun `required baseline lanes are focused for every commit and never skipped`() {
-    val commits = listOf(
-      commit(0, hunk("ui/Screen.kt", "+@Composable fun Screen() {}")),
-      commit(1, hunk("db/Migration.sql", "+CREATE TABLE t (id int);")),
-      commit(2, hunk("docs/NOTES.md", "+prose")),
-    )
+    val commits =
+      listOf(
+        commit(0, hunk("ui/Screen.kt", "+@Composable fun Screen() {}")),
+        commit(1, hunk("db/Migration.sql", "+CREATE TABLE t (id int);")),
+        commit(2, hunk("docs/NOTES.md", "+prose")),
+      )
     val matrix = ReviewCommitLaneRoutingPolicy.route(commits, allLanes + baseline)
 
     assertEquals(commits.size, matrix.focusedCommits(baseline.laneKey).size)
@@ -230,12 +250,13 @@ class ReviewCommitLaneRoutingPolicyTest {
   }
 
   @Test fun `sparse routing shrinks the commit-by-lane matrix while preserving required and cross-cutting coverage`() {
-    val commits = listOf(
-      commit(0, hunk("ui/Screen.kt", "+@Composable fun Screen() {}")),
-      commit(1, hunk("db/Migration.sql", "+CREATE TABLE t (id int);")),
-      commit(2, hunk("src/test/ScreenTest.kt", "+@Test fun renders() {}")),
-      commit(3, hunk("auth/Guard.kt", "+fun authorize() = true"), hunk("api/Dto.kt", "+@Serializable class Dto")),
-    )
+    val commits =
+      listOf(
+        commit(0, hunk("ui/Screen.kt", "+@Composable fun Screen() {}")),
+        commit(1, hunk("db/Migration.sql", "+CREATE TABLE t (id int);")),
+        commit(2, hunk("src/test/ScreenTest.kt", "+@Test fun renders() {}")),
+        commit(3, hunk("auth/Guard.kt", "+fun authorize() = true"), hunk("api/Dto.kt", "+@Serializable class Dto")),
+      )
     val lanes = allLanes + baseline
     val matrix = ReviewCommitLaneRoutingPolicy.route(commits, lanes)
 
@@ -254,10 +275,11 @@ class ReviewCommitLaneRoutingPolicyTest {
   }
 
   @Test fun `every skip reason is falsifiable against the commit's own changed hunks`() {
-    val commits = listOf(
-      commit(0, hunk("ui/Screen.kt", "+@Composable fun Screen() {}")),
-      commit(1, hunk("db/Migration.sql", "+CREATE TABLE t (id int);")),
-    )
+    val commits =
+      listOf(
+        commit(0, hunk("ui/Screen.kt", "+@Composable fun Screen() {}")),
+        commit(1, hunk("db/Migration.sql", "+CREATE TABLE t (id int);")),
+      )
     val matrix = ReviewCommitLaneRoutingPolicy.route(commits, allLanes)
     val unitsBySha = commits.associateBy { it.commitSha }
 
@@ -284,10 +306,11 @@ class ReviewCommitLaneRoutingPolicyTest {
   }
 
   @Test fun `routing decides every commit-lane pair exactly once and in commit order`() {
-    val commits = listOf(
-      commit(0, hunk("ui/Screen.kt", "+@Composable fun A() {}")),
-      commit(1, hunk("auth/Guard.kt", "+fun authorize() = true")),
-    )
+    val commits =
+      listOf(
+        commit(0, hunk("ui/Screen.kt", "+@Composable fun A() {}")),
+        commit(1, hunk("auth/Guard.kt", "+fun authorize() = true")),
+      )
     val matrix = ReviewCommitLaneRoutingPolicy.route(commits, allLanes)
 
     assertEquals(commits.size * allLanes.size, matrix.decisions.size)
@@ -297,10 +320,11 @@ class ReviewCommitLaneRoutingPolicyTest {
   }
 
   @Test fun `a single synthetic unit resolves each lane to exactly one decision without commit identity`() {
-    val synthetic = ReviewCommitUnit.synthetic(
-      ReviewCommitSource.SYNTHETIC_WORKING_TREE,
-      listOf(hunk("ui/Screen.kt", "+@Composable fun Screen() {}")),
-    )
+    val synthetic =
+      ReviewCommitUnit.synthetic(
+        ReviewCommitSource.SYNTHETIC_WORKING_TREE,
+        listOf(hunk("ui/Screen.kt", "+@Composable fun Screen() {}")),
+      )
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(synthetic), allLanes + baseline)
 
     assertEquals(allLanes.size + 1, matrix.decisions.size)
@@ -323,10 +347,11 @@ class ReviewCommitLaneRoutingPolicyTest {
     require(uniqueBytes * allLanes.size > uniqueBytes) {
       "fixture needs more than one lane so a per-lane multiplier would differ"
     }
-    val matrix = ReviewCommitLaneRoutingPolicy.route(
-      listOf(commit(0, hunk("ui/Screen.kt", content))),
-      allLanes,
-    )
+    val matrix =
+      ReviewCommitLaneRoutingPolicy.route(
+        listOf(commit(0, hunk("ui/Screen.kt", content))),
+        allLanes,
+      )
     assertEquals(allLanes.size, matrix.decisions.size)
   }
 
@@ -379,16 +404,20 @@ class ReviewCommitLaneRoutingPolicyTest {
   @Test fun `the routing digest moves with a disposition and with a skip reason`() {
     val commits = listOf(commit(0, hunk("ui/Screen.kt", "+@Composable fun S() {}")))
     val matrix = ReviewCommitLaneRoutingPolicy.route(commits, allLanes)
-    val flipped = matrix.copy(
-      decisions = matrix.decisions.map {
-        if (it.lane == security.laneKey) it.copy(disposition = ReviewCommitLaneDisposition.FOCUSED) else it
-      },
-    )
-    val rephrased = matrix.copy(
-      decisions = matrix.decisions.map {
-        if (it.lane == security.laneKey) it.copy(reason = "a different but still falsifiable reason") else it
-      },
-    )
+    val flipped =
+      matrix.copy(
+        decisions =
+          matrix.decisions.map {
+            if (it.lane == security.laneKey) it.copy(disposition = ReviewCommitLaneDisposition.FOCUSED) else it
+          },
+      )
+    val rephrased =
+      matrix.copy(
+        decisions =
+          matrix.decisions.map {
+            if (it.lane == security.laneKey) it.copy(reason = "a different but still falsifiable reason") else it
+          },
+      )
 
     assertTrue(matrix.routingDigest != flipped.routingDigest)
     assertTrue(matrix.routingDigest != rephrased.routingDigest)

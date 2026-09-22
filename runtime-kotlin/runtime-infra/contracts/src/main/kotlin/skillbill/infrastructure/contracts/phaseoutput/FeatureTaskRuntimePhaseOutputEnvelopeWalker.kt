@@ -11,9 +11,12 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputF
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import skillbill.workflow.taskruntime.model.repair.task.salvageCompactReceiptSymbol
-internal object FeatureTaskRuntimePhaseOutputEnvelopeWalker {
 
-  fun select(text: String, phaseId: String): FeatureTaskRuntimePhaseOutputStructuralRepairDecision? =
+internal object FeatureTaskRuntimePhaseOutputEnvelopeWalker {
+  fun select(
+    text: String,
+    phaseId: String,
+  ): FeatureTaskRuntimePhaseOutputStructuralRepairDecision? =
     selectMatching(text, phaseId, recoverSummary = false)
       ?: selectMatching(text, phaseId, recoverSummary = true)
 
@@ -38,27 +41,35 @@ internal object FeatureTaskRuntimePhaseOutputEnvelopeWalker {
     val selected = matches.values.single()
     val extraCloser = unmatchedCloserOutside(text, selected.sourceStart, selected.sourceEnd)
     val originalSlice = originalSliceForDigest(text, selected, extraCloser)
-    val evidence = when {
-      selected.spliced || extraCloser != null -> repairEvidence(
-        originalSlice,
-        selected.envelopeText,
-        phaseId,
-        FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER,
-        selected.spliceOffset ?: extraCloser ?: selected.sourceStart,
-      )
-      selected.shapeAligned -> repairEvidence(
-        originalSlice,
-        selected.envelopeText,
-        phaseId,
-        FeatureTaskRuntimePhaseOutputRepairOperation.RESTORE_EXPECTED_SHAPE,
-        selected.sourceStart,
-      )
-      else -> null
-    }
+    val evidence =
+      when {
+        selected.spliced || extraCloser != null ->
+          repairEvidence(
+            originalSlice,
+            selected.envelopeText,
+            phaseId,
+            FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER,
+            selected.spliceOffset ?: extraCloser ?: selected.sourceStart,
+          )
+        selected.shapeAligned ->
+          repairEvidence(
+            originalSlice,
+            selected.envelopeText,
+            phaseId,
+            FeatureTaskRuntimePhaseOutputRepairOperation.RESTORE_EXPECTED_SHAPE,
+            selected.sourceStart,
+          )
+        else -> null
+      }
     return StructuralRepairDecisions.accepted(selected.envelopeText, selected.node, evidence)
   }
 
-  private fun considerSpan(text: String, span: IntRange, phaseId: String, recoverSummary: Boolean): WalkedEnvelope? {
+  private fun considerSpan(
+    text: String,
+    span: IntRange,
+    phaseId: String,
+    recoverSummary: Boolean,
+  ): WalkedEnvelope? {
     val summarySource = if (recoverSummary) text.substring(0, span.first) else null
     shapedEnvelope(text.substring(span), span, spliceOffset = null, phaseId, summarySource)?.let {
       return it
@@ -77,9 +88,10 @@ internal object FeatureTaskRuntimePhaseOutputEnvelopeWalker {
   ): WalkedEnvelope? {
     val parsed = parseObject(slice) ?: return null
     val (alignedShape, shapeChanged) = PhaseOutputExpectedShape.align(parsed, phaseId)
-    val (aligned, summaryRecovered) = summarySource
-      ?.let { PhaseOutputExpectedShape.withRecoveredSummary(alignedShape, phaseId, it) }
-      ?: (alignedShape to false)
+    val (aligned, summaryRecovered) =
+      summarySource
+        ?.let { PhaseOutputExpectedShape.withRecoveredSummary(alignedShape, phaseId, it) }
+        ?: (alignedShape to false)
     val changed = shapeChanged || summaryRecovered
     if (!PhaseOutputExpectedShape.matches(aligned, phaseId)) return null
     val envelopeText = if (changed) PhaseOutputExpectedShape.writeJson(aligned) else slice
@@ -108,32 +120,44 @@ internal object FeatureTaskRuntimePhaseOutputEnvelopeWalker {
     sourceLocation = StructuralRepairSyntax.sourceLocation(phaseId, originalText, offset),
   )
 
-  private fun originalSliceForDigest(text: String, selected: WalkedEnvelope, extraCloser: Int?): String {
+  private fun originalSliceForDigest(
+    text: String,
+    selected: WalkedEnvelope,
+    extraCloser: Int?,
+  ): String {
     if (selected.spliced || selected.shapeAligned) return text.substring(selected.sourceStart)
     if (extraCloser == null) return text.substring(selected.sourceStart, selected.sourceEnd)
     if (extraCloser < selected.sourceStart) return text
     return text.substring(selected.sourceStart, extraCloser + 1)
   }
 
-  private fun parseObject(slice: String): JsonNode? = when (val parsed = StrictPhaseOutputParser.parseDocument(slice)) {
-    is StrictParse.Success -> parsed.node.takeIf { it.isObject }
-    is StrictParse.Failure -> null
-  }
-
-  private fun canonical(node: JsonNode): String = when {
-    node.isObject -> node.fieldNames().asSequence().sorted().joinToString(prefix = "{", postfix = "}") { field ->
-      "\"$field\":${canonical(node.path(field))}"
+  private fun parseObject(slice: String): JsonNode? =
+    when (val parsed = StrictPhaseOutputParser.parseDocument(slice)) {
+      is StrictParse.Success -> parsed.node.takeIf { it.isObject }
+      is StrictParse.Failure -> null
     }
-    node.isArray -> node.joinToString(prefix = "[", postfix = "]", transform = ::canonical)
-    else -> node.toString()
-  }
 
-  private fun unmatchedCloserOutside(text: String, sourceStart: Int, sourceEnd: Int): Int? {
+  private fun canonical(node: JsonNode): String =
+    when {
+      node.isObject ->
+        node.fieldNames().asSequence().sorted().joinToString(prefix = "{", postfix = "}") { field ->
+          "\"$field\":${canonical(node.path(field))}"
+        }
+      node.isArray -> node.joinToString(prefix = "[", postfix = "]", transform = ::canonical)
+      else -> node.toString()
+    }
+
+  private fun unmatchedCloserOutside(
+    text: String,
+    sourceStart: Int,
+    sourceEnd: Int,
+  ): Int? {
     val start = sourceStart.coerceAtLeast(0)
     val end = sourceEnd.coerceAtMost(text.length)
     val outside = text.removeRange(start, end)
-    val outsideOffset = StructuralRepairSyntax.scanDelimiters(outside)
-      .unmatchedClosingOffsets.firstOrNull() ?: return null
+    val outsideOffset =
+      StructuralRepairSyntax.scanDelimiters(outside)
+        .unmatchedClosingOffsets.firstOrNull() ?: return null
     return if (outsideOffset < start) outsideOffset else outsideOffset + (end - start)
   }
 
@@ -157,37 +181,45 @@ internal object PhaseOutputExpectedShape {
   private val PARAGRAPH_BREAK = Regex("\\r?\\n[ \\t]*\\r?\\n")
   private val WHITESPACE_RUN = Regex("\\s+")
 
-  fun matches(node: JsonNode, phaseId: String): Boolean {
+  fun matches(
+    node: JsonNode,
+    phaseId: String,
+  ): Boolean {
     if (!node.isObject) return false
     if (node.path(SharedPayloadKeys.PHASE_ID).asText("") != phaseId) return false
     return requiredFields(phaseId).all { field -> node.hasNonNull(field) }
   }
 
-  fun requiredFields(phaseId: String): List<String> = buildList {
-    addAll(
-      listOf(
-        SharedPayloadKeys.CONTRACT_VERSION,
-        SharedPayloadKeys.PHASE_ID,
-        SharedPayloadKeys.STATUS,
-        SharedPayloadKeys.SUMMARY,
-        SharedPayloadKeys.PRODUCED_OUTPUTS,
-      ),
+  fun requiredFields(phaseId: String): List<String> =
+    buildList {
+      addAll(
+        listOf(
+          SharedPayloadKeys.CONTRACT_VERSION,
+          SharedPayloadKeys.PHASE_ID,
+          SharedPayloadKeys.STATUS,
+          SharedPayloadKeys.SUMMARY,
+          SharedPayloadKeys.PRODUCED_OUTPUTS,
+        ),
+      )
+      if (phaseId == "audit") add(SharedPayloadKeys.VERDICT)
+    }
+
+  val ENVELOPE_ROOT_FIELDS: Set<String> =
+    setOf(
+      SharedPayloadKeys.CONTRACT_VERSION,
+      SharedPayloadKeys.PHASE_ID,
+      SharedPayloadKeys.STATUS,
+      SharedPayloadKeys.FAILURE_DISPOSITION,
+      SharedPayloadKeys.SUMMARY,
+      SharedPayloadKeys.PRODUCED_OUTPUTS,
+      SharedPayloadKeys.DERIVED_NOTES,
+      SharedPayloadKeys.VERDICT,
     )
-    if (phaseId == "audit") add(SharedPayloadKeys.VERDICT)
-  }
 
-  val ENVELOPE_ROOT_FIELDS: Set<String> = setOf(
-    SharedPayloadKeys.CONTRACT_VERSION,
-    SharedPayloadKeys.PHASE_ID,
-    SharedPayloadKeys.STATUS,
-    SharedPayloadKeys.FAILURE_DISPOSITION,
-    SharedPayloadKeys.SUMMARY,
-    SharedPayloadKeys.PRODUCED_OUTPUTS,
-    SharedPayloadKeys.DERIVED_NOTES,
-    SharedPayloadKeys.VERDICT,
-  )
-
-  fun align(node: JsonNode, phaseId: String): Pair<JsonNode, Boolean> {
+  fun align(
+    node: JsonNode,
+    phaseId: String,
+  ): Pair<JsonNode, Boolean> {
     val root = (node as? ObjectNode)?.deepCopy() ?: return node to false
     val produced = root.get(SharedPayloadKeys.PRODUCED_OUTPUTS) as? ObjectNode ?: return node to false
     var changed = false
@@ -216,21 +248,27 @@ internal object PhaseOutputExpectedShape {
     return true
   }
 
-  private fun flattenNotes(notes: JsonNode): String = when {
-    notes.isNull -> ""
-    notes.isArray -> notes.asSequence()
-      .map(::flattenNotes)
-      .filter(String::isNotBlank)
-      .joinToString(separator = "\n")
-    notes.isObject -> notes.properties().asSequence()
-      .map { (name, value) -> "$name: ${flattenNotes(value)}" }
-      .filter { it.isNotBlank() }
-      .joinToString(separator = "\n")
-    notes.isValueNode -> notes.asText("").trim()
-    else -> ""
-  }
+  private fun flattenNotes(notes: JsonNode): String =
+    when {
+      notes.isNull -> ""
+      notes.isArray ->
+        notes.asSequence()
+          .map(::flattenNotes)
+          .filter(String::isNotBlank)
+          .joinToString(separator = "\n")
+      notes.isObject ->
+        notes.properties().asSequence()
+          .map { (name, value) -> "$name: ${flattenNotes(value)}" }
+          .filter { it.isNotBlank() }
+          .joinToString(separator = "\n")
+      notes.isValueNode -> notes.asText("").trim()
+      else -> ""
+    }
 
-  private fun demoteStrayRootFields(root: ObjectNode, produced: ObjectNode): Boolean {
+  private fun demoteStrayRootFields(
+    root: ObjectNode,
+    produced: ObjectNode,
+  ): Boolean {
     val stray = root.fieldNames().asSequence().filterNot(ENVELOPE_ROOT_FIELDS::contains).toList()
     if (stray.isEmpty()) return false
     stray.forEach { field ->
@@ -240,14 +278,21 @@ internal object PhaseOutputExpectedShape {
     return true
   }
 
-  fun withRecoveredSummary(node: JsonNode, phaseId: String, precedingText: String): Pair<JsonNode, Boolean> {
+  fun withRecoveredSummary(
+    node: JsonNode,
+    phaseId: String,
+    precedingText: String,
+  ): Pair<JsonNode, Boolean> {
     val root = (node as? ObjectNode)?.takeIf { onlySummaryIsMissing(it, phaseId) } ?: return node to false
     val recovered = root.deepCopy()
     recovered.put(SUMMARY_FIELD, proseSummary(precedingText) ?: absentSummaryMarker(phaseId))
     return recovered to true
   }
 
-  private fun onlySummaryIsMissing(root: ObjectNode, phaseId: String): Boolean =
+  private fun onlySummaryIsMissing(
+    root: ObjectNode,
+    phaseId: String,
+  ): Boolean =
     root.path(SharedPayloadKeys.PHASE_ID).asText("") == phaseId &&
       !root.hasNonNull(SUMMARY_FIELD) &&
       requiredFields(phaseId).none { field -> field != SUMMARY_FIELD && !root.hasNonNull(field) }
@@ -255,15 +300,16 @@ internal object PhaseOutputExpectedShape {
   private fun absentSummaryMarker(phaseId: String): String =
     "Phase '$phaseId' reported no summary; its produced_outputs carries the phase's output."
 
-  private fun proseSummary(precedingText: String): String? = precedingText
-    .replace(FENCED_BLOCK, " ")
-    .replace(FENCE_MARKER_LINE, "")
-    .split(PARAGRAPH_BREAK)
-    .lastOrNull(String::isNotBlank)
-    ?.replace(WHITESPACE_RUN, " ")
-    ?.trim()
-    ?.takeIf(String::isNotEmpty)
-    ?.take(RECOVERED_SUMMARY_MAX_CHARS)
+  private fun proseSummary(precedingText: String): String? =
+    precedingText
+      .replace(FENCED_BLOCK, " ")
+      .replace(FENCE_MARKER_LINE, "")
+      .split(PARAGRAPH_BREAK)
+      .lastOrNull(String::isNotBlank)
+      ?.replace(WHITESPACE_RUN, " ")
+      ?.trim()
+      ?.takeIf(String::isNotEmpty)
+      ?.take(RECOVERED_SUMMARY_MAX_CHARS)
 
   fun writeJson(node: JsonNode): String = mapper.writeValueAsString(node)
 
@@ -279,21 +325,23 @@ internal object PhaseOutputExpectedShape {
     val changed = shapeChanged || summaryRecovered
     if (!changed) return accepted
     val repairedText = writeJson(aligned)
-    val evidence = accepted.evidence?.copy(repairedDigest = StructuralRepairSyntax.sha256Hex(repairedText))
-      ?: FeatureTaskRuntimePhaseOutputRepairEvidence(
-        format = FeatureTaskRuntimePhaseOutputFormat.JSON,
-        originalDigest = StructuralRepairSyntax.sha256Hex(originalText),
-        repairedDigest = StructuralRepairSyntax.sha256Hex(repairedText),
-        operation = FeatureTaskRuntimePhaseOutputRepairOperation.RESTORE_EXPECTED_SHAPE,
-        sourceLocation = StructuralRepairSyntax.sourceLocation(phaseId, originalText, 0),
-      )
+    val evidence =
+      accepted.evidence?.copy(repairedDigest = StructuralRepairSyntax.sha256Hex(repairedText))
+        ?: FeatureTaskRuntimePhaseOutputRepairEvidence(
+          format = FeatureTaskRuntimePhaseOutputFormat.JSON,
+          originalDigest = StructuralRepairSyntax.sha256Hex(originalText),
+          repairedDigest = StructuralRepairSyntax.sha256Hex(repairedText),
+          operation = FeatureTaskRuntimePhaseOutputRepairOperation.RESTORE_EXPECTED_SHAPE,
+          sourceLocation = StructuralRepairSyntax.sourceLocation(phaseId, originalText, 0),
+        )
     return StructuralRepairDecisions.accepted(repairedText, aligned, evidence)
   }
 }
 
 private fun salvageRepairReceiptSymbols(produced: ObjectNode): Boolean {
-  val entries = (produced.get("repair_receipt") as? ObjectNode)?.get("entries") as? ArrayNode
-    ?: return false
+  val entries =
+    (produced.get("repair_receipt") as? ObjectNode)?.get("entries") as? ArrayNode
+      ?: return false
   var changed = false
   for (entryNode in entries) {
     val constructs = (entryNode as? ObjectNode)?.get("constructs") as? ArrayNode ?: continue

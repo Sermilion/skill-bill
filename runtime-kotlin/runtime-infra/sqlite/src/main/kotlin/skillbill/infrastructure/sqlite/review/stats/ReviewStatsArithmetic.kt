@@ -11,19 +11,27 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeParseException
 import java.util.Locale
 
-internal fun rate(count: Int, total: Int): Double = if (total == 0) {
-  0.0
-} else {
-  String.format(Locale.US, "%.3f", count.toDouble() / total).toDouble()
-}
+internal fun rate(
+  count: Int,
+  total: Int,
+): Double =
+  if (total == 0) {
+    0.0
+  } else {
+    String.format(Locale.US, "%.3f", count.toDouble() / total).toDouble()
+  }
 
-internal fun average(values: List<Int>): Double = if (values.isEmpty()) {
-  0.0
-} else {
-  String.format(Locale.US, "%.2f", values.average()).toDouble()
-}
+internal fun average(values: List<Int>): Double =
+  if (values.isEmpty()) {
+    0.0
+  } else {
+    String.format(Locale.US, "%.2f", values.average()).toDouble()
+  }
 
-internal fun parseJsonList(rawValue: Any?, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics): List<Any?> =
+internal fun parseJsonList(
+  rawValue: Any?,
+  diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+): List<Any?> =
   when (rawValue) {
     null -> emptyList()
     is String -> {
@@ -90,23 +98,26 @@ internal fun collectRows(resultSet: ResultSet): List<Map<String, Any?>> {
   }
 }
 
-internal fun Map<String, Any?>.booleanValue(key: String): Boolean = when (val value = this[key]) {
-  is Boolean -> value
-  is Number -> value.toInt() != 0
-  is String -> value == "1" || value.equals("true", ignoreCase = true)
-  else -> false
-}
+internal fun Map<String, Any?>.booleanValue(key: String): Boolean =
+  when (val value = this[key]) {
+    is Boolean -> value
+    is Number -> value.toInt() != 0
+    is String -> value == "1" || value.equals("true", ignoreCase = true)
+    else -> false
+  }
 
-internal fun Map<String, Any?>.intValue(key: String): Int = when (val value = this[key]) {
-  is Number -> value.toInt()
-  is String -> value.toIntOrNull() ?: 0
-  else -> 0
-}
+internal fun Map<String, Any?>.intValue(key: String): Int =
+  when (val value = this[key]) {
+    is Number -> value.toInt()
+    is String -> value.toIntOrNull() ?: 0
+    else -> 0
+  }
 
 internal fun Map<String, Any?>.stringValue(key: String): String = this[key]?.toString().orEmpty()
 
-internal fun Map<String, Any?>.nullableIntValue(key: String): Int? = when (val value = this[key]) {
-  is Number -> value.toInt()
-  is String -> value.toIntOrNull()
-  else -> null
-}
+internal fun Map<String, Any?>.nullableIntValue(key: String): Int? =
+  when (val value = this[key]) {
+    is Number -> value.toInt()
+    is String -> value.toIntOrNull()
+    else -> null
+  }

@@ -11,15 +11,27 @@ interface LearningRepository {
 
   fun get(id: Int): LearningRecord
 
-  fun resolve(repoScopeKey: String?, skillName: String?): LearningResolution
+  fun resolve(
+    repoScopeKey: String?,
+    skillName: String?,
+  ): LearningResolution
 
-  fun saveSessionLearnings(reviewSessionId: String, learningsJson: String)
+  fun saveSessionLearnings(
+    reviewSessionId: String,
+    learningsJson: String,
+  )
 
-  fun add(request: CreateLearningRequest, sourceValidation: LearningSourceValidation): Int
+  fun add(
+    request: CreateLearningRequest,
+    sourceValidation: LearningSourceValidation,
+  ): Int
 
   fun edit(request: UpdateLearningRequest): LearningRecord
 
-  fun setStatus(id: Int, status: String): LearningRecord
+  fun setStatus(
+    id: Int,
+    status: String,
+  ): LearningRecord
 
   fun delete(id: Int)
 }

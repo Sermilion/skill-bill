@@ -1,4 +1,5 @@
 package skillbill.contracts.workflow.identity.subtask
+
 object GoalSubtaskReviewInputPayloadKeys {
   const val REVIEW_BASE_SHA: String = "review_base_sha"
   const val CURRENT_HEAD_SHA: String = "current_head_sha"

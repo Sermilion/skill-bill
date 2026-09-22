@@ -18,13 +18,16 @@ import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.SkillRunRequest
 import java.nio.file.Path
+
 internal interface AgentRunAdapter {
   val agent: InstallAgent
+
   fun launch(request: SkillRunRequest): AgentRunLaunchFacts
 }
 
 internal sealed interface LauncherResolution {
   data class Resolved(val command: List<String>) : LauncherResolution
+
   data class Missing(val message: String) : LauncherResolution
 }
 
@@ -36,28 +39,31 @@ internal class ProcessAgentRunAdapter(
 ) : AgentRunAdapter {
   override fun launch(request: SkillRunRequest): AgentRunLaunchFacts {
     val built = commandBuilder.build(request)
-    val command = when (val resolution = resolveLauncherExecutable(built.command, commandBuilder.launcherCli)) {
-      is LauncherResolution.Resolved -> built.copy(command = resolution.command)
-      is LauncherResolution.Missing -> return unavailableLauncherFacts(request, built, resolution.message)
-    }
+    val command =
+      when (val resolution = resolveLauncherExecutable(built.command, commandBuilder.launcherCli)) {
+        is LauncherResolution.Resolved -> built.copy(command = resolution.command)
+        is LauncherResolution.Missing -> return unavailableLauncherFacts(request, built, resolution.message)
+      }
     val result = processRunner.run(processRequest(command, request))
     val decoder = command.outputDecoder ?: commandBuilder.outputDecoder
-    val decoded = runCatching { decoder.decode(result.stdout) }.getOrElse { error ->
-      if (!decoder.undecodable(error)) throw error
+    val decoded =
+      runCatching { decoder.decode(result.stdout) }.getOrElse { error ->
+        if (!decoder.undecodable(error)) throw error
 
-      DecodedAgentRunOutput(text = "", rawOutputPreview = result.stdout.take(RAW_OUTPUT_PREVIEW_MAX_CHARS))
-    }
+        DecodedAgentRunOutput(text = "", rawOutputPreview = result.stdout.take(RAW_OUTPUT_PREVIEW_MAX_CHARS))
+      }
 
     require(result.spawnFailed != result.processStarted) {
       "AgentRunProcessRunner result must report exactly one of spawnFailed/processStarted; got " +
         "spawnFailed=${result.spawnFailed}, processStarted=${result.processStarted}."
     }
     val normalizedStdout = decoded.text
-    val decodedBodyBytes = if (normalizedStdout == result.stdout) {
-      result.stdoutBytes
-    } else {
-      normalizedStdout.encodeToByteArray()
-    }
+    val decodedBodyBytes =
+      if (normalizedStdout == result.stdout) {
+        result.stdoutBytes
+      } else {
+        normalizedStdout.encodeToByteArray()
+      }
     return AgentRunLaunchFacts(
       agent = agent,
       exitStatus = result.exitStatus,
@@ -80,7 +86,10 @@ internal class ProcessAgentRunAdapter(
     )
   }
 
-  private fun resolveLauncherExecutable(command: List<String>, launcher: AgentLauncherCli): LauncherResolution {
+  private fun resolveLauncherExecutable(
+    command: List<String>,
+    launcher: AgentLauncherCli,
+  ): LauncherResolution {
     val requested = command.firstOrNull()
     return when {
       requested == null -> LauncherResolution.Missing("Agent '${agent.id}' produced an empty launch command.")
@@ -96,65 +105,82 @@ internal class ProcessAgentRunAdapter(
     command: List<String>,
     launcher: AgentLauncherCli,
   ): LauncherResolution {
-    val alternate = launcher.executables
-      .firstOrNull { candidate -> candidate != requested && executableLookup.onPath(candidate) }
-      ?: return LauncherResolution.Missing(agentLauncherUnavailableMessage(agent, requested, launcher.installHint))
+    val alternate =
+      launcher.executables
+        .firstOrNull { candidate -> candidate != requested && executableLookup.onPath(candidate) }
+        ?: return LauncherResolution.Missing(agentLauncherUnavailableMessage(agent, requested, launcher.installHint))
     return LauncherResolution.Resolved(listOf(alternate) + command.drop(1))
   }
 
-  private fun unavailableLauncherFacts(request: SkillRunRequest, command: AgentRunCommand, message: String) =
-    AgentRunLaunchFacts(
-      agent = agent,
-      exitStatus = null,
-      stdout = "",
-      stderr = message,
-      timedOut = false,
-      spawnFailed = true,
-      childSessionPath = command.workingDirectory.toString(),
-      childSessionId = childSessionId(agent, request, command.workingDirectory),
-    )
-
-  private fun processRequest(command: AgentRunCommand, request: SkillRunRequest) = AgentRunProcessRequest(
-    launch = AgentRunProcessLaunchFields(
-      command = command.command,
-      workingDirectory = command.workingDirectory,
-      stdinText = command.stdinText,
-      outputSink = request.outputSink,
-    ),
-    timing = AgentRunProcessTimingFields(
-      timeout = command.timeout,
-      progressIdleTimeout = request.progressIdleTimeout,
-      operationDeadline = request.timeout,
-    ),
-    probes = AgentRunProcessProbeFields(
-      progressProbe = request.progressProbe,
-      declaredProgressProbe = request.declaredProgressProbe,
-      mcpStartupProbe = request.mcpStartupProbe,
-      progressEmitter = request.progressEmitter,
-      activityProbe = WorktreeActivityProbe(command.workingDirectory),
-      activityStampSink = request.activityStampSink,
-      worktreeEditObserver = request.worktreeEditObserver,
-      idlePolicy = command.idlePolicy,
-    ),
-    environmentFields = AgentRunProcessEnvironmentFields(
-      environment = command.environment,
-      inheritEnvironment = command.inheritEnvironment,
-      environmentPassthroughKeys = command.environmentPassthroughKeys,
-    ),
-    review = AgentRunProcessReviewFields(
-      conversationIsolation = command.conversationIsolation,
-      reviewEvidenceBroker = request.reviewEvidenceBroker,
-      reviewEvidenceEndpoint = request.reviewEvidenceEndpoint,
-      spawnAuthorization = request.spawnAuthorization,
-    ),
-    experimentCapabilities = AgentRunProcessExperimentCapabilityFields(
-      treatmentCapabilitiesEnabled = request.treatmentCapabilitiesEnabled,
-      treatmentCapabilitiesDenied = request.treatmentCapabilitiesDenied,
-      denyRemotePublication = request.denyRemotePublication,
-    ),
+  private fun unavailableLauncherFacts(
+    request: SkillRunRequest,
+    command: AgentRunCommand,
+    message: String,
+  ) = AgentRunLaunchFacts(
+    agent = agent,
+    exitStatus = null,
+    stdout = "",
+    stderr = message,
+    timedOut = false,
+    spawnFailed = true,
+    childSessionPath = command.workingDirectory.toString(),
+    childSessionId = childSessionId(agent, request, command.workingDirectory),
   )
 
-  private fun childSessionId(agent: InstallAgent, request: SkillRunRequest, workingDirectory: Path): String =
+  private fun processRequest(
+    command: AgentRunCommand,
+    request: SkillRunRequest,
+  ) = AgentRunProcessRequest(
+    launch =
+      AgentRunProcessLaunchFields(
+        command = command.command,
+        workingDirectory = command.workingDirectory,
+        stdinText = command.stdinText,
+        outputSink = request.outputSink,
+      ),
+    timing =
+      AgentRunProcessTimingFields(
+        timeout = command.timeout,
+        progressIdleTimeout = request.progressIdleTimeout,
+        operationDeadline = request.timeout,
+      ),
+    probes =
+      AgentRunProcessProbeFields(
+        progressProbe = request.progressProbe,
+        declaredProgressProbe = request.declaredProgressProbe,
+        mcpStartupProbe = request.mcpStartupProbe,
+        progressEmitter = request.progressEmitter,
+        activityProbe = WorktreeActivityProbe(command.workingDirectory),
+        activityStampSink = request.activityStampSink,
+        worktreeEditObserver = request.worktreeEditObserver,
+        idlePolicy = command.idlePolicy,
+      ),
+    environmentFields =
+      AgentRunProcessEnvironmentFields(
+        environment = command.environment,
+        inheritEnvironment = command.inheritEnvironment,
+        environmentPassthroughKeys = command.environmentPassthroughKeys,
+      ),
+    review =
+      AgentRunProcessReviewFields(
+        conversationIsolation = command.conversationIsolation,
+        reviewEvidenceBroker = request.reviewEvidenceBroker,
+        reviewEvidenceEndpoint = request.reviewEvidenceEndpoint,
+        spawnAuthorization = request.spawnAuthorization,
+      ),
+    experimentCapabilities =
+      AgentRunProcessExperimentCapabilityFields(
+        treatmentCapabilitiesEnabled = request.treatmentCapabilitiesEnabled,
+        treatmentCapabilitiesDenied = request.treatmentCapabilitiesDenied,
+        denyRemotePublication = request.denyRemotePublication,
+      ),
+  )
+
+  private fun childSessionId(
+    agent: InstallAgent,
+    request: SkillRunRequest,
+    workingDirectory: Path,
+  ): String =
     buildString {
       append(agent.id)
       append(':')
@@ -170,9 +196,7 @@ internal class ProcessAgentRunAdapter(
 
 data class DecodedAgentRunOutput(
   val text: String,
-
   val assistantEventCount: Int? = null,
-
   val rawOutputPreview: String? = null,
 )
 
@@ -192,11 +216,12 @@ interface AgentRunOutputDecoder {
     val CLAUDE_JSON = decoder { stdout -> decodeClaudeJson(stdout) }
     val CLAUDE_STREAM_JSON = decoder { stdout -> decodeClaudeStreamJson(stdout) }
     val CODEX_JSONL = decoder { stdout -> decodeCodexJsonl(stdout) }
-    val CURSOR_STREAM_JSON: AgentRunOutputDecoder = object : AgentRunOutputDecoder {
-      override fun decode(stdout: String): DecodedAgentRunOutput = decodeCursorStreamJson(stdout)
+    val CURSOR_STREAM_JSON: AgentRunOutputDecoder =
+      object : AgentRunOutputDecoder {
+        override fun decode(stdout: String): DecodedAgentRunOutput = decodeCursorStreamJson(stdout)
 
-      override fun undecodable(error: Throwable): Boolean = error is CursorReviewStreamMalformedError
-    }
+        override fun undecodable(error: Throwable): Boolean = error is CursorReviewStreamMalformedError
+      }
 
     private fun decoder(body: (String) -> DecodedAgentRunOutput): AgentRunOutputDecoder =
       object : AgentRunOutputDecoder {
@@ -207,26 +232,28 @@ interface AgentRunOutputDecoder {
 
 internal val structuredOutputMapper: ObjectMapper by lazy { ObjectMapper() }
 
-private fun decodeClaudeJson(stdout: String): DecodedAgentRunOutput = runCatching {
-  val root = structuredOutputMapper.readTree(stdout.trim())
-  DecodedAgentRunOutput(
-    text = root.path("result").takeIf { it.isTextual }?.asText().orEmpty(),
-  )
-}.getOrElse { DecodedAgentRunOutput(stdout) }
+private fun decodeClaudeJson(stdout: String): DecodedAgentRunOutput =
+  runCatching {
+    val root = structuredOutputMapper.readTree(stdout.trim())
+    DecodedAgentRunOutput(
+      text = root.path("result").takeIf { it.isTextual }?.asText().orEmpty(),
+    )
+  }.getOrElse { DecodedAgentRunOutput(stdout) }
 
 private fun decodeClaudeStreamJson(stdout: String): DecodedAgentRunOutput {
-  val terminal = stdout.lineSequence()
-    .filter(String::isNotBlank)
-    .mapNotNull { line ->
+  val terminal =
+    stdout.lineSequence()
+      .filter(String::isNotBlank)
+      .mapNotNull { line ->
 
-      runCatching { structuredOutputMapper.readTree(line) }.getOrNull()
-    }
-    .lastOrNull { event -> event.path("type").takeIf { it.isTextual }?.asText() == "result" }
+        runCatching { structuredOutputMapper.readTree(line) }.getOrNull()
+      }
+      .lastOrNull { event -> event.path("type").takeIf { it.isTextual }?.asText() == "result" }
 
-    ?: return DecodedAgentRunOutput(
-      text = "",
-      rawOutputPreview = stdout.take(RAW_OUTPUT_PREVIEW_MAX_CHARS),
-    )
+      ?: return DecodedAgentRunOutput(
+        text = "",
+        rawOutputPreview = stdout.take(RAW_OUTPUT_PREVIEW_MAX_CHARS),
+      )
   return DecodedAgentRunOutput(
     text = terminal.path("result").takeIf { it.isTextual }?.asText().orEmpty(),
   )
@@ -253,16 +280,18 @@ internal fun headlessAgentRunAdapters(
   processRunner: AgentRunProcessRunner,
   executableLookup: ExecutableLookup = PathExecutableLookup(),
   databasePath: Path? = null,
-): Map<InstallAgent, AgentRunAdapter> = listOf(
-  ClaudeAgentRunCommandBuilder(databasePath = databasePath),
-  CodexAgentRunCommandBuilder(databasePath = databasePath),
-  JunieAgentRunCommandBuilder(databasePath = databasePath),
-  CursorAgentRunCommandBuilder(databasePath = databasePath),
-).associate { builder ->
-  builder.agent to ProcessAgentRunAdapter(
-    agent = builder.agent,
-    commandBuilder = builder,
-    processRunner = processRunner,
-    executableLookup = executableLookup,
-  )
-}
+): Map<InstallAgent, AgentRunAdapter> =
+  listOf(
+    ClaudeAgentRunCommandBuilder(databasePath = databasePath),
+    CodexAgentRunCommandBuilder(databasePath = databasePath),
+    JunieAgentRunCommandBuilder(databasePath = databasePath),
+    CursorAgentRunCommandBuilder(databasePath = databasePath),
+  ).associate { builder ->
+    builder.agent to
+      ProcessAgentRunAdapter(
+        agent = builder.agent,
+        commandBuilder = builder,
+        processRunner = processRunner,
+        executableLookup = executableLookup,
+      )
+  }

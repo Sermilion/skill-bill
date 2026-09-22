@@ -7,34 +7,37 @@ import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.ShellContentContractException
+
 @Inject
 class ConfigResolveExternalAddonsCommand(
   private val service: ExternalAddonOverlayService,
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "resolve-external-addons",
-  "Resolve external addon sources from the machine-global ~/.skill-bill/config.json.",
-) {
+    "resolve-external-addons",
+    "Resolve external addon sources from the machine-global ~/.skill-bill/config.json.",
+  ) {
   override fun run() {
-    val sources = try {
-      service.resolveSources(inputs.userHome, inputs.environment)
-    } catch (error: ShellContentContractException) {
-      state.completeText(
-        "${error.message}\n",
-        mapOf(SharedPayloadKeys.STATUS to "failed", "error" to error.message.orEmpty()),
-        exitCode = 1,
-      )
-      return
-    }
+    val sources =
+      try {
+        service.resolveSources(inputs.userHome, inputs.environment)
+      } catch (error: ShellContentContractException) {
+        state.completeText(
+          "${error.message}\n",
+          mapOf(SharedPayloadKeys.STATUS to "failed", "error" to error.message.orEmpty()),
+          exitCode = 1,
+        )
+        return
+      }
     val text = sources.joinToString("") { source -> "${source.platform}\t${source.path}\n" }
     state.completeText(
       text,
       mapOf(
         SharedPayloadKeys.STATUS to "ok",
-        "sources" to sources.map { source ->
-          mapOf("platform" to source.platform, "path" to source.path.toString())
-        },
+        "sources" to
+          sources.map { source ->
+            mapOf("platform" to source.platform, "path" to source.path.toString())
+          },
       ),
     )
   }

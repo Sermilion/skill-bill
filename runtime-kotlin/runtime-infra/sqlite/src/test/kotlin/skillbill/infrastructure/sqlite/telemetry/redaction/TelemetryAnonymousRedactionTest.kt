@@ -91,9 +91,10 @@ class TelemetryAnonymousRedactionTest {
         goalIssueAbandonmentDays = 14L,
       )
 
-      val payload = requireNotNull(storedPayloads(connection)["skillbill_goal_issue_finished"]) {
-        "stale reconciliation must emit the goal issue finished event"
-      }
+      val payload =
+        requireNotNull(storedPayloads(connection)["skillbill_goal_issue_finished"]) {
+          "stale reconciliation must emit the goal issue finished event"
+        }
       assertFalse(payload.contains(ISSUE_KEY), "stale reconciliation must redact at anonymous")
       assertEquals(
         redactIssueKey(ISSUE_KEY, "anonymous", telemetryRedactionSalt(connection)),
@@ -163,7 +164,10 @@ class TelemetryAnonymousRedactionTest {
     }
   }
 
-  private fun driveGoalLifecycle(connection: Connection, level: String) {
+  private fun driveGoalLifecycle(
+    connection: Connection,
+    level: String,
+  ) {
     val store = LifecycleTelemetryStore(connection)
     store.goalStarted(startedRecord("wf-1", parentWorkflowId = "parent-1"), level)
     store.goalSubtaskFinished(
@@ -221,16 +225,20 @@ class TelemetryAnonymousRedactionTest {
     )
   }
 
-  private fun startedRecord(workflowId: String, parentWorkflowId: String): GoalStartedRecord = GoalStartedRecord(
-    issueKey = ISSUE_KEY,
-    featureName = "anonymous redaction",
-    workflowId = workflowId,
-    subtaskTotal = 1,
-    resumed = false,
-    startedAt = "2026-06-23T10:00:00Z",
-    mode = "runtime",
-    parentWorkflowId = parentWorkflowId,
-  )
+  private fun startedRecord(
+    workflowId: String,
+    parentWorkflowId: String,
+  ): GoalStartedRecord =
+    GoalStartedRecord(
+      issueKey = ISSUE_KEY,
+      featureName = "anonymous redaction",
+      workflowId = workflowId,
+      subtaskTotal = 1,
+      resumed = false,
+      startedAt = "2026-06-23T10:00:00Z",
+      mode = "runtime",
+      parentWorkflowId = parentWorkflowId,
+    )
 
   private fun seedAbandonedGoalIssue(connection: Connection) {
     connection.createStatement().use { statement ->
@@ -273,10 +281,14 @@ class TelemetryAnonymousRedactionTest {
       }
     }
 
-  private fun property(payloadJson: String, name: String): String? = JsonCodec.parseObjectOrNull(payloadJson)
-    ?.get(name)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.toString()
+  private fun property(
+    payloadJson: String,
+    name: String,
+  ): String? =
+    JsonCodec.parseObjectOrNull(payloadJson)
+      ?.get(name)
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.toString()
 
   private fun withConnection(block: (Connection) -> Unit) {
     val dbPath = Files.createTempDirectory("skillbill-anonymous-redaction").resolve("metrics.db")

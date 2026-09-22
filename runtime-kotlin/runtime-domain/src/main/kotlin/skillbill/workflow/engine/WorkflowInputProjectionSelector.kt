@@ -8,14 +8,16 @@ import skillbill.workflow.engine.model.WorkflowInputProjection
 import skillbill.workflow.engine.model.WorkflowInputProjectionDeclaration
 import skillbill.workflow.engine.model.WorkflowLaunchProjectionArtifacts
 import skillbill.workflow.engine.model.WorkflowSnapshotView
+
 const val RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY = "repository_evidence"
 
-private fun collectionItemCount(value: Any?): Int = when (value) {
-  is Map<*, *> -> value.size + value.values.sumOf(::collectionItemCount)
-  is Iterable<*> -> value.sumOf(::collectionItemCount)
-  is Array<*> -> value.sumOf(::collectionItemCount)
-  else -> 1
-}
+private fun collectionItemCount(value: Any?): Int =
+  when (value) {
+    is Map<*, *> -> value.size + value.values.sumOf(::collectionItemCount)
+    is Iterable<*> -> value.sumOf(::collectionItemCount)
+    is Array<*> -> value.sumOf(::collectionItemCount)
+    else -> 1
+  }
 
 object WorkflowInputProjectionSelector {
   fun select(
@@ -26,22 +28,24 @@ object WorkflowInputProjectionSelector {
     resolvedRepositoryCheckpointIdentity: String,
   ): WorkflowInputProjection {
     val declaration = declaration(definition, stepId, resolvedRepositoryCheckpointIdentity)
-    val selected = selectArtifacts(
-      definition,
-      snapshot,
-      stepId,
-      declaration,
-      resolvedRepositoryCheckpointIdentity,
-    )
+    val selected =
+      selectArtifacts(
+        definition,
+        snapshot,
+        stepId,
+        declaration,
+        resolvedRepositoryCheckpointIdentity,
+      )
     validateForbiddenArtifacts(definition, stepId, declaration, selected)
     val bytes = validateBudgets(definition, stepId, declaration, selected)
-    val repositoryCheckpoint = validateRepositoryCheckpoint(
-      definition,
-      stepId,
-      declaration,
-      selected,
-      resolvedRepositoryCheckpointIdentity,
-    )
+    val repositoryCheckpoint =
+      validateRepositoryCheckpoint(
+        definition,
+        stepId,
+        declaration,
+        selected,
+        resolvedRepositoryCheckpointIdentity,
+      )
     return WorkflowInputProjection(
       stepId = stepId,
       producerIteration = producerIteration,
@@ -70,9 +74,10 @@ object WorkflowInputProjectionSelector {
     declaration: WorkflowInputProjectionDeclaration,
     resolvedRepositoryCheckpointIdentity: String,
   ): Map<String, Any?> {
-    val missing = declaration.requiredArtifactKeys.filterNot { artifactKey ->
-      artifactKey == RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY || snapshot.artifacts.containsKey(artifactKey)
-    }
+    val missing =
+      declaration.requiredArtifactKeys.filterNot { artifactKey ->
+        artifactKey == RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY || snapshot.artifacts.containsKey(artifactKey)
+      }
     if (missing.isNotEmpty()) {
       reject(
         definition,
@@ -100,8 +105,9 @@ object WorkflowInputProjectionSelector {
     declaration: WorkflowInputProjectionDeclaration,
     selected: Map<String, Any?>,
   ) {
-    val forbidden = selected.keys.intersect(declaration.forbiddenArtifactKeys) +
-      selected.values.flatMapTo(mutableSetOf()) { nestedKeys(it) }.intersect(declaration.forbiddenArtifactKeys)
+    val forbidden =
+      selected.keys.intersect(declaration.forbiddenArtifactKeys) +
+        selected.values.flatMapTo(mutableSetOf()) { nestedKeys(it) }.intersect(declaration.forbiddenArtifactKeys)
     if (forbidden.isNotEmpty()) {
       reject(
         definition,
@@ -134,10 +140,12 @@ object WorkflowInputProjectionSelector {
     selected: Map<String, Any?>,
     resolvedRepositoryCheckpointIdentity: String,
   ): Any {
-    val repositoryCheckpoint = selected[declaration.repositoryCheckpointArtifactKey]
-      ?: reject(definition, "projection for step '$stepId' has null repository checkpoint evidence")
-    val checkpoint = repositoryCheckpoint as? Map<*, *>
-      ?: reject(definition, "projection for step '$stepId' repository checkpoint evidence is not typed")
+    val repositoryCheckpoint =
+      selected[declaration.repositoryCheckpointArtifactKey]
+        ?: reject(definition, "projection for step '$stepId' has null repository checkpoint evidence")
+    val checkpoint =
+      repositoryCheckpoint as? Map<*, *>
+        ?: reject(definition, "projection for step '$stepId' repository checkpoint evidence is not typed")
     val checkpointIdentity =
       checkpoint[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT] ?: checkpoint["checkpoint"]
         ?: reject(definition, "projection for step '$stepId' repository checkpoint evidence has no identity")
@@ -147,16 +155,18 @@ object WorkflowInputProjectionSelector {
         "projection for step '$stepId' repository checkpoint evidence does not match the runtime-resolved checkpoint",
       )
     }
-    val claimedIdentity = checkpoint[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT] ?: checkpoint["checkpoint"]
-      ?: checkpoint[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT]
+    val claimedIdentity =
+      checkpoint[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT] ?: checkpoint["checkpoint"]
+        ?: checkpoint[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT]
     if (claimedIdentity != checkpointIdentity) {
       reject(definition, "projection for step '$stepId' repository checkpoint evidence is stale or mismatched")
     }
-    val staleArtifactCheckpoint = selected
-      .filterKeys { it != declaration.repositoryCheckpointArtifactKey }
-      .values
-      .mapNotNull(::nestedRepositoryCheckpointIdentity)
-      .firstOrNull { it != checkpointIdentity }
+    val staleArtifactCheckpoint =
+      selected
+        .filterKeys { it != declaration.repositoryCheckpointArtifactKey }
+        .values
+        .mapNotNull(::nestedRepositoryCheckpointIdentity)
+        .firstOrNull { it != checkpointIdentity }
     if (staleArtifactCheckpoint != null) {
       reject(
         definition,
@@ -174,8 +184,9 @@ object WorkflowInputProjectionSelector {
     projectedFields: Set<String>?,
   ): Any? {
     if (projectedFields == null) return value
-    val typed = value as? Map<*, *>
-      ?: reject(definition, "projection for step '$stepId' artifact '$artifactKey' is not typed")
+    val typed =
+      value as? Map<*, *>
+        ?: reject(definition, "projection for step '$stepId' artifact '$artifactKey' is not typed")
     val missingFields = projectedFields.filterNot(typed::containsKey)
     if (missingFields.isNotEmpty()) {
       reject(
@@ -187,17 +198,19 @@ object WorkflowInputProjectionSelector {
     return projectedFields.associateWith(typed::get)
   }
 
-  private fun nestedKeys(value: Any?): Set<String> = when (value) {
-    is Map<*, *> -> value.entries.flatMapTo(mutableSetOf()) { (key, nested) ->
-      buildSet {
-        if (key is String) add(key)
-        addAll(nestedKeys(nested))
-      }
+  private fun nestedKeys(value: Any?): Set<String> =
+    when (value) {
+      is Map<*, *> ->
+        value.entries.flatMapTo(mutableSetOf()) { (key, nested) ->
+          buildSet {
+            if (key is String) add(key)
+            addAll(nestedKeys(nested))
+          }
+        }
+      is Iterable<*> -> value.flatMapTo(mutableSetOf(), ::nestedKeys)
+      is Array<*> -> value.flatMapTo(mutableSetOf(), ::nestedKeys)
+      else -> emptySet()
     }
-    is Iterable<*> -> value.flatMapTo(mutableSetOf(), ::nestedKeys)
-    is Array<*> -> value.flatMapTo(mutableSetOf(), ::nestedKeys)
-    else -> emptySet()
-  }
 
   private fun nestedRepositoryCheckpointIdentity(value: Any?): Any? {
     val typed = value as? Map<*, *> ?: return null
@@ -205,6 +218,8 @@ object WorkflowInputProjectionSelector {
     return nested[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT] ?: nested["checkpoint"]
   }
 
-  private fun reject(definition: WorkflowDefinition, detail: String): Nothing =
-    throw InvalidWorkflowStateSchemaError("${definition.workflowName}: $detail")
+  private fun reject(
+    definition: WorkflowDefinition,
+    detail: String,
+  ): Nothing = throw InvalidWorkflowStateSchemaError("${definition.workflowName}: $detail")
 }

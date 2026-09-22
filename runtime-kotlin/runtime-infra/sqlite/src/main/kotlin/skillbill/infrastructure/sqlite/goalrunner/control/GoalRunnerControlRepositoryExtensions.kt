@@ -70,11 +70,12 @@ fun GoalRunnerControlRepository.releaseExecutionLeaseIfExpired(
 
 private fun GoalRunnerControlState.advancedBy(heartbeatAt: String): GoalRunnerControlState {
   val goal = advanceAccumulator(activeDurationMs, activeDurationAsOf, heartbeatAt)
-  val subtask = if (currentSubtaskId != null) {
-    advanceAccumulator(subtaskActiveDurationMs, subtaskActiveDurationAsOf, heartbeatAt)
-  } else {
-    subtaskActiveDurationMs to subtaskActiveDurationAsOf
-  }
+  val subtask =
+    if (currentSubtaskId != null) {
+      advanceAccumulator(subtaskActiveDurationMs, subtaskActiveDurationAsOf, heartbeatAt)
+    } else {
+      subtaskActiveDurationMs to subtaskActiveDurationAsOf
+    }
   return copy(
     activeDurationMs = goal.first,
     activeDurationAsOf = goal.second,
@@ -83,12 +84,17 @@ private fun GoalRunnerControlState.advancedBy(heartbeatAt: String): GoalRunnerCo
   )
 }
 
-private fun advanceAccumulator(accumulatedMs: Long, asOf: String?, heartbeatAt: String): Pair<Long, String?> {
+private fun advanceAccumulator(
+  accumulatedMs: Long,
+  asOf: String?,
+  heartbeatAt: String,
+): Pair<Long, String?> {
   val previous = asOf ?: return accumulatedMs to heartbeatAt
-  val elapsedMs = Duration.between(
-    parseExecutionLeaseInstant("active_duration_as_of", previous),
-    parseExecutionLeaseInstant("heartbeat_at", heartbeatAt),
-  ).toMillis()
+  val elapsedMs =
+    Duration.between(
+      parseExecutionLeaseInstant("active_duration_as_of", previous),
+      parseExecutionLeaseInstant("heartbeat_at", heartbeatAt),
+    ).toMillis()
   val counted = elapsedMs.coerceIn(0, GOAL_ACTIVE_HEARTBEAT_GAP_LIMIT_MS)
   return accumulatedMs + counted to heartbeatAt
 }

@@ -13,6 +13,7 @@ import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeCommitPushHa
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeCommitPushReceipt
 import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 object FeatureTaskRuntimeSubtaskFinalisationHandoff {
   internal fun runtimeOwnedOutput(receipt: FeatureTaskRuntimeCommitPushReceipt): String {
     val result = linkedMapOf<String, Any?>()
@@ -32,45 +33,55 @@ object FeatureTaskRuntimeSubtaskFinalisationHandoff {
         SharedPayloadKeys.PHASE_ID to FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH,
         SharedPayloadKeys.STATUS to STATUS_COMPLETED,
         SharedPayloadKeys.SUMMARY to "Runtime staged every dirty path, committed, and recorded commit_sha.",
-        SharedPayloadKeys.PRODUCED_OUTPUTS to mapOf(
-          FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT to result,
-        ),
+        SharedPayloadKeys.PRODUCED_OUTPUTS to
+          mapOf(
+            FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT to result,
+          ),
       ),
     )
   }
 
   internal fun readHandoff(envelope: Map<String, Any?>): FeatureTaskRuntimeCommitPushHandoffResult {
-    val result = commitPushResult(envelope)
-      ?: return invalid(
-        "`produced_outputs.${FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT}` is absent",
-      )
-    val message = result[FeatureTaskRuntimeCommitPushPayloadKeys.MESSAGE]
-      ?.toString()
-      ?.trim()
-      ?.takeIf(String::isNotBlank)
-      ?: return invalid(
-        "`${FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT}." +
-          "${FeatureTaskRuntimeCommitPushPayloadKeys.MESSAGE}` is missing or blank",
-      )
-    val paths = when {
-      !result.containsKey(FeatureTaskRuntimeCommitPushPayloadKeys.CHANGED_PATHS) -> emptyList()
-      else -> changedPaths(result) ?: return invalid(
-        "`${FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT}." +
-          "${FeatureTaskRuntimeCommitPushPayloadKeys.CHANGED_PATHS}` is not a list of paths",
-      )
-    }
+    val result =
+      commitPushResult(envelope)
+        ?: return invalid(
+          "`produced_outputs.${FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT}` is absent",
+        )
+    val message =
+      result[FeatureTaskRuntimeCommitPushPayloadKeys.MESSAGE]
+        ?.toString()
+        ?.trim()
+        ?.takeIf(String::isNotBlank)
+        ?: return invalid(
+          "`${FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT}." +
+            "${FeatureTaskRuntimeCommitPushPayloadKeys.MESSAGE}` is missing or blank",
+        )
+    val paths =
+      when {
+        !result.containsKey(FeatureTaskRuntimeCommitPushPayloadKeys.CHANGED_PATHS) -> emptyList()
+        else ->
+          changedPaths(result) ?: return invalid(
+            "`${FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT}." +
+              "${FeatureTaskRuntimeCommitPushPayloadKeys.CHANGED_PATHS}` is not a list of paths",
+          )
+      }
     return FeatureTaskRuntimeCommitPushHandoffValid(
       FeatureTaskRuntimeCommitPushHandoff(outcomeMessage = message, changedPaths = paths),
     )
   }
 
-  internal fun withCommitSha(envelope: Map<String, Any?>, commitSha: String): Map<String, Any?> {
-    val produced = JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])?.toMutableMap()
-      ?: return envelope
-    val result = JsonCodec.anyToStringAnyMap(
-      produced[FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT],
-    )?.toMutableMap()
-      ?: return envelope
+  internal fun withCommitSha(
+    envelope: Map<String, Any?>,
+    commitSha: String,
+  ): Map<String, Any?> {
+    val produced =
+      JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])?.toMutableMap()
+        ?: return envelope
+    val result =
+      JsonCodec.anyToStringAnyMap(
+        produced[FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT],
+      )?.toMutableMap()
+        ?: return envelope
     result[DecompositionManifestPayloadKeys.COMMIT_SHA] = commitSha
     produced[FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT] = result
     return envelope.toMutableMap().apply { this[SharedPayloadKeys.PRODUCED_OUTPUTS] = produced }
@@ -85,11 +96,12 @@ object FeatureTaskRuntimeSubtaskFinalisationHandoff {
       JsonCodec.anyToStringAnyMap(produced[FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT])
     } ?: JsonCodec.anyToStringAnyMap(envelope[FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT])
 
-  private fun invalid(detail: String) = FeatureTaskRuntimeCommitPushHandoffInvalid(
-    "needs_human: commit_push completed but $detail. The runtime performs the commit and push from " +
-      "that payload, so without it the subtask would publish the provisional checkpoint subject. " +
-      "Re-run commit_push emitting `${FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT}` with a " +
-      "non-blank `${FeatureTaskRuntimeCommitPushPayloadKeys.MESSAGE}` and an enumerated " +
-      "`${FeatureTaskRuntimeCommitPushPayloadKeys.CHANGED_PATHS}`.",
-  )
+  private fun invalid(detail: String) =
+    FeatureTaskRuntimeCommitPushHandoffInvalid(
+      "needs_human: commit_push completed but $detail. The runtime performs the commit and push from " +
+        "that payload, so without it the subtask would publish the provisional checkpoint subject. " +
+        "Re-run commit_push emitting `${FeatureTaskRuntimeCommitPushPayloadKeys.COMMIT_PUSH_RESULT}` with a " +
+        "non-blank `${FeatureTaskRuntimeCommitPushPayloadKeys.MESSAGE}` and an enumerated " +
+        "`${FeatureTaskRuntimeCommitPushPayloadKeys.CHANGED_PATHS}`.",
+    )
 }

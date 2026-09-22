@@ -11,6 +11,7 @@ import skillbill.telemetry.model.TelemetrySettings
 import java.nio.file.Path
 import java.time.Instant
 import kotlin.coroutines.cancellation.CancellationException
+
 object TelemetrySyncRuntime {
   fun disabledSync(settings: TelemetrySettings): SyncResult = disabledSyncResult(settings)
 
@@ -20,37 +21,40 @@ object TelemetrySyncRuntime {
     client: TelemetryClient,
     nowSupplier: () -> Instant,
     interruptSignal: InterruptSignalPort,
-  ): SyncResult = if (!settings.enabled) {
-    disabledSyncResult(settings)
-  } else {
-    syncEnabledTelemetry(settings, outboxRepository, client, nowSupplier, interruptSignal)
-  }
+  ): SyncResult =
+    if (!settings.enabled) {
+      disabledSyncResult(settings)
+    } else {
+      syncEnabledTelemetry(settings, outboxRepository, client, nowSupplier, interruptSignal)
+    }
 
-  fun syncResult(result: SyncResult): TelemetrySyncStatusResult = TelemetrySyncStatusResult(
-    configPath = result.configPath.toString(),
-    telemetryEnabled = result.telemetryEnabled,
-    telemetryLevel = result.telemetryLevel,
-    syncTarget = telemetrySyncTarget(result),
-    remoteConfigured = result.remoteConfigured,
-    proxyConfigured = result.proxyConfigured,
-    proxyUrl = result.proxyUrl,
-    customProxyUrl = result.customProxyUrl,
-    syncStatus = result.status.wireValue,
-    syncedEvents = result.syncedEvents,
-    pendingEvents = result.pendingEvents,
-    message = result.message,
-  )
+  fun syncResult(result: SyncResult): TelemetrySyncStatusResult =
+    TelemetrySyncStatusResult(
+      configPath = result.configPath.toString(),
+      telemetryEnabled = result.telemetryEnabled,
+      telemetryLevel = result.telemetryLevel,
+      syncTarget = telemetrySyncTarget(result),
+      remoteConfigured = result.remoteConfigured,
+      proxyConfigured = result.proxyConfigured,
+      proxyUrl = result.proxyUrl,
+      customProxyUrl = result.customProxyUrl,
+      syncStatus = result.status.wireValue,
+      syncedEvents = result.syncedEvents,
+      pendingEvents = result.pendingEvents,
+      message = result.message,
+    )
 
   fun telemetryStatusPayload(
     dbPath: Path,
     settings: TelemetrySettings,
     outbox: TelemetryOutboxStatusSnapshot = TelemetryOutboxStatusSnapshot(),
-  ): TelemetryStatusResult = baseStatusResult(dbPath, settings).copy(
-    pendingEvents = outbox.pendingEvents,
-    latestError = outbox.latestError,
-    lastSyncedAt = outbox.lastSyncedAt,
-    blockedEvents = outbox.blockedEvents,
-  )
+  ): TelemetryStatusResult =
+    baseStatusResult(dbPath, settings).copy(
+      pendingEvents = outbox.pendingEvents,
+      latestError = outbox.latestError,
+      lastSyncedAt = outbox.lastSyncedAt,
+      blockedEvents = outbox.blockedEvents,
+    )
 
   fun autoSyncTelemetry(
     settings: TelemetrySettings,
@@ -58,24 +62,26 @@ object TelemetrySyncRuntime {
     client: TelemetryClient,
     nowSupplier: () -> Instant,
     interruptSignal: InterruptSignalPort,
-  ): SyncResult? = runCatching { syncTelemetry(settings, outboxRepository, client, nowSupplier, interruptSignal) }
-    .getOrElse { thrown ->
-      when (thrown) {
-        is CancellationException -> throw thrown
-        is InterruptedException -> {
-          rethrowInterrupted(thrown, interruptSignal)
+  ): SyncResult? =
+    runCatching { syncTelemetry(settings, outboxRepository, client, nowSupplier, interruptSignal) }
+      .getOrElse { thrown ->
+        when (thrown) {
+          is CancellationException -> throw thrown
+          is InterruptedException -> {
+            rethrowInterrupted(thrown, interruptSignal)
+          }
+          is Exception -> null
+          else -> throw thrown
         }
-        is Exception -> null
-        else -> throw thrown
       }
-    }
 }
 
-fun telemetrySyncTarget(settings: TelemetrySettings): String = when {
-  !settings.enabled -> "disabled"
-  settings.customProxyUrl != null -> "custom_proxy"
-  else -> "hosted_relay"
-}
+fun telemetrySyncTarget(settings: TelemetrySettings): String =
+  when {
+    !settings.enabled -> "disabled"
+    settings.customProxyUrl != null -> "custom_proxy"
+    else -> "hosted_relay"
+  }
 
 private fun syncEnabledTelemetry(
   settings: TelemetrySettings,
@@ -89,15 +95,16 @@ private fun syncEnabledTelemetry(
   return when {
     !syncContext.remoteConfigured -> unconfiguredSyncResult(syncContext)
     pendingBefore == 0 -> noopSyncResult(syncContext)
-    else -> drainPendingBatches(
-      DrainRequest(
-        outboxRepository = outboxRepository,
-        settings = settings,
-        client = client,
-        syncContext = syncContext,
-        nowSupplier = nowSupplier,
-        interruptSignal = interruptSignal,
-      ),
-    )
+    else ->
+      drainPendingBatches(
+        DrainRequest(
+          outboxRepository = outboxRepository,
+          settings = settings,
+          client = client,
+          syncContext = syncContext,
+          nowSupplier = nowSupplier,
+          interruptSignal = interruptSignal,
+        ),
+      )
   }
 }

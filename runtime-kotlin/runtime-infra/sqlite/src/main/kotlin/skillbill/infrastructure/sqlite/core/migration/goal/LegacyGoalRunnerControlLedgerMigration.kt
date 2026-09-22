@@ -30,8 +30,9 @@ internal fun applyLegacyGoalRunnerControlLedgerMigration(connection: Connection)
           }
         }
         val durableAcceptances = store.outOfBandAcceptances(workflowId)
-        val legacyAcceptances = outOfBandAcceptancesFromLegacyArtifacts(artifacts)
-          .filterKeys { subtaskId -> subtaskId !in durableAcceptances }
+        val legacyAcceptances =
+          outOfBandAcceptancesFromLegacyArtifacts(artifacts)
+            .filterKeys { subtaskId -> subtaskId !in durableAcceptances }
         if (legacyAcceptances.isNotEmpty()) {
           legacyAcceptances.values.forEach { acceptance ->
             store.persistOutOfBandAcceptance(workflowId, acceptance)

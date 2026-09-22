@@ -1,6 +1,7 @@
 package skillbill.ports.review.model
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.review.context.model.execution.requireRepositoryRelativePath
+
 sealed interface ReviewEvidenceCoordinates {
   data class Committed(val revision: String) : ReviewEvidenceCoordinates {
     init {
@@ -13,7 +14,7 @@ sealed interface ReviewEvidenceCoordinates {
     val files: Map<
       String,
       ReviewCheckpointFileIdentity,
-      >,
+    >,
   ) : ReviewEvidenceCoordinates {
     enum class Kind { INDEX, WORKTREE }
 

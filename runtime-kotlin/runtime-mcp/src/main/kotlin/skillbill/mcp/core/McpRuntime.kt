@@ -11,9 +11,13 @@ import skillbill.mcp.scaffold.McpScaffoldRuntime
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.componentForLegacyContext
 import skillbill.mcp.shared.toMcpMap
+
 internal object McpRuntime {
-  fun importReview(reviewText: String, orchestrated: Boolean = false, context: Any): Map<String, Any?> =
-    importReview(reviewText, orchestrated, componentForLegacyContext(context))
+  fun importReview(
+    reviewText: String,
+    orchestrated: Boolean = false,
+    context: Any,
+  ): Map<String, Any?> = importReview(reviewText, orchestrated, componentForLegacyContext(context))
 
   fun triageFindings(
     reviewRunId: String,
@@ -29,8 +33,10 @@ internal object McpRuntime {
     context: Any,
   ): Map<String, Any?> = resolveLearnings(repo, skill, reviewSessionId, componentForLegacyContext(context))
 
-  fun reviewStats(reviewRunId: String? = null, context: Any): Map<String, Any?> =
-    reviewStats(reviewRunId, componentForLegacyContext(context))
+  fun reviewStats(
+    reviewRunId: String? = null,
+    context: Any,
+  ): Map<String, Any?> = reviewStats(reviewRunId, componentForLegacyContext(context))
 
   fun featureVerifyStats(context: Any): Map<String, Any?> = featureVerifyStats(componentForLegacyContext(context))
 
@@ -49,7 +55,11 @@ internal object McpRuntime {
     context: Any,
   ): Map<String, Any?> = newSkillScaffold(payload, dryRun, orchestrated, componentForLegacyContext(context))
 
-  fun importReview(reviewText: String, orchestrated: Boolean = false, component: McpComponent): Map<String, Any?> {
+  fun importReview(
+    reviewText: String,
+    orchestrated: Boolean = false,
+    component: McpComponent,
+  ): Map<String, Any?> {
     if (!component.telemetryService.isEnabled()) {
       val preview = component.reviewService.previewImport("-", stdinText = reviewText)
       return McpReviewImportSkippedContract(
@@ -66,21 +76,22 @@ internal object McpRuntime {
           stdinText = reviewText,
         )
     val payload = importResult.toMcpMap().toMutableMap()
-    val result = if (orchestrated) {
-      val reviewRunId = importResult.preview.reviewRunId
-      component.reviewService.markOrchestrated(reviewRunId)
-      val telemetryPayload =
-        if (importResult.preview.findingCount == 0) {
-          component.reviewService.reviewFinishedTelemetryPayload(reviewRunId)
-            ?.toReviewFinishedTelemetryPayload()
-            ?.toPayload()
-        } else {
-          null
-        }
-      McpOrchestratedPayloadContract(basePayload = payload, telemetryPayload = telemetryPayload).toPayload()
-    } else {
-      payload
-    }
+    val result =
+      if (orchestrated) {
+        val reviewRunId = importResult.preview.reviewRunId
+        component.reviewService.markOrchestrated(reviewRunId)
+        val telemetryPayload =
+          if (importResult.preview.findingCount == 0) {
+            component.reviewService.reviewFinishedTelemetryPayload(reviewRunId)
+              ?.toReviewFinishedTelemetryPayload()
+              ?.toPayload()
+          } else {
+            null
+          }
+        McpOrchestratedPayloadContract(basePayload = payload, telemetryPayload = telemetryPayload).toPayload()
+      } else {
+        payload
+      }
     component.telemetryService.autoSync()
     return result
   }
@@ -104,14 +115,15 @@ internal object McpRuntime {
         listOnly = false,
         listWhenNoDecisions = false,
       )
-    val payload = if (orchestrated) {
-      McpOrchestratedPayloadContract(
-        basePayload = result.toMcpMap(),
-        telemetryPayload = result.telemetry?.toReviewFinishedTelemetryPayload()?.toPayload(),
-      ).toPayload()
-    } else {
-      result.toMcpMap()
-    }
+    val payload =
+      if (orchestrated) {
+        McpOrchestratedPayloadContract(
+          basePayload = result.toMcpMap(),
+          telemetryPayload = result.telemetry?.toReviewFinishedTelemetryPayload()?.toPayload(),
+        ).toPayload()
+      } else {
+        result.toMcpMap()
+      }
     component.telemetryService.autoSync()
     return payload
   }
@@ -128,8 +140,10 @@ internal object McpRuntime {
     return component.learningService.resolve(repo, skill, reviewSessionId).toLearningResolveContract().toPayload()
   }
 
-  fun reviewStats(reviewRunId: String? = null, component: McpComponent): Map<String, Any?> =
-    component.reviewService.reviewStats(reviewRunId).toMcpMap()
+  fun reviewStats(
+    reviewRunId: String? = null,
+    component: McpComponent,
+  ): Map<String, Any?> = component.reviewService.reviewStats(reviewRunId).toMcpMap()
 
   fun featureVerifyStats(component: McpComponent): Map<String, Any?> =
     component.reviewService.featureVerifyStats().toMcpMap()
@@ -157,10 +171,11 @@ internal object McpRuntime {
     dryRun: Boolean = false,
     orchestrated: Boolean = false,
     component: McpComponent,
-  ): Map<String, Any?> = McpScaffoldRuntime.newSkillScaffold(
-    payload = payload,
-    dryRun = dryRun,
-    orchestrated = orchestrated,
-    component = component,
-  )
+  ): Map<String, Any?> =
+    McpScaffoldRuntime.newSkillScaffold(
+      payload = payload,
+      dryRun = dryRun,
+      orchestrated = orchestrated,
+      component = component,
+    )
 }

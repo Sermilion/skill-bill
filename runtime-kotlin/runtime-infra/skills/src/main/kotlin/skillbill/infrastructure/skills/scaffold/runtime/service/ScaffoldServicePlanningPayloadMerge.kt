@@ -42,7 +42,11 @@ internal data class PlatformPackScaffoldPlanArgs(
   val packRoot: Path,
 )
 
-internal fun planAddOn(payload: Map<String, Any?>, repoRoot: Path, adapters: ScaffoldAdapterSeams): ScaffoldPlan {
+internal fun planAddOn(
+  payload: Map<String, Any?>,
+  repoRoot: Path,
+  adapters: ScaffoldAdapterSeams,
+): ScaffoldPlan {
   policyRejectLeafSubagentSpecialists(payload, SKILL_KIND_ADD_ON)
   val name = requireString(payload, "name")
   val platform = requireString(payload, "platform")
@@ -76,7 +80,10 @@ internal fun planAddOn(payload: Map<String, Any?>, repoRoot: Path, adapters: Sca
   )
 }
 
-internal fun planAgentAddon(payload: Map<String, Any?>, repoRoot: Path): ScaffoldPlan {
+internal fun planAgentAddon(
+  payload: Map<String, Any?>,
+  repoRoot: Path,
+): ScaffoldPlan {
   val slug = requireString(payload, "slug")
   val description = requireString(payload, "description")
   val agentIds = requireStringListPayload(payload["agent_ids"], "agent_ids")
@@ -139,7 +146,10 @@ internal fun validateAgentAddonDescription(description: String) {
   }
 }
 
-internal fun validateAgentAddonSlugRoot(slug: String, agentAddonsRoot: Path) {
+internal fun validateAgentAddonSlugRoot(
+  slug: String,
+  agentAddonsRoot: Path,
+) {
   val root = agentAddonsRoot.resolve(slug).normalize()
   if (!root.startsWith(agentAddonsRoot)) {
     throw InvalidScaffoldPayloadError("Scaffold payload field 'slug' escapes the agent-addons root.")
@@ -148,21 +158,23 @@ internal fun validateAgentAddonSlugRoot(slug: String, agentAddonsRoot: Path) {
 
 internal fun planPreShellPlatformOverride(args: ScaffoldPlatformOverridePlanArgs): ScaffoldPlan {
   if (args.family !in PRE_SHELL_FAMILIES) {
-    val replacement = if (args.family == "feature-" + "implement") {
-      " Use 'feature-task' instead."
-    } else {
-      ""
-    }
+    val replacement =
+      if (args.family == "feature-" + "implement") {
+        " Use 'feature-task' instead."
+      } else {
+        ""
+      }
     throw UnknownPreShellFamilyError(
       "Scaffold payload declares pre-shell family '${args.family}' " +
         "that is not in the registered set $PRE_SHELL_FAMILIES.$replacement",
     )
   }
   val skillPath = args.repoRoot.resolve("skills").resolve(args.platform).resolve(args.name)
-  val notes = listOf(
-    "Pre-shell family '${args.family}' placed at '${args.repoRoot.relativize(skillPath)}'; " +
-      "will move when the family is piloted onto the shell+content contract.",
-  )
+  val notes =
+    listOf(
+      "Pre-shell family '${args.family}' placed at '${args.repoRoot.relativize(skillPath)}'; " +
+        "will move when the family is piloted onto the shell+content contract.",
+    )
   return ScaffoldPlan(
     kind = SKILL_KIND_PLATFORM_OVERRIDE_PILOTED,
     skillName = args.name,
@@ -191,10 +203,11 @@ internal fun planShelledPlatformOverride(args: ScaffoldPlatformOverridePlanArgs)
   }
   val pack = loadPlatformPack(packRoot)
   val skillPath = packRoot.resolve(args.family).resolve(args.name)
-  val notes = listOf(
-    "Author skill instructions only in sibling `content.md` files. " +
-      "Generated `SKILL.md` wrappers and platform pointer files are render/install output.",
-  )
+  val notes =
+    listOf(
+      "Author skill instructions only in sibling `content.md` files. " +
+        "Generated `SKILL.md` wrappers and platform pointer files are render/install output.",
+    )
   return ScaffoldPlan(
     kind = SKILL_KIND_PLATFORM_OVERRIDE_PILOTED,
     skillName = args.name,

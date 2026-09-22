@@ -5,7 +5,15 @@ import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 interface FeatureTaskPhaseSettlementRepository {
   fun upsert(settlement: FeatureTaskPhaseSettlement)
 
-  fun find(workflowId: String, phaseId: String, attempt: Int): FeatureTaskPhaseSettlement?
+  fun find(
+    workflowId: String,
+    phaseId: String,
+    attempt: Int,
+  ): FeatureTaskPhaseSettlement?
 
-  fun delete(workflowId: String, phaseId: String, attempt: Int): Boolean
+  fun delete(
+    workflowId: String,
+    phaseId: String,
+    attempt: Int,
+  ): Boolean
 }

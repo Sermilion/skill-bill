@@ -10,6 +10,7 @@ import skillbill.review.parsing.ReviewParser
 import java.nio.file.Files
 import java.sql.Connection
 import java.time.Clock
+
 fun telemetryReliabilityEmittedEnvelope(
   eventName: String,
   contractVersion: String,
@@ -18,22 +19,24 @@ fun telemetryReliabilityEmittedEnvelope(
   val dbPath = Files.createTempDirectory("telemetry-reliability-emitter").resolve("metrics.db")
   return ensureTestDatabase(dbPath).use { connection ->
     emit(LifecycleTelemetryStore(connection), connection)
-    val payloadJson = connection.prepareStatement(
-      "SELECT payload_json FROM telemetry_outbox WHERE event_name = ? ORDER BY id DESC LIMIT 1",
-    ).use { statement ->
-      statement.setString(1, eventName)
-      statement.executeQuery().use { resultSet ->
-        check(resultSet.next()) { "Expected a real outbox row for $eventName" }
-        resultSet.getString("payload_json")
+    val payloadJson =
+      connection.prepareStatement(
+        "SELECT payload_json FROM telemetry_outbox WHERE event_name = ? ORDER BY id DESC LIMIT 1",
+      ).use { statement ->
+        statement.setString(1, eventName)
+        statement.executeQuery().use { resultSet ->
+          check(resultSet.next()) { "Expected a real outbox row for $eventName" }
+          resultSet.getString("payload_json")
+        }
       }
-    }
     val parsed = requireNotNull(JsonCodec.parseObjectOrNull(payloadJson))
     linkedMapOf<String, Any?>().apply {
-      val contractEventName = if (eventName == "skillbill_review_finished") {
-        eventName
-      } else {
-        eventName.removePrefix("skillbill_")
-      }
+      val contractEventName =
+        if (eventName == "skillbill_review_finished") {
+          eventName
+        } else {
+          eventName.removePrefix("skillbill_")
+        }
       put("event_name", contractEventName)
       put("contract_version", contractVersion)
       putAll(requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(parsed))))
@@ -67,7 +70,12 @@ fun telemetryReliabilityReviewFinishedEnvelope(
   }
 }
 
-fun ageTelemetryReliabilitySession(connection: Connection, tableName: String, sessionId: String, seconds: Int) {
+fun ageTelemetryReliabilitySession(
+  connection: Connection,
+  tableName: String,
+  sessionId: String,
+  seconds: Int,
+) {
   connection.prepareStatement(
     "UPDATE $tableName SET started_at = datetime('now', '-' || ? || ' seconds') WHERE session_id = ?",
   ).use { statement ->

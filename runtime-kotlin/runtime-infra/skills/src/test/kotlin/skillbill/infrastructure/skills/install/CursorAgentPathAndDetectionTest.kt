@@ -59,9 +59,10 @@ class CursorAgentPathAndDetectionTest {
   fun `unknown agent ids still fail loudly with cursor listed as supported`() {
     val home = Files.createTempDirectory("skillbill-cursor-unknown")
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      InstallOperations.agentPath("not-an-agent", home, environment = emptyMap())
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        InstallOperations.agentPath("not-an-agent", home, environment = emptyMap())
+      }
 
     assertContains(error.message.orEmpty(), "Unknown agent 'not-an-agent'")
     assertContains(error.message.orEmpty(), "cursor")

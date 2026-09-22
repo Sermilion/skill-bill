@@ -9,6 +9,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class FailureCodeTotalityArchitectureTest {
   @Test
   fun `in-scope failure wire codes stay total and injective`() {
@@ -23,22 +24,24 @@ class FailureCodeTotalityArchitectureTest {
 
   @Test
   fun `failure wire code totality scanner fires on synthetic orphan and duplicate fixtures`() {
-    val orphanViolation = wireCodeViolation(
-      hierarchy = "SyntheticFailureCode",
-      entryCount = 2,
-      wireValues = listOf("alpha"),
-    )
+    val orphanViolation =
+      wireCodeViolation(
+        hierarchy = "SyntheticFailureCode",
+        entryCount = 2,
+        wireValues = listOf("alpha"),
+      )
     val orphan = assertNotNull(orphanViolation)
     assertTrue(
       orphan.contains("orphaned wire value"),
       "Regression if adding a failure case without a unique wire code stops failing the architecture gate.",
     )
 
-    val duplicateViolation = wireCodeViolation(
-      hierarchy = "SyntheticFailureCode",
-      entryCount = 2,
-      wireValues = listOf("shared", "shared"),
-    )
+    val duplicateViolation =
+      wireCodeViolation(
+        hierarchy = "SyntheticFailureCode",
+        entryCount = 2,
+        wireValues = listOf("shared", "shared"),
+      )
     val duplicate = assertNotNull(duplicateViolation)
     assertTrue(
       duplicate.contains("duplicate wire value"),
@@ -46,12 +49,13 @@ class FailureCodeTotalityArchitectureTest {
     )
   }
 
-  private fun inScopeFailureWireCodeViolations(): List<String> = listOf(
-    wireCodeEntries(FeatureTaskRuntimePhaseOutputFailureCode.entries.toList()),
-    wireCodeEntries(DecompositionManifestValidationFailureCode.entries.toList()),
-    wireCodeEntries(FeatureTaskRuntimePhaseOutputFailureKind.entries.toList()),
-    wireCodeEntries(FeatureTaskRuntimeHandoffProjectionFailureKind.entries.toList()),
-  ).flatten()
+  private fun inScopeFailureWireCodeViolations(): List<String> =
+    listOf(
+      wireCodeEntries(FeatureTaskRuntimePhaseOutputFailureCode.entries.toList()),
+      wireCodeEntries(DecompositionManifestValidationFailureCode.entries.toList()),
+      wireCodeEntries(FeatureTaskRuntimePhaseOutputFailureKind.entries.toList()),
+      wireCodeEntries(FeatureTaskRuntimeHandoffProjectionFailureKind.entries.toList()),
+    ).flatten()
 
   private fun wireCodeEntries(entries: List<FailureWireCode>): List<String> {
     val wireValues = entries.map { it.wireValue }
@@ -62,7 +66,11 @@ class FailureCodeTotalityArchitectureTest {
     )?.let { violation -> listOf(violation) }.orEmpty()
   }
 
-  private fun wireCodeViolation(hierarchy: String, entryCount: Int, wireValues: List<String>): String? {
+  private fun wireCodeViolation(
+    hierarchy: String,
+    entryCount: Int,
+    wireValues: List<String>,
+  ): String? {
     if (wireValues.toSet().size != wireValues.size) {
       return "$hierarchy has duplicate wire value"
     }

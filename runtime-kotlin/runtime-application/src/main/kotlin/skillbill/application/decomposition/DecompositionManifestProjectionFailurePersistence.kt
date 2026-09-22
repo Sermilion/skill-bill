@@ -25,24 +25,27 @@ internal fun persistDecompositionManifestProjectionFailure(
   outcome: DecompositionManifestProjectionOutcome.Failed,
 ): DecompositionManifestProjectionFailurePersistence {
   val family = WorkflowFamily.TASK_RUNTIME
-  val existing = family.get(unitOfWork.workflowStates, workflowId)
-    ?: return DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT
-  val updated = engine.updateRecord(
-    family.definition,
-    existing,
-    WorkflowUpdateInput(
-      workflowStatus = existing.workflowStatus,
-      currentStepId = existing.currentStepId,
-      stepUpdates = null,
-      artifactsPatch = WorkflowArtifactPatch.from(
-        mapOf(
-          DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY to
-            DecompositionManifestWriteGuard.failureArtifact(outcome),
-        ),
+  val existing =
+    family.get(unitOfWork.workflowStates, workflowId)
+      ?: return DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT
+  val updated =
+    engine.updateRecord(
+      family.definition,
+      existing,
+      WorkflowUpdateInput(
+        workflowStatus = existing.workflowStatus,
+        currentStepId = existing.currentStepId,
+        stepUpdates = null,
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            mapOf(
+              DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY to
+                DecompositionManifestWriteGuard.failureArtifact(outcome),
+            ),
+          ),
+        sessionId = existing.sessionId.orEmpty(),
       ),
-      sessionId = existing.sessionId.orEmpty(),
-    ),
-  )
+    )
   family.save(unitOfWork.workflowStates, updated)
   return DecompositionManifestProjectionFailurePersistence.PERSISTED
 }
@@ -53,24 +56,27 @@ internal fun clearDecompositionManifestProjectionFailure(
   workflowId: String,
 ): DecompositionManifestProjectionFailurePersistence {
   val family = WorkflowFamily.TASK_RUNTIME
-  val existing = family.get(unitOfWork.workflowStates, workflowId)
-    ?: return DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT
-  val updated = engine.updateRecord(
-    family.definition,
-    existing,
-    WorkflowUpdateInput(
-      workflowStatus = existing.workflowStatus,
-      currentStepId = existing.currentStepId,
-      stepUpdates = null,
-      artifactsPatch = WorkflowArtifactPatch.from(
-        DurableWorkflowArtifacts.fromJson(existing.artifactsJson).toMutableMap().apply {
-          remove(DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
-        },
+  val existing =
+    family.get(unitOfWork.workflowStates, workflowId)
+      ?: return DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT
+  val updated =
+    engine.updateRecord(
+      family.definition,
+      existing,
+      WorkflowUpdateInput(
+        workflowStatus = existing.workflowStatus,
+        currentStepId = existing.currentStepId,
+        stepUpdates = null,
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            DurableWorkflowArtifacts.fromJson(existing.artifactsJson).toMutableMap().apply {
+              remove(DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
+            },
+          ),
+        sessionId = existing.sessionId.orEmpty(),
+        replaceArtifacts = true,
       ),
-      sessionId = existing.sessionId.orEmpty(),
-      replaceArtifacts = true,
-    ),
-  )
+    )
   family.save(unitOfWork.workflowStates, updated)
   return DecompositionManifestProjectionFailurePersistence.PERSISTED
 }
@@ -85,19 +91,22 @@ fun retryDecompositionManifestProjectionFromAuthoritativeState(
   val decompositionManifestStore = args.decompositionManifestStore
   val repoRoot = args.repoRoot
   val workflowId = args.workflowId
-  val artifactsJson = database.read { unitOfWork ->
-    WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)?.artifactsJson
-  } ?: return DecompositionManifestProjectionOutcome.Absent
-  val outcome = decompositionManifestWriter.writeProjectionFromWorkflowState(
-    repoRoot = repoRoot,
-    artifactsJson = artifactsJson,
-    validator = decompositionManifestValidator,
-    fileStore = decompositionManifestStore,
-  )
+  val artifactsJson =
+    database.read { unitOfWork ->
+      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)?.artifactsJson
+    } ?: return DecompositionManifestProjectionOutcome.Absent
+  val outcome =
+    decompositionManifestWriter.writeProjectionFromWorkflowState(
+      repoRoot = repoRoot,
+      artifactsJson = artifactsJson,
+      validator = decompositionManifestValidator,
+      fileStore = decompositionManifestStore,
+    )
   if (outcome is DecompositionManifestProjectionOutcome.Written) {
-    val cleared = database.transaction { unitOfWork ->
-      clearDecompositionManifestProjectionFailure(engine, unitOfWork, workflowId)
-    }
+    val cleared =
+      database.transaction { unitOfWork ->
+        clearDecompositionManifestProjectionFailure(engine, unitOfWork, workflowId)
+      }
     if (cleared == DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT) {
       return DecompositionManifestProjectionOutcome.Absent
     }
@@ -109,8 +118,9 @@ internal fun decompositionManifestProjectionFailure(
   artifactsJson: String,
 ): DecompositionManifestProjectionOutcome.Failed? {
   val artifacts = DurableWorkflowArtifacts.fromJson(artifactsJson)
-  val payload = artifacts[DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY] as? Map<*, *>
-    ?: return null
+  val payload =
+    artifacts[DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY] as? Map<*, *>
+      ?: return null
   val operation = payload[DecompositionManifestProjectionFailurePayloadKeys.OPERATION] as? String ?: return null
   val targetPath = payload[DecompositionManifestProjectionFailurePayloadKeys.TARGET_PATH] as? String ?: return null
   return DecompositionManifestProjectionOutcome.Failed(operation = operation, targetPath = targetPath)

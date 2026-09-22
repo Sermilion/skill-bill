@@ -24,18 +24,27 @@ internal fun guardAgainstAnchoredFieldTypos(
   }
 }
 
-internal fun levenshtein1(a: String, b: String): Boolean {
+internal fun levenshtein1(
+  a: String,
+  b: String,
+): Boolean {
   val lengthDelta = a.length - b.length
   if (lengthDelta < -1 || lengthDelta > 1 || a == b) return false
   return if (a.length == b.length) substitutionMatches(a, b) else insertionOrDeletionMatches(a, b)
 }
 
-internal fun substitutionMatches(a: String, b: String): Boolean {
+internal fun substitutionMatches(
+  a: String,
+  b: String,
+): Boolean {
   val diffs = a.indices.count { a[it] != b[it] }
   return diffs == 1
 }
 
-internal fun insertionOrDeletionMatches(a: String, b: String): Boolean {
+internal fun insertionOrDeletionMatches(
+  a: String,
+  b: String,
+): Boolean {
   val longer = if (a.length > b.length) a else b
   val shorter = if (a.length > b.length) b else a
   var i = 0

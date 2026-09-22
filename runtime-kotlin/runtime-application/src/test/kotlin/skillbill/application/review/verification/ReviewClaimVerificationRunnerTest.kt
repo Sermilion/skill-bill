@@ -38,18 +38,19 @@ class ReviewClaimVerificationRunnerTest {
   fun `each finding launches alone without siblings narrative or parent transcript`() {
     val launches = mutableListOf<GoalRunnerSubtaskLaunchRequest>()
     val envelopes = mutableListOf<Map<String, Any?>>()
-    val outcome = runner(
-      launcher = { request ->
-        launches += request
-        facts(request, CONFIRMED)
-      },
-      validator = { envelope, _ -> envelopes += envelope },
-    ).run(
-      verificationRequest(
-        findings = listOf(finding("F-001"), finding("F-002", "src/B.kt:4", "other bug")),
-        repoRoot = Files.createTempDirectory("verify-isolation"),
-      ),
-    )
+    val outcome =
+      runner(
+        launcher = { request ->
+          launches += request
+          facts(request, CONFIRMED)
+        },
+        validator = { envelope, _ -> envelopes += envelope },
+      ).run(
+        verificationRequest(
+          findings = listOf(finding("F-001"), finding("F-002", "src/B.kt:4", "other bug")),
+          repoRoot = Files.createTempDirectory("verify-isolation"),
+        ),
+      )
     assertEquals(2, launches.size)
     assertEquals(2, envelopes.size)
     envelopes.forEach { envelope ->
@@ -76,26 +77,29 @@ class ReviewClaimVerificationRunnerTest {
 
   @Test
   fun `a worker that fails to spawn times out or returns unparseable output leaves the finding unresolved`() {
-    val responses = ArrayDeque(
-      listOf(
-        factsFor { copy(spawnFailed = true, exitStatus = null, stdout = "") },
-        factsFor { copy(timedOut = true, exitStatus = null, stdout = "") },
-        factsFor { copy(stdout = "not a verdict") },
-      ),
-    )
-    val outcome = runner(
-      launcher = { request -> responses.removeFirst().invoke(request) },
-    ).run(
-      verificationRequest(
-        findings = listOf(
-          finding("F-001"),
-          finding("F-002", "src/B.kt:4", "second"),
-          finding("F-003", "src/C.kt:8", "third"),
+    val responses =
+      ArrayDeque(
+        listOf(
+          factsFor { copy(spawnFailed = true, exitStatus = null, stdout = "") },
+          factsFor { copy(timedOut = true, exitStatus = null, stdout = "") },
+          factsFor { copy(stdout = "not a verdict") },
         ),
-        mode = ResolvedReviewExecutionMode.DELEGATED,
-        repoRoot = Files.createTempDirectory("verify-failure"),
-      ),
-    )
+      )
+    val outcome =
+      runner(
+        launcher = { request -> responses.removeFirst().invoke(request) },
+      ).run(
+        verificationRequest(
+          findings =
+            listOf(
+              finding("F-001"),
+              finding("F-002", "src/B.kt:4", "second"),
+              finding("F-003", "src/C.kt:8", "third"),
+            ),
+          mode = ResolvedReviewExecutionMode.DELEGATED,
+          repoRoot = Files.createTempDirectory("verify-failure"),
+        ),
+      )
     assertEquals(3, outcome.verdicts.size)
     assertTrue(outcome.verdicts.all { it.claimVerdict == ReviewClaimVerdict.UNRESOLVED })
     assertEquals("agent process failed to spawn", outcome.verdicts[0].rejectionReason)
@@ -105,7 +109,8 @@ class ReviewClaimVerificationRunnerTest {
 
   @Test
   fun `zero worker citation lines are coerced while the finding verdict still settles`() {
-    val stdout = """
+    val stdout =
+      """
       {
         "claim_verdict": "refuted",
         "citations": [
@@ -113,15 +118,16 @@ class ReviewClaimVerificationRunnerTest {
           {"path": "src/A.kt", "line": 0}
         ]
       }
-    """.trimIndent()
-    val outcome = runner(
-      launcher = { request -> facts(request, stdout) },
-    ).run(
-      verificationRequest(
-        findings = listOf(finding("F-001")),
-        repoRoot = Files.createTempDirectory("verify-malformed-citation"),
-      ),
-    )
+      """.trimIndent()
+    val outcome =
+      runner(
+        launcher = { request -> facts(request, stdout) },
+      ).run(
+        verificationRequest(
+          findings = listOf(finding("F-001")),
+          repoRoot = Files.createTempDirectory("verify-malformed-citation"),
+        ),
+      )
     assertEquals(ReviewClaimVerdict.REFUTED, outcome.verdicts.single().claimVerdict)
     assertEquals(
       listOf(12, 1),
@@ -171,12 +177,13 @@ class ReviewClaimVerificationRunnerTest {
     findings = findings,
     existingVerdicts = existingVerdicts,
     mode = mode,
-    launch = ReviewDelegatedStageLaunch(
-      budget = ReviewContextBudgetPolicy.DEFAULT,
-      brokerId = "codex",
-      repoRoot = repoRoot,
-      timeout = 1.seconds,
-    ),
+    launch =
+      ReviewDelegatedStageLaunch(
+        budget = ReviewContextBudgetPolicy.DEFAULT,
+        brokerId = "codex",
+        repoRoot = repoRoot,
+        timeout = 1.seconds,
+      ),
   )
 
   private fun runner(
@@ -184,7 +191,10 @@ class ReviewClaimVerificationRunnerTest {
     validator: ReviewContextEnvelopeValidator = ReviewContextEnvelopeValidator { _, _ -> },
   ) = ReviewClaimVerificationRunner(launcher, validator, testHarnessClock)
 
-  private fun facts(request: GoalRunnerSubtaskLaunchRequest, stdout: String) = AgentRunLaunchFacts(
+  private fun facts(
+    request: GoalRunnerSubtaskLaunchRequest,
+    stdout: String,
+  ) = AgentRunLaunchFacts(
     agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
     exitStatus = 0,
     stdout = stdout,
@@ -195,21 +205,25 @@ class ReviewClaimVerificationRunnerTest {
 
   private fun factsFor(
     mutate: AgentRunLaunchFacts.() -> AgentRunLaunchFacts,
-  ): (GoalRunnerSubtaskLaunchRequest) -> AgentRunLaunchFacts = { request ->
-    facts(request, CONFIRMED).mutate()
-  }
+  ): (GoalRunnerSubtaskLaunchRequest) -> AgentRunLaunchFacts =
+    { request ->
+      facts(request, CONFIRMED).mutate()
+    }
 
-  private fun finding(ref: String, location: String = "src/A.kt:12", description: String = "Null is not checked.") =
-    ParallelReviewMergedFinding(
-      fNumber = ref,
-      agentIds = listOf("codex"),
-      severity = ParallelReviewSeverity.MAJOR,
-      confidence = "High",
-      location = location,
-      description = description,
-      repositoryPath = location.substringBefore(':'),
-      line = location.substringAfter(':').toInt(),
-    )
+  private fun finding(
+    ref: String,
+    location: String = "src/A.kt:12",
+    description: String = "Null is not checked.",
+  ) = ParallelReviewMergedFinding(
+    fNumber = ref,
+    agentIds = listOf("codex"),
+    severity = ParallelReviewSeverity.MAJOR,
+    confidence = "High",
+    location = location,
+    description = description,
+    repositoryPath = location.substringBefore(':'),
+    line = location.substringAfter(':').toInt(),
+  )
 
   private fun packet(): ReviewContextPacket {
     val hunk = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+alpha")
@@ -225,27 +239,30 @@ class ReviewClaimVerificationRunnerTest {
       addOns = emptyList(),
       selectedLanes = lanes,
       changedHunks = listOf(hunk),
-      commitUnits = listOf(
-        ReviewCommitUnit("head", "base", "change", 0, listOf(hunk), ReviewCommitSource.COMMIT_RANGE),
-      ),
-      coverageFact = ReviewCommitCoverageFact("base", "head", 1, chainVerified = true, pathCoverageVerified = true),
-      routingMatrix = ReviewCommitLaneRoutingMatrix(
-        listOf("head"),
-        lanes,
-        listOf(ReviewCommitLaneDecision("head", 0, "security", ReviewCommitLaneDisposition.FOCUSED, "focused")),
-      ),
-      reviewRevision = ReviewRevision("rvs-1", 1),
-      laneDecisions = listOf(
-        ReviewLaneDecision(
-          "security",
-          true,
-          "routed",
-          ownedPaths = listOf("src/A.kt"),
-          originLayerChains = listOf(listOf("kotlin")),
-          owningPack = "kotlin",
-          specialistSkillName = "bill-kotlin-code-review-security",
+      commitUnits =
+        listOf(
+          ReviewCommitUnit("head", "base", "change", 0, listOf(hunk), ReviewCommitSource.COMMIT_RANGE),
         ),
-      ),
+      coverageFact = ReviewCommitCoverageFact("base", "head", 1, chainVerified = true, pathCoverageVerified = true),
+      routingMatrix =
+        ReviewCommitLaneRoutingMatrix(
+          listOf("head"),
+          lanes,
+          listOf(ReviewCommitLaneDecision("head", 0, "security", ReviewCommitLaneDisposition.FOCUSED, "focused")),
+        ),
+      reviewRevision = ReviewRevision("rvs-1", 1),
+      laneDecisions =
+        listOf(
+          ReviewLaneDecision(
+            "security",
+            true,
+            "routed",
+            ownedPaths = listOf("src/A.kt"),
+            originLayerChains = listOf(listOf("kotlin")),
+            owningPack = "kotlin",
+            specialistSkillName = "bill-kotlin-code-review-security",
+          ),
+        ),
       dependencyAllowlist = ReviewDependencyAllowlist(listOf("src/Dep.kt")),
     )
   }

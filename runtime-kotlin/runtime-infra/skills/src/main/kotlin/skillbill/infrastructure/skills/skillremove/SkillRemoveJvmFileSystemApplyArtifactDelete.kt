@@ -21,6 +21,7 @@ import skillbill.infrastructure.skills.scaffold.platformpack.manifest.ReadmeEdit
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
+
 internal fun SkillRemoveJvmFileSystemApply.applyCascadeBody(
   request: SkillRemovalRequest,
   preview: SkillRemovalPreview,
@@ -92,22 +93,24 @@ internal fun applyReadmeCatalogEdits(
   val skillNameForReadme = (request.target as? SkillRemovalTarget.HorizontalSkill)?.skillName
   readmeCatalogEdits.forEach { edit ->
     val readme = repoRoot.resolve(edit.readmePath)
-    val outcome: ReadmeEditOutcome? = when (edit.kind) {
-      ReadmeCatalogEditKind.REMOVE_CATALOG_ROW ->
-        if (skillNameForReadme != null) {
-          ReadmeCatalogEdits.removeCatalogRow(readme, skillNameForReadme)
-        } else {
-          null
-        }
-      ReadmeCatalogEditKind.DECREMENT_SECTION_COUNT ->
-        ReadmeCatalogEdits.decrementSectionCount(readme)
-    }
+    val outcome: ReadmeEditOutcome? =
+      when (edit.kind) {
+        ReadmeCatalogEditKind.REMOVE_CATALOG_ROW ->
+          if (skillNameForReadme != null) {
+            ReadmeCatalogEdits.removeCatalogRow(readme, skillNameForReadme)
+          } else {
+            null
+          }
+        ReadmeCatalogEditKind.DECREMENT_SECTION_COUNT ->
+          ReadmeCatalogEdits.decrementSectionCount(readme)
+      }
     if (outcome is ReadmeEditOutcome.LandmarksMissing) {
-      readmeWarnings += ReadmeCatalogWarning(
-        readmePath = edit.readmePath,
-        kind = edit.kind,
-        reason = outcome.reason,
-      )
+      readmeWarnings +=
+        ReadmeCatalogWarning(
+          readmePath = edit.readmePath,
+          kind = edit.kind,
+          reason = outcome.reason,
+        )
     }
   }
 }
@@ -117,9 +120,10 @@ internal fun SkillRemoveJvmFileSystemApply.removeFilesystemPaths(
   filesystemPaths: List<String>,
   removedPaths: MutableList<String>,
 ) {
-  val absolutePaths = filesystemPaths
-    .map(repoRoot::resolve)
-    .filter { Files.exists(it, LinkOption.NOFOLLOW_LINKS) }
+  val absolutePaths =
+    filesystemPaths
+      .map(repoRoot::resolve)
+      .filter { Files.exists(it, LinkOption.NOFOLLOW_LINKS) }
   absolutePaths.forEach { absolute ->
     deletePath(absolute)
     removedPaths += absolute.toString().replace('\\', '/')

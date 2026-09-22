@@ -213,9 +213,10 @@ private class BoundedExternalProcessSession(
   }
 
   private fun buildResult(): BoundedExternalProcessResult {
-    val fileOutput = request.redirectOutputFile?.let { path ->
-      if (!Files.exists(path)) "" else Files.readString(path)
-    }
+    val fileOutput =
+      request.redirectOutputFile?.let { path ->
+        if (!Files.exists(path)) "" else Files.readString(path)
+      }
     val captured =
       buildString {
         if (fileOutput != null) {
@@ -248,10 +249,11 @@ private class BoundedExternalProcessSession(
   }
 
   private fun settleOwnedDescendants() {
-    val deadlineNanos = minOf(
-      operationDeadlineNanos,
-      System.nanoTime() + TimeUnit.SECONDS.toNanos(PROCESS_CLEANUP_BUDGET_SECONDS),
-    )
+    val deadlineNanos =
+      minOf(
+        operationDeadlineNanos,
+        System.nanoTime() + TimeUnit.SECONDS.toNanos(PROCESS_CLEANUP_BUDGET_SECONDS),
+      )
     while (ownedDescendants.any { it.isAlive } && System.nanoTime() < deadlineNanos) {
       Thread.sleep(PROCESS_POLL_MILLIS)
     }

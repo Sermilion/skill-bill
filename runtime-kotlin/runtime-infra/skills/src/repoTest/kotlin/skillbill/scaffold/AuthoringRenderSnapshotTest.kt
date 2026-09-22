@@ -11,6 +11,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class AuthoringRenderSnapshotTest {
   @Test
   fun `standalone governed skill render matches snapshot`() {
@@ -107,9 +108,10 @@ class AuthoringRenderSnapshotTest {
     assertTrue("shell-ceremony.md" !in first)
     assertTrue("telemetry-contract.md" !in first)
 
-    val nativeAgentPath = repoRoot.resolve(
-      "platform-packs/kmp/code-review/bill-kmp-code-review/native-agents/agents.yaml",
-    )
+    val nativeAgentPath =
+      repoRoot.resolve(
+        "platform-packs/kmp/code-review/bill-kmp-code-review/native-agents/agents.yaml",
+      )
     val nativeAgentSource = renderNativeAgentBundle(parseNativeAgentBundle(nativeAgentPath))
     assertEquals(
       SnapshotAssertions.normalizeLineEndings(Files.readString(nativeAgentPath)),
@@ -138,7 +140,11 @@ class AuthoringRenderSnapshotTest {
       Files.isDirectory(candidate.resolve("skills")) &&
       Files.isDirectory(candidate.resolve("platform-packs"))
 
-  private fun expectedHeadersFromManifest(repoRoot: Path, packSlug: String, skillRelativeDir: String): List<String> {
+  private fun expectedHeadersFromManifest(
+    repoRoot: Path,
+    packSlug: String,
+    skillRelativeDir: String,
+  ): List<String> {
     val pack = loadPlatformManifest(repoRoot.resolve("platform-packs/$packSlug"))
     return listOf("===== SKILL.md: platform-packs/$packSlug/$skillRelativeDir/SKILL.md =====") +
       pack.pointers

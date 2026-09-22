@@ -4,7 +4,10 @@ import java.security.MessageDigest
 import kotlin.text.Charsets
 
 object Utf8Text {
-  fun truncateToUtf8Bytes(text: String, maxBytes: Int): String {
+  fun truncateToUtf8Bytes(
+    text: String,
+    maxBytes: Int,
+  ): String {
     if (text.length <= maxBytes / MAX_UTF8_BYTES_PER_CHAR) return text
     val encoded = text.encodeToByteArray()
     if (encoded.size <= maxBytes) return text

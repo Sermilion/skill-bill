@@ -2,6 +2,7 @@ package skillbill.review.context.model.bundle
 import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.canonicalFields
 import skillbill.review.context.model.execution.sha256
+
 data class ReviewLaneBundleEntry(val commitSha: String, val orderIndex: Int, val hunkIds: List<String>) {
   init {
     require(commitSha.isNotBlank()) { "Lane bundle entry commit identity must not be blank." }

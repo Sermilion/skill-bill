@@ -272,17 +272,23 @@ internal const val TEST_TELEMETRY_PROXY_URL = "http://127.0.0.1:9/skill-bill-tes
 internal fun Map<String, String>.withTestTelemetryProxy(): Map<String, String> =
   this + (TELEMETRY_PROXY_URL_ENVIRONMENT_KEY to TEST_TELEMETRY_PROXY_URL)
 
-internal fun toolCallRequest(id: Int, name: String, arguments: Map<String, Any?>): String = JsonCodec.mapToJsonString(
-  mapOf(
-    "jsonrpc" to "2.0",
-    "id" to id,
-    "method" to "tools/call",
-    "params" to mapOf(
-      "name" to name,
-      "arguments" to arguments,
+internal fun toolCallRequest(
+  id: Int,
+  name: String,
+  arguments: Map<String, Any?>,
+): String =
+  JsonCodec.mapToJsonString(
+    mapOf(
+      "jsonrpc" to "2.0",
+      "id" to id,
+      "method" to "tools/call",
+      "params" to
+        mapOf(
+          "name" to name,
+          "arguments" to arguments,
+        ),
     ),
-  ),
-)
+  )
 
 internal fun toolPayload(result: Map<String, Any?>): Map<String, Any?> {
   val content = result["content"] as List<*>
@@ -309,7 +315,10 @@ internal fun decodeStdioJsonObject(rawJson: String): Map<String, Any?> {
   return decoded
 }
 
-internal fun seedGoalBlockedRun(dbPath: Path, workflowId: String) {
+internal fun seedGoalBlockedRun(
+  dbPath: Path,
+  workflowId: String,
+) {
   withLifecycleTelemetryStore(dbPath.parent, dbPath) { store ->
     store.goalStarted(
       GoalStartedRecord(

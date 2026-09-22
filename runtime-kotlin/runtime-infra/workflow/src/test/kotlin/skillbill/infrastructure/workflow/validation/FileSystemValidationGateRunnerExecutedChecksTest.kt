@@ -17,6 +17,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class FileSystemValidationGateRunnerExecutedChecksTest {
   @Test
   fun `gradle compile and test outputs with zero work retain stable check identities`() {
@@ -37,16 +38,17 @@ class FileSystemValidationGateRunnerExecutedChecksTest {
         exit 0
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        ValidationGateRunRequest(
-          repoRoot = repo,
-          argv = listOf("sh", script.toString()),
-          cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
-          declaration = declaration(withExecutedWorkSignal = true),
-          terminalVerifying = true,
-          findingParseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          ValidationGateRunRequest(
+            repoRoot = repo,
+            argv = listOf("sh", script.toString()),
+            cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
+            declaration = declaration(withExecutedWorkSignal = true),
+            terminalVerifying = true,
+            findingParseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       assertEquals(ValidationGateRunOutcome.PASSED, result.outcome)
       assertEquals(0, result.executedWorkUnits)
       assertTrue(Files.isRegularFile(repo.resolve("runtime-engine/build/classes/kotlin/main/Runtime.class")))
@@ -83,16 +85,17 @@ class FileSystemValidationGateRunnerExecutedChecksTest {
         exit 0
         """.trimIndent(),
       )
-      val result = FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
-        ValidationGateRunRequest(
-          repoRoot = repo,
-          argv = listOf("sh", script.toString()),
-          cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
-          declaration = declaration(withExecutedWorkSignal = true),
-          terminalVerifying = true,
-          findingParseMode = ValidationGateFindingParseMode.COLLECT_ALL,
-        ),
-      )
+      val result =
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          ValidationGateRunRequest(
+            repoRoot = repo,
+            argv = listOf("sh", script.toString()),
+            cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
+            declaration = declaration(withExecutedWorkSignal = true),
+            terminalVerifying = true,
+            findingParseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
       assertEquals(ValidationGateRunOutcome.PASSED, result.outcome)
       assertEquals(3, result.executedWorkUnits)
       assertEquals(
@@ -108,22 +111,26 @@ class FileSystemValidationGateRunnerExecutedChecksTest {
     }
   }
 
-  private fun declaration(withExecutedWorkSignal: Boolean): ValidationGateDeclaration = ValidationGateDeclaration(
-    fullGateCommand = listOf("sh", "gate.sh"),
-    cacheBypassingFullGateCommand = listOf("sh", "gate.sh", "--rerun-tasks"),
-    collectAllFullGateCommand = listOf("sh", "gate.sh", "--continue"),
-    cacheBypassingCollectAllFullGateCommand = listOf("sh", "gate.sh", "--continue", "--rerun-tasks"),
-    findings = ValidationGateFindingsLocator(
-      format = ValidationGateFindingsFormat.JUNIT_XML,
-      artifactGlobs = listOf("**/build/test-results/**/*.xml"),
-      compilerDiagnostics = ValidationGateCompilerDiagnosticsLocator(
-        ValidationGateCompilerDiagnosticsFormat.GRADLE_KOTLIN_COMPILER_STDOUT,
-      ),
-      executedWork = if (withExecutedWorkSignal) {
-        ValidationGateExecutedWorkSignal(ValidationGateExecutedWorkFormat.GRADLE_ACTIONABLE_SUMMARY)
-      } else {
-        null
-      },
-    ),
-  )
+  private fun declaration(withExecutedWorkSignal: Boolean): ValidationGateDeclaration =
+    ValidationGateDeclaration(
+      fullGateCommand = listOf("sh", "gate.sh"),
+      cacheBypassingFullGateCommand = listOf("sh", "gate.sh", "--rerun-tasks"),
+      collectAllFullGateCommand = listOf("sh", "gate.sh", "--continue"),
+      cacheBypassingCollectAllFullGateCommand = listOf("sh", "gate.sh", "--continue", "--rerun-tasks"),
+      findings =
+        ValidationGateFindingsLocator(
+          format = ValidationGateFindingsFormat.JUNIT_XML,
+          artifactGlobs = listOf("**/build/test-results/**/*.xml"),
+          compilerDiagnostics =
+            ValidationGateCompilerDiagnosticsLocator(
+              ValidationGateCompilerDiagnosticsFormat.GRADLE_KOTLIN_COMPILER_STDOUT,
+            ),
+          executedWork =
+            if (withExecutedWorkSignal) {
+              ValidationGateExecutedWorkSignal(ValidationGateExecutedWorkFormat.GRADLE_ACTIONABLE_SUMMARY)
+            } else {
+              null
+            },
+        ),
+    )
 }

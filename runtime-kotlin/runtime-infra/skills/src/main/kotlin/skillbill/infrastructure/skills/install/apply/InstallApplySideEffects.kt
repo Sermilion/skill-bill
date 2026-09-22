@@ -34,18 +34,20 @@ internal fun applyTelemetryIntent(
   telemetryLevelMutator: TelemetryLevelMutator? = null,
   telemetryConfigStore: TelemetryConfigStore? = null,
 ): InstallTelemetryApplyOutcome {
-  val environmentContext = EnvironmentContext(
-    environment = resolveEnvironmentMap(plan.request.environment),
-    userHome = plan.request.home.toPath(),
-  )
+  val environmentContext =
+    EnvironmentContext(
+      environment = resolveEnvironmentMap(plan.request.environment),
+      userHome = plan.request.home.toPath(),
+    )
   val configPath = resolveTelemetryConfigPath(environmentContext.environment, environmentContext.userHome)
   val existedBefore = Files.exists(configPath)
   return runCatching {
-    val clearedEvents = applyInstallTelemetryLevel(
-      plan.telemetryLevel.id,
-      telemetryLevelMutator,
-      telemetryConfigStore,
-    )
+    val clearedEvents =
+      applyInstallTelemetryLevel(
+        plan.telemetryLevel.id,
+        telemetryLevelMutator,
+        telemetryConfigStore,
+      )
     val status =
       if (plan.telemetryLevel.id == "off" && !existedBefore && clearedEvents == 0) {
         InstallTelemetryApplyStatus.SKIPPED
@@ -60,11 +62,12 @@ internal fun applyTelemetryIntent(
       message = telemetryOutcomeMessage(plan.telemetryLevel.id, status),
     )
   }.getOrElse { error ->
-    val issue = InstallApplyIssue(
-      kind = InstallApplyIssueKind.TELEMETRY_APPLY_FAILED,
-      message = error.message.orEmpty(),
-      causeClass = error::class.qualifiedName,
-    )
+    val issue =
+      InstallApplyIssue(
+        kind = InstallApplyIssueKind.TELEMETRY_APPLY_FAILED,
+        message = error.message.orEmpty(),
+        causeClass = error::class.qualifiedName,
+      )
     warnings.add(issue)
     InstallTelemetryApplyOutcome(
       level = plan.telemetryLevel,
@@ -87,9 +90,10 @@ private fun applyInstallTelemetryLevel(
   require(level in telemetryLevels) {
     "Telemetry level must be one of: ${telemetryLevels.joinToString(", ")}."
   }
-  val configStore = requireNotNull(telemetryConfigStore) {
-    "TelemetryConfigStore must be supplied through RuntimeComponent."
-  }
+  val configStore =
+    requireNotNull(telemetryConfigStore) {
+      "TelemetryConfigStore must be supplied through RuntimeComponent."
+    }
   if (configStore.writeTelemetryLevel(level)) {
     validateInstallTelemetryConfig(configStore)
   }
@@ -97,8 +101,9 @@ private fun applyInstallTelemetryLevel(
 }
 
 private fun validateInstallTelemetryConfig(configStore: TelemetryConfigStore) {
-  val payload = configStore.read()?.payload
-    ?: throw IllegalArgumentException("Telemetry config at '${configStore.configPath()}' is missing.")
+  val payload =
+    configStore.read()?.payload
+      ?: throw IllegalArgumentException("Telemetry config at '${configStore.configPath()}' is missing.")
   val telemetry =
     (payload["telemetry"] as? Map<*, *>)
       ?.entries
@@ -130,20 +135,25 @@ internal fun applyMcpRegistrationIntent(
   val runtimeMcpBin = intent.runtimeMcpBin
   return when {
     !intent.register -> skippedMcpRegistrationOutcomes(plan, "MCP registration not requested.")
-    runtimeMcpBin == null -> intent.agents.map { agent ->
-      failedMcpRegistrationOutcome(
-        agent = agent,
-        message = "MCP registration requested but no runtime-mcp binary was planned.",
-        warnings = warnings,
-      )
-    }
-    else -> intent.agents.map { agent ->
-      registerMcpAgent(agent, runtimeMcpBin.toPath(), plan, warnings, mcpRegistrationPort)
-    }
+    runtimeMcpBin == null ->
+      intent.agents.map { agent ->
+        failedMcpRegistrationOutcome(
+          agent = agent,
+          message = "MCP registration requested but no runtime-mcp binary was planned.",
+          warnings = warnings,
+        )
+      }
+    else ->
+      intent.agents.map { agent ->
+        registerMcpAgent(agent, runtimeMcpBin.toPath(), plan, warnings, mcpRegistrationPort)
+      }
   }
 }
 
-internal fun skippedTelemetryOutcome(plan: InstallPlan, message: String): InstallTelemetryApplyOutcome =
+internal fun skippedTelemetryOutcome(
+  plan: InstallPlan,
+  message: String,
+): InstallTelemetryApplyOutcome =
   InstallTelemetryApplyOutcome(
     level = plan.telemetryLevel,
     status = InstallTelemetryApplyStatus.SKIPPED,
@@ -151,7 +161,10 @@ internal fun skippedTelemetryOutcome(plan: InstallPlan, message: String): Instal
     message = message,
   )
 
-internal fun skippedMcpRegistrationOutcomes(plan: InstallPlan, message: String): List<McpRegistrationApplyOutcome> =
+internal fun skippedMcpRegistrationOutcomes(
+  plan: InstallPlan,
+  message: String,
+): List<McpRegistrationApplyOutcome> =
   plan.mcpRegistrationIntent.agents.map { agent ->
     McpRegistrationApplyOutcome(
       agent = agent,
@@ -160,11 +173,15 @@ internal fun skippedMcpRegistrationOutcomes(plan: InstallPlan, message: String):
     )
   }
 
-private fun telemetryOutcomeMessage(level: String, status: InstallTelemetryApplyStatus): String = when (status) {
-  InstallTelemetryApplyStatus.SUCCESS -> "Telemetry level set to '$level'."
-  InstallTelemetryApplyStatus.SKIPPED -> "Telemetry was already off."
-  InstallTelemetryApplyStatus.FAILED -> "Telemetry setup failed."
-}
+private fun telemetryOutcomeMessage(
+  level: String,
+  status: InstallTelemetryApplyStatus,
+): String =
+  when (status) {
+    InstallTelemetryApplyStatus.SUCCESS -> "Telemetry level set to '$level'."
+    InstallTelemetryApplyStatus.SKIPPED -> "Telemetry was already off."
+    InstallTelemetryApplyStatus.FAILED -> "Telemetry setup failed."
+  }
 
 private fun registerMcpAgent(
   agent: InstallAgent,
@@ -172,36 +189,39 @@ private fun registerMcpAgent(
   plan: InstallPlan,
   warnings: MutableList<InstallApplyIssue>,
   mcpRegistrationPort: InstallMcpRegistrationPort,
-): McpRegistrationApplyOutcome = runCatching {
-  val result = mcpRegistrationPort.registerMcp(
-    InstallMcpRegistrationRequest(
-      agent = agent.id,
-      runtimeMcpBin = runtimeMcpBin,
-      home = plan.request.home.toPath(),
-    ),
-  ).mutation
-  McpRegistrationApplyOutcome(
-    agent = agent,
-    status = McpRegistrationApplyStatus.SUCCESS,
-    configPath = result.configPath,
-    changed = result.changed,
-    message = mcpRegistrationMessage(result),
-    profiles = result.profiles,
-  )
-}.getOrElse { error ->
-  val succeeded = (error as? ClaudeMcpProfileFailure)?.succeeded.orEmpty()
-  failedMcpRegistrationOutcome(
-    agent = agent,
-    message = if (succeeded.isEmpty()) {
-      error.message.orEmpty()
-    } else {
-      "${error.message.orEmpty()}. Already updated: ${succeeded.joinToString(", ") { it.configPath.toString() }}"
-    },
-    warnings = warnings,
-    error = error,
-    profiles = succeeded,
-  )
-}
+): McpRegistrationApplyOutcome =
+  runCatching {
+    val result =
+      mcpRegistrationPort.registerMcp(
+        InstallMcpRegistrationRequest(
+          agent = agent.id,
+          runtimeMcpBin = runtimeMcpBin,
+          home = plan.request.home.toPath(),
+        ),
+      ).mutation
+    McpRegistrationApplyOutcome(
+      agent = agent,
+      status = McpRegistrationApplyStatus.SUCCESS,
+      configPath = result.configPath,
+      changed = result.changed,
+      message = mcpRegistrationMessage(result),
+      profiles = result.profiles,
+    )
+  }.getOrElse { error ->
+    val succeeded = (error as? ClaudeMcpProfileFailure)?.succeeded.orEmpty()
+    failedMcpRegistrationOutcome(
+      agent = agent,
+      message =
+        if (succeeded.isEmpty()) {
+          error.message.orEmpty()
+        } else {
+          "${error.message.orEmpty()}. Already updated: ${succeeded.joinToString(", ") { it.configPath.toString() }}"
+        },
+      warnings = warnings,
+      error = error,
+      profiles = succeeded,
+    )
+  }
 
 private fun mcpRegistrationMessage(result: McpMutationResult): String {
   val base = if (result.changed) "MCP registration updated." else "MCP registration already up to date."
@@ -219,12 +239,13 @@ private fun failedMcpRegistrationOutcome(
   error: Throwable? = null,
   profiles: List<McpProfileOutcome> = emptyList(),
 ): McpRegistrationApplyOutcome {
-  val issue = InstallApplyIssue(
-    kind = InstallApplyIssueKind.MCP_REGISTRATION_FAILED,
-    message = message,
-    agent = agent,
-    causeClass = error?.let { it::class.qualifiedName },
-  )
+  val issue =
+    InstallApplyIssue(
+      kind = InstallApplyIssueKind.MCP_REGISTRATION_FAILED,
+      message = message,
+      agent = agent,
+      causeClass = error?.let { it::class.qualifiedName },
+    )
   warnings.add(issue)
   return McpRegistrationApplyOutcome(
     agent = agent,

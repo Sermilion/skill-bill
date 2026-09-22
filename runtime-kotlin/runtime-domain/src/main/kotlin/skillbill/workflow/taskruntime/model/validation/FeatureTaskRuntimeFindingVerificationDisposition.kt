@@ -32,15 +32,17 @@ data class FeatureTaskRuntimeFindingVerificationDisposition(
       )
     }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = buildMap {
-    put(ReviewFindingPayloadKeys.FINDING_ID, findingId)
-    put("disposition", disposition.wireValue)
-    reason?.let { put("reason", it) }
-    if (selectedBoundaryHeadings.isNotEmpty()) {
-      put("selected_boundary_headings", selectedBoundaryHeadings.map { it.toArtifactMap() })
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    buildMap {
+      put(ReviewFindingPayloadKeys.FINDING_ID, findingId)
+      put("disposition", disposition.wireValue)
+      reason?.let { put("reason", it) }
+      if (selectedBoundaryHeadings.isNotEmpty()) {
+        put("selected_boundary_headings", selectedBoundaryHeadings.map { it.toArtifactMap() })
+      }
+      if (boundaryContextUnavailable) put("boundary_context_unavailable", true)
     }
-    if (boundaryContextUnavailable) put("boundary_context_unavailable", true)
-  }
 
   companion object {
     internal fun fromArtifactMap(
@@ -52,14 +54,16 @@ data class FeatureTaskRuntimeFindingVerificationDisposition(
           ?.trim()
           ?.takeIf(String::isNotBlank)
           ?: invalid(path, "finding_id")
-      val disposition = (raw["disposition"] as? String)
-        ?.let(FeatureTaskRuntimeFindingVerificationDispositionVerdict::fromWire)
-        ?: invalid(path, "disposition")
+      val disposition =
+        (raw["disposition"] as? String)
+          ?.let(FeatureTaskRuntimeFindingVerificationDispositionVerdict::fromWire)
+          ?: invalid(path, "disposition")
       val reason = (raw["reason"] as? String)?.trim()?.takeIf(String::isNotBlank)
-      val selectedBoundaryHeadings = FeatureTaskRuntimeVerificationBoundaryHeadingProvenance.parseList(
-        raw["selected_boundary_headings"],
-        "$path.selected_boundary_headings",
-      )
+      val selectedBoundaryHeadings =
+        FeatureTaskRuntimeVerificationBoundaryHeadingProvenance.parseList(
+          raw["selected_boundary_headings"],
+          "$path.selected_boundary_headings",
+        )
       val boundaryContextUnavailable = raw["boundary_context_unavailable"] == true
       return FeatureTaskRuntimeFindingVerificationDisposition(
         findingId = findingId,
@@ -70,20 +74,28 @@ data class FeatureTaskRuntimeFindingVerificationDisposition(
       )
     }
 
-    fun parseList(raw: Any?, path: String): List<FeatureTaskRuntimeFindingVerificationDisposition> {
-      val entries = raw as? List<*> ?: throw InvalidFeatureTaskRuntimeFindingVerificationRecordError(
-        "$path must be an array of finding verification dispositions.",
-      )
+    fun parseList(
+      raw: Any?,
+      path: String,
+    ): List<FeatureTaskRuntimeFindingVerificationDisposition> {
+      val entries =
+        raw as? List<*> ?: throw InvalidFeatureTaskRuntimeFindingVerificationRecordError(
+          "$path must be an array of finding verification dispositions.",
+        )
       return entries.mapIndexed { index, entry ->
-        val map = JsonCodec.anyToStringAnyMap(entry)
-          ?: throw InvalidFeatureTaskRuntimeFindingVerificationRecordError(
-            "$path[$index] must be an object.",
-          )
+        val map =
+          JsonCodec.anyToStringAnyMap(entry)
+            ?: throw InvalidFeatureTaskRuntimeFindingVerificationRecordError(
+              "$path[$index] must be an object.",
+            )
         fromArtifactMap(map, "$path[$index]")
       }
     }
 
-    private fun invalid(path: String, field: String): Nothing =
+    private fun invalid(
+      path: String,
+      field: String,
+    ): Nothing =
       throw InvalidFeatureTaskRuntimeFindingVerificationRecordError("$path.$field must be a non-blank string.")
   }
 }

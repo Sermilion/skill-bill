@@ -23,8 +23,9 @@ class ExperimentPairSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val stream = ExperimentPairSchemaValidator::class.java.classLoader
-      .getResourceAsStream(ExperimentPairSchemaPaths.CLASSPATH_RESOURCE)
+    val stream =
+      ExperimentPairSchemaValidator::class.java.classLoader
+        .getResourceAsStream(ExperimentPairSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(stream)
     return YAMLMapper().readTree(stream.use { it.readBytes().toString(Charsets.UTF_8) })
   }

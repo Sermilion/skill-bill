@@ -46,8 +46,58 @@ when the source is merely reformatted. `RuntimeGradleModuleLayeringTest` keeps t
 assertions it can make from the repository layout (declared modules, nested
 directories, dependency direction) and no longer reads plugin sources.
 
-`ProjectBuilder` only; no Gradle TestKit and no nested Gradle process, so these
-tests stay cheap enough to run under every `check`.
+`ProjectBuilder` is the default, so these tests stay cheap enough to run under
+every `check`. Gradle TestKit is reserved for behavior that only exists once a
+task executes; see the governed-resource entry below.
+
+## [2026-09-22] runtime-infra/host owns the Java guard; build tooling declares it as an input
+
+`skill-bill-java-guard.sh` is authored once, at
+`runtime-infra/host/src/main/resources/skillbill/infrastructure/host/jvm/`, and
+reaches `GateJvmResolver` as an ordinary module resource. It previously lived in
+`build-logic/convention/src/main/resources` and was copied into the host module by
+a `copyJavaGuard` governed entry, which inverted ownership: a build-tooling
+directory shipped a runtime asset, and three consumers reached into that tree by
+path. The guard is runtime behavior, so the module that ships it owns it.
+
+Build tooling now consumes it rather than owning it. `StartScriptJavaGuard` takes
+a `RegularFileProperty` that `RuntimeImageConventionPlugin` defaults to that path
+under the root project, declared as an input of every `CreateStartScripts` task
+and read inside the task action. Reading the guard at configuration time — as the
+plugin-classpath resource lookup did — hid guard edits from up-to-date checks and
+blocked configuration caching. `install.sh` and `uninstall.sh` source the same
+file, so build-time and run-time JVM selection still follow one rule.
+
+## [2026-09-22] Governed-resource behavior is tested against a synthetic project
+
+`GovernedResourceCopyParityTest` copied `runtime-kotlin/` and `orchestration/`
+into a temp directory, fabricated an `origin/main` ref, shelled out to `./gradlew`
+for every assertion, and compared SHA-256 hashes of real schemas against a golden
+manifest. It was the slowest suite in `runtime-infra/contracts` and it failed
+whenever a schema's content changed for unrelated reasons. It is replaced by
+build-logic tests that apply `skillbill.governed-resources` to a one-file project
+in a temp directory and assert the four behaviors that can actually regress:
+a missing source fails its copy task naming the owner and the absolute path and
+writes nothing, a declared source lands under the generated root, `processResources`
+runs the copy, and an unchanged source reports up to date.
+
+These are the build-logic exception to the `ProjectBuilder`-only rule above:
+task outcome, failure text, and up-to-date state do not exist until a task runs,
+so they need Gradle TestKit. The start-script guard is tested through a pure
+`startScriptWithJavaGuard` transformation instead, because the bug worth catching
+is double insertion or a lost anchor, not the `doLast` wiring.
+
+`GovernedResourceCopy` declares an `@OutputFile` per entry rather than an
+`@OutputDirectory`. Thirty-five of the thirty-six `runtime-infra/contracts`
+entries share one destination directory (`skillbill/infrastructure/contracts`;
+`copyReviewContextSchema` is the lone exception at `skillbill/contracts`), so a
+directory-typed output would overlap across tasks, disabling build caching and
+weakening up-to-date checks for all of them.
+
+`includeInTestProcessResources` is dropped with no replacement. The generated root
+was only ever added to the `main` resources source set, so the `processTestResources`
+wiring placed nothing on the test resource path, and no consumer outside the deleted
+parity test read the distinction.
 
 ## [2026-09-19] Runtime package sibling ceilings
 
@@ -2118,3 +2168,11 @@ Context: Shipped platform packs carried a second `quality-check/` skill and `dec
 Decision: Quality-check collect-all and confirmation are the dominant pack `validation_gate` argv only. `routeQualityCheck` selects the pack slug and fixes `routed_skill` to `bill-code-check`; missing `validation_gate` on the winning pack raises `MissingValidationGateError`. Scaffold, install, and review-structure validation no longer emit or require pack checker skills. Optional `declared_quality_check_file` remains schema-parseable for leftover custom packs. Install still treats that path as a declared skill directory when present, and skips undeclared `quality-check/` `addon_usage` keys so a leftover checker registration cannot block reconcile.
 Reason: One shell (`bill-code-check`), one gate surface per pack, no duplicate command-discovery sidecars. Reconcile enumerates the existing local pack copy with the new runtime before upstream can replace it.
 Alternatives considered: Keep pack checker skills as documentation-only (rejected: install and routing still duplicated argv). Generic command-discovery fallback when gate is absent (rejected: silent wrong-suite risk). Loud-fail leftover `quality-check/` `addon_usage` (rejected: `install reconcile` cannot apply the cleaned upstream pack).
+
+## [2026-09-22] Spotless ratchet removed; tree-wide ktlint adopted (SKILL-368)
+
+Context: `ratchetFrom("origin/main")` scoped Spotless to files differing from that ref, so roughly 2,900 of 2,948 Kotlin files had never been linted. The ratchet also failed in linked worktrees (jgit does not resolve `gitdir:` files) and in clones lacking the ref, and forced `GovernedResourceCopyParityTest` to fabricate an `origin/main`.
+Decision: Remove the ratchet and format the whole tree to ktlint's fixed point in one migration. Line length comes from `runtime-kotlin/.editorconfig` (120) with no `editorConfigOverride`. Raise detekt `LongMethod` from 60 to 70.
+Reason: Tree-wide linting is the honest end state and makes worktrees and fresh clones work. The `LongMethod` bump absorbs line growth from the `ktlint_official` wrapping rules, which put assignment right-hand sides on their own line; the 62 functions that crossed the old limit measured 60-68 lines and gained height, not complexity. Extracting them would have been a large unrelated refactor driven by formatting.
+Alternatives considered: Keep the ratchet (rejected: leaves the tree unlinted and keeps worktrees broken). Ratchet from a merge-base sha (rejected: avoids the jgit failure but still leaves the tree unlinted). Switch to `ktlint_code_style = intellij_idea` (rejected: same 2,400-file churn and stops enforcing the 120-column limit).
+Consequence: One mechanical reformat commit touches about 2,400 files; `spotlessApply` converges and normal edits produce normal diffs from here.

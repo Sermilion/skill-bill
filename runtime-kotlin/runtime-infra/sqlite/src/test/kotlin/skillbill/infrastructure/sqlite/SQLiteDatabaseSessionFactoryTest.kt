@@ -22,6 +22,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class SQLiteDatabaseSessionFactoryTest {
   @Test
   fun `transaction maps write SQLException to DatabaseAccessError`() {
@@ -29,15 +30,17 @@ class SQLiteDatabaseSessionFactoryTest {
     val dbPath = tempDir.resolve("metrics.db")
     val database = boundDatabase(tempDir, dbPath)
 
-    val error = assertFailsWith<DatabaseAccessError> {
-      database.transaction { unitOfWork ->
-        val connection = unitOfWork::class.java.getDeclaredField("connection").apply { isAccessible = true }
-          .get(unitOfWork) as Connection
-        connection.createStatement().use {
-          it.execute("INSERT INTO missing_write_probe_table VALUES (1)")
+    val error =
+      assertFailsWith<DatabaseAccessError> {
+        database.transaction { unitOfWork ->
+          val connection =
+            unitOfWork::class.java.getDeclaredField("connection").apply { isAccessible = true }
+              .get(unitOfWork) as Connection
+          connection.createStatement().use {
+            it.execute("INSERT INTO missing_write_probe_table VALUES (1)")
+          }
         }
       }
-    }
     assertEquals(DatabaseAccessOperation.WRITE, error.operation)
   }
 
@@ -48,17 +51,19 @@ class SQLiteDatabaseSessionFactoryTest {
     val database = boundDatabase(tempDir, dbPath)
     val workflowId = "wftr-repository-rollback"
 
-    val error = assertFailsWith<DatabaseAccessError> {
-      database.transaction { unitOfWork ->
-        unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(workflowRecord(workflowId))
-        val connection = unitOfWork::class.java.getDeclaredField("connection").apply { isAccessible = true }
-          .get(unitOfWork) as Connection
-        connection.createStatement().use { statement ->
-          statement.execute("DROP TABLE feature_task_workflows")
+    val error =
+      assertFailsWith<DatabaseAccessError> {
+        database.transaction { unitOfWork ->
+          unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(workflowRecord(workflowId))
+          val connection =
+            unitOfWork::class.java.getDeclaredField("connection").apply { isAccessible = true }
+              .get(unitOfWork) as Connection
+          connection.createStatement().use { statement ->
+            statement.execute("DROP TABLE feature_task_workflows")
+          }
+          unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)
         }
-        unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)
       }
-    }
 
     assertEquals(DatabaseAccessOperation.WRITE, error.operation)
     assertEquals(
@@ -159,9 +164,10 @@ class SQLiteDatabaseSessionFactoryTest {
     DriverManager.getConnection("jdbc:sqlite:$dbPath").use { writer ->
       writer.createStatement().use { it.execute("BEGIN IMMEDIATE") }
       try {
-        val status = database.read { unitOfWork ->
-          unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
-        }
+        val status =
+          database.read { unitOfWork ->
+            unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
+          }
         assertEquals("running", status)
       } finally {
         writer.createStatement().use { it.execute("ROLLBACK") }
@@ -214,9 +220,10 @@ class SQLiteDatabaseSessionFactoryTest {
       writer.createStatement().use { it.execute("BEGIN IMMEDIATE") }
       try {
         val startedAt = System.nanoTime()
-        val status = database.read { unitOfWork ->
-          unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow("wftr-read-only-contention")?.workflowStatus
-        }
+        val status =
+          database.read { unitOfWork ->
+            unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow("wftr-read-only-contention")?.workflowStatus
+          }
         val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
         assertEquals("running", status)
 
@@ -237,19 +244,20 @@ class SQLiteDatabaseSessionFactoryTest {
       unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(workflowRecord(workflowId))
     }
 
-    val observed = database.read { unitOfWork ->
-      val before = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
-      DriverManager.getConnection("jdbc:sqlite:$dbPath").use { writer ->
-        writer.createStatement().use { it.execute("PRAGMA busy_timeout = 5000") }
-        writer.prepareStatement("UPDATE feature_task_workflows SET workflow_status = ? WHERE workflow_id = ?")
-          .use { statement ->
-            statement.setString(1, "complete")
-            statement.setString(2, workflowId)
-            assertEquals(1, statement.executeUpdate())
-          }
+    val observed =
+      database.read { unitOfWork ->
+        val before = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
+        DriverManager.getConnection("jdbc:sqlite:$dbPath").use { writer ->
+          writer.createStatement().use { it.execute("PRAGMA busy_timeout = 5000") }
+          writer.prepareStatement("UPDATE feature_task_workflows SET workflow_status = ? WHERE workflow_id = ?")
+            .use { statement ->
+              statement.setString(1, "complete")
+              statement.setString(2, workflowId)
+              assertEquals(1, statement.executeUpdate())
+            }
+        }
+        before to unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
       }
-      before to unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
-    }
 
     assertEquals("running" to "running", observed, "A read block must not observe a writer commit landing inside it.")
     assertEquals(
@@ -276,12 +284,13 @@ class SQLiteDatabaseSessionFactoryTest {
       database.read { unitOfWork ->
 
         assertEquals("running", unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus)
-        val writer = executor.submit {
-          database.transaction { writerWork ->
-            val row = requireNotNull(writerWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId))
-            writerWork.workflowStates.saveFeatureTaskRuntimeWorkflow(row.copy(artifactsJson = "{\"writer\":1}"))
+        val writer =
+          executor.submit {
+            database.transaction { writerWork ->
+              val row = requireNotNull(writerWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId))
+              writerWork.workflowStates.saveFeatureTaskRuntimeWorkflow(row.copy(artifactsJson = "{\"writer\":1}"))
+            }
           }
-        }
 
         writer.get(10, TimeUnit.SECONDS)
       }
@@ -320,13 +329,14 @@ class SQLiteDatabaseSessionFactoryTest {
     val executor = Executors.newSingleThreadExecutor()
 
     try {
-      val observed = database.read { unitOfWork ->
-        val before = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
-        val writer = executor.submit { rawWriterCommit(dbPath.toString(), workflowId, "complete") }
-        val after = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
+      val observed =
+        database.read { unitOfWork ->
+          val before = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
+          val writer = executor.submit { rawWriterCommit(dbPath.toString(), workflowId, "complete") }
+          val after = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
 
-        Triple(before, after, writer)
-      }
+          Triple(before, after, writer)
+        }
       assertEquals(observed.first, observed.second, "A rollback-journal read block must still see one snapshot.")
       assertEquals("running", observed.first)
       observed.third.get(10, TimeUnit.SECONDS)
@@ -357,23 +367,25 @@ class SQLiteDatabaseSessionFactoryTest {
     val executor = Executors.newFixedThreadPool(2)
 
     try {
-      val first = executor.submit {
-        database.transaction { unitOfWork ->
-          val workflow = requireNotNull(unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId))
-          firstEntered.countDown()
-          check(releaseFirst.await(5, TimeUnit.SECONDS))
-          unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(workflow.copy(artifactsJson = "{\"writer\":1}"))
+      val first =
+        executor.submit {
+          database.transaction { unitOfWork ->
+            val workflow = requireNotNull(unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId))
+            firstEntered.countDown()
+            check(releaseFirst.await(5, TimeUnit.SECONDS))
+            unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(workflow.copy(artifactsJson = "{\"writer\":1}"))
+          }
         }
-      }
       assertTrue(firstEntered.await(5, TimeUnit.SECONDS))
-      val second = executor.submit {
-        secondStarted.countDown()
-        database.transaction { unitOfWork ->
-          secondEntered.countDown()
-          val workflow = requireNotNull(unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId))
-          unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(workflow.copy(artifactsJson = "{\"writer\":2}"))
+      val second =
+        executor.submit {
+          secondStarted.countDown()
+          database.transaction { unitOfWork ->
+            secondEntered.countDown()
+            val workflow = requireNotNull(unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId))
+            unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(workflow.copy(artifactsJson = "{\"writer\":2}"))
+          }
         }
-      }
 
       assertTrue(secondStarted.await(5, TimeUnit.SECONDS))
       assertFalse(secondEntered.await(250, TimeUnit.MILLISECONDS))
@@ -395,23 +407,25 @@ class SQLiteDatabaseSessionFactoryTest {
     val workflowId = "wftr-crash-reconcile"
 
     database.transaction { it.workflowStates.saveFeatureTaskRuntimeWorkflow(runtimeRow(workflowId)) }
-    val updatedAt = database.read {
-      it.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.updatedAt
-    }
+    val updatedAt =
+      database.read {
+        it.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.updatedAt
+      }
     val ownership = expiredOwnership(workflowId)
     database.selfManagedWrite {
       it.workflowStates.acquireFeatureTaskRuntimeWorker(ownership, updatedAt)
     }
 
-    val reconciled = database.transaction {
-      it.workflowStates.reconcileFeatureTaskRuntimeCrashedWorker(
-        workflowId = workflowId,
-        ownerToken = ownership.ownerToken,
-        generation = ownership.generation,
-        interruptionReason = "lease_expired: worker lease expired and process confirmed dead",
-        nowInstant = "2999-01-01T00:00:00Z",
-      )
-    }
+    val reconciled =
+      database.transaction {
+        it.workflowStates.reconcileFeatureTaskRuntimeCrashedWorker(
+          workflowId = workflowId,
+          ownerToken = ownership.ownerToken,
+          generation = ownership.generation,
+          interruptionReason = "lease_expired: worker lease expired and process confirmed dead",
+          nowInstant = "2999-01-01T00:00:00Z",
+        )
+      }
 
     assertTrue(reconciled)
     database.read {
@@ -420,43 +434,50 @@ class SQLiteDatabaseSessionFactoryTest {
     }
   }
 
-  private fun runtimeRow(workflowId: String) = WorkflowStateRecord(
-    workflowId = workflowId,
-    sessionId = "ftr-crash-reconcile",
-    workflowName = "bill-feature-task",
-    contractVersion = "1.0",
-    workflowStatus = WorkflowStatus.RUNNING.wireValue,
-    currentStepId = "implement",
-    stepsJson = "[]",
-    artifactsJson = "{}",
-    startedAt = null,
-    updatedAt = null,
-    finishedAt = null,
-    mode = FeatureTaskWorkflowMode.RUNTIME,
-  )
+  private fun runtimeRow(workflowId: String) =
+    WorkflowStateRecord(
+      workflowId = workflowId,
+      sessionId = "ftr-crash-reconcile",
+      workflowName = "bill-feature-task",
+      contractVersion = "1.0",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
+      currentStepId = "implement",
+      stepsJson = "[]",
+      artifactsJson = "{}",
+      startedAt = null,
+      updatedAt = null,
+      finishedAt = null,
+      mode = FeatureTaskWorkflowMode.RUNTIME,
+    )
 
-  private fun expiredOwnership(workflowId: String) = FeatureTaskRuntimeWorkerOwnership(
-    workflowId = workflowId,
-    generation = 1,
-    ownerToken = "owner-token-crash0001",
-    hostIdentity = "host",
-    bootIdentity = "boot",
-    pid = 4242,
-    processBirthToken = "birth-4242",
-    leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
-    heartbeatAt = "2000-01-01T00:00:00Z",
-    expiresAt = "2000-01-01T00:00:30Z",
-    phaseId = "implement",
-    phaseAttempt = 1,
-  )
+  private fun expiredOwnership(workflowId: String) =
+    FeatureTaskRuntimeWorkerOwnership(
+      workflowId = workflowId,
+      generation = 1,
+      ownerToken = "owner-token-crash0001",
+      hostIdentity = "host",
+      bootIdentity = "boot",
+      pid = 4242,
+      processBirthToken = "birth-4242",
+      leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
+      heartbeatAt = "2000-01-01T00:00:00Z",
+      expiresAt = "2000-01-01T00:00:30Z",
+      phaseId = "implement",
+      phaseAttempt = 1,
+    )
 
-  private fun journalMode(connection: Connection): String? = connection.createStatement().use { statement ->
-    statement.executeQuery("PRAGMA journal_mode").use { rows ->
-      if (rows.next()) rows.getString(1)?.lowercase() else null
+  private fun journalMode(connection: Connection): String? =
+    connection.createStatement().use { statement ->
+      statement.executeQuery("PRAGMA journal_mode").use { rows ->
+        if (rows.next()) rows.getString(1)?.lowercase() else null
+      }
     }
-  }
 
-  private fun rawWriterCommit(dbPath: String, workflowId: String, status: String) {
+  private fun rawWriterCommit(
+    dbPath: String,
+    workflowId: String,
+    status: String,
+  ) {
     DriverManager.getConnection("jdbc:sqlite:$dbPath").use { writer ->
       writer.createStatement().use { it.execute("PRAGMA busy_timeout = 10000") }
       writer.prepareStatement("UPDATE feature_task_workflows SET workflow_status = ? WHERE workflow_id = ?")
@@ -468,35 +489,47 @@ class SQLiteDatabaseSessionFactoryTest {
     }
   }
 
-  private fun boundDatabase(tempDir: Path, dbPath: Path): SQLiteDatabaseSessionFactory =
+  private fun boundDatabase(
+    tempDir: Path,
+    dbPath: Path,
+  ): SQLiteDatabaseSessionFactory =
     sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
 
-  private fun workflowStatus(connection: Connection, workflowId: String): String? = connection
-    .prepareStatement("SELECT workflow_status FROM feature_task_workflows WHERE workflow_id = ?")
-    .use { statement ->
-      statement.setString(1, workflowId)
-      statement.executeQuery().use { rows -> if (rows.next()) rows.getString(1) else null }
-    }
+  private fun workflowStatus(
+    connection: Connection,
+    workflowId: String,
+  ): String? =
+    connection
+      .prepareStatement("SELECT workflow_status FROM feature_task_workflows WHERE workflow_id = ?")
+      .use { statement ->
+        statement.setString(1, workflowId)
+        statement.executeQuery().use { rows -> if (rows.next()) rows.getString(1) else null }
+      }
 
-  private fun tableExists(connection: Connection, table: String): Boolean = connection
-    .prepareStatement("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
-    .use { statement ->
-      statement.setString(1, table)
-      statement.executeQuery().use { rows -> rows.next() }
-    }
+  private fun tableExists(
+    connection: Connection,
+    table: String,
+  ): Boolean =
+    connection
+      .prepareStatement("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .use { statement ->
+        statement.setString(1, table)
+        statement.executeQuery().use { rows -> rows.next() }
+      }
 
-  private fun workflowRecord(workflowId: String) = WorkflowStateRecord(
-    workflowId = workflowId,
-    sessionId = "ftr-write-reservation",
-    workflowName = "bill-feature-task",
-    contractVersion = "1.0",
-    workflowStatus = WorkflowStatus.RUNNING.wireValue,
-    currentStepId = "implement",
-    stepsJson = "[]",
-    artifactsJson = "{}",
-    startedAt = null,
-    updatedAt = null,
-    finishedAt = null,
-    mode = FeatureTaskWorkflowMode.RUNTIME,
-  )
+  private fun workflowRecord(workflowId: String) =
+    WorkflowStateRecord(
+      workflowId = workflowId,
+      sessionId = "ftr-write-reservation",
+      workflowName = "bill-feature-task",
+      contractVersion = "1.0",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
+      currentStepId = "implement",
+      stepsJson = "[]",
+      artifactsJson = "{}",
+      startedAt = null,
+      updatedAt = null,
+      finishedAt = null,
+      mode = FeatureTaskWorkflowMode.RUNTIME,
+    )
 }

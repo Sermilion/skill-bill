@@ -29,18 +29,22 @@ internal fun runNativeScaffoldPayload(args: NativeScaffoldPayloadPathArgs): CliE
   return runNativeScaffoldPayload(payload, args.run)
 }
 
-internal fun runNativeScaffoldPayload(payload: Map<String, *>, run: NativeScaffoldRunArgs): CliExecutionResult {
+internal fun runNativeScaffoldPayload(
+  payload: Map<String, *>,
+  run: NativeScaffoldRunArgs,
+): CliExecutionResult {
   val dryRun = run.dryRun
   val format = run.format
   val inputs = run.inputs
   val scaffoldGateway = run.scaffoldGateway
   val externalAddonOverlayService = run.externalAddonOverlayService
   val sessionId = generateScaffoldSessionId(run.clock)
-  val payloadWithRepoRoot = if ((payload["repo_root"] as? String).isNullOrBlank()) {
-    payload + ("repo_root" to findRepoRoot(inputs.repositoryRoot).toString())
-  } else {
-    payload
-  }
+  val payloadWithRepoRoot =
+    if ((payload["repo_root"] as? String).isNullOrBlank()) {
+      payload + ("repo_root" to findRepoRoot(inputs.repositoryRoot).toString())
+    } else {
+      payload
+    }
   val typedPayload: Map<String, Any?> = payloadWithRepoRoot.mapValues { (_, value) -> value }
   val result =
     try {
@@ -74,36 +78,40 @@ internal fun createAndFillResult(args: CreateAndFillArgs): CliExecutionResult {
   val content = args.content
   val format = args.format
   return when {
-    content.interactive || content.payload == null -> unsupportedNativeScaffoldResult(
-      args.unsupportedScaffoldGateway.retiredUnsupportedMessage(
-        "create-and-fill",
-        "skill-bill create-and-fill --payload <file> --body-file <file>",
-        editor = false,
-      ),
-      format,
-    )
-    content.editor -> unsupportedNativeScaffoldResult(
-      "create-and-fill --payload --editor is not supported by the native Kotlin scaffold path yet.",
-      format,
-    )
+    content.interactive || content.payload == null ->
+      unsupportedNativeScaffoldResult(
+        args.unsupportedScaffoldGateway.retiredUnsupportedMessage(
+          "create-and-fill",
+          "skill-bill create-and-fill --payload <file> --body-file <file>",
+          editor = false,
+        ),
+        format,
+      )
+    content.editor ->
+      unsupportedNativeScaffoldResult(
+        "create-and-fill --payload --editor is not supported by the native Kotlin scaffold path yet.",
+        format,
+      )
     content.body != null && content.bodyFile != null ->
       errorResult("--body and --body-file are mutually exclusive.", format)
-    else -> runNativeScaffoldPayload(
-      NativeScaffoldPayloadPathArgs(
-        payloadPath = content.payload,
-        run = NativeScaffoldRunArgs(
-          dryRun = args.dryRun,
-          format = format,
-          state = args.state,
-          inputs = args.inputs,
-          clock = args.clock,
-          scaffoldGateway = args.scaffoldGateway,
+    else ->
+      runNativeScaffoldPayload(
+        NativeScaffoldPayloadPathArgs(
+          payloadPath = content.payload,
+          run =
+            NativeScaffoldRunArgs(
+              dryRun = args.dryRun,
+              format = format,
+              state = args.state,
+              inputs = args.inputs,
+              clock = args.clock,
+              scaffoldGateway = args.scaffoldGateway,
+            ),
+          transform = { scaffoldPayload ->
+            createAndFillScaffoldPayload(scaffoldPayload, content.body, content.bodyFile, args.state)
+          },
         ),
-        transform = { scaffoldPayload ->
-          createAndFillScaffoldPayload(scaffoldPayload, content.body, content.bodyFile, args.state)
-        },
-      ),
-    )
+      )
   }
 }
 
@@ -126,7 +134,10 @@ internal fun registerExternalAddonSourceAfterSuccess(
   )
 }
 
-internal fun errorResult(message: String, format: CliFormat): CliExecutionResult {
+internal fun errorResult(
+  message: String,
+  format: CliFormat,
+): CliExecutionResult {
   val presentation =
     mapOf(
       SharedPayloadKeys.STATUS to "error",
@@ -143,18 +154,19 @@ internal fun authoringResult(
   format: CliFormat,
   successExitCode: (Map<String, Any?>) -> Int = { 0 },
   block: () -> Map<String, Any?>,
-): CliExecutionResult = try {
-  val payload = block()
-  CliExecutionResult(
-    exitCode = successExitCode(payload),
-    stdout = CliOutput.emit(payload, format),
-    payload = payload,
-  )
-} catch (error: SkillBillRuntimeException) {
-  errorResult(error.message.orEmpty(), format)
-} catch (error: IllegalArgumentException) {
-  errorResult(error.message.orEmpty(), format)
-}
+): CliExecutionResult =
+  try {
+    val payload = block()
+    CliExecutionResult(
+      exitCode = successExitCode(payload),
+      stdout = CliOutput.emit(payload, format),
+      payload = payload,
+    )
+  } catch (error: SkillBillRuntimeException) {
+    errorResult(error.message.orEmpty(), format)
+  } catch (error: IllegalArgumentException) {
+    errorResult(error.message.orEmpty(), format)
+  }
 
 internal fun completeRenderText(
   state: CliRunState,
@@ -171,19 +183,24 @@ internal fun completeRenderText(
   state.result = errorResult(error.message.orEmpty(), CliFormat.TEXT)
 }
 
-internal fun ScaffoldRenderResult.toCliPayload(dryRun: Boolean): Map<String, Any?> = mapOf(
-  "repo_root" to repoRoot.toString(),
-  "skill_name" to skillName,
-  "blocks" to blocks.map { block ->
-    mapOf(
-      "header" to block.header,
-      "content" to block.content,
-    )
-  },
-  "dry_run" to dryRun,
-)
+internal fun ScaffoldRenderResult.toCliPayload(dryRun: Boolean): Map<String, Any?> =
+  mapOf(
+    "repo_root" to repoRoot.toString(),
+    "skill_name" to skillName,
+    "blocks" to
+      blocks.map { block ->
+        mapOf(
+          "header" to block.header,
+          "content" to block.content,
+        )
+      },
+    "dry_run" to dryRun,
+  )
 
-internal fun unsupportedNativeScaffoldResult(message: String, format: CliFormat): CliExecutionResult {
+internal fun unsupportedNativeScaffoldResult(
+  message: String,
+  format: CliFormat,
+): CliExecutionResult {
   val presentation =
     mapOf(
       SharedPayloadKeys.STATUS to "unsupported",

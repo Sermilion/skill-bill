@@ -10,29 +10,34 @@ import skillbill.telemetry.model.TelemetrySettings
 internal fun telemetryProxyBatchPayload(
   settings: TelemetrySettings,
   rows: List<TelemetryOutboxRecord>,
-): TelemetryProxyBatchPayload = TelemetryProxyBatchPayload(
-  batch =
-  rows.map { row ->
-    TelemetryProxyBatchEvent(
-      event = row.eventName,
-      distinctId = settings.installId,
-      properties = telemetryProperties(row, settings.installId),
-      timestamp = row.createdAt,
-    )
-  },
-)
+): TelemetryProxyBatchPayload =
+  TelemetryProxyBatchPayload(
+    batch =
+      rows.map { row ->
+        TelemetryProxyBatchEvent(
+          event = row.eventName,
+          distinctId = settings.installId,
+          properties = telemetryProperties(row, settings.installId),
+          timestamp = row.createdAt,
+        )
+      },
+  )
 
-private fun telemetryProperties(row: TelemetryOutboxRecord, installId: String): MutableMap<String, Any?> = (
-  JsonCodec.parseObjectOrNull(row.payloadJson)?.let {
-    JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
-  } ?: emptyMap()
+private fun telemetryProperties(
+  row: TelemetryOutboxRecord,
+  installId: String,
+): MutableMap<String, Any?> =
+  (
+    JsonCodec.parseObjectOrNull(row.payloadJson)?.let {
+      JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
+    } ?: emptyMap()
   ).toMutableMap().apply {
-  this[TelemetryProxyPayloadKeys.INSTALL_ID] = installId
-  this[TelemetryProxyPayloadKeys.PROCESS_PERSON_PROFILE] = false
-  if (!row.skillBillVersion.isNullOrBlank()) {
-    this[TelemetryProxyPayloadKeys.SKILL_BILL_VERSION] = row.skillBillVersion
+    this[TelemetryProxyPayloadKeys.INSTALL_ID] = installId
+    this[TelemetryProxyPayloadKeys.PROCESS_PERSON_PROFILE] = false
+    if (!row.skillBillVersion.isNullOrBlank()) {
+      this[TelemetryProxyPayloadKeys.SKILL_BILL_VERSION] = row.skillBillVersion
+    }
+    if (row.eventUuid.isNotBlank()) {
+      this[TelemetryProxyPayloadKeys.EVENT_DEDUPLICATION_ID] = row.eventUuid
+    }
   }
-  if (row.eventUuid.isNotBlank()) {
-    this[TelemetryProxyPayloadKeys.EVENT_DEDUPLICATION_ID] = row.eventUuid
-  }
-}

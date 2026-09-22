@@ -24,9 +24,10 @@ fun WorkflowStateSnapshot.decompositionRuntime(validator: DecompositionManifestV
       validator.decodeManifest(DecompositionManifestWireMap.from(it), DECOMPOSITION_RUNTIME_ARTIFACT_KEY)
     }
 
-fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean = decodeWorkflowArtifacts(
-  artifactsJson,
-)["plan"].asStringAnyMapOrNull()?.get(DecompositionPlanningPayloadKeys.MODE) == "decompose"
+fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
+  decodeWorkflowArtifacts(
+    artifactsJson,
+  )["plan"].asStringAnyMapOrNull()?.get(DecompositionPlanningPayloadKeys.MODE) == "decompose"
 
 val IMPLEMENT_TERMINAL_STATUSES: Set<WorkflowStatus> = WorkflowStatus.terminalStatuses
 
@@ -53,19 +54,20 @@ fun WorkflowStateRepository.findDecomposedParentWorkflow(
   currentProjectedManifest: DecompositionManifest? = null,
 ): WorkflowStateRecord? {
   val normalizedIssueKey = issueKey.trim()
-  val candidates = listFeatureTaskWorkflowsForParentDiscovery().mapNotNull { row ->
-    val snapshot = row.toSnapshot()
-    if (snapshot.isGoalContinuationChildWorkflow()) return@mapNotNull null
-    val manifest = snapshot.decompositionRuntime(validator) ?: return@mapNotNull null
-    if (
-      (snapshot.hasDecompositionPlan() || row.issueKey?.trim() == normalizedIssueKey) &&
-      manifest.issueKey == normalizedIssueKey
-    ) {
-      DecomposedParentLookupCandidate(row, manifest)
-    } else {
-      null
-    }
-  }.filterNot { candidate -> candidate.isStaleAbandonedLineage(currentProjectedManifest) }
+  val candidates =
+    listFeatureTaskWorkflowsForParentDiscovery().mapNotNull { row ->
+      val snapshot = row.toSnapshot()
+      if (snapshot.isGoalContinuationChildWorkflow()) return@mapNotNull null
+      val manifest = snapshot.decompositionRuntime(validator) ?: return@mapNotNull null
+      if (
+        (snapshot.hasDecompositionPlan() || row.issueKey?.trim() == normalizedIssueKey) &&
+        manifest.issueKey == normalizedIssueKey
+      ) {
+        DecomposedParentLookupCandidate(row, manifest)
+      } else {
+        null
+      }
+    }.filterNot { candidate -> candidate.isStaleAbandonedLineage(currentProjectedManifest) }
   val activeCandidates = candidates.filter { candidate -> candidate.manifest.isActiveGoalRuntime() }
   if (activeCandidates.size > 1) {
     error(

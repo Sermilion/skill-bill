@@ -1,6 +1,7 @@
 package skillbill.error.shellcontent
 
 import skillbill.error.core.SkillBillRuntimeException
+
 open class ScaffoldError(
   message: String,
   cause: Throwable? = null,

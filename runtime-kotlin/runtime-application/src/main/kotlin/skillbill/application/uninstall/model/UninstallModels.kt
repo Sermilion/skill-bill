@@ -30,20 +30,22 @@ data class UninstallPlan(
   val launchers: List<LauncherRemoval>,
   val desktop: DesktopRemoval,
 ) {
-  fun confirmationText(): String = buildString {
-    appendLine("This will uninstall Skill Bill from:")
-    appendLine("- ${agentTargets.size} agent target directories")
-    appendLine("- ${mcpAgents.size} MCP configurations")
-    appendLine("- $stateRoot")
-    append("Continue? [y/N] ")
-  }
+  fun confirmationText(): String =
+    buildString {
+      appendLine("This will uninstall Skill Bill from:")
+      appendLine("- ${agentTargets.size} agent target directories")
+      appendLine("- ${mcpAgents.size} MCP configurations")
+      appendLine("- $stateRoot")
+      append("Continue? [y/N] ")
+    }
 
-  fun toText(status: String): String = buildString {
-    appendLine("uninstall_status: $status")
-    appendLine("state_root: $stateRoot")
-    appendLine("agent_targets: ${agentTargets.size}")
-    appendLine("skill_names: ${skillNames.size}")
-  }
+  fun toText(status: String): String =
+    buildString {
+      appendLine("uninstall_status: $status")
+      appendLine("state_root: $stateRoot")
+      appendLine("agent_targets: ${agentTargets.size}")
+      appendLine("skill_names: ${skillNames.size}")
+    }
 }
 
 data class UninstallResult(
@@ -56,13 +58,14 @@ data class UninstallResult(
 
   val exitCode: Int = if (failed) 1 else 0
 
-  fun toText(): String = buildString {
-    appendLine("uninstall_status: $status")
-    appendLine("removed: ${removed.size}")
-    appendLine("skipped: ${skipped.size}")
-    if (warnings.isNotEmpty()) {
-      appendLine("warnings:")
-      warnings.forEach { warning -> appendLine("- $warning") }
+  fun toText(): String =
+    buildString {
+      appendLine("uninstall_status: $status")
+      appendLine("removed: ${removed.size}")
+      appendLine("skipped: ${skipped.size}")
+      if (warnings.isNotEmpty()) {
+        appendLine("warnings:")
+        warnings.forEach { warning -> appendLine("- $warning") }
+      }
     }
-  }
 }

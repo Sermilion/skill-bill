@@ -8,9 +8,10 @@ import java.sql.Connection
 internal fun persistGoalPlanningRepairEvidence(connection: Connection) {
   connection.createStatement().use { statement ->
     listOf("goal_shared_preplans", "goal_subtask_plans").forEach { table ->
-      val hasEvidenceColumn = statement.executeQuery(
-        "SELECT 1 FROM pragma_table_info('$table') WHERE name = 'repair_evidence_json'",
-      ).use { rows -> rows.next() }
+      val hasEvidenceColumn =
+        statement.executeQuery(
+          "SELECT 1 FROM pragma_table_info('$table') WHERE name = 'repair_evidence_json'",
+        ).use { rows -> rows.next() }
       if (!hasEvidenceColumn) {
         statement.execute("ALTER TABLE $table ADD COLUMN repair_evidence_json TEXT")
       }
@@ -21,9 +22,10 @@ internal fun persistGoalPlanningRepairEvidence(connection: Connection) {
 internal fun persistLegacyGoalPlanningRepairEvidence(connection: Connection) {
   connection.createStatement().use { statement ->
     listOf("preplan_repair_evidence_json", "plan_repair_evidence_json").forEach { column ->
-      val hasEvidenceColumn = statement.executeQuery(
-        "SELECT 1 FROM pragma_table_info('goal_planning_preparations') WHERE name = '$column'",
-      ).use { rows -> rows.next() }
+      val hasEvidenceColumn =
+        statement.executeQuery(
+          "SELECT 1 FROM pragma_table_info('goal_planning_preparations') WHERE name = '$column'",
+        ).use { rows -> rows.next() }
       if (!hasEvidenceColumn) {
         statement.execute("ALTER TABLE goal_planning_preparations ADD COLUMN $column TEXT")
       }
@@ -48,9 +50,10 @@ internal fun addGoalRunnerControls(connection: Connection) {
 
 internal fun addGoalRunnerControlState(connection: Connection) {
   connection.createStatement().use { statement ->
-    val hasControlState = statement.executeQuery(
-      "SELECT 1 FROM pragma_table_info('goal_runner_controls') WHERE name = 'control_state_json'",
-    ).use { rows -> rows.next() }
+    val hasControlState =
+      statement.executeQuery(
+        "SELECT 1 FROM pragma_table_info('goal_runner_controls') WHERE name = 'control_state_json'",
+      ).use { rows -> rows.next() }
     if (!hasControlState) {
       statement.execute("ALTER TABLE goal_runner_controls ADD COLUMN control_state_json TEXT")
     }
@@ -129,14 +132,15 @@ internal fun rekeyProducerOutputEvidenceByAgent(connection: Connection) {
 }
 
 internal fun producerOutputEvidencePrimaryKeyIncludesAgentId(connection: Connection): Boolean {
-  val ddl = connection.createStatement().use { statement ->
-    statement.executeQuery(
-      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'producer_output_evidence'",
-    ).use { rows ->
-      if (!rows.next()) return false
-      rows.getString("sql").orEmpty()
+  val ddl =
+    connection.createStatement().use { statement ->
+      statement.executeQuery(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'producer_output_evidence'",
+      ).use { rows ->
+        if (!rows.next()) return false
+        rows.getString("sql").orEmpty()
+      }
     }
-  }
   return Regex(
     """PRIMARY\s+KEY\s*\([^)]*\bagent_id\b[^)]*\)""",
     RegexOption.IGNORE_CASE,

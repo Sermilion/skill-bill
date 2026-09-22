@@ -9,10 +9,11 @@ import kotlin.test.assertEquals
 class CliCodeReviewDriverRuntimeTest {
   @Test
   fun `code-review rejects removed agent2 option`() {
-    val result = CliRuntime.run(
-      listOf("code-review", "--agent2", "claude"),
-      CliRuntimeContext(),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("code-review", "--agent2", "claude"),
+        CliRuntimeContext(),
+      )
 
     assertEquals(1, result.exitCode)
     assertContains(result.stdout, "agent2")
@@ -20,10 +21,11 @@ class CliCodeReviewDriverRuntimeTest {
 
   @Test
   fun `code-review rejects removed model2 option`() {
-    val result = CliRuntime.run(
-      listOf("code-review", "--model2", "gpt-4"),
-      CliRuntimeContext(),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("code-review", "--model2", "gpt-4"),
+        CliRuntimeContext(),
+      )
 
     assertEquals(1, result.exitCode)
     assertContains(result.stdout, "model2")

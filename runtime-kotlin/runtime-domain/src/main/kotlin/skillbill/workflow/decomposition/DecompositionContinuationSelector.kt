@@ -10,37 +10,49 @@ import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 
 object DecompositionContinuationSelector {
-  fun select(manifest: DecompositionManifest, requestedSubtaskId: Int? = null): DecompositionContinuationSelection {
-    val inProgress = manifest.subtasks.firstOrNull {
-      it.status.decompositionStatus() == DecompositionStatus.IN_PROGRESS
-    }
-    val firstPending = manifest.subtasks.firstOrNull {
-      it.status.decompositionStatus() == DecompositionStatus.PENDING && dependenciesComplete(manifest, it)
-    }
-    val blocked = manifest.subtasks.firstOrNull {
-      it.status.decompositionStatus() == DecompositionStatus.BLOCKED
-    }
-    val unconstrained = when {
-      inProgress != null && inProgress.workflowId.isNullOrBlank() -> DecompositionContinuationSelection.Start(
-        subtask = inProgress,
-        branchPlan = manifest.branchPlanFor(inProgress.id),
-      )
-      inProgress != null -> DecompositionContinuationSelection.Resume(
-        subtask = inProgress,
-        workflowId = inProgress.workflowId.orEmpty(),
-        resumeStepId = inProgress.lastResumableStep.orEmpty(),
-      )
-      firstPending != null -> DecompositionContinuationSelection.Start(
-        subtask = firstPending,
-        branchPlan = manifest.branchPlanFor(firstPending.id),
-      )
-      blocked != null -> DecompositionContinuationSelection.Blocked(
-        subtask = blocked,
-        reason = blocked.blockedReason?.takeIf(String::isNotBlank)
-          ?: "Subtask ${blocked.id} is blocked.",
-      )
-      else -> DecompositionContinuationSelection.Done(manifest = manifest)
-    }
+  fun select(
+    manifest: DecompositionManifest,
+    requestedSubtaskId: Int? = null,
+  ): DecompositionContinuationSelection {
+    val inProgress =
+      manifest.subtasks.firstOrNull {
+        it.status.decompositionStatus() == DecompositionStatus.IN_PROGRESS
+      }
+    val firstPending =
+      manifest.subtasks.firstOrNull {
+        it.status.decompositionStatus() == DecompositionStatus.PENDING && dependenciesComplete(manifest, it)
+      }
+    val blocked =
+      manifest.subtasks.firstOrNull {
+        it.status.decompositionStatus() == DecompositionStatus.BLOCKED
+      }
+    val unconstrained =
+      when {
+        inProgress != null && inProgress.workflowId.isNullOrBlank() ->
+          DecompositionContinuationSelection.Start(
+            subtask = inProgress,
+            branchPlan = manifest.branchPlanFor(inProgress.id),
+          )
+        inProgress != null ->
+          DecompositionContinuationSelection.Resume(
+            subtask = inProgress,
+            workflowId = inProgress.workflowId.orEmpty(),
+            resumeStepId = inProgress.lastResumableStep.orEmpty(),
+          )
+        firstPending != null ->
+          DecompositionContinuationSelection.Start(
+            subtask = firstPending,
+            branchPlan = manifest.branchPlanFor(firstPending.id),
+          )
+        blocked != null ->
+          DecompositionContinuationSelection.Blocked(
+            subtask = blocked,
+            reason =
+              blocked.blockedReason?.takeIf(String::isNotBlank)
+                ?: "Subtask ${blocked.id} is blocked.",
+          )
+        else -> DecompositionContinuationSelection.Done(manifest = manifest)
+      }
     return requestedSubtaskId?.let { requestedId -> constrainToRequestedSubtask(manifest, unconstrained, requestedId) }
       ?: unconstrained
   }
@@ -51,30 +63,36 @@ object DecompositionContinuationSelector {
     requestedSubtaskId: Int,
   ): DecompositionContinuationSelection {
     val requested = manifest.subtasks.firstOrNull { it.id == requestedSubtaskId }
-    val selectedSubtask = when (unconstrained) {
-      is DecompositionContinuationSelection.Resume -> unconstrained.subtask
-      is DecompositionContinuationSelection.Start -> unconstrained.subtask
-      is DecompositionContinuationSelection.Blocked -> unconstrained.subtask
-      is DecompositionContinuationSelection.TerminalSubtask -> unconstrained.subtask
-      is DecompositionContinuationSelection.Done -> null
-    }
+    val selectedSubtask =
+      when (unconstrained) {
+        is DecompositionContinuationSelection.Resume -> unconstrained.subtask
+        is DecompositionContinuationSelection.Start -> unconstrained.subtask
+        is DecompositionContinuationSelection.Blocked -> unconstrained.subtask
+        is DecompositionContinuationSelection.TerminalSubtask -> unconstrained.subtask
+        is DecompositionContinuationSelection.Done -> null
+      }
     return when {
-      requested == null -> DecompositionContinuationSelection.Blocked(
-        subtask = manifest.subtasks.first(),
-        reason = "Requested subtask $requestedSubtaskId is not declared in ${manifest.issueKey}.",
-      )
+      requested == null ->
+        DecompositionContinuationSelection.Blocked(
+          subtask = manifest.subtasks.first(),
+          reason = "Requested subtask $requestedSubtaskId is not declared in ${manifest.issueKey}.",
+        )
       requested.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED) ->
         DecompositionContinuationSelection.TerminalSubtask(requested)
       unconstrained is DecompositionContinuationSelection.Done -> unconstrained
       selectedSubtask?.id == requestedSubtaskId -> unconstrained
-      else -> DecompositionContinuationSelection.Blocked(
-        subtask = requested,
-        reason = "Requested subtask $requestedSubtaskId is not the next runnable subtask for ${manifest.issueKey}.",
-      )
+      else ->
+        DecompositionContinuationSelection.Blocked(
+          subtask = requested,
+          reason = "Requested subtask $requestedSubtaskId is not the next runnable subtask for ${manifest.issueKey}.",
+        )
     }
   }
 
-  private fun dependenciesComplete(manifest: DecompositionManifest, subtask: DecompositionSubtask): Boolean {
+  private fun dependenciesComplete(
+    manifest: DecompositionManifest,
+    subtask: DecompositionSubtask,
+  ): Boolean {
     val subtasksById = manifest.subtasks.associateBy(DecompositionSubtask::id)
     return subtask.dependencies.all { dependency ->
       val dependencySubtask = subtasksById[dependency.subtaskId] ?: return@all false
@@ -86,12 +104,13 @@ object DecompositionContinuationSelector {
 
   private fun DecompositionDependency.isExplicitlySkipped(): Boolean = optional && skipped
 
-  private fun DecompositionManifest.branchPlanFor(subtaskId: Int): DecompositionBranchPlan = when (executionModel) {
-    DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK ->
-      DecompositionBranchPlan(branch = featureBranch.orEmpty(), baseBranch = baseBranch, validateBase = false)
-    DecompositionExecutionModel.STACKED_BRANCHES -> {
-      val stackBranch = stackBranches.first { it.subtaskId == subtaskId }
-      DecompositionBranchPlan(branch = stackBranch.branch, baseBranch = stackBranch.baseBranch, validateBase = true)
+  private fun DecompositionManifest.branchPlanFor(subtaskId: Int): DecompositionBranchPlan =
+    when (executionModel) {
+      DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK ->
+        DecompositionBranchPlan(branch = featureBranch.orEmpty(), baseBranch = baseBranch, validateBase = false)
+      DecompositionExecutionModel.STACKED_BRANCHES -> {
+        val stackBranch = stackBranches.first { it.subtaskId == subtaskId }
+        DecompositionBranchPlan(branch = stackBranch.branch, baseBranch = stackBranch.baseBranch, validateBase = true)
+      }
     }
-  }
 }

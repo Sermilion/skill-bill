@@ -21,6 +21,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 private const val WORKFLOW_INPUT_PROJECTION_BYTE_CEILING = 64 * 1024
 
 class WorkflowCompactContinuationTest {
@@ -31,15 +32,17 @@ class WorkflowCompactContinuationTest {
         mapOf(
           "branch" to mapOf("branch_name" to "feat/demo"),
           "preplan_digest" to mapOf("risk" to "low"),
-          "feature_task_runtime_phase_records" to mapOf(
-            "plan" to completedPlanPhaseRecord(outputArtifact = """{"mode":"implement","task_count":1}"""),
-          ),
+          "feature_task_runtime_phase_records" to
+            mapOf(
+              "plan" to completedPlanPhaseRecord(outputArtifact = """{"mode":"implement","task_count":1}"""),
+            ),
         ),
       )
 
-    val standard = assertIs<WorkflowContinueResult.Standard>(
-      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, opened.workflowId),
-    )
+    val standard =
+      assertIs<WorkflowContinueResult.Standard>(
+        service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, opened.workflowId),
+      )
     val compact = standard.view.compact
 
     assertEquals("reopened", compact.continueStatus.wireValue)
@@ -86,17 +89,20 @@ class WorkflowCompactContinuationTest {
       newBlockedImplementService(
         mapOf(
           "preplan_digest" to mapOf("risk" to "low"),
-          "feature_task_runtime_phase_records" to mapOf(
-            "plan" to completedPlanPhaseRecord(
-              outputArtifact = """{"mode":"implement","body":"${"x".repeat(5000)}"}""",
+          "feature_task_runtime_phase_records" to
+            mapOf(
+              "plan" to
+                completedPlanPhaseRecord(
+                  outputArtifact = """{"mode":"implement","body":"${"x".repeat(5000)}"}""",
+                ),
             ),
-          ),
         ),
       )
 
-    val standard = assertIs<WorkflowContinueResult.Standard>(
-      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, opened.workflowId),
-    )
+    val standard =
+      assertIs<WorkflowContinueResult.Standard>(
+        service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, opened.workflowId),
+      )
     val planSummary = standard.view.compact.currentStepArtifacts.single { it.key == "plan" }
 
     assertEquals("reopened", standard.view.continueStatus.wireValue)
@@ -119,27 +125,32 @@ class WorkflowCompactContinuationTest {
       newBlockedImplementService(
         mapOf(
           "preplan_digest" to mapOf("risk" to "low", "notes" to "y".repeat(8000)),
-          "feature_task_runtime_phase_records" to mapOf(
-            "plan" to completedPlanPhaseRecord(
-              outputArtifact = """{"mode":"implement","body":"${"x".repeat(12000)}"}""",
+          "feature_task_runtime_phase_records" to
+            mapOf(
+              "plan" to
+                completedPlanPhaseRecord(
+                  outputArtifact = """{"mode":"implement","body":"${"x".repeat(12000)}"}""",
+                ),
             ),
-          ),
         ),
       )
 
-    val standard = assertIs<WorkflowContinueResult.Standard>(
-      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, opened.workflowId),
-    )
-    val compactMap = mapOf(
-      "current_step_artifacts" to standard.view.compact.currentStepArtifacts.map { artifact ->
-        mapOf(
-          "key" to artifact.key,
-          "preview" to artifact.preview,
-          "omission_reason" to artifact.omissionReason,
-        )
-      },
-      "read_only_full_state_guidance" to standard.view.compact.readOnlyFullStateGuidance,
-    )
+    val standard =
+      assertIs<WorkflowContinueResult.Standard>(
+        service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, opened.workflowId),
+      )
+    val compactMap =
+      mapOf(
+        "current_step_artifacts" to
+          standard.view.compact.currentStepArtifacts.map { artifact ->
+            mapOf(
+              "key" to artifact.key,
+              "preview" to artifact.preview,
+              "omission_reason" to artifact.omissionReason,
+            )
+          },
+        "read_only_full_state_guidance" to standard.view.compact.readOnlyFullStateGuidance,
+      )
     val serialized = JsonCodec.mapToJsonString(compactMap)
     val byteSize = serialized.toByteArray(Charsets.UTF_8).size
 
@@ -170,14 +181,16 @@ class WorkflowCompactContinuationTest {
         ),
       )
 
-    val standard = assertIs<WorkflowContinueResult.Standard>(
-      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, opened.workflowId),
-    )
+    val standard =
+      assertIs<WorkflowContinueResult.Standard>(
+        service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, opened.workflowId),
+      )
 
-    val fullMap = mapOf(
-      "step_artifacts" to standard.view.stepArtifacts,
-      "artifacts" to standard.view.resume.snapshot.artifacts,
-    )
+    val fullMap =
+      mapOf(
+        "step_artifacts" to standard.view.stepArtifacts,
+        "artifacts" to standard.view.resume.snapshot.artifacts,
+      )
     val fullSerialized = JsonCodec.mapToJsonString(fullMap)
 
     assertTrue(fullSerialized.contains("\"step_artifacts\""))
@@ -186,54 +199,58 @@ class WorkflowCompactContinuationTest {
   }
 }
 
-private fun newService(): WorkflowService = WorkflowService(
-  database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-  gitOperations = NoopWorkflowGitOperations,
-  decompositionManifestStore = UnavailableDecompositionManifestStore,
-  workflowSnapshotValidator = testWorkflowSnapshotValidator,
-  decompositionManifestValidator = testDecompositionManifestValidator,
-  decompositionManifestWriter = testDecompositionManifestWriter,
-  repositoryRoot = testRepositoryRoot,
-  goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-  runtimeDiagnostics = NoopRuntimeDiagnostics,
-  clock = Clock.systemUTC(),
-)
+private fun newService(): WorkflowService =
+  WorkflowService(
+    database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+    gitOperations = NoopWorkflowGitOperations,
+    decompositionManifestStore = UnavailableDecompositionManifestStore,
+    workflowSnapshotValidator = testWorkflowSnapshotValidator,
+    decompositionManifestValidator = testDecompositionManifestValidator,
+    decompositionManifestWriter = testDecompositionManifestWriter,
+    repositoryRoot = testRepositoryRoot,
+    goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+    runtimeDiagnostics = NoopRuntimeDiagnostics,
+    clock = Clock.systemUTC(),
+  )
 
 private fun newBlockedImplementService(
   artifactsPatch: Map<String, Any?>,
 ): Pair<WorkflowService, WorkflowOpenResult.Ok> {
   val service = newService()
-  val opened = assertIs<WorkflowOpenResult.Ok>(
-    service.open(WorkflowServiceOpenArgs(kind = WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")),
-  )
+  val opened =
+    assertIs<WorkflowOpenResult.Ok>(
+      service.open(WorkflowServiceOpenArgs(kind = WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")),
+    )
   service.update(
     WorkflowFamilyKind.TASK_RUNTIME,
     WorkflowUpdateRequest(
       workflowId = opened.workflowId,
       workflowStatus = WorkflowStatus.BLOCKED.wireValue,
       currentStepId = "implement",
-      stepUpdates = WorkflowStepUpdates.from(
-        listOf(
-          mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1),
+      stepUpdates =
+        WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1),
+          ),
         ),
-      ),
       artifactsPatch = WorkflowArtifactPatch.from(artifactsPatch),
     ),
   )
   return service to opened
 }
 
-private fun completedPlanPhaseRecord(outputArtifact: String? = null): Map<String, Any?> = linkedMapOf(
-  "contract_version" to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
-  "record_kind" to "private_phase_record",
-  "phase_id" to "plan",
-  "status" to "completed",
-  "attempt_count" to 1,
-  "started_at" to "2026-08-09T10:00:00Z",
-  "first_started_at" to "2026-08-09T10:00:00Z",
-  "finished_at" to "2026-08-09T10:01:00Z",
-  "resolved_agent_id" to "agent-plan",
-  "execution_origin" to "agent-executed",
-).apply {
-  outputArtifact?.let { put("output_artifact", it) }
-}
+private fun completedPlanPhaseRecord(outputArtifact: String? = null): Map<String, Any?> =
+  linkedMapOf(
+    "contract_version" to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
+    "record_kind" to "private_phase_record",
+    "phase_id" to "plan",
+    "status" to "completed",
+    "attempt_count" to 1,
+    "started_at" to "2026-08-09T10:00:00Z",
+    "first_started_at" to "2026-08-09T10:00:00Z",
+    "finished_at" to "2026-08-09T10:01:00Z",
+    "resolved_agent_id" to "agent-plan",
+    "execution_origin" to "agent-executed",
+  ).apply {
+    outputArtifact?.let { put("output_artifact", it) }
+  }

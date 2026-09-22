@@ -30,25 +30,29 @@ class ExistingGoalRunnerParentDelivery(
       )
     }
     val branch = currentBranch(request)
-    val state = manifestStore.loadByIssueKey(request.issueKey, request.controlRepoRoot)
-      ?: return ExperimentPublicationResult(
-        published = false,
-        reason = "the control goal manifest is unavailable for parent delivery",
-      )
+    val state =
+      manifestStore.loadByIssueKey(request.issueKey, request.controlRepoRoot)
+        ?: return ExperimentPublicationResult(
+          published = false,
+          reason = "the control goal manifest is unavailable for parent delivery",
+        )
     return when (
-      val result = pullRequestPort.open(
-        state.manifest.toPullRequestRequest(request.controlRepoRoot).copy(headBranch = branch),
-      )
+      val result =
+        pullRequestPort.open(
+          state.manifest.toPullRequestRequest(request.controlRepoRoot).copy(headBranch = branch),
+        )
     ) {
       is GoalPullRequestResult.Opened -> ExperimentPublicationResult(published = true)
-      is GoalPullRequestResult.Existing -> ExperimentPublicationResult(
-        published = true,
-        alreadyPublished = true,
-      )
-      is GoalPullRequestResult.Failed -> ExperimentPublicationResult(
-        published = false,
-        reason = result.reason,
-      )
+      is GoalPullRequestResult.Existing ->
+        ExperimentPublicationResult(
+          published = true,
+          alreadyPublished = true,
+        )
+      is GoalPullRequestResult.Failed ->
+        ExperimentPublicationResult(
+          published = false,
+          reason = result.reason,
+        )
     }
   }
 
@@ -60,8 +64,9 @@ class ExistingGoalRunnerParentDelivery(
     if (!controlCompleted || controlCommitSha.isNullOrBlank()) {
       return "control arm is not ready for parent delivery"
     }
-    val head = (gitOperations.headCommitSha(request.controlRepoRoot) as? WorkflowGitOperationResult.Ok)
-      ?.value?.trim()
+    val head =
+      (gitOperations.headCommitSha(request.controlRepoRoot) as? WorkflowGitOperationResult.Ok)
+        ?.value?.trim()
     if (head != controlCommitSha) {
       return "control worktree changed after the reviewed commit was captured"
     }

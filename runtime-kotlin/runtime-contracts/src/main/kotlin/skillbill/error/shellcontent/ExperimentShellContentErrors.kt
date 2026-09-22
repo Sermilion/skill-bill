@@ -5,53 +5,53 @@ class InvalidExperimentDescriptorSchemaError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Experiment descriptor '$sourceLabel' fails schema validation: $reason",
-  cause,
-)
+    "Experiment descriptor '$sourceLabel' fails schema validation: $reason",
+    cause,
+  )
 
 class InvalidExperimentPairSchemaError(
   val sourceLabel: String,
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Experiment pair '$sourceLabel' fails schema validation: $reason",
-  cause,
-)
+    "Experiment pair '$sourceLabel' fails schema validation: $reason",
+    cause,
+  )
 
 class InvalidExperimentObservationSchemaError(
   val sourceLabel: String,
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Experiment observation '$sourceLabel' fails schema validation: $reason",
-  cause,
-)
+    "Experiment observation '$sourceLabel' fails schema validation: $reason",
+    cause,
+  )
 
 class InvalidExperimentReportSchemaError(
   val sourceLabel: String,
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Experiment report '$sourceLabel' fails schema validation: $reason",
-  cause,
-)
+    "Experiment report '$sourceLabel' fails schema validation: $reason",
+    cause,
+  )
 
 class ExperimentSelectionConflictError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Experiment selection conflict: $reason",
-  cause,
-)
+    "Experiment selection conflict: $reason",
+    cause,
+  )
 
 class ExperimentParameterMalformedError(
   val parameter: String,
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Malformed experiment parameter '$parameter': $reason",
-  cause,
-)
+    "Malformed experiment parameter '$parameter': $reason",
+    cause,
+  )
 
 class ExperimentConfigMalformedError(
   val path: String,
@@ -59,9 +59,9 @@ class ExperimentConfigMalformedError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Malformed experiment config at '$path' key '$key': $reason",
-  cause,
-)
+    "Malformed experiment config at '$path' key '$key': $reason",
+    cause,
+  )
 
 class ExperimentDescriptorUnavailableError(
   val requestedNames: Set<String>,
@@ -69,41 +69,41 @@ class ExperimentDescriptorUnavailableError(
   val availableCompatible: Set<String>,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Experiment selection unavailable for mode '$mode': requested=$requestedNames " +
-    "compatible=$availableCompatible",
-  cause,
-)
+    "Experiment selection unavailable for mode '$mode': requested=$requestedNames " +
+      "compatible=$availableCompatible",
+    cause,
+  )
 
 class ExperimentDirtySourceRefusalError(
   val dirtyPaths: List<String>,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Experiment pair refused dirty source paths: ${dirtyPaths.joinToString(", ")}",
-  cause,
-)
+    "Experiment pair refused dirty source paths: ${dirtyPaths.joinToString(", ")}",
+    cause,
+  )
 
 class ExperimentIsolationCapabilityRefusalError(
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Experiment isolation capability refusal: $reason",
-  cause,
-)
+    "Experiment isolation capability refusal: $reason",
+    cause,
+  )
 
 class ExperimentNavigationRevisionError(
   val revision: String,
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Navigation experiment revision '$revision' is unavailable: $reason",
-  cause,
-)
+    "Navigation experiment revision '$revision' is unavailable: $reason",
+    cause,
+  )
 
 class ExperimentNavigationSpecError(
   val path: String,
   val reason: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Navigation experiment spec '$path' is invalid: $reason",
-  cause,
-)
+    "Navigation experiment spec '$path' is invalid: $reason",
+    cause,
+  )

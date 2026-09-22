@@ -15,6 +15,7 @@ import skillbill.telemetry.parseTelemetryBoolValue
 import skillbill.telemetry.parseTelemetryLevelValue
 import skillbill.telemetry.telemetryProxyUrl
 import java.nio.file.Path
+
 internal fun loadTelemetrySettingsFromStore(
   materialize: Boolean,
   environment: Map<String, String>,
@@ -48,7 +49,10 @@ private data class MutableTelemetrySettings(
   val installId: String,
 )
 
-private fun configBackedSettings(configPath: Path, config: TelemetryConfigDocument?): MutableTelemetrySettings {
+private fun configBackedSettings(
+  configPath: Path,
+  config: TelemetryConfigDocument?,
+): MutableTelemetrySettings {
   if (config == null) {
     return MutableTelemetrySettings(
       level = "off",
@@ -90,12 +94,13 @@ private fun telemetryLevelFromConfig(telemetry: Map<String, Any?>): String {
   }
 }
 
-private fun telemetryBatchSize(telemetry: Map<String, Any?>): Int = when (val batchSizeRaw = telemetry["batch_size"]) {
-  is Int -> batchSizeRaw
-  is Number -> batchSizeRaw.toInt()
-  null -> DEFAULT_TELEMETRY_BATCH_SIZE
-  else -> parsePositiveTelemetryInt(batchSizeRaw.toString(), "telemetry.batch_size")
-}
+private fun telemetryBatchSize(telemetry: Map<String, Any?>): Int =
+  when (val batchSizeRaw = telemetry["batch_size"]) {
+    is Int -> batchSizeRaw
+    is Number -> batchSizeRaw.toInt()
+    null -> DEFAULT_TELEMETRY_BATCH_SIZE
+    else -> parsePositiveTelemetryInt(batchSizeRaw.toString(), "telemetry.batch_size")
+  }
 
 private fun applyEnvironmentOverrides(
   settings: MutableTelemetrySettings,

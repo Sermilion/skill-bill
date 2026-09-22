@@ -7,30 +7,40 @@ import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
-internal fun stageReviewCatalogPacks(platformPacksRoot: Path, selectedPlatforms: List<String>?, staging: Path) {
+internal fun stageReviewCatalogPacks(
+  platformPacksRoot: Path,
+  selectedPlatforms: List<String>?,
+  staging: Path,
+) {
   val selected = selectedPlatforms?.toSet()
-  val desiredPacks = Files.list(platformPacksRoot).use { packs ->
-    packs.filter(Files::isDirectory)
-      .filter { selected == null || it.fileName.toString() in selected }
-      .toList()
-  }
+  val desiredPacks =
+    Files.list(platformPacksRoot).use { packs ->
+      packs.filter(Files::isDirectory)
+        .filter { selected == null || it.fileName.toString() in selected }
+        .toList()
+    }
   desiredPacks.forEach { source -> stageReviewCatalogPack(source, staging) }
 }
 
-private fun stageReviewCatalogPack(source: Path, staging: Path) {
+private fun stageReviewCatalogPack(
+  source: Path,
+  staging: Path,
+) {
   val stagedPack = staging.resolve(source.fileName.toString())
   val manifest = loadPlatformManifest(source)
-  val runtimeFiles = buildList {
-    add(source.resolve("platform.yaml"))
-    manifest.declaredFiles.baseline?.let { baseline -> add(baseline.toPath()) }
-    addAll(manifest.declaredFiles.areas.values.map { area -> area.toPath() })
-    val declaredAddons = manifest.addonUsage.flatMap { it.addons } +
-      manifest.featureAddonUsage.flatMap { it.addons }
-    declaredAddons.forEach { addon ->
-      add(source.resolve("addons").resolve(addon.entrypoint))
-      addon.companionPointers.forEach { pointer -> add(source.resolve("addons").resolve(pointer)) }
-    }
-  }.distinct()
+  val runtimeFiles =
+    buildList {
+      add(source.resolve("platform.yaml"))
+      manifest.declaredFiles.baseline?.let { baseline -> add(baseline.toPath()) }
+      addAll(manifest.declaredFiles.areas.values.map { area -> area.toPath() })
+      val declaredAddons =
+        manifest.addonUsage.flatMap { it.addons } +
+          manifest.featureAddonUsage.flatMap { it.addons }
+      declaredAddons.forEach { addon ->
+        add(source.resolve("addons").resolve(addon.entrypoint))
+        addon.companionPointers.forEach { pointer -> add(source.resolve("addons").resolve(pointer)) }
+      }
+    }.distinct()
   runtimeFiles.forEach { path ->
     val relative = source.relativize(path.toAbsolutePath().normalize())
     require(!relative.startsWith("..")) {
@@ -46,7 +56,11 @@ private fun stageReviewCatalogPack(source: Path, staging: Path) {
   }
 }
 
-internal fun journalReviewCatalogSwap(catalogRoot: Path, staging: Path, journal: ProviderMutationJournal) {
+internal fun journalReviewCatalogSwap(
+  catalogRoot: Path,
+  staging: Path,
+  journal: ProviderMutationJournal,
+) {
   if (Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)) {
     Files.walk(catalogRoot).use { paths -> paths.sorted().forEach(journal::beforeMutation) }
   }
@@ -57,7 +71,11 @@ internal fun journalReviewCatalogSwap(catalogRoot: Path, staging: Path, journal:
   }
 }
 
-internal fun swapReviewCatalogIntoPlace(catalogRoot: Path, staging: Path, superseded: Path) {
+internal fun swapReviewCatalogIntoPlace(
+  catalogRoot: Path,
+  staging: Path,
+  superseded: Path,
+) {
   if (Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)) {
     atomicMoveReplacing(catalogRoot, superseded)
   }

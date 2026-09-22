@@ -59,23 +59,27 @@ internal fun inspectHardResetOrphanTrap(
 }
 
 private fun activeHardResetSubtaskId(manifest: DecompositionManifest): Int? {
-  val requested = manifest.currentSubtaskIntent.subtaskId
-    .takeIf { it > 0 }
-    ?.let { currentSubtaskId ->
-      manifest.subtasks.firstOrNull { subtask ->
-        subtask.id == currentSubtaskId &&
-          (
-            manifest.currentSubtaskIntent.action == SUBTASK_ACTION_RESUME ||
-              (subtask.status == "in_progress" && !subtask.workflowId.isNullOrBlank())
+  val requested =
+    manifest.currentSubtaskIntent.subtaskId
+      .takeIf { it > 0 }
+      ?.let { currentSubtaskId ->
+        manifest.subtasks.firstOrNull { subtask ->
+          subtask.id == currentSubtaskId &&
+            (
+              manifest.currentSubtaskIntent.action == SUBTASK_ACTION_RESUME ||
+                (subtask.status == "in_progress" && !subtask.workflowId.isNullOrBlank())
             )
-      }?.id
-    }
+        }?.id
+      }
   return requested ?: manifest.subtasks.firstOrNull { subtask ->
     subtask.status == "in_progress" && !subtask.workflowId.isNullOrBlank()
   }?.id
 }
 
-private fun hardResetFeatureBranch(manifest: DecompositionManifest, activeSubtaskId: Int): String? =
+private fun hardResetFeatureBranch(
+  manifest: DecompositionManifest,
+  activeSubtaskId: Int,
+): String? =
   manifest.featureBranch?.trim()?.takeIf(String::isNotBlank)
     ?: manifest.branchPlanFor(activeSubtaskId).branch.trim().takeIf(String::isNotBlank)
 
@@ -132,11 +136,12 @@ private fun inspectHardResetHead(
   repoRoot: Path,
   gitOperations: WorkflowGitOperations,
 ): GoalRunnerHardResetOrphanTrapInspection {
-  val headSha = gitOperations.headCommitSha(repoRoot)
-    .takeIf { it is WorkflowGitOperationResult.Ok }
-    ?.value
-    ?.trim()
-    ?.takeIf(String::isNotBlank)
+  val headSha =
+    gitOperations.headCommitSha(repoRoot)
+      .takeIf { it is WorkflowGitOperationResult.Ok }
+      ?.value
+      ?.trim()
+      ?.takeIf(String::isNotBlank)
   return headSha?.let {
     inspectHardResetHeadMessage(
       manifest = manifest,
@@ -188,21 +193,23 @@ internal fun detectHardResetOrphanTrap(
   manifest: DecompositionManifest,
   repoRoot: Path,
   gitOperations: WorkflowGitOperations,
-): GoalRunnerHardResetOrphanTrap? = (
-  inspectHardResetOrphanTrap(manifest, repoRoot, gitOperations)
-    as? GoalRunnerHardResetOrphanTrapInspection.Detected
+): GoalRunnerHardResetOrphanTrap? =
+  (
+    inspectHardResetOrphanTrap(manifest, repoRoot, gitOperations)
+      as? GoalRunnerHardResetOrphanTrapInspection.Detected
   )
-  ?.trap
+    ?.trap
 
 private fun hardResetInspectionUnavailable(
   issueKey: String,
   error: String,
-): GoalRunnerHardResetOrphanTrapInspection.Unavailable = GoalRunnerHardResetOrphanTrapInspection.Unavailable(
-  reason =
-  "Hard reset refused because the feature-branch commit identity could not be inspected " +
-    "before durable state would be cleared (${error.ifBlank { "unknown git error" }}).",
-  remedyCommand = goalPlanningHardResetRemedy(issueKey),
-)
+): GoalRunnerHardResetOrphanTrapInspection.Unavailable =
+  GoalRunnerHardResetOrphanTrapInspection.Unavailable(
+    reason =
+      "Hard reset refused because the feature-branch commit identity could not be inspected " +
+        "before durable state would be cleared (${error.ifBlank { "unknown git error" }}).",
+    remedyCommand = goalPlanningHardResetRemedy(issueKey),
+  )
 
 internal fun coordinateHardResetOrphanTrap(
   trap: GoalRunnerHardResetOrphanTrap,
@@ -217,7 +224,7 @@ internal fun coordinateHardResetOrphanTrap(
     !unpushed.value.orEmpty().trim().equals("true", ignoreCase = true) ->
       GoalRunnerHardResetBranchCoordination.Documented(
         branchActionTaken =
-        "retained_published_trailer_tip_${trap.headSha}; re_adopt_checkpoint_identity_on_relaunch",
+          "retained_published_trailer_tip_${trap.headSha}; re_adopt_checkpoint_identity_on_relaunch",
       )
     else -> coordinateUnpublishedOrphan(trap, issueKey, repoRoot, gitOperations)
   }
@@ -227,12 +234,13 @@ private fun unpublishedStatusUnavailable(
   trap: GoalRunnerHardResetOrphanTrap,
   issueKey: String,
   error: String,
-): GoalRunnerHardResetBranchCoordination.Refused = GoalRunnerHardResetBranchCoordination.Refused(
-  reason =
-  "Hard reset refused because publication of feature branch '${trap.featureBranch}' could not be " +
-    "determined before clearing durable checkpoint identity ($error).",
-  remedyCommand = goalPlanningHardResetRemedy(issueKey),
-)
+): GoalRunnerHardResetBranchCoordination.Refused =
+  GoalRunnerHardResetBranchCoordination.Refused(
+    reason =
+      "Hard reset refused because publication of feature branch '${trap.featureBranch}' could not be " +
+        "determined before clearing durable checkpoint identity ($error).",
+    remedyCommand = goalPlanningHardResetRemedy(issueKey),
+  )
 
 private fun coordinateUnpublishedOrphan(
   trap: GoalRunnerHardResetOrphanTrap,
@@ -246,9 +254,9 @@ private fun coordinateUnpublishedOrphan(
     resetUnpublishedOrphan(trap, issueKey, repoRoot, gitOperations, it)
   } ?: GoalRunnerHardResetBranchCoordination.Refused(
     reason =
-    "Hard reset would clear durable checkpoint identity while branch '${trap.featureBranch}' tip " +
-      "${trap.headSha} still carries Skill-Bill-Subtask for active subtask ${trap.activeSubtaskId}, " +
-      "and the orphan commit has no parent to reset to.",
+      "Hard reset would clear durable checkpoint identity while branch '${trap.featureBranch}' tip " +
+        "${trap.headSha} still carries Skill-Bill-Subtask for active subtask ${trap.activeSubtaskId}, " +
+        "and the orphan commit has no parent to reset to.",
     remedyCommand = hardResetOrphanTrapRemedy(issueKey, repoRoot, trap.headSha),
   )
 }
@@ -268,25 +276,34 @@ private fun resetUnpublishedOrphan(
   } else {
     GoalRunnerHardResetBranchCoordination.Refused(
       reason =
-      "Hard reset would clear durable checkpoint identity while branch '${trap.featureBranch}' tip " +
-        "${trap.headSha} still carries Skill-Bill-Subtask for active subtask ${trap.activeSubtaskId}, " +
-        "and the feature branch tip could not be moved (${reset.error}).",
+        "Hard reset would clear durable checkpoint identity while branch '${trap.featureBranch}' tip " +
+          "${trap.headSha} still carries Skill-Bill-Subtask for active subtask ${trap.activeSubtaskId}, " +
+          "and the feature branch tip could not be moved (${reset.error}).",
       remedyCommand = hardResetOrphanTrapRemedy(issueKey, repoRoot, parentSha),
     )
   }
 }
 
-internal fun hardResetOrphanTrapRemedy(issueKey: String, repoRoot: Path, resetTargetSha: String): String =
+internal fun hardResetOrphanTrapRemedy(
+  issueKey: String,
+  repoRoot: Path,
+  resetTargetSha: String,
+): String =
   "git -C ${repoRoot.toAbsolutePath().normalize()} reset --hard $resetTargetSha && " +
     goalPlanningHardResetRemedy(issueKey)
 
-internal fun reviewBaselineBlockedReason(manifest: DecompositionManifest, subtaskId: Int, reason: String): String {
+internal fun reviewBaselineBlockedReason(
+  manifest: DecompositionManifest,
+  subtaskId: Int,
+  reason: String,
+): String {
   if (subtaskId <= 1) return reason
-  val priorCommit = manifest.subtasks.firstOrNull { it.id == subtaskId - 1 }
-    ?.commitSha
-    ?.trim()
-    ?.takeIf(String::isNotBlank)
-    ?: return reason
+  val priorCommit =
+    manifest.subtasks.firstOrNull { it.id == subtaskId - 1 }
+      ?.commitSha
+      ?.trim()
+      ?.takeIf(String::isNotBlank)
+      ?: return reason
   return "$reason Recover with: '${goalPlanningHardResetRemedy(manifest.issueKey)}' " +
     "(prior subtask commit $priorCommit is the review base)."
 }

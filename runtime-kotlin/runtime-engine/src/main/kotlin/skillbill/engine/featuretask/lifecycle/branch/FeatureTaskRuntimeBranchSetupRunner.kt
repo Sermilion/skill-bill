@@ -11,6 +11,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.repositoryOwnedPaths
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
+
 @Inject
 class FeatureTaskRuntimeBranchSetupRunner(
   private val recorder: FeatureTaskRuntimePhaseRecorder,
@@ -37,9 +38,10 @@ class FeatureTaskRuntimeBranchSetupRunner(
     observability: FeatureTaskRuntimeRunObservability,
     currentBranch: String,
   ): FeatureTaskRuntimeBranchSetupOutcome {
-    val decision = FeatureTaskRuntimeBranchSetup.goalContinuationDecision(
-      requireNotNull(request.goalContinuation).goalBranch,
-    )
+    val decision =
+      FeatureTaskRuntimeBranchSetup.goalContinuationDecision(
+        requireNotNull(request.goalContinuation).goalBranch,
+      )
     return when (decision) {
       is FeatureTaskRuntimeBranchDecisionInvalid ->
         FeatureTaskRuntimeBranchSetupOutcome.blocked(branchSetupDeriveBlockedReason(decision.reason))
@@ -116,11 +118,12 @@ class FeatureTaskRuntimeBranchSetupRunner(
     observability: FeatureTaskRuntimeRunObservability,
     currentBranch: String,
   ): FeatureTaskRuntimeBranchSetupOutcome {
-    val decision = FeatureTaskRuntimeBranchSetup.decide(
-      issueKey = request.issueKey,
-      specReference = request.runInvariants.specReference,
-      currentBranch = currentBranch,
-    )
+    val decision =
+      FeatureTaskRuntimeBranchSetup.decide(
+        issueKey = request.issueKey,
+        specReference = request.runInvariants.specReference,
+        currentBranch = currentBranch,
+      )
     return when (decision) {
       is FeatureTaskRuntimeBranchDecisionInvalid ->
         FeatureTaskRuntimeBranchSetupOutcome.blocked(branchSetupDeriveBlockedReason(decision.reason))
@@ -149,7 +152,10 @@ class FeatureTaskRuntimeBranchSetupRunner(
       ?: establishBranch(request, observability, branch, baseBranch, created = true)
   }
 
-  private fun landedBranchBlockedReason(request: FeatureTaskRuntimeRunRequest, expectedBranch: String): String? {
+  private fun landedBranchBlockedReason(
+    request: FeatureTaskRuntimeRunRequest,
+    expectedBranch: String,
+  ): String? {
     val landed = gitOperations.currentBranch(request.repoRoot)
     if (landed !is WorkflowGitOperationResult.Ok) {
       return branchSetupBlockedReason(landed.error)
@@ -186,22 +192,24 @@ class FeatureTaskRuntimeBranchSetupRunner(
         "Feature-task-runtime could not capture its workflow ownership baseline: ${baselineOwnedPaths.error}",
       )
     }
-    val recorded = recorder.recordResolvedBranch(
-      request.workflowId,
-      FeatureTaskRuntimeResolvedBranch(
-        branch = branch,
-        baseBranch = baseBranch,
-        created = created,
-        reviewBaseSha = immutableBase.reviewBaseSha,
-        baselineUntrackedPaths = immutableBase.baselineUntrackedPaths,
-        baselineOwnedPaths = baselineOwnedPaths.value.orEmpty()
-          .split('\u0000')
-          .map(String::trim)
-          .filter(String::isNotBlank)
-          .distinct()
-          .sorted(),
-      ),
-    )
+    val recorded =
+      recorder.recordResolvedBranch(
+        request.workflowId,
+        FeatureTaskRuntimeResolvedBranch(
+          branch = branch,
+          baseBranch = baseBranch,
+          created = created,
+          reviewBaseSha = immutableBase.reviewBaseSha,
+          baselineUntrackedPaths = immutableBase.baselineUntrackedPaths,
+          baselineOwnedPaths =
+            baselineOwnedPaths.value.orEmpty()
+              .split('\u0000')
+              .map(String::trim)
+              .filter(String::isNotBlank)
+              .distinct()
+              .sorted(),
+        ),
+      )
     if (!recorded) {
       return FeatureTaskRuntimeBranchSetupOutcome.blocked(branchSetupNotPersistedBlockedReason(branch))
     }

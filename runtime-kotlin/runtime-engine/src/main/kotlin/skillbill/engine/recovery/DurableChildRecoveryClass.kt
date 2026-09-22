@@ -22,24 +22,29 @@ internal fun classifyDurableChild(progress: GoalRunnerWorkflowProgress?): Durabl
       DurableChildRecoveryClass.INCOMPATIBLE_TERMINAL
   }
 
-internal fun scopedChildRecoveryCommand(issueKey: String, subtaskId: Int): String =
-  "skill-bill goal reset $issueKey --subtask $subtaskId --delete-child-workflow"
+internal fun scopedChildRecoveryCommand(
+  issueKey: String,
+  subtaskId: Int,
+): String = "skill-bill goal reset $issueKey --subtask $subtaskId --delete-child-workflow"
 
 internal fun recommendedDurableChildRecoveryCommand(
   issueKey: String,
   subtaskId: Int,
   subtaskStatus: DecompositionStatus?,
   childProgress: GoalRunnerWorkflowProgress?,
-): String = if (
-  classifyDurableChild(childProgress) == DurableChildRecoveryClass.INCOMPATIBLE_TERMINAL &&
-  subtaskStatus == DecompositionStatus.BLOCKED
-) {
-  scopedChildRecoveryCommand(issueKey, subtaskId)
-} else {
-  hardResetRecoveryCommand(issueKey)
-}
+): String =
+  if (
+    classifyDurableChild(childProgress) == DurableChildRecoveryClass.INCOMPATIBLE_TERMINAL &&
+    subtaskStatus == DecompositionStatus.BLOCKED
+  ) {
+    scopedChildRecoveryCommand(issueKey, subtaskId)
+  } else {
+    hardResetRecoveryCommand(issueKey)
+  }
 
-internal fun staleChildPlanningRecoveryCommand(issueKey: String, subtaskId: Int): String =
-  "skill-bill goal replan $issueKey --subtask $subtaskId"
+internal fun staleChildPlanningRecoveryCommand(
+  issueKey: String,
+  subtaskId: Int,
+): String = "skill-bill goal replan $issueKey --subtask $subtaskId"
 
 private fun hardResetRecoveryCommand(issueKey: String): String = "skill-bill goal reset $issueKey --hard --yes"

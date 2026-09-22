@@ -29,12 +29,13 @@ class WorkflowServiceFeatureTaskIdentityRepair(
     val workflowId = args.workflowId
     val normalizedIssueKey = args.normalizedIssueKey
     val family = WorkflowFamily.TASK_RUNTIME
-    val workflowRow = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)
-      ?: return WorkflowUpdateResult.Error(
-        workflowId,
-        "Unknown runtime workflow_id '$workflowId'.",
-        unitOfWork.dbPath.toString(),
-      )
+    val workflowRow =
+      unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)
+        ?: return WorkflowUpdateResult.Error(
+          workflowId,
+          "Unknown runtime workflow_id '$workflowId'.",
+          unitOfWork.dbPath.toString(),
+        )
     val existing = requireNotNull(family.get(unitOfWork.workflowStates, workflowId))
     if (family.definition.isTerminalStatus(existing.workflowStatus)) {
       return WorkflowUpdateResult.Error(
@@ -59,34 +60,43 @@ class WorkflowServiceFeatureTaskIdentityRepair(
     return buildUpdateOk(engine, family.definition, updated, input, unitOfWork.dbPath.toString())
   }
 
-  private fun persistIdentity(unitOfWork: UnitOfWork, args: FeatureTaskIdentityRepairArgs) {
-    val identity = FeatureTaskExecutionIdentity(
-      workflowId = args.workflowId,
-      normalizedIssueKey = args.normalizedIssueKey,
-      repositoryIdentity = args.repositoryIdentity,
-      governedSpecPath = args.governedSpecPath,
-      mode = FeatureTaskWorkflowMode.RUNTIME,
-      routeScope = FeatureTaskRouteScope.STANDALONE,
-    )
+  private fun persistIdentity(
+    unitOfWork: UnitOfWork,
+    args: FeatureTaskIdentityRepairArgs,
+  ) {
+    val identity =
+      FeatureTaskExecutionIdentity(
+        workflowId = args.workflowId,
+        normalizedIssueKey = args.normalizedIssueKey,
+        repositoryIdentity = args.repositoryIdentity,
+        governedSpecPath = args.governedSpecPath,
+        mode = FeatureTaskWorkflowMode.RUNTIME,
+        routeScope = FeatureTaskRouteScope.STANDALONE,
+      )
     FeatureTaskExecutionIdentityPolicy.validate(identity)
     unitOfWork.workflowStates.saveFeatureTaskExecutionIdentity(identity)
   }
 
-  private fun repairInput(existing: WorkflowStateSnapshot, args: FeatureTaskIdentityRepairArgs): WorkflowUpdateInput =
+  private fun repairInput(
+    existing: WorkflowStateSnapshot,
+    args: FeatureTaskIdentityRepairArgs,
+  ): WorkflowUpdateInput =
     WorkflowUpdateInput(
       workflowStatus = existing.workflowStatus,
       currentStepId = existing.currentStepId.orEmpty(),
       stepUpdates = null,
-      artifactsPatch = WorkflowArtifactPatch.from(
-        mapOf(
-          FEATURE_TASK_RUNTIME_IDENTITY_REPAIR_ARTIFACT_KEY to mapOf(
-            "reason" to args.normalizedReason,
-            "repaired_at" to clock.instant().atOffset(ZoneOffset.UTC).toString(),
-            "repository_identity" to args.repositoryIdentity,
-            "governed_spec_path" to args.governedSpecPath,
+      artifactsPatch =
+        WorkflowArtifactPatch.from(
+          mapOf(
+            FEATURE_TASK_RUNTIME_IDENTITY_REPAIR_ARTIFACT_KEY to
+              mapOf(
+                "reason" to args.normalizedReason,
+                "repaired_at" to clock.instant().atOffset(ZoneOffset.UTC).toString(),
+                "repository_identity" to args.repositoryIdentity,
+                "governed_spec_path" to args.governedSpecPath,
+              ),
           ),
         ),
-      ),
       sessionId = "",
     )
 }

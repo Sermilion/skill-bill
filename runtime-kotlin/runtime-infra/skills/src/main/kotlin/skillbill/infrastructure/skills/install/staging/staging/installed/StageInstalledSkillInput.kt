@@ -16,5 +16,8 @@ internal data class StageInstalledSkillInput(
   val suppliedCompactIdentity: String? = null,
 )
 
-internal fun stageInstalledSkill(repoRoot: Path, sourceSkillDir: Path, home: Path): RenderedSkill =
-  stageInstalledSkill(StageInstalledSkillInput(repoRoot, sourceSkillDir, home))
+internal fun stageInstalledSkill(
+  repoRoot: Path,
+  sourceSkillDir: Path,
+  home: Path,
+): RenderedSkill = stageInstalledSkill(StageInstalledSkillInput(repoRoot, sourceSkillDir, home))

@@ -18,15 +18,19 @@ enum class NativeAgentCompositionTargetSource {
   SiblingContent,
 }
 
-internal fun parseCompositionDirective(rawValue: String?, label: String): NativeAgentCompositionDirective? =
+internal fun parseCompositionDirective(
+  rawValue: String?,
+  label: String,
+): NativeAgentCompositionDirective? =
   rawValue?.let { value ->
     require(value.isNotBlank()) {
       "$label: native agent compose directive is required when the compose key is present"
     }
-    val kind = NativeAgentCompositionKind.entries.firstOrNull { it.wireValue == value }
-      ?: throw IllegalArgumentException(
-        "$label: unsupported native agent compose directive '$value'",
-      )
+    val kind =
+      NativeAgentCompositionKind.entries.firstOrNull { it.wireValue == value }
+        ?: throw IllegalArgumentException(
+          "$label: unsupported native agent compose directive '$value'",
+        )
     NativeAgentCompositionDirective(kind)
   }
 
@@ -41,9 +45,10 @@ internal fun resolveNativeAgentCompositionTarget(
   require(source.composition.kind == NativeAgentCompositionKind.GovernedContent) {
     "unsupported native agent compose directive '${source.composition.kind.wireValue}'"
   }
-  val sourcePath = requireNotNull(source.path) {
-    "native agent composition resolution requires a source path"
-  }.toAbsolutePath().normalize()
+  val sourcePath =
+    requireNotNull(source.path) {
+      "native agent composition resolution requires a source path"
+    }.toAbsolutePath().normalize()
   val root = repoRoot.toAbsolutePath().normalize()
   val packRoot = platformPackRoot(root, sourcePath)
   return if (packRoot != null) {
@@ -56,7 +61,10 @@ internal fun resolveNativeAgentCompositionTarget(
   )
 }
 
-internal fun nativeAgentCompositionRepoRoot(platformPacksRoot: Path, skillsRoot: Path?): Path {
+internal fun nativeAgentCompositionRepoRoot(
+  platformPacksRoot: Path,
+  skillsRoot: Path?,
+): Path {
   val platformRoot = platformPacksRoot.toAbsolutePath().normalize()
   val skillRoot = skillsRoot?.toAbsolutePath()?.normalize()
   return if (skillRoot != null && platformRoot.parent == skillRoot.parent) {
@@ -78,19 +86,21 @@ internal fun composeNativeAgentSource(
   val target = resolveNativeAgentCompositionTarget(repoRoot, source, packLoader) ?: return source
   val governedBody = renderGovernedBody(target.contentPath, source.name).trimEnd()
   val localFraming = source.body.trim()
-  val composedBody = buildString {
-    if (localFraming.isNotBlank()) {
-      append(localFraming)
-      append("\n\n")
-    }
-    append(governedBody)
-  }.trimEnd()
+  val composedBody =
+    buildString {
+      if (localFraming.isNotBlank()) {
+        append(localFraming)
+        append("\n\n")
+      }
+      append(governedBody)
+    }.trimEnd()
   val governed = composeGovernedAgentBody(repoRoot, target, composedBody)
-  val composed = source.copy(
-    body = governed.body,
-    composition = null,
-    composedAddonSlugs = governed.composedAddonSlugs,
-  )
+  val composed =
+    source.copy(
+      body = governed.body,
+      composition = null,
+      composedAddonSlugs = governed.composedAddonSlugs,
+    )
   target.manifest?.let { pack ->
     enforceAddonProjectionParity(pack, source.name, composed.composedAddonSlugs)
   }
@@ -109,12 +119,13 @@ internal fun renderComposedNativeAgentSource(
   reviewContextBudgetBytes: Long,
   renderGovernedBody: (Path, String) -> String,
   packLoader: NativeAgentPlatformPackLoader,
-): String = renderNativeAgentSource(
-  composeNativeAgentSource(
-    repoRoot,
-    source,
-    reviewContextBudgetBytes,
-    renderGovernedBody,
-    packLoader,
-  ),
-)
+): String =
+  renderNativeAgentSource(
+    composeNativeAgentSource(
+      repoRoot,
+      source,
+      reviewContextBudgetBytes,
+      renderGovernedBody,
+      packLoader,
+    ),
+  )

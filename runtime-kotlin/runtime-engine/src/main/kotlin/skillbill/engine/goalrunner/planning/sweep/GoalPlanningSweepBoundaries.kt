@@ -15,6 +15,7 @@ import skillbill.ports.time.RuntimeTimingPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
+
 @Inject
 data class GoalPlanningSweepCheckpointBoundaries(
   val checkpoint: GoalPlanningPreparationCheckpoint,

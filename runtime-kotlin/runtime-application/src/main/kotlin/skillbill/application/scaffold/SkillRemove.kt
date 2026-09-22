@@ -13,6 +13,7 @@ import skillbill.error.core.SkillBillRuntimeException
 import skillbill.ports.skillremove.SkillRemoveFileSystem
 import java.nio.file.Paths
 import kotlin.coroutines.cancellation.CancellationException
+
 @Inject
 class SkillRemove(
   private val fileSystem: SkillRemoveFileSystem,
@@ -21,39 +22,42 @@ class SkillRemove(
     TargetValidation.validateOrRefuse(request)
     enforceRefusalPolicy(request)
     val cascadedSkillNames = computeCascadedSkillNames(request)
-    val preview = SkillRemovalPreview(
-      filesystemPaths = fileSystem.resolveCascadeFilesystemPaths(request, cascadedSkillNames),
-      manifestEdits = fileSystem.planManifestEdits(request, cascadedSkillNames),
-      agentSymlinkUnlinks = fileSystem.planAgentSymlinkUnlinks(request, cascadedSkillNames),
-      readmeCatalogEdits = fileSystem.planReadmeCatalogEdits(request),
-      skillDirRoot = skillDirRootFor(request.target),
-      cascadedSkillNames = cascadedSkillNames,
-    )
+    val preview =
+      SkillRemovalPreview(
+        filesystemPaths = fileSystem.resolveCascadeFilesystemPaths(request, cascadedSkillNames),
+        manifestEdits = fileSystem.planManifestEdits(request, cascadedSkillNames),
+        agentSymlinkUnlinks = fileSystem.planAgentSymlinkUnlinks(request, cascadedSkillNames),
+        readmeCatalogEdits = fileSystem.planReadmeCatalogEdits(request),
+        skillDirRoot = skillDirRootFor(request.target),
+        cascadedSkillNames = cascadedSkillNames,
+      )
     return SkillRemovalResult.Preview(preview)
   }
 
-  fun executeRemoval(request: SkillRemovalRequest): SkillRemovalResult = tryExecute {
-    TargetValidation.validateOrRefuse(request)
-    enforceRefusalPolicy(request)
-    val cascadedSkillNames = computeCascadedSkillNames(request)
-    val preview = SkillRemovalPreview(
-      filesystemPaths = fileSystem.resolveCascadeFilesystemPaths(request, cascadedSkillNames),
-      manifestEdits = fileSystem.planManifestEdits(request, cascadedSkillNames),
-      agentSymlinkUnlinks = fileSystem.planAgentSymlinkUnlinks(request, cascadedSkillNames),
-      readmeCatalogEdits = fileSystem.planReadmeCatalogEdits(request),
-      skillDirRoot = skillDirRootFor(request.target),
-      cascadedSkillNames = cascadedSkillNames,
-    )
+  fun executeRemoval(request: SkillRemovalRequest): SkillRemovalResult =
+    tryExecute {
+      TargetValidation.validateOrRefuse(request)
+      enforceRefusalPolicy(request)
+      val cascadedSkillNames = computeCascadedSkillNames(request)
+      val preview =
+        SkillRemovalPreview(
+          filesystemPaths = fileSystem.resolveCascadeFilesystemPaths(request, cascadedSkillNames),
+          manifestEdits = fileSystem.planManifestEdits(request, cascadedSkillNames),
+          agentSymlinkUnlinks = fileSystem.planAgentSymlinkUnlinks(request, cascadedSkillNames),
+          readmeCatalogEdits = fileSystem.planReadmeCatalogEdits(request),
+          skillDirRoot = skillDirRootFor(request.target),
+          cascadedSkillNames = cascadedSkillNames,
+        )
 
-    val applied = fileSystem.applyCascade(request, preview)
-    SkillRemovalResult.Success(
-      preview = preview,
-      removedPaths = applied.removedPaths,
-      editedManifests = applied.editedManifests,
-      unlinkedSymlinks = applied.unlinkedSymlinks,
-      readmeWarnings = applied.readmeWarnings,
-    )
-  }
+      val applied = fileSystem.applyCascade(request, preview)
+      SkillRemovalResult.Success(
+        preview = preview,
+        removedPaths = applied.removedPaths,
+        editedManifests = applied.editedManifests,
+        unlinkedSymlinks = applied.unlinkedSymlinks,
+        readmeWarnings = applied.readmeWarnings,
+      )
+    }
 
   private fun enforceRefusalPolicy(request: SkillRemovalRequest) {
     val repoRoot = Paths.get(request.repoRootAbsolutePath).toAbsolutePath().normalize()
@@ -101,13 +105,14 @@ class SkillRemove(
       is SkillRemovalTarget.ExternalAddOn -> emptyList()
     }
 
-  private fun skillDirRootFor(target: SkillRemovalTarget): String = when (target) {
-    is SkillRemovalTarget.HorizontalSkill -> "skills/${target.skillName}"
-    is SkillRemovalTarget.PlatformPack -> "platform-packs/${target.platform}"
-    is SkillRemovalTarget.AddOn -> target.relativePath
-    is SkillRemovalTarget.ExternalAddOn ->
-      Paths.get(target.sourceRootAbsolutePath).resolve(target.fileName).normalize().toString().replace('\\', '/')
-  }
+  private fun skillDirRootFor(target: SkillRemovalTarget): String =
+    when (target) {
+      is SkillRemovalTarget.HorizontalSkill -> "skills/${target.skillName}"
+      is SkillRemovalTarget.PlatformPack -> "platform-packs/${target.platform}"
+      is SkillRemovalTarget.AddOn -> target.relativePath
+      is SkillRemovalTarget.ExternalAddOn ->
+        Paths.get(target.sourceRootAbsolutePath).resolve(target.fileName).normalize().toString().replace('\\', '/')
+    }
 
   private inline fun tryExecute(block: () -> SkillRemovalResult): SkillRemovalResult {
     val outcome = runCatching(block)
@@ -123,7 +128,10 @@ class SkillRemove(
     return removalFailed(error, rollbackComplete = false)
   }
 
-  private fun removalFailed(error: Throwable, rollbackComplete: Boolean): SkillRemovalResult.Failed =
+  private fun removalFailed(
+    error: Throwable,
+    rollbackComplete: Boolean,
+  ): SkillRemovalResult.Failed =
     SkillRemovalResult.Failed(
       exceptionName = error::class.simpleName.orEmpty().ifBlank { "Exception" },
       exceptionMessage = error.message.orEmpty(),

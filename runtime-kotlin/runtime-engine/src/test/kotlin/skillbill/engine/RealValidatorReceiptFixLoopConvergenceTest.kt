@@ -20,16 +20,18 @@ class RealValidatorReceiptFixLoopConvergenceTest {
   }
 
   private fun assertBlockedAtImplement(malformed: String) {
-    val harness = runnerHarness(
-      RuntimeHarnessConfig(planningProjectionValidator = realPlanningProjectionValidator).copy(
-        launcher = RuntimeRecordingLauncher { request ->
-          val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-          facts(if (phaseId == "implement") malformed else validJsonOutput(phaseId))
-        },
-        validator = realFeatureTaskRuntimePhaseOutputValidator,
-        agentAssignment = phasePerAgentAssignment(),
-      ),
-    )
+    val harness =
+      runnerHarness(
+        RuntimeHarnessConfig(planningProjectionValidator = realPlanningProjectionValidator).copy(
+          launcher =
+            RuntimeRecordingLauncher { request ->
+              val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+              facts(if (phaseId == "implement") malformed else validJsonOutput(phaseId))
+            },
+          validator = realFeatureTaskRuntimePhaseOutputValidator,
+          agentAssignment = phasePerAgentAssignment(),
+        ),
+      )
 
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
 

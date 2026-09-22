@@ -6,18 +6,29 @@ import skillbill.install.model.InvokingAgentContextSignal
 
 const val SKILL_BILL_AGENT_ENV: String = "SKILL_BILL_AGENT"
 
-fun detectInvokingAgentId(explicitAgent: String?, environment: Map<String, String>): String? =
+fun detectInvokingAgentId(
+  explicitAgent: String?,
+  environment: Map<String, String>,
+): String? =
   explicitAgent?.takeIf(String::isNotBlank)
     ?: environment[SKILL_BILL_AGENT_ENV]?.takeIf(String::isNotBlank)
     ?: InvokingAgentContextResolver.detect(environment)?.id
 
-fun requireInvokingAgentId(explicitAgent: String?, environment: Map<String, String>, agentOption: String): String {
-  val resolved = detectInvokingAgentId(explicitAgent, environment)
-    ?: throw UsageError(undetectedInvokingAgentMessage(agentOption))
+fun requireInvokingAgentId(
+  explicitAgent: String?,
+  environment: Map<String, String>,
+  agentOption: String,
+): String {
+  val resolved =
+    detectInvokingAgentId(explicitAgent, environment)
+      ?: throw UsageError(undetectedInvokingAgentMessage(agentOption))
   return requireSupportedAgentId(resolved, invokingAgentSource(explicitAgent, agentOption))
 }
 
-fun requireSupportedAgentId(agentId: String, source: String): String {
+fun requireSupportedAgentId(
+  agentId: String,
+  source: String,
+): String {
   val normalized = agentId.trim().lowercase()
   if (normalized !in InstallAgent.supportedIds) {
     throw UsageError(unsupportedAgentMessage(agentId, source))
@@ -25,21 +36,29 @@ fun requireSupportedAgentId(agentId: String, source: String): String {
   return normalized
 }
 
-fun requireSupportedOptionalAgentId(agentId: String?, agentOption: String): String? = when {
-  agentId == null || agentId.isBlank() -> agentId
-  else -> requireSupportedAgentId(agentId, agentOption)
-}
+fun requireSupportedOptionalAgentId(
+  agentId: String?,
+  agentOption: String,
+): String? =
+  when {
+    agentId == null || agentId.isBlank() -> agentId
+    else -> requireSupportedAgentId(agentId, agentOption)
+  }
 
 fun invokingAgentResolutionHelp(agentOption: String): String =
   "Agent invoking this run (${InstallAgent.supportedIds.joinToString("|")}). Resolution order: $agentOption, " +
     "then $SKILL_BILL_AGENT_ENV, then the detected invoking-agent execution context. Resolution fails when " +
     "none of the three names an agent."
 
-private fun invokingAgentSource(explicitAgent: String?, agentOption: String): String =
-  if (explicitAgent?.isNotBlank() == true) agentOption else SKILL_BILL_AGENT_ENV
+private fun invokingAgentSource(
+  explicitAgent: String?,
+  agentOption: String,
+): String = if (explicitAgent?.isNotBlank() == true) agentOption else SKILL_BILL_AGENT_ENV
 
-private fun unsupportedAgentMessage(agentId: String, source: String): String =
-  "Unknown agent '$agentId' from $source. Supported agents: ${InstallAgent.supportedIds.joinToString(", ")}."
+private fun unsupportedAgentMessage(
+  agentId: String,
+  source: String,
+): String = "Unknown agent '$agentId' from $source. Supported agents: ${InstallAgent.supportedIds.joinToString(", ")}."
 
 private fun undetectedInvokingAgentMessage(agentOption: String): String =
   "Cannot determine the invoking agent, and there is no default: $agentOption was not passed, " +
@@ -48,6 +67,7 @@ private fun undetectedInvokingAgentMessage(agentOption: String): String =
     "Re-run with $agentOption <agent-id> or export $SKILL_BILL_AGENT_ENV."
 
 private val invokingAgentContextMarkers: String
-  get() = InvokingAgentContextResolver.INVOKING_AGENT_CONTEXT_SIGNALS
-    .flatMap(InvokingAgentContextSignal::markerKeys)
-    .joinToString(", ")
+  get() =
+    InvokingAgentContextResolver.INVOKING_AGENT_CONTEXT_SIGNALS
+      .flatMap(InvokingAgentContextSignal::markerKeys)
+      .joinToString(", ")

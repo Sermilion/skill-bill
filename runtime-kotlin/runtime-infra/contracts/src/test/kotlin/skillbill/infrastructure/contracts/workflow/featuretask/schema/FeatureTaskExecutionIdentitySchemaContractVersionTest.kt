@@ -9,9 +9,10 @@ import kotlin.test.assertNotNull
 class FeatureTaskExecutionIdentitySchemaContractVersionTest {
   @Test
   fun `execution identity schema version and id match runtime constants`() {
-    val stream = assertNotNull(
-      javaClass.classLoader.getResourceAsStream(FeatureTaskExecutionIdentitySchemaPaths.CLASSPATH_RESOURCE),
-    )
+    val stream =
+      assertNotNull(
+        javaClass.classLoader.getResourceAsStream(FeatureTaskExecutionIdentitySchemaPaths.CLASSPATH_RESOURCE),
+      )
     val schema = stream.use { YAMLMapper().readTree(it) }
     assertEquals(
       FEATURE_TASK_EXECUTION_IDENTITY_CONTRACT_VERSION,

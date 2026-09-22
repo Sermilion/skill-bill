@@ -19,7 +19,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
-internal fun assertGovernedReviewLaunch(builder: AgentRunCommandBuilder, governed: SkillRunRequest) {
+
+internal fun assertGovernedReviewLaunch(
+  builder: AgentRunCommandBuilder,
+  governed: SkillRunRequest,
+) {
   if (!builder.governedReviewLaunchCapability.governedOnlyTooling ||
     !builder.governedReviewLaunchCapability.mcpIsolation
   ) {
@@ -98,30 +102,33 @@ internal fun request(
   model: String? = null,
   effort: String? = null,
   compaction: PhaseCompactionDirective? = null,
-): SkillRunRequest = SkillRunRequest(
-  issueKey = "SKILL-113",
-  repoRoot = Path.of("/tmp/skillbill-agent-run"),
-  subtaskId = 1,
-  timeout = 3.seconds,
-  promptOverride = "Phase: implement",
-  modelOverride = model,
-  effortOverride = effort,
-  compaction = compaction,
-)
+): SkillRunRequest =
+  SkillRunRequest(
+    issueKey = "SKILL-113",
+    repoRoot = Path.of("/tmp/skillbill-agent-run"),
+    subtaskId = 1,
+    timeout = 3.seconds,
+    promptOverride = "Phase: implement",
+    modelOverride = model,
+    effortOverride = effort,
+    compaction = compaction,
+  )
 
-internal fun governedReviewRequest(nativeReviewWorkerName: String? = null): SkillRunRequest = request().copy(
-  reviewEvidenceBroker = NoOpReviewEvidenceBroker,
-  reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
-  nativeReviewWorkerName = nativeReviewWorkerName,
-)
+internal fun governedReviewRequest(nativeReviewWorkerName: String? = null): SkillRunRequest =
+  request().copy(
+    reviewEvidenceBroker = NoOpReviewEvidenceBroker,
+    reviewEvidenceEndpoint = StubReviewEvidenceEndpoint,
+    nativeReviewWorkerName = nativeReviewWorkerName,
+  )
 
 internal object StubReviewEvidenceEndpoint : GovernedReviewEvidenceEndpointHandle {
-  override val descriptor = GovernedReviewEvidenceEndpointDescriptor(
-    lane = "architecture",
-    socketPath = Path.of("/tmp/skill-bill-review/evidence.sock"),
-    mcpConfigPath = Path.of("/tmp/skill-bill-review/mcp.json"),
-    token = "launch-token",
-  )
+  override val descriptor =
+    GovernedReviewEvidenceEndpointDescriptor(
+      lane = "architecture",
+      socketPath = Path.of("/tmp/skill-bill-review/evidence.sock"),
+      mcpConfigPath = Path.of("/tmp/skill-bill-review/mcp.json"),
+      token = "launch-token",
+    )
 
   override fun close() = Unit
 }
@@ -130,10 +137,16 @@ internal object NoOpReviewEvidenceBroker : ReviewEvidenceBroker {
   override fun authorizeExpansion(request: ReviewExpansionAuthorizationRequest): ReviewExpansionRecord = error("unused")
 
   override fun readBatch(request: ReviewEvidenceBatchRequest) = error("unused")
+
   override fun recordToolCall(call: ReviewToolCall) = error("unused")
+
   override fun recordModelTurn() = error("unused")
+
   override fun validateLaneResult(result: String) = error("unused")
+
   override fun observeLaneResultChunk(chunk: String) = error("unused")
+
   override fun accounting() = error("unused")
+
   override fun terminalOutcome() = error("unused")
 }

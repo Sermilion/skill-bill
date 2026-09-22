@@ -36,11 +36,12 @@ internal interface RuntimeExperimentProvides {
     machineConfig: MachineExperimentConfigStore,
     repoLocalConfigPort: RepoLocalConfigPort,
     descriptorCatalog: ExperimentDescriptorCatalog?,
-  ): ExperimentSelectionPort = ExperimentSelectionService(
-    machineConfig = machineConfig,
-    repoLocalConfigPort = repoLocalConfigPort,
-    descriptorCatalog = descriptorCatalog,
-  )
+  ): ExperimentSelectionPort =
+    ExperimentSelectionService(
+      machineConfig = machineConfig,
+      repoLocalConfigPort = repoLocalConfigPort,
+      descriptorCatalog = descriptorCatalog,
+    )
 
   @Provides @JvmSynthetic
   fun experimentIsolationCapability(): ExperimentIsolationCapabilityPort = FilesystemExperimentIsolationCapability
@@ -58,22 +59,24 @@ internal interface RuntimeExperimentProvides {
   fun experimentGoalRunnerPort(
     factory: ExperimentGoalRunnerFactory,
     runtimeContext: RuntimeContext,
-  ): ExperimentGoalRunnerPort = ExperimentGoalRunnerPort { request ->
-    val armId = request.experimentArmId
-    if (armId == null) {
-      factory.create(runtimeContext).run(request)
-    } else {
-      val armRoot = request.repoRoot.toAbsolutePath().normalize()
-      factory.create(
-        runtimeContext.copy(
-          environment = runtimeContext.environment.copy(
-            dbPathOverride = armRoot.resolve(".skill-bill/runtime.db").toString(),
-            repositoryRoot = armRoot,
+  ): ExperimentGoalRunnerPort =
+    ExperimentGoalRunnerPort { request ->
+      val armId = request.experimentArmId
+      if (armId == null) {
+        factory.create(runtimeContext).run(request)
+      } else {
+        val armRoot = request.repoRoot.toAbsolutePath().normalize()
+        factory.create(
+          runtimeContext.copy(
+            environment =
+              runtimeContext.environment.copy(
+                dbPathOverride = armRoot.resolve(".skill-bill/runtime.db").toString(),
+                repositoryRoot = armRoot,
+              ),
           ),
-        ),
-      ).run(request)
+        ).run(request)
+      }
     }
-  }
 
   @Provides @JvmSynthetic
   fun experimentArmMeasurementPort(): ExperimentArmMeasurementPort? = null
@@ -83,9 +86,10 @@ internal interface RuntimeExperimentProvides {
     manifestStore: GoalRunnerManifestStore,
     pullRequestPort: GoalPullRequestPort,
     gitOperations: WorkflowGitOperations,
-  ): ExperimentParentDeliveryPort = ExistingGoalRunnerParentDelivery(
-    manifestStore = manifestStore,
-    pullRequestPort = pullRequestPort,
-    gitOperations = gitOperations,
-  )
+  ): ExperimentParentDeliveryPort =
+    ExistingGoalRunnerParentDelivery(
+      manifestStore = manifestStore,
+      pullRequestPort = pullRequestPort,
+      gitOperations = gitOperations,
+    )
 }

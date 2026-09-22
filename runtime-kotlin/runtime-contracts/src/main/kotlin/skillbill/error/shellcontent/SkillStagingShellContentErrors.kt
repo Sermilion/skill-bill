@@ -6,11 +6,11 @@ class InternalSkillSidecarCollisionError(
   val sidecarRelativePath: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Internal skill '$internalSkillName' cannot be staged as sidecar " +
-    "'$sidecarRelativePath' inside parent '$parentSkillName' skill directory: " +
-    "another staged or authored file already claims that path. Rename or remove the conflicting file.",
-  cause,
-)
+    "Internal skill '$internalSkillName' cannot be staged as sidecar " +
+      "'$sidecarRelativePath' inside parent '$parentSkillName' skill directory: " +
+      "another staged or authored file already claims that path. Rename or remove the conflicting file.",
+    cause,
+  )
 
 class InvalidAuthoredSkillSidecarError(
   message: String,
@@ -75,10 +75,10 @@ class MissingInstalledNativeAgentError(
   val repairCommand: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Native agent '$logicalName' for provider '$provider' failed preflight at '$expectedPath': $reason. " +
-    "Repair with: $repairCommand",
-  cause,
-)
+    "Native agent '$logicalName' for provider '$provider' failed preflight at '$expectedPath': $reason. " +
+      "Repair with: $repairCommand",
+    cause,
+  )
 
 class InvalidInternalSkillClassificationError(
   message: String,
@@ -91,12 +91,12 @@ class MissingBaselinePlatformSelectionError(
   val declaringManifestPath: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(
-  "Platform pack '$selectingSlug' declares a required baseline layer on '$requiredBaselineSlug' " +
-    "(declared in '$declaringManifestPath'), but '$requiredBaselineSlug' is not in the selection. " +
-    "Select '$requiredBaselineSlug' (or use platform mode ALL) so the baseline sidecar is present " +
-    "at review time.",
-  cause,
-)
+    "Platform pack '$selectingSlug' declares a required baseline layer on '$requiredBaselineSlug' " +
+      "(declared in '$declaringManifestPath'), but '$requiredBaselineSlug' is not in the selection. " +
+      "Select '$requiredBaselineSlug' (or use platform mode ALL) so the baseline sidecar is present " +
+      "at review time.",
+    cause,
+  )
 
 class InvalidFallbackCapabilityError(
   message: String,

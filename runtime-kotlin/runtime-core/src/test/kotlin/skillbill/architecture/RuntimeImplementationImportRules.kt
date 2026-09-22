@@ -5,25 +5,30 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 internal fun isRuntimeImplementationImport(importedName: String): Boolean {
-  val forbiddenPrefixes = listOf(
-    "skillbill.infrastructure.sqlite.",
-    "skillbill.infrastructure.",
-    "skillbill.infrastructure.skills.",
-    "skillbill.infrastructure.http.",
-    "skillbill.infrastructure.sqlite.",
-    "skillbill.infrastructure.skills.nativeagent.",
-    "skillbill.infrastructure.launcher.",
-    "skillbill.infrastructure.skills.skillremove.",
-  )
+  val forbiddenPrefixes =
+    listOf(
+      "skillbill.infrastructure.sqlite.",
+      "skillbill.infrastructure.",
+      "skillbill.infrastructure.skills.",
+      "skillbill.infrastructure.http.",
+      "skillbill.infrastructure.sqlite.",
+      "skillbill.infrastructure.skills.nativeagent.",
+      "skillbill.infrastructure.launcher.",
+      "skillbill.infrastructure.skills.skillremove.",
+    )
   val importsForbiddenRoot = forbiddenPrefixes.any(importedName::startsWith)
-  val importsInstallImplementation = importedName.startsWith("skillbill.infrastructure.skills.install.") &&
-    !importedName.startsWith("skillbill.install.model.")
-  val importsScaffoldImplementation = importedName.startsWith("skillbill.infrastructure.skills.scaffold.") &&
-    !importedName.startsWith("skillbill.scaffold.model.")
-  val importsTelemetryImplementation = importedName.startsWith("skillbill.telemetry.") &&
-    !importedName.startsWith("skillbill.telemetry.model.")
-  val importsLearningsImplementation = importedName.startsWith("skillbill.learnings.") &&
-    !importedName.startsWith("skillbill.learnings.model.")
+  val importsInstallImplementation =
+    importedName.startsWith("skillbill.infrastructure.skills.install.") &&
+      !importedName.startsWith("skillbill.install.model.")
+  val importsScaffoldImplementation =
+    importedName.startsWith("skillbill.infrastructure.skills.scaffold.") &&
+      !importedName.startsWith("skillbill.scaffold.model.")
+  val importsTelemetryImplementation =
+    importedName.startsWith("skillbill.telemetry.") &&
+      !importedName.startsWith("skillbill.telemetry.model.")
+  val importsLearningsImplementation =
+    importedName.startsWith("skillbill.learnings.") &&
+      !importedName.startsWith("skillbill.learnings.model.")
   val importsReviewImplementation = importedName.startsWith("skillbill.review.")
   return importsForbiddenRoot || importsInstallImplementation || importsScaffoldImplementation ||
     importsTelemetryImplementation || importsLearningsImplementation || importsReviewImplementation
@@ -48,20 +53,25 @@ internal fun jdbcSqliteConnectionSitesOutsideDatabaseRuntime(sourceRoots: List<P
     }
   }.sorted()
 
-internal fun assertRuntimeCorePublicProjectEdges(runtimeRoot: Path, runtimeCoreBuild: String) {
-  val runtimeCoreApiDependencies = Regex("""api\(project\("(:runtime-[^"]+)"\)\)""")
-    .findAll(runtimeCoreBuild)
-    .map { match -> match.groupValues[1] }
-    .toSet()
+internal fun assertRuntimeCorePublicProjectEdges(
+  runtimeRoot: Path,
+  runtimeCoreBuild: String,
+) {
+  val runtimeCoreApiDependencies =
+    Regex("""api\(project\("(:runtime-[^"]+)"\)\)""")
+      .findAll(runtimeCoreBuild)
+      .map { match -> match.groupValues[1] }
+      .toSet()
   val runtimeComponentPublicAbiEdges = runtimeComponentPublicAbiEdges(runtimeRoot).projectEdges
   assertEquals(
     runtimeComponentPublicAbiEdges,
     runtimeCoreApiDependencies,
     "runtime-core public project edges must exactly match RuntimeComponent's generated public ABI.",
   )
-  val forbiddenApiDependencies = runtimeCoreApiDependencies
-    .filterNot(setOf(":runtime-application", ":runtime-ports", ":runtime-engine")::contains)
-    .sorted()
+  val forbiddenApiDependencies =
+    runtimeCoreApiDependencies
+      .filterNot(setOf(":runtime-application", ":runtime-ports", ":runtime-engine")::contains)
+      .sorted()
   assertEquals(
     emptyList(),
     forbiddenApiDependencies,
@@ -83,7 +93,7 @@ internal fun assertRuntimeCorePublicProjectEdges(runtimeRoot: Path, runtimeCoreB
     (
       "public ABI closure is currently runtime-application, runtime-engine, runtime-ports, " +
         "runtime-domain, and runtime-contracts"
-      ) in normalizedArchitecture,
+    ) in normalizedArchitecture,
     "ARCHITECTURE.md must document runtime-core's transitive generated public ABI closure.",
   )
   assertTrue(
@@ -106,10 +116,11 @@ private data class RuntimeComponentPublicAbiEdges(
 private fun runtimeComponentPublicAbiEdges(runtimeRoot: Path): RuntimeComponentPublicAbiEdges {
   val componentText = runtimeComponentText(runtimeRoot)
   val importsBySimpleName = importsBySimpleName(componentText)
-  val publicTypeNames = Regex("""abstract\s+val\s+\w+\s*:\s*([A-Za-z0-9_]+)""")
-    .findAll(componentText)
-    .map { match -> match.groupValues[1] }
-    .toMutableSet()
+  val publicTypeNames =
+    Regex("""abstract\s+val\s+\w+\s*:\s*([A-Za-z0-9_]+)""")
+      .findAll(componentText)
+      .map { match -> match.groupValues[1] }
+      .toMutableSet()
   Regex("""fun\s+\w+\s*\([^)]*\)\s*:\s*([A-Za-z0-9_]+)""")
     .findAll(componentText)
     .filterNot { match ->
@@ -136,12 +147,13 @@ private fun runtimeComponentPublicAbiEdges(runtimeRoot: Path): RuntimeComponentP
       "skillbill.model.WorkflowOpsContext",
       "skillbill.model.OptionalCallbacks",
       -> projectEdges += ":runtime-ports"
-      else -> when {
-        importedName.startsWith("skillbill.application.") -> projectEdges += ":runtime-application"
-        importedName.startsWith("skillbill.engine.") -> projectEdges += ":runtime-engine"
-        importedName.startsWith("skillbill.ports.") -> projectEdges += ":runtime-ports"
-        else -> unknownTypes += importedName
-      }
+      else ->
+        when {
+          importedName.startsWith("skillbill.application.") -> projectEdges += ":runtime-application"
+          importedName.startsWith("skillbill.engine.") -> projectEdges += ":runtime-engine"
+          importedName.startsWith("skillbill.ports.") -> projectEdges += ":runtime-ports"
+          else -> unknownTypes += importedName
+        }
     }
   }
   assertEquals(
@@ -153,13 +165,18 @@ private fun runtimeComponentPublicAbiEdges(runtimeRoot: Path): RuntimeComponentP
   return RuntimeComponentPublicAbiEdges(projectEdges, unknownTypes)
 }
 
-private fun runtimeCoreApiDependencyClosure(runtimeRoot: Path, directEdges: Set<String>): Set<String> {
+private fun runtimeCoreApiDependencyClosure(
+  runtimeRoot: Path,
+  directEdges: Set<String>,
+): Set<String> {
   val visited = mutableSetOf<String>()
+
   fun visit(module: String) {
     if (!visited.add(module)) return
-    val buildFile = runtimeRoot.resolve(
-      "runtime-kotlin/${module.removePrefix(":")}/build.gradle.kts",
-    ).toFile()
+    val buildFile =
+      runtimeRoot.resolve(
+        "runtime-kotlin/${module.removePrefix(":")}/build.gradle.kts",
+      ).toFile()
     if (!buildFile.isFile) return
     Regex("""api\(project\("(:runtime-[^"]+)"\)\)""")
       .findAll(buildFile.readText())
@@ -178,10 +195,12 @@ private fun runtimeComponentInternalProviderJvmLeaks(runtimeRoot: Path): List<St
     .toList()
 }
 
-private fun runtimeComponentText(runtimeRoot: Path): String = runtimeRoot.resolve(
-  "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeComponent.kt",
-).toFile().readText()
+private fun runtimeComponentText(runtimeRoot: Path): String =
+  runtimeRoot.resolve(
+    "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeComponent.kt",
+  ).toFile().readText()
 
-private fun importsBySimpleName(sourceText: String): Map<String, String> = sourceText.lineSequence()
-  .mapNotNull { line -> line.trim().removePrefix("import ").takeIf { line.trim().startsWith("import ") } }
-  .associateBy { importedName -> importedName.substringAfterLast('.') }
+private fun importsBySimpleName(sourceText: String): Map<String, String> =
+  sourceText.lineSequence()
+    .mapNotNull { line -> line.trim().removePrefix("import ").takeIf { line.trim().startsWith("import ") } }
+    .associateBy { importedName -> importedName.substringAfterLast('.') }

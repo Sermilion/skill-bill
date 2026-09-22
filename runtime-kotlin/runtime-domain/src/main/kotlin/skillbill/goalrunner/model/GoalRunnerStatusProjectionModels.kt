@@ -11,6 +11,7 @@ import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
+
 enum class GoalPlanningStatusState(val wireValue: String) {
   NOT_STARTED("not_started"),
   PREPLANNED("preplanned"),
@@ -74,7 +75,6 @@ data class GoalRunnerStatusProjection(
   val pendingCount: Int,
   val blockedCount: Int,
   val currentSubtaskId: Int?,
-
   val currentChildWorkflowId: String? = null,
   val currentSubtaskStatus: DecompositionStatus? = null,
   val currentSubtaskBlockedReason: String? = null,
@@ -117,22 +117,23 @@ data class GoalRunnerSubtaskValidationEvidence(
 ) {
   fun toStatusWire(): Any = toStatusMap()
 
-  internal fun toStatusMap(): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.SUBTASK_ID to subtaskId,
-    ValidationEvidencePayloadKeys.VALIDATION_PASSED to validationPassed,
-    ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to
-      evidence?.toArtifactMap(),
-    ValidationEvidencePayloadKeys.VALIDATION_RESULT to
-      gateExecutionEvidence?.let { gate ->
-        linkedMapOf(
-          ValidationEvidencePayloadKeys.VALIDATION_STATUS to gate.validationStatus,
-          ValidationEvidencePayloadKeys.CHECKS to gate.checks,
-          ValidationEvidencePayloadKeys.GATE_RUN_COUNT to gate.gateRunCount,
-          ValidationEvidencePayloadKeys.GATE_RUNS to gate.gateRuns.map { it.toArtifactMap() },
-        )
-      },
-    ValidationEvidencePayloadKeys.INTEGRITY_PROBLEM to integrityProblem,
-  )
+  internal fun toStatusMap(): Map<String, Any?> =
+    linkedMapOf(
+      SharedPayloadKeys.SUBTASK_ID to subtaskId,
+      ValidationEvidencePayloadKeys.VALIDATION_PASSED to validationPassed,
+      ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to
+        evidence?.toArtifactMap(),
+      ValidationEvidencePayloadKeys.VALIDATION_RESULT to
+        gateExecutionEvidence?.let { gate ->
+          linkedMapOf(
+            ValidationEvidencePayloadKeys.VALIDATION_STATUS to gate.validationStatus,
+            ValidationEvidencePayloadKeys.CHECKS to gate.checks,
+            ValidationEvidencePayloadKeys.GATE_RUN_COUNT to gate.gateRunCount,
+            ValidationEvidencePayloadKeys.GATE_RUNS to gate.gateRuns.map { it.toArtifactMap() },
+          )
+        },
+      ValidationEvidencePayloadKeys.INTEGRITY_PROBLEM to integrityProblem,
+    )
 }
 
 data class GoalRunnerAcceptedSubtask(
@@ -146,7 +147,6 @@ data class GoalRunnerStatusProjectionRuntimeInputs(
   val executionLiveness: ExecutionLiveness = ExecutionLiveness.UNKNOWN,
   val planning: GoalPlanningStatusSnapshot? = null,
   val currentStepOverride: String? = null,
-
   val currentWorkflowStatus: WorkflowStatus? = null,
   val latestLivenessSignal: String? = null,
   val latestObservabilityEvent: GoalObservabilityEvent? = null,

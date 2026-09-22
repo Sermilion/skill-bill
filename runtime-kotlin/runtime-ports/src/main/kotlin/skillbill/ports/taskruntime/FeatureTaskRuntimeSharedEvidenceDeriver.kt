@@ -2,6 +2,7 @@ package skillbill.ports.taskruntime
 
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceDerivation
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
+
 fun interface FeatureTaskRuntimeSharedEvidenceDeriver {
   fun derive(checkpoint: FeatureTaskRuntimeRepositoryCheckpoint): FeatureTaskRuntimeSharedEvidenceDerivation
 }

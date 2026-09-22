@@ -4,19 +4,21 @@ import java.io.InputStream
 import java.util.Properties
 
 object SkillBillVersion {
-  val VALUE: String = resourceVersion {
-    SkillBillVersion::class.java.classLoader.getResourceAsStream("skillbill/version.properties")
-  }
+  val VALUE: String =
+    resourceVersion {
+      SkillBillVersion::class.java.classLoader.getResourceAsStream("skillbill/version.properties")
+    }
 }
 
 internal fun resourceVersion(load: () -> InputStream?): String {
-  val loaded = load()
-    ?.use { stream ->
-      Properties()
-        .apply { load(stream) }
-        .getProperty("version")
-        ?.ifBlank { null }
-    }
+  val loaded =
+    load()
+      ?.use { stream ->
+        Properties()
+          .apply { load(stream) }
+          .getProperty("version")
+          ?.ifBlank { null }
+      }
   if (loaded != null) {
     return loaded
   }

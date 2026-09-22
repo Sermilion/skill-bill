@@ -3,6 +3,7 @@ package skillbill.goalrunner.model
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.model.WorkflowStatus
+
 const val GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY: String = "goal_attempt_ledger"
 const val GOAL_ATTEMPT_LEDGER_LIMIT: Int = 200
 
@@ -21,8 +22,9 @@ enum class GoalAttemptLedgerAction(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalAttemptLedgerAction = entries.firstOrNull { it.wireValue == value }
-      ?: throw InvalidWorkflowStateSchemaError("Unknown goal attempt ledger action '$value'.")
+    fun fromWire(value: String): GoalAttemptLedgerAction =
+      entries.firstOrNull { it.wireValue == value }
+        ?: throw InvalidWorkflowStateSchemaError("Unknown goal attempt ledger action '$value'.")
   }
 }
 
@@ -46,14 +48,15 @@ sealed interface GoalAttemptLaunchOutcome {
   }
 
   companion object {
-    fun fromWire(value: String): GoalAttemptLaunchOutcome? = when (value) {
-      "spawn_failed" -> SpawnFailed
-      "timed_out" -> TimedOut
-      "interrupted" -> Interrupted
-      "exited_ok" -> Exited(0)
-      "exited_unknown" -> Exited(null)
-      else -> value.removePrefix("exited_").toIntOrNull()?.let(::Exited)
-    }
+    fun fromWire(value: String): GoalAttemptLaunchOutcome? =
+      when (value) {
+        "spawn_failed" -> SpawnFailed
+        "timed_out" -> TimedOut
+        "interrupted" -> Interrupted
+        "exited_ok" -> Exited(0)
+        "exited_unknown" -> Exited(null)
+        else -> value.removePrefix("exited_").toIntOrNull()?.let(::Exited)
+      }
   }
 }
 
@@ -95,33 +98,34 @@ data class GoalAttemptLedgerEntry(
   fun toPersistenceWire(): Any = toArtifactMap()
 
   internal fun toArtifactMap(): Map<String, Any?> {
-    val optional = linkedMapOf<String, Any?>(
-      SharedPayloadKeys.ISSUE_KEY to issueKey,
-      SharedPayloadKeys.SUBTASK_ID to subtaskId,
-      "previous_workflow_id" to previousWorkflowId,
-      "previous_status" to previousStatus?.wireValue,
-      "previous_step" to previousStep,
-      "blocked_reason" to blockedReason,
-      "latest_liveness" to latestLiveness,
-      "launch_outcome" to launchOutcome?.wireValue,
-      "timed_out" to timedOut,
-      "interrupted" to interrupted,
-      "child_session_path" to childSessionPath,
-      "child_session_id" to childSessionId,
-      "final_reconciled_result" to finalReconciledResult,
-      "stop_reason" to stopReason,
-      "diagnostic_class" to diagnosticClass,
-      "current_step" to currentStep,
-      "exit_status" to exitStatus,
-      "recoverable_json_present" to recoverableJsonPresent,
-      "next_safe_action" to nextSafeAction,
-      "loop_id" to loopId,
-      "cumulative_loop_count" to cumulativeLoopCount,
-      "attempt_duration_millis" to attemptDurationMillis,
-      "causing_loop_entry" to causingLoopEntry,
-      "re_attempt_cause" to reAttemptCause,
-      "findings_in_scope" to findingsInScope,
-    )
+    val optional =
+      linkedMapOf<String, Any?>(
+        SharedPayloadKeys.ISSUE_KEY to issueKey,
+        SharedPayloadKeys.SUBTASK_ID to subtaskId,
+        "previous_workflow_id" to previousWorkflowId,
+        "previous_status" to previousStatus?.wireValue,
+        "previous_step" to previousStep,
+        "blocked_reason" to blockedReason,
+        "latest_liveness" to latestLiveness,
+        "launch_outcome" to launchOutcome?.wireValue,
+        "timed_out" to timedOut,
+        "interrupted" to interrupted,
+        "child_session_path" to childSessionPath,
+        "child_session_id" to childSessionId,
+        "final_reconciled_result" to finalReconciledResult,
+        "stop_reason" to stopReason,
+        "diagnostic_class" to diagnosticClass,
+        "current_step" to currentStep,
+        "exit_status" to exitStatus,
+        "recoverable_json_present" to recoverableJsonPresent,
+        "next_safe_action" to nextSafeAction,
+        "loop_id" to loopId,
+        "cumulative_loop_count" to cumulativeLoopCount,
+        "attempt_duration_millis" to attemptDurationMillis,
+        "causing_loop_entry" to causingLoopEntry,
+        "re_attempt_cause" to reAttemptCause,
+        "findings_in_scope" to findingsInScope,
+      )
     return linkedMapOf<String, Any?>(
       "action" to action.wireValue,
       "sequence_number" to sequenceNumber,

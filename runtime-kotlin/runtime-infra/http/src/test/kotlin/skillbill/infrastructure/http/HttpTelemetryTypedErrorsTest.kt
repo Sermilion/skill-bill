@@ -106,11 +106,11 @@ class HttpTelemetryTypedErrorsTest {
         client(requester).fetchRemoteStats(
           settings = settings,
           request =
-          RemoteStatsRequest(
-            workflow = "bill-feature-verify",
-            dateFrom = "2026-04-01",
-            dateTo = "2026-04-22",
-          ),
+            RemoteStatsRequest(
+              workflow = "bill-feature-verify",
+              dateFrom = "2026-04-01",
+              dateTo = "2026-04-22",
+            ),
         )
       }
 
@@ -133,34 +133,43 @@ class HttpTelemetryTypedErrorsTest {
   }
 }
 
-private fun settingsWithProxy(proxyUrl: String): TelemetrySettings = TelemetrySettings(
-  configPath = Files.createTempFile("telemetry-typed-errors", ".json").toFileLocation(),
-  level = "anonymous",
-  enabled = true,
-  installId = "test-install-id",
-  proxyUrl = proxyUrl,
-  customProxyUrl = proxyUrl.ifBlank { null },
-  batchSize = 50,
-)
+private fun settingsWithProxy(proxyUrl: String): TelemetrySettings =
+  TelemetrySettings(
+    configPath = Files.createTempFile("telemetry-typed-errors", ".json").toFileLocation(),
+    level = "anonymous",
+    enabled = true,
+    installId = "test-install-id",
+    proxyUrl = proxyUrl,
+    customProxyUrl = proxyUrl.ifBlank { null },
+    batchSize = 50,
+  )
 
-private fun capabilitiesBody(): String = """
+private fun capabilitiesBody(): String =
+  """
   {
     "contract_version": "2",
     "supports_ingest": true,
     "supports_stats": true,
     "supports_event_deduplication": true
   }
-""".trimIndent()
+  """.trimIndent()
 
-private fun client(requester: RemoteTransportPort): HttpTelemetryClient = HttpTelemetryClient(
-  requester = requester,
-  environmentContext = EnvironmentContext(environment = emptyMap()),
-  clock = Clock.systemUTC(),
-  diagnostics = SilentTypedErrorsDiagnostics,
-)
+private fun client(requester: RemoteTransportPort): HttpTelemetryClient =
+  HttpTelemetryClient(
+    requester = requester,
+    environmentContext = EnvironmentContext(environment = emptyMap()),
+    clock = Clock.systemUTC(),
+    diagnostics = SilentTypedErrorsDiagnostics,
+  )
 
 private object SilentTypedErrorsDiagnostics : RuntimeDiagnostics {
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }

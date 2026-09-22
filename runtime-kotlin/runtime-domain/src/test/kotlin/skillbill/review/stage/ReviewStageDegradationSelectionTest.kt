@@ -13,9 +13,10 @@ import kotlin.test.assertTrue
 class ReviewStageDegradationSelectionTest {
   @Test
   fun `governed launch with locators and zero authorized reads emits one unexercised record`() {
-    val records = evidenceReasons(
-      ReviewEvidenceBoundaryAccounting(governedLaunchCount = 1, authorizedReadCount = 0),
-    )
+    val records =
+      evidenceReasons(
+        ReviewEvidenceBoundaryAccounting(governedLaunchCount = 1, authorizedReadCount = 0),
+      )
 
     val unexercised = records.single()
     assertEquals(ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNEXERCISED, unexercised.reason)
@@ -25,19 +26,21 @@ class ReviewStageDegradationSelectionTest {
 
   @Test
   fun `governed launch with authorized reads and an admitted register emits none of the evidence reasons`() {
-    val parsed = ParallelReviewFindingParser.parse(
-      "- [F-001] Major | High | path=\"src/Main.kt\" | line=1 | admitted finding",
-    )
+    val parsed =
+      ParallelReviewFindingParser.parse(
+        "- [F-001] Major | High | path=\"src/Main.kt\" | line=1 | admitted finding",
+      )
     val rejected = parsed.rejections.size
 
-    val records = evidenceReasons(
-      ReviewEvidenceBoundaryAccounting(
-        governedLaunchCount = 1,
-        authorizedReadCount = 1,
-        evidenceBytes = 12,
-        rejectedCandidateCount = rejected,
-      ),
-    )
+    val records =
+      evidenceReasons(
+        ReviewEvidenceBoundaryAccounting(
+          governedLaunchCount = 1,
+          authorizedReadCount = 1,
+          evidenceBytes = 12,
+          rejectedCandidateCount = rejected,
+        ),
+      )
 
     assertTrue(records.isEmpty())
   }
@@ -48,13 +51,14 @@ class ReviewStageDegradationSelectionTest {
     val rejected = parsed.rejections.size
     assertTrue(rejected > 0)
 
-    val records = evidenceReasons(
-      ReviewEvidenceBoundaryAccounting(
-        governedLaunchCount = 1,
-        authorizedReadCount = 1,
-        rejectedCandidateCount = rejected,
-      ),
-    )
+    val records =
+      evidenceReasons(
+        ReviewEvidenceBoundaryAccounting(
+          governedLaunchCount = 1,
+          authorizedReadCount = 1,
+          rejectedCandidateCount = rejected,
+        ),
+      )
 
     val measurement = records.single()
     assertEquals(ReviewStageDegradationReason.REGISTER_CANDIDATES_REJECTED, measurement.reason)
@@ -64,35 +68,38 @@ class ReviewStageDegradationSelectionTest {
 
   @Test
   fun `well formed register and prose without a finding token emit no rejected-candidate record`() {
-    val wellFormed = ParallelReviewFindingParser.parse(
-      "- [F-001] Major | High | path=\"src/Main.kt\" | line=1 | admitted finding",
-    )
+    val wellFormed =
+      ParallelReviewFindingParser.parse(
+        "- [F-001] Major | High | path=\"src/Main.kt\" | line=1 | admitted finding",
+      )
     val prose = ParallelReviewFindingParser.parse("I reviewed the diff and found nothing worth reporting.")
 
     listOf(wellFormed, prose).forEach { parsed ->
       val rejected = parsed.rejections.size
       assertEquals(0, rejected)
-      val records = evidenceReasons(
-        ReviewEvidenceBoundaryAccounting(
-          governedLaunchCount = 1,
-          authorizedReadCount = 1,
-          rejectedCandidateCount = rejected,
-        ),
-      )
+      val records =
+        evidenceReasons(
+          ReviewEvidenceBoundaryAccounting(
+            governedLaunchCount = 1,
+            authorizedReadCount = 1,
+            rejectedCandidateCount = rejected,
+          ),
+        )
       assertTrue(records.none { it.reason == ReviewStageDegradationReason.REGISTER_CANDIDATES_REJECTED })
     }
   }
 
   @Test
   fun `exercised lane accounting does not hide another lane unexercised record`() {
-    val records = evidenceReasons(
-      ReviewEvidenceBoundaryAccounting(
-        governedLaunchCount = 1,
-        authorizedReadCount = 1,
-        evidenceBytes = 12,
-      ),
-      ReviewEvidenceBoundaryAccounting(governedLaunchCount = 1, authorizedReadCount = 0),
-    )
+    val records =
+      evidenceReasons(
+        ReviewEvidenceBoundaryAccounting(
+          governedLaunchCount = 1,
+          authorizedReadCount = 1,
+          evidenceBytes = 12,
+        ),
+        ReviewEvidenceBoundaryAccounting(governedLaunchCount = 1, authorizedReadCount = 0),
+      )
 
     val unexercised = records.single()
     assertEquals(ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNEXERCISED, unexercised.reason)
@@ -100,14 +107,15 @@ class ReviewStageDegradationSelectionTest {
 
   @Test
   fun `evidence degradation payloads carry seam identity reasons and counts only`() {
-    val records = evidenceReasons(
-      ReviewEvidenceBoundaryAccounting(
-        governedLaunchCount = 1,
-        authorizedReadCount = 0,
-        rejectedCandidateCount = 2,
-        unboundSeam = ReviewEvidenceBoundaryAccounting.GOVERNED_EVIDENCE_SEAM,
-      ),
-    )
+    val records =
+      evidenceReasons(
+        ReviewEvidenceBoundaryAccounting(
+          governedLaunchCount = 1,
+          authorizedReadCount = 0,
+          rejectedCandidateCount = 2,
+          unboundSeam = ReviewEvidenceBoundaryAccounting.GOVERNED_EVIDENCE_SEAM,
+        ),
+      )
 
     assertTrue(records.isNotEmpty())
     records.forEach(::assertCountsOnly)
@@ -115,14 +123,15 @@ class ReviewStageDegradationSelectionTest {
 
   @Test
   fun `a refused governed operation is recorded with its count and no repository content`() {
-    val records = evidenceReasons(
-      ReviewEvidenceBoundaryAccounting(
-        governedLaunchCount = 1,
-        authorizedReadCount = 1,
-        evidenceBytes = 12,
-        refusedOperationCount = 2,
-      ),
-    )
+    val records =
+      evidenceReasons(
+        ReviewEvidenceBoundaryAccounting(
+          governedLaunchCount = 1,
+          authorizedReadCount = 1,
+          evidenceBytes = 12,
+          refusedOperationCount = 2,
+        ),
+      )
 
     val refused = records.single()
     assertEquals(ReviewStageDegradationReason.EVIDENCE_BOUNDARY_OPERATION_REFUSED, refused.reason)
@@ -132,19 +141,21 @@ class ReviewStageDegradationSelectionTest {
 
   @Test
   fun `a verification non-success is reported as its closed reason, not the worker's prose`() {
-    val record = ReviewStageDegradationSelection.select(
-      ReviewStageDegradationSelectionRequest(
-        reviewRunId = "rvw-236",
-        spec = null,
-        boundaries = emptyList(),
-        verdicts = emptyList(),
-        claims = null,
-        verificationNonSuccess = ReviewVerificationNonSuccess(
-          reason = ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
-          detail = "worker stdout:\ndiff --git a/src/Main.kt\n[F-001] Major",
+    val record =
+      ReviewStageDegradationSelection.select(
+        ReviewStageDegradationSelectionRequest(
+          reviewRunId = "rvw-236",
+          spec = null,
+          boundaries = emptyList(),
+          verdicts = emptyList(),
+          claims = null,
+          verificationNonSuccess =
+            ReviewVerificationNonSuccess(
+              reason = ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
+              detail = "worker stdout:\ndiff --git a/src/Main.kt\n[F-001] Major",
+            ),
         ),
-      ),
-    ).single { it.reason == ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE }
+      ).single { it.reason == ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE }
 
     assertEquals(ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE.wireValue, record.actual)
     assertCountsOnly(record)
@@ -152,16 +163,17 @@ class ReviewStageDegradationSelectionTest {
 
   private fun evidenceReasons(
     vararg accounting: ReviewEvidenceBoundaryAccounting,
-  ): List<ReviewStageDegradationMeasurement> = ReviewStageDegradationSelection.select(
-    ReviewStageDegradationSelectionRequest(
-      reviewRunId = "rvw-195",
-      spec = null,
-      boundaries = emptyList(),
-      verdicts = emptyList(),
-      claims = null,
-      evidenceBoundaries = accounting.toList(),
-    ),
-  ).filter { it.reason in EVIDENCE_REASONS }
+  ): List<ReviewStageDegradationMeasurement> =
+    ReviewStageDegradationSelection.select(
+      ReviewStageDegradationSelectionRequest(
+        reviewRunId = "rvw-195",
+        spec = null,
+        boundaries = emptyList(),
+        verdicts = emptyList(),
+        claims = null,
+        evidenceBoundaries = accounting.toList(),
+      ),
+    ).filter { it.reason in EVIDENCE_REASONS }
 
   private fun assertCountsOnly(measurement: ReviewStageDegradationMeasurement) {
     listOf(measurement.seam, measurement.expected, measurement.actual).forEach { field ->
@@ -175,11 +187,12 @@ class ReviewStageDegradationSelectionTest {
   }
 
   private companion object {
-    val EVIDENCE_REASONS = setOf(
-      ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNBOUND_BROKER,
-      ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNEXERCISED,
-      ReviewStageDegradationReason.REGISTER_CANDIDATES_REJECTED,
-      ReviewStageDegradationReason.EVIDENCE_BOUNDARY_OPERATION_REFUSED,
-    )
+    val EVIDENCE_REASONS =
+      setOf(
+        ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNBOUND_BROKER,
+        ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNEXERCISED,
+        ReviewStageDegradationReason.REGISTER_CANDIDATES_REJECTED,
+        ReviewStageDegradationReason.EVIDENCE_BOUNDARY_OPERATION_REFUSED,
+      )
   }
 }

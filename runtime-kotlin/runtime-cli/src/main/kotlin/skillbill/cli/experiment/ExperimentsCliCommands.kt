@@ -51,17 +51,19 @@ class ExperimentsRunCommand(
         reason = "the governed acceptance criteria section is missing or empty",
       )
     }
-    val pairId = navigationCoordinator.run(
-      ExperimentNavigationPairRequest(
-        source = ExperimentNavigationPairSource(
-          name = name,
-          repoRoot = repo,
-          revision = revision,
-          specBytes = specPath.readBytes(),
-          criteria = criteria,
+    val pairId =
+      navigationCoordinator.run(
+        ExperimentNavigationPairRequest(
+          source =
+            ExperimentNavigationPairSource(
+              name = name,
+              repoRoot = repo,
+              revision = revision,
+              specBytes = specPath.readBytes(),
+              criteria = criteria,
+            ),
         ),
-      ),
-    )
+      )
     echo("navigation pair started: $pairId revision=$revision")
   }
 }
@@ -75,8 +77,9 @@ class ExperimentsReportCommand(
 
   override fun run() {
     val state = pairOwner.load(pairId) ?: error("unknown pair $pairId")
-    val projection = ExperimentReportProjector.project(state.pairPayload, state.executionMode.wireValue)
-      .also { pairOwner.saveReport(pairId, it) }
+    val projection =
+      ExperimentReportProjector.project(state.pairPayload, state.executionMode.wireValue)
+        .also { pairOwner.saveReport(pairId, it) }
     echo(
       if (format == "json") {
         ExperimentReportProjector.renderJson(projection)

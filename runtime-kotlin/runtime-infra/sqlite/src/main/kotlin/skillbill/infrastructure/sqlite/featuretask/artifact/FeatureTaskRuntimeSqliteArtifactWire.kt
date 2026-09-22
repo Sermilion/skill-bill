@@ -15,6 +15,7 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Featur
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
+
 internal fun FeatureTaskRuntimePhaseRecord.encodeWorkflowArtifact(): Any = asWorkflowArtifactEntry()
 
 internal fun FeatureTaskRuntimePhaseLedgerEntry.encodeWorkflowArtifact(): Any = asWorkflowArtifactEntry()
@@ -27,9 +28,10 @@ internal fun decodePhaseRecords(artifacts: Any?) = phaseRecordsFromWorkflowArtif
 
 internal fun decodePhaseLedger(artifacts: Any?) = phaseLedgerFromWorkflowArtifacts(artifacts)
 
-internal fun decodeGoalContinuationFieldAdoption(artifacts: Any?) = goalContinuationFieldAdoptionFromWorkflowArtifacts(
-  artifacts,
-)
+internal fun decodeGoalContinuationFieldAdoption(artifacts: Any?) =
+  goalContinuationFieldAdoptionFromWorkflowArtifacts(
+    artifacts,
+  )
 
 internal fun decodePhaseOutputRepairEvidence(json: String): FeatureTaskRuntimePhaseOutputRepairEvidence? =
   decodePhaseOutputRepairEvidenceFromArtifact(

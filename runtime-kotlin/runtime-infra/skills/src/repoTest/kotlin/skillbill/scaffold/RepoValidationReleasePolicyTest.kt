@@ -7,6 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class RepoValidationReleasePolicyTest {
   @Test
   fun `repository validation surfaces malformed agent addon without changing report counts`() {
@@ -40,18 +41,20 @@ class RepoValidationReleasePolicyTest {
   @Test
   fun `release refs reject bare version tags without v prefix`() {
     listOf("0.2.0", "refs/tags/1.0.0-rc.1").forEach { ref ->
-      val failure = assertFailsWith<IllegalArgumentException> {
-        RepoValidationRuntime.parseReleaseRef(ref)
-      }
+      val failure =
+        assertFailsWith<IllegalArgumentException> {
+          RepoValidationRuntime.parseReleaseRef(ref)
+        }
       assertTrue(failure.message.orEmpty().contains("canonical vMAJOR"), ref)
     }
   }
 
   @Test
   fun `release refs reject non semver tags`() {
-    val error = kotlin.runCatching {
-      RepoValidationRuntime.parseReleaseRef("release-1.0")
-    }.exceptionOrNull()
+    val error =
+      kotlin.runCatching {
+        RepoValidationRuntime.parseReleaseRef("release-1.0")
+      }.exceptionOrNull()
 
     assertTrue(error is IllegalArgumentException)
     assertTrue(error.message.orEmpty().contains("Release tag must match"))
@@ -72,9 +75,10 @@ class RepoValidationReleasePolicyTest {
   @Test
   fun `release policy rejects missing truncated and restricted MIT licenses`() {
     val repoRoot = Files.createTempDirectory("skillbill-invalid-mit-license")
-    val missing = assertFailsWith<IllegalArgumentException> {
-      RepoValidationRuntime.validateReleaseRef(repoRoot, "v0.1.2")
-    }
+    val missing =
+      assertFailsWith<IllegalArgumentException> {
+        RepoValidationRuntime.validateReleaseRef(repoRoot, "v0.1.2")
+      }
     assertTrue(missing.message.orEmpty().contains("LICENSE"))
 
     listOf(
@@ -85,9 +89,10 @@ class RepoValidationReleasePolicyTest {
     ).forEach { license ->
       Files.writeString(repoRoot.resolve("LICENSE"), license)
       listOf("v0.1.1", "v0.1.2", "v1.0.0-rc.1", "v1.0.0", "v2.0.0").forEach { ref ->
-        val failure = assertFailsWith<IllegalArgumentException> {
-          RepoValidationRuntime.validateReleaseRef(repoRoot, ref)
-        }
+        val failure =
+          assertFailsWith<IllegalArgumentException> {
+            RepoValidationRuntime.validateReleaseRef(repoRoot, ref)
+          }
         assertTrue(failure.message.orEmpty().contains("complete current MIT license"), ref)
       }
     }
@@ -100,9 +105,10 @@ class RepoValidationReleasePolicyTest {
 
     val staging = RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0-staging.1", forcePrerelease = true)
     assertTrue(staging.prerelease)
-    val failure = assertFailsWith<IllegalArgumentException> {
-      RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0", forcePrerelease = true)
-    }
+    val failure =
+      assertFailsWith<IllegalArgumentException> {
+        RepoValidationRuntime.validateReleaseRef(repoRoot, "v1.0.0", forcePrerelease = true)
+      }
     assertTrue(failure.message.orEmpty().contains("prerelease identifier"))
   }
 }

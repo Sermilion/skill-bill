@@ -13,20 +13,29 @@ internal object GoalPlanningRepositoryScope {
 
   fun canonicalRoot(repoRoot: Path): Path = goalPlanningCanonicalRoot(repoRoot)
 
-  fun included(repoRoot: Path, candidate: Path): Pair<Path, String>? = goalPlanningIncluded(repoRoot, candidate)
+  fun included(
+    repoRoot: Path,
+    candidate: Path,
+  ): Pair<Path, String>? = goalPlanningIncluded(repoRoot, candidate)
 
-  fun includedRegularFile(repoRoot: Path, relativePath: String): Path? =
-    goalPlanningIncludedRegularFile(repoRoot, relativePath)
+  fun includedRegularFile(
+    repoRoot: Path,
+    relativePath: String,
+  ): Path? = goalPlanningIncludedRegularFile(repoRoot, relativePath)
 
   fun isBoundaryMemoryPath(relativePath: String): Boolean = goalPlanningIsBoundaryMemoryPath(relativePath)
 
   fun agentDirectories(repoRoot: Path): AgentDirectoryWalk = goalPlanningAgentDirectories(repoRoot)
 
-  fun owningAgentDirectory(repoRoot: Path, findingPath: String): Path? =
-    goalPlanningOwningAgentDirectory(repoRoot, findingPath)
+  fun owningAgentDirectory(
+    repoRoot: Path,
+    findingPath: String,
+  ): Path? = goalPlanningOwningAgentDirectory(repoRoot, findingPath)
 
-  fun owningAgentDirectories(repoRoot: Path, findingPaths: List<String>): List<Path> =
-    goalPlanningOwningAgentDirectories(repoRoot, findingPaths)
+  fun owningAgentDirectories(
+    repoRoot: Path,
+    findingPaths: List<String>,
+  ): List<Path> = goalPlanningOwningAgentDirectories(repoRoot, findingPaths)
 
   fun normalizeFindingPath(findingPath: String): String? = goalPlanningNormalizeFindingPath(findingPath)
 }

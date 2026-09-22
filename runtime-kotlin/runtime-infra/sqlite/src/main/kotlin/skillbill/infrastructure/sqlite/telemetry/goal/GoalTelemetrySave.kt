@@ -17,31 +17,38 @@ internal enum class GoalFinishedSaveOutcome { FIRST_TERMINAL, DUPLICATE }
 
 internal data class GoalIssueFinishedSaveOutcome(val persisted: Boolean, val suppressionReason: String? = null)
 
-internal fun saveGoalStarted(connection: Connection, record: GoalStartedRecord): GoalStartedSaveOutcome {
-  val inserted = connection.prepareStatement(
-    """
-    INSERT INTO goal_run_sessions (
-      workflow_id, issue_key, feature_name, subtask_total, resumed, started_at, mode, parent_workflow_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(workflow_id) DO NOTHING
-    """.trimIndent(),
-  ).use { statement ->
-    statement.bindAll(
-      record.workflowId,
-      record.issueKey,
-      record.featureName,
-      record.subtaskTotal,
-      record.resumed.toSqlInt(),
-      record.startedAt,
-      record.mode,
-      record.parentWorkflowId,
-    )
-    statement.executeUpdate() > 0
-  }
+internal fun saveGoalStarted(
+  connection: Connection,
+  record: GoalStartedRecord,
+): GoalStartedSaveOutcome {
+  val inserted =
+    connection.prepareStatement(
+      """
+      INSERT INTO goal_run_sessions (
+        workflow_id, issue_key, feature_name, subtask_total, resumed, started_at, mode, parent_workflow_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(workflow_id) DO NOTHING
+      """.trimIndent(),
+    ).use { statement ->
+      statement.bindAll(
+        record.workflowId,
+        record.issueKey,
+        record.featureName,
+        record.subtaskTotal,
+        record.resumed.toSqlInt(),
+        record.startedAt,
+        record.mode,
+        record.parentWorkflowId,
+      )
+      statement.executeUpdate() > 0
+    }
   return if (inserted) GoalStartedSaveOutcome.INSERTED else GoalStartedSaveOutcome.DUPLICATE
 }
 
-internal fun saveGoalFinished(connection: Connection, record: GoalFinishedRecord): GoalFinishedSaveOutcome {
+internal fun saveGoalFinished(
+  connection: Connection,
+  record: GoalFinishedRecord,
+): GoalFinishedSaveOutcome {
   if (goalRunSessionExists(connection, record.workflowId)) {
     return if (updateGoalFinished(connection, record)) {
       GoalFinishedSaveOutcome.FIRST_TERMINAL
@@ -54,7 +61,10 @@ internal fun saveGoalFinished(connection: Connection, record: GoalFinishedRecord
   }
 }
 
-private fun updateGoalFinished(connection: Connection, record: GoalFinishedRecord): Boolean =
+private fun updateGoalFinished(
+  connection: Connection,
+  record: GoalFinishedRecord,
+): Boolean =
   connection.prepareStatement(
     """
     UPDATE goal_run_sessions SET
@@ -89,7 +99,10 @@ private fun updateGoalFinished(connection: Connection, record: GoalFinishedRecor
     statement.executeUpdate() > 0
   }
 
-private fun insertGoalFinished(connection: Connection, record: GoalFinishedRecord) {
+private fun insertGoalFinished(
+  connection: Connection,
+  record: GoalFinishedRecord,
+) {
   connection.prepareStatement(
     """
     INSERT INTO goal_run_sessions (
@@ -117,7 +130,10 @@ private fun insertGoalFinished(connection: Connection, record: GoalFinishedRecor
   }
 }
 
-internal fun recordGoalIssueSegmentStarted(connection: Connection, segment: GoalIssueSegmentStart) {
+internal fun recordGoalIssueSegmentStarted(
+  connection: Connection,
+  segment: GoalIssueSegmentStart,
+) {
   connection.prepareStatement(
     """
     INSERT INTO goal_issue_progress (
@@ -177,15 +193,16 @@ internal fun recordGoalIssueSegmentEnd(
   status: String,
 ) {
   val blocked = status != "paused"
-  val blockedColumns = if (blocked) {
-    """
-    total_blocks = total_blocks + 1,
-        last_blocked_at = CURRENT_TIMESTAMP,
-        last_blocked_segment_workflow_id = ?,
-    """.trimIndent()
-  } else {
-    ""
-  }
+  val blockedColumns =
+    if (blocked) {
+      """
+      total_blocks = total_blocks + 1,
+          last_blocked_at = CURRENT_TIMESTAMP,
+          last_blocked_segment_workflow_id = ?,
+      """.trimIndent()
+    } else {
+      ""
+    }
   connection.prepareStatement(
     """
     UPDATE goal_issue_progress
@@ -267,7 +284,8 @@ internal fun saveGoalIssueFinished(
   }
 }
 
-internal fun nextGoalStateEnteredAtSql(candidateSql: String): String = """
+internal fun nextGoalStateEnteredAtSql(candidateSql: String): String =
+  """
   CASE
     WHEN julianday(NULLIF(goal_issue_progress.state_entered_at, '')) IS NULL THEN
       COALESCE(NULLIF($candidateSql, ''), $SQLITE_TIMESTAMP_NOW)
@@ -275,35 +293,39 @@ internal fun nextGoalStateEnteredAtSql(candidateSql: String): String = """
     WHEN julianday($SQLITE_TIMESTAMP_NOW) > julianday(goal_issue_progress.state_entered_at) THEN $SQLITE_TIMESTAMP_NOW
     ELSE strftime('%Y-%m-%dT%H:%M:%fZ', julianday(goal_issue_progress.state_entered_at) + 0.001 / 86400.0)
   END
-""".trimIndent()
+  """.trimIndent()
 
-internal fun saveGoalSubtaskFinished(connection: Connection, record: GoalSubtaskFinishedRecord): Boolean {
-  val inserted = connection.prepareStatement(
-    """
-    INSERT INTO goal_subtask_events (
-      issue_key, workflow_id, subtask_id, subtask_name, status,
-      started_at, finished_at, duration_ms, attempt_count, blocked_reason,
-      finalizing_agent_id, participating_agent_ids
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT (issue_key, subtask_id, workflow_id) DO NOTHING
-    """.trimIndent(),
-  ).use { statement ->
-    statement.bindAll(
-      record.issueKey,
-      record.workflowId,
-      record.subtaskId,
-      record.subtaskName,
-      record.status,
-      record.startedAt,
-      record.finishedAt,
-      record.durationMs,
-      record.attemptCount,
-      record.blockedReason,
-      record.finalizingAgentId,
-      listJson(record.participatingAgentIds),
-    )
-    statement.executeUpdate() > 0
-  }
+internal fun saveGoalSubtaskFinished(
+  connection: Connection,
+  record: GoalSubtaskFinishedRecord,
+): Boolean {
+  val inserted =
+    connection.prepareStatement(
+      """
+      INSERT INTO goal_subtask_events (
+        issue_key, workflow_id, subtask_id, subtask_name, status,
+        started_at, finished_at, duration_ms, attempt_count, blocked_reason,
+        finalizing_agent_id, participating_agent_ids
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT (issue_key, subtask_id, workflow_id) DO NOTHING
+      """.trimIndent(),
+    ).use { statement ->
+      statement.bindAll(
+        record.issueKey,
+        record.workflowId,
+        record.subtaskId,
+        record.subtaskName,
+        record.status,
+        record.startedAt,
+        record.finishedAt,
+        record.durationMs,
+        record.attemptCount,
+        record.blockedReason,
+        record.finalizingAgentId,
+        listJson(record.participatingAgentIds),
+      )
+      statement.executeUpdate() > 0
+    }
   connection.prepareStatement(
     """
     UPDATE goal_subtask_events
@@ -337,7 +359,10 @@ internal fun saveGoalSubtaskFinished(connection: Connection, record: GoalSubtask
   return inserted
 }
 
-private fun goalRunSessionExists(connection: Connection, workflowId: String): Boolean =
+private fun goalRunSessionExists(
+  connection: Connection,
+  workflowId: String,
+): Boolean =
   connection.prepareStatement("SELECT 1 FROM goal_run_sessions WHERE workflow_id = ?").use { statement ->
     statement.bindAll(workflowId)
     statement.executeQuery().use { it.next() }

@@ -2,13 +2,16 @@ package dev.skillbill.runtime.buildlogic
 
 private val STABLE_SEMVER_TAG = Regex("""^v?(\d+)\.(\d+)\.(\d+)$""")
 
-fun resolveSkillBillVersion(releaseVersion: String?, tags: Iterable<String>): String =
-  releaseVersion?.takeIf(String::isNotBlank) ?: nextDevSnapshotVersion(tags) ?: UNVERSIONED_SNAPSHOT
+fun resolveSkillBillVersion(
+  releaseVersion: String?,
+  tags: Iterable<String>,
+): String = releaseVersion?.takeIf(String::isNotBlank) ?: nextDevSnapshotVersion(tags) ?: UNVERSIONED_SNAPSHOT
 
 fun nextDevSnapshotVersion(tags: Iterable<String>): String? {
-  val latest = tags.mapNotNull(::parseStableSemver)
-    .maxWithOrNull(compareBy(StableSemver::major, StableSemver::minor, StableSemver::patch))
-    ?: return null
+  val latest =
+    tags.mapNotNull(::parseStableSemver)
+      .maxWithOrNull(compareBy(StableSemver::major, StableSemver::minor, StableSemver::patch))
+      ?: return null
   return "${latest.major}.${latest.minor}.${latest.patch + 1}-SNAPSHOT"
 }
 

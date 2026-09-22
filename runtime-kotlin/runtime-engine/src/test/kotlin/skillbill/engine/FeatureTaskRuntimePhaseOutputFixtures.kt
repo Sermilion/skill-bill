@@ -1,48 +1,53 @@
 package skillbill.engine
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
+
 internal const val REVIEW_FIX_BLOCKER_FINDING_ID = "F-001"
 
 internal var harnessPendingVerifyFindingIds: List<String> = emptyList()
 
 internal fun harnessReviewDriverSyncingPendingVerifyFindings(
   delegate: FeatureTaskRuntimeReviewDriver,
-): FeatureTaskRuntimeReviewDriver = FeatureTaskRuntimeReviewDriver { request ->
-  val result = delegate.run(request)
-  harnessPendingVerifyFindingIds = result.mergeResult.findings.map { it.fNumber }
-  result
-}
+): FeatureTaskRuntimeReviewDriver =
+  FeatureTaskRuntimeReviewDriver { request ->
+    val result = delegate.run(request)
+    harnessPendingVerifyFindingIds = result.mergeResult.findings.map { it.fNumber }
+    result
+  }
 
 internal fun verifyFindingsPhaseOutput(
   verifiedFindingIds: List<String> = harnessPendingVerifyFindingIds,
-): FeatureTaskRuntimePhaseOutput = FeatureTaskRuntimePhaseOutput(
-  "verify_findings",
-  1,
-  verifyFindingsOutput(verifiedFindingIds),
-)
+): FeatureTaskRuntimePhaseOutput =
+  FeatureTaskRuntimePhaseOutput(
+    "verify_findings",
+    1,
+    verifyFindingsOutput(verifiedFindingIds),
+  )
 
 internal fun verifyFindingsOutputForFindingIds(vararg findingIds: String): String =
   verifyFindingsOutput(findingIds.toList())
 
 internal fun verifyFindingsOutput(verifiedFindingIds: List<String> = harnessPendingVerifyFindingIds): String {
-  val dispositions = verifiedFindingIds.joinToString(",") { findingId ->
-    """{"finding_id":"$findingId","disposition":"verified","boundary_context_unavailable":true}"""
-  }
+  val dispositions =
+    verifiedFindingIds.joinToString(",") { findingId ->
+      """{"finding_id":"$findingId","disposition":"verified","boundary_context_unavailable":true}"""
+    }
   val verdict = if (verifiedFindingIds.isEmpty()) "no_findings_verified" else "findings_verified"
   val dispositionsJson = if (dispositions.isEmpty()) "[]" else "[$dispositions]"
   return """
-  {
-    "contract_version": "0.6",
-    "phase_id": "verify_findings",
-    "status": "completed",
-    "summary": "Phase produced a validated output.",
-    "verdict": "$verdict",
-    "produced_outputs": {"finding_dispositions": $dispositionsJson}
-  }
-  """.trimIndent()
+    {
+      "contract_version": "0.6",
+      "phase_id": "verify_findings",
+      "status": "completed",
+      "summary": "Phase produced a validated output.",
+      "verdict": "$verdict",
+      "produced_outputs": {"finding_dispositions": $dispositionsJson}
+    }
+    """.trimIndent()
 }
 
-internal val IMPLEMENT_NO_RECONCILE_OUTPUT: String = """
+internal val IMPLEMENT_NO_RECONCILE_OUTPUT: String =
+  """
   {
     "contract_version": "0.6",
     "phase_id": "implement",
@@ -53,9 +58,10 @@ internal val IMPLEMENT_NO_RECONCILE_OUTPUT: String = """
       "changed_files": ["src/Foo.kt"]
     }
   }
-""".trimIndent()
+  """.trimIndent()
 
-internal fun verdictPlanOutput(verdict: String): String = """
+internal fun verdictPlanOutput(verdict: String): String =
+  """
   {
     "contract_version": "0.6",
     "phase_id": "plan",
@@ -64,9 +70,10 @@ internal fun verdictPlanOutput(verdict: String): String = """
     "verdict": "$verdict",
     "produced_outputs": ${validProducedOutputs("plan")}
   }
-""".trimIndent()
+  """.trimIndent()
 
-internal val FINALISED_COMMIT_PUSH_OUTPUT: String = """
+internal val FINALISED_COMMIT_PUSH_OUTPUT: String =
+  """
   {
     "contract_version": "0.6",
     "phase_id": "commit_push",
@@ -74,7 +81,7 @@ internal val FINALISED_COMMIT_PUSH_OUTPUT: String = """
     "summary": "Phase produced a validated output.",
     "produced_outputs": ${commitPushProducedOutputs(commitSha = "commit-runtime-1")}
   }
-""".trimIndent()
+  """.trimIndent()
 
 internal fun commitPushProducedOutputs(
   commitSha: String? = null,
@@ -82,61 +89,74 @@ internal fun commitPushProducedOutputs(
 ): String {
   val sha = commitSha?.let { """"commit_sha":"$it",""" } ?: ""
   val pathsJson = changedPaths.joinToString(",") { "\"$it\"" }
-  return """{"commit_push_result":{
-    $sha
-    "message":"SKILL-65: runtime feature-task parity",
-    "changed_paths":[$pathsJson],
-    "branch":"feat/SKILL-65-runtime-feature-task-parity",
-    "base_branch":"main",
-    "pushed":true
-  }}
-  """.trimIndent()
+  return """
+    {"commit_push_result":{
+      $sha
+      "message":"SKILL-65: runtime feature-task parity",
+      "changed_paths":[$pathsJson],
+      "branch":"feat/SKILL-65-runtime-feature-task-parity",
+      "base_branch":"main",
+      "pushed":true
+    }}
+    """.trimIndent()
 }
 
-internal fun validJsonOutput(phaseId: String, commitPushChangedPaths: List<String>? = null): String {
+internal fun validJsonOutput(
+  phaseId: String,
+  commitPushChangedPaths: List<String>? = null,
+): String {
   if (phaseId == "verify_findings") {
     return verifyFindingsOutput()
   }
   if (phaseId == "audit") {
     return """
+      {
+        "contract_version": "0.6",
+        "phase_id": "audit",
+        "status": "completed",
+        "summary": "Phase produced a validated output.",
+        "verdict": "satisfied",
+        "produced_outputs": ${validProducedOutputs(phaseId, commitPushChangedPaths)}
+      }
+      """.trimIndent()
+  }
+  return """
     {
       "contract_version": "0.6",
-      "phase_id": "audit",
+      "phase_id": "$phaseId",
       "status": "completed",
       "summary": "Phase produced a validated output.",
-      "verdict": "satisfied",
       "produced_outputs": ${validProducedOutputs(phaseId, commitPushChangedPaths)}
     }
     """.trimIndent()
-  }
-  return """
-  {
-    "contract_version": "0.6",
-    "phase_id": "$phaseId",
-    "status": "completed",
-    "summary": "Phase produced a validated output.",
-    "produced_outputs": ${validProducedOutputs(phaseId, commitPushChangedPaths)}
-  }
-  """.trimIndent()
 }
 
-internal fun validJsonOutputForGitPhase(phaseId: String, git: RecordingWorkflowGitOperations): String = validJsonOutput(
-  phaseId,
-  commitPushChangedPaths = if (phaseId == "commit_push" && git.ownedPathsValue.isNotEmpty()) {
-    git.ownedPathsValue
-  } else {
-    null
-  },
-)
+internal fun validJsonOutputForGitPhase(
+  phaseId: String,
+  git: RecordingWorkflowGitOperations,
+): String =
+  validJsonOutput(
+    phaseId,
+    commitPushChangedPaths =
+      if (phaseId == "commit_push" && git.ownedPathsValue.isNotEmpty()) {
+        git.ownedPathsValue
+      } else {
+        null
+      },
+  )
 
-internal fun validProducedOutputs(phaseId: String, commitPushChangedPaths: List<String>? = null): String =
+internal fun validProducedOutputs(
+  phaseId: String,
+  commitPushChangedPaths: List<String>? = null,
+): String =
   when (phaseId) {
     "validate" -> VALIDATE_PRODUCED_OUTPUTS
     "write_history" -> WRITE_HISTORY_PRODUCED_OUTPUTS
-    "commit_push" -> commitPushProducedOutputs(
-      commitSha = null,
-      changedPaths = commitPushChangedPaths ?: listOf("src/Foo.kt"),
-    )
+    "commit_push" ->
+      commitPushProducedOutputs(
+        commitSha = null,
+        changedPaths = commitPushChangedPaths ?: listOf("src/Foo.kt"),
+      )
     "preplan" -> preplanProducedOutputs()
     "plan" -> planProducedOutputs()
     "implement" -> implementProducedOutputs()
@@ -154,32 +174,40 @@ private const val VALIDATE_PRODUCED_OUTPUTS =
 private const val WRITE_HISTORY_PRODUCED_OUTPUTS =
   """{"history_result":{"changed_paths":["agent/history.md"],"decisions_recorded":[]}}"""
 
-private fun preplanProducedOutputs(): String = """{
-      "value":"Fixture preplan prose for downstream plan."
-    }
-""".trimIndent()
+private fun preplanProducedOutputs(): String =
+  """
+  {
+    "value":"Fixture preplan prose for downstream plan."
+  }
+  """.trimIndent()
 
-private fun planProducedOutputs(): String = """{
-      "value":"Fixture plan prose for downstream implement and audit."
-    }
-""".trimIndent()
+private fun planProducedOutputs(): String =
+  """
+  {
+    "value":"Fixture plan prose for downstream implement and audit."
+  }
+  """.trimIndent()
 
-private fun implementProducedOutputs(): String = """{
-      "value":"Fixture implement prose for downstream audit."
-    }
-""".trimIndent()
+private fun implementProducedOutputs(): String =
+  """
+  {
+    "value":"Fixture implement prose for downstream audit."
+  }
+  """.trimIndent()
 
-private fun implementFixProducedOutputs(): String = """{
-      "repair_receipt": {
-        "contract_version": "0.3",
-        "entries": [{
-          "finding_id": "F-001",
-          "outcome": "addressed"
-        }]
-      },
-      "reconciled_state": {"reconciled": true, "evidence": "Fixture tree at target state."}
-    }
-""".trimIndent()
+private fun implementFixProducedOutputs(): String =
+  """
+  {
+    "repair_receipt": {
+      "contract_version": "0.3",
+      "entries": [{
+        "finding_id": "F-001",
+        "outcome": "addressed"
+      }]
+    },
+    "reconciled_state": {"reconciled": true, "evidence": "Fixture tree at target state."}
+  }
+  """.trimIndent()
 
 internal data class PhaseOutputFixture(
   val id: String,
@@ -230,13 +258,14 @@ internal object Skill187SyntheticAuditResponses {
     """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"criteria met",""" +
       """"verdict":"satisfied","produced_outputs":{"value":"$AUDIT_VALUE_SATISFIED"}}"""
 
-  fun unsupportedBlockYaml(): String = """
-      contract_version: "0.6"
-      phase_id: "audit"
-      status: "completed"
-      summary: "$UNSUPPORTED_YAML_SENTINEL"
-      verdict: "satisfied"
-      produced_outputs:
-        value: "$AUDIT_VALUE_SATISFIED"
-  """.trimIndent()
+  fun unsupportedBlockYaml(): String =
+    """
+    contract_version: "0.6"
+    phase_id: "audit"
+    status: "completed"
+    summary: "$UNSUPPORTED_YAML_SENTINEL"
+    verdict: "satisfied"
+    produced_outputs:
+      value: "$AUDIT_VALUE_SATISFIED"
+    """.trimIndent()
 }

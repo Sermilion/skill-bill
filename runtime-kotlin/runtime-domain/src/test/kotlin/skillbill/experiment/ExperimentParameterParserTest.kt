@@ -40,14 +40,15 @@ class ExperimentParameterParserTest {
 
   @Test
   fun `config parser rejects malformed and reserved values with the owning key`() {
-    val invalidValues = listOf(
-      null,
-      "fixture",
-      listOf(1),
-      listOf(""),
-      listOf("none"),
-      listOf("fixture", "fixture"),
-    )
+    val invalidValues =
+      listOf(
+        null,
+        "fixture",
+        listOf(1),
+        listOf(""),
+        listOf("none"),
+        listOf("fixture", "fixture"),
+      )
 
     invalidValues.forEach { value ->
       when (val result = parseExperimentAvailabilityValue(value)) {

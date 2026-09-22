@@ -16,14 +16,15 @@ internal class GoalSubtaskPlanStore(
     orderedSubtaskIds: List<Int>,
     blockedSubtaskId: Int?,
     blockedReason: String?,
-  ): GoalPlanningStatusSnapshot = translateSqlFailure(parentGoalWorkflowId, blockedSubtaskId ?: 0) {
-    statusProjection.boundedStatus(
-      parentGoalWorkflowId,
-      orderedSubtaskIds,
-      blockedSubtaskId,
-      blockedReason,
-    )
-  }
+  ): GoalPlanningStatusSnapshot =
+    translateSqlFailure(parentGoalWorkflowId, blockedSubtaskId ?: 0) {
+      statusProjection.boundedStatus(
+        parentGoalWorkflowId,
+        orderedSubtaskIds,
+        blockedSubtaskId,
+        blockedReason,
+      )
+    }
 
   override fun checkpointSubtaskPlan(checkpoint: GoalSubtaskPlanCheckpoint) {
     translateSqlFailure(checkpoint.identity.parentGoalWorkflowId, checkpoint.subtaskId) {
@@ -37,7 +38,10 @@ internal class GoalSubtaskPlanStore(
     }
   }
 
-  override fun deleteSubtaskPlan(parentGoalWorkflowId: String, subtaskId: Int): Int =
+  override fun deleteSubtaskPlan(
+    parentGoalWorkflowId: String,
+    subtaskId: Int,
+  ): Int =
     translateSqlFailure(parentGoalWorkflowId, subtaskId) {
       subtaskPlan.deleteSubtaskPlan(parentGoalWorkflowId, subtaskId)
     }
@@ -46,14 +50,16 @@ internal class GoalSubtaskPlanStore(
     expectedIdentity: GoalPlanningIdentity,
     subtaskId: Int,
     governedSubSpecPath: String,
-  ): GoalSubtaskPlanCheckpoint? = translateSqlFailure(expectedIdentity.parentGoalWorkflowId, subtaskId) {
-    subtaskPlan.findSubtaskPlan(expectedIdentity, subtaskId, governedSubSpecPath)
-  }
+  ): GoalSubtaskPlanCheckpoint? =
+    translateSqlFailure(expectedIdentity.parentGoalWorkflowId, subtaskId) {
+      subtaskPlan.findSubtaskPlan(expectedIdentity, subtaskId, governedSubSpecPath)
+    }
 
   override fun listSubtaskPlansOrdered(
     expectedIdentity: GoalPlanningIdentity,
     orderedDescriptors: List<GovernedGoalSubtaskDescriptor>,
-  ): List<GoalSubtaskPlanCheckpoint> = translateSqlFailure(expectedIdentity.parentGoalWorkflowId, 0) {
-    subtaskPlan.listSubtaskPlansOrdered(expectedIdentity, orderedDescriptors)
-  }
+  ): List<GoalSubtaskPlanCheckpoint> =
+    translateSqlFailure(expectedIdentity.parentGoalWorkflowId, 0) {
+      subtaskPlan.listSubtaskPlansOrdered(expectedIdentity, orderedDescriptors)
+    }
 }

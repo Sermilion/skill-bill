@@ -20,41 +20,46 @@ class CliAgentAddonResolveSelectionRuntimeTest {
     writeConfig(
       home,
       mapOf(
-        "external_addon_sources" to listOf(
-          mapOf("kind" to "agent-addon", "path" to externalRoot.toString()),
-        ),
+        "external_addon_sources" to
+          listOf(
+            mapOf("kind" to "agent-addon", "path" to externalRoot.toString()),
+          ),
       ),
     )
 
-    val result = CliRuntime.run(
-      listOf(
-        "agent-addon",
-        "resolve-selection",
-        "--repo-root",
-        repo.toString(),
-        "--receiving-agent",
-        "codex",
-        "--token",
-        "agent-addon:codex-policy",
-      ),
-      CliRuntimeContext(userHome = home, environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "agent-addon",
+          "resolve-selection",
+          "--repo-root",
+          repo.toString(),
+          "--receiving-agent",
+          "codex",
+          "--token",
+          "agent-addon:codex-policy",
+        ),
+        CliRuntimeContext(userHome = home, environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "codex-policy")
     assertContains(result.stdout, externalRoot.resolve("codex-policy/agent-addon.yaml").toString())
   }
 
-  private fun writeAgentAddon(root: Path, slug: String) {
+  private fun writeAgentAddon(
+    root: Path,
+    slug: String,
+  ) {
     val source = Files.createDirectories(root.resolve(slug))
     Files.writeString(
       source.resolve("agent-addon.yaml"),
       """
-        contract_version: "1.0"
-        slug: $slug
-        description: Codex policy.
-        agent_ids: [codex]
-        consumers: [bill-feature]
+      contract_version: "1.0"
+      slug: $slug
+      description: Codex policy.
+      agent_ids: [codex]
+      consumers: [bill-feature]
       """.trimIndent() + "\n",
     )
     Files.writeString(source.resolve("content.md"), "# Codex policy\n")
@@ -62,7 +67,10 @@ class CliAgentAddonResolveSelectionRuntimeTest {
 
   private fun configPath(home: Path): Path = home.resolve("config.json")
 
-  private fun writeConfig(home: Path, payload: Map<String, Any?>) {
+  private fun writeConfig(
+    home: Path,
+    payload: Map<String, Any?>,
+  ) {
     Files.writeString(configPath(home), JsonCodec.mapToJsonString(payload) + "\n")
   }
 }

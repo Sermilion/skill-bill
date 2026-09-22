@@ -8,17 +8,19 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertTrue
+
 class PointerRoundTripTest {
   @Test
   fun `every declared pointer renders without requiring source pointer files`() {
-    val repoRoot = findRepoRoot() ?: run {
-      Assumptions.assumeTrue(
-        false,
-        "Skipping pointer round-trip test: could not locate repo root " +
-          "(set SKILL_BILL_REPO_ROOT or run from inside repo)",
-      )
-      return
-    }
+    val repoRoot =
+      findRepoRoot() ?: run {
+        Assumptions.assumeTrue(
+          false,
+          "Skipping pointer round-trip test: could not locate repo root " +
+            "(set SKILL_BILL_REPO_ROOT or run from inside repo)",
+        )
+        return
+      }
     val packsRoot = repoRoot.resolve("platform-packs")
     if (!Files.isDirectory(packsRoot)) {
       Assumptions.assumeTrue(false, "platform-packs/ not present; skipping round-trip")
@@ -42,10 +44,11 @@ class PointerRoundTripTest {
   }
 
   private fun findRepoRoot(): Path? {
-    val envRoot = System.getenv("SKILL_BILL_REPO_ROOT")
-      ?.takeIf { it.isNotBlank() }
-      ?.let { Path.of(it).toAbsolutePath().normalize() }
-      ?.takeIf(::looksLikeRepoRoot)
+    val envRoot =
+      System.getenv("SKILL_BILL_REPO_ROOT")
+        ?.takeIf { it.isNotBlank() }
+        ?.let { Path.of(it).toAbsolutePath().normalize() }
+        ?.takeIf(::looksLikeRepoRoot)
     var current: Path? = envRoot ?: Path.of("").toAbsolutePath().normalize()
     var found: Path? = envRoot
     while (found == null && current != null) {
@@ -59,8 +62,9 @@ class PointerRoundTripTest {
   }
 
   private fun looksLikeRepoRoot(candidate: Path): Boolean {
-    val hasSettings = Files.isRegularFile(candidate.resolve("settings.gradle.kts")) ||
-      Files.isRegularFile(candidate.resolve("runtime-kotlin/settings.gradle.kts"))
+    val hasSettings =
+      Files.isRegularFile(candidate.resolve("settings.gradle.kts")) ||
+        Files.isRegularFile(candidate.resolve("runtime-kotlin/settings.gradle.kts"))
     val hasSkills = Files.isDirectory(candidate.resolve("skills"))
     return hasSettings && hasSkills
   }

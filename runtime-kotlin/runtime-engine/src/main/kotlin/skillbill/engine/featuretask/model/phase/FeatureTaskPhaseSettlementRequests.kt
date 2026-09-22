@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.phase
+
 data class FeatureTaskPhaseSettlementCompleteRequest(
   val workflowId: String,
   val phaseId: String,

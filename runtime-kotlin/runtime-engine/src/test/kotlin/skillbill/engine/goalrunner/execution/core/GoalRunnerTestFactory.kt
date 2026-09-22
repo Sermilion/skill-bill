@@ -52,18 +52,20 @@ import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactV
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.nio.file.Path
 import java.time.Clock
+
 internal fun testActivityStampWriter(
   database: DatabaseSessionFactory = TestGoalActivityStampDatabase,
 ): AgentActivityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics)
 
 internal fun testWorktreeEditJournalWriter(
   database: DatabaseSessionFactory = TestGoalActivityStampDatabase,
-): WorktreeEditJournalWriter = WorktreeEditJournalWriter(
-  database,
-  Clock.systemUTC(),
-  NoopRuntimeDiagnostics,
-  NoopWorkflowGitOperations,
-)
+): WorktreeEditJournalWriter =
+  WorktreeEditJournalWriter(
+    database,
+    Clock.systemUTC(),
+    NoopRuntimeDiagnostics,
+    NoopWorkflowGitOperations,
+  )
 
 internal data class GoalRunnerTestWiring(
   val runBoundaries: GoalRunnerRunBoundaries,
@@ -83,32 +85,35 @@ internal data class GoalRunnerTestWiringParams(
 internal fun testGoalRunnerWiring(params: GoalRunnerTestWiringParams): GoalRunnerTestWiring {
   val clock = Clock.systemUTC()
   val diagnostics = NoopRuntimeDiagnostics
-  val runBoundaries = GoalRunnerRunBoundaries(
-    manifestStore = params.manifestStore,
-    outcomeStore = params.outcomeStore,
-    goalPlanningSweep = GoalPlanningSweep.NONE,
-    telemetry = GoalLifecycleTelemetryEmitter.NONE,
-    clock = clock,
-    diagnostics = diagnostics,
-    executionCoordinator = GoalRunnerExecutionCoordinator.NONE,
-    phaseRecorder = params.phaseRecorder,
-    unaddressedFindingsLedgerService = params.unaddressedFindingsLedgerService,
-  )
-  val launchBoundaries = GoalRunnerSubtaskLaunchBoundaries(
-    manifestStore = params.manifestStore,
-    outcomeStore = params.outcomeStore,
-    subtaskLauncher = params.subtaskLauncher,
-    gitOperations = NoopWorkflowGitOperations,
-  )
-  val finalizationBoundaries = GoalRunnerFinalizationBoundaries(
-    manifestStore = params.manifestStore,
-    outcomeStore = params.outcomeStore,
-    pullRequestPort = params.pullRequestPort,
-    specScratchStore = UnavailableSpecScratchStore,
-    gitOperations = NoopWorkflowGitOperations,
-    diagnostics = diagnostics,
-    unaddressedFindingsLedgerService = params.unaddressedFindingsLedgerService,
-  )
+  val runBoundaries =
+    GoalRunnerRunBoundaries(
+      manifestStore = params.manifestStore,
+      outcomeStore = params.outcomeStore,
+      goalPlanningSweep = GoalPlanningSweep.NONE,
+      telemetry = GoalLifecycleTelemetryEmitter.NONE,
+      clock = clock,
+      diagnostics = diagnostics,
+      executionCoordinator = GoalRunnerExecutionCoordinator.NONE,
+      phaseRecorder = params.phaseRecorder,
+      unaddressedFindingsLedgerService = params.unaddressedFindingsLedgerService,
+    )
+  val launchBoundaries =
+    GoalRunnerSubtaskLaunchBoundaries(
+      manifestStore = params.manifestStore,
+      outcomeStore = params.outcomeStore,
+      subtaskLauncher = params.subtaskLauncher,
+      gitOperations = NoopWorkflowGitOperations,
+    )
+  val finalizationBoundaries =
+    GoalRunnerFinalizationBoundaries(
+      manifestStore = params.manifestStore,
+      outcomeStore = params.outcomeStore,
+      pullRequestPort = params.pullRequestPort,
+      specScratchStore = UnavailableSpecScratchStore,
+      gitOperations = NoopWorkflowGitOperations,
+      diagnostics = diagnostics,
+      unaddressedFindingsLedgerService = params.unaddressedFindingsLedgerService,
+    )
   return GoalRunnerTestWiring(runBoundaries, launchBoundaries, finalizationBoundaries)
 }
 
@@ -126,34 +131,38 @@ internal data class GoalRunnerTestInputs(
   val executionCoordinator: GoalRunnerExecutionCoordinator = GoalRunnerExecutionCoordinator.NONE,
   val phaseRecorder: FeatureTaskRuntimePhaseRecorder = goalRunnerDefaultPhaseRecorder(),
 ) {
-  fun toWiring(): GoalRunnerTestWiring = GoalRunnerTestWiring(
-    runBoundaries = GoalRunnerRunBoundaries(
-      manifestStore = manifestStore,
-      outcomeStore = outcomeStore,
-      goalPlanningSweep = goalPlanningSweep,
-      telemetry = telemetry,
-      clock = clock,
-      diagnostics = NoopRuntimeDiagnostics,
-      executionCoordinator = executionCoordinator,
-      phaseRecorder = phaseRecorder,
-      unaddressedFindingsLedgerService = unaddressedFindingsLedgerService,
-    ),
-    launchBoundaries = GoalRunnerSubtaskLaunchBoundaries(
-      manifestStore = manifestStore,
-      outcomeStore = outcomeStore,
-      subtaskLauncher = subtaskLauncher,
-      gitOperations = gitOperations,
-    ),
-    finalizationBoundaries = GoalRunnerFinalizationBoundaries(
-      manifestStore = manifestStore,
-      outcomeStore = outcomeStore,
-      pullRequestPort = pullRequestPort,
-      specScratchStore = specScratchStore,
-      gitOperations = gitOperations,
-      diagnostics = NoopRuntimeDiagnostics,
-      unaddressedFindingsLedgerService = unaddressedFindingsLedgerService,
-    ),
-  )
+  fun toWiring(): GoalRunnerTestWiring =
+    GoalRunnerTestWiring(
+      runBoundaries =
+        GoalRunnerRunBoundaries(
+          manifestStore = manifestStore,
+          outcomeStore = outcomeStore,
+          goalPlanningSweep = goalPlanningSweep,
+          telemetry = telemetry,
+          clock = clock,
+          diagnostics = NoopRuntimeDiagnostics,
+          executionCoordinator = executionCoordinator,
+          phaseRecorder = phaseRecorder,
+          unaddressedFindingsLedgerService = unaddressedFindingsLedgerService,
+        ),
+      launchBoundaries =
+        GoalRunnerSubtaskLaunchBoundaries(
+          manifestStore = manifestStore,
+          outcomeStore = outcomeStore,
+          subtaskLauncher = subtaskLauncher,
+          gitOperations = gitOperations,
+        ),
+      finalizationBoundaries =
+        GoalRunnerFinalizationBoundaries(
+          manifestStore = manifestStore,
+          outcomeStore = outcomeStore,
+          pullRequestPort = pullRequestPort,
+          specScratchStore = specScratchStore,
+          gitOperations = gitOperations,
+          diagnostics = NoopRuntimeDiagnostics,
+          unaddressedFindingsLedgerService = unaddressedFindingsLedgerService,
+        ),
+    )
 }
 
 internal fun goalRunnerDeps(
@@ -161,47 +170,52 @@ internal fun goalRunnerDeps(
   subtaskLauncher: GoalRunnerSubtaskLauncher,
   outcomeStore: GoalRunnerWorkflowOutcomeStore,
   pullRequestPort: GoalPullRequestPort,
-): GoalRunnerTestInputs = GoalRunnerTestInputs(
-  manifestStore = manifestStore,
-  subtaskLauncher = subtaskLauncher,
-  outcomeStore = outcomeStore,
-  pullRequestPort = pullRequestPort,
-)
+): GoalRunnerTestInputs =
+  GoalRunnerTestInputs(
+    manifestStore = manifestStore,
+    subtaskLauncher = subtaskLauncher,
+    outcomeStore = outcomeStore,
+    pullRequestPort = pullRequestPort,
+  )
 
 internal fun testGoalRunner(deps: GoalRunnerTestInputs): GoalRunner = testGoalRunner(deps.toWiring())
 
 internal fun testGoalRunner(wiring: GoalRunnerTestWiring): GoalRunner {
   val progressReader = GoalRunnerProgressReader(wiring.runBoundaries.outcomeStore)
   val finalization = GoalRunnerFinalization(wiring.finalizationBoundaries, progressReader)
-  val workerRequestHandler = GoalRunnerWorkerRequestHandler(
-    wiring.runBoundaries.manifestStore,
-    wiring.runBoundaries.outcomeStore,
-  )
-  val reconciler = GoalRunnerLaunchReconciler(
-    wiring.runBoundaries.manifestStore,
-    wiring.runBoundaries.outcomeStore,
-    progressReader,
-    testActivityStampWriter(),
-    testWorktreeEditJournalWriter(),
-    wiring.runBoundaries.clock,
-    wiring.runBoundaries.diagnostics,
-  )
+  val workerRequestHandler =
+    GoalRunnerWorkerRequestHandler(
+      wiring.runBoundaries.manifestStore,
+      wiring.runBoundaries.outcomeStore,
+    )
+  val reconciler =
+    GoalRunnerLaunchReconciler(
+      wiring.runBoundaries.manifestStore,
+      wiring.runBoundaries.outcomeStore,
+      progressReader,
+      testActivityStampWriter(),
+      testWorktreeEditJournalWriter(),
+      wiring.runBoundaries.clock,
+      wiring.runBoundaries.diagnostics,
+    )
   val pauseBoundary = GoalRunnerPauseBoundary(wiring.runBoundaries.manifestStore)
-  val launchPrepare = GoalRunnerSubtaskLaunchPrepare(
-    wiring.launchBoundaries,
-    TestRepositoryEnclosingRoot,
-    wiring.runBoundaries.clock,
-  )
-  val perRunLoopAssembler = GoalRunnerPerRunLoopAssembler(
-    runBoundaries = wiring.runBoundaries,
-    launchBoundaries = wiring.launchBoundaries,
-    workerRequestHandler = workerRequestHandler,
-    reconciler = reconciler,
-    progressReader = progressReader,
-    pauseBoundary = pauseBoundary,
-    launchPrepare = launchPrepare,
-    finalization = finalization,
-  )
+  val launchPrepare =
+    GoalRunnerSubtaskLaunchPrepare(
+      wiring.launchBoundaries,
+      TestRepositoryEnclosingRoot,
+      wiring.runBoundaries.clock,
+    )
+  val perRunLoopAssembler =
+    GoalRunnerPerRunLoopAssembler(
+      runBoundaries = wiring.runBoundaries,
+      launchBoundaries = wiring.launchBoundaries,
+      workerRequestHandler = workerRequestHandler,
+      reconciler = reconciler,
+      progressReader = progressReader,
+      pauseBoundary = pauseBoundary,
+      launchPrepare = launchPrepare,
+      finalization = finalization,
+    )
   return GoalRunner(
     runBoundaries = wiring.runBoundaries,
     runPreparation = GoalRunnerRunPreparation(wiring.runBoundaries.manifestStore, TestRepositoryEnclosingRoot),
@@ -216,17 +230,18 @@ internal fun testGoalRunner(
   outcomeStore: GoalRunnerWorkflowOutcomeStore,
   pullRequestPort: GoalPullRequestPort,
   phaseRecorder: FeatureTaskRuntimePhaseRecorder = goalRunnerDefaultPhaseRecorder(),
-): GoalRunner = testGoalRunner(
-  testGoalRunnerWiring(
-    GoalRunnerTestWiringParams(
-      manifestStore = manifestStore,
-      subtaskLauncher = subtaskLauncher,
-      outcomeStore = outcomeStore,
-      pullRequestPort = pullRequestPort,
-      phaseRecorder = phaseRecorder,
+): GoalRunner =
+  testGoalRunner(
+    testGoalRunnerWiring(
+      GoalRunnerTestWiringParams(
+        manifestStore = manifestStore,
+        subtaskLauncher = subtaskLauncher,
+        outcomeStore = outcomeStore,
+        pullRequestPort = pullRequestPort,
+        phaseRecorder = phaseRecorder,
+      ),
     ),
-  ),
-)
+  )
 
 private object TestGoalActivityStampDatabase : DatabaseSessionFactory {
   private val dbPath = Path.of("/fake/goal-activity-stamp.db")
@@ -241,20 +256,21 @@ private object TestGoalActivityStampDatabase : DatabaseSessionFactory {
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unitOfWork())
 
-  private fun unitOfWork(): UnitOfWork = object : UnitOfWorkDefaults() {
-    override val dbPath: Path = this@TestGoalActivityStampDatabase.dbPath
-    override val reviews: ReviewRepository get() = error("unused by goal activity stamp wiring")
-    override val learnings: LearningRepository get() = error("unused by goal activity stamp wiring")
-    override val lifecycleTelemetry: LifecycleTelemetryRepository
-      get() = error("unused by goal activity stamp wiring")
-    override val telemetryReconciliation: TelemetryReconciliationRepository
-      get() = error("unused by goal activity stamp wiring")
-    override val telemetryOutbox: TelemetryOutboxRepository get() = error("unused by goal activity stamp wiring")
-    override val workflowStates: WorkflowStateRepository get() = error("unused by goal activity stamp wiring")
-    override val workList = EmptyWorkListRepository
-    override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
-    override val goalRunnerControls = EmptyGoalRunnerControlRepository
-  }
+  private fun unitOfWork(): UnitOfWork =
+    object : UnitOfWorkDefaults() {
+      override val dbPath: Path = this@TestGoalActivityStampDatabase.dbPath
+      override val reviews: ReviewRepository get() = error("unused by goal activity stamp wiring")
+      override val learnings: LearningRepository get() = error("unused by goal activity stamp wiring")
+      override val lifecycleTelemetry: LifecycleTelemetryRepository
+        get() = error("unused by goal activity stamp wiring")
+      override val telemetryReconciliation: TelemetryReconciliationRepository
+        get() = error("unused by goal activity stamp wiring")
+      override val telemetryOutbox: TelemetryOutboxRepository get() = error("unused by goal activity stamp wiring")
+      override val workflowStates: WorkflowStateRepository get() = error("unused by goal activity stamp wiring")
+      override val workList = EmptyWorkListRepository
+      override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
+      override val goalRunnerControls = EmptyGoalRunnerControlRepository
+    }
 }
 
 internal fun testDefaultGoalPlanningSweep(
@@ -276,12 +292,13 @@ internal data class GoalPlanningSweepPortsParams(
   val planningRejectionRecorder: GoalPlanningRejectionRecorder = GoalPlanningRejectionRecorder.NONE,
   val timingPort: RuntimeTimingPort = NoopRuntimeTimingPort,
   val fanOutPort: BoundedWorkFanOutPort = SequentialBoundedWorkFanOutPort,
-  val burstSchedule: GoalPlanningBurstSchedule = GoalPlanningBurstSchedule(
-    planFanOutCap = GoalPlanningBurstSchedule.DEFAULT_PLAN_FAN_OUT_CAP,
-    emptyTurnBackoffBase = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_BASE,
-    emptyTurnBackoffFactor = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_FACTOR,
-    waitSlice = GoalPlanningBurstSchedule.DEFAULT_WAIT_SLICE,
-  ),
+  val burstSchedule: GoalPlanningBurstSchedule =
+    GoalPlanningBurstSchedule(
+      planFanOutCap = GoalPlanningBurstSchedule.DEFAULT_PLAN_FAN_OUT_CAP,
+      emptyTurnBackoffBase = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_BASE,
+      emptyTurnBackoffFactor = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_FACTOR,
+      waitSlice = GoalPlanningBurstSchedule.DEFAULT_WAIT_SLICE,
+    ),
   val refreshLiveness: GoalPlanningRefreshLiveness = GoalPlanningRefreshLiveness.IDLE,
 )
 
@@ -308,27 +325,33 @@ internal fun testGoalPlanningSweepPorts(params: GoalPlanningSweepPortsParams): D
   )
 
 internal fun testGoalPlanningContextDiscovery(
-  context: GoalPlanningContext = GoalPlanningContext(
-    boundaryCatalog = emptyList(),
-    boundaryCatalogTruncated = false,
-    validationGuidance = "",
-  ),
-): GoalPlanningContextDiscovery = if (context == GoalPlanningContext(
-    boundaryCatalog = emptyList(),
-    boundaryCatalogTruncated = false,
-    validationGuidance = "",
-  )
-) {
-  GoalPlanningContextDiscovery.NONE
-} else {
-  object : GoalPlanningContextDiscovery {
-    override fun loadPlanningContext(repoRoot: Path): GoalPlanningContext = context
+  context: GoalPlanningContext =
+    GoalPlanningContext(
+      boundaryCatalog = emptyList(),
+      boundaryCatalogTruncated = false,
+      validationGuidance = "",
+    ),
+): GoalPlanningContextDiscovery =
+  if (context ==
+    GoalPlanningContext(
+      boundaryCatalog = emptyList(),
+      boundaryCatalogTruncated = false,
+      validationGuidance = "",
+    )
+  ) {
+    GoalPlanningContextDiscovery.NONE
+  } else {
+    object : GoalPlanningContextDiscovery {
+      override fun loadPlanningContext(repoRoot: Path): GoalPlanningContext = context
 
-    override fun discoverForFindingPaths(repoRoot: Path, findingPaths: List<String>, loudFailOnCapExceeded: Boolean) =
-      GoalPlanningContextDiscovery.NONE.discoverForFindingPaths(
+      override fun discoverForFindingPaths(
+        repoRoot: Path,
+        findingPaths: List<String>,
+        loudFailOnCapExceeded: Boolean,
+      ) = GoalPlanningContextDiscovery.NONE.discoverForFindingPaths(
         repoRoot,
         findingPaths,
         loudFailOnCapExceeded,
       )
+    }
   }
-}

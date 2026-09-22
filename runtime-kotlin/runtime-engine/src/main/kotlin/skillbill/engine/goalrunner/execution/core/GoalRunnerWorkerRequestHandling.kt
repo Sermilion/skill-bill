@@ -36,11 +36,12 @@ class GoalRunnerWorkerRequestHandler(
     output: WorkerLaunchOutput,
     subtaskId: Int,
   ): GoalRunnerWorkerRequestHandlingResult {
-    val parsed = GoalRunnerWorkerSubtaskRequestParser.parse(
-      stdout = output.stdout,
-      stderr = output.stderr,
-      manifest = state.manifest,
-    )
+    val parsed =
+      GoalRunnerWorkerSubtaskRequestParser.parse(
+        stdout = output.stdout,
+        stderr = output.stderr,
+        manifest = state.manifest,
+      )
     return if (parsed.isEmpty()) {
       GoalRunnerWorkerRequestHandlingResult(state)
     } else {
@@ -55,25 +56,27 @@ class GoalRunnerWorkerRequestHandler(
   ): GoalRunnerWorkerRequestHandlingResult {
     val scheduled = GoalRunnerWorkerSubtaskScheduler.scheduleQueuedRequests(state.manifest, parsed)
     val workflowId = state.manifest.workflowIdFor(subtaskId)
-    val auditRecorded = workflowId?.let {
-      runCatching {
-        outcomeStore.recordWorkerSubtaskRequestOutcomes(
-          workflowId = it,
-          outcomes = scheduled.outcomes,
-        )
-      }.getOrDefault(false)
-    } ?: false
+    val auditRecorded =
+      workflowId?.let {
+        runCatching {
+          outcomeStore.recordWorkerSubtaskRequestOutcomes(
+            workflowId = it,
+            outcomes = scheduled.outcomes,
+          )
+        }.getOrDefault(false)
+      } ?: false
     if (!auditRecorded) {
       return GoalRunnerWorkerRequestHandlingResult(
         state = state,
         operatorConfirmationStop = workerRequestAuditFailureStop(state.manifest, subtaskId, workflowId),
       )
     }
-    val saved = if (scheduled.manifest == state.manifest) {
-      state
-    } else {
-      manifestStore.save(state.copy(manifest = scheduled.manifest))
-    }
+    val saved =
+      if (scheduled.manifest == state.manifest) {
+        state
+      } else {
+        manifestStore.save(state.copy(manifest = scheduled.manifest))
+      }
     return GoalRunnerWorkerRequestHandlingResult(
       state = saved,
       operatorConfirmationStop = scheduled.outcomes.operatorConfirmationStop(saved.manifest, subtaskId),
@@ -84,18 +87,21 @@ class GoalRunnerWorkerRequestHandler(
     manifest: DecompositionManifest,
     subtaskId: Int,
     workflowId: String?,
-  ): GoalRunnerReconciledOutcome.Stop = GoalRunnerReconciledOutcome.Stop(
-    reason = GoalRunnerStopReason.BLOCKED,
-    blockedReason = "Worker subtask request outcome audit could not be recorded; " +
-      "additional worker work was not scheduled.",
-    workflowId = workflowId,
-    commitSha = null,
-    lastResumableStep = manifest.subtasks
-      .firstOrNull { subtask -> subtask.id == subtaskId }
-      ?.lastResumableStep
-      .orEmpty()
-      .ifBlank { "implement" },
-  )
+  ): GoalRunnerReconciledOutcome.Stop =
+    GoalRunnerReconciledOutcome.Stop(
+      reason = GoalRunnerStopReason.BLOCKED,
+      blockedReason =
+        "Worker subtask request outcome audit could not be recorded; " +
+          "additional worker work was not scheduled.",
+      workflowId = workflowId,
+      commitSha = null,
+      lastResumableStep =
+        manifest.subtasks
+          .firstOrNull { subtask -> subtask.id == subtaskId }
+          ?.lastResumableStep
+          .orEmpty()
+          .ifBlank { "implement" },
+    )
 }
 
 internal data class GoalRunnerWorkerRequestHandlingResult(
@@ -111,8 +117,9 @@ private data class WorkerLaunchOutput(
   val stderr: String,
 )
 
-private fun AgentRunLaunchOutcome.workerOutput(): WorkerLaunchOutput? = (this as? AgentRunLaunchFacts)
-  ?.let { facts -> WorkerLaunchOutput(stdout = facts.stdout, stderr = facts.stderr) }
+private fun AgentRunLaunchOutcome.workerOutput(): WorkerLaunchOutput? =
+  (this as? AgentRunLaunchFacts)
+    ?.let { facts -> WorkerLaunchOutput(stdout = facts.stdout, stderr = facts.stderr) }
 
 private fun List<GoalRunnerWorkerSubtaskRequestOutcome>.operatorConfirmationStop(
   manifest: DecompositionManifest,
@@ -126,10 +133,11 @@ private fun List<GoalRunnerWorkerSubtaskRequestOutcome>.operatorConfirmationStop
         blockedReason = outcome.reason,
         workflowId = manifest.workflowIdFor(subtaskId),
         commitSha = null,
-        lastResumableStep = manifest.subtasks
-          .firstOrNull { subtask -> subtask.id == subtaskId }
-          ?.lastResumableStep
-          .orEmpty()
-          .ifBlank { "implement" },
+        lastResumableStep =
+          manifest.subtasks
+            .firstOrNull { subtask -> subtask.id == subtaskId }
+            ?.lastResumableStep
+            .orEmpty()
+            .ifBlank { "implement" },
       )
     }

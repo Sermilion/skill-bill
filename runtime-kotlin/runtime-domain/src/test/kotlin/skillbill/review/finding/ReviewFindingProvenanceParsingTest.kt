@@ -6,8 +6,9 @@ import kotlin.test.assertNull
 class ReviewFindingProvenanceParsingTest {
   @Test
   fun `a finding line carrying runtime provenance yields its lane and an unchanged description`() {
-    val line = "- [F-001] Major | High | Repo.kt:12 | Transaction is not rolled back. | " +
-      "specialists=bill-kmp-code-review-persistence,bill-kmp-code-review-architecture; origins=kmp->kotlin"
+    val line =
+      "- [F-001] Major | High | Repo.kt:12 | Transaction is not rolled back. | " +
+        "specialists=bill-kmp-code-review-persistence,bill-kmp-code-review-architecture; origins=kmp->kotlin"
 
     val finding = parseBulletFindings("### 2. Risk Register\n$line").single()
 

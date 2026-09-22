@@ -88,11 +88,12 @@ internal class GoalRunnerIterationOutcome(
         ),
       )
     }
-    val blocked = if (stoppedOutcome.reason in GoalRunnerStopReason.RESUMABLE_STOP_REASONS) {
-      state.manifest.withResumableSubtask(subtaskId, stoppedOutcome, knownWorkflowId)
-    } else {
-      state.manifest.withStoppedSubtask(subtaskId, stoppedOutcome, knownWorkflowId)
-    }
+    val blocked =
+      if (stoppedOutcome.reason in GoalRunnerStopReason.RESUMABLE_STOP_REASONS) {
+        state.manifest.withResumableSubtask(subtaskId, stoppedOutcome, knownWorkflowId)
+      } else {
+        state.manifest.withStoppedSubtask(subtaskId, stoppedOutcome, knownWorkflowId)
+      }
     val blockedState = state.copy(manifest = blocked)
     val control = manifestStore.controlState(state.parentWorkflowId)
     if (!control.pauseRequested && !control.paused) {
@@ -117,11 +118,12 @@ internal class GoalRunnerIterationOutcome(
   private fun persistStoppedBoundary(
     blockedState: GoalRunnerManifestState,
     control: GoalRunnerControlState,
-  ): GoalRunnerManifestState = if (control.pauseRequested || control.paused) {
-    manifestStore.pauseAtBoundary(blockedState.copy(controlState = control))
-  } else {
-    manifestStore.save(blockedState)
-  }
+  ): GoalRunnerManifestState =
+    if (control.pauseRequested || control.paused) {
+      manifestStore.pauseAtBoundary(blockedState.copy(controlState = control))
+    } else {
+      manifestStore.save(blockedState)
+    }
 
   private fun emitStoppedObservability(
     saved: GoalRunnerManifestState,
@@ -133,15 +135,17 @@ internal class GoalRunnerIterationOutcome(
     knownWorkflowId?.let { workflowId ->
       observability.record(
         subject = GoalRunnerObservabilitySubject(workflowId, saved.manifest.issueKey, subtaskId),
-        signal = GoalRunnerObservabilitySignal(
-          workflowPhase = stoppedOutcome.lastResumableStep,
-          livenessClass = if (stoppedOutcome.reason == GoalRunnerStopReason.FAILED) {
-            GoalRunnerObservabilityLivenessClass.FAILURE
-          } else {
-            GoalRunnerObservabilityLivenessClass.BLOCK
-          },
-          activitySummary = stoppedOutcome.blockedReason,
-        ),
+        signal =
+          GoalRunnerObservabilitySignal(
+            workflowPhase = stoppedOutcome.lastResumableStep,
+            livenessClass =
+              if (stoppedOutcome.reason == GoalRunnerStopReason.FAILED) {
+                GoalRunnerObservabilityLivenessClass.FAILURE
+              } else {
+                GoalRunnerObservabilityLivenessClass.BLOCK
+              },
+            activitySummary = stoppedOutcome.blockedReason,
+          ),
       )
     }
   }
@@ -154,27 +158,30 @@ internal class GoalRunnerIterationOutcome(
     val parentPaused = saved.controlState.paused
     return GoalRunnerIterationResult(
       state = saved,
-      report = stopped(
-        StoppedReportArgs(
-          issueKey = saved.manifest.issueKey,
-          attempted = args.attempted,
-          subtaskId = args.subtaskId,
-          reason = if (parentPaused) GoalRunnerStopReason.PAUSED else stoppedOutcome.reason,
-          blockedReason = if (parentPaused) {
-            "Goal paused at a durable boundary: ${saved.controlState.pauseReason}"
-          } else {
-            stoppedOutcome.blockedReason.withStopDiagnostics(
-              knownWorkflowId = knownWorkflowId,
-              progress = knownWorkflowId?.let { workflowId ->
-                progressReader.safeProgress(workflowId)
+      report =
+        stopped(
+          StoppedReportArgs(
+            issueKey = saved.manifest.issueKey,
+            attempted = args.attempted,
+            subtaskId = args.subtaskId,
+            reason = if (parentPaused) GoalRunnerStopReason.PAUSED else stoppedOutcome.reason,
+            blockedReason =
+              if (parentPaused) {
+                "Goal paused at a durable boundary: ${saved.controlState.pauseReason}"
+              } else {
+                stoppedOutcome.blockedReason.withStopDiagnostics(
+                  knownWorkflowId = knownWorkflowId,
+                  progress =
+                    knownWorkflowId?.let { workflowId ->
+                      progressReader.safeProgress(workflowId)
+                    },
+                  liveness = stoppedOutcome.liveness,
+                )
               },
-              liveness = stoppedOutcome.liveness,
-            )
-          },
-          workflowId = knownWorkflowId,
-          lastResumableStep = stoppedOutcome.lastResumableStep,
+            workflowId = knownWorkflowId,
+            lastResumableStep = stoppedOutcome.lastResumableStep,
+          ),
         ),
-      ),
     )
   }
 
@@ -187,10 +194,11 @@ internal class GoalRunnerIterationOutcome(
     val observability = session.observability
     val ledger = session.ledger
     val attemptStartMillis = session.attemptStartMillis
-    val completedTransition = manifestStore.saveCompletedSubtaskAtBoundary(
-      state.copy(manifest = state.manifest.withCompletedSubtask(subtaskId, reconciled)),
-      subtaskId,
-    )
+    val completedTransition =
+      manifestStore.saveCompletedSubtaskAtBoundary(
+        state.copy(manifest = state.manifest.withCompletedSubtask(subtaskId, reconciled)),
+        subtaskId,
+      )
     val completed = completedTransition.state
     finalization.pruneCompletedCheckpointRefs(completed, subtaskId, reconciled, request, observability)
     finalization.deleteCompletedSubtaskSpecScratch(completed.manifest, subtaskId, request)
@@ -210,17 +218,18 @@ internal class GoalRunnerIterationOutcome(
     } else {
       GoalRunnerIterationResult(
         state = completed,
-        report = stopped(
-          StoppedReportArgs(
-            issueKey = completed.manifest.issueKey,
-            attempted = emptyList(),
-            subtaskId = subtaskId,
-            reason = GoalRunnerStopReason.PAUSED,
-            blockedReason = "Goal paused at a durable boundary: ${completed.controlState.pauseReason}",
-            workflowId = reconciled.workflowId,
-            lastResumableStep = reconciled.lastResumableStep,
+        report =
+          stopped(
+            StoppedReportArgs(
+              issueKey = completed.manifest.issueKey,
+              attempted = emptyList(),
+              subtaskId = subtaskId,
+              reason = GoalRunnerStopReason.PAUSED,
+              blockedReason = "Goal paused at a durable boundary: ${completed.controlState.pauseReason}",
+              workflowId = reconciled.workflowId,
+              lastResumableStep = reconciled.lastResumableStep,
+            ),
           ),
-        ),
       )
     }
   }
@@ -241,17 +250,19 @@ internal class GoalRunnerIterationOutcome(
     val childLoopIterations = outcomeStore.childWorkflowLoopIterations(workflowId)
     val reAttemptCause = reAttemptCauseFor(stoppedOutcome.reason, childLoopIterations)
     val causingLoopEntry = causingLoopEntryFor(childLoopIterations)
-    val nextSafeAction = launchDiagnostics?.nextSafeAction ?: recoverySafeAction(
-      issueKey = state.manifest.issueKey,
-      subtaskId = subtaskId,
-      progress = progress,
-      fallback = stoppedOutcome.reason.nextSafeAction(),
-      subtaskStatus = state.manifest.subtasks.firstOrNull { it.id == subtaskId }?.status?.decompositionStatus(),
-    )
-    val findingsInScope = resolveUnaddressedFindingsLedger(
-      unaddressedFindingsLedgerService,
-      state.manifest.issueKey,
-    )?.findings?.count { it.subtaskId == subtaskId }
+    val nextSafeAction =
+      launchDiagnostics?.nextSafeAction ?: recoverySafeAction(
+        issueKey = state.manifest.issueKey,
+        subtaskId = subtaskId,
+        progress = progress,
+        fallback = stoppedOutcome.reason.nextSafeAction(),
+        subtaskStatus = state.manifest.subtasks.firstOrNull { it.id == subtaskId }?.status?.decompositionStatus(),
+      )
+    val findingsInScope =
+      resolveUnaddressedFindingsLedger(
+        unaddressedFindingsLedgerService,
+        state.manifest.issueKey,
+      )?.findings?.count { it.subtaskId == subtaskId }
     ledger.recordLedgerEntry(
       progress.stoppedLedgerContext(
         args,
@@ -285,24 +296,26 @@ internal class GoalRunnerIterationOutcome(
     findingsInScope: Int?,
   ): GoalRunnerLedgerContext {
     val action = args.stoppedOutcome.reason.toLedgerAction()
-    val common = StoppedLedgerContextValues(
-      workflowId = args.workflowId,
-      issueKey = args.state.manifest.issueKey,
-      subtaskId = args.subtaskId,
-      progress = this,
-      blockedReason = args.stoppedOutcome.blockedReason,
-      finalReconciledResult = args.stoppedOutcome.reason.name.lowercase(),
-      stopReason = args.stoppedOutcome.reason.name.lowercase(),
-      diagnosticClass = args.launchDiagnostics?.diagnosticClass
-        ?: confirmedAliveKillDiagnosticClass(args.reconciled.liveness)
-        ?: args.stoppedOutcome.reason.toDiagnosticClass(),
-      recoverableJsonPresent = args.launchDiagnostics?.recoverableJsonPresent ?: false,
-      nextSafeAction = nextSafeAction,
-      attemptDurationMillis = args.attemptDurationMillis,
-      reAttemptCause = reAttemptCause,
-      causingLoopEntry = causingLoopEntry,
-      findingsInScope = findingsInScope,
-    )
+    val common =
+      StoppedLedgerContextValues(
+        workflowId = args.workflowId,
+        issueKey = args.state.manifest.issueKey,
+        subtaskId = args.subtaskId,
+        progress = this,
+        blockedReason = args.stoppedOutcome.blockedReason,
+        finalReconciledResult = args.stoppedOutcome.reason.name.lowercase(),
+        stopReason = args.stoppedOutcome.reason.name.lowercase(),
+        diagnosticClass =
+          args.launchDiagnostics?.diagnosticClass
+            ?: confirmedAliveKillDiagnosticClass(args.reconciled.liveness)
+            ?: args.stoppedOutcome.reason.toDiagnosticClass(),
+        recoverableJsonPresent = args.launchDiagnostics?.recoverableJsonPresent ?: false,
+        nextSafeAction = nextSafeAction,
+        attemptDurationMillis = args.attemptDurationMillis,
+        reAttemptCause = reAttemptCause,
+        causingLoopEntry = causingLoopEntry,
+        findingsInScope = findingsInScope,
+      )
     return when (action) {
       GoalAttemptLedgerAction.RETRY -> GoalRunnerLedgerContext.Retry(common)
       GoalAttemptLedgerAction.TIMEOUT -> GoalRunnerLedgerContext.Timeout(common)
@@ -326,9 +339,10 @@ internal class GoalRunnerIterationOutcome(
     }
     validationQualityState.incrementValidationQualityRetry(subtaskId)
     return GoalRunnerIterationResult(
-      state = manifestStore.save(
-        state.copy(manifest = blocked.withValidationQualityRetrySubtask(subtaskId)),
-      ),
+      state =
+        manifestStore.save(
+          state.copy(manifest = blocked.withValidationQualityRetrySubtask(subtaskId)),
+        ),
     )
   }
 
@@ -340,17 +354,19 @@ internal class GoalRunnerIterationOutcome(
       return reconciled
     }
     val progress = progressReader.safeProgress(knownWorkflowId)
-    val blockedStepId = outcomeStore.markBlocked(
-      workflowId = knownWorkflowId,
-      blockedReason = reconciled.blockedReason.withStopDiagnostics(knownWorkflowId, progress, reconciled.liveness),
-      lastResumableStep = reconciled.lastResumableStep,
-      supervisionEvent = supervisionEvent(
-        reason = reconciled.reason,
-        knownWorkflowId = knownWorkflowId,
-        progress = progress,
-        liveness = reconciled.liveness,
-      ),
-    )
+    val blockedStepId =
+      outcomeStore.markBlocked(
+        workflowId = knownWorkflowId,
+        blockedReason = reconciled.blockedReason.withStopDiagnostics(knownWorkflowId, progress, reconciled.liveness),
+        lastResumableStep = reconciled.lastResumableStep,
+        supervisionEvent =
+          supervisionEvent(
+            reason = reconciled.reason,
+            knownWorkflowId = knownWorkflowId,
+            progress = progress,
+            liveness = reconciled.liveness,
+          ),
+      )
     return blockedStepId?.takeIf(String::isNotBlank)?.let { stepId ->
       reconciled.copy(lastResumableStep = stepId)
     } ?: reconciled
@@ -373,11 +389,12 @@ internal class GoalRunnerIterationOutcome(
     )
     observability.record(
       subject = GoalRunnerObservabilitySubject(reconciled.workflowId, completed.manifest.issueKey, subtaskId),
-      signal = GoalRunnerObservabilitySignal(
-        workflowPhase = reconciled.lastResumableStep,
-        livenessClass = GoalRunnerObservabilityLivenessClass.COMPLETION,
-        activitySummary = "Subtask $subtaskId completed with commit ${reconciled.commitSha}.",
-      ),
+      signal =
+        GoalRunnerObservabilitySignal(
+          workflowPhase = reconciled.lastResumableStep,
+          livenessClass = GoalRunnerObservabilityLivenessClass.COMPLETION,
+          activitySummary = "Subtask $subtaskId completed with commit ${reconciled.commitSha}.",
+        ),
     )
     ledger.recordLedgerEntry(
       GoalRunnerLedgerContext.TerminalDoneCheck(

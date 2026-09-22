@@ -7,8 +7,11 @@ import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKe
 import skillbill.review.model.ReviewIssueCategory
 import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 fun outputContract(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
   val phaseId = briefing.phaseId
+  val producedOutputsAddendum = producedOutputsAddendum(briefing)
+  val verdictContractLine = verdictContractLine(phaseId)
   return """
     ## Required final output (validated schema gate)
     End your response with exactly one JSON object as the last thing you emit. Prefer a raw
@@ -23,27 +26,26 @@ fun outputContract(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
       "invalid_output". Omit it when status is "completed".
     - "summary": non-empty string describing what this phase did
     - "produced_outputs": object. Empty {} is valid when this phase has no structured
-      payload. When this briefing names a required shape below, that shape is required${producedOutputsAddendum(
-    briefing,
-  )}
+      payload. When this briefing names a required shape below, that shape is required$producedOutputsAddendum
     - "derived_notes": optional; when present, a non-empty string of notes for downstream
-      phases${verdictContractLine(phaseId)}
+      phases$verdictContractLine
     No top-level fields other than the ones listed above are allowed.
-  """.trimIndent()
+    """.trimIndent()
 }
 
-private fun verdictContractLine(phaseId: String): String = when (phaseId) {
-  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
-    "\n    - \"verdict\": omit for audit unless every criterion is met; never invent review-style tokens " +
-      "(for example remediation_required or changes_requested). Remaining criteria belong only in " +
-      "produced_outputs.value."
-  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
-  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-  ->
-    "\n    - \"verdict\": optional top-level string; this verifying phase sets it to drive the " +
-      "advance-vs-remediation decision — see the verifying-phase signal above"
-  else -> ""
-}
+private fun verdictContractLine(phaseId: String): String =
+  when (phaseId) {
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
+      "\n    - \"verdict\": omit for audit unless every criterion is met; never invent review-style tokens " +
+        "(for example remediation_required or changes_requested). Remaining criteria belong only in " +
+        "produced_outputs.value."
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+    ->
+      "\n    - \"verdict\": optional top-level string; this verifying phase sets it to drive the " +
+        "advance-vs-remediation decision — see the verifying-phase signal above"
+    else -> ""
+  }
 
 private fun producedOutputsAddendum(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
   val phaseId = briefing.phaseId
@@ -57,9 +59,10 @@ private fun producedOutputsAddendum(briefing: FeatureTaskRuntimePhaseLaunchBrief
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD,
-    -> FeatureTaskRuntimePhaseProjectionShapes.exampleFor(
-      phaseId,
-    )
+    ->
+      FeatureTaskRuntimePhaseProjectionShapes.exampleFor(
+        phaseId,
+      )
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ->
       "\n    - This is a VERIFYING phase: produced_outputs MUST carry a \"$findings\" array (each entry a\n" +
         "      severity/message object; an explicit empty [] affirms no Blocker or Major findings) AND/OR a\n" +
@@ -117,7 +120,8 @@ private fun commitFocusedAccountingAddendum(): String =
     "      carry \"commit_focused_accounting\" exactly as the review reported it: commit_sequence_digest\n" +
     "      (64-char lowercase hex), commit_count, lane_count, focused_commit_count,\n" +
     "      skipped_commit_count (focused + skipped == commit_count), and integration_terminal_outcome,\n" +
-    "      one of " + GoalSubtaskCommitFocusedAccounting.INTEGRATION_TERMINAL_OUTCOMES.sorted()
+    "      one of " +
+    GoalSubtaskCommitFocusedAccounting.INTEGRATION_TERMINAL_OUTCOMES.sorted()
       .joinToString() + ".\n" +
     "      Optional when the review reported them: routing_digest, focused_pair_count,\n" +
     "      skipped_pair_count, lane_bundle_sizes, lane_segment_counts, incomplete_lanes,\n" +

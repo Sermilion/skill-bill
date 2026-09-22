@@ -11,29 +11,33 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+
 class FeatureTaskRuntimeHandoffFoundationModelsTest {
   @Test
   fun `declaration wire mapping matches the closed phase handoff contract`() {
-    val declaration = PhaseHandoffProjectionDeclaration(
-      consumerPhaseId = "audit",
-      sourceRef = FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput("implement"),
-      shape = PhaseHandoffProjectionShape(
-        projectionName = "implement_prose",
-        projectionContractId = "feature_task_runtime.phase_prose",
-        projectionContractVersion = "0.1",
-        promptVisibility = FeatureTaskRuntimeHandoffPromptVisibility.PROMPT_VISIBLE,
-        budget = FeatureTaskRuntimeHandoffProjectionBudget(4096, 16),
-        declaredFieldNames = listOf("value", "directive"),
-      ),
-      delivery = PhaseHandoffProjectionDelivery(
-        checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.MUST_MATCH,
-        required = false,
-        allowsPrivateArtifactReference = true,
-        producerIteration = FeatureTaskRuntimeProducerIteration("implement", 4),
-        inlineAlternative = FeatureTaskRuntimeCompactReferenceKind.PRIVATE_EVIDENCE_ARTIFACT,
-        authorizedReferenceKinds = setOf(FeatureTaskRuntimeCompactReferenceKind.PRIVATE_EVIDENCE_ARTIFACT),
-      ),
-    )
+    val declaration =
+      PhaseHandoffProjectionDeclaration(
+        consumerPhaseId = "audit",
+        sourceRef = FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput("implement"),
+        shape =
+          PhaseHandoffProjectionShape(
+            projectionName = "implement_prose",
+            projectionContractId = "feature_task_runtime.phase_prose",
+            projectionContractVersion = "0.1",
+            promptVisibility = FeatureTaskRuntimeHandoffPromptVisibility.PROMPT_VISIBLE,
+            budget = FeatureTaskRuntimeHandoffProjectionBudget(4096, 16),
+            declaredFieldNames = listOf("value", "directive"),
+          ),
+        delivery =
+          PhaseHandoffProjectionDelivery(
+            checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.MUST_MATCH,
+            required = false,
+            allowsPrivateArtifactReference = true,
+            producerIteration = FeatureTaskRuntimeProducerIteration("implement", 4),
+            inlineAlternative = FeatureTaskRuntimeCompactReferenceKind.PRIVATE_EVIDENCE_ARTIFACT,
+            authorizedReferenceKinds = setOf(FeatureTaskRuntimeCompactReferenceKind.PRIVATE_EVIDENCE_ARTIFACT),
+          ),
+      )
 
     val wire = declaration.toArtifactMap()
 
@@ -49,18 +53,19 @@ class FeatureTaskRuntimeHandoffFoundationModelsTest {
 
   @Test
   fun `measurement mapping is versioned and content free`() {
-    val wire = FeatureTaskRuntimeProjectionMeasurement(
-      workflowId = "wftr-1",
-      consumerPhaseId = "audit",
-      projectionContractId = "feature_task_runtime.phase_prose",
-      producerIteration = FeatureTaskRuntimeProducerIteration("implement", 2),
-      repositoryCheckpointFingerprint = "checkpoint-1",
-      projectedUtf8Bytes = 120,
-      projectedCollectionItems = 3,
-      estimatedTokens = 30,
-      privateEvidenceUtf8Bytes = 900,
-      deliveredProjectionUtf8Bytes = 120,
-    ).toTelemetryMap()
+    val wire =
+      FeatureTaskRuntimeProjectionMeasurement(
+        workflowId = "wftr-1",
+        consumerPhaseId = "audit",
+        projectionContractId = "feature_task_runtime.phase_prose",
+        producerIteration = FeatureTaskRuntimeProducerIteration("implement", 2),
+        repositoryCheckpointFingerprint = "checkpoint-1",
+        projectedUtf8Bytes = 120,
+        projectedCollectionItems = 3,
+        estimatedTokens = 30,
+        privateEvidenceUtf8Bytes = 900,
+        deliveredProjectionUtf8Bytes = 120,
+      ).toTelemetryMap()
 
     assertEquals("0.1", wire["contract_version"])
     assertFalse(wire.keys.any { it in setOf("prompt", "payload", "source_body", "diff_body", "receipt") })
@@ -69,14 +74,15 @@ class FeatureTaskRuntimeHandoffFoundationModelsTest {
   @Test
   fun `shared evidence measurement emits exactly the declared fields for each outcome`() {
     FeatureTaskRuntimeSharedEvidenceOutcome.entries.forEach { outcome ->
-      val wire = FeatureTaskRuntimeSharedEvidenceMeasurement(
-        workflowId = "wftr-1",
-        checkpointFingerprint = "fp-1",
-        consumerPhaseId = "audit",
-        outcome = outcome,
-        fileIndexCount = 2,
-        hunkIndexCount = 3,
-      ).toTelemetryMap()
+      val wire =
+        FeatureTaskRuntimeSharedEvidenceMeasurement(
+          workflowId = "wftr-1",
+          checkpointFingerprint = "fp-1",
+          consumerPhaseId = "audit",
+          outcome = outcome,
+          fileIndexCount = 2,
+          hunkIndexCount = 3,
+        ).toTelemetryMap()
 
       assertEquals(
         setOf(
@@ -130,5 +136,9 @@ class FeatureTaskRuntimeHandoffFoundationModelsTest {
 }
 
 private object AcceptingFoundationValidator : FeatureTaskRuntimeWireArtifactValidator {
-  override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) = Unit
+  override fun validate(
+    kind: FeatureTaskRuntimeWireArtifactKind,
+    payload: Any,
+    sourceLabel: String,
+  ) = Unit
 }

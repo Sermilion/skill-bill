@@ -47,9 +47,10 @@ class CursorAgentRunCommandBuildersTest {
   @Test
   fun `cursor provider-output launch adds --stream-partial-output and OUTPUT_EXTENDED idle policy`() {
     val builder = CursorAgentRunCommandBuilder()
-    val command = builder.build(
-      request().copy(streamProviderOutput = true, streamOutputForLiveness = true),
-    )
+    val command =
+      builder.build(
+        request().copy(streamProviderOutput = true, streamOutputForLiveness = true),
+      )
 
     assertTrue(command.command.contains("--stream-partial-output"))
     assertEquals(AgentRunIdlePolicy.OUTPUT_EXTENDED, command.idlePolicy)
@@ -101,9 +102,10 @@ class CursorAgentRunCommandBuildersTest {
   fun `cursor effort directive without model fails loudly`() {
     val builder = CursorAgentRunCommandBuilder()
 
-    val exception = assertFailsWith<IllegalArgumentException> {
-      builder.build(request(effort = "high"))
-    }
+    val exception =
+      assertFailsWith<IllegalArgumentException> {
+        builder.build(request(effort = "high"))
+      }
 
     assertContains(exception.message ?: "", "effort directive requires a model directive")
   }
@@ -121,9 +123,10 @@ class CursorAgentRunCommandBuildersTest {
   fun `cursor model already with bracket parameters rejects conflicting effort loudly`() {
     val builder = CursorAgentRunCommandBuilder()
 
-    val exception = assertFailsWith<IllegalStateException> {
-      builder.build(request(model = "claude-opus-4-8[effort=high]", effort = "medium"))
-    }
+    val exception =
+      assertFailsWith<IllegalStateException> {
+        builder.build(request(model = "claude-opus-4-8[effort=high]", effort = "medium"))
+      }
 
     assertContains(exception.message ?: "", "Conflicting effort directive")
     assertContains(exception.message ?: "", "effort='high'")

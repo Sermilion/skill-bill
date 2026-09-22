@@ -8,6 +8,7 @@ import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class RuntimeExceptionPersistedRedactionTest {
   private val callerMessage = "reading /home/dev/checkout/SKILL-163/spec.md failed"
 
@@ -44,12 +45,13 @@ class RuntimeExceptionPersistedRedactionTest {
     }
   }
 
-  private fun storedPayload(connection: Connection): String = connection.createStatement().use { statement ->
-    statement.executeQuery("SELECT payload_json FROM telemetry_outbox ORDER BY id DESC LIMIT 1").use { resultSet ->
-      assertTrue(resultSet.next(), "an exception event must be persisted")
-      resultSet.getString("payload_json")
+  private fun storedPayload(connection: Connection): String =
+    connection.createStatement().use { statement ->
+      statement.executeQuery("SELECT payload_json FROM telemetry_outbox ORDER BY id DESC LIMIT 1").use { resultSet ->
+        assertTrue(resultSet.next(), "an exception event must be persisted")
+        resultSet.getString("payload_json")
+      }
     }
-  }
 
   private fun withConnection(block: (Connection) -> Unit) {
     val dbPath = Files.createTempDirectory("skillbill-exception-redaction").resolve("metrics.db")

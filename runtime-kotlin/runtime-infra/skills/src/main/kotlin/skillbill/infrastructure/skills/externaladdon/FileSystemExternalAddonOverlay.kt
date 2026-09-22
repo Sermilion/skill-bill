@@ -20,7 +20,6 @@ internal val ADDON_ENTRY_KEYS = setOf("slug", "entrypoint", "companion_pointers"
 
 @Inject
 class FileSystemExternalAddonOverlay : ExternalAddonOverlayPort {
-
   override fun applyOverlay(request: ExternalAddonOverlayRequest): ExternalAddonOverlayResult {
     if (request.sources.isEmpty()) {
       return ExternalAddonOverlayResult(touched = false)
@@ -35,11 +34,12 @@ class FileSystemExternalAddonOverlay : ExternalAddonOverlayPort {
       val packRoot = platformPacksRoot.resolve(source.platform)
       val manifestPath = packRoot.resolve(MANIFEST_FILE)
       if (!Files.isRegularFile(manifestPath)) {
-        skipped += SkippedExternalAddonSource(
-          platform = source.platform,
-          sourcePath = source.path.toPath(),
-          reason = "platform pack '${source.platform}' is not installed; skipping external addon source.",
-        )
+        skipped +=
+          SkippedExternalAddonSource(
+            platform = source.platform,
+            sourcePath = source.path.toPath(),
+            reason = "platform pack '${source.platform}' is not installed; skipping external addon source.",
+          )
         continue
       }
       val installed = loadPlatformManifest(packRoot)
@@ -50,13 +50,14 @@ class FileSystemExternalAddonOverlay : ExternalAddonOverlayPort {
 
     plans.forEach(::applyPlan)
 
-    val applied = plans.map { plan ->
-      AppliedExternalAddonSource(
-        platform = plan.platform,
-        sourcePath = plan.sourcePath,
-        addons = plan.copiedFiles.values.map { it.fileName.toString() }.sorted(),
-      )
-    }
+    val applied =
+      plans.map { plan ->
+        AppliedExternalAddonSource(
+          platform = plan.platform,
+          sourcePath = plan.sourcePath,
+          addons = plan.copiedFiles.values.map { it.fileName.toString() }.sorted(),
+        )
+      }
     return ExternalAddonOverlayResult(
       appliedSources = applied,
       skippedSources = skipped,

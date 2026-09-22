@@ -14,22 +14,24 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 internal fun linkProviderAgentsBody(args: NativeAgentLinkProviderBodyArgs): NativeAgentLinkOutcome {
-  val generated = NativeAgentOperations.renderInstallArtifacts(
-    NativeAgentInstallRenderRequest(
-      platformPacksRoot = args.request.platformPacksRoot,
-      skillsRoot = args.request.skillsRoot,
-      selectedPlatforms = args.request.selectedPlatforms,
-      provider = args.provider,
-      home = args.resolvedHome,
-      compositionContext = installNativeAgentCompositionContext(),
-      overrides = NativeAgentInstallRenderOverrides(
-        cacheRoot = args.request.overrides.installCacheRoot,
-        sourceRoots = args.request.overrides.sourceRoots,
-        beforeMutation = args.journal::beforeMutation,
-        afterTemporaryCreation = args.journal::afterTemporaryCreation,
+  val generated =
+    NativeAgentOperations.renderInstallArtifacts(
+      NativeAgentInstallRenderRequest(
+        platformPacksRoot = args.request.platformPacksRoot,
+        skillsRoot = args.request.skillsRoot,
+        selectedPlatforms = args.request.selectedPlatforms,
+        provider = args.provider,
+        home = args.resolvedHome,
+        compositionContext = installNativeAgentCompositionContext(),
+        overrides =
+          NativeAgentInstallRenderOverrides(
+            cacheRoot = args.request.overrides.installCacheRoot,
+            sourceRoots = args.request.overrides.sourceRoots,
+            beforeMutation = args.journal::beforeMutation,
+            afterTemporaryCreation = args.journal::afterTemporaryCreation,
+          ),
       ),
-    ),
-  )
+    )
   val managedRoots = listOfNotNull(generated.cacheRoot, args.request.overrides.legacyManagedRoot)
   publishInstalledReviewCatalog(
     args.request.platformPacksRoot,
@@ -38,13 +40,14 @@ internal fun linkProviderAgentsBody(args: NativeAgentLinkProviderBodyArgs): Nati
     args.journal,
   )
   val linkResults = linkGeneratedNativeAgentFiles(args, generated, managedRoots)
-  val desired = desiredNativeAgentInventory(
-    provider = args.provider,
-    targets = args.targets,
-    generated = generated,
-    linked = linkResults.linked,
-    validationRoot = args.validationRoot,
-  )
+  val desired =
+    desiredNativeAgentInventory(
+      provider = args.provider,
+      targets = args.targets,
+      generated = generated,
+      linked = linkResults.linked,
+      validationRoot = args.validationRoot,
+    )
   desired.forEach(::verifyInstalledNativeAgent)
   NativeAgentLinkInventory.reconcile(
     NativeAgentLinkInventoryReconcileRequest(
@@ -73,17 +76,19 @@ private fun linkGeneratedNativeAgentFiles(
   args.targets.forEach { target ->
     generated.generatedFiles.forEach { file ->
       when (
-        val result = installNativeAgentFile(
-          file,
-          target,
-          managedSourceRoots = managedRoots,
-          ownership = NativeAgentLinkOwnership(
-            args.resolvedHome,
-            args.provider,
-            requireNotNull(artifactsByPath[file]).logicalName,
-          ),
-          beforeMutation = args.journal::beforeMutation,
-        )
+        val result =
+          installNativeAgentFile(
+            file,
+            target,
+            managedSourceRoots = managedRoots,
+            ownership =
+              NativeAgentLinkOwnership(
+                args.resolvedHome,
+                args.provider,
+                requireNotNull(artifactsByPath[file]).logicalName,
+              ),
+            beforeMutation = args.journal::beforeMutation,
+          )
       ) {
         is InstallNativeAgentResult.Linked -> linked.add(result.link)
         is InstallNativeAgentResult.Skipped -> skipped.add(NativeAgentSkippedLink(result.link, result.reason))
@@ -105,8 +110,9 @@ internal fun desiredNativeAgentInventory(
     targets.mapNotNull { target ->
       val agentDir = target.path.toPath()
       val installedPath = agentDir.resolve(artifact.path.fileName)
-      val isOurs = installedPath in linkedPaths ||
-        (Files.isSymbolicLink(installedPath) && resolveSymlinkTarget(installedPath) == artifact.path)
+      val isOurs =
+        installedPath in linkedPaths ||
+          (Files.isSymbolicLink(installedPath) && resolveSymlinkTarget(installedPath) == artifact.path)
       if (!isOurs) return@mapNotNull null
       NativeAgentLinkInventoryEntry(
         logicalName = artifact.logicalName,
@@ -123,6 +129,7 @@ internal fun desiredNativeAgentInventory(
 internal fun linkProviderAgentsWithJournal(
   journal: ProviderMutationJournal,
   block: () -> NativeAgentLinkOutcome,
-): NativeAgentLinkOutcome = runCatching(block).onFailure { error ->
-  journal.restore().forEach { suppressed -> error.addSuppressed(suppressed) }
-}.getOrThrow()
+): NativeAgentLinkOutcome =
+  runCatching(block).onFailure { error ->
+    journal.restore().forEach { suppressed -> error.addSuppressed(suppressed) }
+  }.getOrThrow()

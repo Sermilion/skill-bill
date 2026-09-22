@@ -74,14 +74,16 @@ class RuntimeExceptionTelemetryTest {
 
   @Test
   fun `anonymous level keeps only skillbill frames and full level keeps foreign frames`() {
-    val error = IllegalStateException("boom").apply {
-      stackTrace = arrayOf(
-        StackTraceElement("skillbill.application.telemetry.TelemetryService", "captureException", "x.kt", 11),
-        StackTraceElement("java.util.concurrent.ThreadPoolExecutor", "runWorker", "y.java", 22),
-        StackTraceElement("com.thirdparty.Widget", "render", "z.java", 33),
-        StackTraceElement("skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore", "enqueue", "w.kt", 44),
-      )
-    }
+    val error =
+      IllegalStateException("boom").apply {
+        stackTrace =
+          arrayOf(
+            StackTraceElement("skillbill.application.telemetry.TelemetryService", "captureException", "x.kt", 11),
+            StackTraceElement("java.util.concurrent.ThreadPoolExecutor", "runWorker", "y.java", 22),
+            StackTraceElement("com.thirdparty.Widget", "render", "z.java", 33),
+            StackTraceElement("skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore", "enqueue", "w.kt", 44),
+          )
+      }
 
     val anonymous = mutableListOf<Pair<String, String>>()
     enqueueRuntimeException(capturingOutbox(anonymous), "test_tool", error, "anonymous")
@@ -109,18 +111,28 @@ class RuntimeExceptionTelemetryTest {
 
   private fun capturingOutbox(captured: MutableList<Pair<String, String>>): TelemetryOutboxRepository =
     object : TelemetryOutboxRepository {
-      override fun enqueue(eventName: String, payloadJson: String): Long {
+      override fun enqueue(
+        eventName: String,
+        payloadJson: String,
+      ): Long {
         captured.add(eventName to payloadJson)
         return captured.size.toLong()
       }
 
       override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> = emptyList()
+
       override fun pendingCount(): Int = 0
+
       override fun blockedCount(attemptBudget: Int): Int = 0
+
       override fun latestError(): String? = null
+
       override fun lastSyncedAt(): String? = null
-      override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult =
-        TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
+
+      override fun markSynced(
+        eventIds: List<Long>,
+        claimToken: String,
+      ): TelemetryOutboxSettlementResult = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
 
       override fun markFailed(
         eventIds: List<Long>,
@@ -133,6 +145,7 @@ class RuntimeExceptionTelemetryTest {
         claimToken: String,
         lastError: String,
       ): TelemetryOutboxSettlementResult = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
+
       override fun clear(): Int = 0
     }
 }

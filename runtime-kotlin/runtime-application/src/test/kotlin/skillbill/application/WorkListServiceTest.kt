@@ -25,6 +25,7 @@ import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
 class WorkListServiceTest {
   @Test
   fun `work list invokes the workflow snapshot validation read seam before returning a workflow row`() {
@@ -44,27 +45,33 @@ class WorkListServiceTest {
         finishedAt = null,
       ),
     )
-    val validator = object : WorkflowSnapshotValidator {
-      override fun validate(snapshot: WorkflowStateSnapshot, slug: String): Unit =
-        throw InvalidWorkflowStateSchemaError("Workflow '$slug' fails snapshot validation.")
-    }
-    val service = WorkListService(
-      database = WorkListDatabase(
-        workflows = workflows,
-        work = listOf(
-          WorkItem(
-            issueKey = "SKILL-117",
-            workflowKind = WorkItemKind.FEATURE_TASK_RUNTIME,
-            workflowId = "wftr-invalid-snapshot",
-            startedAt = Instant.parse("2026-05-01T12:00:00Z"),
-            currentState = "running",
-            stateEnteredAt = Instant.parse("2026-05-01T12:00:00Z"),
-            stateEnteredAtEstimated = false,
+    val validator =
+      object : WorkflowSnapshotValidator {
+        override fun validate(
+          snapshot: WorkflowStateSnapshot,
+          slug: String,
+        ): Unit = throw InvalidWorkflowStateSchemaError("Workflow '$slug' fails snapshot validation.")
+      }
+    val service =
+      WorkListService(
+        database =
+          WorkListDatabase(
+            workflows = workflows,
+            work =
+              listOf(
+                WorkItem(
+                  issueKey = "SKILL-117",
+                  workflowKind = WorkItemKind.FEATURE_TASK_RUNTIME,
+                  workflowId = "wftr-invalid-snapshot",
+                  startedAt = Instant.parse("2026-05-01T12:00:00Z"),
+                  currentState = "running",
+                  stateEnteredAt = Instant.parse("2026-05-01T12:00:00Z"),
+                  stateEnteredAtEstimated = false,
+                ),
+              ),
           ),
-        ),
-      ),
-      workflowSnapshotValidator = validator,
-    )
+        workflowSnapshotValidator = validator,
+      )
 
     assertFailsWith<InvalidWorkflowStateSchemaError> { service.list() }
   }
@@ -73,41 +80,43 @@ class WorkListServiceTest {
   fun `work list batches workflow snapshot validation below SQLite bind limits`() {
     val delegate = InMemoryWorkflowStates()
     val workflows = BatchingWorkflowStates(delegate)
-    val work = buildList {
-      repeat(901) { index ->
-        val workflowId = "wftr-batch-$index"
-        delegate.saveFeatureTaskRuntimeWorkflow(
-          WorkflowStateRecord(
-            workflowId = workflowId,
-            sessionId = "ftr-batch-$index",
-            workflowName = "bill-feature-task",
-            contractVersion = "0.1",
-            workflowStatus = WorkflowStatus.RUNNING.wireValue,
-            currentStepId = "implement",
-            stepsJson = "[]",
-            artifactsJson = "{}",
-            startedAt = "2026-05-01T12:00:00Z",
-            updatedAt = "2026-05-01T12:00:00Z",
-            finishedAt = null,
-          ),
-        )
-        add(
-          WorkItem(
-            issueKey = "SKILL-117",
-            workflowKind = WorkItemKind.FEATURE_TASK_RUNTIME,
-            workflowId = workflowId,
-            startedAt = Instant.parse("2026-05-01T12:00:00Z"),
-            currentState = "running",
-            stateEnteredAt = Instant.parse("2026-05-01T12:00:00Z"),
-            stateEnteredAtEstimated = false,
-          ),
-        )
+    val work =
+      buildList {
+        repeat(901) { index ->
+          val workflowId = "wftr-batch-$index"
+          delegate.saveFeatureTaskRuntimeWorkflow(
+            WorkflowStateRecord(
+              workflowId = workflowId,
+              sessionId = "ftr-batch-$index",
+              workflowName = "bill-feature-task",
+              contractVersion = "0.1",
+              workflowStatus = WorkflowStatus.RUNNING.wireValue,
+              currentStepId = "implement",
+              stepsJson = "[]",
+              artifactsJson = "{}",
+              startedAt = "2026-05-01T12:00:00Z",
+              updatedAt = "2026-05-01T12:00:00Z",
+              finishedAt = null,
+            ),
+          )
+          add(
+            WorkItem(
+              issueKey = "SKILL-117",
+              workflowKind = WorkItemKind.FEATURE_TASK_RUNTIME,
+              workflowId = workflowId,
+              startedAt = Instant.parse("2026-05-01T12:00:00Z"),
+              currentState = "running",
+              stateEnteredAt = Instant.parse("2026-05-01T12:00:00Z"),
+              stateEnteredAtEstimated = false,
+            ),
+          )
+        }
       }
-    }
-    val service = WorkListService(
-      database = WorkListDatabase(workflows = workflows, work = work),
-      workflowSnapshotValidator = testWorkflowSnapshotValidator,
-    )
+    val service =
+      WorkListService(
+        database = WorkListDatabase(workflows = workflows, work = work),
+        workflowSnapshotValidator = testWorkflowSnapshotValidator,
+      )
 
     val result = service.list()
 
@@ -132,25 +141,27 @@ private class WorkListDatabase(
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unitOfWork())
 
-  private fun unitOfWork(): UnitOfWork = object : UnitOfWorkDefaults() {
-    override val dbPath: Path = Path.of("/fake/work-list.db")
-    override val workflowStates = workflows
-    override val workList: WorkListRepository = object : WorkListRepository {
-      override fun list(limit: Int?): List<WorkItem> = limit?.let(work::take) ?: work
+  private fun unitOfWork(): UnitOfWork =
+    object : UnitOfWorkDefaults() {
+      override val dbPath: Path = Path.of("/fake/work-list.db")
+      override val workflowStates = workflows
+      override val workList: WorkListRepository =
+        object : WorkListRepository {
+          override fun list(limit: Int?): List<WorkItem> = limit?.let(work::take) ?: work
+        }
+      override val learnings: LearningRepository
+        get() = error("Not exercised by WorkListServiceTest.")
+      override val reviews: ReviewRepository
+        get() = error("Not exercised by WorkListServiceTest.")
+      override val lifecycleTelemetry: LifecycleTelemetryRepository
+        get() = error("Not exercised by WorkListServiceTest.")
+      override val telemetryReconciliation: TelemetryReconciliationRepository
+        get() = error("Not exercised by WorkListServiceTest.")
+      override val telemetryOutbox: TelemetryOutboxRepository
+        get() = error("Not exercised by WorkListServiceTest.")
+      override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
+      override val goalRunnerControls = EmptyGoalRunnerControlRepository
     }
-    override val learnings: LearningRepository
-      get() = error("Not exercised by WorkListServiceTest.")
-    override val reviews: ReviewRepository
-      get() = error("Not exercised by WorkListServiceTest.")
-    override val lifecycleTelemetry: LifecycleTelemetryRepository
-      get() = error("Not exercised by WorkListServiceTest.")
-    override val telemetryReconciliation: TelemetryReconciliationRepository
-      get() = error("Not exercised by WorkListServiceTest.")
-    override val telemetryOutbox: TelemetryOutboxRepository
-      get() = error("Not exercised by WorkListServiceTest.")
-    override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
-    override val goalRunnerControls = EmptyGoalRunnerControlRepository
-  }
 }
 
 private class BatchingWorkflowStates(

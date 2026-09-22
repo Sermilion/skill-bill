@@ -8,13 +8,14 @@ internal fun discoverCodexAgentTomls(
   platformPacksRoot: Path,
   skillsRoot: Path? = null,
   selectedPlatforms: List<String>? = null,
-): List<Path> = discoverNativeAgentFilesByDir(
-  platformPacksRoot = platformPacksRoot,
-  skillsRoot = skillsRoot,
-  selectedPlatforms = selectedPlatforms,
-  directoryName = NativeAgentProvider.Codex.directoryName,
-  extension = NativeAgentProvider.Codex.extension,
-)
+): List<Path> =
+  discoverNativeAgentFilesByDir(
+    platformPacksRoot = platformPacksRoot,
+    skillsRoot = skillsRoot,
+    selectedPlatforms = selectedPlatforms,
+    directoryName = NativeAgentProvider.Codex.directoryName,
+    extension = NativeAgentProvider.Codex.extension,
+  )
 
 internal fun uninstallCodexAgentTomls(
   platformPacksRoot: Path,

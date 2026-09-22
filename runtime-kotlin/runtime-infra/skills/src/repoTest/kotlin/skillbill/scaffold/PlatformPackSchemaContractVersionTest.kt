@@ -12,6 +12,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class PlatformPackSchemaContractVersionTest {
   @Test
   fun `schema contract_version const matches SHELL_CONTRACT_VERSION`() {
@@ -43,9 +44,10 @@ class PlatformPackSchemaContractVersionTest {
       enumNode.takeIf { !it.isMissingNode && it.isArray },
       "Schema must declare \$defs.codeReviewArea.enum as an array; found: $enumNode",
     )
-    val schemaAreas: Set<String> = (0 until enumNode.size())
-      .map { index -> enumNode.path(index).asText() }
-      .toSet()
+    val schemaAreas: Set<String> =
+      (0 until enumNode.size())
+        .map { index -> enumNode.path(index).asText() }
+        .toSet()
     assertEquals(
       APPROVED_CODE_REVIEW_AREAS,
       schemaAreas,
@@ -59,12 +61,13 @@ class PlatformPackSchemaContractVersionTest {
   fun `full_gate_command description does not permit intermediate repair-cycle runs`() {
     val schemaFile = repoRootFromTest().resolve(PlatformPackSchemaPaths.REPO_RELATIVE_PATH)
     val schema: JsonNode = YAMLMapper().readTree(Files.readString(schemaFile))
-    val description = schema.path("properties")
-      .path("validation_gate")
-      .path("properties")
-      .path("full_gate_command")
-      .path("description")
-      .asText()
+    val description =
+      schema.path("properties")
+        .path("validation_gate")
+        .path("properties")
+        .path("full_gate_command")
+        .path("description")
+        .asText()
     assertFalse(
       description.contains("intermediate repair-cycle", ignoreCase = true),
       "full_gate_command description must not call argv an intermediate repair-cycle run",

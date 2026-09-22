@@ -28,8 +28,9 @@ class AgentRunGoalContinuationCommandTest {
   @Test
   fun `goal-continuation child with no child workflow id runs skill-bill feature-task run directly`() {
     val runner = RecordingAgentRunProcessRunner()
-    val outcome = requireNotNull(adapters(runner)[InstallAgent.CLAUDE])
-      .launch(skillRunRequest())
+    val outcome =
+      requireNotNull(adapters(runner)[InstallAgent.CLAUDE])
+        .launch(skillRunRequest())
 
     assertEquals(InstallAgent.CLAUDE, outcome.agent)
     val request = runner.requests.single()
@@ -182,40 +183,44 @@ class AgentRunGoalContinuationCommandTest {
 
   private fun skillRunRequest(
     goalContinuation: SkillRunGoalContinuationContext? = goalContinuationContext(),
-  ): SkillRunRequest = SkillRunRequest(
-    issueKey = "SKILL-56",
-    repoRoot = Path.of("/tmp/skillbill-agent-run"),
-    subtaskId = 2,
-    timeout = 3.seconds,
-    goalContinuation = goalContinuation,
-  )
+  ): SkillRunRequest =
+    SkillRunRequest(
+      issueKey = "SKILL-56",
+      repoRoot = Path.of("/tmp/skillbill-agent-run"),
+      subtaskId = 2,
+      timeout = 3.seconds,
+      goalContinuation = goalContinuation,
+    )
 
-  private fun adapters(runner: RecordingAgentRunProcessRunner) = headlessAgentRunAdapters(
-    runner,
-    ALL_EXECUTABLES_AVAILABLE,
-    Path.of("/tmp/skillbill-agent-run/metrics.db"),
-  )
+  private fun adapters(runner: RecordingAgentRunProcessRunner) =
+    headlessAgentRunAdapters(
+      runner,
+      ALL_EXECUTABLES_AVAILABLE,
+      Path.of("/tmp/skillbill-agent-run/metrics.db"),
+    )
 
   private fun goalContinuationContext(
     childWorkflowId: String? = null,
     assignedWorkflowId: String? = null,
-  ): SkillRunGoalContinuationContext = SkillRunGoalContinuationContext(
-    parentIssueKey = "SKILL-56",
-    subtaskId = 2,
-    goalBranch = "feat/SKILL-56-goal",
-    suppressPr = true,
-    specPath = ".feature-specs/SKILL-56-goal/spec_subtask_2.md",
-    parentWorkflowId = "wfl-parent",
-    lastResumableStep = "implement",
-    childWorkflowId = childWorkflowId,
-    assignedWorkflowId = assignedWorkflowId,
-  )
+  ): SkillRunGoalContinuationContext =
+    SkillRunGoalContinuationContext(
+      parentIssueKey = "SKILL-56",
+      subtaskId = 2,
+      goalBranch = "feat/SKILL-56-goal",
+      suppressPr = true,
+      specPath = ".feature-specs/SKILL-56-goal/spec_subtask_2.md",
+      parentWorkflowId = "wfl-parent",
+      lastResumableStep = "implement",
+      childWorkflowId = childWorkflowId,
+      assignedWorkflowId = assignedWorkflowId,
+    )
 
   @Test
   fun `cursor goal-continuation child with no child workflow id runs skill-bill feature-task run directly`() {
     val runner = RecordingAgentRunProcessRunner()
-    val outcome = requireNotNull(adapters(runner)[InstallAgent.CURSOR])
-      .launch(skillRunRequest())
+    val outcome =
+      requireNotNull(adapters(runner)[InstallAgent.CURSOR])
+        .launch(skillRunRequest())
 
     assertEquals(InstallAgent.CURSOR, outcome.agent)
     val request = runner.requests.single()

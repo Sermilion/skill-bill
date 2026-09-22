@@ -18,33 +18,37 @@ object FeatureTaskRuntimePhaseWorkflowQueries {
 
   fun ceremonyScaling(featureSize: FeatureTaskRuntimeFeatureSize): FeatureTaskRuntimeCeremonyScaling =
     when (featureSize) {
-      FeatureTaskRuntimeFeatureSize.SMALL -> FeatureTaskRuntimeCeremonyScaling(
-        preplanCeremony = FeatureTaskRuntimePreplanCeremony.LIGHT,
-        reviewScope = FeatureTaskRuntimeReviewScope.CURRENT_UNIT_OF_WORK,
-        auditCeremony = FeatureTaskRuntimeAuditCeremony.LIGHT,
-      )
+      FeatureTaskRuntimeFeatureSize.SMALL ->
+        FeatureTaskRuntimeCeremonyScaling(
+          preplanCeremony = FeatureTaskRuntimePreplanCeremony.LIGHT,
+          reviewScope = FeatureTaskRuntimeReviewScope.CURRENT_UNIT_OF_WORK,
+          auditCeremony = FeatureTaskRuntimeAuditCeremony.LIGHT,
+        )
       FeatureTaskRuntimeFeatureSize.MEDIUM,
       FeatureTaskRuntimeFeatureSize.LARGE,
-      -> FeatureTaskRuntimeCeremonyScaling(
-        preplanCeremony = FeatureTaskRuntimePreplanCeremony.FULL,
-        reviewScope = FeatureTaskRuntimeReviewScope.BRANCH_DIFF,
-        auditCeremony = FeatureTaskRuntimeAuditCeremony.FULL_PER_CRITERION,
-      )
+      ->
+        FeatureTaskRuntimeCeremonyScaling(
+          preplanCeremony = FeatureTaskRuntimePreplanCeremony.FULL,
+          reviewScope = FeatureTaskRuntimeReviewScope.BRANCH_DIFF,
+          auditCeremony = FeatureTaskRuntimeAuditCeremony.FULL_PER_CRITERION,
+        )
     }
 
   fun phaseDeclaration(
     phaseId: String,
     featureSize: FeatureTaskRuntimeFeatureSize,
   ): FeatureTaskRuntimePhaseDeclaration {
-    val base = FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations[phaseId]
-      ?: error("No phase declaration for runtime phase '$phaseId'.")
+    val base =
+      FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations[phaseId]
+        ?: error("No phase declaration for runtime phase '$phaseId'.")
     if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) {
       return base
     }
-    val reviewKey = when (ceremonyScaling(featureSize).reviewScope) {
-      FeatureTaskRuntimeReviewScope.CURRENT_UNIT_OF_WORK -> "current_unit_of_work"
-      FeatureTaskRuntimeReviewScope.BRANCH_DIFF -> "diff"
-    }
+    val reviewKey =
+      when (ceremonyScaling(featureSize).reviewScope) {
+        FeatureTaskRuntimeReviewScope.CURRENT_UNIT_OF_WORK -> "current_unit_of_work"
+        FeatureTaskRuntimeReviewScope.BRANCH_DIFF -> "diff"
+      }
     return base.copy(derivedContextKeys = listOf(reviewKey))
   }
 
@@ -60,10 +64,11 @@ object FeatureTaskRuntimePhaseWorkflowQueries {
     ) {
       return base
     }
-    val selectedGatePhase = when (qualityGateSelection) {
-      FeatureTaskRuntimeQualityGateSelection.BUILD -> FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
-      FeatureTaskRuntimeQualityGateSelection.VALIDATE -> FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
-    }
+    val selectedGatePhase =
+      when (qualityGateSelection) {
+        FeatureTaskRuntimeQualityGateSelection.BUILD -> FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
+        FeatureTaskRuntimeQualityGateSelection.VALIDATE -> FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+      }
     val omittedGatePhase =
       if (selectedGatePhase == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD) {
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
@@ -71,10 +76,11 @@ object FeatureTaskRuntimePhaseWorkflowQueries {
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
       }
     return base.copy(
-      projectionDeclarations = base.projectionDeclarations.filter { declaration ->
-        val source = declaration.sourceRef as? FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput
-        source?.producingPhaseId != omittedGatePhase
-      },
+      projectionDeclarations =
+        base.projectionDeclarations.filter { declaration ->
+          val source = declaration.sourceRef as? FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput
+          source?.producingPhaseId != omittedGatePhase
+        },
     )
   }
 }

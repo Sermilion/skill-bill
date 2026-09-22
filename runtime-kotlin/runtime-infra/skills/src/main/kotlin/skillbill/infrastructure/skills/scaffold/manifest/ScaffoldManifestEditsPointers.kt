@@ -6,29 +6,36 @@ internal fun appendManifestPointer(
   skillRelativeDir: String,
   pointerName: String,
   target: String,
-): String = appendPointerLikeEntry(
-  PointerLikeEntryAppendRequest(
-    text = text,
-    blockName = "pointers",
-    skillRelativeDir = skillRelativeDir,
-    entryName = pointerName,
-    renderBlock = {
-      "  $skillRelativeDir:\n" +
+): String =
+  appendPointerLikeEntry(
+    PointerLikeEntryAppendRequest(
+      text = text,
+      blockName = "pointers",
+      skillRelativeDir = skillRelativeDir,
+      entryName = pointerName,
+      renderBlock = {
+        "  $skillRelativeDir:\n" +
+          "    - name: ${yamlScalar(pointerName)}\n" +
+          "      target: ${yamlScalar(target)}\n"
+      },
+      renderEntry = {
         "    - name: ${yamlScalar(pointerName)}\n" +
-        "      target: ${yamlScalar(target)}\n"
-    },
-    renderEntry = {
-      "    - name: ${yamlScalar(pointerName)}\n" +
-        "      target: ${yamlScalar(target)}\n"
-    },
-    existingEntryPattern = Regex(
-      "^    - name:\\s*['\"]?${Regex.escape(pointerName)}['\"]?\\s*$",
-      RegexOption.MULTILINE,
+          "      target: ${yamlScalar(target)}\n"
+      },
+      existingEntryPattern =
+        Regex(
+          "^    - name:\\s*['\"]?${Regex.escape(pointerName)}['\"]?\\s*$",
+          RegexOption.MULTILINE,
+        ),
     ),
-  ),
-)
+  )
 
-internal fun appendAddonUsage(text: String, skillRelativeDir: String, addonSlug: String, pointerName: String): String =
+internal fun appendAddonUsage(
+  text: String,
+  skillRelativeDir: String,
+  addonSlug: String,
+  pointerName: String,
+): String =
   appendPointerLikeEntry(
     PointerLikeEntryAppendRequest(
       text = text,
@@ -44,16 +51,18 @@ internal fun appendAddonUsage(text: String, skillRelativeDir: String, addonSlug:
         "    - slug: ${yamlScalar(addonSlug)}\n" +
           "      entrypoint: ${yamlScalar(pointerName)}\n"
       },
-      existingEntryPattern = Regex(
-        "^    - slug:\\s*['\"]?${Regex.escape(addonSlug)}['\"]?\\s*$",
-        RegexOption.MULTILINE,
-      ),
+      existingEntryPattern =
+        Regex(
+          "^    - slug:\\s*['\"]?${Regex.escape(addonSlug)}['\"]?\\s*$",
+          RegexOption.MULTILINE,
+        ),
     ),
   )
 
 internal fun appendPointerLikeEntry(request: PointerLikeEntryAppendRequest): String {
-  val blockRange = topLevelBlockRange(request.text, request.blockName)
-    ?: return request.text.trimEnd() + "\n\n${request.blockName}:\n${request.renderBlock()}"
+  val blockRange =
+    topLevelBlockRange(request.text, request.blockName)
+      ?: return request.text.trimEnd() + "\n\n${request.blockName}:\n${request.renderBlock()}"
   val skillRange = nestedSkillDirRange(request.text, blockRange, request.skillRelativeDir)
   if (skillRange == null) {
     return request.text.replaceRange(blockRange.last + 1, blockRange.last + 1, request.renderBlock())
@@ -67,22 +76,31 @@ internal fun appendPointerLikeEntry(request: PointerLikeEntryAppendRequest): Str
 
 private val TOP_LEVEL_KEY_PATTERN = Regex("^[^\\s#][^:\\n]*:", RegexOption.MULTILINE)
 
-internal fun topLevelBlockRange(text: String, blockName: String): IntRange? {
+internal fun topLevelBlockRange(
+  text: String,
+  blockName: String,
+): IntRange? {
   val header = Regex("^${Regex.escape(blockName)}:\\s*$", RegexOption.MULTILINE).find(text) ?: return null
   val next = TOP_LEVEL_KEY_PATTERN.find(text, startIndex = header.range.last + 1)
   val endExclusive = next?.range?.first ?: text.length
   return header.range.first until endExclusive
 }
 
-internal fun nestedSkillDirRange(text: String, blockRange: IntRange, skillRelativeDir: String): IntRange? {
+internal fun nestedSkillDirRange(
+  text: String,
+  blockRange: IntRange,
+  skillRelativeDir: String,
+): IntRange? {
   val block = text.substring(blockRange)
-  val localHeader = Regex(
-    "^  ${Regex.escape(skillRelativeDir)}:\\s*$",
-    RegexOption.MULTILINE,
-  ).find(block) ?: return null
+  val localHeader =
+    Regex(
+      "^  ${Regex.escape(skillRelativeDir)}:\\s*$",
+      RegexOption.MULTILINE,
+    ).find(block) ?: return null
   val start = blockRange.first + localHeader.range.first
-  val next = Regex("^  [^\\s].*:\\s*$", RegexOption.MULTILINE)
-    .find(text, startIndex = start + localHeader.value.length)
+  val next =
+    Regex("^  [^\\s].*:\\s*$", RegexOption.MULTILINE)
+      .find(text, startIndex = start + localHeader.value.length)
   val endExclusive = next?.range?.first?.takeIf { it <= blockRange.last + 1 } ?: (blockRange.last + 1)
   return start until endExclusive
 }

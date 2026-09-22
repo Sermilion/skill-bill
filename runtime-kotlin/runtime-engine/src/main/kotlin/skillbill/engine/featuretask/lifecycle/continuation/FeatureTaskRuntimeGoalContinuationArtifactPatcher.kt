@@ -21,21 +21,27 @@ import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+
 class FeatureTaskRuntimeGoalContinuationArtifactPatcher(
   private val engine: WorkflowEngine,
 ) {
-  internal fun save(record: WorkflowStateSnapshot, workflowStates: WorkflowStateRepository, patch: Map<String, Any?>) {
-    val updated = engine.updateRecord(
-      WorkflowFamily.TASK_RUNTIME.definition,
-      record,
-      WorkflowUpdateInput(
-        workflowStatus = record.workflowStatus,
-        currentStepId = record.currentStepId,
-        stepUpdates = null,
-        artifactsPatch = WorkflowArtifactPatch.from(patch),
-        sessionId = record.sessionId.orEmpty(),
-      ),
-    )
+  internal fun save(
+    record: WorkflowStateSnapshot,
+    workflowStates: WorkflowStateRepository,
+    patch: Map<String, Any?>,
+  ) {
+    val updated =
+      engine.updateRecord(
+        WorkflowFamily.TASK_RUNTIME.definition,
+        record,
+        WorkflowUpdateInput(
+          workflowStatus = record.workflowStatus,
+          currentStepId = record.currentStepId,
+          stepUpdates = null,
+          artifactsPatch = WorkflowArtifactPatch.from(patch),
+          sessionId = record.sessionId.orEmpty(),
+        ),
+      )
     WorkflowFamily.TASK_RUNTIME.save(workflowStates, updated)
   }
 }
@@ -51,19 +57,21 @@ fun GoalSubtaskReviewState.canRecoverReviewBase(): Boolean = disposition == Goal
 fun GoalSubtaskReviewState.matches(
   baseline: GoalSubtaskReviewBaseline,
   continuation: FeatureTaskRuntimeGoalContinuationArtifact,
-): Boolean = reviewBaseSha == baseline.reviewBaseSha &&
-  baselineUntrackedPaths == baseline.baselineUntrackedPaths.distinct().sorted() &&
-  codeReviewMode == continuation.codeReviewMode
+): Boolean =
+  reviewBaseSha == baseline.reviewBaseSha &&
+    baselineUntrackedPaths == baseline.baselineUntrackedPaths.distinct().sorted() &&
+    codeReviewMode == continuation.codeReviewMode
 
 internal fun rawReviewResultsFromArtifacts(
   artifacts: Map<String, Any?>,
   state: GoalSubtaskReviewState,
 ): Map<String, String> {
-  val decoded = GoalSubtaskReviewArtifactDecoder.decode(artifacts)
-    ?: rawReviewResultError(
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
-      "must be present whenever raw goal-subtask review results are read.",
-    )
+  val decoded =
+    GoalSubtaskReviewArtifactDecoder.decode(artifacts)
+      ?: rawReviewResultError(
+        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
+        "must be present whenever raw goal-subtask review results are read.",
+      )
   if (decoded.state != state) {
     rawReviewResultError(
       GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
@@ -73,43 +81,52 @@ internal fun rawReviewResultsFromArtifacts(
   return decoded.rawResults
 }
 
-fun rawReviewResultError(fieldPath: String, reason: String): Nothing = throw InvalidGoalSubtaskReviewStateSchemaError(
-  sourceLabel = GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
-  fieldPath = fieldPath,
-  reason = reason,
-)
+fun rawReviewResultError(
+  fieldPath: String,
+  reason: String,
+): Nothing =
+  throw InvalidGoalSubtaskReviewStateSchemaError(
+    sourceLabel = GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
+    fieldPath = fieldPath,
+    reason = reason,
+  )
 
 internal fun continuationPatch(
   continuation: FeatureTaskRuntimeGoalContinuationArtifact?,
   existing: FeatureTaskRuntimeGoalContinuationArtifact?,
-): Map<String, Any?> = when {
-  continuation == null || continuation == existing -> emptyMap()
-  existing == null -> mapOf(
-    FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuation.asWorkflowArtifactEntry(),
-    "install_sync_result" to mapOf(
-      SharedPayloadKeys.STATUS to "deferred",
-      "reason" to
-        "goal-continuation defers installer, uninstall, and install-sync flows until the parent goal exits; " +
-        "deferred install sync must not block subtask completion",
-    ),
-  )
-  else -> mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuation.asWorkflowArtifactEntry())
-}
+): Map<String, Any?> =
+  when {
+    continuation == null || continuation == existing -> emptyMap()
+    existing == null ->
+      mapOf(
+        FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuation.asWorkflowArtifactEntry(),
+        "install_sync_result" to
+          mapOf(
+            SharedPayloadKeys.STATUS to "deferred",
+            "reason" to
+              "goal-continuation defers installer, uninstall, and install-sync flows until the parent goal exits; " +
+              "deferred install sync must not block subtask completion",
+          ),
+      )
+    else -> mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuation.asWorkflowArtifactEntry())
+  }
 
 fun FeatureTaskRuntimeGoalContinuationArtifact?.compatibleWith(
   supplied: FeatureTaskRuntimeGoalContinuationArtifact?,
 ): Boolean {
   if (this == null || supplied == null) return true
-  val healed = copy(
-    agentAddonSelection = AgentAddonSelection(),
-    validationDepth = validationDepth ?: supplied.validationDepth,
-    qualityGateSelection = qualityGateSelection ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE,
-    parallelReviewAgent = null,
-  )
-  return healed == supplied.copy(
-    agentAddonSelection = AgentAddonSelection(),
-    parallelReviewAgent = null,
-  )
+  val healed =
+    copy(
+      agentAddonSelection = AgentAddonSelection(),
+      validationDepth = validationDepth ?: supplied.validationDepth,
+      qualityGateSelection = qualityGateSelection ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE,
+      parallelReviewAgent = null,
+    )
+  return healed ==
+    supplied.copy(
+      agentAddonSelection = AgentAddonSelection(),
+      parallelReviewAgent = null,
+    )
 }
 
 internal enum class GoalReviewBaseField(val wireValue: String) {
@@ -146,10 +163,11 @@ internal fun reviewStatePatch(
     )
   }
   return mapOf(
-    GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to GoalSubtaskReviewState.initial(
-      reviewBaseSha = baseline.reviewBaseSha,
-      baselineUntrackedPaths = baseline.baselineUntrackedPaths,
-      codeReviewMode = continuation.codeReviewMode,
-    ).toPersistenceWire(),
+    GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to
+      GoalSubtaskReviewState.initial(
+        reviewBaseSha = baseline.reviewBaseSha,
+        baselineUntrackedPaths = baseline.baselineUntrackedPaths,
+        codeReviewMode = continuation.codeReviewMode,
+      ).toPersistenceWire(),
   )
 }

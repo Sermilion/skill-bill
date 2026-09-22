@@ -12,19 +12,25 @@ internal data class QualityCheckRoute(
   val fallbackReason: String? = null,
 )
 
-internal fun routeQualityCheck(repoRoot: Path, routingEvidence: Collection<String>): QualityCheckRoute? {
+internal fun routeQualityCheck(
+  repoRoot: Path,
+  routingEvidence: Collection<String>,
+): QualityCheckRoute? {
   val packs = discoverPlatformPacks(repoRoot.toAbsolutePath().normalize().resolve("platform-packs"))
-  val candidates = packs.map { pack ->
-    val matched = pack.routingSignals.strong.filter { signal ->
-      routingEvidence.any { evidence -> routingSignalMatches(evidence, signal) }
-    }.distinct()
-    RoutingCandidate(pack, matched)
-  }.filter { it.matchedSignals.isNotEmpty() }
+  val candidates =
+    packs.map { pack ->
+      val matched =
+        pack.routingSignals.strong.filter { signal ->
+          routingEvidence.any { evidence -> routingSignalMatches(evidence, signal) }
+        }.distinct()
+      RoutingCandidate(pack, matched)
+    }.filter { it.matchedSignals.isNotEmpty() }
   if (candidates.isEmpty()) return null
   val adjacentWinner = resolveKotlinKmpDominance(candidates, routingEvidence)
-  val rankedCandidates = adjacentWinner?.let { selected ->
-    candidates.filterNot { it.pack.slug == "kotlin" || it.pack.slug == "kmp" } + selected
-  } ?: candidates
+  val rankedCandidates =
+    adjacentWinner?.let { selected ->
+      candidates.filterNot { it.pack.slug == "kotlin" || it.pack.slug == "kmp" } + selected
+    } ?: candidates
   val maximum = rankedCandidates.maxOf(RoutingCandidate::rank)
   val winners = rankedCandidates.filter { it.rank() == maximum }
   val winner = winners.singleOrNull()
@@ -49,14 +55,15 @@ private data class RoutingRank(
   val totalSpecificity: Int,
   val matchedSignals: Int,
 ) : Comparable<RoutingRank> {
-  override fun compareTo(other: RoutingRank): Int = compareValuesBy(
-    this,
-    other,
-    RoutingRank::ownershipSignals,
-    RoutingRank::maximumSpecificity,
-    RoutingRank::totalSpecificity,
-    RoutingRank::matchedSignals,
-  )
+  override fun compareTo(other: RoutingRank): Int =
+    compareValuesBy(
+      this,
+      other,
+      RoutingRank::ownershipSignals,
+      RoutingRank::maximumSpecificity,
+      RoutingRank::totalSpecificity,
+      RoutingRank::matchedSignals,
+    )
 }
 
 private data class RoutingCandidate(
@@ -81,9 +88,10 @@ private fun resolveKotlinKmpDominance(
   val kotlin = candidates.singleOrNull { it.pack.slug == "kotlin" } ?: return null
   val kmp = candidates.singleOrNull { it.pack.slug == "kmp" } ?: return null
   val kmpOwnedEvidence = routingEvidence.filter(::hasKmpOwnership)
-  val kotlinOwnedEvidence = routingEvidence.filter { evidence ->
-    !hasKmpOwnership(evidence) && KOTLIN_OWNERSHIP_SIGNALS.any { routingSignalMatches(evidence, it) }
-  }
+  val kotlinOwnedEvidence =
+    routingEvidence.filter { evidence ->
+      !hasKmpOwnership(evidence) && KOTLIN_OWNERSHIP_SIGNALS.any { routingSignalMatches(evidence, it) }
+    }
   return when {
     kmpOwnedEvidence.isNotEmpty() && kotlinOwnedEvidence.isEmpty() -> kmp
     kotlinOwnedEvidence.isNotEmpty() && kmpOwnedEvidence.isEmpty() -> kotlin
@@ -92,11 +100,15 @@ private fun resolveKotlinKmpDominance(
   }
 }
 
-private fun hasKmpOwnership(evidence: String): Boolean = KMP_OWNERSHIP_SIGNALS.any {
-  routingSignalMatches(evidence, it)
-}
+private fun hasKmpOwnership(evidence: String): Boolean =
+  KMP_OWNERSHIP_SIGNALS.any {
+    routingSignalMatches(evidence, it)
+  }
 
-private fun routingSignalMatches(evidence: String, signal: String): Boolean {
+private fun routingSignalMatches(
+  evidence: String,
+  signal: String,
+): Boolean {
   val normalizedEvidence = evidence.lowercase().replace('\\', '/')
   val normalizedSignal = signal.lowercase().replace('\\', '/')
   val basename = normalizedEvidence.substringAfterLast('/')
@@ -123,27 +135,31 @@ private fun routingSignalMatches(evidence: String, signal: String): Boolean {
 
 private fun signalSpecificity(signal: String): Int = signal.count { it.isLetterOrDigit() }
 
-private fun isGenericLanguageSignal(signal: String): Boolean = signal.lowercase() in setOf(
-  ".kt", "*.kt", ".kts", "*.kts", ".ts", "*.ts", ".tsx", "*.tsx", ".mts", "*.mts", ".cts", "*.cts",
-  ".py", "*.py", ".php", "*.php", ".rs", "*.rs", ".go", "*.go", ".swift", "*.swift",
-)
+private fun isGenericLanguageSignal(signal: String): Boolean =
+  signal.lowercase() in
+    setOf(
+      ".kt", "*.kt", ".kts", "*.kts", ".ts", "*.ts", ".tsx", "*.tsx", ".mts", "*.mts", ".cts", "*.cts",
+      ".py", "*.py", ".php", "*.php", ".rs", "*.rs", ".go", "*.go", ".swift", "*.swift",
+    )
 
-private val KMP_OWNERSHIP_SIGNALS = listOf(
-  "commonMain",
-  "androidMain",
-  "iosMain",
-  "org.jetbrains.kotlin.multiplatform",
-  "kotlin(\"multiplatform\")",
-  "expect",
-  "actual",
-  "AndroidManifest.xml",
-)
+private val KMP_OWNERSHIP_SIGNALS =
+  listOf(
+    "commonMain",
+    "androidMain",
+    "iosMain",
+    "org.jetbrains.kotlin.multiplatform",
+    "kotlin(\"multiplatform\")",
+    "expect",
+    "actual",
+    "AndroidManifest.xml",
+  )
 
-private val KOTLIN_OWNERSHIP_SIGNALS = listOf(
-  "build.gradle",
-  "build.gradle.kts",
-  "settings.gradle.kts",
-  "gradle/libs.versions.toml",
-  "detekt.yml",
-  "kotlin/",
-)
+private val KOTLIN_OWNERSHIP_SIGNALS =
+  listOf(
+    "build.gradle",
+    "build.gradle.kts",
+    "settings.gradle.kts",
+    "gradle/libs.versions.toml",
+    "detekt.yml",
+    "kotlin/",
+  )

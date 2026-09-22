@@ -12,6 +12,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class GovernedSkillDriftValidationTest {
   private val tempRoot: Path = Files.createTempDirectory("skillbill-governed-drift-")
 
@@ -99,19 +100,21 @@ class GovernedSkillDriftValidationTest {
     writeRenderedHorizontalSkill(repoRoot, "bill-nondeterministic")
     var renderCount = 0
 
-    val report = validateGovernedSkillDrift(repoRoot) { root, target ->
-      renderCount += 1
-      AuthoringRenderResult(
-        repoRoot = root,
-        skillName = target.skillName,
-        blocks = listOf(
-          AuthoringRenderBlock(
-            header = "===== SKILL.md: skills/bill-nondeterministic/SKILL.md =====",
-            content = "render-$renderCount\n",
-          ),
-        ),
-      )
-    }
+    val report =
+      validateGovernedSkillDrift(repoRoot) { root, target ->
+        renderCount += 1
+        AuthoringRenderResult(
+          repoRoot = root,
+          skillName = target.skillName,
+          blocks =
+            listOf(
+              AuthoringRenderBlock(
+                header = "===== SKILL.md: skills/bill-nondeterministic/SKILL.md =====",
+                content = "render-$renderCount\n",
+              ),
+            ),
+        )
+      }
 
     assertFalse(report.passed)
     assertTrue(
@@ -120,7 +123,10 @@ class GovernedSkillDriftValidationTest {
     )
   }
 
-  private fun writeRenderedHorizontalSkill(repoRoot: Path, skillName: String) {
+  private fun writeRenderedHorizontalSkill(
+    repoRoot: Path,
+    skillName: String,
+  ) {
     val skillDir = repoRoot.resolve("skills/$skillName")
     Files.createDirectories(skillDir)
     Files.writeString(
@@ -164,7 +170,8 @@ class GovernedSkillDriftValidationTest {
     return repoRoot
   }
 
-  private fun platformManifest(): String = """
+  private fun platformManifest(): String =
+    """
     platform: fixturepack
     contract_version: "1.8"
 
@@ -183,5 +190,5 @@ class GovernedSkillDriftValidationTest {
       code-review/bill-fixturepack-code-review:
         - name: shell-ceremony.md
           target: shared/shell.md
-  """.trimIndent() + "\n"
+    """.trimIndent() + "\n"
 }

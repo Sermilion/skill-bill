@@ -22,9 +22,10 @@ class ChildAwareGoalPlanningRefreshLiveness(
   private val clock: Clock,
 ) : GoalPlanningRefreshLiveness {
   override fun resolve(state: GoalRunnerManifestState): ExecutionLiveness {
-    val currentSubtask = state.manifest.subtasks.firstOrNull { subtask ->
-      subtask.id == state.manifest.currentSubtaskIntent.subtaskId
-    }
+    val currentSubtask =
+      state.manifest.subtasks.firstOrNull { subtask ->
+        subtask.id == state.manifest.currentSubtaskIntent.subtaskId
+      }
     return resolveChildExecutionLiveness(currentSubtask, phaseRecorder, clock)
   }
 }
@@ -49,10 +50,14 @@ fun resolveChildExecutionLiveness(
   }.getOrDefault(ExecutionLiveness.UNKNOWN)
 }
 
-fun refuseRefreshReason(issueKey: String, liveness: ExecutionLiveness): String? = when (liveness) {
-  ExecutionLiveness.LIVE ->
-    "Goal '$issueKey' is live; refuse shared-preplan refresh while the current child run is active."
-  ExecutionLiveness.UNKNOWN ->
-    "Goal '$issueKey' has unknown execution liveness; refuse shared-preplan refresh."
-  ExecutionLiveness.IDLE -> null
-}
+fun refuseRefreshReason(
+  issueKey: String,
+  liveness: ExecutionLiveness,
+): String? =
+  when (liveness) {
+    ExecutionLiveness.LIVE ->
+      "Goal '$issueKey' is live; refuse shared-preplan refresh while the current child run is active."
+    ExecutionLiveness.UNKNOWN ->
+      "Goal '$issueKey' has unknown execution liveness; refuse shared-preplan refresh."
+    ExecutionLiveness.IDLE -> null
+  }

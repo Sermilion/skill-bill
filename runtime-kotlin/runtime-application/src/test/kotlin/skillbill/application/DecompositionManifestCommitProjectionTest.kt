@@ -48,6 +48,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class DecompositionManifestCommitProjectionTest {
   @Test
   fun `pre-commit projection writes completed manifest before runtime commit sha is known`() {
@@ -57,39 +58,46 @@ class DecompositionManifestCommitProjectionTest {
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
     Files.writeString(subtaskSpec, "---\nstatus: In Progress\n---\n\n# Foundation\n")
-    val initial = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningResult(
-          parentSpecPath = parentSpecPath.toString(),
-          subtasks = listOf(
-            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
-          ),
+    val initial =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult =
+            decompositionPlanningResult(
+              parentSpecPath = parentSpecPath.toString(),
+              subtasks =
+                listOf(
+                  decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
+                ),
+            ),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
         ),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
+      )
     assertNotNull(initial)
 
-    val preCommit = writeFromWorkflowUpdate(
-      repoRoot = repoRoot,
-      existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      artifactsPatch = WorkflowArtifactPatch.from(
-        mapOf("commit_push_result" to mapOf("pre_commit_projection" to true)),
-      ),
-      runtimeUpdate = DecompositionManifestRuntimeUpdate(
-        workflowId = "wfl-subtask-1",
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        currentStepId = "commit_push",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "commit_push", "status" to "running", "attempt_count" to 1),
+    val preCommit =
+      writeFromWorkflowUpdate(
+        repoRoot = repoRoot,
+        existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            mapOf("commit_push_result" to mapOf("pre_commit_projection" to true)),
           ),
-        ),
-      ),
-    )
+        runtimeUpdate =
+          DecompositionManifestRuntimeUpdate(
+            workflowId = "wfl-subtask-1",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
+            currentStepId = "commit_push",
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "commit_push", "status" to "running", "attempt_count" to 1),
+                ),
+              ),
+          ),
+      )
 
     assertNotNull(preCommit)
     val projectedBeforeCommit = preCommit.manifest.subtasks.single { it.id == 1 }
@@ -111,23 +119,27 @@ class DecompositionManifestCommitProjectionTest {
     manifest: DecompositionManifest,
     manifestTextBeforeSha: String,
   ) {
-    val final = writeFromWorkflowUpdate(
-      repoRoot = repoRoot,
-      existingArtifactsJson = durableRuntimeArtifactsJson(manifest, subtaskSpec),
-      artifactsPatch = WorkflowArtifactPatch.from(
-        mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1")),
-      ),
-      runtimeUpdate = DecompositionManifestRuntimeUpdate(
-        workflowId = "wfl-subtask-1",
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        currentStepId = "commit_push",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
+    val final =
+      writeFromWorkflowUpdate(
+        repoRoot = repoRoot,
+        existingArtifactsJson = durableRuntimeArtifactsJson(manifest, subtaskSpec),
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1")),
           ),
-        ),
-      ),
-    )
+        runtimeUpdate =
+          DecompositionManifestRuntimeUpdate(
+            workflowId = "wfl-subtask-1",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
+            currentStepId = "commit_push",
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
+                ),
+              ),
+          ),
+      )
 
     assertNotNull(final)
     assertEquals(manifestTextBeforeSha, Files.readString(final.manifestPath.toPath()))
@@ -143,39 +155,46 @@ class DecompositionManifestCommitProjectionTest {
     val subtaskSpec = parentSpecPath.parent.resolve("spec_subtask_1_foundation.md")
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
-    val initial = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningResult(
-          parentSpecPath = parentSpecPath.toString(),
-          subtasks = listOf(
-            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
-          ),
+    val initial =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult =
+            decompositionPlanningResult(
+              parentSpecPath = parentSpecPath.toString(),
+              subtasks =
+                listOf(
+                  decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
+                ),
+            ),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
         ),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
+      )
     assertNotNull(initial)
 
-    val result = writeFromWorkflowUpdate(
-      repoRoot = repoRoot,
-      existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      artifactsPatch = WorkflowArtifactPatch.from(
-        mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1")),
-      ),
-      runtimeUpdate = DecompositionManifestRuntimeUpdate(
-        workflowId = "wfl-subtask-1",
-        workflowStatus = WorkflowStatus.COMPLETED.wireValue,
-        currentStepId = "finish",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1),
+    val result =
+      writeFromWorkflowUpdate(
+        repoRoot = repoRoot,
+        existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
+        artifactsPatch =
+          WorkflowArtifactPatch.from(
+            mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1")),
           ),
-        ),
-      ),
-    )
+        runtimeUpdate =
+          DecompositionManifestRuntimeUpdate(
+            workflowId = "wfl-subtask-1",
+            workflowStatus = WorkflowStatus.COMPLETED.wireValue,
+            currentStepId = "finish",
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1),
+                ),
+              ),
+          ),
+      )
 
     assertNotNull(result)
     val subtask = result.manifest.subtasks.single { it.id == 1 }
@@ -190,31 +209,37 @@ class DecompositionManifestCommitProjectionTest {
     val subtaskSpec = parentSpecPath.parent.resolve("spec_subtask_1_foundation.md")
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
-    val initial = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningResult(
-          parentSpecPath = parentSpecPath.toString(),
-          subtasks = listOf(
-            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
-          ),
+    val initial =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult =
+            decompositionPlanningResult(
+              parentSpecPath = parentSpecPath.toString(),
+              subtasks =
+                listOf(
+                  decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
+                ),
+            ),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
         ),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
+      )
     assertNotNull(initial)
-    val runtimeManifest = initial.manifest.copy(
-      subtasks = initial.manifest.subtasks.map { subtask ->
-        subtask.copy(status = "complete", commitSha = "commit-subtask-1", workflowId = "wfl-subtask-1")
-      },
-    )
+    val runtimeManifest =
+      initial.manifest.copy(
+        subtasks =
+          initial.manifest.subtasks.map { subtask ->
+            subtask.copy(status = "complete", commitSha = "commit-subtask-1", workflowId = "wfl-subtask-1")
+          },
+      )
 
-    val result = writeProjectionFromWorkflowState(
-      repoRoot = repoRoot,
-      artifactsJson = durableRuntimeArtifactsJson(runtimeManifest, subtaskSpec),
-    )
+    val result =
+      writeProjectionFromWorkflowState(
+        repoRoot = repoRoot,
+        artifactsJson = durableRuntimeArtifactsJson(runtimeManifest, subtaskSpec),
+      )
 
     assertNotNull(result)
     val projected = result.manifest.subtasks.single { it.id == 1 }
@@ -231,43 +256,52 @@ class DecompositionManifestCommitProjectionTest {
     val subtaskSpec = parentSpecPath.parent.resolve("spec_subtask_1_foundation.md")
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
-    val initial = writeIfDecomposed(
-      DecompositionManifestWriteRequest(
-        repoRoot = repoRoot,
-        parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlanningResult(
-          parentSpecPath = parentSpecPath.toString(),
-          subtasks = listOf(
-            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
-          ),
+    val initial =
+      writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult =
+            decompositionPlanningResult(
+              parentSpecPath = parentSpecPath.toString(),
+              subtasks =
+                listOf(
+                  decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
+                ),
+            ),
+          baseBranch = "main",
+          featureBranch = "feature/SKILL-51-decomposition",
         ),
-        baseBranch = "main",
-        featureBranch = "feature/SKILL-51-decomposition",
-      ),
-    )
+      )
     assertNotNull(initial)
     val manifestPath = initial.manifestPath.toPath()
     val manifestBefore = Files.readString(manifestPath)
-    val failingStore = object : DecompositionManifestStore by TestDecompositionManifestStore {
-      override fun writeTextAtomically(target: Path, content: String) {
-        if (target == manifestPath) throw IOException("simulated projection write failure")
-        TestDecompositionManifestStore.writeTextAtomically(target, content)
+    val failingStore =
+      object : DecompositionManifestStore by TestDecompositionManifestStore {
+        override fun writeTextAtomically(
+          target: Path,
+          content: String,
+        ) {
+          if (target == manifestPath) throw IOException("simulated projection write failure")
+          TestDecompositionManifestStore.writeTextAtomically(target, content)
+        }
       }
-    }
-    val outcome = testDecompositionManifestWriter.writeProjectionFromWorkflowState(
-      repoRoot = repoRoot,
-      artifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      validator = testDecompositionManifestValidator,
-      fileStore = failingStore,
-    )
+    val outcome =
+      testDecompositionManifestWriter.writeProjectionFromWorkflowState(
+        repoRoot = repoRoot,
+        artifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
+        validator = testDecompositionManifestValidator,
+        fileStore = failingStore,
+      )
     assertEquals(manifestBefore, Files.readString(manifestPath))
     assertIs<DecompositionManifestProjectionOutcome.Failed>(outcome)
-    val recovered = testDecompositionManifestWriter.writeProjectionFromWorkflowState(
-      repoRoot = repoRoot,
-      artifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      validator = testDecompositionManifestValidator,
-      fileStore = TestDecompositionManifestStore,
-    )
+    val recovered =
+      testDecompositionManifestWriter.writeProjectionFromWorkflowState(
+        repoRoot = repoRoot,
+        artifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
+        validator = testDecompositionManifestValidator,
+        fileStore = TestDecompositionManifestStore,
+      )
     assertIs<DecompositionManifestProjectionOutcome.Written>(recovered)
     loadDecompositionManifest(recovered.result.manifestPath.toPath())
   }
@@ -275,12 +309,14 @@ class DecompositionManifestCommitProjectionTest {
   @Test
   fun `continueWorkflow by issue key records projection failure on the parent workflow row`() {
     val setup = createProjectionRetrySetup()
-    val plan = decompositionPlanningResult(
-      parentSpecPath = setup.parentSpecPath.toString(),
-      subtasks = listOf(
-        decompositionPlanningSubtask(id = 1, name = "foundation", specPath = setup.subtaskSpec.toString()),
-      ),
-    )
+    val plan =
+      decompositionPlanningResult(
+        parentSpecPath = setup.parentSpecPath.toString(),
+        subtasks =
+          listOf(
+            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = setup.subtaskSpec.toString()),
+          ),
+      )
     persistProjectionRetryPlan(setup.service, setup.opened.workflowId, plan)
     setup.failure.enabled = true
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
@@ -291,20 +327,23 @@ class DecompositionManifestCommitProjectionTest {
   @Test
   fun `continueWorkflow by child workflow id records projection failure on the parent workflow row`() {
     val setup = createProjectionRetrySetup()
-    val plan = decompositionPlanningResult(
-      parentSpecPath = setup.parentSpecPath.toString(),
-      subtasks = listOf(
-        decompositionPlanningSubtask(id = 1, name = "foundation", specPath = setup.subtaskSpec.toString()),
-      ),
-    )
+    val plan =
+      decompositionPlanningResult(
+        parentSpecPath = setup.parentSpecPath.toString(),
+        subtasks =
+          listOf(
+            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = setup.subtaskSpec.toString()),
+          ),
+      )
     persistProjectionRetryPlan(setup.service, setup.opened.workflowId, plan)
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
     val parentBefore = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId))
-    val childWorkflowId = parentBefore.toSnapshot().decompositionRuntime(testDecompositionManifestValidator)
-      ?.subtasks
-      ?.single()
-      ?.workflowId
-      ?: error("expected started subtask workflow id")
+    val childWorkflowId =
+      parentBefore.toSnapshot().decompositionRuntime(testDecompositionManifestValidator)
+        ?.subtasks
+        ?.single()
+        ?.workflowId
+        ?: error("expected started subtask workflow id")
     setup.failure.enabled = true
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, childWorkflowId)
     val parent = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId))
@@ -315,17 +354,19 @@ class DecompositionManifestCommitProjectionTest {
   fun `missing projection owner returns a typed settlement failure`() {
     val workflows = InMemoryWorkflowStates()
     val database = FakeDatabaseSessionFactory(workflows)
-    val outcome = database.transaction { unitOfWork ->
-      persistDecompositionManifestProjectionFailure(
-        engine = WorkflowEngine(testWorkflowSnapshotValidator),
-        unitOfWork = unitOfWork,
-        workflowId = "missing-owner",
-        outcome = DecompositionManifestProjectionOutcome.Failed(
-          operation = DecompositionManifestWriteGuard.projectionOperationLabel(),
-          targetPath = "decomposition-manifest.yaml",
-        ),
-      )
-    }
+    val outcome =
+      database.transaction { unitOfWork ->
+        persistDecompositionManifestProjectionFailure(
+          engine = WorkflowEngine(testWorkflowSnapshotValidator),
+          unitOfWork = unitOfWork,
+          workflowId = "missing-owner",
+          outcome =
+            DecompositionManifestProjectionOutcome.Failed(
+              operation = DecompositionManifestWriteGuard.projectionOperationLabel(),
+              targetPath = "decomposition-manifest.yaml",
+            ),
+        )
+      }
 
     assertEquals(DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT, outcome)
   }
@@ -334,13 +375,14 @@ class DecompositionManifestCommitProjectionTest {
   fun `missing projection owner is also visible when clearing after a written projection`() {
     val workflows = InMemoryWorkflowStates()
     val database = FakeDatabaseSessionFactory(workflows)
-    val outcome = database.transaction { unitOfWork ->
-      clearDecompositionManifestProjectionFailure(
-        engine = WorkflowEngine(testWorkflowSnapshotValidator),
-        unitOfWork = unitOfWork,
-        workflowId = "missing-owner",
-      )
-    }
+    val outcome =
+      database.transaction { unitOfWork ->
+        clearDecompositionManifestProjectionFailure(
+          engine = WorkflowEngine(testWorkflowSnapshotValidator),
+          unitOfWork = unitOfWork,
+          workflowId = "missing-owner",
+        )
+      }
 
     assertEquals(DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT, outcome)
   }
@@ -349,10 +391,11 @@ class DecompositionManifestCommitProjectionTest {
   fun `continueWorkflow preserves unknown workflow lookup`() {
     val setup = createProjectionRetrySetup()
 
-    val result = setup.service.continueWorkflow(
-      WorkflowFamilyKind.TASK_RUNTIME,
-      "missing-workflow",
-    )
+    val result =
+      setup.service.continueWorkflow(
+        WorkflowFamilyKind.TASK_RUNTIME,
+        "missing-workflow",
+      )
 
     assertIs<WorkflowContinueResult.UnknownWorkflow>(result)
   }
@@ -367,31 +410,36 @@ class DecompositionManifestCommitProjectionTest {
     val workflows = setup.workflows
     val service = setup.service
     val opened = setup.opened
-    val plan = decompositionPlanningResult(
-      parentSpecPath = parentSpecPath.toString(),
-      subtasks = listOf(
-        decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
-      ),
-    )
+    val plan =
+      decompositionPlanningResult(
+        parentSpecPath = parentSpecPath.toString(),
+        subtasks =
+          listOf(
+            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
+          ),
+      )
     persistProjectionRetryPlan(service, opened.workflowId, plan)
     val manifestBeforeFailure = Files.readString(manifestPath)
     val childrenBeforeFailure = workflows.countGoalChildIdentities("SKILL-51")
     setup.failure.enabled = true
 
-    val committedResult = service.update(
-      WorkflowFamilyKind.TASK_RUNTIME,
-      WorkflowUpdateRequest(
-        workflowId = opened.workflowId,
-        workflowStatus = WorkflowStatus.RUNNING.wireValue,
-        currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1)),
+    val committedResult =
+      service.update(
+        WorkflowFamilyKind.TASK_RUNTIME,
+        WorkflowUpdateRequest(
+          workflowId = opened.workflowId,
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
+          currentStepId = "implement",
+          stepUpdates =
+            WorkflowStepUpdates.from(
+              listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1)),
+            ),
+          artifactsPatch =
+            WorkflowArtifactPatch.from(
+              mapOf("projection_probe" to mapOf("value" to "committed")),
+            ),
         ),
-        artifactsPatch = WorkflowArtifactPatch.from(
-          mapOf("projection_probe" to mapOf("value" to "committed")),
-        ),
-      ),
-    )
+      )
     assertIs<WorkflowUpdateResult.Ok>(committedResult)
     val afterFailure = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId))
     assertContains(afterFailure.artifactsJson, "projection_probe")
@@ -416,39 +464,45 @@ class DecompositionManifestCommitProjectionTest {
   @Test
   fun `projection retry clears a parent failure recorded by child continuation`() {
     val setup = createProjectionRetrySetup()
-    val plan = decompositionPlanningResult(
-      parentSpecPath = setup.parentSpecPath.toString(),
-      subtasks = listOf(
-        decompositionPlanningSubtask(id = 1, name = "foundation", specPath = setup.subtaskSpec.toString()),
-      ),
-    )
+    val plan =
+      decompositionPlanningResult(
+        parentSpecPath = setup.parentSpecPath.toString(),
+        subtasks =
+          listOf(
+            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = setup.subtaskSpec.toString()),
+          ),
+      )
     persistProjectionRetryPlan(setup.service, setup.opened.workflowId, plan)
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-    val parentBeforeFailure = requireNotNull(
-      setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
-    )
-    val childWorkflowId = parentBeforeFailure.toSnapshot()
-      .decompositionRuntime(testDecompositionManifestValidator)
-      ?.subtasks
-      ?.single()
-      ?.workflowId
-      ?: error("expected started subtask workflow id")
+    val parentBeforeFailure =
+      requireNotNull(
+        setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
+      )
+    val childWorkflowId =
+      parentBeforeFailure.toSnapshot()
+        .decompositionRuntime(testDecompositionManifestValidator)
+        ?.subtasks
+        ?.single()
+        ?.workflowId
+        ?: error("expected started subtask workflow id")
     val childBeforeFailure = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(childWorkflowId))
     val childrenBeforeFailure = setup.workflows.countGoalChildIdentities("SKILL-51")
 
     setup.failure.enabled = true
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, childWorkflowId)
-    val parentAfterFailure = requireNotNull(
-      setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
-    )
+    val parentAfterFailure =
+      requireNotNull(
+        setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
+      )
     assertContains(parentAfterFailure.artifactsJson, DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
 
     setup.failure.enabled = false
     val retryOutcome = setup.service.retryDecompositionManifestProjection(setup.opened.workflowId)
     assertIs<DecompositionManifestProjectionOutcome.Written>(retryOutcome)
-    val parentAfterRetry = requireNotNull(
-      setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
-    )
+    val parentAfterRetry =
+      requireNotNull(
+        setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
+      )
     val childAfterRetry = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(childWorkflowId))
     assertTrue(DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY !in parentAfterRetry.artifactsJson)
     assertEquals(childBeforeFailure.currentStepId, childAfterRetry.currentStepId)
@@ -465,12 +519,16 @@ class DecompositionManifestCommitProjectionTest {
     Files.writeString(subtaskSpec, "# Foundation\n")
     val failure = ProjectionRetryFailure()
     val manifestPath = parentSpecPath.parent.resolve("decomposition-manifest.yaml")
-    val fileStore = object : DecompositionManifestStore by TestDecompositionManifestStore {
-      override fun writeTextAtomically(target: Path, content: String) {
-        if (failure.enabled && target == manifestPath) throw IOException("simulated projection failure")
-        TestDecompositionManifestStore.writeTextAtomically(target, content)
+    val fileStore =
+      object : DecompositionManifestStore by TestDecompositionManifestStore {
+        override fun writeTextAtomically(
+          target: Path,
+          content: String,
+        ) {
+          if (failure.enabled && target == manifestPath) throw IOException("simulated projection failure")
+          TestDecompositionManifestStore.writeTextAtomically(target, content)
+        }
       }
-    }
     val workflows = InMemoryWorkflowStates()
     val repositoryIdentity = "repo-root-realpath-v1:${repoRoot.toRealPath()}"
     workflows.saveFeatureTaskExecutionIdentity(
@@ -483,28 +541,30 @@ class DecompositionManifestCommitProjectionTest {
         routeScope = FeatureTaskRouteScope.GOAL_CHILD,
       ),
     )
-    val service = WorkflowService(
-      database = FakeDatabaseSessionFactory(workflows),
-      gitOperations = NoopWorkflowGitOperations,
-      decompositionManifestStore = fileStore,
-      workflowSnapshotValidator = testWorkflowSnapshotValidator,
-      decompositionManifestValidator = testDecompositionManifestValidator,
-      decompositionManifestWriter = DecompositionManifestWriter(),
-      repositoryRoot = RepositoryRoot(repoRoot),
-      goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-      runtimeDiagnostics = NoopRuntimeDiagnostics,
-      clock = Clock.systemUTC(),
-    )
-    val opened = assertIs<WorkflowOpenResult.Ok>(
-      service.open(
-        WorkflowServiceOpenArgs(
-          kind = WorkflowFamilyKind.TASK_RUNTIME,
-          issueKey = "SKILL-51",
-          repositoryIdentity = repositoryIdentity,
-          governedSpecPath = ".feature-specs/SKILL-51-decomposition/spec.md",
+    val service =
+      WorkflowService(
+        database = FakeDatabaseSessionFactory(workflows),
+        gitOperations = NoopWorkflowGitOperations,
+        decompositionManifestStore = fileStore,
+        workflowSnapshotValidator = testWorkflowSnapshotValidator,
+        decompositionManifestValidator = testDecompositionManifestValidator,
+        decompositionManifestWriter = DecompositionManifestWriter(),
+        repositoryRoot = RepositoryRoot(repoRoot),
+        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        runtimeDiagnostics = NoopRuntimeDiagnostics,
+        clock = Clock.systemUTC(),
+      )
+    val opened =
+      assertIs<WorkflowOpenResult.Ok>(
+        service.open(
+          WorkflowServiceOpenArgs(
+            kind = WorkflowFamilyKind.TASK_RUNTIME,
+            issueKey = "SKILL-51",
+            repositoryIdentity = repositoryIdentity,
+            governedSpecPath = ".feature-specs/SKILL-51-decomposition/spec.md",
+          ),
         ),
-      ),
-    )
+      )
     return ProjectionRetrySetup(
       repoRoot,
       parentSpecPath,
@@ -528,25 +588,30 @@ class DecompositionManifestCommitProjectionTest {
         workflowId = workflowId,
         workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "plan",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
-        ),
+        stepUpdates =
+          WorkflowStepUpdates.from(
+            listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
+          ),
         artifactsPatch = WorkflowArtifactPatch.from(mapOf("plan" to plan.toPayload())),
         planningResult = plan,
       ),
     )
   }
 
-  private fun durableRuntimeArtifactsJson(manifest: DecompositionManifest, subtaskSpec: Path): String =
+  private fun durableRuntimeArtifactsJson(
+    manifest: DecompositionManifest,
+    subtaskSpec: Path,
+  ): String =
     JsonCodec.mapToJsonString(
       mapOf(
         DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
         "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
-        "goal_continuation" to mapOf(
-          "issue_key" to "SKILL-51",
-          "subtask_id" to 1,
-          "suppress_pr" to true,
-        ),
+        "goal_continuation" to
+          mapOf(
+            "issue_key" to "SKILL-51",
+            "subtask_id" to 1,
+            "suppress_pr" to true,
+          ),
       ),
     )
 }

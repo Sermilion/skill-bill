@@ -33,34 +33,42 @@ object ReviewHunkStoreIndexing {
       }
       return IndexedReviewHunks(
         hunks = hunks.map { it.asIndex(it.evidenceLocator, it.content) },
-        commitUnits = commitUnits.map { unit ->
-          unit.copy(hunks = unit.hunks.map { it.asIndex(it.evidenceLocator, it.content) })
-        },
+        commitUnits =
+          commitUnits.map { unit ->
+            unit.copy(hunks = unit.hunks.map { it.asIndex(it.evidenceLocator, it.content) })
+          },
       )
     }
-    val root = repoRoot ?: throw ReviewHunkEvidenceLocatorUnreadableError(
-      storePath,
-      "compose-time locator dereference requires a repository root",
-    )
-    val payload = locatorReader.readDiffPayload(
-      FeatureTaskRuntimeSharedEvidenceLocatorReadRequest(root, storePath),
-    )
+    val root =
+      repoRoot ?: throw ReviewHunkEvidenceLocatorUnreadableError(
+        storePath,
+        "compose-time locator dereference requires a repository root",
+      )
+    val payload =
+      locatorReader.readDiffPayload(
+        FeatureTaskRuntimeSharedEvidenceLocatorReadRequest(root, storePath),
+      )
     val record = SharedReviewEvidenceCodec.decode(payload) ?: rawRecord(payload, storePath)
     val indexed = hunks.map { hunk -> indexHunk(hunk, record, storePath) }
     val byKey = indexed.associateBy { hunkKey(it) }
     return IndexedReviewHunks(
       hunks = indexed,
-      commitUnits = commitUnits.map { unit ->
-        unit.copy(
-          hunks = unit.hunks.map { incoming ->
-            byKey[hunkKey(incoming)] ?: indexHunk(incoming, record, storePath)
-          },
-        )
-      },
+      commitUnits =
+        commitUnits.map { unit ->
+          unit.copy(
+            hunks =
+              unit.hunks.map { incoming ->
+                byKey[hunkKey(incoming)] ?: indexHunk(incoming, record, storePath)
+              },
+          )
+        },
     )
   }
 
-  private fun rawRecord(payload: String, storePath: String): SharedReviewEvidenceRecord {
+  private fun rawRecord(
+    payload: String,
+    storePath: String,
+  ): SharedReviewEvidenceRecord {
     runCatching { ReviewDiffEvidence.parse(payload) }.getOrNull()
       ?: throw ReviewHunkEvidenceLocatorUnreadableError(
         storePath,
@@ -68,13 +76,14 @@ object ReviewHunkStoreIndexing {
       )
     return SharedReviewEvidenceRecord(
       aggregateDiff = payload,
-      sequence = SharedReviewEvidenceCommits(
-        baseRevision = "unknown",
-        headRevision = "unknown",
-        commits = emptyList(),
-        syntheticSource = ReviewCommitSource.SYNTHETIC_SUPPLIED_DIFF,
-        syntheticReason = "compose-time locator payload was a raw diff",
-      ),
+      sequence =
+        SharedReviewEvidenceCommits(
+          baseRevision = "unknown",
+          headRevision = "unknown",
+          commits = emptyList(),
+          syntheticSource = ReviewCommitSource.SYNTHETIC_SUPPLIED_DIFF,
+          syntheticReason = "compose-time locator payload was a raw diff",
+        ),
     )
   }
 
@@ -89,29 +98,39 @@ object ReviewHunkStoreIndexing {
     if (expectedDigest != null && expectedDigest != storedDigest) {
       throw ReviewHunkEvidenceIntegrityError(storePath, expectedDigest, storedDigest)
     }
-    val locator = ReviewHunkEvidenceLocator.atStore(
-      storePath,
-      hunk.oldStart,
-      hunk.oldCount,
-      hunk.newStart,
-      hunk.newCount,
-    )
+    val locator =
+      ReviewHunkEvidenceLocator.atStore(
+        storePath,
+        hunk.oldStart,
+        hunk.oldCount,
+        hunk.newStart,
+        hunk.newCount,
+      )
     return hunk.asIndex(locator, storedBody)
   }
 
-  fun extractStoredBody(hunk: ReviewChangedHunk, payload: String, storePath: String): String {
+  fun extractStoredBody(
+    hunk: ReviewChangedHunk,
+    payload: String,
+    storePath: String,
+  ): String {
     val record = SharedReviewEvidenceCodec.decode(payload) ?: rawRecord(payload, storePath)
     return storedBody(hunk, record, storePath)
   }
 
-  private fun storedBody(hunk: ReviewChangedHunk, record: SharedReviewEvidenceRecord, storePath: String): String {
+  private fun storedBody(
+    hunk: ReviewChangedHunk,
+    record: SharedReviewEvidenceRecord,
+    storePath: String,
+  ): String {
     val scoped = hunk.commitScope
-    val body = if (scoped != null) {
-      val sha = scoped.substringBefore('@')
-      hunkBodyIn(record.sequence.commits.find { it.commitSha == sha }?.diff, hunk)
-    } else {
-      hunkBodyIn(record.aggregateDiff, hunk)
-    }
+    val body =
+      if (scoped != null) {
+        val sha = scoped.substringBefore('@')
+        hunkBodyIn(record.sequence.commits.find { it.commitSha == sha }?.diff, hunk)
+      } else {
+        hunkBodyIn(record.aggregateDiff, hunk)
+      }
     return body ?: throw ReviewHunkEvidenceLocatorUnreadableError(
       storePath,
       "stored payload has no hunk at ${hunk.path} " +
@@ -119,24 +138,36 @@ object ReviewHunkStoreIndexing {
     )
   }
 
-  private fun claimedDigest(hunk: ReviewChangedHunk, storePath: String): String? = when {
-    hunk.content.isNotEmpty() -> ReviewChangedHunk.digestOfBody(hunk.content)
-    hunk.evidenceLocator.storePath == storePath -> hunk.contentDigest
-    else -> null
-  }
+  private fun claimedDigest(
+    hunk: ReviewChangedHunk,
+    storePath: String,
+  ): String? =
+    when {
+      hunk.content.isNotEmpty() -> ReviewChangedHunk.digestOfBody(hunk.content)
+      hunk.evidenceLocator.storePath == storePath -> hunk.contentDigest
+      else -> null
+    }
 
-  private fun hunkBodyIn(diff: String?, hunk: ReviewChangedHunk): String? = diff?.let { payload ->
-    runCatching { ReviewDiffEvidence.parse(payload) }.getOrNull()
-      ?.hunks
-      ?.find { sameSpan(it, hunk) }
-      ?.content
-  }
+  private fun hunkBodyIn(
+    diff: String?,
+    hunk: ReviewChangedHunk,
+  ): String? =
+    diff?.let { payload ->
+      runCatching { ReviewDiffEvidence.parse(payload) }.getOrNull()
+        ?.hunks
+        ?.find { sameSpan(it, hunk) }
+        ?.content
+    }
 
-  private fun sameSpan(left: ReviewChangedHunk, right: ReviewChangedHunk): Boolean = left.path == right.path &&
-    left.oldStart == right.oldStart &&
-    left.oldCount == right.oldCount &&
-    left.newStart == right.newStart &&
-    left.newCount == right.newCount
+  private fun sameSpan(
+    left: ReviewChangedHunk,
+    right: ReviewChangedHunk,
+  ): Boolean =
+    left.path == right.path &&
+      left.oldStart == right.oldStart &&
+      left.oldCount == right.oldCount &&
+      left.newStart == right.newStart &&
+      left.newCount == right.newCount
 
   private fun hunkKey(hunk: ReviewChangedHunk): String =
     listOf(hunk.path, hunk.oldStart, hunk.oldCount, hunk.newStart, hunk.newCount, hunk.commitScope.orEmpty())

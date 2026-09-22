@@ -13,10 +13,11 @@ class FileSystemInstalledPlatformPackCatalog(
   private val environment: EnvironmentContext,
 ) : InstalledPlatformPackCatalogPort {
   override fun manifests(): List<PlatformManifest> {
-    val catalogRoots = NativeAgentLinkInventory.read(environment.userHome, emptyList())
-      .map { it.cacheTargetPath.parent.parent.resolve("review-catalog/platform-packs") }
-      .distinct()
-      .filter(Files::isDirectory)
+    val catalogRoots =
+      NativeAgentLinkInventory.read(environment.userHome, emptyList())
+        .map { it.cacheTargetPath.parent.parent.resolve("review-catalog/platform-packs") }
+        .distinct()
+        .filter(Files::isDirectory)
     val root = catalogRoots.maxByOrNull { Files.getLastModifiedTime(it).toMillis() } ?: return emptyList()
     return Files.list(root).use { stream ->
       stream

@@ -15,6 +15,7 @@ import java.sql.DriverManager
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
 class ReviewAttributionResolutionParityTest {
   private val resolvableReview =
     """
@@ -76,30 +77,39 @@ class ReviewAttributionResolutionParityTest {
   fun `a resolver contract failure is the same typed error for both surfaces`() {
     val malformedCatalog = setOf("Bill KMP Code Review")
 
-    val routedFailure = assertFailsWith<ReviewAttributionResolutionError.MalformedVocabulary> {
-      resolveCanonicalRoutedSkill("bill-kmp-code-review", malformedCatalog)
-    }
-    val stackFailure = assertFailsWith<ReviewAttributionResolutionError.MalformedVocabulary> {
-      resolveCanonicalStack("kotlin", canonicalPlatformSlugs + "Kotlin JVM")
-    }
+    val routedFailure =
+      assertFailsWith<ReviewAttributionResolutionError.MalformedVocabulary> {
+        resolveCanonicalRoutedSkill("bill-kmp-code-review", malformedCatalog)
+      }
+    val stackFailure =
+      assertFailsWith<ReviewAttributionResolutionError.MalformedVocabulary> {
+        resolveCanonicalStack("kotlin", canonicalPlatformSlugs + "Kotlin JVM")
+      }
 
     assertEquals("Bill KMP Code Review", routedFailure.offendingEntry)
     assertEquals("Kotlin JVM", stackFailure.offendingEntry)
   }
 
-  private fun importedAttributionViaCli(reviewText: String, reviewRunId: String): List<String?> {
+  private fun importedAttributionViaCli(
+    reviewText: String,
+    reviewRunId: String,
+  ): List<String?> {
     val tempDir = Files.createTempDirectory("skillbill-parity-cli")
     val reviewFile = tempDir.resolve("review.md")
     Files.writeString(reviewFile, reviewText)
-    val result = CliRuntime.run(
-      listOf("--db", tempDir.resolve("metrics.db").toString(), "import-review", reviewFile.toString()),
-      CliRuntimeContext(environment = telemetryEnvironment(tempDir), userHome = tempDir),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("--db", tempDir.resolve("metrics.db").toString(), "import-review", reviewFile.toString()),
+        CliRuntimeContext(environment = telemetryEnvironment(tempDir), userHome = tempDir),
+      )
     check(result.exitCode == 0) { "CLI import failed: ${result.stdout}" }
     return attributionRow(tempDir.resolve("metrics.db"), reviewRunId)
   }
 
-  private fun importedAttributionViaMcp(reviewText: String, reviewRunId: String): List<String?> {
+  private fun importedAttributionViaMcp(
+    reviewText: String,
+    reviewRunId: String,
+  ): List<String?> {
     val tempDir = Files.createTempDirectory("skillbill-parity-mcp")
     McpRuntime.importReview(
       reviewText,
@@ -108,7 +118,10 @@ class ReviewAttributionResolutionParityTest {
     return attributionRow(tempDir.resolve("metrics.db"), reviewRunId)
   }
 
-  private fun attributionRow(dbPath: Path, reviewRunId: String): List<String?> =
+  private fun attributionRow(
+    dbPath: Path,
+    reviewRunId: String,
+  ): List<String?> =
     DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
       connection.prepareStatement(
         """

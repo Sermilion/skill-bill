@@ -52,8 +52,9 @@ class FeatureTaskRuntimeSharedEvidenceProjectionSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidator::class.java.classLoader
-      .getResourceAsStream(FeatureTaskRuntimeSharedEvidenceProjectionSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidator::class.java.classLoader
+        .getResourceAsStream(FeatureTaskRuntimeSharedEvidenceProjectionSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical feature-task-runtime shared-evidence projection schema is missing from the classpath at " +
@@ -75,20 +76,22 @@ class FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidatorTest {
 
   @Test
   fun `an unknown top-level property fails validation`() {
-    val error = assertFailsWith<InvalidFeatureTaskRuntimeSharedEvidenceProjectionSchemaError> {
-      FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidator.validate(
-        payload = representativeProjection() + ("diff_content" to "+++ a/file"),
-        sourceLabel = "shared-evidence#unknown",
-      )
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimeSharedEvidenceProjectionSchemaError> {
+        FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidator.validate(
+          payload = representativeProjection() + ("diff_content" to "+++ a/file"),
+          sourceLabel = "shared-evidence#unknown",
+        )
+      }
     assertTrue(error.reason.contains("diff_content"), error.reason)
   }
 
   @Test
   fun `a missing checkpoint fingerprint fails validation`() {
-    val payload = representativeProjection().toMutableMap().apply {
-      remove("repository_checkpoint_fingerprint")
-    }
+    val payload =
+      representativeProjection().toMutableMap().apply {
+        remove("repository_checkpoint_fingerprint")
+      }
     assertFailsWith<InvalidFeatureTaskRuntimeSharedEvidenceProjectionSchemaError> {
       FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidator.validate(
         payload = payload,
@@ -99,9 +102,10 @@ class FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidatorTest {
 
   @Test
   fun `a wrong contract_version fails validation`() {
-    val payload = representativeProjection().toMutableMap().apply {
-      put("contract_version", "9.9")
-    }
+    val payload =
+      representativeProjection().toMutableMap().apply {
+        put("contract_version", "9.9")
+      }
     assertFailsWith<InvalidFeatureTaskRuntimeSharedEvidenceProjectionSchemaError> {
       FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidator.validate(
         payload = payload,
@@ -110,15 +114,16 @@ class FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidatorTest {
     }
   }
 
-  private fun representativeProjection(): Map<String, Any?> = linkedMapOf(
-    "contract_version" to FEATURE_TASK_RUNTIME_SHARED_EVIDENCE_PROJECTION_CONTRACT_VERSION,
-    "workflow_id" to "wftr-1",
-    "repository_checkpoint_fingerprint" to "fp-abc",
-    "store_path" to ".skill-bill/run-evidence/wftr-1/fp-abc",
-    "base_ref" to "main",
-    "head_ref" to "HEAD",
-    "changed_file_count" to 1,
-    "changed_hunk_count" to 1,
-    "file_hunk_index_digest" to "a".repeat(64),
-  )
+  private fun representativeProjection(): Map<String, Any?> =
+    linkedMapOf(
+      "contract_version" to FEATURE_TASK_RUNTIME_SHARED_EVIDENCE_PROJECTION_CONTRACT_VERSION,
+      "workflow_id" to "wftr-1",
+      "repository_checkpoint_fingerprint" to "fp-abc",
+      "store_path" to ".skill-bill/run-evidence/wftr-1/fp-abc",
+      "base_ref" to "main",
+      "head_ref" to "HEAD",
+      "changed_file_count" to 1,
+      "changed_hunk_count" to 1,
+      "file_hunk_index_digest" to "a".repeat(64),
+    )
 }

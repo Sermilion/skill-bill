@@ -16,7 +16,10 @@ internal class FeatureTaskWorkflowRowStore(
   private val connection: Connection,
   private val clock: Clock,
 ) {
-  fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) {
+  fun saveFeatureTaskWorkflow(
+    row: WorkflowStateRecord,
+    mode: FeatureTaskWorkflowMode,
+  ) {
     if (mode == FeatureTaskWorkflowMode.PROSE) {
       throw ProseFeatureTaskWorkflowWriteRefusedError(row.workflowId)
     }
@@ -32,7 +35,10 @@ internal class FeatureTaskWorkflowRowStore(
   fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? =
     connection.getFeatureTaskWorkflowRow(workflowId)
 
-  fun getFeatureTaskWorkflowAsMode(workflowId: String, mode: FeatureTaskWorkflowMode): WorkflowStateRecord? {
+  fun getFeatureTaskWorkflowAsMode(
+    workflowId: String,
+    mode: FeatureTaskWorkflowMode,
+  ): WorkflowStateRecord? {
     val row = connection.getFeatureTaskWorkflowRow(workflowId) ?: return null
     if (row.mode != mode) {
       throw InvalidWorkflowStateSchemaError(
@@ -42,8 +48,10 @@ internal class FeatureTaskWorkflowRowStore(
     return row
   }
 
-  fun listFeatureTaskWorkflows(mode: FeatureTaskWorkflowMode, limit: Int): List<WorkflowStateRecord> =
-    connection.listFeatureTaskWorkflowRows(mode, limit)
+  fun listFeatureTaskWorkflows(
+    mode: FeatureTaskWorkflowMode,
+    limit: Int,
+  ): List<WorkflowStateRecord> = connection.listFeatureTaskWorkflowRows(mode, limit)
 
   fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
     listFeatureTaskWorkflows(mode, 1).firstOrNull()

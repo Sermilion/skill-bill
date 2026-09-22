@@ -10,18 +10,19 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Featur
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewSeverity
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
-val GOAL_SUBTASK_REVIEW_PASS_VERDICTS: Set<FeatureTaskRuntimeVerdict> = setOf(
-  FeatureTaskRuntimeVerdict.APPROVED,
-  FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
-  FeatureTaskRuntimeVerdict.REVIEW_CAP_REACHED,
-  FeatureTaskRuntimeVerdict.REVIEW_SKIPPED_BY_USER,
-)
+
+val GOAL_SUBTASK_REVIEW_PASS_VERDICTS: Set<FeatureTaskRuntimeVerdict> =
+  setOf(
+    FeatureTaskRuntimeVerdict.APPROVED,
+    FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
+    FeatureTaskRuntimeVerdict.REVIEW_CAP_REACHED,
+    FeatureTaskRuntimeVerdict.REVIEW_SKIPPED_BY_USER,
+  )
 
 data class GoalSubtaskReviewCompactFinding(
   val severity: String,
   val label: String,
   val text: String,
-
   val findingId: String? = null,
 ) {
   val isBlocker: Boolean get() = severity == GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY
@@ -37,14 +38,18 @@ data class GoalSubtaskReviewCompactFinding(
     findingId?.let { require(it.isNotBlank()) { "GoalSubtaskReviewCompactFinding.findingId must be non-blank." } }
   }
 
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    "severity" to severity,
-    "label" to label,
-    "text" to text,
-  ).apply { findingId?.let { put(ReviewFindingPayloadKeys.FINDING_ID, it) } }
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      "severity" to severity,
+      "label" to label,
+      "text" to text,
+    ).apply { findingId?.let { put(ReviewFindingPayloadKeys.FINDING_ID, it) } }
 
   companion object {
-    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskReviewCompactFinding {
+    internal fun fromArtifactMap(
+      raw: Map<String, Any?>,
+      path: String,
+    ): GoalSubtaskReviewCompactFinding {
       raw.requireOnlyReviewStateKeys(setOf("severity", "label", "text", "finding_id"), path)
       val reader = reviewStateReader(raw, path)
       return GoalSubtaskReviewCompactFinding(
@@ -64,7 +69,6 @@ data class GoalSubtaskReviewPassResult(
   val unresolvedFindingCount: Int,
   val findings: List<GoalSubtaskReviewCompactFinding>,
   val executedMode: CodeReviewExecutionMode? = null,
-
   val commitFocusedAccounting: GoalSubtaskCommitFocusedAccounting? = null,
 ) {
   init {
@@ -83,19 +87,23 @@ data class GoalSubtaskReviewPassResult(
 
   val blocksAdvance: Boolean get() = blocksAdvance(unresolvedFindingCount, findings)
 
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    "pass_number" to passNumber,
-    SharedPayloadKeys.VERDICT to verdict.wireValue,
-    "review_result_artifact" to reviewResultArtifact,
-    "unresolved_finding_count" to unresolvedFindingCount,
-    ReviewVerificationSignalKeys.REVIEW_FINDINGS to findings.map(GoalSubtaskReviewCompactFinding::toArtifactMap),
-  ).apply {
-    executedMode?.let { put("executed_mode", it.wireValue) }
-    commitFocusedAccounting?.let { put("commit_focused_accounting", it.toArtifactMap()) }
-  }
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      "pass_number" to passNumber,
+      SharedPayloadKeys.VERDICT to verdict.wireValue,
+      "review_result_artifact" to reviewResultArtifact,
+      "unresolved_finding_count" to unresolvedFindingCount,
+      ReviewVerificationSignalKeys.REVIEW_FINDINGS to findings.map(GoalSubtaskReviewCompactFinding::toArtifactMap),
+    ).apply {
+      executedMode?.let { put("executed_mode", it.wireValue) }
+      commitFocusedAccounting?.let { put("commit_focused_accounting", it.toArtifactMap()) }
+    }
 
   companion object {
-    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskReviewPassResult {
+    internal fun fromArtifactMap(
+      raw: Map<String, Any?>,
+      path: String,
+    ): GoalSubtaskReviewPassResult {
       raw.requireOnlyReviewStateKeys(
         setOf(
           "pass_number",
@@ -109,12 +117,13 @@ data class GoalSubtaskReviewPassResult(
         path,
       )
       val reader = reviewStateReader(raw, path)
-      val findings = reader.requiredList("findings").mapIndexed { index, value ->
-        GoalSubtaskReviewCompactFinding.fromArtifactMap(
-          value.toReviewStateMap("$path.findings[$index]"),
-          "$path.findings[$index]",
-        )
-      }
+      val findings =
+        reader.requiredList("findings").mapIndexed { index, value ->
+          GoalSubtaskReviewCompactFinding.fromArtifactMap(
+            value.toReviewStateMap("$path.findings[$index]"),
+            "$path.findings[$index]",
+          )
+        }
       return GoalSubtaskReviewPassResult(
         passNumber = reader.requiredInt("pass_number"),
         verdict = FeatureTaskRuntimeVerdict.fromWire(reader.requiredString("verdict")),
@@ -122,12 +131,13 @@ data class GoalSubtaskReviewPassResult(
         unresolvedFindingCount = reader.requiredInt("unresolved_finding_count"),
         findings = findings,
         executedMode = reader.optionalString("executed_mode")?.let(CodeReviewExecutionMode::fromWire),
-        commitFocusedAccounting = raw["commit_focused_accounting"]?.let {
-          GoalSubtaskCommitFocusedAccounting.fromArtifactMap(
-            it.toReviewStateMap("$path.commit_focused_accounting"),
-            "$path.commit_focused_accounting",
-          )
-        },
+        commitFocusedAccounting =
+          raw["commit_focused_accounting"]?.let {
+            GoalSubtaskCommitFocusedAccounting.fromArtifactMap(
+              it.toReviewStateMap("$path.commit_focused_accounting"),
+              "$path.commit_focused_accounting",
+            )
+          },
       )
     }
   }
@@ -173,20 +183,22 @@ object GoalSubtaskReviewArtifactDecoder {
         "must be present whenever a goal-continuation child exists.",
       )
     }
-    val continuation = try {
-      FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(
-        artifacts.getValue(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY).toReviewStateMap(
-          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY,
+    val continuation =
+      try {
+        FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(
+          artifacts.getValue(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY).toReviewStateMap(
+            FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY,
+          ),
+        )
+      } catch (error: InvalidWorkflowStateSchemaError) {
+        reviewStateError(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY, error.message.orEmpty(), error)
+      }
+    val state =
+      GoalSubtaskReviewState.fromArtifactMap(
+        artifacts.getValue(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY).toReviewStateMap(
+          GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
         ),
       )
-    } catch (error: InvalidWorkflowStateSchemaError) {
-      reviewStateError(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY, error.message.orEmpty(), error)
-    }
-    val state = GoalSubtaskReviewState.fromArtifactMap(
-      artifacts.getValue(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY).toReviewStateMap(
-        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
-      ),
-    )
     if (state.codeReviewMode != continuation.codeReviewMode) {
       reviewStateError(
         "$GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY.code_review_mode",
@@ -226,21 +238,26 @@ object GoalSubtaskReviewArtifactDecoder {
   internal fun decodeReviewStateOnlyWire(artifacts: Map<String, Any?>): GoalSubtaskReviewState? =
     if (GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY !in artifacts) null else decodeWire(artifacts)?.state
 
-  private fun decodeContinuationDirect(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact = try {
-    FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(
-      artifacts.getValue(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY).toReviewStateMap(
-        FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY,
-      ),
-    )
-  } catch (error: InvalidWorkflowStateSchemaError) {
-    reviewStateError(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY, error.message.orEmpty(), error)
-  }
+  private fun decodeContinuationDirect(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact =
+    try {
+      FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(
+        artifacts.getValue(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY).toReviewStateMap(
+          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY,
+        ),
+      )
+    } catch (error: InvalidWorkflowStateSchemaError) {
+      reviewStateError(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY, error.message.orEmpty(), error)
+    }
 
-  private fun rawResults(artifacts: Map<String, Any?>, state: GoalSubtaskReviewState): Map<String, String> {
+  private fun rawResults(
+    artifacts: Map<String, Any?>,
+    state: GoalSubtaskReviewState,
+  ): Map<String, String> {
     if (state.completedPassCount == 0) {
-      val cleared = artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY]
-        ?.toReviewStateMap(GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY)
-        .orEmpty()
+      val cleared =
+        artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY]
+          ?.toReviewStateMap(GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY)
+          .orEmpty()
       if (cleared.isNotEmpty()) {
         reviewStateError(
           GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY,
@@ -249,12 +266,13 @@ object GoalSubtaskReviewArtifactDecoder {
       }
       return emptyMap()
     }
-    val raw = artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY]
-      ?.toReviewStateMap(GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY)
-      ?: reviewStateError(
-        GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY,
-        "must contain the durable raw review result for every completed pass.",
-      )
+    val raw =
+      artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY]
+        ?.toReviewStateMap(GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY)
+        ?: reviewStateError(
+          GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY,
+          "must contain the durable raw review result for every completed pass.",
+        )
     val expectedKeys = state.passResults.map { result -> result.passNumber.toString() }.toSet()
     if (raw.keys != expectedKeys) {
       reviewStateError(

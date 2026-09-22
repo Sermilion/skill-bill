@@ -10,6 +10,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
 class GoalPlanningPhaseOutputMigrationTest {
   @Test
   fun `forward migration preserves compatible goal planning rows and tightens both tables`() {
@@ -155,31 +156,47 @@ class GoalPlanningPhaseOutputMigrationTest {
     }
   }
 
-  private fun scalar(connection: Connection, sql: String): Int = connection.createStatement().use { statement ->
-    statement.executeQuery(sql).use { rows ->
-      rows.next()
-      rows.getInt(1)
+  private fun scalar(
+    connection: Connection,
+    sql: String,
+  ): Int =
+    connection.createStatement().use { statement ->
+      statement.executeQuery(sql).use { rows ->
+        rows.next()
+        rows.getInt(1)
+      }
     }
-  }
 
-  private fun textScalar(connection: Connection, sql: String): String = connection.createStatement().use { statement ->
-    statement.executeQuery(sql).use { rows ->
-      rows.next()
-      rows.getString(1)
+  private fun textScalar(
+    connection: Connection,
+    sql: String,
+  ): String =
+    connection.createStatement().use { statement ->
+      statement.executeQuery(sql).use { rows ->
+        rows.next()
+        rows.getString(1)
+      }
     }
-  }
 
-  private fun tableSql(connection: Connection, table: String): String = connection.prepareStatement(
-    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
-  ).use { statement ->
-    statement.setString(1, table)
-    statement.executeQuery().use { rows ->
-      rows.next()
-      rows.getString(1)
+  private fun tableSql(
+    connection: Connection,
+    table: String,
+  ): String =
+    connection.prepareStatement(
+      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
+    ).use { statement ->
+      statement.setString(1, table)
+      statement.executeQuery().use { rows ->
+        rows.next()
+        rows.getString(1)
+      }
     }
-  }
 
-  private fun tableHasColumn(connection: Connection, table: String, column: String): Boolean =
+  private fun tableHasColumn(
+    connection: Connection,
+    table: String,
+    column: String,
+  ): Boolean =
     connection.prepareStatement("SELECT 1 FROM pragma_table_info(?) WHERE name = ?").use { statement ->
       statement.setString(1, table)
       statement.setString(2, column)

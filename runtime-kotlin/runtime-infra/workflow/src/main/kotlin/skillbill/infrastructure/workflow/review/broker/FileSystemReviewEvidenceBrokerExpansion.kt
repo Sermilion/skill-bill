@@ -9,7 +9,11 @@ import java.nio.charset.StandardCharsets
 
 private const val EXPANSION_ID_HEX_LENGTH = 24
 
-internal fun stableReviewExpansionId(assignmentDigest: String, path: String, reason: String): String {
+internal fun stableReviewExpansionId(
+  assignmentDigest: String,
+  path: String,
+  reason: String,
+): String {
   val input = "$assignmentDigest\u0000$path\u0000$reason".toByteArray(StandardCharsets.UTF_8)
   val digest = sha256Hex(input)
   return "exp-${digest.take(EXPANSION_ID_HEX_LENGTH)}"

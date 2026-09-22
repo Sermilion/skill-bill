@@ -84,6 +84,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 private const val ISSUE_KEY = "SKILL-176"
 private const val GOAL_BRANCH = "feat/SKILL-176-goal-child-resume-self-heal"
 private val REACHABLE_SHA = "c".repeat(40)
@@ -106,15 +107,16 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     )
     val store = repairStore(workflows, git = ReachableGit())
 
-    val diagnosis = store.diagnoseChildWedges(
-      GoalRunnerChildWedgeDiagnosisRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        subtasks = listOf(subtask(1, workflowId)),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val diagnosis =
+      store.diagnoseChildWedges(
+        GoalRunnerChildWedgeDiagnosisRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          subtasks = listOf(subtask(1, workflowId)),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(1, diagnosis.wedges.size)
     assertEquals(GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH, diagnosis.wedges.single().wedgeClass)
@@ -138,15 +140,16 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     )
     val store = repairStore(workflows, git = ReachableGit())
 
-    val diagnosis = store.diagnoseChildWedges(
-      GoalRunnerChildWedgeDiagnosisRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        subtasks = listOf(subtask(1, workflowId)),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val diagnosis =
+      store.diagnoseChildWedges(
+        GoalRunnerChildWedgeDiagnosisRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          subtasks = listOf(subtask(1, workflowId)),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(1, diagnosis.wedges.size)
     assertEquals(GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION, diagnosis.wedges.single().wedgeClass)
@@ -170,15 +173,16 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     )
     val store = repairStore(workflows, git = ReachableGit())
 
-    val diagnosis = store.diagnoseChildWedges(
-      GoalRunnerChildWedgeDiagnosisRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        subtasks = listOf(subtask(1, workflowId)),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val diagnosis =
+      store.diagnoseChildWedges(
+        GoalRunnerChildWedgeDiagnosisRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          subtasks = listOf(subtask(1, workflowId)),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertTrue(diagnosis.isHealthy)
     assertEquals(
@@ -206,24 +210,27 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           workflowId = workflowId,
           continuation = continuationMap(includeValidationDepth = true),
           reviewState = healthyReviewState(),
-          extraArtifacts = mapOf(
-            "goal_planning_import" to mapOf(
-              "phase_output_contract_version" to "0.3",
+          extraArtifacts =
+            mapOf(
+              "goal_planning_import" to
+                mapOf(
+                  "phase_output_contract_version" to "0.3",
+                ),
             ),
-          ),
         ),
       ),
     )
     val store = repairStore(workflows, git = ReachableGit())
-    val diagnosis = store.diagnoseChildWedges(
-      GoalRunnerChildWedgeDiagnosisRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        subtasks = listOf(subtask(1, workflowId)),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val diagnosis =
+      store.diagnoseChildWedges(
+        GoalRunnerChildWedgeDiagnosisRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          subtasks = listOf(subtask(1, workflowId)),
+          repoRoot = Path.of("."),
+        ),
+      )
     assertFalse(diagnosis.isHealthy)
     assertEquals(
       GoalRunnerWedgeClass.PHASE_OUTPUT_CONTRACT_INCOMPATIBLE,
@@ -231,22 +238,25 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     )
     assertEquals("0.3", diagnosis.wedges.single().currentValue)
 
-    val service = testGoalRunnerStatusService(
-      manifestStore = RepairManifestStore(workflowId),
-      outcomeStore = store,
-      phaseRecorder = goalTestPhaseRecorder(),
-      ports = GoalRunnerStatusTestPorts(
-        childRepairStore = store,
-      ),
-    )
-    val applied = service.repair(
-      GoalRunnerRepairRequest(
-        issueKey = ISSUE_KEY,
-        apply = true,
-        subtaskId = 1,
-        repoRoot = Path.of("."),
-      ),
-    )
+    val service =
+      testGoalRunnerStatusService(
+        manifestStore = RepairManifestStore(workflowId),
+        outcomeStore = store,
+        phaseRecorder = goalTestPhaseRecorder(),
+        ports =
+          GoalRunnerStatusTestPorts(
+            childRepairStore = store,
+          ),
+      )
+    val applied =
+      service.repair(
+        GoalRunnerRepairRequest(
+          issueKey = ISSUE_KEY,
+          apply = true,
+          subtaskId = 1,
+          repoRoot = Path.of("."),
+        ),
+      )
     assertEquals(GoalRunnerRepairStatus.OPERATOR_REQUIRED, applied.status)
     assertTrue(applied.appliedRepairs.isEmpty())
     assertContains(
@@ -271,15 +281,16 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     )
     val store = repairStore(workflows, git = ReachableGit(unreachableShas = setOf(unreachable)))
 
-    val diagnosis = store.diagnoseChildWedges(
-      GoalRunnerChildWedgeDiagnosisRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        subtasks = listOf(subtask(1, workflowId)),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val diagnosis =
+      store.diagnoseChildWedges(
+        GoalRunnerChildWedgeDiagnosisRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          subtasks = listOf(subtask(1, workflowId)),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(GoalRunnerWedgeClass.UNREACHABLE_REMEDIATION_BASE, diagnosis.wedges.single().wedgeClass)
     assertEquals(unreachable, diagnosis.wedges.single().currentValue)
@@ -299,28 +310,32 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
         ),
       ),
     )
-    val store = repairStore(
-      workflows,
-      git = ReachableGit(
-        unreachableShas = setOf(unreachable),
-        recoveryStatus = WorkflowGitOperationStatus.ERROR,
-      ),
-    )
-    val service = testGoalRunnerStatusService(
-      manifestStore = RepairManifestStore(workflowId),
-      outcomeStore = store,
-      phaseRecorder = goalTestPhaseRecorder(),
-      ports = GoalRunnerStatusTestPorts(childRepairStore = store),
-    )
+    val store =
+      repairStore(
+        workflows,
+        git =
+          ReachableGit(
+            unreachableShas = setOf(unreachable),
+            recoveryStatus = WorkflowGitOperationStatus.ERROR,
+          ),
+      )
+    val service =
+      testGoalRunnerStatusService(
+        manifestStore = RepairManifestStore(workflowId),
+        outcomeStore = store,
+        phaseRecorder = goalTestPhaseRecorder(),
+        ports = GoalRunnerStatusTestPorts(childRepairStore = store),
+      )
 
-    val result = service.repair(
-      GoalRunnerRepairRequest(
-        issueKey = ISSUE_KEY,
-        apply = true,
-        subtaskId = 1,
-        repoRoot = Path.of("."),
-      ),
-    )
+    val result =
+      service.repair(
+        GoalRunnerRepairRequest(
+          issueKey = ISSUE_KEY,
+          apply = true,
+          subtaskId = 1,
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(GoalRunnerRepairStatus.OPERATOR_REQUIRED, result.status)
     assertContains(
@@ -344,33 +359,38 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
         ),
       ),
     )
-    val store = repairStore(
-      workflows,
-      git = ReachableGit(
-        unreachableShas = setOf(unreachable),
-        recoveryStatus = WorkflowGitOperationStatus.ERROR,
-      ),
-    )
-    val manifestStore = MutableRepairManifestStore(
-      workflowId,
-      initialControlState = GoalRunnerControlState(),
-      subtasks = listOf(subtask(1, workflowId).copy(status = "blocked")),
-    )
-    val service = testGoalRunnerStatusService(
-      manifestStore = manifestStore,
-      outcomeStore = store,
-      phaseRecorder = goalTestPhaseRecorder(),
-      ports = GoalRunnerStatusTestPorts(childRepairStore = store),
-    )
+    val store =
+      repairStore(
+        workflows,
+        git =
+          ReachableGit(
+            unreachableShas = setOf(unreachable),
+            recoveryStatus = WorkflowGitOperationStatus.ERROR,
+          ),
+      )
+    val manifestStore =
+      MutableRepairManifestStore(
+        workflowId,
+        initialControlState = GoalRunnerControlState(),
+        subtasks = listOf(subtask(1, workflowId).copy(status = "blocked")),
+      )
+    val service =
+      testGoalRunnerStatusService(
+        manifestStore = manifestStore,
+        outcomeStore = store,
+        phaseRecorder = goalTestPhaseRecorder(),
+        ports = GoalRunnerStatusTestPorts(childRepairStore = store),
+      )
 
-    val result = service.repair(
-      GoalRunnerRepairRequest(
-        issueKey = ISSUE_KEY,
-        apply = true,
-        subtaskId = 1,
-        repoRoot = Path.of("."),
-      ),
-    )
+    val result =
+      service.repair(
+        GoalRunnerRepairRequest(
+          issueKey = ISSUE_KEY,
+          apply = true,
+          subtaskId = 1,
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(GoalRunnerRepairStatus.OPERATOR_REQUIRED, result.status)
     assertContains(
@@ -391,28 +411,30 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           continuation = continuationMap(includeValidationDepth = true),
           reviewState = healthyReviewState(),
           workflowStatus = WorkflowStatus.RUNNING.wireValue,
-          goalContinuationOutcome = mapOf(
-            "issue_key" to ISSUE_KEY,
-            "subtask_id" to 1,
-            "status" to "blocked",
-            "workflow_id" to workflowId,
-            "blocked_reason" to staleReason,
-            "last_resumable_step" to "review",
-          ),
+          goalContinuationOutcome =
+            mapOf(
+              "issue_key" to ISSUE_KEY,
+              "subtask_id" to 1,
+              "status" to "blocked",
+              "workflow_id" to workflowId,
+              "blocked_reason" to staleReason,
+              "last_resumable_step" to "review",
+            ),
         ),
       ),
     )
     val store = repairStore(workflows, git = ReachableGit())
 
-    val diagnosis = store.diagnoseChildWedges(
-      GoalRunnerChildWedgeDiagnosisRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        subtasks = listOf(subtask(1, workflowId)),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val diagnosis =
+      store.diagnoseChildWedges(
+        GoalRunnerChildWedgeDiagnosisRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          subtasks = listOf(subtask(1, workflowId)),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(
       GoalRunnerWedgeClass.STALE_BLOCKED_CONTINUATION_OUTCOME,
@@ -433,29 +455,31 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           continuation = continuationMap(includeValidationDepth = true),
           reviewState = healthyReviewState(),
           workflowStatus = WorkflowStatus.RUNNING.wireValue,
-          goalContinuationOutcome = mapOf(
-            "issue_key" to ISSUE_KEY,
-            "subtask_id" to 1,
-            "status" to "blocked",
-            "workflow_id" to workflowId,
-            "blocked_reason" to staleReason,
-            "last_resumable_step" to "review",
-          ),
+          goalContinuationOutcome =
+            mapOf(
+              "issue_key" to ISSUE_KEY,
+              "subtask_id" to 1,
+              "status" to "blocked",
+              "workflow_id" to workflowId,
+              "blocked_reason" to staleReason,
+              "last_resumable_step" to "review",
+            ),
           abandonedBlockedStepId = "implement_fix",
         ),
       ),
     )
     val store = repairStore(workflows, git = ReachableGit())
 
-    val diagnosis = store.diagnoseChildWedges(
-      GoalRunnerChildWedgeDiagnosisRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        subtasks = listOf(subtask(1, workflowId)),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val diagnosis =
+      store.diagnoseChildWedges(
+        GoalRunnerChildWedgeDiagnosisRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          subtasks = listOf(subtask(1, workflowId)),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(
       GoalRunnerWedgeClass.STALE_BLOCKED_CONTINUATION_OUTCOME,
@@ -468,21 +492,26 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
   fun `diagnosis names completed upstream missing settled output`() {
     val workflows = InMemoryWorkflowStates()
     val workflowId = "wftr-repair-unsettled-upstream"
-    val artifacts = linkedMapOf<String, Any?>(
-      "goal_continuation" to continuationMap(includeValidationDepth = true),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
-      FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
-        "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-        "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings")
-          .asWorkflowArtifactEntry()
-          .toWorkflowArtifactMap(),
-        "implement_fix" to unsettledUpstreamPhaseRecord(
-          phaseId = "implement_fix",
-          status = "blocked",
-          blockedReason = "Phase 'implement_fix' requires upstream output(s) verify_findings that are not present",
-        ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      ),
-    )
+    val artifacts =
+      linkedMapOf<String, Any?>(
+        "goal_continuation" to continuationMap(includeValidationDepth = true),
+        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
+        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+          mapOf(
+            "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+            "verify_findings" to
+              unsettledUpstreamPhaseRecord("verify_findings")
+                .asWorkflowArtifactEntry()
+                .toWorkflowArtifactMap(),
+            "implement_fix" to
+              unsettledUpstreamPhaseRecord(
+                phaseId = "implement_fix",
+                status = "blocked",
+                blockedReason =
+                  "Phase 'implement_fix' requires upstream output(s) verify_findings that are not present",
+              ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+          ),
+      )
     val definition = WorkflowFamily.TASK_RUNTIME.definition
     val engine = WorkflowEngine(testWorkflowSnapshotValidator)
     val opened = engine.openRecord(definition, workflowId, "fis-repair", "implement_fix")
@@ -501,15 +530,16 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     )
     val store = repairStore(workflows, git = ReachableGit())
 
-    val diagnosis = store.diagnoseChildWedges(
-      GoalRunnerChildWedgeDiagnosisRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        subtasks = listOf(subtask(1, workflowId)),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val diagnosis =
+      store.diagnoseChildWedges(
+        GoalRunnerChildWedgeDiagnosisRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          subtasks = listOf(subtask(1, workflowId)),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT, diagnosis.wedges.single().wedgeClass)
     assertEquals("verify_findings", diagnosis.wedges.single().field)
@@ -520,30 +550,35 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
   fun `diagnosis names build not validate for build-stamped child missing settled build output`() {
     val workflows = InMemoryWorkflowStates()
     val workflowId = "wftr-repair-unsettled-build-upstream"
-    val artifacts = linkedMapOf<String, Any?>(
-      "goal_continuation" to FeatureTaskRuntimeGoalContinuationArtifact(
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        suppressPr = true,
-        goalBranch = GOAL_BRANCH,
-        parentWorkflowId = "wfl-parent",
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-        validationDepth = ValidationDepth.FULL,
-        qualityGateSelection = FeatureTaskRuntimeQualityGateSelection.BUILD,
-      ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
-      FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
-        "review" to unsettledUpstreamPhaseRecord("review", status = "completed").copy(
-          outputArtifact = """{"contract_version":"0.1"}""",
-        ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-        "build" to unsettledUpstreamPhaseRecord("build").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-        "write_history" to unsettledUpstreamPhaseRecord(
-          phaseId = "write_history",
-          status = "blocked",
-          blockedReason = "Phase 'write_history' requires upstream output(s) build that are not present",
-        ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      ),
-    )
+    val artifacts =
+      linkedMapOf<String, Any?>(
+        "goal_continuation" to
+          FeatureTaskRuntimeGoalContinuationArtifact(
+            issueKey = ISSUE_KEY,
+            subtaskId = 1,
+            suppressPr = true,
+            goalBranch = GOAL_BRANCH,
+            parentWorkflowId = "wfl-parent",
+            codeReviewMode = CodeReviewExecutionMode.INLINE,
+            validationDepth = ValidationDepth.FULL,
+            qualityGateSelection = FeatureTaskRuntimeQualityGateSelection.BUILD,
+          ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
+        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+          mapOf(
+            "review" to
+              unsettledUpstreamPhaseRecord("review", status = "completed").copy(
+                outputArtifact = """{"contract_version":"0.1"}""",
+              ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+            "build" to unsettledUpstreamPhaseRecord("build").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+            "write_history" to
+              unsettledUpstreamPhaseRecord(
+                phaseId = "write_history",
+                status = "blocked",
+                blockedReason = "Phase 'write_history' requires upstream output(s) build that are not present",
+              ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+          ),
+      )
     val definition = WorkflowFamily.TASK_RUNTIME.definition
     val engine = WorkflowEngine(testWorkflowSnapshotValidator)
     val opened = engine.openRecord(definition, workflowId, "fis-repair", "write_history")
@@ -562,15 +597,16 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     )
     val store = repairStore(workflows, git = ReachableGit())
 
-    val diagnosis = store.diagnoseChildWedges(
-      GoalRunnerChildWedgeDiagnosisRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        subtasks = listOf(subtask(1, workflowId)),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val diagnosis =
+      store.diagnoseChildWedges(
+        GoalRunnerChildWedgeDiagnosisRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          subtasks = listOf(subtask(1, workflowId)),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT, diagnosis.wedges.single().wedgeClass)
     assertEquals("build", diagnosis.wedges.single().field)
@@ -601,15 +637,16 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     )
     val store = repairStore(workflows, git = ReachableGit())
 
-    val applied = store.applyChildWedgeRepairs(
-      GoalRunnerChildWedgeRepairRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        wedgeClasses = listOf(GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val applied =
+      store.applyChildWedgeRepairs(
+        GoalRunnerChildWedgeRepairRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          wedgeClasses = listOf(GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(1, applied.repairs.size)
     assertEquals("build", applied.repairs.single().field)
@@ -626,21 +663,26 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     val workflows = InMemoryWorkflowStates()
     val workflowId = "wftr-repair-apply-unsettled-upstream"
     seedRepairParent(workflows, workflowId)
-    val artifacts = linkedMapOf<String, Any?>(
-      "goal_continuation" to continuationMap(includeValidationDepth = true),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
-      FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
-        "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-        "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings")
-          .asWorkflowArtifactEntry()
-          .toWorkflowArtifactMap(),
-        "implement_fix" to unsettledUpstreamPhaseRecord(
-          phaseId = "implement_fix",
-          status = "blocked",
-          blockedReason = "Phase 'implement_fix' requires upstream output(s) verify_findings that are not present",
-        ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      ),
-    )
+    val artifacts =
+      linkedMapOf<String, Any?>(
+        "goal_continuation" to continuationMap(includeValidationDepth = true),
+        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
+        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+          mapOf(
+            "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+            "verify_findings" to
+              unsettledUpstreamPhaseRecord("verify_findings")
+                .asWorkflowArtifactEntry()
+                .toWorkflowArtifactMap(),
+            "implement_fix" to
+              unsettledUpstreamPhaseRecord(
+                phaseId = "implement_fix",
+                status = "blocked",
+                blockedReason =
+                  "Phase 'implement_fix' requires upstream output(s) verify_findings that are not present",
+              ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+          ),
+      )
     val definition = WorkflowFamily.TASK_RUNTIME.definition
     val engine = WorkflowEngine(testWorkflowSnapshotValidator)
     val opened = engine.openRecord(definition, workflowId, "fis-repair", "implement_fix")
@@ -659,15 +701,16 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     )
     val store = repairStore(workflows, git = ReachableGit())
 
-    val applied = store.applyChildWedgeRepairs(
-      GoalRunnerChildWedgeRepairRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        wedgeClasses = listOf(GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val applied =
+      store.applyChildWedgeRepairs(
+        GoalRunnerChildWedgeRepairRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          wedgeClasses = listOf(GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(1, applied.repairs.size)
     assertEquals("verify_findings", applied.repairs.single().field)
@@ -677,8 +720,9 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     val records = phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifacts(updated.artifactsJson))
     assertEquals("pending", records.getValue("verify_findings").status.wireValue)
     assertEquals("pending", records.getValue("implement_fix").status.wireValue)
-    val evidence = (decodeWorkflowArtifacts(updated.artifactsJson)[GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY] as List<*>)
-      .single() as Map<*, *>
+    val evidence =
+      (decodeWorkflowArtifacts(updated.artifactsJson)[GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY] as List<*>)
+        .single() as Map<*, *>
     assertEquals("completed_upstream_missing_output", evidence["wedge_class"])
     assertEquals("verify_findings", evidence["field"])
   }
@@ -692,22 +736,25 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     seedRepairParent(workflows, workflowId)
     saveBlockedUnsettledUpstreamChild(workflows, workflowId)
     val manifestStore = InMemoryRepairManifestFileStore()
-    val store = testWorkflowGoalRunnerOutcomeStore(
-      FakeDatabaseSessionFactory(workflows),
-      artifactPorts = OutcomeStoreTestArtifactPorts(
-        decompositionManifestStore = manifestStore,
-      ),
-    )
+    val store =
+      testWorkflowGoalRunnerOutcomeStore(
+        FakeDatabaseSessionFactory(workflows),
+        artifactPorts =
+          OutcomeStoreTestArtifactPorts(
+            decompositionManifestStore = manifestStore,
+          ),
+      )
 
-    val applied = store.applyChildWedgeRepairs(
-      GoalRunnerChildWedgeRepairRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        wedgeClasses = listOf(GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val applied =
+      store.applyChildWedgeRepairs(
+        GoalRunnerChildWedgeRepairRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          wedgeClasses = listOf(GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(1, applied.repairs.size)
     assertEquals(1, manifestStore.writeCount)
@@ -720,18 +767,20 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     seedRepairParent(workflows, workflowId)
     saveBlockedUnsettledUpstreamChild(workflows, workflowId)
     val store = repairStore(workflows, git = ReachableGit())
-    val applied = store.applyChildWedgeRepairs(
-      GoalRunnerChildWedgeRepairRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        wedgeClasses = listOf(
-          GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT,
-          GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH,
+    val applied =
+      store.applyChildWedgeRepairs(
+        GoalRunnerChildWedgeRepairRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          wedgeClasses =
+            listOf(
+              GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT,
+              GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH,
+            ),
+          repoRoot = Path.of("."),
         ),
-        repoRoot = Path.of("."),
-      ),
-    )
+      )
     assertEquals(2, applied.repairs.size)
     assertEquals(
       setOf(GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT, GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH),
@@ -748,23 +797,30 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     assertEquals(2, (after[GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY] as List<*>).size)
   }
 
-  private fun saveBlockedUnsettledUpstreamChild(workflows: InMemoryWorkflowStates, workflowId: String) {
-    val artifacts = linkedMapOf<String, Any?>(
-      "goal_continuation" to continuationMap(includeValidationDepth = false),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
-      FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
-        "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-        "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings")
-          .asWorkflowArtifactEntry()
-          .toWorkflowArtifactMap(),
-        "implement_fix" to unsettledUpstreamPhaseRecord(
-          phaseId = "implement_fix",
-          status = "blocked",
-          blockedReason =
-          "Phase 'implement_fix' requires upstream output(s) verify_findings that are not present",
-        ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      ),
-    )
+  private fun saveBlockedUnsettledUpstreamChild(
+    workflows: InMemoryWorkflowStates,
+    workflowId: String,
+  ) {
+    val artifacts =
+      linkedMapOf<String, Any?>(
+        "goal_continuation" to continuationMap(includeValidationDepth = false),
+        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
+        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+          mapOf(
+            "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+            "verify_findings" to
+              unsettledUpstreamPhaseRecord("verify_findings")
+                .asWorkflowArtifactEntry()
+                .toWorkflowArtifactMap(),
+            "implement_fix" to
+              unsettledUpstreamPhaseRecord(
+                phaseId = "implement_fix",
+                status = "blocked",
+                blockedReason =
+                  "Phase 'implement_fix' requires upstream output(s) verify_findings that are not present",
+              ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+          ),
+      )
     val definition = WorkflowFamily.TASK_RUNTIME.definition
     val engine = WorkflowEngine(testWorkflowSnapshotValidator)
     val opened = engine.openRecord(definition, workflowId, "fis-repair", "implement_fix")
@@ -798,21 +854,23 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     )
     val store = repairStore(workflows, git = ReachableGit())
 
-    val applied = store.applyChildWedgeRepairs(
-      GoalRunnerChildWedgeRepairRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        wedgeClasses = listOf(GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val applied =
+      store.applyChildWedgeRepairs(
+        GoalRunnerChildWedgeRepairRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          wedgeClasses = listOf(GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(1, applied.repairs.size)
     assertEquals(GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION, applied.repairs.single().wedgeClass)
-    val after = decodeWorkflowArtifacts(
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
-    )
+    val after =
+      decodeWorkflowArtifacts(
+        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+      )
     val continuation = after["goal_continuation"] as Map<*, *>
     assertEquals("validate", continuation["quality_gate_selection"])
     val evidence = (after[GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY] as List<*>).single() as Map<*, *>
@@ -825,15 +883,16 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
   fun `repairing missing validation_depth preserves review passes and stamps depth with evidence`() {
     val workflows = InMemoryWorkflowStates()
     val workflowId = "wftr-repair-apply-depth"
-    val review = GoalSubtaskReviewState.initial(
-      reviewBaseSha = REACHABLE_SHA,
-      baselineUntrackedPaths = emptyList(),
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-    ).reserveNextPass().completeReservedPass(
-      verdict = FeatureTaskRuntimeVerdict.APPROVED,
-      unresolvedFindingCount = 0,
-      findings = emptyList(),
-    )
+    val review =
+      GoalSubtaskReviewState.initial(
+        reviewBaseSha = REACHABLE_SHA,
+        baselineUntrackedPaths = emptyList(),
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+      ).reserveNextPass().completeReservedPass(
+        verdict = FeatureTaskRuntimeVerdict.APPROVED,
+        unresolvedFindingCount = 0,
+        findings = emptyList(),
+      )
     workflows.saveFeatureTaskRuntimeWorkflow(
       repairChildRecord(
         RepairChildRecordArgs(
@@ -844,26 +903,29 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
         ),
       ),
     )
-    val before = decodeWorkflowArtifacts(
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
-    )
+    val before =
+      decodeWorkflowArtifacts(
+        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+      )
     val store = repairStore(workflows, git = ReachableGit())
 
-    val applied = store.applyChildWedgeRepairs(
-      GoalRunnerChildWedgeRepairRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        wedgeClasses = listOf(GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val applied =
+      store.applyChildWedgeRepairs(
+        GoalRunnerChildWedgeRepairRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          wedgeClasses = listOf(GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(1, applied.repairs.size)
     assertEquals("full", applied.repairs.single().newValue)
-    val after = decodeWorkflowArtifacts(
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
-    )
+    val after =
+      decodeWorkflowArtifacts(
+        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+      )
     assertEquals(COMPLETED_COMMIT, after["commit_sha"])
     assertEquals(
       before[GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY],
@@ -891,39 +953,43 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
           continuation = continuationMap(includeValidationDepth = true),
           reviewState = healthyReviewState(),
           workflowStatus = WorkflowStatus.RUNNING.wireValue,
-          goalContinuationOutcome = mapOf(
-            "issue_key" to ISSUE_KEY,
-            "subtask_id" to 1,
-            "status" to "blocked",
-            "workflow_id" to workflowId,
-            "blocked_reason" to staleReason,
-            "last_resumable_step" to "review",
-          ),
+          goalContinuationOutcome =
+            mapOf(
+              "issue_key" to ISSUE_KEY,
+              "subtask_id" to 1,
+              "status" to "blocked",
+              "workflow_id" to workflowId,
+              "blocked_reason" to staleReason,
+              "last_resumable_step" to "review",
+            ),
           commitSha = COMPLETED_COMMIT,
         ),
       ),
     )
-    val beforeReview = decodeWorkflowArtifacts(
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
-    )[GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY]
+    val beforeReview =
+      decodeWorkflowArtifacts(
+        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+      )[GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY]
     val store = repairStore(workflows, git = ReachableGit())
 
-    val applied = store.applyChildWedgeRepairs(
-      GoalRunnerChildWedgeRepairRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        wedgeClasses = listOf(GoalRunnerWedgeClass.STALE_BLOCKED_CONTINUATION_OUTCOME),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val applied =
+      store.applyChildWedgeRepairs(
+        GoalRunnerChildWedgeRepairRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          wedgeClasses = listOf(GoalRunnerWedgeClass.STALE_BLOCKED_CONTINUATION_OUTCOME),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(1, applied.repairs.size)
     assertEquals(staleReason, applied.repairs.single().priorValue)
     assertNull(applied.repairs.single().newValue)
-    val after = decodeWorkflowArtifacts(
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
-    )
+    val after =
+      decodeWorkflowArtifacts(
+        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+      )
     assertNull(after["goal_continuation_outcome"])
     assertEquals(COMPLETED_COMMIT, after["commit_sha"])
     assertEquals(beforeReview, after[GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY])
@@ -938,15 +1004,16 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     val recovered = "b".repeat(40)
     val workflows = InMemoryWorkflowStates()
     val workflowId = "wftr-repair-apply-remediation"
-    val review = GoalSubtaskReviewState.initial(
-      reviewBaseSha = REACHABLE_SHA,
-      baselineUntrackedPaths = emptyList(),
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-    ).reserveNextPass().completeReservedPass(
-      verdict = FeatureTaskRuntimeVerdict.APPROVED,
-      unresolvedFindingCount = 0,
-      findings = emptyList(),
-    ).copy(remediationBaseSha = unreachable)
+    val review =
+      GoalSubtaskReviewState.initial(
+        reviewBaseSha = REACHABLE_SHA,
+        baselineUntrackedPaths = emptyList(),
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+      ).reserveNextPass().completeReservedPass(
+        verdict = FeatureTaskRuntimeVerdict.APPROVED,
+        unresolvedFindingCount = 0,
+        findings = emptyList(),
+      ).copy(remediationBaseSha = unreachable)
     workflows.saveFeatureTaskRuntimeWorkflow(
       repairChildRecord(
         RepairChildRecordArgs(
@@ -957,27 +1024,30 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
         ),
       ),
     )
-    val store = repairStore(
-      workflows,
-      git = ReachableGit(unreachableShas = setOf(unreachable), recoveredSha = recovered),
-    )
+    val store =
+      repairStore(
+        workflows,
+        git = ReachableGit(unreachableShas = setOf(unreachable), recoveredSha = recovered),
+      )
 
-    val applied = store.applyChildWedgeRepairs(
-      GoalRunnerChildWedgeRepairRequest(
-        workflowId = workflowId,
-        issueKey = ISSUE_KEY,
-        subtaskId = 1,
-        wedgeClasses = listOf(GoalRunnerWedgeClass.UNREACHABLE_REMEDIATION_BASE),
-        repoRoot = Path.of("."),
-      ),
-    )
+    val applied =
+      store.applyChildWedgeRepairs(
+        GoalRunnerChildWedgeRepairRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          wedgeClasses = listOf(GoalRunnerWedgeClass.UNREACHABLE_REMEDIATION_BASE),
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(1, applied.repairs.size)
     assertEquals(unreachable, applied.repairs.single().priorValue)
     assertEquals(recovered, applied.repairs.single().newValue)
-    val after = decodeWorkflowArtifacts(
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
-    )
+    val after =
+      decodeWorkflowArtifacts(
+        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+      )
     val state = requireNotNull(GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(after))
     assertEquals(recovered, state.remediationBaseSha)
     assertEquals(1, state.completedPassCount)
@@ -1004,17 +1074,18 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     }
     val store = repairStore(workflows, git = ReachableGit())
 
-    val failed = runCatching {
-      store.applyChildWedgeRepairs(
-        GoalRunnerChildWedgeRepairRequest(
-          workflowId = workflowId,
-          issueKey = ISSUE_KEY,
-          subtaskId = 1,
-          wedgeClasses = listOf(GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH),
-          repoRoot = Path.of("."),
-        ),
-      )
-    }
+    val failed =
+      runCatching {
+        store.applyChildWedgeRepairs(
+          GoalRunnerChildWedgeRepairRequest(
+            workflowId = workflowId,
+            issueKey = ISSUE_KEY,
+            subtaskId = 1,
+            wedgeClasses = listOf(GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH),
+            repoRoot = Path.of("."),
+          ),
+        )
+      }
     assertTrue(failed.isFailure)
     assertEquals(beforeJson, requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson)
   }
@@ -1051,27 +1122,31 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     val beforeJson = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson
     val store = repairStore(workflows, git = ReachableGit())
     val database = FakeDatabaseSessionFactory(workflows)
-    val phaseRecorder = featureTaskRuntimePhaseRecorder(
-      database,
-      testWorkflowSnapshotValidator,
-      AcceptingFeatureTaskRuntimeWireArtifactValidator,
-      AcceptingFeatureTaskRuntimeWireArtifactValidator,
-      testHarnessClock,
-      NoopRuntimeDiagnostics,
-    )
-    val service = testGoalRunnerStatusService(
-      manifestStore = RepairManifestStore(workflowId),
-      outcomeStore = store,
-      phaseRecorder = phaseRecorder,
-      ports = GoalRunnerStatusTestPorts(
-        workerSupervisor = LiveProcessSupervisor,
-        childRepairStore = store,
-      ),
-    )
+    val phaseRecorder =
+      featureTaskRuntimePhaseRecorder(
+        database,
+        testWorkflowSnapshotValidator,
+        AcceptingFeatureTaskRuntimeWireArtifactValidator,
+        AcceptingFeatureTaskRuntimeWireArtifactValidator,
+        testHarnessClock,
+        NoopRuntimeDiagnostics,
+      )
+    val service =
+      testGoalRunnerStatusService(
+        manifestStore = RepairManifestStore(workflowId),
+        outcomeStore = store,
+        phaseRecorder = phaseRecorder,
+        ports =
+          GoalRunnerStatusTestPorts(
+            workerSupervisor = LiveProcessSupervisor,
+            childRepairStore = store,
+          ),
+      )
 
-    val result = service.repair(
-      GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
-    )
+    val result =
+      service.repair(
+        GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
+      )
 
     assertEquals(GoalRunnerRepairStatus.LIVE_LEASE_REFUSED, result.status)
     assertEquals(workflowId, result.liveLeaseWorkflowId)
@@ -1093,18 +1168,21 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     )
     val beforeJson = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson
     val store = repairStore(workflows, git = ReachableGit())
-    val service = testGoalRunnerStatusService(
-      manifestStore = RepairManifestStore(workflowId),
-      outcomeStore = store,
-      phaseRecorder = goalTestPhaseRecorder(),
-      ports = GoalRunnerStatusTestPorts(
-        childRepairStore = store,
-      ),
-    )
+    val service =
+      testGoalRunnerStatusService(
+        manifestStore = RepairManifestStore(workflowId),
+        outcomeStore = store,
+        phaseRecorder = goalTestPhaseRecorder(),
+        ports =
+          GoalRunnerStatusTestPorts(
+            childRepairStore = store,
+          ),
+      )
 
-    val result = service.repair(
-      GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
-    )
+    val result =
+      service.repair(
+        GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
+      )
 
     assertEquals(GoalRunnerRepairStatus.HEALTHY, result.status)
     assertEquals(beforeJson, requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson)
@@ -1124,23 +1202,26 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
       ),
     )
     val store = repairStore(workflows, git = ReachableGit())
-    val service = testGoalRunnerStatusService(
-      manifestStore = RepairManifestStore(workflowId),
-      outcomeStore = store,
-      phaseRecorder = goalTestPhaseRecorder(),
-      ports = GoalRunnerStatusTestPorts(
-        childRepairStore = store,
-      ),
-    )
+    val service =
+      testGoalRunnerStatusService(
+        manifestStore = RepairManifestStore(workflowId),
+        outcomeStore = store,
+        phaseRecorder = goalTestPhaseRecorder(),
+        ports =
+          GoalRunnerStatusTestPorts(
+            childRepairStore = store,
+          ),
+      )
 
-    val result = service.repair(
-      GoalRunnerRepairRequest(
-        issueKey = ISSUE_KEY,
-        apply = true,
-        subtaskId = 1,
-        repoRoot = Path.of("."),
-      ),
-    )
+    val result =
+      service.repair(
+        GoalRunnerRepairRequest(
+          issueKey = ISSUE_KEY,
+          apply = true,
+          subtaskId = 1,
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(GoalRunnerRepairStatus.NOT_WEDGED, result.status)
     assertNotNull(result.refusalReason)
@@ -1164,13 +1245,15 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
     )
     workflows.seedWorkerOwnership(expiredChildWorkerOwnership(workflowId))
     val store = repairStore(workflows, git = ReachableGit())
-    val service = issue342RepairService(
-      Issue342RepairServiceContext(workflows, workflowId, store, issue342StaleParentControlState()),
-    )
+    val service =
+      issue342RepairService(
+        Issue342RepairServiceContext(workflows, workflowId, store, issue342StaleParentControlState()),
+      )
 
-    val result = service.repair(
-      GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = false, repoRoot = Path.of(".")),
-    )
+    val result =
+      service.repair(
+        GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = false, repoRoot = Path.of(".")),
+      )
 
     assertEquals(GoalRunnerRepairStatus.INSPECTED, result.status)
     assertEquals(
@@ -1204,19 +1287,21 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
     workflows.seedWorkerOwnership(expiredChildWorkerOwnership(workflowId))
     val store = repairStore(workflows, git = ReachableGit())
     val manifestStore = MutableRepairManifestStore(workflowId, issue342StaleParentControlState())
-    val service = issue342RepairService(
-      Issue342RepairServiceContext(
-        workflows,
-        workflowId,
-        store,
-        issue342StaleParentControlState(),
-        manifestStore = manifestStore,
-      ),
-    )
+    val service =
+      issue342RepairService(
+        Issue342RepairServiceContext(
+          workflows,
+          workflowId,
+          store,
+          issue342StaleParentControlState(),
+          manifestStore = manifestStore,
+        ),
+      )
 
-    val result = service.repair(
-      GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
-    )
+    val result =
+      service.repair(
+        GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
+      )
 
     assertEquals(GoalRunnerRepairStatus.REPAIRED, result.status)
     assertNull(manifestStore.controlStateValue.executionLease)
@@ -1250,19 +1335,21 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
     )
     val beforeJson = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson
     val store = repairStore(workflows, git = ReachableGit())
-    val service = issue342RepairService(
-      Issue342RepairServiceContext(
-        workflows,
-        workflowId,
-        store,
-        GoalRunnerControlState(),
-        workerSupervisor = AmbiguousInspectionSupervisor,
-      ),
-    )
+    val service =
+      issue342RepairService(
+        Issue342RepairServiceContext(
+          workflows,
+          workflowId,
+          store,
+          GoalRunnerControlState(),
+          workerSupervisor = AmbiguousInspectionSupervisor,
+        ),
+      )
 
-    val result = service.repair(
-      GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
-    )
+    val result =
+      service.repair(
+        GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
+      )
 
     assertEquals(GoalRunnerRepairStatus.LIVE_LEASE_REFUSED, result.status)
     assertEquals(workflowId, result.liveLeaseWorkflowId)
@@ -1285,24 +1372,26 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
     val parentState = issue342StaleParentControlState()
     val store = repairStore(workflows, git = ReachableGit())
     val manifestStore = MutableRepairManifestStore(workflowId, parentState)
-    val service = issue342RepairService(
-      Issue342RepairServiceContext(
-        workflows,
-        workflowId,
-        store,
-        parentState,
-        manifestStore = manifestStore,
-      ),
-    )
+    val service =
+      issue342RepairService(
+        Issue342RepairServiceContext(
+          workflows,
+          workflowId,
+          store,
+          parentState,
+          manifestStore = manifestStore,
+        ),
+      )
 
-    val result = service.repair(
-      GoalRunnerRepairRequest(
-        issueKey = ISSUE_KEY,
-        apply = true,
-        subtaskId = 1,
-        repoRoot = Path.of("."),
-      ),
-    )
+    val result =
+      service.repair(
+        GoalRunnerRepairRequest(
+          issueKey = ISSUE_KEY,
+          apply = true,
+          subtaskId = 1,
+          repoRoot = Path.of("."),
+        ),
+      )
 
     assertEquals(GoalRunnerRepairStatus.NOT_WEDGED, result.status)
     assertEquals(parentState, manifestStore.controlStateValue)
@@ -1322,29 +1411,32 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
         ),
       ),
     )
-    val operatorStop = GoalRunnerControlState(
-      pauseRequested = true,
-      pauseConsumed = true,
-      paused = true,
-      pauseReason = GOAL_PAUSE_REASON_OPERATOR_STOP,
-      pausedAt = "2000-01-01T00:00:00Z",
-      executionLease = issue342ExpiredExecutionLease(),
-    )
+    val operatorStop =
+      GoalRunnerControlState(
+        pauseRequested = true,
+        pauseConsumed = true,
+        paused = true,
+        pauseReason = GOAL_PAUSE_REASON_OPERATOR_STOP,
+        pausedAt = "2000-01-01T00:00:00Z",
+        executionLease = issue342ExpiredExecutionLease(),
+      )
     val store = repairStore(workflows, git = ReachableGit())
     val manifestStore = MutableRepairManifestStore(workflowId, operatorStop)
-    val service = issue342RepairService(
-      Issue342RepairServiceContext(
-        workflows,
-        workflowId,
-        store,
-        operatorStop,
-        manifestStore = manifestStore,
-      ),
-    )
+    val service =
+      issue342RepairService(
+        Issue342RepairServiceContext(
+          workflows,
+          workflowId,
+          store,
+          operatorStop,
+          manifestStore = manifestStore,
+        ),
+      )
 
-    val result = service.repair(
-      GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
-    )
+    val result =
+      service.repair(
+        GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
+      )
 
     assertEquals(GoalRunnerRepairStatus.REPAIRED, result.status)
     assertNull(manifestStore.controlStateValue.executionLease)
@@ -1354,22 +1446,24 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
 
   private fun issue342RepairService(context: Issue342RepairServiceContext): GoalRunnerStatusService {
     val database = FakeDatabaseSessionFactory(context.workflows)
-    val phaseRecorder = featureTaskRuntimePhaseRecorder(
-      database,
-      testWorkflowSnapshotValidator,
-      AcceptingFeatureTaskRuntimeWireArtifactValidator,
-      AcceptingFeatureTaskRuntimeWireArtifactValidator,
-      testHarnessClock,
-      NoopRuntimeDiagnostics,
-    )
+    val phaseRecorder =
+      featureTaskRuntimePhaseRecorder(
+        database,
+        testWorkflowSnapshotValidator,
+        AcceptingFeatureTaskRuntimeWireArtifactValidator,
+        AcceptingFeatureTaskRuntimeWireArtifactValidator,
+        testHarnessClock,
+        NoopRuntimeDiagnostics,
+      )
     return testGoalRunnerStatusService(
       manifestStore = context.manifestStore,
       outcomeStore = context.store,
       phaseRecorder = phaseRecorder,
-      ports = GoalRunnerStatusTestPorts(
-        workerSupervisor = context.workerSupervisor,
-        childRepairStore = context.store as GoalRunnerChildRepairStore,
-      ),
+      ports =
+        GoalRunnerStatusTestPorts(
+          workerSupervisor = context.workerSupervisor,
+          childRepairStore = context.store as GoalRunnerChildRepairStore,
+        ),
     )
   }
 
@@ -1382,25 +1476,27 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
     val workerSupervisor: FeatureTaskRuntimeWorkerSupervisor = NoopFeatureTaskRuntimeWorkerSupervisor,
   )
 
-  private fun issue342StaleParentControlState(): GoalRunnerControlState = GoalRunnerControlState(
-    pauseRequested = true,
-    pauseConsumed = true,
-    paused = true,
-    pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
-    pausedAt = "2000-01-01T00:00:00Z",
-    executionLease = issue342ExpiredExecutionLease(),
-  )
+  private fun issue342StaleParentControlState(): GoalRunnerControlState =
+    GoalRunnerControlState(
+      pauseRequested = true,
+      pauseConsumed = true,
+      paused = true,
+      pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
+      pausedAt = "2000-01-01T00:00:00Z",
+      executionLease = issue342ExpiredExecutionLease(),
+    )
 
-  private fun issue342ExpiredExecutionLease(): GoalRunnerExecutionLease = GoalRunnerExecutionLease(
-    generation = 1,
-    ownerToken = "parent-owner",
-    hostIdentity = "host",
-    bootIdentity = "boot",
-    pid = 42,
-    processBirthToken = "birth",
-    heartbeatAt = "2000-01-01T00:00:00Z",
-    expiresAt = "2000-01-01T00:00:30Z",
-  )
+  private fun issue342ExpiredExecutionLease(): GoalRunnerExecutionLease =
+    GoalRunnerExecutionLease(
+      generation = 1,
+      ownerToken = "parent-owner",
+      hostIdentity = "host",
+      bootIdentity = "boot",
+      pid = 42,
+      processBirthToken = "birth",
+      heartbeatAt = "2000-01-01T00:00:00Z",
+      expiresAt = "2000-01-01T00:00:30Z",
+    )
 
   private fun expiredChildWorkerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership =
     FeatureTaskRuntimeWorkerOwnership(
@@ -1418,19 +1514,21 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
       phaseAttempt = 1,
     )
 
-  private fun GoalRunnerControlState.clearPauseFields(): GoalRunnerControlState = copy(
-    paused = false,
-    pauseRequested = false,
-    pauseConsumed = false,
-    pauseReason = null,
-    pausedAt = null,
-  )
+  private fun GoalRunnerControlState.clearPauseFields(): GoalRunnerControlState =
+    copy(
+      paused = false,
+      pauseRequested = false,
+      pauseConsumed = false,
+      pauseReason = null,
+      pausedAt = null,
+    )
 
-  private fun GoalRunnerControlState.clearExecutionLease(): GoalRunnerControlState = copy(
-    executionLease = null,
-    activeDurationAsOf = null,
-    subtaskActiveDurationAsOf = null,
-  )
+  private fun GoalRunnerControlState.clearExecutionLease(): GoalRunnerControlState =
+    copy(
+      executionLease = null,
+      activeDurationAsOf = null,
+      subtaskActiveDurationAsOf = null,
+    )
 
   private object AmbiguousInspectionSupervisor : FeatureTaskRuntimeWorkerSupervisor {
     override fun currentProcess(): FeatureTaskRuntimeProcessIdentity =
@@ -1439,7 +1537,10 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
     override fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership) =
       FeatureTaskRuntimeProcessInspection.OwnershipMismatch("the existing process owner is ambiguous")
 
-    override fun awaitExit(ownership: FeatureTaskRuntimeWorkerOwnership, timeout: Duration) = Unit
+    override fun awaitExit(
+      ownership: FeatureTaskRuntimeWorkerOwnership,
+      timeout: Duration,
+    ) = Unit
 
     override fun terminateGracefully(ownership: FeatureTaskRuntimeWorkerOwnership) = true
 
@@ -1455,19 +1556,22 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
 }
 
 internal abstract class GoalRunnerRepairFixtures {
-
-  protected fun seedRepairParent(workflows: InMemoryWorkflowStates, childWorkflowId: String) {
-    val manifest = DecompositionManifest(
-      contractVersion = "0.5",
-      issueKey = ISSUE_KEY,
-      featureName = "repair",
-      parentSpecPath = ".feature-specs/$ISSUE_KEY/spec.md",
-      status = "in_progress",
-      baseBranch = "main",
-      featureBranch = "feat/$ISSUE_KEY-repair",
-      currentSubtaskIntent = CurrentSubtaskIntent(1, "resume"),
-      subtasks = listOf(subtask(1, childWorkflowId)),
-    )
+  protected fun seedRepairParent(
+    workflows: InMemoryWorkflowStates,
+    childWorkflowId: String,
+  ) {
+    val manifest =
+      DecompositionManifest(
+        contractVersion = "0.5",
+        issueKey = ISSUE_KEY,
+        featureName = "repair",
+        parentSpecPath = ".feature-specs/$ISSUE_KEY/spec.md",
+        status = "in_progress",
+        baseBranch = "main",
+        featureBranch = "feat/$ISSUE_KEY-repair",
+        currentSubtaskIntent = CurrentSubtaskIntent(1, "resume"),
+        subtasks = listOf(subtask(1, childWorkflowId)),
+      )
     val definition = WorkflowFamily.TASK_RUNTIME.definition
     val engine = WorkflowEngine(testWorkflowSnapshotValidator)
     val opened = engine.openRecord(definition, "wfl-parent", "fis-repair-parent", "preplan")
@@ -1479,11 +1583,15 @@ internal abstract class GoalRunnerRepairFixtures {
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "plan",
           stepUpdates = null,
-          artifactsPatch = WorkflowArtifactPatch.from(
-            mapOf(
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+          artifactsPatch =
+            WorkflowArtifactPatch.from(
+              mapOf(
+                DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+                  testDecompositionManifestValidator.encodeManifestWireMap(
+                    manifest,
+                  ),
+              ),
             ),
-          ),
           sessionId = "ftr-repair-parent",
         ),
       ).toRecord().copy(issueKey = ISSUE_KEY),
@@ -1497,9 +1605,10 @@ internal abstract class GoalRunnerRepairFixtures {
     FakeDatabaseSessionFactory(workflows),
     testWorkflowSnapshotValidator,
     gitOperations = git,
-    artifactPorts = OutcomeStoreTestArtifactPorts(
-      decompositionManifestStore = InMemoryRepairManifestFileStore(),
-    ),
+    artifactPorts =
+      OutcomeStoreTestArtifactPorts(
+        decompositionManifestStore = InMemoryRepairManifestFileStore(),
+      ),
   )
 
   protected class InMemoryRepairManifestFileStore :
@@ -1508,13 +1617,17 @@ internal abstract class GoalRunnerRepairFixtures {
     var writeCount: Int = 0
       private set
 
-    override fun writeTextAtomically(target: Path, content: String) {
+    override fun writeTextAtomically(
+      target: Path,
+      content: String,
+    ) {
       writeCount += 1
       files[target.toAbsolutePath().normalize()] = content
     }
 
-    override fun readText(path: Path): String = files[path.toAbsolutePath().normalize()]
-      ?: error("InMemoryRepairManifestFileStore has no content for $path")
+    override fun readText(path: Path): String =
+      files[path.toAbsolutePath().normalize()]
+        ?: error("InMemoryRepairManifestFileStore has no content for $path")
 
     override fun isRegularFile(path: Path): Boolean = path.toAbsolutePath().normalize() in files
 
@@ -1538,14 +1651,16 @@ internal abstract class GoalRunnerRepairFixtures {
     val definition = WorkflowFamily.TASK_RUNTIME.definition
     val engine = WorkflowEngine(testWorkflowSnapshotValidator)
     val opened = engine.openRecord(definition, args.workflowId, "fis-repair", "preplan")
-    val artifacts = linkedMapOf<String, Any?>(
-      "goal_continuation" to args.continuation,
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to args.reviewState.toPersistenceWire(),
-    )
+    val artifacts =
+      linkedMapOf<String, Any?>(
+        "goal_continuation" to args.continuation,
+        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to args.reviewState.toPersistenceWire(),
+      )
     if (args.reviewState.completedPassCount > 0) {
-      artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY] = args.reviewState.passResults.associate { result ->
-        result.passNumber.toString() to "raw review result for pass ${result.passNumber}"
-      }
+      artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY] =
+        args.reviewState.passResults.associate { result ->
+          result.passNumber.toString() to "raw review result for pass ${result.passNumber}"
+        }
     }
     args.goalContinuationOutcome?.let { artifacts["goal_continuation_outcome"] = it }
     args.commitSha?.let { artifacts["commit_sha"] = it }
@@ -1555,17 +1670,19 @@ internal abstract class GoalRunnerRepairFixtures {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = WorkflowStatus.fromWire(args.workflowStatus)
-          ?: error("Unknown workflow status '${args.workflowStatus}'."),
+        workflowStatus =
+          WorkflowStatus.fromWire(args.workflowStatus)
+            ?: error("Unknown workflow status '${args.workflowStatus}'."),
         currentStepId = currentStepId,
-        stepUpdates = WorkflowStepUpdates.from(
-          buildList {
-            args.abandonedBlockedStepId?.let { stepId ->
-              add(mapOf("step_id" to stepId, "status" to "blocked", "attempt_count" to 13))
-            }
-            add(mapOf("step_id" to currentStepId, "status" to "running", "attempt_count" to 1))
-          },
-        ),
+        stepUpdates =
+          WorkflowStepUpdates.from(
+            buildList {
+              args.abandonedBlockedStepId?.let { stepId ->
+                add(mapOf("step_id" to stepId, "status" to "blocked", "attempt_count" to 13))
+              }
+              add(mapOf("step_id" to currentStepId, "status" to "running", "attempt_count" to 1))
+            },
+          ),
         artifactsPatch = WorkflowArtifactPatch.from(artifacts),
         sessionId = "ftr-repair",
       ),
@@ -1575,34 +1692,40 @@ internal abstract class GoalRunnerRepairFixtures {
   protected fun continuationMap(
     includeValidationDepth: Boolean,
     includeQualityGateSelection: Boolean = true,
-  ): Map<String, Any?> = FeatureTaskRuntimeGoalContinuationArtifact(
-    issueKey = ISSUE_KEY,
-    subtaskId = 1,
-    suppressPr = true,
-    goalBranch = GOAL_BRANCH,
-    parentWorkflowId = "wfl-parent",
-    codeReviewMode = CodeReviewExecutionMode.INLINE,
-    validationDepth = if (includeValidationDepth) ValidationDepth.FULL else null,
-    qualityGateSelection = if (includeQualityGateSelection) {
-      FeatureTaskRuntimeQualityGateSelection.VALIDATE
-    } else {
-      null
-    },
-  ).asWorkflowArtifactEntry().toWorkflowArtifactMap().let { map ->
-    buildMap {
-      putAll(map)
-      if (!includeValidationDepth) remove("validation_depth")
-      if (!includeQualityGateSelection) remove("quality_gate_selection")
+  ): Map<String, Any?> =
+    FeatureTaskRuntimeGoalContinuationArtifact(
+      issueKey = ISSUE_KEY,
+      subtaskId = 1,
+      suppressPr = true,
+      goalBranch = GOAL_BRANCH,
+      parentWorkflowId = "wfl-parent",
+      codeReviewMode = CodeReviewExecutionMode.INLINE,
+      validationDepth = if (includeValidationDepth) ValidationDepth.FULL else null,
+      qualityGateSelection =
+        if (includeQualityGateSelection) {
+          FeatureTaskRuntimeQualityGateSelection.VALIDATE
+        } else {
+          null
+        },
+    ).asWorkflowArtifactEntry().toWorkflowArtifactMap().let { map ->
+      buildMap {
+        putAll(map)
+        if (!includeValidationDepth) remove("validation_depth")
+        if (!includeQualityGateSelection) remove("quality_gate_selection")
+      }
     }
-  }
 
-  protected fun healthyReviewState(): GoalSubtaskReviewState = GoalSubtaskReviewState.initial(
-    reviewBaseSha = REACHABLE_SHA,
-    baselineUntrackedPaths = emptyList(),
-    codeReviewMode = CodeReviewExecutionMode.INLINE,
-  )
+  protected fun healthyReviewState(): GoalSubtaskReviewState =
+    GoalSubtaskReviewState.initial(
+      reviewBaseSha = REACHABLE_SHA,
+      baselineUntrackedPaths = emptyList(),
+      codeReviewMode = CodeReviewExecutionMode.INLINE,
+    )
 
-  protected fun subtask(id: Int, workflowId: String?) = DecompositionSubtask(
+  protected fun subtask(
+    id: Int,
+    workflowId: String?,
+  ) = DecompositionSubtask(
     id = id,
     name = "subtask-$id",
     specPath = ".feature-specs/$ISSUE_KEY/spec_subtask_$id.md",
@@ -1610,46 +1733,52 @@ internal abstract class GoalRunnerRepairFixtures {
     workflowId = workflowId,
   )
 
-  protected fun unsettledBuildUpstreamArtifacts(): LinkedHashMap<String, Any?> = linkedMapOf(
-    "goal_continuation" to FeatureTaskRuntimeGoalContinuationArtifact(
-      issueKey = ISSUE_KEY,
-      subtaskId = 1,
-      suppressPr = true,
-      goalBranch = GOAL_BRANCH,
-      parentWorkflowId = "wfl-parent",
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-      validationDepth = ValidationDepth.FULL,
-      qualityGateSelection = FeatureTaskRuntimeQualityGateSelection.BUILD,
-    ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-    GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
-    FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
-      "review" to unsettledUpstreamPhaseRecord("review", status = "completed").copy(
-        outputArtifact = """{"contract_version":"0.1"}""",
-      ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      "build" to unsettledUpstreamPhaseRecord("build").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      "write_history" to unsettledUpstreamPhaseRecord(
-        phaseId = "write_history",
-        status = "blocked",
-        blockedReason = "Phase 'write_history' requires upstream output(s) build that are not present",
-      ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-    ),
-  )
+  protected fun unsettledBuildUpstreamArtifacts(): LinkedHashMap<String, Any?> =
+    linkedMapOf(
+      "goal_continuation" to
+        FeatureTaskRuntimeGoalContinuationArtifact(
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          suppressPr = true,
+          goalBranch = GOAL_BRANCH,
+          parentWorkflowId = "wfl-parent",
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+          validationDepth = ValidationDepth.FULL,
+          qualityGateSelection = FeatureTaskRuntimeQualityGateSelection.BUILD,
+        ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
+      FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+        mapOf(
+          "review" to
+            unsettledUpstreamPhaseRecord("review", status = "completed").copy(
+              outputArtifact = """{"contract_version":"0.1"}""",
+            ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+          "build" to unsettledUpstreamPhaseRecord("build").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+          "write_history" to
+            unsettledUpstreamPhaseRecord(
+              phaseId = "write_history",
+              status = "blocked",
+              blockedReason = "Phase 'write_history' requires upstream output(s) build that are not present",
+            ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+        ),
+    )
 
   protected fun unsettledUpstreamPhaseRecord(
     phaseId: String,
     status: String = "completed",
     blockedReason: String? = null,
-  ): FeatureTaskRuntimePhaseRecord = FeatureTaskRuntimePhaseRecord(
-    phaseId = phaseId,
-    status = status,
-    attemptCount = 1,
-    startedAt = "2026-08-19T10:00:00Z",
-    resolvedAgentId = "cursor",
-    outputArtifact = null,
-    blockedReason = blockedReason,
-    loopId = "review_fix",
-    edgeIteration = 1,
-  )
+  ): FeatureTaskRuntimePhaseRecord =
+    FeatureTaskRuntimePhaseRecord(
+      phaseId = phaseId,
+      status = status,
+      attemptCount = 1,
+      startedAt = "2026-08-19T10:00:00Z",
+      resolvedAgentId = "cursor",
+      outputArtifact = null,
+      blockedReason = blockedReason,
+      loopId = "review_fix",
+      edgeIteration = 1,
+    )
 
   protected class RepairManifestStore(
     childWorkflowId: String,
@@ -1663,37 +1792,46 @@ internal abstract class GoalRunnerRepairFixtures {
   ) : GoalRunnerManifestStoreDefaults() {
     var controlStateValue: GoalRunnerControlState = initialControlState
 
-    override fun loadByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState = GoalRunnerManifestState(
-      parentWorkflowId = "wfl-parent",
-      dbPath = "/tmp/repair.db",
-      manifest = DecompositionManifest(
-        contractVersion = "0.5",
-        issueKey = issueKey,
-        featureName = "repair",
-        parentSpecPath = ".feature-specs/$issueKey/spec.md",
-        status = "in_progress",
-        baseBranch = "main",
-        featureBranch = "feat/$issueKey-repair",
-        currentSubtaskIntent = CurrentSubtaskIntent(1, "resume"),
-        subtasks = subtasks ?: listOf(
-          DecompositionSubtask(
-            id = 1,
-            name = "child",
-            specPath = ".feature-specs/$issueKey/spec_subtask_1.md",
+    override fun loadByIssueKey(
+      issueKey: String,
+      repoRoot: Path?,
+    ): GoalRunnerManifestState =
+      GoalRunnerManifestState(
+        parentWorkflowId = "wfl-parent",
+        dbPath = "/tmp/repair.db",
+        manifest =
+          DecompositionManifest(
+            contractVersion = "0.5",
+            issueKey = issueKey,
+            featureName = "repair",
+            parentSpecPath = ".feature-specs/$issueKey/spec.md",
             status = "in_progress",
-            workflowId = childWorkflowId,
+            baseBranch = "main",
+            featureBranch = "feat/$issueKey-repair",
+            currentSubtaskIntent = CurrentSubtaskIntent(1, "resume"),
+            subtasks =
+              subtasks ?: listOf(
+                DecompositionSubtask(
+                  id = 1,
+                  name = "child",
+                  specPath = ".feature-specs/$issueKey/spec_subtask_1.md",
+                  status = "in_progress",
+                  workflowId = childWorkflowId,
+                ),
+              ),
           ),
-        ),
-      ),
-      controlState = controlStateValue,
-      repoRoot = repoRoot,
-    )
+        controlState = controlStateValue,
+        repoRoot = repoRoot,
+      )
 
     override fun controlState(parentWorkflowId: String): GoalRunnerControlState = controlStateValue
 
     override fun executionLease(parentWorkflowId: String): GoalRunnerExecutionLease? = controlStateValue.executionLease
 
-    override fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState {
+    override fun persistControlState(
+      parentWorkflowId: String,
+      state: GoalRunnerControlState,
+    ): GoalRunnerControlState {
       controlStateValue = state
       return state
     }
@@ -1701,13 +1839,14 @@ internal abstract class GoalRunnerRepairFixtures {
     override fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState {
       val state = controlStateValue
       if (state.pauseReason != GOAL_PAUSE_REASON_RUNNER_INTERRUPTED) return state
-      controlStateValue = state.copy(
-        paused = false,
-        pauseRequested = false,
-        pauseConsumed = false,
-        pauseReason = null,
-        pausedAt = null,
-      )
+      controlStateValue =
+        state.copy(
+          paused = false,
+          pauseRequested = false,
+          pauseConsumed = false,
+          pauseReason = null,
+          pausedAt = null,
+        )
       return controlStateValue
     }
 
@@ -1719,16 +1858,24 @@ internal abstract class GoalRunnerRepairFixtures {
       expectedOwnerToken: String?,
     ): Boolean = true
 
-    override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean = true
+    override fun heartbeatExecutionLease(
+      parentWorkflowId: String,
+      lease: GoalRunnerExecutionLease,
+    ): Boolean = true
 
-    override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean {
+    override fun releaseExecutionLease(
+      parentWorkflowId: String,
+      ownerToken: String,
+      generation: Long,
+    ): Boolean {
       val current = controlStateValue.executionLease ?: return false
       if (current.ownerToken != ownerToken || current.generation != generation) return false
-      controlStateValue = controlStateValue.copy(
-        executionLease = null,
-        activeDurationAsOf = null,
-        subtaskActiveDurationAsOf = null,
-      )
+      controlStateValue =
+        controlStateValue.copy(
+          executionLease = null,
+          activeDurationAsOf = null,
+          subtaskActiveDurationAsOf = null,
+        )
       return true
     }
   }
@@ -1745,13 +1892,17 @@ internal abstract class GoalRunnerRepairFixtures {
       repoRoot: Path,
       ancestorSha: String,
       descendantSha: String,
-    ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(
-      value = if (ancestorSha in unreachableShas) "false" else "true",
-    )
+    ): WorkflowGitOperationResult =
+      WorkflowGitOperationResult.Ok(
+        value = if (ancestorSha in unreachableShas) "false" else "true",
+      )
 
     override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations =
       object : GoalSubtaskReviewGitOperations {
-        override fun captureBaseline(repoRoot: Path, expectedBranch: String): GoalSubtaskReviewBaselineResult =
+        override fun captureBaseline(
+          repoRoot: Path,
+          expectedBranch: String,
+        ): GoalSubtaskReviewBaselineResult =
           GoalSubtaskReviewBaselineResult(
             status = WorkflowGitOperationStatus.OK,
             baseline = GoalSubtaskReviewBaseline(REACHABLE_SHA, emptyList()),
@@ -1761,25 +1912,29 @@ internal abstract class GoalRunnerRepairFixtures {
           repoRoot: Path,
           baseline: GoalSubtaskReviewBaseline,
           expectedBranch: String,
-        ): GoalSubtaskReviewInputResult = GoalSubtaskReviewInputResult(
-          status = WorkflowGitOperationStatus.OK,
-          input = GoalSubtaskReviewInput(
-            reviewBaseSha = baseline.reviewBaseSha,
-            currentHeadSha = HEAD_SHA,
-            trackedDelta = "",
-            ownedUntrackedPatches = "",
-          ),
-        )
+        ): GoalSubtaskReviewInputResult =
+          GoalSubtaskReviewInputResult(
+            status = WorkflowGitOperationStatus.OK,
+            input =
+              GoalSubtaskReviewInput(
+                reviewBaseSha = baseline.reviewBaseSha,
+                currentHeadSha = HEAD_SHA,
+                trackedDelta = "",
+                ownedUntrackedPatches = "",
+              ),
+          )
 
         override fun recoverBaseline(
           repoRoot: Path,
           request: GoalSubtaskReviewBaselineRecoveryRequest,
           expectedBranch: String,
-        ): GoalSubtaskReviewBaselineResult = GoalSubtaskReviewBaselineResult(
-          status = recoveryStatus,
-          baseline = recoveryStatus.takeIf { it == WorkflowGitOperationStatus.OK }
-            ?.let { request.toRecoveredBaseline(recoveredSha) },
-        )
+        ): GoalSubtaskReviewBaselineResult =
+          GoalSubtaskReviewBaselineResult(
+            status = recoveryStatus,
+            baseline =
+              recoveryStatus.takeIf { it == WorkflowGitOperationStatus.OK }
+                ?.let { request.toRecoveredBaseline(recoveredSha) },
+          )
       }
   }
 
@@ -1789,7 +1944,10 @@ internal abstract class GoalRunnerRepairFixtures {
 
     override fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership) = FeatureTaskRuntimeProcessInspection.ExactLive
 
-    override fun awaitExit(ownership: FeatureTaskRuntimeWorkerOwnership, timeout: Duration) = Unit
+    override fun awaitExit(
+      ownership: FeatureTaskRuntimeWorkerOwnership,
+      timeout: Duration,
+    ) = Unit
 
     override fun terminateGracefully(ownership: FeatureTaskRuntimeWorkerOwnership) = true
 

@@ -3,6 +3,7 @@ import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSe
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
+
 data class CompletedUpstreamRepairRequest(
   val phaseRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
   val ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,

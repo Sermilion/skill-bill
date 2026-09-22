@@ -31,7 +31,11 @@ internal fun AgentRunDeclaredProgressProbe.readDeclaredProgress(
 internal fun AgentRunMcpStartupProbe.readStartupObserved(recorder: ProcessRunDegradationRecorder): ProbeRead<Boolean> =
   readProbe(recorder, "mcp_startup") { startupObserved() }
 
-private inline fun <T> readProbe(recorder: ProcessRunDegradationRecorder, seam: String, read: () -> T?): ProbeRead<T> =
+private inline fun <T> readProbe(
+  recorder: ProcessRunDegradationRecorder,
+  seam: String,
+  read: () -> T?,
+): ProbeRead<T> =
   runCatching { read() }.fold(
     onSuccess = { value -> ProbeRead(value = value, failed = false) },
     onFailure = { failure ->

@@ -14,11 +14,12 @@ data class RuntimeProvenanceContract(
   val version: String,
   val buildId: String,
 ) : JsonPayloadContract {
-  override fun toPayload(): Map<String, Any?> = linkedMapOf(
-    "executable_path" to executablePath,
-    "version" to version,
-    "build_id" to buildId,
-  )
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf(
+      "executable_path" to executablePath,
+      "version" to version,
+      "build_id" to buildId,
+    )
 }
 
 data class DoctorContract(
@@ -28,13 +29,14 @@ data class DoctorContract(
   val telemetryEnabled: Boolean,
   val telemetryLevel: String,
 ) : JsonPayloadContract {
-  override fun toPayload(): Map<String, Any?> = linkedMapOf(
-    "version" to version,
-    "db_path" to dbPath,
-    "db_exists" to dbExists,
-    "telemetry_enabled" to telemetryEnabled,
-    "telemetry_level" to telemetryLevel,
-  )
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf(
+      "version" to version,
+      "db_path" to dbPath,
+      "db_exists" to dbExists,
+      "telemetry_enabled" to telemetryEnabled,
+      "telemetry_level" to telemetryLevel,
+    )
 }
 
 data class UpdateCheckContract(
@@ -45,17 +47,21 @@ data class UpdateCheckContract(
   val reason: String? = null,
   val releaseNotes: String? = null,
 ) : JsonPayloadContract {
-  override fun toPayload(): Map<String, Any?> = buildMap {
-    put(SharedPayloadKeys.STATUS, status)
-    put(UpdateCheckPayloadKeys.INSTALLED_VERSION, installedVersion)
-    put(UpdateCheckPayloadKeys.LATEST_VERSION, latestVersion)
-    put(UpdateCheckPayloadKeys.RECOMMENDED_INSTALL_COMMAND, recommendedInstallCommand)
-    put(UpdateCheckPayloadKeys.REASON, reason)
-    put(UpdateCheckPayloadKeys.RELEASE_NOTES, releaseNotes)
-  }
+  override fun toPayload(): Map<String, Any?> =
+    buildMap {
+      put(SharedPayloadKeys.STATUS, status)
+      put(UpdateCheckPayloadKeys.INSTALLED_VERSION, installedVersion)
+      put(UpdateCheckPayloadKeys.LATEST_VERSION, latestVersion)
+      put(UpdateCheckPayloadKeys.RECOMMENDED_INSTALL_COMMAND, recommendedInstallCommand)
+      put(UpdateCheckPayloadKeys.REASON, reason)
+      put(UpdateCheckPayloadKeys.RELEASE_NOTES, releaseNotes)
+    }
 }
 
-fun VersionContract.toRuntimeProvenance(executablePath: String, buildId: String = version): RuntimeProvenanceContract =
+fun VersionContract.toRuntimeProvenance(
+  executablePath: String,
+  buildId: String = version,
+): RuntimeProvenanceContract =
   RuntimeProvenanceContract(
     executablePath = executablePath,
     version = version,

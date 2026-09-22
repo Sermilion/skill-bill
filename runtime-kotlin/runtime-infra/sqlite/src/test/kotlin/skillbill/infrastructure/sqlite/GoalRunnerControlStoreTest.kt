@@ -32,12 +32,13 @@ class GoalRunnerControlStoreTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
       val policy = GoalRunnerReviewPolicy(CodeReviewExecutionMode.INLINE)
-      val acceptance = GoalRunnerOutOfBandAcceptance(
-        subtaskId = 2,
-        commitSha = "abc123",
-        reason = "work was completed on the feature branch",
-        acceptedAt = "2026-08-01T10:00:00Z",
-      )
+      val acceptance =
+        GoalRunnerOutOfBandAcceptance(
+          subtaskId = 2,
+          commitSha = "abc123",
+          reason = "work was completed on the feature branch",
+          acceptedAt = "2026-08-01T10:00:00Z",
+        )
 
       store.persistReviewPolicy("parent-1", policy)
       store.persistOutOfBandAcceptance("parent-1", acceptance)
@@ -65,13 +66,14 @@ class GoalRunnerControlStoreTest {
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
-      val interrupted = GoalRunnerControlState(
-        pauseRequested = true,
-        pauseConsumed = true,
-        paused = true,
-        pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
-        pausedAt = "2026-08-02T09:59:00Z",
-      )
+      val interrupted =
+        GoalRunnerControlState(
+          pauseRequested = true,
+          pauseConsumed = true,
+          paused = true,
+          pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
+          pausedAt = "2026-08-02T09:59:00Z",
+        )
       store.persistControlState("parent-interrupted", interrupted)
       val cleared = store.clearRunnerInterruptedPause("parent-interrupted")
 
@@ -86,13 +88,14 @@ class GoalRunnerControlStoreTest {
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
-      val operatorStop = GoalRunnerControlState(
-        pauseRequested = true,
-        pauseConsumed = true,
-        paused = true,
-        pauseReason = GOAL_PAUSE_REASON_OPERATOR_STOP,
-        pausedAt = "2026-08-02T09:00:00Z",
-      )
+      val operatorStop =
+        GoalRunnerControlState(
+          pauseRequested = true,
+          pauseConsumed = true,
+          paused = true,
+          pauseReason = GOAL_PAUSE_REASON_OPERATOR_STOP,
+          pausedAt = "2026-08-02T09:00:00Z",
+        )
       store.persistControlState("parent-stop", operatorStop)
 
       assertEquals(operatorStop, store.clearRunnerInterruptedPause("parent-stop"))
@@ -108,14 +111,15 @@ class GoalRunnerControlStoreTest {
       val store = GoalRunnerControlStore(connection)
       assertEquals(GoalRunnerControlState(), store.controlState("missing-parent"))
 
-      val state = GoalRunnerControlState(
-        stopAfterSubtaskId = 2,
-        pauseRequested = true,
-        pauseConsumed = true,
-        paused = true,
-        pauseReason = "operator_request",
-        pausedAt = "2026-08-02T09:00:00Z",
-      )
+      val state =
+        GoalRunnerControlState(
+          stopAfterSubtaskId = 2,
+          pauseRequested = true,
+          pauseConsumed = true,
+          paused = true,
+          pauseReason = "operator_request",
+          pausedAt = "2026-08-02T09:00:00Z",
+        )
       store.persistControlState("parent-1", state)
       assertEquals(state, store.controlState("parent-1"))
 
@@ -146,14 +150,15 @@ class GoalRunnerControlStoreTest {
   @Test
   fun `control state survives a reopened database and duplicate writes remain stable`() {
     val dbPath = Files.createTempDirectory("skillbill-goal-control-restart").resolve("metrics.db")
-    val state = GoalRunnerControlState(
-      stopAfterSubtaskId = 4,
-      pauseRequested = true,
-      pauseConsumed = true,
-      paused = true,
-      pauseReason = "operator_request",
-      pausedAt = "2026-08-02T09:00:00Z",
-    )
+    val state =
+      GoalRunnerControlState(
+        stopAfterSubtaskId = 4,
+        pauseRequested = true,
+        pauseConsumed = true,
+        paused = true,
+        pauseReason = "operator_request",
+        pausedAt = "2026-08-02T09:00:00Z",
+      )
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
@@ -207,7 +212,11 @@ class GoalRunnerControlStoreTest {
     }
   }
 
-  private fun writeRawControlState(connection: Connection, parentWorkflowId: String, json: String) {
+  private fun writeRawControlState(
+    connection: Connection,
+    parentWorkflowId: String,
+    json: String,
+  ) {
     connection.prepareStatement(
       "UPDATE goal_runner_controls SET control_state_json = ? WHERE parent_workflow_id = ?",
     ).use { statement ->
@@ -220,16 +229,17 @@ class GoalRunnerControlStoreTest {
   @Test
   fun `parent execution lease survives a reopened database`() {
     val dbPath = Files.createTempDirectory("skillbill-goal-execution-lease").resolve("metrics.db")
-    val lease = GoalRunnerExecutionLease(
-      generation = 1,
-      ownerToken = "owner-token-123456",
-      hostIdentity = "host",
-      bootIdentity = "boot",
-      pid = 42,
-      processBirthToken = "birth",
-      heartbeatAt = "2026-08-02T10:00:00Z",
-      expiresAt = "2026-08-02T10:00:30Z",
-    )
+    val lease =
+      GoalRunnerExecutionLease(
+        generation = 1,
+        ownerToken = "owner-token-123456",
+        hostIdentity = "host",
+        bootIdentity = "boot",
+        pid = 42,
+        processBirthToken = "birth",
+        heartbeatAt = "2026-08-02T10:00:00Z",
+        expiresAt = "2026-08-02T10:00:30Z",
+      )
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
@@ -269,16 +279,17 @@ class GoalRunnerControlStoreTest {
   @Test
   fun `expired execution lease releases only at the expiry boundary with matching fencing`() {
     val dbPath = Files.createTempDirectory("skillbill-goal-expired-lease-release").resolve("metrics.db")
-    val lease = GoalRunnerExecutionLease(
-      generation = 3,
-      ownerToken = "owner-token-expired",
-      hostIdentity = "host",
-      bootIdentity = "boot",
-      pid = 42,
-      processBirthToken = "birth",
-      heartbeatAt = "2026-08-02T10:00:00Z",
-      expiresAt = "2026-08-02T10:00:30Z",
-    )
+    val lease =
+      GoalRunnerExecutionLease(
+        generation = 3,
+        ownerToken = "owner-token-expired",
+        hostIdentity = "host",
+        bootIdentity = "boot",
+        pid = 42,
+        processBirthToken = "birth",
+        heartbeatAt = "2026-08-02T10:00:00Z",
+        expiresAt = "2026-08-02T10:00:30Z",
+      )
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
@@ -314,16 +325,17 @@ class GoalRunnerControlStoreTest {
   @Test
   fun `clearing control state preserves the accumulated execution clock`() {
     val dbPath = Files.createTempDirectory("skillbill-goal-clear-active-clock").resolve("metrics.db")
-    val lease = GoalRunnerExecutionLease(
-      generation = 1,
-      ownerToken = "owner-token-123456",
-      hostIdentity = "host",
-      bootIdentity = "boot",
-      pid = 42,
-      processBirthToken = "birth",
-      heartbeatAt = "2026-08-02T10:00:00Z",
-      expiresAt = "2026-08-02T10:00:30Z",
-    )
+    val lease =
+      GoalRunnerExecutionLease(
+        generation = 1,
+        ownerToken = "owner-token-123456",
+        hostIdentity = "host",
+        bootIdentity = "boot",
+        pid = 42,
+        processBirthToken = "birth",
+        heartbeatAt = "2026-08-02T10:00:00Z",
+        expiresAt = "2026-08-02T10:00:30Z",
+      )
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
@@ -352,16 +364,17 @@ class GoalRunnerControlStoreTest {
   @Test
   fun `the active execution clock caps an over-long heartbeat gap instead of counting the downtime`() {
     val dbPath = Files.createTempDirectory("skillbill-goal-active-clock").resolve("metrics.db")
-    val lease = GoalRunnerExecutionLease(
-      generation = 1,
-      ownerToken = "owner-token-123456",
-      hostIdentity = "host",
-      bootIdentity = "boot",
-      pid = 42,
-      processBirthToken = "birth",
-      heartbeatAt = "2026-08-07T18:22:00Z",
-      expiresAt = "2026-08-07T18:22:30Z",
-    )
+    val lease =
+      GoalRunnerExecutionLease(
+        generation = 1,
+        ownerToken = "owner-token-123456",
+        hostIdentity = "host",
+        bootIdentity = "boot",
+        pid = 42,
+        processBirthToken = "birth",
+        heartbeatAt = "2026-08-07T18:22:00Z",
+        expiresAt = "2026-08-07T18:22:30Z",
+      )
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
@@ -383,16 +396,17 @@ class GoalRunnerControlStoreTest {
   @Test
   fun `a heartbeat slightly past the limit is credited one interval rather than discarded`() {
     val dbPath = Files.createTempDirectory("skillbill-goal-late-heartbeat").resolve("metrics.db")
-    val lease = GoalRunnerExecutionLease(
-      generation = 1,
-      ownerToken = "owner-token-123456",
-      hostIdentity = "host",
-      bootIdentity = "boot",
-      pid = 42,
-      processBirthToken = "birth",
-      heartbeatAt = "2026-08-07T18:22:00Z",
-      expiresAt = "2026-08-07T18:22:30Z",
-    )
+    val lease =
+      GoalRunnerExecutionLease(
+        generation = 1,
+        ownerToken = "owner-token-123456",
+        hostIdentity = "host",
+        bootIdentity = "boot",
+        pid = 42,
+        processBirthToken = "birth",
+        heartbeatAt = "2026-08-07T18:22:00Z",
+        expiresAt = "2026-08-07T18:22:30Z",
+      )
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
@@ -405,16 +419,17 @@ class GoalRunnerControlStoreTest {
   @Test
   fun `reacquiring a lease after downtime resumes the clock without counting the downtime`() {
     val dbPath = Files.createTempDirectory("skillbill-goal-active-clock-reacquire").resolve("metrics.db")
-    val lease = GoalRunnerExecutionLease(
-      generation = 1,
-      ownerToken = "owner-token-123456",
-      hostIdentity = "host",
-      bootIdentity = "boot",
-      pid = 42,
-      processBirthToken = "birth",
-      heartbeatAt = "2026-08-07T18:22:00Z",
-      expiresAt = "2026-08-07T18:22:30Z",
-    )
+    val lease =
+      GoalRunnerExecutionLease(
+        generation = 1,
+        ownerToken = "owner-token-123456",
+        hostIdentity = "host",
+        bootIdentity = "boot",
+        pid = 42,
+        processBirthToken = "birth",
+        heartbeatAt = "2026-08-07T18:22:00Z",
+        expiresAt = "2026-08-07T18:22:30Z",
+      )
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
@@ -422,11 +437,12 @@ class GoalRunnerControlStoreTest {
       assertTrue(store.heartbeatExecutionLease("parent-reacquire", lease.copy(heartbeatAt = "2026-08-07T18:22:10Z")))
       assertTrue(store.releaseExecutionLease("parent-reacquire", lease.ownerToken, lease.generation))
 
-      val nextDay = lease.copy(
-        generation = 2,
-        heartbeatAt = "2026-08-08T06:31:00Z",
-        expiresAt = "2026-08-08T06:31:30Z",
-      )
+      val nextDay =
+        lease.copy(
+          generation = 2,
+          heartbeatAt = "2026-08-08T06:31:00Z",
+          expiresAt = "2026-08-08T06:31:30Z",
+        )
       assertTrue(store.acquireExecutionLease("parent-reacquire", nextDay))
       assertEquals(10_000, store.controlState("parent-reacquire").activeDurationMs)
 
@@ -438,16 +454,17 @@ class GoalRunnerControlStoreTest {
   @Test
   fun `heartbeat increments goal and subtask active duration equally`() {
     val dbPath = Files.createTempDirectory("skillbill-goal-subtask-dual").resolve("metrics.db")
-    val lease = GoalRunnerExecutionLease(
-      generation = 1,
-      ownerToken = "owner-token-123456",
-      hostIdentity = "host",
-      bootIdentity = "boot",
-      pid = 42,
-      processBirthToken = "birth",
-      heartbeatAt = "2026-08-07T18:22:00Z",
-      expiresAt = "2026-08-07T18:22:30Z",
-    )
+    val lease =
+      GoalRunnerExecutionLease(
+        generation = 1,
+        ownerToken = "owner-token-123456",
+        hostIdentity = "host",
+        bootIdentity = "boot",
+        pid = 42,
+        processBirthToken = "birth",
+        heartbeatAt = "2026-08-07T18:22:00Z",
+        expiresAt = "2026-08-07T18:22:30Z",
+      )
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
@@ -463,16 +480,17 @@ class GoalRunnerControlStoreTest {
   @Test
   fun `clearing control state preserves both goal and subtask accumulated clocks`() {
     val dbPath = Files.createTempDirectory("skillbill-goal-clear-subtask-clock").resolve("metrics.db")
-    val lease = GoalRunnerExecutionLease(
-      generation = 1,
-      ownerToken = "owner-token-123456",
-      hostIdentity = "host",
-      bootIdentity = "boot",
-      pid = 42,
-      processBirthToken = "birth",
-      heartbeatAt = "2026-08-02T10:00:00Z",
-      expiresAt = "2026-08-02T10:00:30Z",
-    )
+    val lease =
+      GoalRunnerExecutionLease(
+        generation = 1,
+        ownerToken = "owner-token-123456",
+        hostIdentity = "host",
+        bootIdentity = "boot",
+        pid = 42,
+        processBirthToken = "birth",
+        heartbeatAt = "2026-08-02T10:00:00Z",
+        expiresAt = "2026-08-02T10:00:30Z",
+      )
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
@@ -506,13 +524,14 @@ class GoalRunnerControlStoreTest {
 
   @Test
   fun `switching current subtask id zeros only the subtask accumulator`() {
-    val state = GoalRunnerControlState(
-      currentSubtaskId = 1,
-      subtaskActiveDurationMs = 30_000,
-      subtaskActiveDurationAsOf = "2026-08-02T10:00:10Z",
-      activeDurationMs = 60_000,
-      activeDurationAsOf = "2026-08-02T10:00:10Z",
-    )
+    val state =
+      GoalRunnerControlState(
+        currentSubtaskId = 1,
+        subtaskActiveDurationMs = 30_000,
+        subtaskActiveDurationAsOf = "2026-08-02T10:00:10Z",
+        activeDurationMs = 60_000,
+        activeDurationAsOf = "2026-08-02T10:00:10Z",
+      )
 
     val switched = state.reconciledForCurrentSubtask(2)
     assertEquals(2, switched.currentSubtaskId)

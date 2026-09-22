@@ -32,11 +32,12 @@ class RepositoryIdentitySchemaAdvertisementTest {
 
   @Test
   fun `the advertised pattern accepts canonical identities and rejects bare paths`() {
-    val schema = requireNotNull(
-      McpToolRegistry.toolNamed("feature_verify_workflow_open")
-        ?.inputSchema
-        ?.let(::repositoryIdentitySchemaOf),
-    )
+    val schema =
+      requireNotNull(
+        McpToolRegistry.toolNamed("feature_verify_workflow_open")
+          ?.inputSchema
+          ?.let(::repositoryIdentitySchemaOf),
+      )
     val pattern = Regex(schema["pattern"] as String)
     val prefix = FeatureTaskExecutionIdentityPolicy.REPOSITORY_IDENTITY_PREFIX
 
@@ -44,6 +45,7 @@ class RepositoryIdentitySchemaAdvertisementTest {
     assertTrue(!pattern.containsMatchIn("/home/me/projects/app"))
     assertTrue(!pattern.containsMatchIn("${prefix}home/me/projects/app"))
   }
+
   private fun repositoryIdentitySchemaOf(inputSchema: Map<String, Any?>): Map<String, Any?>? {
     val properties = inputSchema["properties"] as? Map<*, *> ?: return null
     val repositoryIdentity = properties["repository_identity"] as? Map<*, *> ?: return null

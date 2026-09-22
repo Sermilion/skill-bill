@@ -11,6 +11,7 @@ import skillbill.workflow.taskruntime.artifact.validateRepairReceiptWireEntries
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.taskruntime.model.repair.task.coversCarriedFindings
 import skillbill.workflow.taskruntime.model.repair.task.featureTaskRuntimeRemediationRoundNumber
+
 fun featureTaskRuntimeParseRepairReceiptOrNull(
   producedOutputs: Map<String, Any?>,
   remediationBaseSha: String,
@@ -18,9 +19,10 @@ fun featureTaskRuntimeParseRepairReceiptOrNull(
   recordTruncation: (String) -> Unit = {},
 ): FeatureTaskRuntimeRepairReceipt? {
   val raw = producedOutputs["repair_receipt"] ?: return null
-  val map = requireRepairReceiptMap(raw) +
-    ("pre_fix_checkpoint_sha" to remediationBaseSha) +
-    ("round_number" to roundNumber)
+  val map =
+    requireRepairReceiptMap(raw) +
+      ("pre_fix_checkpoint_sha" to remediationBaseSha) +
+      ("round_number" to roundNumber)
   return try {
     requireNotNull(decodeRepairReceiptFromArtifactWithObservations(map, "repair_receipt")).also { decoded ->
       decoded.observations.truncationRecords.forEach(recordTruncation)
@@ -37,12 +39,13 @@ fun featureTaskRuntimeParseRepairReceiptOrNull(
   }
 }
 
-private fun requireRepairReceiptMap(raw: Any): Map<String, Any?> = JsonCodec.anyToStringAnyMap(raw)
-  ?: throw InvalidFeatureTaskRuntimeRepairReceiptError(
-    fieldPath = "repair_receipt",
-    reason = "must be an object.",
-    payloadFreeReason = "repair_receipt must be an object.",
-  )
+private fun requireRepairReceiptMap(raw: Any): Map<String, Any?> =
+  JsonCodec.anyToStringAnyMap(raw)
+    ?: throw InvalidFeatureTaskRuntimeRepairReceiptError(
+      fieldPath = "repair_receipt",
+      reason = "must be an object.",
+      payloadFreeReason = "repair_receipt must be an object.",
+    )
 
 internal sealed interface FeatureTaskRuntimeRepairReceiptParse
 
@@ -61,13 +64,17 @@ internal data class FeatureTaskRuntimeRepairReceiptRejected(
 
 private val REPAIR_RECEIPT_POINTER_INDEX = Regex("""\[(\d+)]""")
 
-fun featureTaskRuntimeRepairReceiptRejectionDetail(fieldPath: String, payloadFreeReason: String): String {
+fun featureTaskRuntimeRepairReceiptRejectionDetail(
+  fieldPath: String,
+  payloadFreeReason: String,
+): String {
   val relative = fieldPath.removePrefix("repair_receipt").trim('.')
-  val pointer = (if (relative.isEmpty()) "repair_receipt" else "repair_receipt.$relative")
-    .replace(REPAIR_RECEIPT_POINTER_INDEX) { match -> ".${match.groupValues[1]}" }
-    .split('.')
-    .filter(String::isNotBlank)
-    .joinToString("/", prefix = "/")
+  val pointer =
+    (if (relative.isEmpty()) "repair_receipt" else "repair_receipt.$relative")
+      .replace(REPAIR_RECEIPT_POINTER_INDEX) { match -> ".${match.groupValues[1]}" }
+      .split('.')
+      .filter(String::isNotBlank)
+      .joinToString("/", prefix = "/")
   return "[repair-receipt] $pointer: $payloadFreeReason"
 }
 
@@ -76,18 +83,19 @@ internal fun featureTaskRuntimeParseRepairReceipt(
   remediationBaseSha: String,
   roundNumber: Int,
   recordTruncation: (String) -> Unit = {},
-): FeatureTaskRuntimeRepairReceiptParse = try {
-  featureTaskRuntimeParseRepairReceiptOrNull(
-    producedOutputs,
-    remediationBaseSha,
-    roundNumber,
-    recordTruncation,
-  )
-    ?.let(::FeatureTaskRuntimeRepairReceiptValid)
-    ?: FeatureTaskRuntimeRepairReceiptMissing
-} catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {
-  FeatureTaskRuntimeRepairReceiptRejected(error.fieldPath, error.payloadFreeReason)
-}
+): FeatureTaskRuntimeRepairReceiptParse =
+  try {
+    featureTaskRuntimeParseRepairReceiptOrNull(
+      producedOutputs,
+      remediationBaseSha,
+      roundNumber,
+      recordTruncation,
+    )
+      ?.let(::FeatureTaskRuntimeRepairReceiptValid)
+      ?: FeatureTaskRuntimeRepairReceiptMissing
+  } catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {
+    FeatureTaskRuntimeRepairReceiptRejected(error.fieldPath, error.payloadFreeReason)
+  }
 
 fun featureTaskRuntimeRemediationRoundNumberOrNull(reviewState: GoalSubtaskReviewState): Int? =
   runCatching { featureTaskRuntimeRemediationRoundNumber(reviewState.completedPassCount) }
@@ -111,21 +119,23 @@ fun featureTaskRuntimeRepairReceiptSettleRejection(
   receipt: FeatureTaskRuntimeRepairReceipt,
   reviewState: GoalSubtaskReviewState,
   refutedFindingIds: Set<String> = emptySet(),
-): String? = featureTaskRuntimeRepairReceiptCoverageRejection(
-  receipt,
-  featureTaskRuntimeCarriedFindings(reviewState, refutedFindingIds),
-)
+): String? =
+  featureTaskRuntimeRepairReceiptCoverageRejection(
+    receipt,
+    featureTaskRuntimeCarriedFindings(reviewState, refutedFindingIds),
+  )
 
 fun featureTaskRuntimeRepairReceiptCoverageRejection(
   receipt: FeatureTaskRuntimeRepairReceipt,
   carriedFindings: List<GoalSubtaskReviewCompactFinding>,
-): String? = if (receipt.coversCarriedFindings(carriedFindings)) {
-  null
-} else {
-  featureTaskRuntimeRepairReceiptRejectionDetail(
-    "entries",
-    "must include one entry for every finding carried into this round; omitted findings require an " +
-      "explicit no_edit_required outcome. Findings verification refuted are not carried and owe no " +
-      "entry.",
-  )
-}
+): String? =
+  if (receipt.coversCarriedFindings(carriedFindings)) {
+    null
+  } else {
+    featureTaskRuntimeRepairReceiptRejectionDetail(
+      "entries",
+      "must include one entry for every finding carried into this round; omitted findings require an " +
+        "explicit no_edit_required outcome. Findings verification refuted are not carried and owe no " +
+        "entry.",
+    )
+  }

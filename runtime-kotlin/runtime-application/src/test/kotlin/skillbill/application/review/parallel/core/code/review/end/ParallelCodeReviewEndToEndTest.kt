@@ -23,10 +23,11 @@ class ParallelCodeReviewEndToEndTest {
 
   @Test fun `kotlin diff discovers once and launches one inline parent lane`() {
     val recorder = ReviewRecorder()
-    val runner = reviewHarness(
-      kotlinConfig { RecordedWorkerResponse(stdout = finding("src/Repo.kt", KOTLIN_ARCHITECTURE)) },
-      recorder,
-    )
+    val runner =
+      reviewHarness(
+        kotlinConfig { RecordedWorkerResponse(stdout = finding("src/Repo.kt", KOTLIN_ARCHITECTURE)) },
+        recorder,
+      )
 
     val result = runner.run(harnessRequest())
 
@@ -101,6 +102,7 @@ class ParallelCodeReviewEndToEndTest {
 
   @Test fun `repeated layered runs produce identical findings and accounting`() {
     val repoRoot = Files.createTempDirectory("review-e2e-determinism")
+
     fun run(): ParallelCodeReviewResult {
       val recorder = ReviewRecorder()
       return reviewHarness(
@@ -125,14 +127,15 @@ class ParallelCodeReviewEndToEndTest {
 
   @Test fun `accounting reports every retained measured dimension`() {
     val recorder = ReviewRecorder()
-    val runner = reviewHarness(
-      kotlinConfig {
-        RecordedWorkerResponse(
-          stdout = finding("src/Repo.kt", KOTLIN_ARCHITECTURE),
-        )
-      },
-      recorder,
-    )
+    val runner =
+      reviewHarness(
+        kotlinConfig {
+          RecordedWorkerResponse(
+            stdout = finding("src/Repo.kt", KOTLIN_ARCHITECTURE),
+          )
+        },
+        recorder,
+      )
 
     val summary = assertNotNull(runner.run(harnessRequest()).accountingSummary)
 
@@ -191,27 +194,32 @@ class ParallelCodeReviewEndToEndTest {
   private fun kmpConfig(
     response: (GoalRunnerSubtaskLaunchRequest) -> RecordedWorkerResponse = { RecordedWorkerResponse() },
   ) = ReviewHarnessConfig(
-    manifests = listOf(
-      reviewPack(
-        "kmp",
-        kmpAreas,
-        layers = listOf(reviewLayer("kotlin")),
-        routingSignals = listOf("*.kt", "commonMain"),
-        contentSignals = listOf("expect", "actual"),
+    manifests =
+      listOf(
+        reviewPack(
+          "kmp",
+          kmpAreas,
+          layers = listOf(reviewLayer("kotlin")),
+          routingSignals = listOf("*.kt", "commonMain"),
+          contentSignals = listOf("expect", "actual"),
+        ),
+        reviewPack("kotlin", kotlinAreas, routingSignals = listOf("*.kt")),
       ),
-      reviewPack("kotlin", kotlinAreas, routingSignals = listOf("*.kt")),
-    ),
-    diff = diffForChanges(
-      "src/commonMain/kotlin/App.kt" to "expect fun platformName(): String",
-      "src/main/kotlin/App.kt" to "actual fun platformName(): String = \"jvm\"",
-    ),
+    diff =
+      diffForChanges(
+        "src/commonMain/kotlin/App.kt" to "expect fun platformName(): String",
+        "src/main/kotlin/App.kt" to "actual fun platformName(): String = \"jvm\"",
+      ),
     response = response,
   )
 }
 
 private const val KOTLIN_ARCHITECTURE = "bill-kotlin-code-review-architecture"
 
-internal fun finding(path: String, specialist: String? = null): String {
+internal fun finding(
+  path: String,
+  specialist: String? = null,
+): String {
   val attribution = specialist?.let { "specialist=$it | " }.orEmpty()
   return "- [F-001] Major | High | $attribution" + "path=\"$path\" | line=1 | Bounded specialist finding"
 }

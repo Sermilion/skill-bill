@@ -6,12 +6,14 @@ import kotlin.test.assertEquals
 class AmbientEnvironmentArchitectureTest {
   @Test
   fun `runtime-cli ambient environment sites equal the recorded census`() {
-    val baseline = ArchitectureScanSupport.parseStringSetBaseline(
-      ArchitectureBaselineSupport.readBaseline("runtime-cli-ambient-environment-baseline.txt"),
-    )
-    val current = ArchitectureScanSupport.ambientEnvironmentCallSites(PrincipleEnforcementInventory.RUNTIME_CLI_MAIN)
-      .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
-      .toSet()
+    val baseline =
+      ArchitectureScanSupport.parseStringSetBaseline(
+        ArchitectureBaselineSupport.readBaseline("runtime-cli-ambient-environment-baseline.txt"),
+      )
+    val current =
+      ArchitectureScanSupport.ambientEnvironmentCallSites(PrincipleEnforcementInventory.RUNTIME_CLI_MAIN)
+        .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
+        .toSet()
     assertEquals(
       baseline,
       current,
@@ -86,7 +88,8 @@ class AmbientEnvironmentArchitectureTest {
 
   @Test
   fun `ambient environment scanner fires on every unlisted banned form`() {
-    val source = """
+    val source =
+      """
       package skillbill.example
 
       import java.nio.file.Path
@@ -96,12 +99,13 @@ class AmbientEnvironmentArchitectureTest {
       val configured = System.getProperty("user.home")
       val workingDir = Path.of("")
       val legacyWorkingDir = Paths.get("")
-    """.trimIndent()
-    val violations = ArchitectureScanSupport.ambientEnvironmentViolationsInSource(
-      relativePath = EXAMPLE_PATH,
-      source = source,
-      baseline = emptySet(),
-    )
+      """.trimIndent()
+    val violations =
+      ArchitectureScanSupport.ambientEnvironmentViolationsInSource(
+        relativePath = EXAMPLE_PATH,
+        source = source,
+        baseline = emptySet(),
+      )
     assertEquals(
       listOf(
         "$EXAMPLE_PATH:6:System.getenv() is not listed in the ambient-environment baseline.",
@@ -114,14 +118,17 @@ class AmbientEnvironmentArchitectureTest {
   }
 
   private fun assertAmbientEnvironmentMatchesBaseline(moduleName: String) {
-    val scanCase = PrincipleEnforcementInventory.moduleArchitectureScanCases
-      .single { scanCase -> scanCase.moduleName == moduleName }
-    val baseline = ArchitectureScanSupport.parseStringSetBaseline(
-      ArchitectureBaselineSupport.readBaseline(scanCase.ambientEnvironmentBaseline),
-    )
-    val current = ArchitectureScanSupport.ambientEnvironmentCallSites(scanCase.mainScanRoot)
-      .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
-      .toSet()
+    val scanCase =
+      PrincipleEnforcementInventory.moduleArchitectureScanCases
+        .single { scanCase -> scanCase.moduleName == moduleName }
+    val baseline =
+      ArchitectureScanSupport.parseStringSetBaseline(
+        ArchitectureBaselineSupport.readBaseline(scanCase.ambientEnvironmentBaseline),
+      )
+    val current =
+      ArchitectureScanSupport.ambientEnvironmentCallSites(scanCase.mainScanRoot)
+        .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
+        .toSet()
     assertEquals(
       baseline,
       current,

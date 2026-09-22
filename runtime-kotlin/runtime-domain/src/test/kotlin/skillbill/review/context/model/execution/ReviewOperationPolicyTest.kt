@@ -9,11 +9,12 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class ReviewOperationPolicyTest {
-  private val policy = ReviewOperationPolicy(
-    assignment = assignment(),
-    laneRubricId = "security",
-    namedDependencies = setOf("src/Dependency.kt"),
-  )
+  private val policy =
+    ReviewOperationPolicy(
+      assignment = assignment(),
+      laneRubricId = "security",
+      namedDependencies = setOf("src/Dependency.kt"),
+    )
 
   @Test fun `scope status and diff rediscovery are forbidden`() {
     assertEquals("review_status", category(ReviewOperationKind.SHELL_COMMAND, "git status --porcelain"))
@@ -69,12 +70,14 @@ class ReviewOperationPolicyTest {
   }
 
   @Test fun `guidance prohibition overrides assignment but routing and diff-artifact prohibitions do not`() {
-    val assignedForbiddenPolicy = ReviewOperationPolicy(
-      assignment = assignment().copy(
-        assignedPaths = listOf("AGENTS.md", "platform-packs/kotlin/platform.yaml", "fixtures/legacy.patch"),
-      ),
-      laneRubricId = "security",
-    )
+    val assignedForbiddenPolicy =
+      ReviewOperationPolicy(
+        assignment =
+          assignment().copy(
+            assignedPaths = listOf("AGENTS.md", "platform-packs/kotlin/platform.yaml", "fixtures/legacy.patch"),
+          ),
+        laneRubricId = "security",
+      )
 
     assertEquals(
       "project_guidance_traversal",
@@ -105,10 +108,11 @@ class ReviewOperationPolicyTest {
       "broad_repository_search",
       searchCategory("secret", "src/Assigned.kt", "README.md"),
     )
-    val assignedForbiddenPolicy = ReviewOperationPolicy(
-      assignment = assignment().copy(assignedPaths = listOf("src/Assigned.kt", "AGENTS.md")),
-      laneRubricId = "security",
-    )
+    val assignedForbiddenPolicy =
+      ReviewOperationPolicy(
+        assignment = assignment().copy(assignedPaths = listOf("src/Assigned.kt", "AGENTS.md")),
+        laneRubricId = "security",
+      )
     assertEquals(
       "project_guidance_traversal",
       assignedForbiddenPolicy.classify(
@@ -167,47 +171,56 @@ class ReviewOperationPolicyTest {
   }
 
   @Test fun `every classifier category is declared by the packet consumer contract`() {
-    val categories = listOf(
-      category(ReviewOperationKind.SHELL_COMMAND, "git status"),
-      searchCategory("TODO", "."),
-      category(ReviewOperationKind.RUBRIC_READ, "performance"),
-      category(ReviewOperationKind.FILE_READ, "src/Elsewhere.kt"),
-      category(ReviewOperationKind.MCP_TOOL, "notion_search"),
-      category(ReviewOperationKind.SHELL_COMMAND, "curl https://example.test"),
-      category(ReviewOperationKind.CONTRACT_READ, "specialist-contract"),
-      category(ReviewOperationKind.RULES_READ, "review-rules"),
-      category(ReviewOperationKind.FILE_READ, ".scratch/review.diff"),
-    )
+    val categories =
+      listOf(
+        category(ReviewOperationKind.SHELL_COMMAND, "git status"),
+        searchCategory("TODO", "."),
+        category(ReviewOperationKind.RUBRIC_READ, "performance"),
+        category(ReviewOperationKind.FILE_READ, "src/Elsewhere.kt"),
+        category(ReviewOperationKind.MCP_TOOL, "notion_search"),
+        category(ReviewOperationKind.SHELL_COMMAND, "curl https://example.test"),
+        category(ReviewOperationKind.CONTRACT_READ, "specialist-contract"),
+        category(ReviewOperationKind.RULES_READ, "review-rules"),
+        category(ReviewOperationKind.FILE_READ, ".scratch/review.diff"),
+      )
     categories.forEach { category ->
       assertEquals(true, category in ReviewPacketConsumerContract.FORBIDDEN_REDISCOVERY, "undeclared: $category")
     }
   }
 
-  private fun category(kind: ReviewOperationKind, target: String): String? =
-    policy.classify(ReviewRequestedOperation(kind, target))?.category
+  private fun category(
+    kind: ReviewOperationKind,
+    target: String,
+  ): String? = policy.classify(ReviewRequestedOperation(kind, target))?.category
 
-  private fun searchCategory(pattern: String, vararg scopes: String): String? = policy.classify(
-    ReviewRequestedOperation(ReviewOperationKind.SEARCH, pattern, searchScopes = scopes.toList()),
-  )?.category
+  private fun searchCategory(
+    pattern: String,
+    vararg scopes: String,
+  ): String? =
+    policy.classify(
+      ReviewRequestedOperation(ReviewOperationKind.SEARCH, pattern, searchScopes = scopes.toList()),
+    )?.category
 
-  private fun assignment() = ReviewAssignment(
-    reviewId = "review",
-    packetDigest = "a".repeat(64),
-    lane = "security",
-    baseRevision = "base",
-    headRevision = "head",
-    assignedPaths = listOf("src/Assigned.kt"),
-    assignedHunks = emptyList(),
-    reviewRevision = ReviewRevision("rvs-1", 1),
-    laneDecision = ReviewLaneDecision(
-      "security",
-      true,
-      "routed",
-      ownedPaths = listOf("src/Assigned.kt"),
-      originLayerChains = listOf(listOf("kotlin")),
-      owningPack = "kotlin",
-      specialistSkillName = "bill-kotlin-code-review-security",
-    ),
-    dependencyAllowlist = ReviewDependencyAllowlist(listOf("src/Dependency.kt")),
-  )
+  private fun assignment() =
+    ReviewAssignment(
+      reviewId = "review",
+      packetDigest = "a".repeat(64),
+      lane = "security",
+      baseRevision = "base",
+      headRevision = "head",
+      assignedPaths = listOf("src/Assigned.kt"),
+      assignedHunks = emptyList(),
+      reviewRevision = ReviewRevision("rvs-1", 1),
+      laneDecision =
+        ReviewLaneDecision(
+          "security",
+          true,
+          "routed",
+          ownedPaths = listOf("src/Assigned.kt"),
+          originLayerChains = listOf(listOf("kotlin")),
+          owningPack = "kotlin",
+          specialistSkillName = "bill-kotlin-code-review-security",
+        ),
+      dependencyAllowlist = ReviewDependencyAllowlist(listOf("src/Dependency.kt")),
+    )
 }

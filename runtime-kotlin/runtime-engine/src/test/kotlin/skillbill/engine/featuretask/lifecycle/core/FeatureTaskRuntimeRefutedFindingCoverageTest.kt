@@ -16,27 +16,31 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeRefutedFindingCoverageTest {
   private val sha = "d".repeat(40)
 
-  private val surviving = GoalSubtaskReviewCompactFinding(
-    severity = "minor",
-    label = "CapmoProjectCatalogRepository",
-    text = "inlines the row-to-domain conversion the mapper already owns",
-    findingId = "F-001",
-  )
-  private val alsoSurviving = GoalSubtaskReviewCompactFinding(
-    severity = "minor",
-    label = "CapmoWeatherForecastRepositoryAutoWeatherTest",
-    text = "the test passes whatever operation the transport is handed",
-    findingId = "F-002",
-  )
-  private val refuted = GoalSubtaskReviewCompactFinding(
-    severity = "nit",
-    label = "WeatherForecastQuery",
-    text = "the hourly selection is never read by the auto path",
-    findingId = "F-003",
-  )
+  private val surviving =
+    GoalSubtaskReviewCompactFinding(
+      severity = "minor",
+      label = "CapmoProjectCatalogRepository",
+      text = "inlines the row-to-domain conversion the mapper already owns",
+      findingId = "F-001",
+    )
+  private val alsoSurviving =
+    GoalSubtaskReviewCompactFinding(
+      severity = "minor",
+      label = "CapmoWeatherForecastRepositoryAutoWeatherTest",
+      text = "the test passes whatever operation the transport is handed",
+      findingId = "F-002",
+    )
+  private val refuted =
+    GoalSubtaskReviewCompactFinding(
+      severity = "nit",
+      label = "WeatherForecastQuery",
+      text = "the hourly selection is never read by the auto path",
+      findingId = "F-003",
+    )
 
   @Test
   fun `a round that closed every surviving finding settles when verification refuted the rest`() {
@@ -73,11 +77,12 @@ class FeatureTaskRuntimeRefutedFindingCoverageTest {
   @Test
   fun `a refuted finding is never named in the reason the next attempt is sent`() {
     val state = reviewStateCarrying(surviving, alsoSurviving, refuted)
-    val omitted = featureTaskRuntimeRepairReceiptOmittedFindings(
-      receiptAddressing(surviving),
-      state,
-      setOf("F-003"),
-    )
+    val omitted =
+      featureTaskRuntimeRepairReceiptOmittedFindings(
+        receiptAddressing(surviving),
+        state,
+        setOf("F-003"),
+      )
 
     val reason = featureTaskRuntimeOmittedFindingsRetryReason(omitted)
     assertTrue(reason.contains("F-002"))
@@ -98,11 +103,12 @@ class FeatureTaskRuntimeRefutedFindingCoverageTest {
 
   @Test
   fun `a carried finding whose review omitted its ref is still owed an entry`() {
-    val unnamed = GoalSubtaskReviewCompactFinding(
-      severity = "major",
-      label = "Policy",
-      text = "the review output carried no finding id",
-    )
+    val unnamed =
+      GoalSubtaskReviewCompactFinding(
+        severity = "major",
+        label = "Policy",
+        text = "the review output carried no finding id",
+      )
     val state = reviewStateCarrying(surviving, unnamed)
     val receipt = receiptAddressing(surviving)
 
@@ -114,31 +120,35 @@ class FeatureTaskRuntimeRefutedFindingCoverageTest {
     )
   }
 
-  private fun receiptAddressing(vararg findings: GoalSubtaskReviewCompactFinding) = FeatureTaskRuntimeRepairReceipt(
-    roundNumber = 1,
-    preFixCheckpointSha = sha,
-    entries = findings.map { finding ->
-      FeatureTaskRuntimeRepairReceiptEntry(
-        outcome = FeatureTaskRuntimeRepairOutcome.ADDRESSED,
-        findingId = requireNotNull(finding.findingId),
-      )
-    },
-  )
+  private fun receiptAddressing(vararg findings: GoalSubtaskReviewCompactFinding) =
+    FeatureTaskRuntimeRepairReceipt(
+      roundNumber = 1,
+      preFixCheckpointSha = sha,
+      entries =
+        findings.map { finding ->
+          FeatureTaskRuntimeRepairReceiptEntry(
+            outcome = FeatureTaskRuntimeRepairOutcome.ADDRESSED,
+            findingId = requireNotNull(finding.findingId),
+          )
+        },
+    )
 
-  private fun reviewStateCarrying(vararg findings: GoalSubtaskReviewCompactFinding) = GoalSubtaskReviewState(
-    reviewBaseSha = sha,
-    baselineUntrackedPaths = emptyList(),
-    codeReviewMode = CodeReviewExecutionMode.INLINE,
-    completedPassCount = 1,
-    remediationBaseSha = sha,
-    passResults = listOf(
-      GoalSubtaskReviewPassResult(
-        passNumber = 1,
-        verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
-        reviewResultArtifact = "goal_subtask_review_results.1",
-        unresolvedFindingCount = findings.size,
-        findings = findings.toList(),
-      ),
-    ),
-  )
+  private fun reviewStateCarrying(vararg findings: GoalSubtaskReviewCompactFinding) =
+    GoalSubtaskReviewState(
+      reviewBaseSha = sha,
+      baselineUntrackedPaths = emptyList(),
+      codeReviewMode = CodeReviewExecutionMode.INLINE,
+      completedPassCount = 1,
+      remediationBaseSha = sha,
+      passResults =
+        listOf(
+          GoalSubtaskReviewPassResult(
+            passNumber = 1,
+            verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
+            reviewResultArtifact = "goal_subtask_review_results.1",
+            unresolvedFindingCount = findings.size,
+            findings = findings.toList(),
+          ),
+        ),
+    )
 }

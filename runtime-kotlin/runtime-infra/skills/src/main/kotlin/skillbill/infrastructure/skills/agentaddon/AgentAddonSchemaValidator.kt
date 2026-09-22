@@ -7,15 +7,17 @@ import skillbill.contracts.agentaddon.AgentAddonSchemaPaths
 import skillbill.error.shellcontent.InvalidAgentAddonSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.SchemaIdentityRequest
+
 private object ClasspathAgentAddonSchemaResourceLoader : AgentAddonSchemaResourceLoader {
-  override fun read(): String = AgentAddonSchemaValidator::class.java.classLoader
-    .getResourceAsStream(AgentAddonSchemaPaths.CLASSPATH_RESOURCE)
-    ?.bufferedReader()
-    ?.use { it.readText() }
-    ?: throw InvalidAgentAddonSchemaError(
-      AgentAddonSchemaPaths.CLASSPATH_RESOURCE,
-      "canonical schema resource is missing",
-    )
+  override fun read(): String =
+    AgentAddonSchemaValidator::class.java.classLoader
+      .getResourceAsStream(AgentAddonSchemaPaths.CLASSPATH_RESOURCE)
+      ?.bufferedReader()
+      ?.use { it.readText() }
+      ?: throw InvalidAgentAddonSchemaError(
+        AgentAddonSchemaPaths.CLASSPATH_RESOURCE,
+        "canonical schema resource is missing",
+      )
 }
 
 fun interface AgentAddonSchemaResourceLoader {
@@ -25,14 +27,16 @@ fun interface AgentAddonSchemaResourceLoader {
 class AgentAddonSchemaValidator(
   private val resourceLoader: AgentAddonSchemaResourceLoader = ClasspathAgentAddonSchemaResourceLoader,
 ) {
-  fun validate(manifest: Map<String, Any?>, sourceLabel: String) =
-    schemaOperation(sourceLabel, "schema validation failed") {
-      val errors = ClasspathContractSchemaLoader.validate(schema(), ClasspathContractSchemaLoader.valueToTree(manifest))
-      if (errors.isNotEmpty()) {
-        val reason = errors.sortedBy { it.instanceLocation.toString() }.joinToString("; ") { it.message }
-        invalidSchema(sourceLabel, reason)
-      }
+  fun validate(
+    manifest: Map<String, Any?>,
+    sourceLabel: String,
+  ) = schemaOperation(sourceLabel, "schema validation failed") {
+    val errors = ClasspathContractSchemaLoader.validate(schema(), ClasspathContractSchemaLoader.valueToTree(manifest))
+    if (errors.isNotEmpty()) {
+      val reason = errors.sortedBy { it.instanceLocation.toString() }.joinToString("; ") { it.message }
+      invalidSchema(sourceLabel, reason)
     }
+  }
 
   private fun schema(): JsonSchema =
     schemaOperation(AgentAddonSchemaPaths.CLASSPATH_RESOURCE, "canonical schema cannot be loaded") {
@@ -57,16 +61,26 @@ class AgentAddonSchemaValidator(
     }
 }
 
-private inline fun <T> schemaOperation(sourceLabel: String, fallbackReason: String, operation: () -> T): T =
+private inline fun <T> schemaOperation(
+  sourceLabel: String,
+  fallbackReason: String,
+  operation: () -> T,
+): T =
   runCatching(operation).getOrElse { error ->
     throw error.asAgentAddonSchemaError(sourceLabel, fallbackReason)
   }
 
-private fun Throwable.asAgentAddonSchemaError(sourceLabel: String, fallbackReason: String): Throwable = when (this) {
-  is InvalidAgentAddonSchemaError -> this
-  is Exception -> InvalidAgentAddonSchemaError(sourceLabel, message ?: fallbackReason, this)
-  else -> this
-}
+private fun Throwable.asAgentAddonSchemaError(
+  sourceLabel: String,
+  fallbackReason: String,
+): Throwable =
+  when (this) {
+    is InvalidAgentAddonSchemaError -> this
+    is Exception -> InvalidAgentAddonSchemaError(sourceLabel, message ?: fallbackReason, this)
+    else -> this
+  }
 
-private fun invalidSchema(sourceLabel: String, reason: String): Nothing =
-  throw InvalidAgentAddonSchemaError(sourceLabel, reason)
+private fun invalidSchema(
+  sourceLabel: String,
+  reason: String,
+): Nothing = throw InvalidAgentAddonSchemaError(sourceLabel, reason)

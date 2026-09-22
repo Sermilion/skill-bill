@@ -15,11 +15,12 @@ class ReviewFindingOutcomeDerivationTest {
   fun `every finding a pass produces receives an outcome without any manual triage`() {
     val findings = List(3) { index -> finding(ordinal = index + 1, findingId = "F-00${index + 1}") }
 
-    val outcomes = GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
-      supersededFindings = emptyList(),
-      currentFindings = findings,
-      blockerDispositions = emptyList(),
-    )
+    val outcomes =
+      GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
+        supersededFindings = emptyList(),
+        currentFindings = findings,
+        blockerDispositions = emptyList(),
+      )
 
     assertEquals(3, outcomes.size, "Every finding the run produced must get an outcome row.")
     assertTrue(
@@ -31,11 +32,12 @@ class ReviewFindingOutcomeDerivationTest {
 
   @Test
   fun `a run producing zero findings records nothing and does not error`() {
-    val outcomes = GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
-      supersededFindings = emptyList(),
-      currentFindings = emptyList(),
-      blockerDispositions = emptyList(),
-    )
+    val outcomes =
+      GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
+        supersededFindings = emptyList(),
+        currentFindings = emptyList(),
+        blockerDispositions = emptyList(),
+      )
 
     assertEquals(emptyList(), outcomes)
   }
@@ -47,11 +49,12 @@ class ReviewFindingOutcomeDerivationTest {
 
     val renumbered = stillOpen.copy(reviewPassNumber = 2, findingOrdinal = 1, findingId = "F-001")
 
-    val outcomes = GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
-      supersededFindings = listOf(addressed, stillOpen),
-      currentFindings = listOf(renumbered),
-      blockerDispositions = emptyList(),
-    )
+    val outcomes =
+      GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
+        supersededFindings = listOf(addressed, stillOpen),
+        currentFindings = listOf(renumbered),
+        blockerDispositions = emptyList(),
+      )
 
     assertEquals(
       ReviewFindingOutcome.ADDRESSED,
@@ -70,12 +73,12 @@ class ReviewFindingOutcomeDerivationTest {
     val fixed = finding(ordinal = 1, findingId = "F-001")
     val survivor = finding(ordinal = 2, findingId = "F-002")
 
-    val outcomes = GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
-      supersededFindings = listOf(fixed, survivor),
-
-      currentFindings = listOf(survivor.copy(reviewPassNumber = 2, findingOrdinal = 1, findingId = "F-001")),
-      blockerDispositions = emptyList(),
-    )
+    val outcomes =
+      GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
+        supersededFindings = listOf(fixed, survivor),
+        currentFindings = listOf(survivor.copy(reviewPassNumber = 2, findingOrdinal = 1, findingId = "F-001")),
+        blockerDispositions = emptyList(),
+      )
 
     assertEquals(
       emptyList(),
@@ -93,17 +96,19 @@ class ReviewFindingOutcomeDerivationTest {
   fun `an explicit resolved blocker disposition overrides the cross-pass inference`() {
     val superseded = finding(ordinal = 1, findingId = "F-001")
 
-    val outcomes = GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
-      supersededFindings = listOf(superseded),
-      currentFindings = emptyList(),
-      blockerDispositions = listOf(
-        GoalSubtaskBlockerDisposition(
-          findingId = "F-001",
-          verdict = GoalSubtaskBlockerDispositionVerdict.RESOLVED,
-          evidence = listOf("src/First.kt:7 no longer exists"),
-        ),
-      ),
-    )
+    val outcomes =
+      GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
+        supersededFindings = listOf(superseded),
+        currentFindings = emptyList(),
+        blockerDispositions =
+          listOf(
+            GoalSubtaskBlockerDisposition(
+              findingId = "F-001",
+              verdict = GoalSubtaskBlockerDispositionVerdict.RESOLVED,
+              evidence = listOf("src/First.kt:7 no longer exists"),
+            ),
+          ),
+      )
 
     assertEquals(
       ReviewFindingOutcome.ADDRESSED,
@@ -116,16 +121,18 @@ class ReviewFindingOutcomeDerivationTest {
   fun `a finding without a reported id is still matched across passes by its content`() {
     val anonymous = finding(ordinal = 1, findingId = null)
 
-    val addressed = GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
-      supersededFindings = listOf(anonymous),
-      currentFindings = emptyList(),
-      blockerDispositions = emptyList(),
-    )
-    val carried = GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
-      supersededFindings = listOf(anonymous),
-      currentFindings = listOf(anonymous.copy(reviewPassNumber = 2)),
-      blockerDispositions = emptyList(),
-    )
+    val addressed =
+      GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
+        supersededFindings = listOf(anonymous),
+        currentFindings = emptyList(),
+        blockerDispositions = emptyList(),
+      )
+    val carried =
+      GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
+        supersededFindings = listOf(anonymous),
+        currentFindings = listOf(anonymous.copy(reviewPassNumber = 2)),
+        blockerDispositions = emptyList(),
+      )
 
     assertEquals(
       ReviewFindingOutcome.ADDRESSED,
@@ -141,30 +148,35 @@ class ReviewFindingOutcomeDerivationTest {
 
   @Test
   fun `the review run id the pass reported resolves the shared key on every ledger row and outcome`() {
-    val output = mapOf(
-      "produced_outputs" to mapOf(
-        "review_run_id" to "run-2026-08-06-a",
-        "findings" to listOf(
+    val output =
+      mapOf(
+        "produced_outputs" to
           mapOf(
-            "id" to "F-001",
-            "severity" to "major",
-            "message" to "Outbox error signal is ambiguous",
-            "issue_category" to "data_persistence",
-            "location" to "src/Outbox.kt:12",
+            "review_run_id" to "run-2026-08-06-a",
+            "findings" to
+              listOf(
+                mapOf(
+                  "id" to "F-001",
+                  "severity" to "major",
+                  "message" to "Outbox error signal is ambiguous",
+                  "issue_category" to "data_persistence",
+                  "location" to "src/Outbox.kt:12",
+                ),
+              ),
           ),
-        ),
-      ),
-    )
+      )
 
-    val ledgerFindings = GoalSubtaskReviewSummaryReducer.unaddressedFindings(
-      output = output,
-      scope = UnaddressedFindingLedgerScope("SKILL-136", 6, "wf-1", 1),
-    )
-    val outcomes = GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
-      supersededFindings = emptyList(),
-      currentFindings = ledgerFindings,
-      blockerDispositions = emptyList(),
-    )
+    val ledgerFindings =
+      GoalSubtaskReviewSummaryReducer.unaddressedFindings(
+        output = output,
+        scope = UnaddressedFindingLedgerScope("SKILL-136", 6, "wf-1", 1),
+      )
+    val outcomes =
+      GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
+        supersededFindings = emptyList(),
+        currentFindings = ledgerFindings,
+        blockerDispositions = emptyList(),
+      )
 
     assertEquals("run-2026-08-06-a", ledgerFindings.single().reviewRunId)
     val outcome = outcomes.single()
@@ -179,24 +191,26 @@ class ReviewFindingOutcomeDerivationTest {
 
   @Test
   fun `a blank or absent review run id stays unresolved rather than being recorded as a key`() {
-    val findings = listOf(
-      mapOf(
-        "id" to "F-001",
-        "severity" to "major",
-        "message" to "No run id was reported",
-        "issue_category" to "data_persistence",
-        "location" to "src/Outbox.kt:12",
-      ),
-    )
+    val findings =
+      listOf(
+        mapOf(
+          "id" to "F-001",
+          "severity" to "major",
+          "message" to "No run id was reported",
+          "issue_category" to "data_persistence",
+          "location" to "src/Outbox.kt:12",
+        ),
+      )
 
     listOf(
       mapOf("produced_outputs" to mapOf("findings" to findings)),
       mapOf("produced_outputs" to mapOf("review_run_id" to "   ", "findings" to findings)),
     ).forEach { output ->
-      val ledgerFindings = GoalSubtaskReviewSummaryReducer.unaddressedFindings(
-        output = output,
-        scope = UnaddressedFindingLedgerScope("SKILL-136", 6, "wf-1", 1),
-      )
+      val ledgerFindings =
+        GoalSubtaskReviewSummaryReducer.unaddressedFindings(
+          output = output,
+          scope = UnaddressedFindingLedgerScope("SKILL-136", 6, "wf-1", 1),
+        )
 
       val outcome = ledgerFindings.single().toOutcomeRecord(ReviewFindingOutcome.CARRIED)
       assertEquals(null, outcome.reviewRunId)
@@ -206,18 +220,22 @@ class ReviewFindingOutcomeDerivationTest {
 
   @Test
   fun `an unresolvable key is retained as unresolved rather than guessed`() {
-    val outcomes = GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
-      supersededFindings = emptyList(),
-      currentFindings = listOf(finding(ordinal = 1, findingId = "F-001")),
-      blockerDispositions = emptyList(),
-    )
+    val outcomes =
+      GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
+        supersededFindings = emptyList(),
+        currentFindings = listOf(finding(ordinal = 1, findingId = "F-001")),
+        blockerDispositions = emptyList(),
+      )
 
     val outcome = outcomes.single()
     assertEquals(null, outcome.reviewRunId, "The workflow loop imports no review run, so there is no key to record.")
     assertEquals("unresolved", outcome.keyState)
   }
 
-  private fun finding(ordinal: Int, findingId: String?) = UnaddressedFinding(
+  private fun finding(
+    ordinal: Int,
+    findingId: String?,
+  ) = UnaddressedFinding(
     issueKey = "SKILL-136",
     subtaskId = 6,
     workflowId = "wf-1",

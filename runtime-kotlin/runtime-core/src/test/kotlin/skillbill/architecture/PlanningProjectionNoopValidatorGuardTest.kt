@@ -15,42 +15,45 @@ class PlanningProjectionNoopValidatorGuardTest {
 
   private val noopSymbol = "NoopFeatureTaskRuntimeWireArtifactValidator"
 
-  private val permittedConsumers: Map<String, String> = mapOf(
-    "FeatureTaskRuntimeRunnerTestSupport.kt" to
-      "Shared run-loop harness default; runner-behavior tests do not assert schema-projection " +
-      "enforcement (covered by the RealValidator* integration suites).",
-    "GoalPlanningSweepTest.kt" to
-      "Goal-planning sweep behavior; planning-projection enforcement is incidental to the sweep.",
-    "VerdictAwareRegisterAndConsumersTest.kt" to
-      "Typed Kotlin projection rules for the review-repair request; SKILL-233 made the previously " +
-      "implicit constructor default explicit.",
-    "FeatureTaskRuntimeHandoffProjectionValidatorTestSupport.kt" to
-      "runtime-domain test fixture; the domain test source set cannot reach the infra-fs validator.",
-    "FeatureTaskRuntimeSharedReviewEvidenceProjectionTest.kt" to
-      "runtime-domain projection shape assertions; the domain test source set cannot reach the " +
-      "infra-fs validator.",
-  )
+  private val permittedConsumers: Map<String, String> =
+    mapOf(
+      "FeatureTaskRuntimeRunnerTestSupport.kt" to
+        "Shared run-loop harness default; runner-behavior tests do not assert schema-projection " +
+        "enforcement (covered by the RealValidator* integration suites).",
+      "GoalPlanningSweepTest.kt" to
+        "Goal-planning sweep behavior; planning-projection enforcement is incidental to the sweep.",
+      "VerdictAwareRegisterAndConsumersTest.kt" to
+        "Typed Kotlin projection rules for the review-repair request; SKILL-233 made the previously " +
+        "implicit constructor default explicit.",
+      "FeatureTaskRuntimeHandoffProjectionValidatorTestSupport.kt" to
+        "runtime-domain test fixture; the domain test source set cannot reach the infra-fs validator.",
+      "FeatureTaskRuntimeSharedReviewEvidenceProjectionTest.kt" to
+        "runtime-domain projection shape assertions; the domain test source set cannot reach the " +
+        "infra-fs validator.",
+    )
 
   @Test
   fun `only the enumerated tests may use the Noop planning-projection validator`() {
-    val testRoots = listOf(
-      runtimeRoot.resolve("runtime-application/src/test"),
-      runtimeRoot.resolve("runtime-domain/src/test"),
-      runtimeRoot.resolve("runtime-cli/src/test"),
-      runtimeRoot.resolve("runtime-engine/src/test"),
-    )
+    val testRoots =
+      listOf(
+        runtimeRoot.resolve("runtime-application/src/test"),
+        runtimeRoot.resolve("runtime-domain/src/test"),
+        runtimeRoot.resolve("runtime-cli/src/test"),
+        runtimeRoot.resolve("runtime-engine/src/test"),
+      )
 
-    val actualConsumers = testRoots
-      .filter { Files.isDirectory(it) }
-      .flatMap { root ->
-        Files.walk(root).use { paths ->
-          paths.filter { Files.isRegularFile(it) && it.extension == "kt" }
-            .filter { Files.readString(it).contains(noopSymbol) }
-            .map { it.name }
-            .toList()
+    val actualConsumers =
+      testRoots
+        .filter { Files.isDirectory(it) }
+        .flatMap { root ->
+          Files.walk(root).use { paths ->
+            paths.filter { Files.isRegularFile(it) && it.extension == "kt" }
+              .filter { Files.readString(it).contains(noopSymbol) }
+              .map { it.name }
+              .toList()
+          }
         }
-      }
-      .toSet()
+        .toSet()
 
     assertEquals(
       permittedConsumers.keys,

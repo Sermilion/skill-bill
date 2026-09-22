@@ -30,6 +30,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class AgentActivityStampWriterOwnershipTest {
   @Test
   fun `independent writers with the same workflow id publish to separate database boundaries`() {
@@ -53,29 +54,38 @@ class AgentActivityStampWriterOwnershipTest {
   @Test
   fun `failed write stays eligible for retry and does not erase a newer acknowledgement`() {
     val start = Instant.parse("2026-09-16T10:00:00Z")
-    val clock = object : Clock() {
-      private var current = start
-      override fun getZone() = ZoneOffset.UTC
-      override fun withZone(zone: ZoneId) = this
-      override fun instant(): Instant {
-        current = current.plusMillis(300)
-        return current
+    val clock =
+      object : Clock() {
+        private var current = start
+
+        override fun getZone() = ZoneOffset.UTC
+
+        override fun withZone(zone: ZoneId) = this
+
+        override fun instant(): Instant {
+          current = current.plusMillis(300)
+          return current
+        }
       }
-    }
     val base = memoryFactory("activity-retry")
     val attempts = AtomicInteger(0)
-    val database = object : DatabaseSessionFactory {
-      override fun resolveDbPath() = base.resolveDbPath()
-      override fun databaseExists() = base.databaseExists()
-      override fun <T> read(block: (UnitOfWork) -> T) = base.read(block)
-      override fun <T> transaction(block: (UnitOfWork) -> T) = base.transaction(block)
-      override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
-        if (attempts.getAndIncrement() == 0) {
-          throw IllegalStateException("x".repeat(4096))
+    val database =
+      object : DatabaseSessionFactory {
+        override fun resolveDbPath() = base.resolveDbPath()
+
+        override fun databaseExists() = base.databaseExists()
+
+        override fun <T> read(block: (UnitOfWork) -> T) = base.read(block)
+
+        override fun <T> transaction(block: (UnitOfWork) -> T) = base.transaction(block)
+
+        override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
+          if (attempts.getAndIncrement() == 0) {
+            throw IllegalStateException("x".repeat(4096))
+          }
+          return base.selfManagedWrite(block)
         }
-        return base.selfManagedWrite(block)
       }
-    }
     val diagnostics = RecordingDiagnostics()
     val writer = AgentActivityStampWriter(database, clock, diagnostics)
     val workflowId = "wfl-retry"
@@ -96,20 +106,22 @@ class AgentActivityStampWriterOwnershipTest {
   fun `sqlite busy on stamp persist retries in process before recording bounded failure`() {
     val base = memoryFactory("activity-busy-retry")
     val attempts = AtomicInteger(0)
-    val database = object : DatabaseSessionFactory by base {
-      override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
-        if (attempts.getAndIncrement() < 2) {
-          error("database is locked")
+    val database =
+      object : DatabaseSessionFactory by base {
+        override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
+          if (attempts.getAndIncrement() < 2) {
+            error("database is locked")
+          }
+          return base.selfManagedWrite(block)
         }
-        return base.selfManagedWrite(block)
       }
-    }
     val diagnostics = RecordingDiagnostics()
-    val writer = AgentActivityStampWriter(
-      database,
-      Clock.fixed(Instant.parse("2026-09-16T10:00:00Z"), ZoneOffset.UTC),
-      diagnostics,
-    )
+    val writer =
+      AgentActivityStampWriter(
+        database,
+        Clock.fixed(Instant.parse("2026-09-16T10:00:00Z"), ZoneOffset.UTC),
+        diagnostics,
+      )
     writer.sink("wfl-busy-retry", null).stamp(AgentActivityLabel.STDOUT)
     assertEquals(3, attempts.get())
     assertEquals(0, diagnostics.warnings.size)
@@ -122,18 +134,20 @@ class AgentActivityStampWriterOwnershipTest {
   fun `sqlite busy beyond retry bound records failure without publishing a stamp`() {
     val base = memoryFactory("activity-busy-failure")
     val attempts = AtomicInteger(0)
-    val database = object : DatabaseSessionFactory by base {
-      override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
-        attempts.incrementAndGet()
-        error("SQLITE_BUSY: database is locked")
+    val database =
+      object : DatabaseSessionFactory by base {
+        override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
+          attempts.incrementAndGet()
+          error("SQLITE_BUSY: database is locked")
+        }
       }
-    }
     val diagnostics = RecordingDiagnostics()
-    val writer = AgentActivityStampWriter(
-      database,
-      Clock.fixed(Instant.parse("2026-09-16T10:00:00Z"), ZoneOffset.UTC),
-      diagnostics,
-    )
+    val writer =
+      AgentActivityStampWriter(
+        database,
+        Clock.fixed(Instant.parse("2026-09-16T10:00:00Z"), ZoneOffset.UTC),
+        diagnostics,
+      )
 
     writer.sink("wfl-busy-failure", null).stamp(AgentActivityLabel.STDOUT)
 
@@ -147,11 +161,12 @@ class AgentActivityStampWriterOwnershipTest {
   @Test
   fun `same-label activity remains debounced while evidence reads publish`() {
     val database = CountingDatabase(memoryFactory("activity-debounce"))
-    val writer = AgentActivityStampWriter(
-      database,
-      StepClock(Instant.parse("2026-09-16T10:00:00Z"), stepMillis = 1),
-      NoopDiagnostics,
-    )
+    val writer =
+      AgentActivityStampWriter(
+        database,
+        StepClock(Instant.parse("2026-09-16T10:00:00Z"), stepMillis = 1),
+        NoopDiagnostics,
+      )
     val sink = writer.sink("wfl-debounce", null)
 
     sink.stamp(AgentActivityLabel.STDOUT)
@@ -177,13 +192,15 @@ class AgentActivityStampWriterOwnershipTest {
     val workflowId = "wfl-child"
     val parentWorkflowId = "wfl-parent"
     val pool = Executors.newFixedThreadPool(2)
-    val first = pool.submit {
-      writer.sink(workflowId, parentWorkflowId).stamp(AgentActivityLabel.STDOUT)
-    }
+    val first =
+      pool.submit {
+        writer.sink(workflowId, parentWorkflowId).stamp(AgentActivityLabel.STDOUT)
+      }
     assertTrue(database.firstWriteStarted.await(5, TimeUnit.SECONDS))
-    val second = pool.submit {
-      writer.recordEvidenceRead(workflowId, parentWorkflowId)
-    }
+    val second =
+      pool.submit {
+        writer.recordEvidenceRead(workflowId, parentWorkflowId)
+      }
     assertTrue(database.secondWriteFinished.await(5, TimeUnit.SECONDS))
     database.releaseFirstWrite.countDown()
     first.get(5, TimeUnit.SECONDS)
@@ -207,13 +224,17 @@ private class MemoryDatabaseSessionFactory(
   private val dbPath: Path,
 ) : DatabaseSessionFactory {
   private val stamps = mutableMapOf<String, AgentActivityStamp>()
-  private val repository = object : AgentActivityStampRepository {
-    override fun record(workflowId: String, stamp: AgentActivityStamp) {
-      stamps[workflowId] = stamp
-    }
+  private val repository =
+    object : AgentActivityStampRepository {
+      override fun record(
+        workflowId: String,
+        stamp: AgentActivityStamp,
+      ) {
+        stamps[workflowId] = stamp
+      }
 
-    override fun read(workflowId: String): AgentActivityStamp? = stamps[workflowId]
-  }
+      override fun read(workflowId: String): AgentActivityStamp? = stamps[workflowId]
+    }
 
   override fun resolveDbPath(): Path = dbPath
 
@@ -225,44 +246,57 @@ private class MemoryDatabaseSessionFactory(
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unit())
 
-  private fun unit(): UnitOfWork = object : UnitOfWorkDefaults() {
-    override val dbPath: Path = this@MemoryDatabaseSessionFactory.dbPath
-    override val agentActivityStamps: AgentActivityStampRepository = repository
-    override val workflowStates: WorkflowStateRepository
-      get() = error("Workflow states are not exercised.")
-    override val learnings: LearningRepository
-      get() = error("Learnings are not exercised.")
-    override val reviews: ReviewRepository
-      get() = error("Reviews are not exercised.")
-    override val lifecycleTelemetry: LifecycleTelemetryRepository
-      get() = error("Lifecycle telemetry is not exercised.")
-    override val telemetryReconciliation: TelemetryReconciliationRepository
-      get() = error("Telemetry reconciliation is not exercised.")
-    override val telemetryOutbox: TelemetryOutboxRepository
-      get() = error("Telemetry outbox is not exercised.")
-    override val workList: WorkListRepository
-      get() = error("Work list is not exercised.")
-    override val goalPlanningPreparations: GoalPlanningPreparationRepository
-      get() = error("Goal planning preparations are not exercised.")
-    override val goalRunnerControls: GoalRunnerControlRepository
-      get() = error("Goal runner controls are not exercised.")
-  }
+  private fun unit(): UnitOfWork =
+    object : UnitOfWorkDefaults() {
+      override val dbPath: Path = this@MemoryDatabaseSessionFactory.dbPath
+      override val agentActivityStamps: AgentActivityStampRepository = repository
+      override val workflowStates: WorkflowStateRepository
+        get() = error("Workflow states are not exercised.")
+      override val learnings: LearningRepository
+        get() = error("Learnings are not exercised.")
+      override val reviews: ReviewRepository
+        get() = error("Reviews are not exercised.")
+      override val lifecycleTelemetry: LifecycleTelemetryRepository
+        get() = error("Lifecycle telemetry is not exercised.")
+      override val telemetryReconciliation: TelemetryReconciliationRepository
+        get() = error("Telemetry reconciliation is not exercised.")
+      override val telemetryOutbox: TelemetryOutboxRepository
+        get() = error("Telemetry outbox is not exercised.")
+      override val workList: WorkListRepository
+        get() = error("Work list is not exercised.")
+      override val goalPlanningPreparations: GoalPlanningPreparationRepository
+        get() = error("Goal planning preparations are not exercised.")
+      override val goalRunnerControls: GoalRunnerControlRepository
+        get() = error("Goal runner controls are not exercised.")
+    }
 }
 
 private object NoopDiagnostics : RuntimeDiagnostics {
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private class RecordingDiagnostics : RuntimeDiagnostics {
   val warnings = mutableListOf<String>()
 
-  override fun warning(message: String, error: Throwable?) {
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
     warnings += message
   }
 
-  override fun error(message: String, error: Throwable?) = Unit
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private class ControlledDatabase(val factory: MemoryDatabaseSessionFactory) : DatabaseSessionFactory by factory {

@@ -9,13 +9,14 @@ internal fun discoverJunieAgentMarkdown(
   platformPacksRoot: Path,
   skillsRoot: Path? = null,
   selectedPlatforms: List<String>? = null,
-): List<Path> = discoverNativeAgentFilesByDir(
-  platformPacksRoot = platformPacksRoot,
-  skillsRoot = skillsRoot,
-  selectedPlatforms = selectedPlatforms,
-  directoryName = NativeAgentProvider.Junie.directoryName,
-  extension = NativeAgentProvider.Junie.extension,
-)
+): List<Path> =
+  discoverNativeAgentFilesByDir(
+    platformPacksRoot = platformPacksRoot,
+    skillsRoot = skillsRoot,
+    selectedPlatforms = selectedPlatforms,
+    directoryName = NativeAgentProvider.Junie.directoryName,
+    extension = NativeAgentProvider.Junie.extension,
+  )
 
 internal fun uninstallJunieAgentMarkdown(
   platformPacksRoot: Path,

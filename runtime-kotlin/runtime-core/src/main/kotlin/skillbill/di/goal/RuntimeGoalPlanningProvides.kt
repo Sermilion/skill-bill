@@ -47,10 +47,11 @@ internal interface RuntimeGoalPlanningProvides {
   }
 
   @Provides @JvmSynthetic
-  fun goalPlanningBurstSchedule(): GoalPlanningBurstSchedule = GoalPlanningBurstSchedule(
-    planFanOutCap = GoalPlanningBurstSchedule.DEFAULT_PLAN_FAN_OUT_CAP,
-    emptyTurnBackoffBase = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_BASE,
-    emptyTurnBackoffFactor = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_FACTOR,
-    waitSlice = GoalPlanningBurstSchedule.DEFAULT_WAIT_SLICE,
-  )
+  fun goalPlanningBurstSchedule(): GoalPlanningBurstSchedule =
+    GoalPlanningBurstSchedule(
+      planFanOutCap = GoalPlanningBurstSchedule.DEFAULT_PLAN_FAN_OUT_CAP,
+      emptyTurnBackoffBase = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_BASE,
+      emptyTurnBackoffFactor = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_FACTOR,
+      waitSlice = GoalPlanningBurstSchedule.DEFAULT_WAIT_SLICE,
+    )
 }

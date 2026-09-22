@@ -32,15 +32,17 @@ class PointerRenderingTest {
     Files.writeString(packRoot.resolve(targetRel), "addon body")
     Files.createDirectories(packRoot.resolve("code-review/bill-kmp-code-review"))
 
-    val rendered = renderPointer(
-      repoRoot = tempRoot,
-      packRoot = packRoot,
-      spec = PointerSpec(
-        skillRelativeDir = "code-review/bill-kmp-code-review",
-        name = "android-compose-review.md",
-        target = "platform-packs/kmp/addons/android-compose-review.md",
-      ),
-    )
+    val rendered =
+      renderPointer(
+        repoRoot = tempRoot,
+        packRoot = packRoot,
+        spec =
+          PointerSpec(
+            skillRelativeDir = "code-review/bill-kmp-code-review",
+            name = "android-compose-review.md",
+            target = "platform-packs/kmp/addons/android-compose-review.md",
+          ),
+      )
 
     assertEquals("../../addons/android-compose-review.md", rendered)
     assertFalse(rendered.endsWith("\n"), "rendered pointer must not end with a newline")
@@ -53,15 +55,17 @@ class PointerRenderingTest {
     Files.writeString(packRoot.resolve("addons/edge.md"), "x")
     Files.createDirectories(packRoot.resolve("code-review/bill-kmp-code-review-ui"))
 
-    val rendered = renderPointer(
-      repoRoot = tempRoot,
-      packRoot = packRoot,
-      spec = PointerSpec(
-        skillRelativeDir = "code-review/bill-kmp-code-review-ui",
-        name = "android-compose-edge-to-edge.md",
-        target = "platform-packs/kmp/addons/edge.md",
-      ),
-    )
+    val rendered =
+      renderPointer(
+        repoRoot = tempRoot,
+        packRoot = packRoot,
+        spec =
+          PointerSpec(
+            skillRelativeDir = "code-review/bill-kmp-code-review-ui",
+            name = "android-compose-edge-to-edge.md",
+            target = "platform-packs/kmp/addons/edge.md",
+          ),
+      )
 
     assertEquals("../../addons/edge.md", rendered)
   }
@@ -74,15 +78,17 @@ class PointerRenderingTest {
     Files.writeString(orchestrationDir.resolve("shell-ceremony.md"), "y")
     Files.createDirectories(packRoot.resolve("code-review/bill-kotlin-code-review-api-contracts"))
 
-    val rendered = renderPointer(
-      repoRoot = tempRoot,
-      packRoot = packRoot,
-      spec = PointerSpec(
-        skillRelativeDir = "code-review/bill-kotlin-code-review-api-contracts",
-        name = "shell-ceremony.md",
-        target = "orchestration/shell-content-contract/shell-ceremony.md",
-      ),
-    )
+    val rendered =
+      renderPointer(
+        repoRoot = tempRoot,
+        packRoot = packRoot,
+        spec =
+          PointerSpec(
+            skillRelativeDir = "code-review/bill-kotlin-code-review-api-contracts",
+            name = "shell-ceremony.md",
+            target = "orchestration/shell-content-contract/shell-ceremony.md",
+          ),
+      )
 
     assertEquals("../../../../orchestration/shell-content-contract/shell-ceremony.md", rendered)
   }
@@ -92,17 +98,19 @@ class PointerRenderingTest {
     val packRoot = tempRoot.resolve("platform-packs/kotlin")
     Files.createDirectories(packRoot.resolve("code-review/bill-kotlin-code-review"))
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      renderPointer(
-        repoRoot = tempRoot,
-        packRoot = packRoot,
-        spec = PointerSpec(
-          skillRelativeDir = "code-review/bill-kotlin-code-review",
-          name = "shell-ceremony.md",
-          target = "orchestration/missing/shell-ceremony.md",
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        renderPointer(
+          repoRoot = tempRoot,
+          packRoot = packRoot,
+          spec =
+            PointerSpec(
+              skillRelativeDir = "code-review/bill-kotlin-code-review",
+              name = "shell-ceremony.md",
+              target = "orchestration/missing/shell-ceremony.md",
+            ),
+        )
+      }
     assertTrue(
       error.message?.contains("does not exist") == true,
       "expected missing-target error, got '${error.message}'",
@@ -116,17 +124,19 @@ class PointerRenderingTest {
     Files.createDirectories(pointerDir)
     Files.writeString(pointerDir.resolve("self.md"), "# self")
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      renderPointer(
-        repoRoot = tempRoot,
-        packRoot = packRoot,
-        spec = PointerSpec(
-          skillRelativeDir = "code-review/bill-kotlin-code-review",
-          name = "self.md",
-          target = "platform-packs/kotlin/code-review/bill-kotlin-code-review/self.md",
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        renderPointer(
+          repoRoot = tempRoot,
+          packRoot = packRoot,
+          spec =
+            PointerSpec(
+              skillRelativeDir = "code-review/bill-kotlin-code-review",
+              name = "self.md",
+              target = "platform-packs/kotlin/code-review/bill-kotlin-code-review/self.md",
+            ),
+        )
+      }
     assertTrue(
       error.message?.contains("resolves to itself") == true,
       "expected self-reference error, got '${error.message}'",
@@ -140,21 +150,24 @@ class PointerRenderingTest {
       Files.writeString(outsideRepo.resolve("evil.md"), "# evil")
       val packRoot = tempRoot.resolve("platform-packs/kotlin")
       Files.createDirectories(packRoot.resolve("code-review/skill"))
-      val escapingRelative = tempRoot.toAbsolutePath().normalize().relativize(
-        outsideRepo.resolve("evil.md").toAbsolutePath().normalize(),
-      ).toString().replace('\\', '/')
+      val escapingRelative =
+        tempRoot.toAbsolutePath().normalize().relativize(
+          outsideRepo.resolve("evil.md").toAbsolutePath().normalize(),
+        ).toString().replace('\\', '/')
 
-      val error = assertFailsWith<IllegalArgumentException> {
-        renderPointer(
-          repoRoot = tempRoot,
-          packRoot = packRoot,
-          spec = PointerSpec(
-            skillRelativeDir = "code-review/skill",
-            name = "evil.md",
-            target = escapingRelative,
-          ),
-        )
-      }
+      val error =
+        assertFailsWith<IllegalArgumentException> {
+          renderPointer(
+            repoRoot = tempRoot,
+            packRoot = packRoot,
+            spec =
+              PointerSpec(
+                skillRelativeDir = "code-review/skill",
+                name = "evil.md",
+                target = escapingRelative,
+              ),
+          )
+        }
       assertTrue(
         error.message?.contains("escapes repoRoot") == true,
         "expected escape error, got '${error.message}'",
@@ -172,17 +185,19 @@ class PointerRenderingTest {
     Files.createDirectories(packRoot.resolve("code-review/skill"))
     Files.createDirectories(tempRoot.resolve("orchestration/dir-target"))
 
-    val error = assertFailsWith<IllegalArgumentException> {
-      renderPointer(
-        repoRoot = tempRoot,
-        packRoot = packRoot,
-        spec = PointerSpec(
-          skillRelativeDir = "code-review/skill",
-          name = "dir-target.md",
-          target = "orchestration/dir-target",
-        ),
-      )
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        renderPointer(
+          repoRoot = tempRoot,
+          packRoot = packRoot,
+          spec =
+            PointerSpec(
+              skillRelativeDir = "code-review/skill",
+              name = "dir-target.md",
+              target = "orchestration/dir-target",
+            ),
+        )
+      }
     assertTrue(
       error.message?.contains("does not exist") == true,
       "expected directory rejection (handled via 'does not exist'), got '${error.message}'",
@@ -206,15 +221,17 @@ class PointerRenderingTest {
     Files.createDirectories(orchestrationDir)
     Files.writeString(orchestrationDir.resolve("PLAYBOOK.md"), "z")
 
-    val rendered = renderPointer(
-      repoRoot = tempRoot,
-      packRoot = packRoot,
-      spec = PointerSpec(
-        skillRelativeDir = "code-review/bill-kmp-code-review",
-        name = "review-orchestrator.md",
-        target = "orchestration/review-orchestrator/PLAYBOOK.md",
-      ),
-    )
+    val rendered =
+      renderPointer(
+        repoRoot = tempRoot,
+        packRoot = packRoot,
+        spec =
+          PointerSpec(
+            skillRelativeDir = "code-review/bill-kmp-code-review",
+            name = "review-orchestrator.md",
+            target = "orchestration/review-orchestrator/PLAYBOOK.md",
+          ),
+      )
 
     assertFalse('\\' in rendered, "rendered pointer must not contain backslashes: '$rendered'")
     assertFalse(rendered.startsWith("./"), "rendered pointer must not have a leading ./")

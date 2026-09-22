@@ -15,6 +15,7 @@ import java.sql.DriverManager
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+
 object SqliteTestDatabasePaths {
   const val DB_ENVIRONMENT_KEY: String = DatabasePaths.DB_ENVIRONMENT_KEY
 
@@ -53,7 +54,11 @@ fun withGoalPlanningPreparationRepository(
   }
 }
 
-fun withLifecycleTelemetryStore(userHome: Path, dbPath: Path, block: (LifecycleTelemetryRepository) -> Unit) {
+fun withLifecycleTelemetryStore(
+  userHome: Path,
+  dbPath: Path,
+  block: (LifecycleTelemetryRepository) -> Unit,
+) {
   ensureTestDatabase(dbPath).use { connection ->
     block(LifecycleTelemetryStore(connection))
   }
@@ -76,10 +81,11 @@ fun sqliteSessionFactoryForTests(
   environment: Map<String, String>,
   clock: Clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
   diagnostics: RuntimeDiagnostics = SqliteTestDiagnostics,
-): SQLiteDatabaseSessionFactory = sqliteDatabaseSessionFactory(
-  userHome = userHome,
-  dbPathOverride = dbPathOverride,
-  environment = environment,
-  clock = clock,
-  diagnostics = diagnostics,
-)
+): SQLiteDatabaseSessionFactory =
+  sqliteDatabaseSessionFactory(
+    userHome = userHome,
+    dbPathOverride = dbPathOverride,
+    environment = environment,
+    clock = clock,
+    diagnostics = diagnostics,
+  )

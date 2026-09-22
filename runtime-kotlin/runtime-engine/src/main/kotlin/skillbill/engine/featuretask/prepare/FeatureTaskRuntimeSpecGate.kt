@@ -19,7 +19,6 @@ class FeatureTaskRuntimeSpecGate(
   private val specStatusWriter: FeatureTaskRuntimeSpecStatusWriter,
   private val diagnostics: RuntimeDiagnostics,
 ) {
-
   fun finalizeSingleSpecOnTerminal(
     request: FeatureTaskRuntimeRunRequest,
     report: FeatureTaskRuntimeRunReport,
@@ -62,8 +61,9 @@ class FeatureTaskRuntimeSpecGate(
     ) {
       return
     }
-    val specDir = resolvedParentSpecPath(request.repoRoot, Path.of(request.runInvariants.specReference)).parent
-      ?: return
+    val specDir =
+      resolvedParentSpecPath(request.repoRoot, Path.of(request.runInvariants.specReference)).parent
+        ?: return
     runCatching { specScratchStore.deleteDirectoryIfExists(specDir) }
       .onFailure { error ->
         RuntimeDiagnosticsBestEffortWarning.record(

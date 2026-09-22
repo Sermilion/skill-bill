@@ -16,8 +16,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-class GoalTelemetryEmissionEventParityTest {
 
+class GoalTelemetryEmissionEventParityTest {
   private val schemaNode: JsonNode by lazy {
     val schemaFile = repoRootFromTest().resolve(TelemetryEventSchemaPaths.REPO_RELATIVE_PATH)
     assertTrue(Files.isRegularFile(schemaFile), "Canonical schema file is missing at $schemaFile.")
@@ -37,36 +37,38 @@ class GoalTelemetryEmissionEventParityTest {
     assertBranch(
       branchName = "goalStartedEvent",
       eventName = "goal_started",
-      expectedRequired = setOf(
-        "event_name",
-        "contract_version",
-        "issue_key",
-        "feature_name",
-        "workflow_id",
-        "subtask_total",
-        "resumed",
-        "started_at",
-        "status",
-        "mode",
-      ),
+      expectedRequired =
+        setOf(
+          "event_name",
+          "contract_version",
+          "issue_key",
+          "feature_name",
+          "workflow_id",
+          "subtask_total",
+          "resumed",
+          "started_at",
+          "status",
+          "mode",
+        ),
     )
     assertBranch(
       branchName = "goalSubtaskFinishedEvent",
       eventName = "goal_subtask_finished",
-      expectedRequired = setOf(
-        "event_name",
-        "contract_version",
-        "issue_key",
-        "workflow_id",
-        "subtask_id",
-        "subtask_name",
-        "status",
-        "started_at",
-        "finished_at",
-        "duration_seconds",
-        "attempt_count",
-        "blocked_reason",
-      ),
+      expectedRequired =
+        setOf(
+          "event_name",
+          "contract_version",
+          "issue_key",
+          "workflow_id",
+          "subtask_id",
+          "subtask_name",
+          "status",
+          "started_at",
+          "finished_at",
+          "duration_seconds",
+          "attempt_count",
+          "blocked_reason",
+        ),
     )
   }
 
@@ -74,42 +76,44 @@ class GoalTelemetryEmissionEventParityTest {
     assertBranch(
       branchName = "goalFinishedEvent",
       eventName = "goal_finished",
-      expectedRequired = setOf(
-        "event_name",
-        "contract_version",
-        "issue_key",
-        "workflow_id",
-        "status",
-        "started_at",
-        "finished_at",
-        "duration_seconds",
-        "subtasks_complete",
-        "subtasks_blocked",
-        "subtasks_skipped",
-        "mode",
-        "stop_reason",
-      ),
+      expectedRequired =
+        setOf(
+          "event_name",
+          "contract_version",
+          "issue_key",
+          "workflow_id",
+          "status",
+          "started_at",
+          "finished_at",
+          "duration_seconds",
+          "subtasks_complete",
+          "subtasks_blocked",
+          "subtasks_skipped",
+          "mode",
+          "stop_reason",
+        ),
     )
     assertBranch(
       branchName = "goalIssueFinishedEvent",
       eventName = "goal_issue_finished",
-      expectedRequired = setOf(
-        "event_name",
-        "contract_version",
-        "issue_key",
-        "parent_workflow_id",
-        "status",
-        "subtasks_complete",
-        "subtasks_blocked",
-        "subtasks_skipped",
-        "total_invocations",
-        "total_blocks",
-        "total_resumes",
-        "first_started_at",
-        "finished_at",
-        "duration_seconds",
-        "mode",
-      ),
+      expectedRequired =
+        setOf(
+          "event_name",
+          "contract_version",
+          "issue_key",
+          "parent_workflow_id",
+          "status",
+          "subtasks_complete",
+          "subtasks_blocked",
+          "subtasks_skipped",
+          "total_invocations",
+          "total_blocks",
+          "total_resumes",
+          "first_started_at",
+          "finished_at",
+          "duration_seconds",
+          "mode",
+        ),
     )
   }
 
@@ -117,37 +121,38 @@ class GoalTelemetryEmissionEventParityTest {
     assertBranch(
       branchName = "skillbillReviewFinishedEvent",
       eventName = "skillbill_review_finished",
-      expectedRequired = setOf(
-        "event_name",
-        "contract_version",
-        "total_findings",
-        "accepted_findings",
-        "rejected_findings",
-        "unresolved_findings",
-        "accepted_rate",
-        "rejected_rate",
-        "accepted_finding_details",
-        "rejected_finding_details",
-        "review_run_id",
-        "review_session_id",
-        "routed_skill",
-        "review_subskills",
-        "review_scope",
-        "review_platform",
-        "detected_stack",
-        "fallback",
-        "platform_slug",
-        "scope_type",
-        "execution_mode",
-        "review_finished_at",
-        "learnings",
-        "verification",
-        "adjudication",
-        "refutation_rate_by_stage",
-        "rejected_verdict_counts",
-        "severity_adjustment_counts",
-        "resolved_tier",
-      ),
+      expectedRequired =
+        setOf(
+          "event_name",
+          "contract_version",
+          "total_findings",
+          "accepted_findings",
+          "rejected_findings",
+          "unresolved_findings",
+          "accepted_rate",
+          "rejected_rate",
+          "accepted_finding_details",
+          "rejected_finding_details",
+          "review_run_id",
+          "review_session_id",
+          "routed_skill",
+          "review_subskills",
+          "review_scope",
+          "review_platform",
+          "detected_stack",
+          "fallback",
+          "platform_slug",
+          "scope_type",
+          "execution_mode",
+          "review_finished_at",
+          "learnings",
+          "verification",
+          "adjudication",
+          "refutation_rate_by_stage",
+          "rejected_verdict_counts",
+          "severity_adjustment_counts",
+          "resolved_tier",
+        ),
     )
   }
 
@@ -155,15 +160,16 @@ class GoalTelemetryEmissionEventParityTest {
     assertBranch(
       branchName = "skillbillReviewStageDegradationEvent",
       eventName = "skillbill_review_stage_degradation",
-      expectedRequired = setOf(
-        "event_name",
-        "contract_version",
-        "review_run_id",
-        "seam",
-        "expected",
-        "actual",
-        "reason",
-      ),
+      expectedRequired =
+        setOf(
+          "event_name",
+          "contract_version",
+          "review_run_id",
+          "seam",
+          "expected",
+          "actual",
+          "reason",
+        ),
     )
   }
 
@@ -171,90 +177,95 @@ class GoalTelemetryEmissionEventParityTest {
     assertBranch(
       branchName = "skillbillReviewFinishedLegacyRegeneratedEvent",
       eventName = "skillbill_review_finished_legacy_regenerated",
-      expectedRequired = setOf(
-        "event_name",
-        "contract_version",
-        "review_run_id",
-        "from_version",
-        "to_version",
-      ),
+      expectedRequired =
+        setOf(
+          "event_name",
+          "contract_version",
+          "review_run_id",
+          "from_version",
+          "to_version",
+        ),
     )
   }
 
   @Test
   fun `goal_started and goal_finished representative envelopes validate clean`() {
     TelemetryEventSchemaValidator.validate(
-      envelope = linkedMapOf(
-        "event_name" to "goal_started",
-        "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
-        "issue_key" to "SKILL-66",
-        "feature_name" to "feature-goal-telemetry",
-        "workflow_id" to "wfl-goal-1",
-        "subtask_total" to 4,
-        "resumed" to false,
-        "started_at" to "2026-06-04T10:15:30Z",
-        "status" to "running",
-        "mode" to "runtime",
-      ),
+      envelope =
+        linkedMapOf(
+          "event_name" to "goal_started",
+          "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
+          "issue_key" to "SKILL-66",
+          "feature_name" to "feature-goal-telemetry",
+          "workflow_id" to "wfl-goal-1",
+          "subtask_total" to 4,
+          "resumed" to false,
+          "started_at" to "2026-06-04T10:15:30Z",
+          "status" to "running",
+          "mode" to "runtime",
+        ),
       eventName = "goal_started",
     )
 
     TelemetryEventSchemaValidator.validate(
-      envelope = linkedMapOf(
-        "event_name" to "goal_finished",
-        "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
-        "issue_key" to "SKILL-66",
-        "workflow_id" to "wfl-goal-1",
-        "status" to "blocked",
-        "started_at" to "2026-06-04T10:15:30Z",
-        "finished_at" to "2026-06-04T12:01:44Z",
-        "duration_seconds" to 6_374,
-        "subtasks_complete" to 3,
-        "subtasks_blocked" to 1,
-        "subtasks_skipped" to 0,
-        "mode" to "runtime",
-        "stop_reason" to "BLOCKED",
-      ),
+      envelope =
+        linkedMapOf(
+          "event_name" to "goal_finished",
+          "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
+          "issue_key" to "SKILL-66",
+          "workflow_id" to "wfl-goal-1",
+          "status" to "blocked",
+          "started_at" to "2026-06-04T10:15:30Z",
+          "finished_at" to "2026-06-04T12:01:44Z",
+          "duration_seconds" to 6_374,
+          "subtasks_complete" to 3,
+          "subtasks_blocked" to 1,
+          "subtasks_skipped" to 0,
+          "mode" to "runtime",
+          "stop_reason" to "BLOCKED",
+        ),
       eventName = "goal_finished",
     )
 
     TelemetryEventSchemaValidator.validate(
-      envelope = linkedMapOf(
-        "event_name" to "goal_issue_finished",
-        "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
-        "issue_key" to "SKILL-109",
-        "parent_workflow_id" to "wfl-parent",
-        "status" to "completed",
-        "subtasks_complete" to 3,
-        "subtasks_blocked" to 0,
-        "subtasks_skipped" to 0,
-        "total_invocations" to 3,
-        "total_blocks" to 2,
-        "total_resumes" to 2,
-        "first_started_at" to "2026-06-04T10:15:30Z",
-        "finished_at" to "2026-06-04T12:01:44Z",
-        "duration_seconds" to 6_374,
-        "mode" to "runtime",
-      ),
+      envelope =
+        linkedMapOf(
+          "event_name" to "goal_issue_finished",
+          "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
+          "issue_key" to "SKILL-109",
+          "parent_workflow_id" to "wfl-parent",
+          "status" to "completed",
+          "subtasks_complete" to 3,
+          "subtasks_blocked" to 0,
+          "subtasks_skipped" to 0,
+          "total_invocations" to 3,
+          "total_blocks" to 2,
+          "total_resumes" to 2,
+          "first_started_at" to "2026-06-04T10:15:30Z",
+          "finished_at" to "2026-06-04T12:01:44Z",
+          "duration_seconds" to 6_374,
+          "mode" to "runtime",
+        ),
       eventName = "goal_issue_finished",
     )
   }
 
   @Test
   fun `goal_subtask_finished envelopes validate clean including blocked_reason and history fields`() {
-    val subtaskFinishedBase = linkedMapOf<String, Any?>(
-      "event_name" to "goal_subtask_finished",
-      "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
-      "issue_key" to "SKILL-66",
-      "workflow_id" to "wfl-goal-1",
-      "subtask_id" to 1,
-      "subtask_name" to "goal-telemetry-contract-and-schema",
-      "status" to "complete",
-      "started_at" to "2026-06-04T10:15:30Z",
-      "finished_at" to "2026-06-04T10:42:05Z",
-      "duration_seconds" to 1_595,
-      "attempt_count" to 1,
-    )
+    val subtaskFinishedBase =
+      linkedMapOf<String, Any?>(
+        "event_name" to "goal_subtask_finished",
+        "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
+        "issue_key" to "SKILL-66",
+        "workflow_id" to "wfl-goal-1",
+        "subtask_id" to 1,
+        "subtask_name" to "goal-telemetry-contract-and-schema",
+        "status" to "complete",
+        "started_at" to "2026-06-04T10:15:30Z",
+        "finished_at" to "2026-06-04T10:42:05Z",
+        "duration_seconds" to 1_595,
+        "attempt_count" to 1,
+      )
 
     TelemetryEventSchemaValidator.validate(
       envelope = LinkedHashMap(subtaskFinishedBase).apply { put("blocked_reason", null) },
@@ -262,34 +273,37 @@ class GoalTelemetryEmissionEventParityTest {
     )
 
     TelemetryEventSchemaValidator.validate(
-      envelope = LinkedHashMap(subtaskFinishedBase).apply {
-        put("status", "blocked")
-        put("blocked_reason", "validation: gate failed twice")
-      },
+      envelope =
+        LinkedHashMap(subtaskFinishedBase).apply {
+          put("status", "blocked")
+          put("blocked_reason", "validation: gate failed twice")
+        },
       eventName = "goal_subtask_finished",
     )
 
     TelemetryEventSchemaValidator.validate(
-      envelope = LinkedHashMap(subtaskFinishedBase).apply {
-        put("blocked_reason", null)
-        put("boundary_history_value", "high")
-        put("boundary_history_written", true)
-      },
+      envelope =
+        LinkedHashMap(subtaskFinishedBase).apply {
+          put("blocked_reason", null)
+          put("boundary_history_value", "high")
+          put("boundary_history_written", true)
+        },
       eventName = "goal_subtask_finished",
     )
   }
 
   @Test
   fun `review_stage_degradation reason enum matches schema in both directions`() {
-    val schemaValues = schemaNode.path("\$defs")
-      .path("skillbillReviewStageDegradationEvent")
-      .path("properties")
-      .path("reason")
-      .path("enum")
-      .elements()
-      .asSequence()
-      .map { it.asText() }
-      .toSet()
+    val schemaValues =
+      schemaNode.path("\$defs")
+        .path("skillbillReviewStageDegradationEvent")
+        .path("properties")
+        .path("reason")
+        .path("enum")
+        .elements()
+        .asSequence()
+        .map { it.asText() }
+        .toSet()
 
     assertEquals(
       ReviewStageDegradationReason.entries.map { it.wireValue }.toSet(),
@@ -301,15 +315,16 @@ class GoalTelemetryEmissionEventParityTest {
   @Test
   fun `review_stage_degradation representative envelope validates clean`() {
     TelemetryEventSchemaValidator.validate(
-      envelope = linkedMapOf(
-        "event_name" to "skillbill_review_stage_degradation",
-        "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
-        "review_run_id" to "rvw-191",
-        "seam" to "review.spec_intent",
-        "expected" to "resolved",
-        "actual" to "no_spec_found",
-        "reason" to "spec_context_none",
-      ),
+      envelope =
+        linkedMapOf(
+          "event_name" to "skillbill_review_stage_degradation",
+          "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
+          "review_run_id" to "rvw-191",
+          "seam" to "review.spec_intent",
+          "expected" to "resolved",
+          "actual" to "no_spec_found",
+          "reason" to "spec_context_none",
+        ),
       eventName = "skillbill_review_stage_degradation",
     )
   }
@@ -317,13 +332,14 @@ class GoalTelemetryEmissionEventParityTest {
   @Test
   fun `review_finished_legacy_regenerated representative envelope validates clean`() {
     TelemetryEventSchemaValidator.validate(
-      envelope = linkedMapOf(
-        "event_name" to "skillbill_review_finished_legacy_regenerated",
-        "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
-        "review_run_id" to "rvw-191",
-        "from_version" to "1.8.0",
-        "to_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
-      ),
+      envelope =
+        linkedMapOf(
+          "event_name" to "skillbill_review_finished_legacy_regenerated",
+          "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
+          "review_run_id" to "rvw-191",
+          "from_version" to "1.8.0",
+          "to_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
+        ),
       eventName = "skillbill_review_finished_legacy_regenerated",
     )
   }
@@ -339,11 +355,12 @@ class GoalTelemetryEmissionEventParityTest {
   @Test
   fun `review_finished schema accepts clean extension platform slugs`() {
     TelemetryEventSchemaValidator.validate(
-      envelope = validReviewFinishedEnvelope(
-        "review_platform" to "rust",
-        "detected_stack" to "rust",
-        "platform_slug" to "rust",
-      ),
+      envelope =
+        validReviewFinishedEnvelope(
+          "review_platform" to "rust",
+          "detected_stack" to "rust",
+          "platform_slug" to "rust",
+        ),
       eventName = "skillbill_review_finished",
     )
   }
@@ -374,13 +391,14 @@ class GoalTelemetryEmissionEventParityTest {
 
   @Test
   fun `goal runner stop reason schema enum matches runtime enum`() {
-    val schemaValues = schemaNode.path("\$defs")
-      .path("goalRunnerStopReasonEnum")
-      .path("enum")
-      .elements()
-      .asSequence()
-      .map { it.asText() }
-      .toSet()
+    val schemaValues =
+      schemaNode.path("\$defs")
+        .path("goalRunnerStopReasonEnum")
+        .path("enum")
+        .elements()
+        .asSequence()
+        .map { it.asText() }
+        .toSet()
 
     assertEquals(
       GoalRunnerStopReason.entries.map { it.name }.toSet(),
@@ -411,7 +429,11 @@ class GoalTelemetryEmissionEventParityTest {
     assertTrue("goal_stats" in toolNames, "goal_stats must be a registered MCP tool.")
   }
 
-  private fun assertBranch(branchName: String, eventName: String, expectedRequired: Set<String>) {
+  private fun assertBranch(
+    branchName: String,
+    eventName: String,
+    expectedRequired: Set<String>,
+  ) {
     val branch = schemaNode.path("\$defs").path(branchName)
     assertTrue(!branch.isMissingNode, "Schema is missing branch '\$defs/$branchName'.")
 
@@ -449,12 +471,13 @@ class GoalTelemetryEmissionEventParityTest {
       "unresolved_findings" to 0,
       "accepted_rate" to 1.0,
       "rejected_rate" to 0.0,
-      "accepted_finding_details" to listOf(
-        linkedMapOf(
-          "severity" to "Major",
-          "message" to "Finding accepted by reviewer.",
+      "accepted_finding_details" to
+        listOf(
+          linkedMapOf(
+            "severity" to "Major",
+            "message" to "Finding accepted by reviewer.",
+          ),
         ),
-      ),
       "rejected_finding_details" to emptyList<Map<String, Any?>>(),
       "review_run_id" to "rvw-109",
       "review_session_id" to "rvs-109",
@@ -472,25 +495,28 @@ class GoalTelemetryEmissionEventParityTest {
       "verification" to emptyStageDistribution(),
       "adjudication" to emptyStageDistribution(),
       "refutation_rate_by_stage" to linkedMapOf("verification" to 0.0, "adjudication" to 0.0),
-      "rejected_verdict_counts" to linkedMapOf(
-        "uncited_refutations" to 0,
-        "uncited_downgrades" to 0,
-        "finding_mutations" to 0,
-      ),
+      "rejected_verdict_counts" to
+        linkedMapOf(
+          "uncited_refutations" to 0,
+          "uncited_downgrades" to 0,
+          "finding_mutations" to 0,
+        ),
       "severity_adjustment_counts" to linkedMapOf("raised" to 0, "lowered" to 0),
       "resolved_tier" to "unresolved",
     ).apply {
       overrides.forEach { (key, value) -> put(key, value) }
     }
 
-  private fun emptyStageDistribution(): Map<String, Any?> = linkedMapOf(
-    "claim_verdict" to linkedMapOf("confirmed" to 0, "refuted" to 0, "unresolved" to 0),
-    "scope_disposition" to linkedMapOf(
-      "in_scope" to 0,
-      "out_of_scope_preexisting" to 0,
-      "spec_deviation" to 0,
-      "spec_accepted_tradeoff" to 0,
-    ),
-    "finding_count" to 0,
-  )
+  private fun emptyStageDistribution(): Map<String, Any?> =
+    linkedMapOf(
+      "claim_verdict" to linkedMapOf("confirmed" to 0, "refuted" to 0, "unresolved" to 0),
+      "scope_disposition" to
+        linkedMapOf(
+          "in_scope" to 0,
+          "out_of_scope_preexisting" to 0,
+          "spec_deviation" to 0,
+          "spec_accepted_tradeoff" to 0,
+        ),
+      "finding_count" to 0,
+    )
 }

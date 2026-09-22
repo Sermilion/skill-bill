@@ -5,6 +5,7 @@ import skillbill.engine.goalrunner.persist.staleChildPlanningRecoveryCommand
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
+
 internal enum class GoalPlanningRecoveryKind {
   HARD_RESET,
   SCOPED_REPLAN,
@@ -12,7 +13,10 @@ internal enum class GoalPlanningRecoveryKind {
 
 fun goalPlanningHardResetRemedy(issueKey: String): String = "skill-bill goal reset $issueKey --hard --yes"
 
-internal fun classifyGoalPlanningRecovery(reason: String, cause: Throwable? = null): GoalPlanningRecoveryKind {
+internal fun classifyGoalPlanningRecovery(
+  reason: String,
+  cause: Throwable? = null,
+): GoalPlanningRecoveryKind {
   if (causeIndicatesContractVersionHardReset(cause) || reasonIndicatesContractVersionHardReset(reason)) {
     return GoalPlanningRecoveryKind.HARD_RESET
   }

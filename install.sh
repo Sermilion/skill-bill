@@ -49,7 +49,7 @@ NC='\033[0m'
 # the Gradle buildscript classpath, so the Gradle daemon JVM itself must be 21+.
 # Reuse the same guard that is baked into the generated runtime start scripts so
 # SKILL_BILL_JAVA_HOME resolves identically at build time and at run time.
-BUILD_JVM_GUARD="$RUNTIME_KOTLIN_DIR/build-logic/convention/src/main/resources/skill-bill-java-guard.sh"
+BUILD_JVM_GUARD="$RUNTIME_KOTLIN_DIR/runtime-infra/host/src/main/resources/skillbill/infrastructure/host/jvm/skill-bill-java-guard.sh"
 
 ensure_build_jvm() {
   [[ -r "$BUILD_JVM_GUARD" ]] || return 0

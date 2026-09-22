@@ -12,6 +12,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import kotlin.coroutines.cancellation.CancellationException
+
 @Inject
 class GoalRunnerProgressReader(
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
@@ -36,11 +37,12 @@ class GoalRunnerProgressReader(
         },
       )
 
-  fun safeProgress(workflowId: String): GoalRunnerWorkflowProgress? = when (val read = read(workflowId)) {
-    is GoalRunnerChildProgressRead.Present -> read.progress
-    is GoalRunnerChildProgressRead.Absent -> null
-    is GoalRunnerChildProgressRead.Failed -> null
-  }
+  fun safeProgress(workflowId: String): GoalRunnerWorkflowProgress? =
+    when (val read = read(workflowId)) {
+      is GoalRunnerChildProgressRead.Present -> read.progress
+      is GoalRunnerChildProgressRead.Absent -> null
+      is GoalRunnerChildProgressRead.Failed -> null
+    }
 }
 
 @Inject
@@ -53,27 +55,30 @@ class GoalRunnerPauseBoundary(
   ): GoalRunnerIterationResult? {
     val control = knownControl ?: manifestStore.controlState(state.parentWorkflowId)
     if (!control.requiresPauseBoundary(state.manifest)) return null
-    val pausedState = manifestStore.pauseAtBoundary(
-      state.copy(controlState = control),
-    )
+    val pausedState =
+      manifestStore.pauseAtBoundary(
+        state.copy(controlState = control),
+      )
     val subtaskId = pausedState.manifest.currentSubtaskIntent.subtaskId
     return GoalRunnerIterationResult(
       state = pausedState,
-      report = stopped(
-        StoppedReportArgs(
-          issueKey = pausedState.manifest.issueKey,
-          attempted = emptyList(),
-          subtaskId = subtaskId,
-          reason = GoalRunnerStopReason.PAUSED,
-          blockedReason = "Goal paused at a durable boundary: ${pausedState.controlState.pauseReason}",
-          workflowId = pausedState.manifest.workflowIdFor(subtaskId),
-          lastResumableStep = pausedState.manifest.subtasks
-            .firstOrNull { it.id == subtaskId }
-            ?.lastResumableStep
-            .orEmpty()
-            .ifBlank { "plan" },
+      report =
+        stopped(
+          StoppedReportArgs(
+            issueKey = pausedState.manifest.issueKey,
+            attempted = emptyList(),
+            subtaskId = subtaskId,
+            reason = GoalRunnerStopReason.PAUSED,
+            blockedReason = "Goal paused at a durable boundary: ${pausedState.controlState.pauseReason}",
+            workflowId = pausedState.manifest.workflowIdFor(subtaskId),
+            lastResumableStep =
+              pausedState.manifest.subtasks
+                .firstOrNull { it.id == subtaskId }
+                ?.lastResumableStep
+                .orEmpty()
+                .ifBlank { "plan" },
+          ),
         ),
-      ),
     )
   }
 }

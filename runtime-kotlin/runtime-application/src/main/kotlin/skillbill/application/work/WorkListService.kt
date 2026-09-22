@@ -13,6 +13,7 @@ import skillbill.ports.work.model.WorkItemKind
 import skillbill.ports.workflow.getAll
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+
 @Inject
 class WorkListService(
   private val database: DatabaseSessionFactory,
@@ -32,39 +33,46 @@ class WorkListService(
     }
   }
 
-  private fun validateWorkflowSnapshots(unitOfWork: UnitOfWork, work: List<WorkItem>) {
+  private fun validateWorkflowSnapshots(
+    unitOfWork: UnitOfWork,
+    work: List<WorkItem>,
+  ) {
     work.groupBy(::workflowFamily).forEach { (family, items) ->
       family ?: return@forEach
       val snapshots = family.getAll(unitOfWork.workflowStates, items.mapTo(linkedSetOf(), WorkItem::workflowId))
       items.forEach { item ->
-        val snapshot = snapshots[item.workflowId]
-          ?: throw InvalidWorkListRowError(
-            "Work-list row '${item.workflowId}' has no matching ${item.workflowKind.wireValue} workflow snapshot.",
-          )
+        val snapshot =
+          snapshots[item.workflowId]
+            ?: throw InvalidWorkListRowError(
+              "Work-list row '${item.workflowId}' has no matching ${item.workflowKind.wireValue} workflow snapshot.",
+            )
         workflowEngine.summaryView(family.definition, snapshot)
       }
     }
   }
 }
 
-private fun workflowFamily(item: WorkItem): WorkflowFamily? = when (item.workflowKind) {
-  WorkItemKind.FEATURE_TASK_PROSE -> null
-  WorkItemKind.FEATURE_TASK_RUNTIME -> WorkflowFamily.TASK_RUNTIME
-  WorkItemKind.FEATURE_VERIFY -> WorkflowFamily.VERIFY
-  WorkItemKind.FEATURE_GOAL -> null
-}
+private fun workflowFamily(item: WorkItem): WorkflowFamily? =
+  when (item.workflowKind) {
+    WorkItemKind.FEATURE_TASK_PROSE -> null
+    WorkItemKind.FEATURE_TASK_RUNTIME -> WorkflowFamily.TASK_RUNTIME
+    WorkItemKind.FEATURE_VERIFY -> WorkflowFamily.VERIFY
+    WorkItemKind.FEATURE_GOAL -> null
+  }
 
-private fun WorkItem.toApplicationItem(): WorkListItem = WorkListItem(
-  issueKey = issueKey,
-  workflowKind = when (workflowKind) {
-    WorkItemKind.FEATURE_TASK_PROSE -> WorkListItemKind.FEATURE_TASK_PROSE
-    WorkItemKind.FEATURE_TASK_RUNTIME -> WorkListItemKind.FEATURE_TASK_RUNTIME
-    WorkItemKind.FEATURE_VERIFY -> WorkListItemKind.FEATURE_VERIFY
-    WorkItemKind.FEATURE_GOAL -> WorkListItemKind.FEATURE_GOAL
-  },
-  workflowId = workflowId,
-  startedAt = startedAt,
-  currentState = currentState,
-  stateEnteredAt = stateEnteredAt,
-  stateEnteredAtEstimated = stateEnteredAtEstimated,
-)
+private fun WorkItem.toApplicationItem(): WorkListItem =
+  WorkListItem(
+    issueKey = issueKey,
+    workflowKind =
+      when (workflowKind) {
+        WorkItemKind.FEATURE_TASK_PROSE -> WorkListItemKind.FEATURE_TASK_PROSE
+        WorkItemKind.FEATURE_TASK_RUNTIME -> WorkListItemKind.FEATURE_TASK_RUNTIME
+        WorkItemKind.FEATURE_VERIFY -> WorkListItemKind.FEATURE_VERIFY
+        WorkItemKind.FEATURE_GOAL -> WorkListItemKind.FEATURE_GOAL
+      },
+    workflowId = workflowId,
+    startedAt = startedAt,
+    currentState = currentState,
+    stateEnteredAt = stateEnteredAt,
+    stateEnteredAtEstimated = stateEnteredAtEstimated,
+  )

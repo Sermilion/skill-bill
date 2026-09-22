@@ -18,11 +18,12 @@ const val MAX_VALIDATION_QUALITY_RETRIES = 3
 const val MAX_REPORTED_FINALIZE_DIRTY_PATHS = 10
 
 val PROTECTED_GOAL_BRANCHES: Set<String> = ProtectedBranches.names
-val CHILD_WORKFLOW_BLOCK_REASONS: Set<GoalRunnerStopReason> = setOf(
-  GoalRunnerStopReason.NO_TERMINAL_STORE_OUTCOME,
-  GoalRunnerStopReason.TIMEOUT,
-  GoalRunnerStopReason.INTERRUPTED,
-)
+val CHILD_WORKFLOW_BLOCK_REASONS: Set<GoalRunnerStopReason> =
+  setOf(
+    GoalRunnerStopReason.NO_TERMINAL_STORE_OUTCOME,
+    GoalRunnerStopReason.TIMEOUT,
+    GoalRunnerStopReason.INTERRUPTED,
+  )
 
 fun isFeatureSpecPath(path: String): Boolean {
   val normalized = path.trim().trimEnd('/').removeSurrounding("\"").removePrefix("./")
@@ -30,18 +31,20 @@ fun isFeatureSpecPath(path: String): Boolean {
   return dotted == FEATURE_SPEC_ROOT || dotted.startsWith("$FEATURE_SPEC_ROOT/")
 }
 
-fun protectedBranchName(branch: String?): String? = branch
-  ?.trim()
-  ?.takeIf(String::isNotBlank)
-  ?.takeIf { normalized -> normalized.lowercase() in PROTECTED_GOAL_BRANCHES }
+fun protectedBranchName(branch: String?): String? =
+  branch
+    ?.trim()
+    ?.takeIf(String::isNotBlank)
+    ?.takeIf { normalized -> normalized.lowercase() in PROTECTED_GOAL_BRANCHES }
 
-fun parseGitPorcelainPaths(output: String): List<String> = output
-  .lineSequence()
-  .map(String::trimEnd)
-  .filter { line -> line.length >= GIT_PORCELAIN_MIN_LENGTH }
-  .map { line -> line.substring(GIT_PORCELAIN_STATUS_PREFIX_LENGTH).substringAfterLast(" -> ").trim() }
-  .filter(String::isNotBlank)
-  .toList()
+fun parseGitPorcelainPaths(output: String): List<String> =
+  output
+    .lineSequence()
+    .map(String::trimEnd)
+    .filter { line -> line.length >= GIT_PORCELAIN_MIN_LENGTH }
+    .map { line -> line.substring(GIT_PORCELAIN_STATUS_PREFIX_LENGTH).substringAfterLast(" -> ").trim() }
+    .filter(String::isNotBlank)
+    .toList()
 
 internal data class GoalRunnerProgressState(
   val subtask: DecompositionSubtask,
@@ -72,14 +75,16 @@ class GoalRunnerTickProgressReader(
   }
 
   private fun resolve(): GoalRunnerProgressState? {
-    val subtask = manifestStore.loadByIssueKey(issueKey, request.repoRoot)
-      ?.manifest
-      ?.subtasks
-      ?.firstOrNull { subtask -> subtask.id == subtaskId }
-      ?: return null
-    val childProgress = subtask.workflowId
-      ?.takeIf(String::isNotBlank)
-      ?.let { workflowId -> readChildProgress(workflowId) }
+    val subtask =
+      manifestStore.loadByIssueKey(issueKey, request.repoRoot)
+        ?.manifest
+        ?.subtasks
+        ?.firstOrNull { subtask -> subtask.id == subtaskId }
+        ?: return null
+    val childProgress =
+      subtask.workflowId
+        ?.takeIf(String::isNotBlank)
+        ?.let { workflowId -> readChildProgress(workflowId) }
     return GoalRunnerProgressState(subtask, childProgress)
   }
 

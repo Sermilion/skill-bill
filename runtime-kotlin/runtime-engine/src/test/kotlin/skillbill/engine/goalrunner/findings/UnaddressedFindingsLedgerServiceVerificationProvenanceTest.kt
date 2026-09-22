@@ -14,6 +14,7 @@ import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertEquals
+
 class UnaddressedFindingsLedgerServiceVerificationProvenanceTest {
   @Test
   fun `verification dispositions expose selected heading ids and source paths for the issue key`() {
@@ -65,20 +66,25 @@ class UnaddressedFindingsLedgerServiceVerificationProvenanceTest {
   }
 }
 
-private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflowId: String, artifactsJson: String) {
+private fun seedWorkflow(
+  repository: InMemoryRuntimeWorkflowRepository,
+  workflowId: String,
+  artifactsJson: String,
+) {
   val engine = WorkflowEngine(testWorkflowSnapshotValidator)
   val definition = WorkflowFamily.TASK_RUNTIME.definition
   val opened = engine.openRecord(definition, workflowId, "ftr-provenance", "verify_findings")
-  val seeded = engine.updateRecord(
-    definition,
-    opened,
-    WorkflowUpdateInput(
-      workflowStatus = WorkflowStatus.RUNNING,
-      currentStepId = "verify_findings",
-      stepUpdates = null,
-      artifactsPatch = WorkflowArtifactPatch.from(decodeWorkflowArtifacts(artifactsJson)),
-      sessionId = "ftr-provenance",
-    ),
-  ).toRecord()
+  val seeded =
+    engine.updateRecord(
+      definition,
+      opened,
+      WorkflowUpdateInput(
+        workflowStatus = WorkflowStatus.RUNNING,
+        currentStepId = "verify_findings",
+        stepUpdates = null,
+        artifactsPatch = WorkflowArtifactPatch.from(decodeWorkflowArtifacts(artifactsJson)),
+        sessionId = "ftr-provenance",
+      ),
+    ).toRecord()
   repository.saveFeatureTaskRuntimeWorkflow(seeded)
 }

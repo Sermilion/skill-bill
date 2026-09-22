@@ -12,22 +12,24 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-class TelemetryEventSchemaCleanupTest {
 
+class TelemetryEventSchemaCleanupTest {
   @Test
   fun `telemetry-event schema classpath shadow with mismatched id loud-fails`() {
-    val mismatchedIdYaml = """
+    val mismatchedIdYaml =
+      """
       ${'$'}schema: "https://json-schema.org/draft/2020-12/schema"
       ${'$'}id: "https://malicious.example/shadow-telemetry-event.yaml"
       type: object
       properties:
         contract_version:
           const: "$TELEMETRY_EVENT_CONTRACT_VERSION"
-    """.trimIndent()
+      """.trimIndent()
 
-    val error = assertFailsWith<InvalidTelemetryEventSchemaError> {
-      TelemetryEventSchemaValidator.assertIdentity(mismatchedIdYaml)
-    }
+    val error =
+      assertFailsWith<InvalidTelemetryEventSchemaError> {
+        TelemetryEventSchemaValidator.assertIdentity(mismatchedIdYaml)
+      }
     val reason = error.reason
     assertContains(reason, "https://malicious.example/shadow-telemetry-event.yaml")
     assertContains(reason, TelemetryEventSchemaPaths.EXPECTED_SCHEMA_ID)
@@ -35,18 +37,20 @@ class TelemetryEventSchemaCleanupTest {
 
   @Test
   fun `telemetry-event schema classpath shadow with mismatched contract_version const loud-fails`() {
-    val mismatchedConstYaml = """
+    val mismatchedConstYaml =
+      """
       ${'$'}schema: "https://json-schema.org/draft/2020-12/schema"
       ${'$'}id: "${TelemetryEventSchemaPaths.EXPECTED_SCHEMA_ID}"
       type: object
       properties:
         contract_version:
           const: "9.99"
-    """.trimIndent()
+      """.trimIndent()
 
-    val error = assertFailsWith<InvalidTelemetryEventSchemaError> {
-      TelemetryEventSchemaValidator.assertIdentity(mismatchedConstYaml)
-    }
+    val error =
+      assertFailsWith<InvalidTelemetryEventSchemaError> {
+        TelemetryEventSchemaValidator.assertIdentity(mismatchedConstYaml)
+      }
     val reason = error.reason
     assertContains(reason, "9.99")
     assertContains(reason, TELEMETRY_EVENT_CONTRACT_VERSION)
@@ -54,8 +58,9 @@ class TelemetryEventSchemaCleanupTest {
 
   @Test
   fun `telemetry-event canonical schema on disk passes identity assertion`() {
-    val schemaPath: Path = repoRootFromTest()
-      .resolve(TelemetryEventSchemaPaths.REPO_RELATIVE_PATH)
+    val schemaPath: Path =
+      repoRootFromTest()
+        .resolve(TelemetryEventSchemaPaths.REPO_RELATIVE_PATH)
     val yamlText = Files.readString(schemaPath)
     val node = YAMLMapper().readTree(yamlText)
 

@@ -8,6 +8,7 @@ import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Instant
+
 enum class IdeStatusWorkflowFamily(val wireValue: String) {
   FEATURE_TASK_RUNTIME("feature-task-runtime"),
   FEATURE_VERIFY("feature-verify"),
@@ -61,7 +62,10 @@ data class IdeStatusPauseReason(
     get() = code == IdeStatusPauseReasonCode.AWAITING_OPERATOR_DECISION
 
   companion object {
-    fun of(code: IdeStatusPauseReasonCode, label: String?): IdeStatusPauseReason {
+    fun of(
+      code: IdeStatusPauseReasonCode,
+      label: String?,
+    ): IdeStatusPauseReason {
       val trimmed = label?.trim()?.takeIf(String::isNotBlank)
       return IdeStatusPauseReason(code = code, label = trimmed?.let(::boundedPauseReasonLabel))
     }
@@ -123,7 +127,6 @@ data class IdeStatusCurrentSubtask(
 data class IdeStatusCurrentModel(
   val model: String,
   val effort: String? = null,
-
   val phaseId: String? = null,
 ) {
   init {
@@ -138,9 +141,7 @@ data class IdeStatusPlanning(
   val sharedPreplanPrepared: Boolean,
   val plannedSubtaskCount: Int,
   val totalSubtaskCount: Int,
-
   val currentPlanningSubtaskId: String? = null,
-
   val planningWaveSubtaskIds: List<String> = emptyList(),
   val reason: String? = null,
 ) {
@@ -211,7 +212,9 @@ data class IdeStatusCandidate(
 
 sealed class IdeStatusRepositoryResolution {
   data class Ok(val identity: String, val repoRoot: Path) : IdeStatusRepositoryResolution()
+
   data class Invalid(val message: String) : IdeStatusRepositoryResolution()
+
   data class Missing(val message: String) : IdeStatusRepositoryResolution()
 }
 
@@ -228,17 +231,12 @@ data class IdeStatusSnapshot(
   val progress: IdeStatusProgress? = null,
   val startedAt: Instant? = null,
   val currentSubtask: IdeStatusCurrentSubtask? = null,
-
   val currentModel: IdeStatusCurrentModel? = null,
-
   val planning: IdeStatusPlanning? = null,
-
   val currentPhaseExecution: IdeStatusCurrentPhaseExecution? = null,
-
   val pauseRequested: Boolean? = null,
   val pausedAt: Instant? = null,
   val pauseReason: IdeStatusPauseReason? = null,
-
   val activeDurationMs: Long? = null,
   val activeDurationAsOf: Instant? = null,
   val lastAgentActivityAt: Instant? = null,

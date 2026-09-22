@@ -21,30 +21,43 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+
 class SharedReviewEvidenceResolutionTest {
   private val repoRoot: Path = Path.of(".")
   private val range = ReviewCommitRange("base", "head")
 
-  private fun diffFor(path: String, line: String) = """
+  private fun diffFor(
+    path: String,
+    line: String,
+  ) = """
     diff --git a/$path b/$path
     --- a/$path
     +++ b/$path
     @@ -1,1 +1,2 @@
     +$line
-  """.trimIndent()
+    """.trimIndent()
 
   private class FakeGit(private val responses: Map<String, String?>) : DiffResolverPort {
     val invoked: MutableList<String> = mutableListOf()
-    override fun runProcess(args: List<String>, workDir: Path): String? {
+
+    override fun runProcess(
+      args: List<String>,
+      workDir: Path,
+    ): String? {
       val key = args.joinToString(" ")
       invoked += key
       return responses[key]
     }
 
-    override fun reviewWorktreeFileIdentities(root: Path, paths: List<String>) =
-      emptyMap<String, ReviewCheckpointFileIdentity>()
+    override fun reviewWorktreeFileIdentities(
+      root: Path,
+      paths: List<String>,
+    ) = emptyMap<String, ReviewCheckpointFileIdentity>()
 
-    override fun readDiff(path: Path, maxBytes: Long): String? = null
+    override fun readDiff(
+      path: Path,
+      maxBytes: Long,
+    ): String? = null
   }
 
   private class InMemoryStore(
@@ -63,27 +76,34 @@ class SharedReviewEvidenceResolutionTest {
       derivations++
       val derivation = deriver.derive(request.checkpoint)
       val payload = if (corruptPayload) "corrupted cache entry" else derivation.diffPayload
-      val resolution = FeatureTaskRuntimeSharedEvidenceResolution(
-        artifact = FeatureTaskRuntimeSharedEvidenceArtifact(
-          fingerprint = fingerprint,
-          baseRef = derivation.baseRef,
-          headRef = derivation.headRef,
-          files = derivation.files,
-          hunks = derivation.hunks,
-          diffPayload = FeatureTaskRuntimeSharedEvidenceDiffPayloadRef("diff.patch", payload.length.toLong()),
-        ),
-        diffPayload = payload,
-        storePath = ".skill-bill/run-evidence/${request.workflowId}/$fingerprint",
-      )
+      val resolution =
+        FeatureTaskRuntimeSharedEvidenceResolution(
+          artifact =
+            FeatureTaskRuntimeSharedEvidenceArtifact(
+              fingerprint = fingerprint,
+              baseRef = derivation.baseRef,
+              headRef = derivation.headRef,
+              files = derivation.files,
+              hunks = derivation.hunks,
+              diffPayload = FeatureTaskRuntimeSharedEvidenceDiffPayloadRef("diff.patch", payload.length.toLong()),
+            ),
+          diffPayload = payload,
+          storePath = ".skill-bill/run-evidence/${request.workflowId}/$fingerprint",
+        )
       stored[fingerprint] = resolution
       return resolution
     }
   }
 
-  private fun branchGit(shas: List<String>, parents: Map<String, String>, diffs: Map<String, String>): FakeGit {
-    val responses = mutableMapOf<String, String?>(
-      "git rev-list --first-parent --reverse base..head" to shas.joinToString("\n"),
-    )
+  private fun branchGit(
+    shas: List<String>,
+    parents: Map<String, String>,
+    diffs: Map<String, String>,
+  ): FakeGit {
+    val responses =
+      mutableMapOf<String, String?>(
+        "git rev-list --first-parent --reverse base..head" to shas.joinToString("\n"),
+      )
     shas.forEach { sha ->
       val parent = parents.getValue(sha)
       responses["git show -s --format=%P%n%s $sha"] = "$parent\nsubject $sha"
@@ -121,10 +141,11 @@ class SharedReviewEvidenceResolutionTest {
     val reads = mutableListOf<String>()
 
     val derived = resolve(store, first, aggregate, aggregateReads = reads)
-    val lanes = (1..4).map {
-      val lane = twoCommitGit().first
-      resolve(store, lane, aggregate, aggregateReads = reads) to lane
-    }
+    val lanes =
+      (1..4).map {
+        val lane = twoCommitGit().first
+        resolve(store, lane, aggregate, aggregateReads = reads) to lane
+      }
 
     assertEquals(1, store.derivations)
     assertEquals(1, reads.size)
@@ -137,15 +158,17 @@ class SharedReviewEvidenceResolutionTest {
     val (git, aggregate) = twoCommitGit()
     val parsed = ReviewDiffEvidence.parse(aggregate)
 
-    val inLine = SharedReviewEvidenceProjection.project(
-      resolve(FeatureTaskRuntimeSharedEvidenceResolverPort.NONE, git, aggregate).sequence,
-      parsed,
-    )
+    val inLine =
+      SharedReviewEvidenceProjection.project(
+        resolve(FeatureTaskRuntimeSharedEvidenceResolverPort.NONE, git, aggregate).sequence,
+        parsed,
+      )
     resolve(store, twoCommitGit().first, aggregate)
-    val fromStore = SharedReviewEvidenceProjection.project(
-      resolve(store, twoCommitGit().first, aggregate).sequence,
-      parsed,
-    )
+    val fromStore =
+      SharedReviewEvidenceProjection.project(
+        resolve(store, twoCommitGit().first, aggregate).sequence,
+        parsed,
+      )
 
     assertEquals(inLine.units.map { it.commitUnitId }, fromStore.units.map { it.commitUnitId })
     assertEquals(inLine.units.flatMap { it.hunkIds }, fromStore.units.flatMap { it.hunkIds })
@@ -156,12 +179,13 @@ class SharedReviewEvidenceResolutionTest {
   @Test fun `every synthetic source keeps its placeholder identity and sole-unit ordering`() {
     val aggregate = diffFor("src/A.kt", "alpha")
     val parsed = ReviewDiffEvidence.parse(aggregate)
-    val cases = listOf(
-      Triple(ParallelReviewScope.STAGED, false, ReviewCommitSource.SYNTHETIC_WORKING_TREE),
-      Triple(ParallelReviewScope.UNCOMMITTED, false, ReviewCommitSource.SYNTHETIC_WORKING_TREE),
-      Triple(ParallelReviewScope.BRANCH, true, ReviewCommitSource.SYNTHETIC_SUPPLIED_DIFF),
-      Triple(ParallelReviewScope.PR, false, ReviewCommitSource.SYNTHETIC_AGGREGATE_PR_DIFF),
-    )
+    val cases =
+      listOf(
+        Triple(ParallelReviewScope.STAGED, false, ReviewCommitSource.SYNTHETIC_WORKING_TREE),
+        Triple(ParallelReviewScope.UNCOMMITTED, false, ReviewCommitSource.SYNTHETIC_WORKING_TREE),
+        Triple(ParallelReviewScope.BRANCH, true, ReviewCommitSource.SYNTHETIC_SUPPLIED_DIFF),
+        Triple(ParallelReviewScope.PR, false, ReviewCommitSource.SYNTHETIC_AGGREGATE_PR_DIFF),
+      )
 
     cases.forEach { (scope, supplied, expected) ->
       val store = InMemoryStore()
@@ -235,15 +259,16 @@ class SharedReviewEvidenceResolutionTest {
     resolve(store, git, aggregate)
 
     val otherGit = FakeGit(mapOf("git rev-list --first-parent --reverse base..other-head" to ""))
-    val otherRange = SharedReviewEvidenceResolution(store, otherGit).resolve(
-      SharedReviewEvidenceQuery(
-        repoRoot = repoRoot,
-        workflowId = "wf-1",
-        scope = ParallelReviewScope.BRANCH,
-        range = ReviewCommitRange("base", "other-head"),
-        suppliedDiff = false,
-      ),
-    ) { aggregate }
+    val otherRange =
+      SharedReviewEvidenceResolution(store, otherGit).resolve(
+        SharedReviewEvidenceQuery(
+          repoRoot = repoRoot,
+          workflowId = "wf-1",
+          scope = ParallelReviewScope.BRANCH,
+          range = ReviewCommitRange("base", "other-head"),
+          suppliedDiff = false,
+        ),
+      ) { aggregate }
 
     assertEquals(2, store.derivations)
     assertNotEquals("head", otherRange.sequence.headRevision)
@@ -253,12 +278,13 @@ class SharedReviewEvidenceResolutionTest {
     val store = InMemoryStore()
     val (git, aggregate) = twoCommitGit()
     val standalone = resolve(store, git, aggregate, queryOf(workflowId = "code-review"))
-    val featureTask = resolve(
-      InMemoryStore(),
-      twoCommitGit().first,
-      aggregate,
-      queryOf(workflowId = "wftr-1"),
-    )
+    val featureTask =
+      resolve(
+        InMemoryStore(),
+        twoCommitGit().first,
+        aggregate,
+        queryOf(workflowId = "wftr-1"),
+      )
     val standalonePath = checkNotNull(standalone.storePath)
     val featureTaskPath = checkNotNull(featureTask.storePath)
     assertTrue(standalonePath.startsWith(".skill-bill/run-evidence/code-review/"))

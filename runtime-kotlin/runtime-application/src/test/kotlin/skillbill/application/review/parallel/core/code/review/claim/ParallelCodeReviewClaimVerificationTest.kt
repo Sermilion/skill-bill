@@ -21,18 +21,20 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ParallelCodeReviewClaimVerificationTest {
-  private val pack = sparseReviewPack(
-    slug = "kotlin",
-    requiredArea = "architecture",
-    pathAreas = mapOf("testing" to listOf("src/test/")),
-  )
+  private val pack =
+    sparseReviewPack(
+      slug = "kotlin",
+      requiredArea = "architecture",
+      pathAreas = mapOf("testing" to listOf("src/test/")),
+    )
 
   @Test
   fun `every merged finding at every severity is verified in inline and delegated`() {
-    val modes = listOf(
-      CodeReviewExecutionMode.INLINE to inlineConfig(),
-      CodeReviewExecutionMode.DELEGATED to delegatedConfig(),
-    )
+    val modes =
+      listOf(
+        CodeReviewExecutionMode.INLINE to inlineConfig(),
+        CodeReviewExecutionMode.DELEGATED to delegatedConfig(),
+      )
     modes.forEach { (mode, config) ->
       val recorder = ReviewRecorder()
       reviewHarness(config, recorder).run(harnessRequest(reviewRunId = "verify-$mode", codeReviewMode = mode))
@@ -110,11 +112,12 @@ class ParallelCodeReviewClaimVerificationTest {
   @Test
   fun `prose claims still launch verification when register admission is empty`() {
     val recorder = ReviewRecorder()
-    val prose = """
+    val prose =
+      """
       The review found a missing validation branch.
       [F-001] Major | architecture | path="src/Main.kt" | line=1 | validation is missing
       verdict: changes_requested
-    """.trimIndent()
+      """.trimIndent()
 
     reviewHarness(
       verificationConfig(
@@ -153,43 +156,52 @@ class ParallelCodeReviewClaimVerificationTest {
     val recorder = ReviewRecorder()
     recorder.failStageDegradationWrite = true
 
-    val result = reviewHarness(
-      verificationConfig(paths = listOf("src/Main.kt"), findings = ""),
-      recorder,
-    ).run(harnessRequest(reviewRunId = RUN_ID, codeReviewMode = CodeReviewExecutionMode.DELEGATED))
+    val result =
+      reviewHarness(
+        verificationConfig(paths = listOf("src/Main.kt"), findings = ""),
+        recorder,
+      ).run(harnessRequest(reviewRunId = RUN_ID, codeReviewMode = CodeReviewExecutionMode.DELEGATED))
 
     assertTrue(recorder.stageDegradations.isEmpty())
     assertTrue(result.mergeResult.findings.isEmpty())
   }
 
-  private fun delegatedRequest() = harnessRequest(
-    reviewRunId = RUN_ID,
-    codeReviewMode = CodeReviewExecutionMode.DELEGATED,
-  )
+  private fun delegatedRequest() =
+    harnessRequest(
+      reviewRunId = RUN_ID,
+      codeReviewMode = CodeReviewExecutionMode.DELEGATED,
+    )
 
   private fun delegatedConfig(): ReviewHarnessConfig = verificationConfig()
 
   private fun inlineConfig(): ReviewHarnessConfig = verificationConfig()
 
-  private fun architectureOnlyConfig(): ReviewHarnessConfig = verificationConfig(
-    paths = listOf("src/Main.kt"),
-    findings = ARCHITECTURE_FINDING,
-  )
+  private fun architectureOnlyConfig(): ReviewHarnessConfig =
+    verificationConfig(
+      paths = listOf("src/Main.kt"),
+      findings = ARCHITECTURE_FINDING,
+    )
 
-  private fun architectureAndTestingConfig(): ReviewHarnessConfig = verificationConfig(
-    paths = listOf("src/Main.kt", "src/test/AppTest.kt"),
-    findings = TESTING_FINDING,
-  )
+  private fun architectureAndTestingConfig(): ReviewHarnessConfig =
+    verificationConfig(
+      paths = listOf("src/Main.kt", "src/test/AppTest.kt"),
+      findings = TESTING_FINDING,
+    )
 
-  private fun verificationConfig(): ReviewHarnessConfig = verificationConfig(
-    paths = listOf("src/Main.kt", "src/test/AppTest.kt"),
-    findings = FINDINGS,
-  )
+  private fun verificationConfig(): ReviewHarnessConfig =
+    verificationConfig(
+      paths = listOf("src/Main.kt", "src/test/AppTest.kt"),
+      findings = FINDINGS,
+    )
 
-  private fun verificationConfig(paths: List<String>, findings: String): ReviewHarnessConfig {
-    val shas = paths.indices.map { index ->
-      if (index == paths.lastIndex) HARNESS_HEAD_REVISION else "c$index"
-    }
+  private fun verificationConfig(
+    paths: List<String>,
+    findings: String,
+  ): ReviewHarnessConfig {
+    val shas =
+      paths.indices.map { index ->
+        if (index == paths.lastIndex) HARNESS_HEAD_REVISION else "c$index"
+      }
     return ReviewHarnessConfig(
       manifests = listOf(pack),
       diff = diffForPaths(*paths.toTypedArray()),
@@ -200,9 +212,10 @@ class ParallelCodeReviewClaimVerificationTest {
           else -> RecordedWorkerResponse()
         }
       },
-      commits = paths.mapIndexed { index, path ->
-        RecordedCommit(shas[index], "commit touching $path", diffForPaths(path))
-      },
+      commits =
+        paths.mapIndexed { index, path ->
+          RecordedCommit(shas[index], "commit touching $path", diffForPaths(path))
+        },
     )
   }
 

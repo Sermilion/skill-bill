@@ -41,9 +41,10 @@ class AgentLauncherCliTest {
 
   @Test
   fun `copilot is not a supported install agent`() {
-    val error = assertFailsWith<IllegalArgumentException> {
-      InstallAgent.fromId("copilot")
-    }
+    val error =
+      assertFailsWith<IllegalArgumentException> {
+        InstallAgent.fromId("copilot")
+      }
     assertContains(error.message.orEmpty(), "Unknown agent 'copilot'")
   }
 

@@ -37,25 +37,27 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   @Test
   fun `broker bind failure emits unbound degradation and a non-success lane`() {
     val recorder = ReviewRecorder()
-    val result = reviewHarness(
-      ReviewHarnessConfig(
-        manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
-        diff = diffForPaths("src/Repo.kt"),
-        evidenceBrokerFactory = ReviewEvidenceBrokerFactory { error("broker construction failed") },
-      ),
-      recorder,
-    ).run(
-      harnessRequest(
-        reviewRunId = "rvw-195-unbound",
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ),
-    )
+    val result =
+      reviewHarness(
+        ReviewHarnessConfig(
+          manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
+          diff = diffForPaths("src/Repo.kt"),
+          evidenceBrokerFactory = ReviewEvidenceBrokerFactory { error("broker construction failed") },
+        ),
+        recorder,
+      ).run(
+        harnessRequest(
+          reviewRunId = "rvw-195-unbound",
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+        ),
+      )
 
     assertFalse(result.lane1.success)
     assertEquals("governed evidence broker construction failed", result.lane1.failureReason)
-    val unbound = recorder.stageDegradations.filter {
-      it.reason == ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNBOUND_BROKER
-    }
+    val unbound =
+      recorder.stageDegradations.filter {
+        it.reason == ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNBOUND_BROKER
+      }
     assertEquals(1, unbound.size)
     assertEquals(ReviewEvidenceBoundaryAccounting.GOVERNED_EVIDENCE_SEAM, unbound.single().seam)
     assertEquals("unbound", unbound.single().actual)
@@ -64,32 +66,35 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   @Test
   fun `endpoint bind failure emits the unbound degradation and launches nothing`() {
     val recorder = ReviewRecorder()
-    val result = reviewHarness(
-      ReviewHarnessConfig(
-        manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
-        diff = diffForPaths("src/Repo.kt"),
-        evidenceEndpointBinder = object : GovernedReviewEvidenceEndpointBinder {
-          override fun bind(
-            lane: String,
-            broker: ReviewEvidenceBroker,
-            onEvidenceRead: (() -> Unit)?,
-          ): GovernedReviewEvidenceEndpointHandle = error("endpoint bind failed")
-        },
-        parentLaunch = { error("a governed review must not launch when its evidence endpoint is unbound") },
-      ),
-      recorder,
-    ).run(
-      harnessRequest(
-        reviewRunId = "rvw-195-endpoint-unbound",
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ),
-    )
+    val result =
+      reviewHarness(
+        ReviewHarnessConfig(
+          manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
+          diff = diffForPaths("src/Repo.kt"),
+          evidenceEndpointBinder =
+            object : GovernedReviewEvidenceEndpointBinder {
+              override fun bind(
+                lane: String,
+                broker: ReviewEvidenceBroker,
+                onEvidenceRead: (() -> Unit)?,
+              ): GovernedReviewEvidenceEndpointHandle = error("endpoint bind failed")
+            },
+          parentLaunch = { error("a governed review must not launch when its evidence endpoint is unbound") },
+        ),
+        recorder,
+      ).run(
+        harnessRequest(
+          reviewRunId = "rvw-195-endpoint-unbound",
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+        ),
+      )
 
     assertFalse(result.lane1.success)
     assertEquals("governed evidence broker endpoint failed", result.lane1.failureReason)
-    val unbound = recorder.stageDegradations.filter {
-      it.reason == ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNBOUND_BROKER
-    }
+    val unbound =
+      recorder.stageDegradations.filter {
+        it.reason == ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNBOUND_BROKER
+      }
     assertEquals(1, unbound.size)
     assertEquals(ReviewEvidenceBoundaryAccounting.GOVERNED_EVIDENCE_SEAM, unbound.single().seam)
   }
@@ -111,9 +116,10 @@ class ParallelCodeReviewEvidenceBoundaryTest {
       ),
     )
 
-    val unexercised = recorder.stageDegradations.filter {
-      it.reason == ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNEXERCISED
-    }
+    val unexercised =
+      recorder.stageDegradations.filter {
+        it.reason == ReviewStageDegradationReason.EVIDENCE_BOUNDARY_UNEXERCISED
+      }
     assertEquals(1, unexercised.size)
     assertEquals(ReviewEvidenceBoundaryAccounting.GOVERNED_EVIDENCE_SEAM, unexercised.single().seam)
     assertEquals("authorized_reads=0", unexercised.single().actual)
@@ -124,26 +130,29 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   @Test
   fun `a lane reporting an authorized read with zero evidence bytes suppresses the unexercised-boundary record`() {
     val recorder = ReviewRecorder()
-    val defaults = ReviewHarnessConfig(
-      manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
-      diff = diffForPaths("src/Repo.kt"),
-    )
-    val result = reviewHarness(
-      defaults.copy(
-        evidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
-          val inner = defaults.evidenceBrokerFactory.brokerFor(binding)
-          object : ReviewEvidenceBroker by inner {
-            override fun accounting() = inner.accounting().copy(authorizedReadCount = 1, evidenceBytes = 0)
-          }
-        },
-      ),
-      recorder,
-    ).run(
-      harnessRequest(
-        reviewRunId = "rvw-195-zero-byte",
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ),
-    )
+    val defaults =
+      ReviewHarnessConfig(
+        manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
+        diff = diffForPaths("src/Repo.kt"),
+      )
+    val result =
+      reviewHarness(
+        defaults.copy(
+          evidenceBrokerFactory =
+            ReviewEvidenceBrokerFactory { binding ->
+              val inner = defaults.evidenceBrokerFactory.brokerFor(binding)
+              object : ReviewEvidenceBroker by inner {
+                override fun accounting() = inner.accounting().copy(authorizedReadCount = 1, evidenceBytes = 0)
+              }
+            },
+        ),
+        recorder,
+      ).run(
+        harnessRequest(
+          reviewRunId = "rvw-195-zero-byte",
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+        ),
+      )
 
     assertEquals(1, result.lane1.accounting?.authorizedReadCount)
     assertEquals(0L, result.lane1.accounting?.evidenceBytes)
@@ -159,19 +168,20 @@ class ParallelCodeReviewEvidenceBoundaryTest {
     val recorder = ReviewRecorder()
     val rejectedLocation =
       "Outside path noted; no register gate.\nverdict: approved"
-    val result = reviewHarness(
-      ReviewHarnessConfig(
-        manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
-        diff = diffForPaths("src/Repo.kt"),
-        response = { RecordedWorkerResponse(stdout = rejectedLocation) },
-      ),
-      recorder,
-    ).run(
-      harnessRequest(
-        reviewRunId = "rvw-195-rejected",
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ),
-    )
+    val result =
+      reviewHarness(
+        ReviewHarnessConfig(
+          manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
+          diff = diffForPaths("src/Repo.kt"),
+          response = { RecordedWorkerResponse(stdout = rejectedLocation) },
+        ),
+        recorder,
+      ).run(
+        harnessRequest(
+          reviewRunId = "rvw-195-rejected",
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+        ),
+      )
 
     assertTrue(result.lane1.success)
     assertEquals(emptyList(), result.mergeResult.findings)
@@ -191,39 +201,43 @@ class ParallelCodeReviewEvidenceBoundaryTest {
     Files.createFile(socketPath)
     Files.createFile(configPath)
 
-    val result = reviewHarness(
-      ReviewHarnessConfig(
-        manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
-        diff = diffForPaths("src/Repo.kt"),
-        evidenceEndpointBinder = object : GovernedReviewEvidenceEndpointBinder {
-          override fun bind(
-            lane: String,
-            broker: ReviewEvidenceBroker,
-            onEvidenceRead: (() -> Unit)?,
-          ): GovernedReviewEvidenceEndpointHandle = object : GovernedReviewEvidenceEndpointHandle {
-            override val descriptor = GovernedReviewEvidenceEndpointDescriptor(
-              lane = lane,
-              socketPath = socketPath,
-              mcpConfigPath = configPath,
-              token = "unavailable-cli",
-            )
+    val result =
+      reviewHarness(
+        ReviewHarnessConfig(
+          manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
+          diff = diffForPaths("src/Repo.kt"),
+          evidenceEndpointBinder =
+            object : GovernedReviewEvidenceEndpointBinder {
+              override fun bind(
+                lane: String,
+                broker: ReviewEvidenceBroker,
+                onEvidenceRead: (() -> Unit)?,
+              ): GovernedReviewEvidenceEndpointHandle =
+                object : GovernedReviewEvidenceEndpointHandle {
+                  override val descriptor =
+                    GovernedReviewEvidenceEndpointDescriptor(
+                      lane = lane,
+                      socketPath = socketPath,
+                      mcpConfigPath = configPath,
+                      token = "unavailable-cli",
+                    )
 
-            override fun close() {
-              Files.deleteIfExists(socketPath)
-              Files.deleteIfExists(configPath)
-              Files.deleteIfExists(directory)
-            }
-          }
-        },
-        response = { RecordedWorkerResponse(spawnFailed = true, processStarted = false, exitStatus = null) },
-      ),
-      ReviewRecorder(),
-    ).run(
-      harnessRequest(
-        reviewRunId = "rvw-195-unavailable-cli",
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ),
-    )
+                  override fun close() {
+                    Files.deleteIfExists(socketPath)
+                    Files.deleteIfExists(configPath)
+                    Files.deleteIfExists(directory)
+                  }
+                }
+            },
+          response = { RecordedWorkerResponse(spawnFailed = true, processStarted = false, exitStatus = null) },
+        ),
+        ReviewRecorder(),
+      ).run(
+        harnessRequest(
+          reviewRunId = "rvw-195-unavailable-cli",
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+        ),
+      )
 
     assertFalse(result.lane1.success)
     assertFalse(Files.exists(socketPath))
@@ -233,24 +247,25 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   @Test
   fun `unsupported provider omits unbound-broker and unexercised evidence records`() {
     val recorder = ReviewRecorder()
-    val result = reviewHarness(
-      ReviewHarnessConfig(
-        manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
-        diff = diffForPaths("src/Repo.kt"),
-        parentLaunch = { request ->
-          UnsupportedAgentRunLaunch(
-            agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-            reason = "not configured for this repo",
-          )
-        },
-      ),
-      recorder,
-    ).run(
-      harnessRequest(
-        reviewRunId = "rvw-195-unsupported",
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ),
-    )
+    val result =
+      reviewHarness(
+        ReviewHarnessConfig(
+          manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
+          diff = diffForPaths("src/Repo.kt"),
+          parentLaunch = { request ->
+            UnsupportedAgentRunLaunch(
+              agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+              reason = "not configured for this repo",
+            )
+          },
+        ),
+        recorder,
+      ).run(
+        harnessRequest(
+          reviewRunId = "rvw-195-unsupported",
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+        ),
+      )
 
     assertFalse(result.lane1.success)
     assertEquals(UNSUPPORTED_PROVIDER_TERMINAL_STATUS.wireValue, result.lane1.accounting?.terminalStatus)
@@ -266,26 +281,29 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   fun `bound unread parent lane fails without claiming the broker was unbound`() {
     val recorder = ReviewRecorder()
     val binds = AtomicInteger()
-    val defaults = ReviewHarnessConfig(
-      manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
-      diff = diffForPaths("src/Repo.kt"),
-      simulateEvidenceReads = false,
-      response = { RecordedWorkerResponse(stdout = "verdict: approved") },
-    )
-    val result = reviewHarness(
-      defaults.copy(
-        evidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
-          binds.incrementAndGet()
-          defaults.evidenceBrokerFactory.brokerFor(binding)
-        },
-      ),
-      recorder,
-    ).run(
-      harnessRequest(
-        reviewRunId = "rvw-195-mixed-lanes",
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ),
-    )
+    val defaults =
+      ReviewHarnessConfig(
+        manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
+        diff = diffForPaths("src/Repo.kt"),
+        simulateEvidenceReads = false,
+        response = { RecordedWorkerResponse(stdout = "verdict: approved") },
+      )
+    val result =
+      reviewHarness(
+        defaults.copy(
+          evidenceBrokerFactory =
+            ReviewEvidenceBrokerFactory { binding ->
+              binds.incrementAndGet()
+              defaults.evidenceBrokerFactory.brokerFor(binding)
+            },
+        ),
+        recorder,
+      ).run(
+        harnessRequest(
+          reviewRunId = "rvw-195-mixed-lanes",
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+        ),
+      )
 
     assertEquals(1, binds.get(), "single-agent review binds one parent evidence surface")
     assertFalse(result.lane1.success)
@@ -299,20 +317,21 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   @Test
   fun `a lane reporting approval after reading no evidence fails`() {
     val recorder = ReviewRecorder()
-    val result = reviewHarness(
-      ReviewHarnessConfig(
-        manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
-        diff = diffForPaths("src/Repo.kt"),
-        simulateEvidenceReads = false,
-        response = { RecordedWorkerResponse(stdout = "No issues noted.\nverdict: approved") },
-      ),
-      recorder,
-    ).run(
-      harnessRequest(
-        reviewRunId = "rvw-198-unread-clean",
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ),
-    )
+    val result =
+      reviewHarness(
+        ReviewHarnessConfig(
+          manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
+          diff = diffForPaths("src/Repo.kt"),
+          simulateEvidenceReads = false,
+          response = { RecordedWorkerResponse(stdout = "No issues noted.\nverdict: approved") },
+        ),
+        recorder,
+      ).run(
+        harnessRequest(
+          reviewRunId = "rvw-198-unread-clean",
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+        ),
+      )
 
     assertEquals(0, result.lane1.accounting?.authorizedReadCount)
     assertFalse(result.lane1.success)
@@ -324,22 +343,26 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   fun `inline parent binds one evidence surface covering every routed area it was selected for`() {
     val recorder = ReviewRecorder()
     val bound = mutableListOf<Pair<ReviewEvidenceBrokerBinding, ReviewEvidenceBroker>>()
-    val defaults = ReviewHarnessConfig(
-      manifests = listOf(
-        reviewPack("kotlin", listOf("architecture", "security"), routingSignals = listOf("*.kt")).copy(
-          laneConditions = mapOf(
-            "architecture" to ReviewLaneCondition(path = listOf("src/core/")),
-            "security" to ReviewLaneCondition(path = listOf("src/secure/")),
+    val defaults =
+      ReviewHarnessConfig(
+        manifests =
+          listOf(
+            reviewPack("kotlin", listOf("architecture", "security"), routingSignals = listOf("*.kt")).copy(
+              laneConditions =
+                mapOf(
+                  "architecture" to ReviewLaneCondition(path = listOf("src/core/")),
+                  "security" to ReviewLaneCondition(path = listOf("src/secure/")),
+                ),
+            ),
           ),
-        ),
-      ),
-      diff = diffForPaths("src/core/Repo.kt", "src/secure/Auth.kt"),
-    )
+        diff = diffForPaths("src/core/Repo.kt", "src/secure/Auth.kt"),
+      )
     reviewHarness(
       defaults.copy(
-        evidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
-          defaults.evidenceBrokerFactory.brokerFor(binding).also { bound += binding to it }
-        },
+        evidenceBrokerFactory =
+          ReviewEvidenceBrokerFactory { binding ->
+            defaults.evidenceBrokerFactory.brokerFor(binding).also { bound += binding to it }
+          },
       ),
       recorder,
     ).run(
@@ -371,25 +394,30 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   fun `inline parent evidence allowance equals sum of per-lane derived caps not base times lane count`() {
     val recorder = ReviewRecorder()
     val bound = mutableListOf<ReviewEvidenceBrokerBinding>()
-    val defaults = ReviewHarnessConfig(
-      manifests = listOf(
-        reviewPack("kotlin", listOf("architecture", "security"), routingSignals = listOf("*.kt")).copy(
-          laneConditions = mapOf(
-            "architecture" to ReviewLaneCondition(path = listOf("src/core/")),
-            "security" to ReviewLaneCondition(path = listOf("src/secure/")),
+    val defaults =
+      ReviewHarnessConfig(
+        manifests =
+          listOf(
+            reviewPack("kotlin", listOf("architecture", "security"), routingSignals = listOf("*.kt")).copy(
+              laneConditions =
+                mapOf(
+                  "architecture" to ReviewLaneCondition(path = listOf("src/core/")),
+                  "security" to ReviewLaneCondition(path = listOf("src/secure/")),
+                ),
+            ),
           ),
-        ),
-      ),
-      diff = diffForChanges(
-        "src/core/Repo.kt" to "x".repeat(200_000),
-        "src/secure/Auth.kt" to "ok",
-      ),
-    )
+        diff =
+          diffForChanges(
+            "src/core/Repo.kt" to "x".repeat(200_000),
+            "src/secure/Auth.kt" to "ok",
+          ),
+      )
     reviewHarness(
       defaults.copy(
-        evidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
-          defaults.evidenceBrokerFactory.brokerFor(binding).also { bound += binding }
-        },
+        evidenceBrokerFactory =
+          ReviewEvidenceBrokerFactory { binding ->
+            defaults.evidenceBrokerFactory.brokerFor(binding).also { bound += binding }
+          },
       ),
       recorder,
     ).run(
@@ -408,22 +436,24 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   @Test
   fun `broker lane evidence refusal reports incomplete naming only denied units`() {
     val recorder = ReviewRecorder()
-    val result = reviewHarness(
-      ReviewHarnessConfig(
-        manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
-        diff = diffForChanges(
-          "src/A.kt" to "a",
-          "src/B.kt" to "b".repeat(200),
+    val result =
+      reviewHarness(
+        ReviewHarnessConfig(
+          manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
+          diff =
+            diffForChanges(
+              "src/A.kt" to "a",
+              "src/B.kt" to "b".repeat(200),
+            ),
+          evidenceBrokerFactory = brokerDenyingUnit("src/B.kt"),
         ),
-        evidenceBrokerFactory = brokerDenyingUnit("src/B.kt"),
-      ),
-      recorder,
-    ).run(
-      harnessRequest(
-        reviewRunId = "rvw-201-broker-refusal",
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ),
-    )
+        recorder,
+      ).run(
+        harnessRequest(
+          reviewRunId = "rvw-201-broker-refusal",
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+        ),
+      )
 
     assertTrue(result.lane1.success)
     val accounting = assertNotNull(result.lane1.accounting)
@@ -439,18 +469,19 @@ class ParallelCodeReviewEvidenceBoundaryTest {
   @Test
   fun `successful governed run with no broker refusal stays complete for lane evidence bytes`() {
     val recorder = ReviewRecorder()
-    val result = reviewHarness(
-      ReviewHarnessConfig(
-        manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
-        diff = diffForPaths("src/Repo.kt"),
-      ),
-      recorder,
-    ).run(
-      harnessRequest(
-        reviewRunId = "rvw-201-broker-clean",
-        codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ),
-    )
+    val result =
+      reviewHarness(
+        ReviewHarnessConfig(
+          manifests = listOf(reviewPack("kotlin", listOf("architecture"), routingSignals = listOf("*.kt"))),
+          diff = diffForPaths("src/Repo.kt"),
+        ),
+        recorder,
+      ).run(
+        harnessRequest(
+          reviewRunId = "rvw-201-broker-clean",
+          codeReviewMode = CodeReviewExecutionMode.INLINE,
+        ),
+      )
 
     assertTrue(result.lane1.success)
     val accounting = assertNotNull(result.lane1.accounting)

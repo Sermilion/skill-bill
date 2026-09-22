@@ -36,8 +36,9 @@ class GoalRunnerPurgeCoordinator(
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 ) {
   fun purge(request: GoalRunnerPurgeRequest): GoalRunnerPurgeResult {
-    val state = loadPurgeState(request)
-      ?: return missingPurgeResult(request.issueKey.trim().uppercase())
+    val state =
+      loadPurgeState(request)
+        ?: return missingPurgeResult(request.issueKey.trim().uppercase())
     state.refusal?.let { return it }
     val unlaunched = requireNotNull(state.sourceManifest).resetManifest(hard = true)
     val bundle = buildPurgeSpecBundle(state.repoRoot, unlaunched, requireNotNull(state.manifestPath))
@@ -71,13 +72,14 @@ class GoalRunnerPurgeCoordinator(
         return PurgeState(repoRoot, issueKey, parentWorkflowId, childWorkflowIds, null, null, it)
       }
     }
-    val diskCandidates = findMatchingDecompositionManifests(
-      repoRoot = repoRoot,
-      issueKey = issueKey,
-      fileStore = manifestFileStore,
-      validator = manifestValidator,
-      recoverPending = false,
-    )
+    val diskCandidates =
+      findMatchingDecompositionManifests(
+        repoRoot = repoRoot,
+        issueKey = issueKey,
+        fileStore = manifestFileStore,
+        validator = manifestValidator,
+        recoverPending = false,
+      )
     if (parentWorkflowId == null && diskCandidates.isEmpty()) return null
     return PurgeState(
       repoRoot = repoRoot,
@@ -85,21 +87,26 @@ class GoalRunnerPurgeCoordinator(
       parentWorkflowId = parentWorkflowId,
       childWorkflowIds = childWorkflowIds,
       sourceManifest = loaded?.manifest ?: diskCandidates.first().manifest,
-      manifestPath = diskCandidates.firstOrNull()?.path
-        ?: error("A decomposition manifest path is required to restore goal '$issueKey'."),
+      manifestPath =
+        diskCandidates.firstOrNull()?.path
+          ?: error("A decomposition manifest path is required to restore goal '$issueKey'."),
       refusal = null,
     )
   }
 
-  private fun missingPurgeResult(issueKey: String) = GoalRunnerPurgeResult(
-    issueKey = issueKey,
-    parentWorkflowId = null,
-    deletedChildWorkflowIds = emptyList(),
-    specRestored = false,
-    refusalReason = "No decomposed goal or feature-spec directory exists for '$issueKey'.",
-  )
+  private fun missingPurgeResult(issueKey: String) =
+    GoalRunnerPurgeResult(
+      issueKey = issueKey,
+      parentWorkflowId = null,
+      deletedChildWorkflowIds = emptyList(),
+      specRestored = false,
+      refusalReason = "No decomposed goal or feature-spec directory exists for '$issueKey'.",
+    )
 
-  private fun purgeDatabaseAndRestoreOnFailure(parentWorkflowId: String, bundle: PurgeSpecBundle) {
+  private fun purgeDatabaseAndRestoreOnFailure(
+    parentWorkflowId: String,
+    bundle: PurgeSpecBundle,
+  ) {
     runCatching {
       manifestStore.purgeDecomposedGoal(parentWorkflowId)
     }.onFailure { failure ->
@@ -133,12 +140,13 @@ class GoalRunnerPurgeCoordinator(
     childWorkflowIds: List<String>,
     liveness: ExecutionLiveness,
   ): GoalRunnerPurgeResult {
-    val reason = when (liveness) {
-      ExecutionLiveness.LIVE -> "Goal '$issueKey' is live; refuse purge while a parent or child worker is active."
-      ExecutionLiveness.UNKNOWN ->
-        "Goal '$issueKey' has unknown execution liveness; refuse purge until liveness is known."
-      ExecutionLiveness.IDLE -> "Goal '$issueKey' is idle."
-    }
+    val reason =
+      when (liveness) {
+        ExecutionLiveness.LIVE -> "Goal '$issueKey' is live; refuse purge while a parent or child worker is active."
+        ExecutionLiveness.UNKNOWN ->
+          "Goal '$issueKey' has unknown execution liveness; refuse purge until liveness is known."
+        ExecutionLiveness.IDLE -> "Goal '$issueKey' is idle."
+      }
     return GoalRunnerPurgeResult(
       issueKey = issueKey,
       parentWorkflowId = parentWorkflowId,
@@ -148,7 +156,10 @@ class GoalRunnerPurgeCoordinator(
     )
   }
 
-  private fun hasStandaloneSibling(issueKey: String, repoRoot: Path): Boolean {
+  private fun hasStandaloneSibling(
+    issueKey: String,
+    repoRoot: Path,
+  ): Boolean {
     val repositoryIdentity = goalRepositoryIdentity(repoRoot, repositoryEnclosingRootPort)
     return database.read { unitOfWork ->
       unitOfWork.workflowStates.findStandaloneFeatureTaskCandidates(issueKey, repositoryIdentity).isNotEmpty()
@@ -160,12 +171,13 @@ class GoalRunnerPurgeCoordinator(
     unlaunched: DecompositionManifest,
     manifestPath: Path,
   ): PurgeSpecBundle {
-    val manifestYaml = encodeDecompositionManifestYaml(
-      unlaunched,
-      manifestValidator,
-      manifestFileStore,
-      sourceLabel = manifestPath.toString(),
-    )
+    val manifestYaml =
+      encodeDecompositionManifestYaml(
+        unlaunched,
+        manifestValidator,
+        manifestFileStore,
+        sourceLabel = manifestPath.toString(),
+      )
     val writes = mutableListOf<Pair<Path, String>>()
     writes += manifestPath to manifestYaml
     (listOf(unlaunched.parentSpecPath) + unlaunched.subtasks.map { it.specPath }).forEach { relativeSpecPath ->
@@ -173,11 +185,12 @@ class GoalRunnerPurgeCoordinator(
       if (!manifestFileStore.isRegularFile(specPath)) {
         val relative = repoRoot.relativize(specPath).toString().replace('\\', '/')
         val restored = gitOperations.readHeadTrackedFile(repoRoot, relative)
-        val content = when (restored) {
-          is WorkflowGitOperationResult.Ok -> restored.value.orEmpty()
-          is WorkflowGitOperationResult.Failed ->
-            error("Missing spec '$relative' is not tracked at HEAD: ${restored.error}")
-        }
+        val content =
+          when (restored) {
+            is WorkflowGitOperationResult.Ok -> restored.value.orEmpty()
+            is WorkflowGitOperationResult.Failed ->
+              error("Missing spec '$relative' is not tracked at HEAD: ${restored.error}")
+          }
         if (content.isBlank()) {
           error("Tracked spec '$relative' is empty at HEAD.")
         }
@@ -185,23 +198,25 @@ class GoalRunnerPurgeCoordinator(
       }
     }
     val distinctWrites = writes.distinctBy { it.first }
-    val snapshots = distinctWrites.map { (path, _) ->
-      val existed = manifestFileStore.isRegularFile(path)
-      PurgeSpecSnapshot(
-        path = path,
-        existed = existed,
-        content = if (existed) manifestFileStore.readText(path) else null,
-      )
-    }
+    val snapshots =
+      distinctWrites.map { (path, _) ->
+        val existed = manifestFileStore.isRegularFile(path)
+        PurgeSpecSnapshot(
+          path = path,
+          existed = existed,
+          content = if (existed) manifestFileStore.readText(path) else null,
+        )
+      }
     return PurgeSpecBundle(distinctWrites, snapshots)
   }
 
   private fun writePurgeSpecBundle(bundle: PurgeSpecBundle): Boolean {
     if (bundle.writes.isEmpty()) return false
     manifestFileStore.writeBundleAtomically(bundle.writes) {
-      val manifestWrite = bundle.writes.single { (path, _) ->
-        path.fileName.toString() == DECOMPOSITION_MANIFEST_FILENAME
-      }
+      val manifestWrite =
+        bundle.writes.single { (path, _) ->
+          path.fileName.toString() == DECOMPOSITION_MANIFEST_FILENAME
+        }
       manifestValidator.validateYamlTextResult(manifestWrite.second, manifestWrite.first.toString())
         .requireAccepted(manifestWrite.first.toString())
     }

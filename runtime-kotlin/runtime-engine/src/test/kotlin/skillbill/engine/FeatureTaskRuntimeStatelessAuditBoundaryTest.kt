@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeStatelessAuditBoundaryTest {
   @Test
   fun `audit inspects the tree after simplify edits and before review`() {
@@ -26,30 +27,32 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
       Files.writeString(root.resolve("Calculator.kt"), IMPLEMENTATION)
       var simplifyLaunches = 0
       var auditSawSimplifiedTree = false
-      val launcher = RuntimeRecordingLauncher { request ->
-        val phase = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-        when (phase) {
-          "simplify" -> {
-            simplifyLaunches += 1
-            assertEquals(IMPLEMENTATION, Files.readString(root.resolve("Calculator.kt")))
-            Files.writeString(root.resolve("Calculator.kt"), SIMPLIFIED_IMPLEMENTATION)
-            facts(defaultPhaseOutput(request))
+      val launcher =
+        RuntimeRecordingLauncher { request ->
+          val phase = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+          when (phase) {
+            "simplify" -> {
+              simplifyLaunches += 1
+              assertEquals(IMPLEMENTATION, Files.readString(root.resolve("Calculator.kt")))
+              Files.writeString(root.resolve("Calculator.kt"), SIMPLIFIED_IMPLEMENTATION)
+              facts(defaultPhaseOutput(request))
+            }
+            "audit" -> {
+              auditSawSimplifiedTree = Files.readString(root.resolve("Calculator.kt")) == SIMPLIFIED_IMPLEMENTATION
+              facts(auditSatisfiedOutput())
+            }
+            else -> facts(defaultPhaseOutput(request))
           }
-          "audit" -> {
-            auditSawSimplifiedTree = Files.readString(root.resolve("Calculator.kt")) == SIMPLIFIED_IMPLEMENTATION
-            facts(auditSatisfiedOutput())
-          }
-          else -> facts(defaultPhaseOutput(request))
         }
-      }
-      val harness = runnerHarness(
-        RuntimeHarnessConfig(
-          repoRoot = root,
-          acceptanceCriteria = CRITERIA,
-          launcher = launcher,
-          validator = realFeatureTaskRuntimePhaseOutputValidator,
-        ),
-      )
+      val harness =
+        runnerHarness(
+          RuntimeHarnessConfig(
+            repoRoot = root,
+            acceptanceCriteria = CRITERIA,
+            launcher = launcher,
+            validator = realFeatureTaskRuntimePhaseOutputValidator,
+          ),
+        )
 
       val report = harness.runner.run(harness.request())
 
@@ -69,30 +72,32 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
       Files.writeString(root.resolve("Calculator.kt"), "fun twice(value: Int) = value")
       Files.writeString(root.resolve("CalculatorTest.kt"), "fun twiceTest() {}")
       val checked = mutableListOf<String>()
-      val launcher = RuntimeRecordingLauncher { request ->
-        val prompt = requireNotNull(request.skillRunRequest.promptOverride)
-        if (phaseIdFromPrompt(prompt) != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
-        assertFalse(request.skillRunRequest.readOnlyPhase)
-        assertAuditInstructions(prompt)
-        CRITERIA.forEach { criterion ->
-          assertContains(prompt, criterion)
-          checked += criterion
+      val launcher =
+        RuntimeRecordingLauncher { request ->
+          val prompt = requireNotNull(request.skillRunRequest.promptOverride)
+          if (phaseIdFromPrompt(prompt) != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
+          assertFalse(request.skillRunRequest.readOnlyPhase)
+          assertAuditInstructions(prompt)
+          CRITERIA.forEach { criterion ->
+            assertContains(prompt, criterion)
+            checked += criterion
+          }
+          assertEquals("fun twice(value: Int) = value", Files.readString(root.resolve("Calculator.kt")))
+          assertEquals("fun twiceTest() {}", Files.readString(root.resolve("CalculatorTest.kt")))
+          Files.writeString(root.resolve("Calculator.kt"), IMPLEMENTATION)
+          Files.writeString(root.resolve("CalculatorTest.kt"), TEST_SOURCE)
+          inspectBothCriteria(root, checked)
+          facts(auditSatisfiedOutput())
         }
-        assertEquals("fun twice(value: Int) = value", Files.readString(root.resolve("Calculator.kt")))
-        assertEquals("fun twiceTest() {}", Files.readString(root.resolve("CalculatorTest.kt")))
-        Files.writeString(root.resolve("Calculator.kt"), IMPLEMENTATION)
-        Files.writeString(root.resolve("CalculatorTest.kt"), TEST_SOURCE)
-        inspectBothCriteria(root, checked)
-        facts(auditSatisfiedOutput())
-      }
-      val harness = runnerHarness(
-        RuntimeHarnessConfig(
-          repoRoot = root,
-          acceptanceCriteria = CRITERIA,
-          launcher = launcher,
-          validator = realFeatureTaskRuntimePhaseOutputValidator,
-        ),
-      )
+      val harness =
+        runnerHarness(
+          RuntimeHarnessConfig(
+            repoRoot = root,
+            acceptanceCriteria = CRITERIA,
+            launcher = launcher,
+            validator = realFeatureTaskRuntimePhaseOutputValidator,
+          ),
+        )
       val report = harness.runner.run(harness.request())
       assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
       assertEquals(CRITERIA + CRITERIA, checked)
@@ -100,9 +105,10 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
       assertEquals(1, harness.launchedPromptPhaseOrder().count { it == "implement" })
       assertTrue("implement_fix" !in harness.launchedPromptPhaseOrder())
       assertTrue(harness.launchOrder().indexOf("review") > harness.launchOrder().indexOf("audit"))
-      val laterPrompts = launcher.requests.dropWhile {
-        phaseIdFromPrompt(requireNotNull(it.skillRunRequest.promptOverride)) != "audit"
-      }.drop(1).map { requireNotNull(it.skillRunRequest.promptOverride) }
+      val laterPrompts =
+        launcher.requests.dropWhile {
+          phaseIdFromPrompt(requireNotNull(it.skillRunRequest.promptOverride)) != "audit"
+        }.drop(1).map { requireNotNull(it.skillRunRequest.promptOverride) }
       assertTrue(laterPrompts.none { it.contains("from: audit") || it.contains("audit_prose") })
       assertEquals(IMPLEMENTATION, Files.readString(root.resolve("Calculator.kt")))
       assertEquals(TEST_SOURCE, Files.readString(root.resolve("CalculatorTest.kt")))
@@ -124,34 +130,36 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
       Files.writeString(root.resolve("CalculatorTest.kt"), "fun twiceTest() {}")
       val checked = mutableListOf<String>()
       var auditLaunches = 0
-      val launcher = RuntimeRecordingLauncher { request ->
-        val prompt = requireNotNull(request.skillRunRequest.promptOverride)
-        if (phaseIdFromPrompt(prompt) != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
-        auditLaunches += 1
-        CRITERIA.forEach { assertContains(prompt, it) }
-        assertAuditInstructions(prompt)
-        assertFalse(prompt.contains("PRIVATE-PARTIAL-AUDIT"))
-        if (auditLaunches == 1) {
-          assertEquals(IMPLEMENTATION, Files.readString(root.resolve("Calculator.kt")))
-          checked += CRITERIA.first()
-          Files.writeString(root.resolve("CalculatorTest.kt"), TEST_SOURCE)
-          (facts("PRIVATE-PARTIAL-AUDIT") as AgentRunLaunchFacts).copy(
-            exitStatus = 1,
-            stderr = "agent process interrupted after writing the test",
-          )
-        } else {
-          inspectBothCriteria(root, checked)
-          facts(auditSatisfiedOutput())
+      val launcher =
+        RuntimeRecordingLauncher { request ->
+          val prompt = requireNotNull(request.skillRunRequest.promptOverride)
+          if (phaseIdFromPrompt(prompt) != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
+          auditLaunches += 1
+          CRITERIA.forEach { assertContains(prompt, it) }
+          assertAuditInstructions(prompt)
+          assertFalse(prompt.contains("PRIVATE-PARTIAL-AUDIT"))
+          if (auditLaunches == 1) {
+            assertEquals(IMPLEMENTATION, Files.readString(root.resolve("Calculator.kt")))
+            checked += CRITERIA.first()
+            Files.writeString(root.resolve("CalculatorTest.kt"), TEST_SOURCE)
+            (facts("PRIVATE-PARTIAL-AUDIT") as AgentRunLaunchFacts).copy(
+              exitStatus = 1,
+              stderr = "agent process interrupted after writing the test",
+            )
+          } else {
+            inspectBothCriteria(root, checked)
+            facts(auditSatisfiedOutput())
+          }
         }
-      }
-      val harness = runnerHarness(
-        RuntimeHarnessConfig(
-          repoRoot = root,
-          acceptanceCriteria = CRITERIA,
-          launcher = launcher,
-          validator = realFeatureTaskRuntimePhaseOutputValidator,
-        ),
-      )
+      val harness =
+        runnerHarness(
+          RuntimeHarnessConfig(
+            repoRoot = root,
+            acceptanceCriteria = CRITERIA,
+            launcher = launcher,
+            validator = realFeatureTaskRuntimePhaseOutputValidator,
+          ),
+        )
       val interrupted = harness.runner.run(harness.request())
       assertIs<FeatureTaskRuntimeRunReport.Blocked>(interrupted)
       assertEquals("audit", interrupted.lastIncompletePhase)
@@ -162,11 +170,12 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
         FeatureTaskRuntimeFailureDisposition.PROCESS_FAILURE,
         harness.recorder.loadPhaseRecords(WORKFLOW_ID)?.get("audit")?.failureDisposition,
       )
-      val restarted = harness.runner.run(
-        harness.request().copy(
-          runInvariants = harness.request().runInvariants.copy(acceptanceCriteria = listOf(CRITERIA.last())),
-        ),
-      )
+      val restarted =
+        harness.runner.run(
+          harness.request().copy(
+            runInvariants = harness.request().runInvariants.copy(acceptanceCriteria = listOf(CRITERIA.last())),
+          ),
+        )
       assertIs<FeatureTaskRuntimeRunReport.Completed>(restarted)
       assertEquals(2, auditLaunches)
       assertEquals(listOf(CRITERIA.first()) + CRITERIA, checked)
@@ -179,13 +188,15 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
   @Test
   fun `external repair dependency blocks without launching repair or downstream agents`() {
     val reason = "Private SDK is unavailable and its API is required to repair AC-002."
-    val launcher = RuntimeRecordingLauncher { request ->
-      val phase = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-      facts(if (phase == "audit") auditBlockedOutput(reason) else defaultPhaseOutput(request))
-    }
-    val harness = runnerHarness(
-      RuntimeHarnessConfig(launcher = launcher, validator = realFeatureTaskRuntimePhaseOutputValidator),
-    )
+    val launcher =
+      RuntimeRecordingLauncher { request ->
+        val phase = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phase == "audit") auditBlockedOutput(reason) else defaultPhaseOutput(request))
+      }
+    val harness =
+      runnerHarness(
+        RuntimeHarnessConfig(launcher = launcher, validator = realFeatureTaskRuntimePhaseOutputValidator),
+      )
     val result = harness.runner.run(harness.request())
     assertIs<FeatureTaskRuntimeRunReport.Blocked>(result)
     assertEquals("audit", result.lastIncompletePhase)
@@ -230,7 +241,10 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
     assertContains(prompt, "never run a build, a test")
   }
 
-  private fun inspectBothCriteria(root: Path, checked: MutableList<String>) {
+  private fun inspectBothCriteria(
+    root: Path,
+    checked: MutableList<String>,
+  ) {
     assertContains(Files.readString(root.resolve("Calculator.kt")), "value * 2")
     checked += CRITERIA.first()
     assertContains(Files.readString(root.resolve("CalculatorTest.kt")), "assertEquals(6, twice(3))")
@@ -238,13 +252,15 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
   }
 
   private companion object {
-    val CRITERIA = listOf(
-      "AC-007. twice returns twice its input.",
-      "AC-023. A test asserts that twice(3) returns 6.",
-    )
+    val CRITERIA =
+      listOf(
+        "AC-007. twice returns twice its input.",
+        "AC-023. A test asserts that twice(3) returns 6.",
+      )
     const val IMPLEMENTATION = "fun twice(value: Int) = value * 2"
     const val SIMPLIFIED_IMPLEMENTATION = "fun twice(value: Int) = value shl 1"
-    val TEST_SOURCE = """
+    val TEST_SOURCE =
+      """
       import kotlin.test.Test
       import kotlin.test.assertEquals
 
@@ -252,6 +268,6 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
         @Test
         fun twiceTest() { assertEquals(6, twice(3)) }
       }
-    """.trimIndent()
+      """.trimIndent()
   }
 }

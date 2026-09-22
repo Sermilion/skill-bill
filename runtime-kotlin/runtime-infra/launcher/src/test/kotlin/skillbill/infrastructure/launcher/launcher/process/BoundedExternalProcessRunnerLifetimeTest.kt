@@ -17,14 +17,15 @@ class BoundedExternalProcessRunnerLifetimeTest {
   fun `file capture drains stderr without leaving it on a pipe`() {
     val output = Files.createTempFile("skill-bill-bounded-process-stderr-", ".out")
     try {
-      val result = BoundedExternalProcessRunner.run(
-        BoundedExternalProcessRequest(
-          argv = listOf("sh", "-c", "printf stderr >&2"),
-          redirectOutputFile = output,
-          deadlineSeconds = 1,
-          outputCapBytes = null,
-        ),
-      )
+      val result =
+        BoundedExternalProcessRunner.run(
+          BoundedExternalProcessRequest(
+            argv = listOf("sh", "-c", "printf stderr >&2"),
+            redirectOutputFile = output,
+            deadlineSeconds = 1,
+            outputCapBytes = null,
+          ),
+        )
       assertEquals(0, result.exitCode)
       assertEquals("stderr", result.output)
     } finally {
@@ -37,12 +38,13 @@ class BoundedExternalProcessRunnerLifetimeTest {
     val root = Files.createTempDirectory("skill-bill-bounded-process-timeout-")
     val pidFile = root.resolve("child.pid")
     try {
-      val result = BoundedExternalProcessRunner.run(
-        BoundedExternalProcessRequest(
-          argv = listOf("sh", "-c", "echo \$\$ > '$pidFile'; exec sleep 120"),
-          deadlineSeconds = 1,
-        ),
-      )
+      val result =
+        BoundedExternalProcessRunner.run(
+          BoundedExternalProcessRequest(
+            argv = listOf("sh", "-c", "echo \$\$ > '$pidFile'; exec sleep 120"),
+            deadlineSeconds = 1,
+          ),
+        )
       assertTrue(result.timedOut)
       assertTrue(awaitDead(processHandleFrom(pidFile)))
     } finally {
@@ -57,20 +59,21 @@ class BoundedExternalProcessRunnerLifetimeTest {
     val pidFile = root.resolve("child.pid")
     val failure = AtomicReference<Throwable?>()
     val finished = CountDownLatch(1)
-    val worker = thread(start = true, isDaemon = true, name = "skill-bill-bounded-process-test") {
-      try {
-        BoundedExternalProcessRunner.run(
-          BoundedExternalProcessRequest(
-            argv = listOf("sh", "-c", "echo \$\$ > '$pidFile'; exec sleep 120"),
-            deadlineSeconds = 60,
-          ),
-        )
-      } catch (error: Throwable) {
-        failure.set(error)
-      } finally {
-        finished.countDown()
+    val worker =
+      thread(start = true, isDaemon = true, name = "skill-bill-bounded-process-test") {
+        try {
+          BoundedExternalProcessRunner.run(
+            BoundedExternalProcessRequest(
+              argv = listOf("sh", "-c", "echo \$\$ > '$pidFile'; exec sleep 120"),
+              deadlineSeconds = 60,
+            ),
+          )
+        } catch (error: Throwable) {
+          failure.set(error)
+        } finally {
+          finished.countDown()
+        }
       }
-    }
     try {
       awaitPid(pidFile)
       worker.interrupt()

@@ -31,12 +31,13 @@ class FeatureTaskRuntimeCrashReconcilerTest {
 
   @Test
   fun `zero candidates is a no-op`() {
-    val reconciler = FeatureTaskRuntimeCrashReconciler(
-      RuntimeFakeDatabaseSessionFactory(InMemoryRuntimeWorkflowRepository()),
-      inspectionSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
-      NoopRuntimeDiagnostics,
-      testHarnessClock,
-    )
+    val reconciler =
+      FeatureTaskRuntimeCrashReconciler(
+        RuntimeFakeDatabaseSessionFactory(InMemoryRuntimeWorkflowRepository()),
+        inspectionSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
+        NoopRuntimeDiagnostics,
+        testHarnessClock,
+      )
 
     val result = reconciler.reconcile()
 
@@ -47,12 +48,13 @@ class FeatureTaskRuntimeCrashReconcilerTest {
   @Test
   fun `expired-lease dead-process row is transitioned once and a second pass changes nothing`() {
     val repository = crashCandidateRepository()
-    val reconciler = FeatureTaskRuntimeCrashReconciler(
-      RuntimeFakeDatabaseSessionFactory(repository),
-      inspectionSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
-      NoopRuntimeDiagnostics,
-      testHarnessClock,
-    )
+    val reconciler =
+      FeatureTaskRuntimeCrashReconciler(
+        RuntimeFakeDatabaseSessionFactory(repository),
+        inspectionSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
+        NoopRuntimeDiagnostics,
+        testHarnessClock,
+      )
 
     val first = reconciler.reconcile()
     val second = reconciler.reconcile()
@@ -67,12 +69,13 @@ class FeatureTaskRuntimeCrashReconcilerTest {
   @Test
   fun `a live process is never reconciled`() {
     val repository = crashCandidateRepository()
-    val reconciler = FeatureTaskRuntimeCrashReconciler(
-      RuntimeFakeDatabaseSessionFactory(repository),
-      inspectionSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive),
-      NoopRuntimeDiagnostics,
-      testHarnessClock,
-    )
+    val reconciler =
+      FeatureTaskRuntimeCrashReconciler(
+        RuntimeFakeDatabaseSessionFactory(repository),
+        inspectionSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive),
+        NoopRuntimeDiagnostics,
+        testHarnessClock,
+      )
 
     val result = reconciler.reconcile()
 
@@ -87,12 +90,13 @@ class FeatureTaskRuntimeCrashReconcilerTest {
       FeatureTaskRuntimeProcessInspection.Unsupported("no probe"),
     ).forEach { inspection ->
       val repository = crashCandidateRepository()
-      val reconciler = FeatureTaskRuntimeCrashReconciler(
-        RuntimeFakeDatabaseSessionFactory(repository),
-        inspectionSupervisor(inspection),
-        NoopRuntimeDiagnostics,
-        testHarnessClock,
-      )
+      val reconciler =
+        FeatureTaskRuntimeCrashReconciler(
+          RuntimeFakeDatabaseSessionFactory(repository),
+          inspectionSupervisor(inspection),
+          NoopRuntimeDiagnostics,
+          testHarnessClock,
+        )
 
       assertEquals(0, reconciler.reconcile().reconciledCount)
       assertEquals("running", repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID)?.workflowStatus)
@@ -102,25 +106,36 @@ class FeatureTaskRuntimeCrashReconcilerTest {
   @Test
   fun `an unexpected fault is counted under a distinct reason class and not as a reconciliation`() {
     val repository = crashCandidateRepository()
-    val faultingSupervisor = object : FeatureTaskRuntimeWorkerSupervisor {
-      override fun currentProcess() = FeatureTaskRuntimeProcessIdentity("h", "b", 1, "birth")
-      override fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership): FeatureTaskRuntimeProcessInspection =
-        error("probe blew up")
-      override fun awaitExit(ownership: FeatureTaskRuntimeWorkerOwnership, timeout: Duration) = Unit
-      override fun terminateGracefully(ownership: FeatureTaskRuntimeWorkerOwnership) = true
-      override fun terminateForcibly(ownership: FeatureTaskRuntimeWorkerOwnership) = true
-      override fun startHeartbeat(
-        plan: FeatureTaskRuntimeHeartbeatPlan,
-        heartbeat: () -> FeatureTaskRuntimeHeartbeatTick,
-      ) = NoopFeatureTaskRuntimeHeartbeat
-      override fun pause(durationMillis: Long) = Unit
-    }
-    val reconciler = FeatureTaskRuntimeCrashReconciler(
-      RuntimeFakeDatabaseSessionFactory(repository),
-      faultingSupervisor,
-      NoopRuntimeDiagnostics,
-      testHarnessClock,
-    )
+    val faultingSupervisor =
+      object : FeatureTaskRuntimeWorkerSupervisor {
+        override fun currentProcess() = FeatureTaskRuntimeProcessIdentity("h", "b", 1, "birth")
+
+        override fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership): FeatureTaskRuntimeProcessInspection =
+          error("probe blew up")
+
+        override fun awaitExit(
+          ownership: FeatureTaskRuntimeWorkerOwnership,
+          timeout: Duration,
+        ) = Unit
+
+        override fun terminateGracefully(ownership: FeatureTaskRuntimeWorkerOwnership) = true
+
+        override fun terminateForcibly(ownership: FeatureTaskRuntimeWorkerOwnership) = true
+
+        override fun startHeartbeat(
+          plan: FeatureTaskRuntimeHeartbeatPlan,
+          heartbeat: () -> FeatureTaskRuntimeHeartbeatTick,
+        ) = NoopFeatureTaskRuntimeHeartbeat
+
+        override fun pause(durationMillis: Long) = Unit
+      }
+    val reconciler =
+      FeatureTaskRuntimeCrashReconciler(
+        RuntimeFakeDatabaseSessionFactory(repository),
+        faultingSupervisor,
+        NoopRuntimeDiagnostics,
+        testHarnessClock,
+      )
 
     val result = reconciler.reconcile()
 
@@ -167,16 +182,26 @@ class FeatureTaskRuntimeCrashReconcilerTest {
 
   private fun inspectionSupervisor(
     inspection: FeatureTaskRuntimeProcessInspection,
-  ): FeatureTaskRuntimeWorkerSupervisor = object : FeatureTaskRuntimeWorkerSupervisor {
-    override fun currentProcess() = FeatureTaskRuntimeProcessIdentity("h", "b", 1, "birth")
-    override fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership) = inspection
-    override fun awaitExit(ownership: FeatureTaskRuntimeWorkerOwnership, timeout: Duration) = Unit
-    override fun terminateGracefully(ownership: FeatureTaskRuntimeWorkerOwnership) = true
-    override fun terminateForcibly(ownership: FeatureTaskRuntimeWorkerOwnership) = true
-    override fun startHeartbeat(
-      plan: FeatureTaskRuntimeHeartbeatPlan,
-      heartbeat: () -> FeatureTaskRuntimeHeartbeatTick,
-    ) = NoopFeatureTaskRuntimeHeartbeat
-    override fun pause(durationMillis: Long) = Unit
-  }
+  ): FeatureTaskRuntimeWorkerSupervisor =
+    object : FeatureTaskRuntimeWorkerSupervisor {
+      override fun currentProcess() = FeatureTaskRuntimeProcessIdentity("h", "b", 1, "birth")
+
+      override fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership) = inspection
+
+      override fun awaitExit(
+        ownership: FeatureTaskRuntimeWorkerOwnership,
+        timeout: Duration,
+      ) = Unit
+
+      override fun terminateGracefully(ownership: FeatureTaskRuntimeWorkerOwnership) = true
+
+      override fun terminateForcibly(ownership: FeatureTaskRuntimeWorkerOwnership) = true
+
+      override fun startHeartbeat(
+        plan: FeatureTaskRuntimeHeartbeatPlan,
+        heartbeat: () -> FeatureTaskRuntimeHeartbeatTick,
+      ) = NoopFeatureTaskRuntimeHeartbeat
+
+      override fun pause(durationMillis: Long) = Unit
+    }
 }

@@ -16,6 +16,7 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+
 class GoalRunnerValidationEvidenceProjectionTest {
   @Test
   fun `completed subtask status reports the boolean signal and rejects missing or false results`() {
@@ -24,10 +25,11 @@ class GoalRunnerValidationEvidenceProjectionTest {
         val workflowId = "wfl-validation-result"
         val recorder = goalRunnerDefaultPhaseRecorder()
         recorder.ensureWorkflowOpen(workflowId, "goal-validation-result")
-        val produced = buildMap<String, Any?> {
-          put(SharedPayloadKeys.VALUE, "Project validation result.")
-          if (signal != null) put(ValidationEvidencePayloadKeys.VALIDATION_PASSED, signal)
-        }
+        val produced =
+          buildMap<String, Any?> {
+            put(SharedPayloadKeys.VALUE, "Project validation result.")
+            if (signal != null) put(ValidationEvidencePayloadKeys.VALIDATION_PASSED, signal)
+          }
         recorder.recordPhaseState(
           FeatureTaskRuntimePhaseStateRequest(
             workflowId = workflowId,
@@ -36,26 +38,29 @@ class GoalRunnerValidationEvidenceProjectionTest {
             attemptCount = 1,
             resolvedAgentId = "claude",
             finished = true,
-            outputArtifact = JsonCodec.mapToJsonString(
-              mapOf(
-                SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
-                SharedPayloadKeys.PHASE_ID to FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-                SharedPayloadKeys.STATUS to status,
-                SharedPayloadKeys.SUMMARY to "Validate output.",
-                SharedPayloadKeys.PRODUCED_OUTPUTS to produced,
+            outputArtifact =
+              JsonCodec.mapToJsonString(
+                mapOf(
+                  SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
+                  SharedPayloadKeys.PHASE_ID to FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+                  SharedPayloadKeys.STATUS to status,
+                  SharedPayloadKeys.SUMMARY to "Validate output.",
+                  SharedPayloadKeys.PRODUCED_OUTPUTS to produced,
+                ),
               ),
-            ),
           ),
         )
         val manifest = completedManifest(workflowId)
-        val service = testGoalRunnerStatusService(
-          manifestStore = InMemoryGoalManifestStore(manifest),
-          outcomeStore = RecordingOutcomeStore(),
-          phaseRecorder = recorder,
-        )
-        val validation = requireNotNull(
-          service.status(GoalRunnerStatusRequest(issueKey = manifest.issueKey, invokedAgentId = "codex")),
-        ).completedSubtaskValidation.single()
+        val service =
+          testGoalRunnerStatusService(
+            manifestStore = InMemoryGoalManifestStore(manifest),
+            outcomeStore = RecordingOutcomeStore(),
+            phaseRecorder = recorder,
+          )
+        val validation =
+          requireNotNull(
+            service.status(GoalRunnerStatusRequest(issueKey = manifest.issueKey, invokedAgentId = "codex")),
+          ).completedSubtaskValidation.single()
         assertEquals(signal as? Boolean, validation.validationPassed)
         assertEquals(signal != true || status != "completed", validation.integrityProblem != null)
         assertNull(validation.evidence)
@@ -65,18 +70,20 @@ class GoalRunnerValidationEvidenceProjectionTest {
       }
   }
 
-  private fun completedManifest(workflowId: String): DecompositionManifest = manifest(1).copy(
-    status = "complete",
-    subtasks = listOf(
-      DecompositionSubtask(
-        id = 1,
-        name = "Subtask 1",
-        specPath = ".feature-specs/SKILL-56-goal/spec_subtask_1.md",
-        dependencies = emptyList(),
-        status = "complete",
-        workflowId = workflowId,
-        commitSha = "sha-1",
-      ),
-    ),
-  )
+  private fun completedManifest(workflowId: String): DecompositionManifest =
+    manifest(1).copy(
+      status = "complete",
+      subtasks =
+        listOf(
+          DecompositionSubtask(
+            id = 1,
+            name = "Subtask 1",
+            specPath = ".feature-specs/SKILL-56-goal/spec_subtask_1.md",
+            dependencies = emptyList(),
+            status = "complete",
+            workflowId = workflowId,
+            commitSha = "sha-1",
+          ),
+        ),
+    )
 }

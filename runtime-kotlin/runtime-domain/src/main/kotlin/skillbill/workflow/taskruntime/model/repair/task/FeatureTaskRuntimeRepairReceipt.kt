@@ -24,19 +24,23 @@ const val REPAIR_RECEIPT_MAX_DISTURBANCE_REASON_UTF8_BYTES: Int = 356
 
 private val GIT_COMMIT_SHA = Regex("^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
 
-private fun <T> anchoredToDecodePath(path: String, decode: () -> T): T = try {
-  decode()
-} catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {
-  if (error.fieldPath.startsWith(path)) {
-    throw error
+private fun <T> anchoredToDecodePath(
+  path: String,
+  decode: () -> T,
+): T =
+  try {
+    decode()
+  } catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {
+    if (error.fieldPath.startsWith(path)) {
+      throw error
+    }
+    throw InvalidFeatureTaskRuntimeRepairReceiptError(
+      fieldPath = "$path.${error.fieldPath.substringAfterLast('.')}",
+      reason = error.reason,
+      payloadFreeReason = error.payloadFreeReason,
+      cause = error,
+    )
   }
-  throw InvalidFeatureTaskRuntimeRepairReceiptError(
-    fieldPath = "$path.${error.fieldPath.substringAfterLast('.')}",
-    reason = error.reason,
-    payloadFreeReason = error.payloadFreeReason,
-    cause = error,
-  )
-}
 
 enum class FeatureTaskRuntimeRepairOutcome(val wireValue: String) {
   ADDRESSED("addressed"),
@@ -46,17 +50,21 @@ enum class FeatureTaskRuntimeRepairOutcome(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): FeatureTaskRuntimeRepairOutcome = entries.firstOrNull { it.wireValue == value }
-      ?: receiptError(
-        "outcome",
-        "must be one of ${entries.joinToString { it.wireValue }}.",
-      )
+    fun fromWire(value: String): FeatureTaskRuntimeRepairOutcome =
+      entries.firstOrNull { it.wireValue == value }
+        ?: receiptError(
+          "outcome",
+          "must be one of ${entries.joinToString { it.wireValue }}.",
+        )
   }
 }
 
 data class FeatureTaskRuntimeRepairConstructIdentity internal constructor(val key: String) {
   companion object {
-    fun of(file: String?, symbol: String): FeatureTaskRuntimeRepairConstructIdentity {
+    fun of(
+      file: String?,
+      symbol: String,
+    ): FeatureTaskRuntimeRepairConstructIdentity {
       val normalizedSymbol = normalizeIdentityPart(symbol)
       val normalizedFile = file?.let(::normalizeIdentityPart)?.takeIf(String::isNotEmpty)
       val key = if (normalizedFile == null) normalizedSymbol else "$normalizedFile|$normalizedSymbol"
@@ -76,12 +84,17 @@ data class FeatureTaskRuntimeRepairConstruct(
     requireReceiptSymbol(symbol, "construct.symbol")
     file?.let { basename -> requireReceiptFileBasename(basename, "construct.file") }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    "symbol" to symbol,
-  ).apply { file?.let { put("file", it) } }
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      "symbol" to symbol,
+    ).apply { file?.let { put("file", it) } }
 
   companion object {
-    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): FeatureTaskRuntimeRepairConstruct {
+    internal fun fromArtifactMap(
+      raw: Map<String, Any?>,
+      path: String,
+    ): FeatureTaskRuntimeRepairConstruct {
       raw.requireOnlyReviewStateKeys(setOf("symbol", "file"), path)
       return anchoredToDecodePath(path) {
         val reader = reviewStateReader(raw, path)
@@ -107,13 +120,18 @@ data class FeatureTaskRuntimeRepairDisturbedRemedy(
       REPAIR_RECEIPT_MAX_DISTURBANCE_REASON_UTF8_BYTES,
     )
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    "finding_ref" to findingRef,
-    "reason" to reason,
-  )
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      "finding_ref" to findingRef,
+      "reason" to reason,
+    )
 
   companion object {
-    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): FeatureTaskRuntimeRepairDisturbedRemedy {
+    internal fun fromArtifactMap(
+      raw: Map<String, Any?>,
+      path: String,
+    ): FeatureTaskRuntimeRepairDisturbedRemedy {
       raw.requireOnlyReviewStateKeys(setOf("finding_ref", "reason"), path)
       return anchoredToDecodePath(path) {
         val reader = reviewStateReader(raw, path)
@@ -137,37 +155,42 @@ data class FeatureTaskRuntimeRepairReceiptEntry(
   }
 
   fun findingIdentity(): String = normalizeIdentityPart(findingId)
-  internal fun toArtifactMap(): Map<String, Any?> = buildMap {
-    put(ReviewFindingPayloadKeys.FINDING_ID, findingId)
-    put("outcome", outcome.wireValue)
-    noEditReason?.let { put("no_edit_reason", it) }
-    unresolvedReason?.let { put("unresolved_reason", it) }
-  }
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    buildMap {
+      put(ReviewFindingPayloadKeys.FINDING_ID, findingId)
+      put("outcome", outcome.wireValue)
+      noEditReason?.let { put("no_edit_reason", it) }
+      unresolvedReason?.let { put("unresolved_reason", it) }
+    }
 
   companion object {
     internal fun fromArtifactMap(
       raw: Map<String, Any?>,
       path: String,
       collector: FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector? = null,
-    ): FeatureTaskRuntimeRepairReceiptEntry = anchoredToDecodePath(path) {
-      val reader = reviewStateReader(raw, path)
-      FeatureTaskRuntimeRepairReceiptEntry(
-        outcome = FeatureTaskRuntimeRepairOutcome.fromWire(reader.requiredString("outcome")),
-        findingId = requireFindingRefAlias(raw, path),
-        noEditReason = forwardOptionalReceiptReason(
-          reader.optionalString("no_edit_reason"),
-          "$path.no_edit_reason",
-          REPAIR_RECEIPT_MAX_NO_EDIT_REASON_UTF8_BYTES,
-          collector,
-        ),
-        unresolvedReason = forwardOptionalReceiptReason(
-          reader.optionalString("unresolved_reason"),
-          "$path.unresolved_reason",
-          REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES,
-          collector,
-        ),
-      )
-    }
+    ): FeatureTaskRuntimeRepairReceiptEntry =
+      anchoredToDecodePath(path) {
+        val reader = reviewStateReader(raw, path)
+        FeatureTaskRuntimeRepairReceiptEntry(
+          outcome = FeatureTaskRuntimeRepairOutcome.fromWire(reader.requiredString("outcome")),
+          findingId = requireFindingRefAlias(raw, path),
+          noEditReason =
+            forwardOptionalReceiptReason(
+              reader.optionalString("no_edit_reason"),
+              "$path.no_edit_reason",
+              REPAIR_RECEIPT_MAX_NO_EDIT_REASON_UTF8_BYTES,
+              collector,
+            ),
+          unresolvedReason =
+            forwardOptionalReceiptReason(
+              reader.optionalString("unresolved_reason"),
+              "$path.unresolved_reason",
+              REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES,
+              collector,
+            ),
+        )
+      }
   }
 }
 
@@ -197,12 +220,14 @@ data class FeatureTaskRuntimeRepairReceipt(
       receiptError("entries", "allows at most $REPAIR_RECEIPT_MAX_ENTRIES entries.")
     }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
-    "round_number" to roundNumber,
-    "pre_fix_checkpoint_sha" to preFixCheckpointSha,
-    "entries" to entries.map(FeatureTaskRuntimeRepairReceiptEntry::toArtifactMap),
-  )
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
+      "round_number" to roundNumber,
+      "pre_fix_checkpoint_sha" to preFixCheckpointSha,
+      "entries" to entries.map(FeatureTaskRuntimeRepairReceiptEntry::toArtifactMap),
+    )
 
   companion object {
     internal fun fromArtifactMap(
@@ -227,13 +252,14 @@ data class FeatureTaskRuntimeRepairReceipt(
         )
       }
       val reader = reviewStateReader(raw, path)
-      val entries = reader.requiredList("entries").mapIndexed { index, value ->
-        FeatureTaskRuntimeRepairReceiptEntry.fromArtifactMap(
-          value.toReviewStateMap("$path.entries[$index]"),
-          "$path.entries[$index]",
-          collector,
-        )
-      }
+      val entries =
+        reader.requiredList("entries").mapIndexed { index, value ->
+          FeatureTaskRuntimeRepairReceiptEntry.fromArtifactMap(
+            value.toReviewStateMap("$path.entries[$index]"),
+            "$path.entries[$index]",
+            collector,
+          )
+        }
       return anchoredToDecodePath(path) {
         FeatureTaskRuntimeRepairReceipt(
           contractVersion = reader.requiredString(SharedPayloadKeys.CONTRACT_VERSION),
@@ -260,9 +286,10 @@ data class FeatureTaskRuntimeRepairReceipt(
   }
 }
 
-private val ACCEPTED_REPAIR_RECEIPT_CONTRACT_VERSIONS: Set<String> = setOf(
-  FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION,
-)
+private val ACCEPTED_REPAIR_RECEIPT_CONTRACT_VERSIONS: Set<String> =
+  setOf(
+    FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION,
+  )
 
 fun featureTaskRuntimeRemediationRoundNumber(completedPassCountAtImplementFixEntry: Int): Int {
   if (completedPassCountAtImplementFixEntry < 1) {
@@ -276,11 +303,12 @@ fun featureTaskRuntimeRemediationRoundNumber(completedPassCountAtImplementFixEnt
 
 fun GoalSubtaskReviewState.upsertRepairReceipt(receipt: FeatureTaskRuntimeRepairReceipt): GoalSubtaskReviewState {
   val existing = repairReceipts.indexOfFirst { it.roundNumber == receipt.roundNumber }
-  val updated = if (existing < 0) {
-    (repairReceipts + receipt).sortedBy(FeatureTaskRuntimeRepairReceipt::roundNumber)
-  } else {
-    repairReceipts.toMutableList().apply { set(existing, receipt) }
-  }
+  val updated =
+    if (existing < 0) {
+      (repairReceipts + receipt).sortedBy(FeatureTaskRuntimeRepairReceipt::roundNumber)
+    } else {
+      repairReceipts.toMutableList().apply { set(existing, receipt) }
+    }
   return copy(repairReceipts = updated)
 }
 
@@ -308,7 +336,10 @@ internal fun compactReviewFindingIdentity(finding: GoalSubtaskReviewCompactFindi
 private val FINDING_REF_ALIASES = listOf("finding_id", "finding_ref", DecompositionPlanningPayloadKeys.ID, "ref")
 private const val FINDING_REF_NUMERIC_WIDTH = 3
 
-internal fun requireFindingRefAlias(raw: Map<String, Any?>, path: String): String {
+internal fun requireFindingRefAlias(
+  raw: Map<String, Any?>,
+  path: String,
+): String {
   for (key in FINDING_REF_ALIASES) {
     val value = raw[key] as? String ?: continue
     val normalized = canonicalizeFindingRef(value)

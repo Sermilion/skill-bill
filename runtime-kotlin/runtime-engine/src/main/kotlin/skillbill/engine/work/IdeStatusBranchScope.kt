@@ -1,8 +1,10 @@
 package skillbill.engine.work
 
 object IdeStatusBranchScope {
-
-  fun branchReferencesIssueKey(branch: String, issueKey: String): Boolean {
+  fun branchReferencesIssueKey(
+    branch: String,
+    issueKey: String,
+  ): Boolean {
     val haystack = branch.lowercase()
     val needle = issueKey.trim().lowercase()
     if (needle.isEmpty()) return false

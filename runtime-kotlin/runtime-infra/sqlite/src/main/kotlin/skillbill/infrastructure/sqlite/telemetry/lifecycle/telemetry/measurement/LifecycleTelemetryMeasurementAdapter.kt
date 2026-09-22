@@ -59,12 +59,13 @@ internal class LifecycleTelemetryMeasurementAdapter(
   }
 }
 
-private fun ReviewStageDegradationMeasurement.toStageDegradationPayload(): Map<String, Any?> = linkedMapOf(
-  SqliteLifecycleTelemetryMaterializationPayloadKeys.EVENT_NAME to REVIEW_STAGE_DEGRADATION_EVENT_NAME,
-  SharedPayloadKeys.CONTRACT_VERSION to REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION,
-  ReviewVerificationSignalKeys.REVIEW_RUN_ID to reviewRunId,
-  SqliteLifecycleTelemetryMaterializationPayloadKeys.SEAM to seam,
-  SqliteLifecycleTelemetryMaterializationPayloadKeys.EXPECTED to expected,
-  SqliteLifecycleTelemetryMaterializationPayloadKeys.ACTUAL to actual,
-  SqliteLifecycleTelemetryMaterializationPayloadKeys.REASON to reason.wireValue,
-)
+private fun ReviewStageDegradationMeasurement.toStageDegradationPayload(): Map<String, Any?> =
+  linkedMapOf(
+    SqliteLifecycleTelemetryMaterializationPayloadKeys.EVENT_NAME to REVIEW_STAGE_DEGRADATION_EVENT_NAME,
+    SharedPayloadKeys.CONTRACT_VERSION to REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION,
+    ReviewVerificationSignalKeys.REVIEW_RUN_ID to reviewRunId,
+    SqliteLifecycleTelemetryMaterializationPayloadKeys.SEAM to seam,
+    SqliteLifecycleTelemetryMaterializationPayloadKeys.EXPECTED to expected,
+    SqliteLifecycleTelemetryMaterializationPayloadKeys.ACTUAL to actual,
+    SqliteLifecycleTelemetryMaterializationPayloadKeys.REASON to reason.wireValue,
+  )

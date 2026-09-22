@@ -17,28 +17,31 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class FeatureTaskRuntimePhaseOutputValidationModelsTest {
-  private val normalized = NormalizedFeatureTaskRuntimePhaseOutput(
-    canonicalJson = "{\"phase_id\":\"plan\"}",
-    envelope = mapOf("phase_id" to "plan"),
-  )
+  private val normalized =
+    NormalizedFeatureTaskRuntimePhaseOutput(
+      canonicalJson = "{\"phase_id\":\"plan\"}",
+      envelope = mapOf("phase_id" to "plan"),
+    )
 
   @Test
   fun `typed result distinguishes unchanged repaired and rejected states`() {
     val unchanged = FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged(normalized)
-    val repaired = FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair(
-      normalized,
-      FeatureTaskRuntimePhaseOutputRepairEvidence(
-        format = FeatureTaskRuntimePhaseOutputFormat.JSON,
-        originalDigest = "a".repeat(64),
-        repairedDigest = "b".repeat(64),
-        operation = FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER,
-        sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("plan", 12, 1, 13),
-      ),
-    )
-    val rejected = FeatureTaskRuntimePhaseOutputValidationResult.Rejected(
-      code = FeatureTaskRuntimePhaseOutputFailureCode.AMBIGUOUS_REPAIR,
-      reason = "Phase output has multiple strictly parseable structural-repair candidates.",
-    )
+    val repaired =
+      FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair(
+        normalized,
+        FeatureTaskRuntimePhaseOutputRepairEvidence(
+          format = FeatureTaskRuntimePhaseOutputFormat.JSON,
+          originalDigest = "a".repeat(64),
+          repairedDigest = "b".repeat(64),
+          operation = FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER,
+          sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("plan", 12, 1, 13),
+        ),
+      )
+    val rejected =
+      FeatureTaskRuntimePhaseOutputValidationResult.Rejected(
+        code = FeatureTaskRuntimePhaseOutputFailureCode.AMBIGUOUS_REPAIR,
+        reason = "Phase output has multiple strictly parseable structural-repair candidates.",
+      )
 
     assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged>(unchanged)
     assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(repaired)
@@ -49,13 +52,14 @@ class FeatureTaskRuntimePhaseOutputValidationModelsTest {
 
   @Test
   fun `repair evidence is versioned payload free and location aware`() {
-    val evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
-      format = FeatureTaskRuntimePhaseOutputFormat.YAML,
-      originalDigest = "0".repeat(64),
-      repairedDigest = "1".repeat(64),
-      operation = FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
-      sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("plan", 0, 3, 4),
-    )
+    val evidence =
+      FeatureTaskRuntimePhaseOutputRepairEvidence(
+        format = FeatureTaskRuntimePhaseOutputFormat.YAML,
+        originalDigest = "0".repeat(64),
+        repairedDigest = "1".repeat(64),
+        operation = FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
+        sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("plan", 0, 3, 4),
+      )
 
     assertEquals(FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_VERSION, evidence.contractVersion)
     assertEquals(FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_VERSION, evidence.validatorVersion)
@@ -68,13 +72,14 @@ class FeatureTaskRuntimePhaseOutputValidationModelsTest {
 
   @Test
   fun `repair evidence round trips through the artifact map and rejects unknown fields`() {
-    val evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
-      format = FeatureTaskRuntimePhaseOutputFormat.JSON,
-      originalDigest = "a".repeat(64),
-      repairedDigest = "b".repeat(64),
-      operation = FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER,
-      sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("plan", 5, 1, 6),
-    )
+    val evidence =
+      FeatureTaskRuntimePhaseOutputRepairEvidence(
+        format = FeatureTaskRuntimePhaseOutputFormat.JSON,
+        originalDigest = "a".repeat(64),
+        repairedDigest = "b".repeat(64),
+        operation = FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER,
+        sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("plan", 5, 1, 6),
+      )
 
     assertEquals(evidence, FeatureTaskRuntimePhaseOutputRepairEvidence.fromArtifactMap(evidence.toArtifactMap()))
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
@@ -84,14 +89,16 @@ class FeatureTaskRuntimePhaseOutputValidationModelsTest {
 
   @Test
   fun `rejected result converts to a typed throwing seam with its stable failure code`() {
-    val rejected = FeatureTaskRuntimePhaseOutputValidationResult.Rejected(
-      code = FeatureTaskRuntimePhaseOutputFailureCode.AMBIGUOUS_REPAIR,
-      reason = "multiple candidates",
-    )
+    val rejected =
+      FeatureTaskRuntimePhaseOutputValidationResult.Rejected(
+        code = FeatureTaskRuntimePhaseOutputFailureCode.AMBIGUOUS_REPAIR,
+        reason = "multiple candidates",
+      )
 
-    val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      rejected.requireAccepted("plan")
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
+        rejected.requireAccepted("plan")
+      }
 
     assertEquals("ambiguous_repair", error.failureCode)
     assertFalse(error.acceptedAfterStructuralRepair)
@@ -99,22 +106,25 @@ class FeatureTaskRuntimePhaseOutputValidationModelsTest {
 
   @Test
   fun `rejected after structural repair maps acceptedAfterStructuralRepair onto the throwing seam`() {
-    val evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
-      format = FeatureTaskRuntimePhaseOutputFormat.JSON,
-      originalDigest = "a".repeat(64),
-      repairedDigest = "b".repeat(64),
-      operation = FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
-      sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("audit", 0, 1, 1),
-    )
-    val rejected = FeatureTaskRuntimePhaseOutputValidationResult.Rejected(
-      code = FeatureTaskRuntimePhaseOutputFailureCode.SCHEMA_INVALID,
-      reason = "verdict must be a top-level string",
-      structuralRepairEvidence = evidence,
-    )
+    val evidence =
+      FeatureTaskRuntimePhaseOutputRepairEvidence(
+        format = FeatureTaskRuntimePhaseOutputFormat.JSON,
+        originalDigest = "a".repeat(64),
+        repairedDigest = "b".repeat(64),
+        operation = FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER,
+        sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation("audit", 0, 1, 1),
+      )
+    val rejected =
+      FeatureTaskRuntimePhaseOutputValidationResult.Rejected(
+        code = FeatureTaskRuntimePhaseOutputFailureCode.SCHEMA_INVALID,
+        reason = "verdict must be a top-level string",
+        structuralRepairEvidence = evidence,
+      )
 
-    val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      rejected.requireAccepted("audit")
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
+        rejected.requireAccepted("audit")
+      }
 
     assertTrue(error.acceptedAfterStructuralRepair)
     assertEquals(evidence.originalDigest, error.structuralRepairOriginalDigest)

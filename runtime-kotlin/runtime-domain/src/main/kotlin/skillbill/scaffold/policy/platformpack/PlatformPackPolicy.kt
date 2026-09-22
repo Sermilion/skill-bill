@@ -3,7 +3,11 @@ package skillbill.scaffold.policy.platformpack
 import skillbill.model.FileLocation
 import skillbill.scaffold.policy.scaffold.sharedContractNote
 
-fun platformPackNotes(platform: String, presetUsed: Boolean, selectedAreas: List<String>): List<String> {
+fun platformPackNotes(
+  platform: String,
+  presetUsed: Boolean,
+  selectedAreas: List<String>,
+): List<String> {
   val notes = mutableListOf<String>()
   if (presetUsed) {
     notes +=
@@ -21,9 +25,10 @@ fun buildPlatformPackInstallPaths(
   baselineName: String,
   specialistPaths: Map<String, FileLocation>,
   selectedAreas: List<String>,
-): List<FileLocation> = buildList {
-  add(packRoot.resolve("code-review").resolve(baselineName))
-  selectedAreas.forEach { area ->
-    add(specialistPaths.getValue(area))
+): List<FileLocation> =
+  buildList {
+    add(packRoot.resolve("code-review").resolve(baselineName))
+    selectedAreas.forEach { area ->
+      add(specialistPaths.getValue(area))
+    }
   }
-}

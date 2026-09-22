@@ -11,21 +11,23 @@ import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeTerminalFailureReasonTest {
   @Test
   fun `a paused run reports why it stopped instead of an empty reason`() {
-    val reason = blockedReasonOf(
-      FeatureTaskRuntimeRunReport.Paused(
-        issueKey = RUNNER_TEST_ISSUE_KEY,
-        workflowId = WORKFLOW_ID,
-        featureSize = "MEDIUM",
-        pausedPhase = "validate",
-        pauseReason = "operator pause requested",
-        resumableStep = "validate",
-        completedPhaseIds = listOf("implement"),
-        resolvedBranch = "codex/$RUNNER_TEST_ISSUE_KEY",
-      ),
-    )
+    val reason =
+      blockedReasonOf(
+        FeatureTaskRuntimeRunReport.Paused(
+          issueKey = RUNNER_TEST_ISSUE_KEY,
+          workflowId = WORKFLOW_ID,
+          featureSize = "MEDIUM",
+          pausedPhase = "validate",
+          pauseReason = "operator pause requested",
+          resumableStep = "validate",
+          completedPhaseIds = listOf("implement"),
+          resolvedBranch = "codex/$RUNNER_TEST_ISSUE_KEY",
+        ),
+      )
 
     assertTrue(
       reason.contains("operator pause requested"),

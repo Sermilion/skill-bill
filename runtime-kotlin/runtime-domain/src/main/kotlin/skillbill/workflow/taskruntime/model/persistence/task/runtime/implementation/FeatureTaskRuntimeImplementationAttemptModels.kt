@@ -42,20 +42,22 @@ data class FeatureTaskRuntimeImplementationAttempt(
 
   val carriesOpenObligation: Boolean
     get() = status == FeatureTaskRuntimeImplementationAttemptStatus.INCOMPLETE
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    "sequence_number" to sequenceNumber,
-    SharedPayloadKeys.PHASE_ID to phaseId,
-    "attempt_number" to attemptNumber,
-    "agent_id" to agentId,
-    SharedPayloadKeys.STATUS to status.wireValue,
-    "recorded_at" to recordedAt,
-    SharedPayloadKeys.VALUE to value,
-  ).apply {
-    loopId?.let { put("loop_id", it) }
-    edgeIteration?.let { put("edge_iteration", it) }
-    failureDisposition?.let { put(SharedPayloadKeys.FAILURE_DISPOSITION, it.wireValue) }
-    prompt?.let { put(SharedPayloadKeys.PROMPT, it) }
-  }
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      "sequence_number" to sequenceNumber,
+      SharedPayloadKeys.PHASE_ID to phaseId,
+      "attempt_number" to attemptNumber,
+      "agent_id" to agentId,
+      SharedPayloadKeys.STATUS to status.wireValue,
+      "recorded_at" to recordedAt,
+      SharedPayloadKeys.VALUE to value,
+    ).apply {
+      loopId?.let { put("loop_id", it) }
+      edgeIteration?.let { put("edge_iteration", it) }
+      failureDisposition?.let { put(SharedPayloadKeys.FAILURE_DISPOSITION, it.wireValue) }
+      prompt?.let { put(SharedPayloadKeys.PROMPT, it) }
+    }
 
   companion object {
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeImplementationAttempt {
@@ -70,44 +72,48 @@ data class FeatureTaskRuntimeImplementationAttempt(
       return FeatureTaskRuntimeImplementationAttempt(
         sequenceNumber = reader.requiredInt("sequence_number"),
         phaseId = reader.requiredString(SharedPayloadKeys.PHASE_ID),
-        attemptNumber = reader.requiredInt("attempt_number").also { attempt ->
-          if (attempt < 1) {
-            implementationAttemptError(
-              "Feature-task-runtime implementation-attempt attempt_number must be >= 1, was $attempt.",
-            )
-          }
-        },
+        attemptNumber =
+          reader.requiredInt("attempt_number").also { attempt ->
+            if (attempt < 1) {
+              implementationAttemptError(
+                "Feature-task-runtime implementation-attempt attempt_number must be >= 1, was $attempt.",
+              )
+            }
+          },
         agentId = reader.requiredString("agent_id"),
-        status = FeatureTaskRuntimeImplementationAttemptStatus.fromWireValue(
-          reader.requiredString(SharedPayloadKeys.STATUS),
-        ),
+        status =
+          FeatureTaskRuntimeImplementationAttemptStatus.fromWireValue(
+            reader.requiredString(SharedPayloadKeys.STATUS),
+          ),
         recordedAt = reader.requiredString("recorded_at"),
         value = reader.requiredString(SharedPayloadKeys.VALUE),
         loopId = reader.optionalString("loop_id"),
         edgeIteration = reader.optionalInt("edge_iteration"),
-        failureDisposition = reader.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
-          FeatureTaskRuntimeFailureDisposition.fromWireValue(value)
-            ?: implementationAttemptError(
-              "Feature-task-runtime implementation-attempt 'failure_disposition' has unsupported value.",
-            )
-        },
+        failureDisposition =
+          reader.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
+            FeatureTaskRuntimeFailureDisposition.fromWireValue(value)
+              ?: implementationAttemptError(
+                "Feature-task-runtime implementation-attempt 'failure_disposition' has unsupported value.",
+              )
+          },
         prompt = reader.optionalString(SharedPayloadKeys.PROMPT),
       )
     }
 
-    private val ALLOWED_FIELDS = setOf(
-      "sequence_number",
-      SharedPayloadKeys.PHASE_ID,
-      "attempt_number",
-      "agent_id",
-      SharedPayloadKeys.STATUS,
-      "recorded_at",
-      SharedPayloadKeys.VALUE,
-      "loop_id",
-      "edge_iteration",
-      SharedPayloadKeys.FAILURE_DISPOSITION,
-      SharedPayloadKeys.PROMPT,
-    )
+    private val ALLOWED_FIELDS =
+      setOf(
+        "sequence_number",
+        SharedPayloadKeys.PHASE_ID,
+        "attempt_number",
+        "agent_id",
+        SharedPayloadKeys.STATUS,
+        "recorded_at",
+        SharedPayloadKeys.VALUE,
+        "loop_id",
+        "edge_iteration",
+        SharedPayloadKeys.FAILURE_DISPOSITION,
+        SharedPayloadKeys.PROMPT,
+      )
   }
 }
 
@@ -126,17 +132,21 @@ enum class FeatureTaskRuntimeImplementationAttemptStatus(val wireValue: String) 
         )
   }
 }
+
 internal fun featureTaskRuntimeImplementationAttemptRecordToWire(
   attempts: List<FeatureTaskRuntimeImplementationAttempt>,
-): Map<String, Any?> = linkedMapOf(
-  SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION,
-  "attempts" to attempts.map { it.toArtifactMap() },
-)
+): Map<String, Any?> =
+  linkedMapOf(
+    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION,
+    "attempts" to attempts.map { it.toArtifactMap() },
+  )
+
 internal fun featureTaskRuntimeImplementationAttemptsFromWire(
   raw: Any?,
 ): List<FeatureTaskRuntimeImplementationAttempt> {
-  val map = JsonCodec.anyToStringAnyMap(raw)
-    ?: implementationAttemptError("Feature-task-runtime implementation-attempt record must be an object.")
+  val map =
+    JsonCodec.anyToStringAnyMap(raw)
+      ?: implementationAttemptError("Feature-task-runtime implementation-attempt record must be an object.")
   val reader = durableArtifactMapReader(map)
   val version = reader.requiredString(SharedPayloadKeys.CONTRACT_VERSION)
   if (version != FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION) {
@@ -158,16 +168,17 @@ fun featureTaskRuntimeAppendImplementationAttempt(
   entry: FeatureTaskRuntimeImplementationAttempt,
   retentionLimit: Int = FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPTS_LIMIT,
 ): List<FeatureTaskRuntimeImplementationAttempt> {
-  val ordered = appendBoundedHistoryBySequence(
-    existing = existing.map { it.toArtifactMap() },
-    entry = entry.toArtifactMap(),
-    retentionLimit = Int.MAX_VALUE,
-  ).map { raw ->
-    FeatureTaskRuntimeImplementationAttempt.fromArtifactMap(
-      JsonCodec.anyToStringAnyMap(raw)
-        ?: implementationAttemptError("Implementation attempt history entry must decode to an object."),
-    )
-  }
+  val ordered =
+    appendBoundedHistoryBySequence(
+      existing = existing.map { it.toArtifactMap() },
+      entry = entry.toArtifactMap(),
+      retentionLimit = Int.MAX_VALUE,
+    ).map { raw ->
+      FeatureTaskRuntimeImplementationAttempt.fromArtifactMap(
+        JsonCodec.anyToStringAnyMap(raw)
+          ?: implementationAttemptError("Implementation attempt history entry must decode to an object."),
+      )
+    }
   if (ordered.size <= retentionLimit) return ordered
   val overflow = ordered.size - retentionLimit
   val droppableIndices = ordered.indices.filterNot { ordered[it].carriesOpenObligation }.take(overflow)

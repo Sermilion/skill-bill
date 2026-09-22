@@ -6,6 +6,7 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+
 internal data class FeatureTaskRuntimePhaseFileManifest(
   val before: List<String>,
   val after: List<String>,
@@ -14,32 +15,36 @@ internal data class FeatureTaskRuntimePhaseFileManifest(
 }
 
 object FeatureTaskRuntimePhaseSafetyPolicy {
-  fun lineSeparatedPaths(raw: String): List<String> = raw
-    .lineSequence()
-    .map(String::trim)
-    .filter(String::isNotEmpty)
-    .distinct()
-    .sorted()
-    .toList()
+  fun lineSeparatedPaths(raw: String): List<String> =
+    raw
+      .lineSequence()
+      .map(String::trim)
+      .filter(String::isNotEmpty)
+      .distinct()
+      .sorted()
+      .toList()
 
-  fun changedPaths(status: String): List<String> = porcelainEntries(status)
-    .mapNotNull(PorcelainEntry::retainedPath)
-    .filterNot(::isRuntimePrivatePath)
-    .distinct()
-    .sorted()
+  fun changedPaths(status: String): List<String> =
+    porcelainEntries(status)
+      .mapNotNull(PorcelainEntry::retainedPath)
+      .filterNot(::isRuntimePrivatePath)
+      .distinct()
+      .sorted()
 
-  fun deletedPaths(status: String): List<String> = porcelainEntries(status)
-    .mapNotNull(PorcelainEntry::removedPath)
-    .filterNot(::isRuntimePrivatePath)
-    .distinct()
-    .sorted()
+  fun deletedPaths(status: String): List<String> =
+    porcelainEntries(status)
+      .mapNotNull(PorcelainEntry::removedPath)
+      .filterNot(::isRuntimePrivatePath)
+      .distinct()
+      .sorted()
 
   internal fun dispositionForTerminalOutput(
     phaseId: String,
     output: FeatureTaskRuntimeWorkflowArtifactMap,
   ): FeatureTaskRuntimeFailureDisposition {
-    val explicit = (output[SharedPayloadKeys.FAILURE_DISPOSITION] as? String)
-      ?.let(FeatureTaskRuntimeFailureDisposition::fromWireValue)
+    val explicit =
+      (output[SharedPayloadKeys.FAILURE_DISPOSITION] as? String)
+        ?.let(FeatureTaskRuntimeFailureDisposition::fromWireValue)
     if (explicit != null) return explicit
     return if (
       (output[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() == WorkflowStepStatus.FAILED ||
@@ -51,11 +56,12 @@ object FeatureTaskRuntimePhaseSafetyPolicy {
     }
   }
 
-  private fun porcelainEntries(status: String): List<PorcelainEntry> = status
-    .lineSequence()
-    .map(String::trimEnd)
-    .mapNotNull(::porcelainEntry)
-    .toList()
+  private fun porcelainEntries(status: String): List<PorcelainEntry> =
+    status
+      .lineSequence()
+      .map(String::trimEnd)
+      .mapNotNull(::porcelainEntry)
+      .toList()
 
   private fun porcelainEntry(line: String): PorcelainEntry? {
     if (line.length < PORCELAIN_PATH_OFFSET) return null

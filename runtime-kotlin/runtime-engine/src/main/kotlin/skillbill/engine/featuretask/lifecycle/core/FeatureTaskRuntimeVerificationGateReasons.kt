@@ -7,6 +7,7 @@ import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifac
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.validation.validateDispositionCoverage
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 object FeatureTaskRuntimeVerificationGateReasons {
   internal fun findingVerificationDisposition(
     phaseId: String,
@@ -17,10 +18,11 @@ object FeatureTaskRuntimeVerificationGateReasons {
       return null
     }
     val dispositionsKey = FeatureTaskRuntimeVerificationSignalKeys.FINDINGS_VERIFICATION_DISPOSITIONS
-    val dispositionsRaw = outputMap[SharedPayloadKeys.PRODUCED_OUTPUTS]
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?.get(dispositionsKey) as? List<*>
-      ?: return "verify_findings reported 'completed' without produced_outputs.$dispositionsKey."
+    val dispositionsRaw =
+      outputMap[SharedPayloadKeys.PRODUCED_OUTPUTS]
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?.get(dispositionsKey) as? List<*>
+        ?: return "verify_findings reported 'completed' without produced_outputs.$dispositionsKey."
     return runCatching {
       FeatureTaskRuntimeFindingVerificationDisposition.parseList(
         dispositionsRaw,
@@ -38,7 +40,10 @@ object FeatureTaskRuntimeVerificationGateReasons {
     )
   }
 
-  internal fun reviewVerificationSignal(phaseId: String, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): String? {
+  internal fun reviewVerificationSignal(
+    phaseId: String,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
+  ): String? {
     if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) return null
     val hasVerdict = (outputMap[FeatureTaskRuntimeVerificationSignalKeys.VERDICT] as? String)?.isNotBlank() == true
     val producedOutputs = outputMap[SharedPayloadKeys.PRODUCED_OUTPUTS] as? Map<*, *>

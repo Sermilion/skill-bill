@@ -8,11 +8,17 @@ import java.time.Instant
 
 interface RejectedOutputDiagnosticRepository {
   fun insert(record: RejectedOutputDiagnosticRecord): RejectedOutputDiagnosticRecord
+
   fun select(selector: RejectedOutputDiagnosticSelector): List<RejectedOutputDiagnostic>
+
   fun read(identity: String): RejectedOutputDiagnosticRecord
+
   fun markExpired(before: Instant): Int
+
   fun delete(selector: RejectedOutputDiagnosticSelector): Int
+
   fun retainProducerOutput(evidence: ProducerOutputEvidence)
+
   fun readProducerOutput(
     workflowId: String,
     phaseId: String,
@@ -20,6 +26,7 @@ interface RejectedOutputDiagnosticRepository {
     agentId: String,
     generation: Int = 0,
   ): ProducerOutputEvidence?
+
   fun deleteProducerOutputsBefore(before: Instant): Int
 }
 

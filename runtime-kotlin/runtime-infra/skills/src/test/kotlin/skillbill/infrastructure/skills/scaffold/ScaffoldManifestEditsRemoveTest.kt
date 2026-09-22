@@ -13,7 +13,9 @@ import java.nio.file.Path
 
 class ScaffoldManifestEditsRemoveTest {
   @Test
-  fun `removeCodeReviewArea strips declared list, declared_files area, and area_metadata`(@TempDir tempDir: Path) {
+  fun `removeCodeReviewArea strips declared list, declared_files area, and area_metadata`(
+    @TempDir tempDir: Path,
+  ) {
     val manifest = tempDir.resolve("platform.yaml")
     manifest.toFile().writeText(
       """
@@ -52,9 +54,12 @@ class ScaffoldManifestEditsRemoveTest {
   }
 
   @Test
-  fun `removeCodeReviewArea is idempotent when the area is already missing`(@TempDir tempDir: Path) {
+  fun `removeCodeReviewArea is idempotent when the area is already missing`(
+    @TempDir tempDir: Path,
+  ) {
     val manifest = tempDir.resolve("platform.yaml")
-    val original = """
+    val original =
+      """
       platform: "foo"
       declared_code_review_areas:
         - "perf"
@@ -65,14 +70,16 @@ class ScaffoldManifestEditsRemoveTest {
       area_metadata:
         perf:
           focus: "Perf"
-    """.trimIndent() + "\n"
+      """.trimIndent() + "\n"
     manifest.toFile().writeText(original)
     removeCodeReviewArea(manifest, "ui-does-not-exist")
     assertEquals(original, manifest.toFile().readText())
   }
 
   @Test
-  fun `removeDeclaredQualityCheckFile strips the line`(@TempDir tempDir: Path) {
+  fun `removeDeclaredQualityCheckFile strips the line`(
+    @TempDir tempDir: Path,
+  ) {
     val manifest = tempDir.resolve("platform.yaml")
     manifest.toFile().writeText(
       """
@@ -92,19 +99,24 @@ class ScaffoldManifestEditsRemoveTest {
   }
 
   @Test
-  fun `removeDeclaredQualityCheckFile is no-op when the line is missing`(@TempDir tempDir: Path) {
+  fun `removeDeclaredQualityCheckFile is no-op when the line is missing`(
+    @TempDir tempDir: Path,
+  ) {
     val manifest = tempDir.resolve("platform.yaml")
-    val original = """
+    val original =
+      """
       platform: "foo"
       declared_code_review_areas: []
-    """.trimIndent() + "\n"
+      """.trimIndent() + "\n"
     manifest.toFile().writeText(original)
     removeDeclaredQualityCheckFile(manifest)
     assertEquals(original, manifest.toFile().readText())
   }
 
   @Test
-  fun `removeAddonReferences strips pointer entries and addon usage companions`(@TempDir tempDir: Path) {
+  fun `removeAddonReferences strips pointer entries and addon usage companions`(
+    @TempDir tempDir: Path,
+  ) {
     val manifest = tempDir.resolve("platform.yaml")
     manifest.toFile().writeText(
       """
@@ -147,7 +159,9 @@ class ScaffoldManifestEditsRemoveTest {
   }
 
   @Test
-  fun `removeSkillClassPointer strips one pointer slug`(@TempDir tempDir: Path) {
+  fun `removeSkillClassPointer strips one pointer slug`(
+    @TempDir tempDir: Path,
+  ) {
     val manifest = tempDir.resolve("feature-task.yaml")
     manifest.toFile().writeText(
       """

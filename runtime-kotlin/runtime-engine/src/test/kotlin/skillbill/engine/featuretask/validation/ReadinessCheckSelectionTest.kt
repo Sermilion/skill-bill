@@ -11,12 +11,13 @@ import kotlin.test.assertTrue
 class ReadinessCheckSelectionTest {
   @Test
   fun `PR 389 plugin hole selects plugin check not pack collect-all`() {
-    val selection = ReadinessCheckSelection(
-      GitHubPullRequestCheckDiscovery(),
-    ).select(
-      repositoryRoot,
-      changedPaths = listOf("intellij-plugin/src/main/kotlin/Foo.kt"),
-    )
+    val selection =
+      ReadinessCheckSelection(
+        GitHubPullRequestCheckDiscovery(),
+      ).select(
+        repositoryRoot,
+        changedPaths = listOf("intellij-plugin/src/main/kotlin/Foo.kt"),
+      )
     val checks = assertIs<ReadinessCheckSelectionResult.Selected>(selection).checks
     assertTrue(checks.any { it.checkId.startsWith("plugin-ci:") })
     assertTrue(
@@ -27,27 +28,30 @@ class ReadinessCheckSelectionTest {
 
   @Test
   fun `kotlin-only runtime-kotlin dirt does not select pack collect-all`() {
-    val selection = ReadinessCheckSelection(
-      GitHubPullRequestCheckDiscovery(),
-    ).select(
-      validationGateTestRepoRoot,
-      changedPaths = listOf("runtime-kotlin/runtime-engine/src/Foo.kt"),
-    )
+    val selection =
+      ReadinessCheckSelection(
+        GitHubPullRequestCheckDiscovery(),
+      ).select(
+        validationGateTestRepoRoot,
+        changedPaths = listOf("runtime-kotlin/runtime-engine/src/Foo.kt"),
+      )
     val checks = assertIs<ReadinessCheckSelectionResult.Selected>(selection).checks
     assertTrue(checks.none { it.checkId == READINESS_PACK_COLLECT_ALL_CHECK_ID })
   }
 
   @Test
   fun `history and run evidence do not invalidate selected project checks`() {
-    val selection = ReadinessCheckSelection(
-      GitHubPullRequestCheckDiscovery(),
-    )
-    val selected = assertIs<ReadinessCheckSelectionResult.Selected>(
-      selection.select(
-        validationGateTestRepoRoot,
-        listOf("runtime-kotlin/runtime-engine/src/Foo.kt", "runtime-kotlin/agent/history.md"),
-      ),
-    ).checks
+    val selection =
+      ReadinessCheckSelection(
+        GitHubPullRequestCheckDiscovery(),
+      )
+    val selected =
+      assertIs<ReadinessCheckSelectionResult.Selected>(
+        selection.select(
+          validationGateTestRepoRoot,
+          listOf("runtime-kotlin/runtime-engine/src/Foo.kt", "runtime-kotlin/agent/history.md"),
+        ),
+      ).checks
     assertEquals(
       emptySet(),
       selection.invalidatedCheckIds(

@@ -22,18 +22,20 @@ class SuppressionBanArchitectureTest {
   fun `live tree has no banned or unlisted compiler suppressions`() {
     val decisions = ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/agent/decisions.md").readText()
     val allowList = ArchitectureScanSupport.parseSuppressionAllowList(decisions)
-    val violations = ArchitectureScanSupport.suppressionViolations(
-      ArchitectureScanSupport.authoredSuppressions(),
-      allowList,
-    )
+    val violations =
+      ArchitectureScanSupport.suppressionViolations(
+        ArchitectureScanSupport.authoredSuppressions(),
+        allowList,
+      )
     assertEquals(
       emptyList(),
       violations,
       "Every authored @Suppress must be allow-listed; complexity-rule suppressions are never permitted.",
     )
-    val detektYaml = ArchitectureScanSupport.runtimeRoot
-      .resolve("runtime-kotlin/config/detekt/detekt.yml")
-      .readText()
+    val detektYaml =
+      ArchitectureScanSupport.runtimeRoot
+        .resolve("runtime-kotlin/config/detekt/detekt.yml")
+        .readText()
     assertEquals(
       emptyList(),
       ArchitectureScanSupport.detektComplexityPinViolations(detektYaml),

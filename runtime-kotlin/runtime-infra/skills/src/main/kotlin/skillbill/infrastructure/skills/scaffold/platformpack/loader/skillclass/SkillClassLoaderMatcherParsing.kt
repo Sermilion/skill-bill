@@ -2,21 +2,30 @@ package skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass
 import skillbill.error.shellcontent.InvalidManifestSchemaError
 import skillbill.scaffold.model.SkillClassMatcher
 
-internal fun parseExcludeExactList(classId: String, index: Int, excludeExactRaw: Any?): List<String> =
+internal fun parseExcludeExactList(
+  classId: String,
+  index: Int,
+  excludeExactRaw: Any?,
+): List<String> =
   when (excludeExactRaw) {
     null -> emptyList()
-    is List<*> -> excludeExactRaw.map { value ->
-      value as? String
-        ?: throw InvalidManifestSchemaError(
-          "Skill class '$classId': matcher #$index 'exclude_exact' entries must be strings.",
-        )
-    }
+    is List<*> ->
+      excludeExactRaw.map { value ->
+        value as? String
+          ?: throw InvalidManifestSchemaError(
+            "Skill class '$classId': matcher #$index 'exclude_exact' entries must be strings.",
+          )
+      }
     else -> throw InvalidManifestSchemaError(
       "Skill class '$classId': matcher #$index 'exclude_exact' must be a list of strings.",
     )
   }
 
-internal fun parseMatcherPattern(classId: String, index: Int, patternString: String?): Regex? =
+internal fun parseMatcherPattern(
+  classId: String,
+  index: Int,
+  patternString: String?,
+): Regex? =
   patternString?.let { source ->
     runCatching { Regex(source) }.getOrElse { error ->
       throw InvalidManifestSchemaError(
@@ -25,7 +34,11 @@ internal fun parseMatcherPattern(classId: String, index: Int, patternString: Str
     }
   }
 
-internal fun parseSkillClassMatcher(classId: String, index: Int, raw: Any?): SkillClassMatcher {
+internal fun parseSkillClassMatcher(
+  classId: String,
+  index: Int,
+  raw: Any?,
+): SkillClassMatcher {
   val entry = requireSkillClassMatcherMap(classId, index, raw)
   val exact = parseSkillClassMatcherExact(classId, index, entry)
   val patternString = parseSkillClassMatcherPattern(classId, index, entry)
@@ -35,24 +48,41 @@ internal fun parseSkillClassMatcher(classId: String, index: Int, raw: Any?): Ski
   return SkillClassMatcher(exact = exact, pattern = pattern, excludeExact = excludeExact)
 }
 
-private fun requireSkillClassMatcherMap(classId: String, index: Int, raw: Any?): Map<*, *> =
+private fun requireSkillClassMatcherMap(
+  classId: String,
+  index: Int,
+  raw: Any?,
+): Map<*, *> =
   raw as? Map<*, *> ?: throw InvalidManifestSchemaError(
     "Skill class '$classId': matcher #$index must be a YAML mapping with 'exact' or 'pattern'.",
   )
 
-private fun parseSkillClassMatcherExact(classId: String, index: Int, entry: Map<*, *>): String? =
+private fun parseSkillClassMatcherExact(
+  classId: String,
+  index: Int,
+  entry: Map<*, *>,
+): String? =
   entry["exact"]?.let { value ->
     value as? String
       ?: throw InvalidManifestSchemaError("Skill class '$classId': matcher #$index field 'exact' must be a string.")
   }
 
-private fun parseSkillClassMatcherPattern(classId: String, index: Int, entry: Map<*, *>): String? =
+private fun parseSkillClassMatcherPattern(
+  classId: String,
+  index: Int,
+  entry: Map<*, *>,
+): String? =
   entry["pattern"]?.let { value ->
     value as? String
       ?: throw InvalidManifestSchemaError("Skill class '$classId': matcher #$index field 'pattern' must be a string.")
   }
 
-private fun validateSkillClassMatcherShape(classId: String, index: Int, exact: String?, patternString: String?) {
+private fun validateSkillClassMatcherShape(
+  classId: String,
+  index: Int,
+  exact: String?,
+  patternString: String?,
+) {
   if (exact == null && patternString == null) {
     throw InvalidManifestSchemaError(
       "Skill class '$classId': matcher #$index must declare either 'exact' or 'pattern'.",

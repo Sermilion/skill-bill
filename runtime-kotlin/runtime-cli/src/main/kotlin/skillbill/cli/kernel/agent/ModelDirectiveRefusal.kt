@@ -20,11 +20,12 @@ fun refuseUnsupportedModelDirectives(
   }
 }
 
-private fun directiveText(directive: PhaseModelDirective): String = buildString {
-  append("model=")
-  append(directive.model)
-  directive.effort?.let {
-    append(", effort=")
-    append(it)
+private fun directiveText(directive: PhaseModelDirective): String =
+  buildString {
+    append("model=")
+    append(directive.model)
+    directive.effort?.let {
+      append(", effort=")
+      append(it)
+    }
   }
-}

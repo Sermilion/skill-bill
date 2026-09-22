@@ -18,13 +18,14 @@ class ReviewFinishedTelemetryNormalizationTest {
   fun `mixed Kotlin labels normalize to kmp and retain only their descriptive detail`() {
     val (_, connection) = tempDbConnection("review-finished-mixed-kmp-label")
     connection.use {
-      val review = saveReview(
-        connection,
-        SAMPLE_REVIEW
-          .replace("rvw-20260402-001", "rvw-mixed-kmp-label")
-          .replace("rvs-20260402-001", "rvs-mixed-kmp-label")
-          .replace("Detected stack: kotlin", "Detected stack: KMP/Kotlin"),
-      )
+      val review =
+        saveReview(
+          connection,
+          SAMPLE_REVIEW
+            .replace("rvw-20260402-001", "rvw-mixed-kmp-label")
+            .replace("rvs-20260402-001", "rvs-mixed-kmp-label")
+            .replace("Detected stack: kotlin", "Detected stack: KMP/Kotlin"),
+        )
 
       val payload = reviewFinishedPayload(connection, review.reviewRunId)
 
@@ -93,34 +94,38 @@ class ReviewFinishedTelemetryNormalizationTest {
   fun `manifest routing wins for ambiguous prose while exact clean labels remain authoritative`() {
     val (_, connection) = tempDbConnection("review-finished-manifest-ambiguity")
     connection.use {
-      val ambiguous = saveReview(
-        connection,
-        SAMPLE_REVIEW
-          .replace("rvw-20260402-001", "rvw-manifest-ambiguity")
-          .replace("rvs-20260402-001", "rvs-manifest-ambiguity")
-          .replace("Routed to: bill-kotlin-code-review", "Routed to: bill-kmp-code-review")
-          .replace("Detected stack: kotlin", "Detected stack: Kotlin and iOS mixed workspace"),
-      )
-      val ambiguousPayload = reviewFinishedPayload(
-        connection,
-        ambiguous.reviewRunId,
-        mapOf("bill-kmp-code-review" to "kmp"),
-      )
+      val ambiguous =
+        saveReview(
+          connection,
+          SAMPLE_REVIEW
+            .replace("rvw-20260402-001", "rvw-manifest-ambiguity")
+            .replace("rvs-20260402-001", "rvs-manifest-ambiguity")
+            .replace("Routed to: bill-kotlin-code-review", "Routed to: bill-kmp-code-review")
+            .replace("Detected stack: kotlin", "Detected stack: Kotlin and iOS mixed workspace"),
+        )
+      val ambiguousPayload =
+        reviewFinishedPayload(
+          connection,
+          ambiguous.reviewRunId,
+          mapOf("bill-kmp-code-review" to "kmp"),
+        )
       assertEquals("kmp", ambiguousPayload["review_platform"])
       assertEquals("Kotlin and iOS mixed workspace", ambiguousPayload["detected_stack_detail"])
 
-      val clean = saveReview(
-        connection,
-        SAMPLE_REVIEW
-          .replace("rvw-20260402-001", "rvw-clean-conflict")
-          .replace("rvs-20260402-001", "rvs-clean-conflict")
-          .replace("Routed to: bill-kotlin-code-review", "Routed to: bill-kmp-code-review"),
-      )
-      val cleanPayload = reviewFinishedPayload(
-        connection,
-        clean.reviewRunId,
-        mapOf("bill-kmp-code-review" to "kmp"),
-      )
+      val clean =
+        saveReview(
+          connection,
+          SAMPLE_REVIEW
+            .replace("rvw-20260402-001", "rvw-clean-conflict")
+            .replace("rvs-20260402-001", "rvs-clean-conflict")
+            .replace("Routed to: bill-kotlin-code-review", "Routed to: bill-kmp-code-review"),
+        )
+      val cleanPayload =
+        reviewFinishedPayload(
+          connection,
+          clean.reviewRunId,
+          mapOf("bill-kmp-code-review" to "kmp"),
+        )
       assertEquals("kotlin", cleanPayload["review_platform"])
       assertEquals(null, cleanPayload["detected_stack_detail"])
     }
@@ -180,7 +185,10 @@ class ReviewFinishedTelemetryNormalizationTest {
   }
 }
 
-private fun saveReview(connection: Connection, rawReview: String): ImportedReview {
+private fun saveReview(
+  connection: Connection,
+  rawReview: String,
+): ImportedReview {
   val review = ReviewParser.parseReview(rawReview.trimIndent())
   persistImportedReview(connection, review, sourcePath = null)
   return review
@@ -190,11 +198,12 @@ private fun reviewFinishedPayload(
   connection: Connection,
   reviewRunId: String,
   routedSkillPlatformSlugs: Map<String, String> = emptyMap(),
-): Map<String, Any?> = ReviewStatsRuntime.buildReviewFinishedPayload(
-  ReviewFinishedPayloadBuildRequest(
-    connection = connection,
-    reviewRunId = reviewRunId,
-    level = "anonymous",
-    routedSkillPlatformSlugs = routedSkillPlatformSlugs,
-  ),
-).toReviewFinishedTelemetryPayload().toPayload()
+): Map<String, Any?> =
+  ReviewStatsRuntime.buildReviewFinishedPayload(
+    ReviewFinishedPayloadBuildRequest(
+      connection = connection,
+      reviewRunId = reviewRunId,
+      level = "anonymous",
+      routedSkillPlatformSlugs = routedSkillPlatformSlugs,
+    ),
+  ).toReviewFinishedTelemetryPayload().toPayload()

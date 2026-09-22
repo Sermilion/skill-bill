@@ -53,10 +53,12 @@ import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
 import java.time.Clock
-fun goalRunnerDefaultPhaseRecorder(): FeatureTaskRuntimePhaseRecorder = testPhaseRecorder(
-  FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-  testWorkflowSnapshotValidator,
-)
+
+fun goalRunnerDefaultPhaseRecorder(): FeatureTaskRuntimePhaseRecorder =
+  testPhaseRecorder(
+    FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+    testWorkflowSnapshotValidator,
+  )
 
 data class GoalRunnerStatusTestPorts(
   val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
@@ -66,10 +68,11 @@ data class GoalRunnerStatusTestPorts(
   val diagnostics: RuntimeDiagnostics = NoopRuntimeDiagnostics,
   val runtimeStatusService: FeatureTaskRuntimeStatusService? = null,
   val validationGatePlatformManifests: List<PlatformManifest> = emptyList(),
-  val repoLocalConfig: RepoLocalConfigPort = object : RepoLocalConfigPort {
-    override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
-      ReadRepoLocalConfigResult(RepoLocalConfig.defaults())
-  },
+  val repoLocalConfig: RepoLocalConfigPort =
+    object : RepoLocalConfigPort {
+      override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
+        ReadRepoLocalConfigResult(RepoLocalConfig.defaults())
+    },
 )
 
 fun testGoalRunnerStatusService(
@@ -81,28 +84,32 @@ fun testGoalRunnerStatusService(
   database: DatabaseSessionFactory = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
   decompositionManifestStore: DecompositionManifestStore = UnavailableDecompositionManifestStore,
 ): GoalRunnerStatusService {
-  val projectionAssembler = GoalRunnerStatusProjectionAssembler(
-    dataSources = GoalRunnerStatusProjectionDataSources(
-      manifestStore = manifestStore,
-      outcomeStore = outcomeStore,
-      phaseRecorder = phaseRecorder,
-      attemptLedgerStore = ports.attemptLedgerStore,
-      database = database,
-    ),
-    gitOperations = ports.gitOperations,
-    clock = clock,
-    workerSupervisor = ports.workerSupervisor,
-    planningStatusReasonCoherence = GoalPlanningStatusReasonCoherence.NONE,
-    diagnostics = ports.diagnostics,
-    runtimeStatusService = ports.runtimeStatusService,
-    repositoryRoot = testRepositoryRoot,
-    validationDependencies = GoalRunnerStatusProjectionValidationDependencies(
-      validationGateResolver = ValidationGateResolver(
-        InstalledPlatformPackCatalogPort { ports.validationGatePlatformManifests },
-      ),
-      repoLocalConfig = ports.repoLocalConfig,
-    ),
-  )
+  val projectionAssembler =
+    GoalRunnerStatusProjectionAssembler(
+      dataSources =
+        GoalRunnerStatusProjectionDataSources(
+          manifestStore = manifestStore,
+          outcomeStore = outcomeStore,
+          phaseRecorder = phaseRecorder,
+          attemptLedgerStore = ports.attemptLedgerStore,
+          database = database,
+        ),
+      gitOperations = ports.gitOperations,
+      clock = clock,
+      workerSupervisor = ports.workerSupervisor,
+      planningStatusReasonCoherence = GoalPlanningStatusReasonCoherence.NONE,
+      diagnostics = ports.diagnostics,
+      runtimeStatusService = ports.runtimeStatusService,
+      repositoryRoot = testRepositoryRoot,
+      validationDependencies =
+        GoalRunnerStatusProjectionValidationDependencies(
+          validationGateResolver =
+            ValidationGateResolver(
+              InstalledPlatformPackCatalogPort { ports.validationGatePlatformManifests },
+            ),
+          repoLocalConfig = ports.repoLocalConfig,
+        ),
+    )
   return GoalRunnerStatusService(
     manifestStore = manifestStore,
     outcomeStore = outcomeStore,
@@ -113,59 +120,64 @@ fun testGoalRunnerStatusService(
     childRepairStore = ports.childRepairStore,
     repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
     projectionAssembler = projectionAssembler,
-    resetReplanCoordinator = GoalRunnerResetReplanCoordinator(
-      manifestStore = manifestStore,
-      outcomeStore = outcomeStore,
-      gitOperations = ports.gitOperations,
-      diagnostics = ports.diagnostics,
-      projectionAssembler = projectionAssembler,
-      repositoryRoot = testRepositoryRoot,
-      repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
-    ),
-    purgeCoordinator = GoalRunnerPurgeCoordinator(
-      manifestStore = manifestStore,
-      gitOperations = ports.gitOperations,
-      projectionAssembler = projectionAssembler,
-      manifestFileStore = decompositionManifestStore,
-      manifestValidator = testDecompositionManifestValidator,
-      database = database,
-      repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
-    ),
+    resetReplanCoordinator =
+      GoalRunnerResetReplanCoordinator(
+        manifestStore = manifestStore,
+        outcomeStore = outcomeStore,
+        gitOperations = ports.gitOperations,
+        diagnostics = ports.diagnostics,
+        projectionAssembler = projectionAssembler,
+        repositoryRoot = testRepositoryRoot,
+        repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
+      ),
+    purgeCoordinator =
+      GoalRunnerPurgeCoordinator(
+        manifestStore = manifestStore,
+        gitOperations = ports.gitOperations,
+        projectionAssembler = projectionAssembler,
+        manifestFileStore = decompositionManifestStore,
+        manifestValidator = testDecompositionManifestValidator,
+        database = database,
+        repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
+      ),
   )
 }
 
-private val testGoalChildPlanningHydratorPort = GoalChildPlanningHydratorPortAdapter(
-  realFeatureTaskRuntimePhaseOutputValidator,
-  realPlanningProjectionValidator,
-  testHarnessClock,
-)
+private val testGoalChildPlanningHydratorPort =
+  GoalChildPlanningHydratorPortAdapter(
+    realFeatureTaskRuntimePhaseOutputValidator,
+    realPlanningProjectionValidator,
+    testHarnessClock,
+  )
 
 fun testGoalRunnerChildRepairExecutor(
   database: DatabaseSessionFactory = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
   gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
-): GoalRunnerChildRepairOperations = GoalRunnerChildRepairOperations(
-  database,
-  testWorkflowSnapshotValidator,
-  gitOperations,
-  testDecompositionManifestValidator,
-  testHarnessClock,
-)
+): GoalRunnerChildRepairOperations =
+  GoalRunnerChildRepairOperations(
+    database,
+    testWorkflowSnapshotValidator,
+    gitOperations,
+    testDecompositionManifestValidator,
+    testHarnessClock,
+  )
 
 fun testWorkflowGoalRunnerManifestStore(
   database: DatabaseSessionFactory,
   decompositionManifestStore: DecompositionManifestStore,
   clock: Clock,
   decompositionManifestValidator: DecompositionManifestValidator = testDecompositionManifestValidator,
-): GoalRunnerManifestStore = sqliteWorkflowGoalRunnerManifestStore(
-  database = database,
-  workflowSnapshotValidator = testWorkflowSnapshotValidator,
-  decompositionManifestValidator = decompositionManifestValidator,
-  decompositionManifestStore = decompositionManifestStore,
-  clock = clock,
-  decompositionManifestWriter = DecompositionManifestWriter(),
-  repositoryRoot = testRepositoryRoot,
-  planningHydrator = testGoalChildPlanningHydratorPort,
-)
+): GoalRunnerManifestStore =
+  sqliteWorkflowGoalRunnerManifestStore(
+    database = database,
+    workflowSnapshotValidator = testWorkflowSnapshotValidator,
+    decompositionManifestValidator = decompositionManifestValidator,
+    decompositionManifestStore = decompositionManifestStore,
+    clock = clock,
+    decompositionManifestWriter = DecompositionManifestWriter(),
+    repositoryRoot = testRepositoryRoot,
+    planningHydrator = testGoalChildPlanningHydratorPort,
+  )
 
 fun testWorkflowGoalRunnerOutcomeStore(
   database: DatabaseSessionFactory,
@@ -193,11 +205,12 @@ fun testPhaseRecorder(
   handoffFoundationValidator: FeatureTaskRuntimeWireArtifactValidator =
     AcceptingFeatureTaskRuntimeWireArtifactValidator,
   diagnostics: RuntimeDiagnostics = NoopRuntimeDiagnostics,
-): FeatureTaskRuntimePhaseRecorder = featureTaskRuntimePhaseRecorder(
-  database = database,
-  workflowSnapshotValidator = workflowSnapshotValidator,
-  handoffEnvelopeValidator = handoffEnvelopeValidator,
-  handoffFoundationValidator = handoffFoundationValidator,
-  clock = testHarnessClock,
-  diagnostics = diagnostics,
-)
+): FeatureTaskRuntimePhaseRecorder =
+  featureTaskRuntimePhaseRecorder(
+    database = database,
+    workflowSnapshotValidator = workflowSnapshotValidator,
+    handoffEnvelopeValidator = handoffEnvelopeValidator,
+    handoffFoundationValidator = handoffFoundationValidator,
+    clock = testHarnessClock,
+    diagnostics = diagnostics,
+  )

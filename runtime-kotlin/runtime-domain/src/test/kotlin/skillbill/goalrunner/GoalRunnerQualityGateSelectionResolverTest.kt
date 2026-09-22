@@ -6,6 +6,7 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import kotlin.test.Test
 import kotlin.test.assertEquals
+
 class GoalRunnerQualityGateSelectionResolverTest {
   @Test
   fun `three-child goal resolves build build validate`() {
@@ -35,11 +36,13 @@ class GoalRunnerQualityGateSelectionResolverTest {
 
   @Test
   fun `ordinal-last skipped promotes validate to previous last non-skipped`() {
-    val manifest = manifest(subtaskCount = 3).copy(
-      subtasks = manifest(subtaskCount = 3).subtasks.map { subtask ->
-        if (subtask.id == 3) subtask.copy(status = "skipped") else subtask
-      },
-    )
+    val manifest =
+      manifest(subtaskCount = 3).copy(
+        subtasks =
+          manifest(subtaskCount = 3).subtasks.map { subtask ->
+            if (subtask.id == 3) subtask.copy(status = "skipped") else subtask
+          },
+      )
     assertEquals(
       FeatureTaskRuntimeQualityGateSelection.BUILD,
       GoalRunnerQualityGateSelectionResolver.resolve(manifest, 1),
@@ -50,19 +53,21 @@ class GoalRunnerQualityGateSelectionResolverTest {
     )
   }
 
-  private fun manifest(subtaskCount: Int): DecompositionManifest = DecompositionManifest(
-    issueKey = "SKILL-204",
-    featureName = "goal",
-    parentSpecPath = ".feature-specs/SKILL-204-goal/spec.md",
-    baseBranch = "main",
-    featureBranch = "feat/SKILL-204-goal",
-    currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "start"),
-    subtasks = (1..subtaskCount).map { id ->
-      DecompositionSubtask(
-        id = id,
-        name = "Subtask $id",
-        specPath = ".feature-specs/SKILL-204-goal/spec_subtask_$id.md",
-      )
-    },
-  )
+  private fun manifest(subtaskCount: Int): DecompositionManifest =
+    DecompositionManifest(
+      issueKey = "SKILL-204",
+      featureName = "goal",
+      parentSpecPath = ".feature-specs/SKILL-204-goal/spec.md",
+      baseBranch = "main",
+      featureBranch = "feat/SKILL-204-goal",
+      currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "start"),
+      subtasks =
+        (1..subtaskCount).map { id ->
+          DecompositionSubtask(
+            id = id,
+            name = "Subtask $id",
+            specPath = ".feature-specs/SKILL-204-goal/spec_subtask_$id.md",
+          )
+        },
+    )
 }

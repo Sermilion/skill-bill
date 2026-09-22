@@ -20,8 +20,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-class InstallExternalAddonOverlayIntegrationTest : InstallApplyTestSupport() {
 
+class InstallExternalAddonOverlayIntegrationTest : InstallApplyTestSupport() {
   @Test
   fun `overlay then staging inlines external addon content into installed skills cache`() {
     val fixture = setupIosFixture()
@@ -33,13 +33,15 @@ class InstallExternalAddonOverlayIntegrationTest : InstallApplyTestSupport() {
 
     assertEquals(InstallApplyStatus.SUCCESS, result.status, "apply failures: ${result.failures}")
     val staging = result.skills.first { it.skillName == "bill-code-review" }.staging
-    val stagingDir = staging.stagingDir
-      ?: error("ios code-review skill was not staged")
-    val acmeRendered = staging.renderedPointerFiles.firstOrNull { it.fileName == "acme-review.md" }
-      ?: error(
-        "acme-review.md must appear among the RENDERED pointer files in $stagingDir; " +
-          "got: ${staging.renderedPointerFiles}",
-      )
+    val stagingDir =
+      staging.stagingDir
+        ?: error("ios code-review skill was not staged")
+    val acmeRendered =
+      staging.renderedPointerFiles.firstOrNull { it.fileName == "acme-review.md" }
+        ?: error(
+          "acme-review.md must appear among the RENDERED pointer files in $stagingDir; " +
+            "got: ${staging.renderedPointerFiles}",
+        )
     assertTrue(
       Files.isRegularFile(acmeRendered.toPath()),
       "external addon must be inlined as a rendered pointer file under the install cache",
@@ -106,35 +108,39 @@ class InstallExternalAddonOverlayIntegrationTest : InstallApplyTestSupport() {
   fun `overlaid external add-on reaches rendered agents without mutating upstream content md`() {
     val fixture = setupIosFixture()
     val packRoot = fixture.repoRoot.resolve("platform-packs/ios")
-    val contentFiles = Files.walk(packRoot).use { stream ->
-      stream.filter { path -> path.fileName.toString() == "content.md" }.toList()
-    }
+    val contentFiles =
+      Files.walk(packRoot).use { stream ->
+        stream.filter { path -> path.fileName.toString() == "content.md" }.toList()
+      }
     val beforeBytes = contentFiles.associateWith { path -> Files.readAllBytes(path) }
     val marker = "external-overlay-native-agent-marker"
-    val external = seedExternalSource(
-      fixture,
-      "acme",
-      listOf("acme-review.md"),
-      skillRelativeDir = "code-review/bill-ios-code-review-architecture",
-      body = marker,
-    )
+    val external =
+      seedExternalSource(
+        fixture,
+        "acme",
+        listOf("acme-review.md"),
+        skillRelativeDir = "code-review/bill-ios-code-review-architecture",
+        body = marker,
+      )
     runOverlay(fixture, listOf(external))
     NativeAgentProvider.entries.forEach { provider ->
-      val result = NativeAgentOperations.renderInstallArtifacts(
-        NativeAgentInstallRenderRequest(
-          platformPacksRoot = fixture.repoRoot.resolve("platform-packs"),
-          skillsRoot = fixture.repoRoot.resolve("skills"),
-          selectedPlatforms = listOf("ios"),
-          provider = provider,
-          home = fixture.home,
-          compositionContext = installNativeAgentCompositionContext(),
-        ),
-      )
-      val rendered = Files.readString(
-        result.generatedFiles.single { path ->
-          path.fileName.toString() == provider.fileName("bill-ios-code-review-architecture")
-        },
-      )
+      val result =
+        NativeAgentOperations.renderInstallArtifacts(
+          NativeAgentInstallRenderRequest(
+            platformPacksRoot = fixture.repoRoot.resolve("platform-packs"),
+            skillsRoot = fixture.repoRoot.resolve("skills"),
+            selectedPlatforms = listOf("ios"),
+            provider = provider,
+            home = fixture.home,
+            compositionContext = installNativeAgentCompositionContext(),
+          ),
+        )
+      val rendered =
+        Files.readString(
+          result.generatedFiles.single { path ->
+            path.fileName.toString() == provider.fileName("bill-ios-code-review-architecture")
+          },
+        )
       assertTrue(marker in rendered, "${provider.directoryName} missing overlaid add-on content")
     }
     contentFiles.forEach { path ->
@@ -145,9 +151,13 @@ class InstallExternalAddonOverlayIntegrationTest : InstallApplyTestSupport() {
     }
   }
 
-  private fun stagedSkillBody(result: InstallApplyResult, name: String): String {
-    val stagingDir = result.skills.first { it.skillName == "bill-code-review" }.staging.stagingDir
-      ?: error("bill-code-review was not staged")
+  private fun stagedSkillBody(
+    result: InstallApplyResult,
+    name: String,
+  ): String {
+    val stagingDir =
+      result.skills.first { it.skillName == "bill-code-review" }.staging.stagingDir
+        ?: error("bill-code-review was not staged")
     return Files.readString(stagingDir.resolve("$name.md").toPath())
   }
 
@@ -168,10 +178,10 @@ class InstallExternalAddonOverlayIntegrationTest : InstallApplyTestSupport() {
           "      target: platform-packs/ios/addons/offline-review.md",
       ) +
         """
-          addon_usage:
-            code-review/bill-ios-code-review:
-              - slug: offline
-                entrypoint: offline-review.md
+        addon_usage:
+          code-review/bill-ios-code-review:
+            - slug: offline
+              entrypoint: offline-review.md
         """.trimIndent() + "\n",
     )
     return fixture
@@ -205,7 +215,10 @@ class InstallExternalAddonOverlayIntegrationTest : InstallApplyTestSupport() {
     return ExternalAddonSource(sourceDir.toFileLocation(), "ios")
   }
 
-  private fun runOverlay(fixture: ApplyFixture, sources: List<ExternalAddonSource>) {
+  private fun runOverlay(
+    fixture: ApplyFixture,
+    sources: List<ExternalAddonSource>,
+  ) {
     val port: ExternalAddonOverlayPort = FileSystemExternalAddonOverlay()
     port.applyOverlay(
       ExternalAddonOverlayRequest(
@@ -215,15 +228,20 @@ class InstallExternalAddonOverlayIntegrationTest : InstallApplyTestSupport() {
     )
   }
 
-  private fun assertContains(actual: String, expected: String, message: String? = null) {
+  private fun assertContains(
+    actual: String,
+    expected: String,
+    message: String? = null,
+  ) {
     assertTrue(
       actual.contains(expected),
       (message ?: "Expected staged content to contain '$expected'.") + " Got: $actual",
     )
   }
 
-  private fun ApplyFixture.request(selectedPlatforms: Set<String>): InstallPlanRequest = request(
-    selectedPlatforms = selectedPlatforms,
-    agents = setOf(InstallAgent.CODEX),
-  )
+  private fun ApplyFixture.request(selectedPlatforms: Set<String>): InstallPlanRequest =
+    request(
+      selectedPlatforms = selectedPlatforms,
+      agents = setOf(InstallAgent.CODEX),
+    )
 }

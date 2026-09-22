@@ -9,7 +9,9 @@ internal typealias DirTarget = Pair<String, String>
 internal typealias DirSlug = Pair<String, String>
 
 internal data class ExternalName(val platform: String, val dir: String, val name: String)
+
 internal data class ExternalTarget(val platform: String, val dir: String, val basename: String)
+
 internal data class ExternalSlug(val platform: String, val dir: String, val slug: String)
 
 internal fun PointerSpec.dirName(): DirName = skillRelativeDir to name
@@ -18,14 +20,19 @@ internal fun basename(target: String): String = target.substringAfterLast('/').s
 
 internal sealed interface PointerCollisionOutcome {
   data object AlreadyPresent : PointerCollisionOutcome
+
   data class NameCollision(val existingTarget: String) : PointerCollisionOutcome
+
   data class TargetCollision(val existingName: String, val origin: String) : PointerCollisionOutcome
+
   data object New : PointerCollisionOutcome
 }
 
 internal sealed interface AddonCollisionOutcome {
   data object AlreadyPresent : AddonCollisionOutcome
+
   data class Collision(val existing: GovernedAddonSelection) : AddonCollisionOutcome
+
   data object New : AddonCollisionOutcome
 }
 
@@ -37,7 +44,10 @@ internal class CollisionIndex {
   private val installedAddons = mutableMapOf<DirSlug, GovernedAddonSelection>()
   private val externalAddons = mutableMapOf<ExternalSlug, GovernedAddonSelection>()
 
-  fun mergeInstalled(pointers: List<PointerSpec>, addonUsage: List<GovernedAddonUsage> = emptyList()) {
+  fun mergeInstalled(
+    pointers: List<PointerSpec>,
+    addonUsage: List<GovernedAddonUsage> = emptyList(),
+  ) {
     installedByName.clear()
     installedByTarget.clear()
     installedAddons.clear()
@@ -52,7 +62,12 @@ internal class CollisionIndex {
     }
   }
 
-  fun recordExternalPointer(platform: String, nameKey: DirName, targetKey: DirTarget, pointer: PointerSpec) {
+  fun recordExternalPointer(
+    platform: String,
+    nameKey: DirName,
+    targetKey: DirTarget,
+    pointer: PointerSpec,
+  ) {
     externalByName[ExternalName(platform, nameKey.first, nameKey.second)] = pointer.target
     externalByTarget[ExternalTarget(platform, targetKey.first, targetKey.second)] = pointer.name
   }
@@ -80,11 +95,19 @@ internal class CollisionIndex {
     }
   }
 
-  fun recordExternalAddon(platform: String, dir: String, selection: GovernedAddonSelection) {
+  fun recordExternalAddon(
+    platform: String,
+    dir: String,
+    selection: GovernedAddonSelection,
+  ) {
     externalAddons[ExternalSlug(platform, dir, selection.slug)] = selection
   }
 
-  fun classifyAddon(platform: String, dir: String, selection: GovernedAddonSelection): AddonCollisionOutcome {
+  fun classifyAddon(
+    platform: String,
+    dir: String,
+    selection: GovernedAddonSelection,
+  ): AddonCollisionOutcome {
     val installed = installedAddons[dir to selection.slug]
     if (installed != null) {
       return resolveAddonOutcome(installed, selection)

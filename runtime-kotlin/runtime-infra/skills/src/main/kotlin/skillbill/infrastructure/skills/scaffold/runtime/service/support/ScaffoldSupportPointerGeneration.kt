@@ -20,9 +20,10 @@ internal fun featureAddonPointerSpecsFor(
 }
 
 private fun featureAddonPointersForManifest(manifest: PlatformManifest): List<PointerSpec> {
-  val pointersByName = manifest.pointers
-    .filter { spec -> spec.skillRelativeDir == FEATURE_TASK_ADDON_CONSUMER }
-    .associateBy { it.name }
+  val pointersByName =
+    manifest.pointers
+      .filter { spec -> spec.skillRelativeDir == FEATURE_TASK_ADDON_CONSUMER }
+      .associateBy { it.name }
   return manifest.featureAddonUsage
     .filter { usage -> usage.consumer == FEATURE_TASK_ADDON_CONSUMER }
     .flatMap { usage -> usage.addons.flatMap { addon -> listOf(addon.entrypoint) + addon.companionPointers } }

@@ -8,7 +8,11 @@ object SnapshotAssertions {
   private const val UPDATE_PROPERTY = "update-snapshots"
   private const val UPDATE_HINT = "-Pupdate-snapshots"
 
-  fun assertMatchesSnapshot(fixturePath: String, actual: String, resourceRoot: Path = defaultResourceRoot()) {
+  fun assertMatchesSnapshot(
+    fixturePath: String,
+    actual: String,
+    resourceRoot: Path = defaultResourceRoot(),
+  ) {
     require(Path.of(fixturePath).isAbsolute.not()) {
       "Snapshot fixture path must be relative to src/test/resources: $fixturePath"
     }
@@ -36,8 +40,9 @@ object SnapshotAssertions {
 
   internal fun updateSnapshotsEnabled(): Boolean = System.getProperty(UPDATE_PROPERTY) != null
 
-  private fun defaultResourceRoot(): Path = System.getProperty("skillbill.snapshotResourceRoot")
-    ?.takeIf { it.isNotBlank() }
-    ?.let(Path::of)
-    ?: Path.of("src/test/resources")
+  private fun defaultResourceRoot(): Path =
+    System.getProperty("skillbill.snapshotResourceRoot")
+      ?.takeIf { it.isNotBlank() }
+      ?.let(Path::of)
+      ?: Path.of("src/test/resources")
 }

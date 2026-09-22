@@ -11,15 +11,17 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
 class FileSystemInstalledWorkspaceBaselineStatusTest : InstallApplyTestSupport() {
   private val persistence = FileSystemBaselineManifestPersistence()
   private val status = FileSystemInstalledWorkspaceBaselineStatus(persistence)
 
-  private fun roots(installRoot: Path) = ReconcileSourceRoots(
-    repoRoot = installRoot,
-    skillsRoot = installRoot.resolve("skills"),
-    platformPacksRoot = installRoot.resolve("platform-packs"),
-  )
+  private fun roots(installRoot: Path) =
+    ReconcileSourceRoots(
+      repoRoot = installRoot,
+      skillsRoot = installRoot.resolve("skills"),
+      platformPacksRoot = installRoot.resolve("platform-packs"),
+    )
 
   private fun seedInstalledWorkspace(name: String): Pair<Path, Path> {
     val home = Files.createTempDirectory("skillbill-$name-home").also(tempDirs::add)
@@ -30,12 +32,16 @@ class FileSystemInstalledWorkspaceBaselineStatusTest : InstallApplyTestSupport()
     return home to installRoot
   }
 
-  private fun captureBaselineFromLive(installRoot: Path, home: Path) {
-    val entries = enumerateSkills(
-      roots(installRoot),
-      home,
-      ReconcileSourceSide.LOCAL,
-    ).mapValues { (_, entry) -> entry.hash }
+  private fun captureBaselineFromLive(
+    installRoot: Path,
+    home: Path,
+  ) {
+    val entries =
+      enumerateSkills(
+        roots(installRoot),
+        home,
+        ReconcileSourceSide.LOCAL,
+      ).mapValues { (_, entry) -> entry.hash }
     persistence.writeBaseline(
       WriteBaselineManifestRequest(
         installHome = home,
@@ -44,9 +50,13 @@ class FileSystemInstalledWorkspaceBaselineStatusTest : InstallApplyTestSupport()
     )
   }
 
-  private fun modified(installRoot: Path, home: Path): Set<String> = status.modifiedSkillRelativePaths(
-    InstalledWorkspaceBaselineStatusRequest(installRoot = installRoot, installHome = home),
-  ).modifiedSkillRelativePaths
+  private fun modified(
+    installRoot: Path,
+    home: Path,
+  ): Set<String> =
+    status.modifiedSkillRelativePaths(
+      InstalledWorkspaceBaselineStatusRequest(installRoot = installRoot, installHome = home),
+    ).modifiedSkillRelativePaths
 
   @Test
   fun `unmodified workspace reports no locally-modified skills`() {

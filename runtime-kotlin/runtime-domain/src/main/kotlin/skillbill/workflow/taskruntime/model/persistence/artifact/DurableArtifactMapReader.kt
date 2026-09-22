@@ -8,8 +8,9 @@ internal class DurableArtifactMapReader(
   private val fail: (message: String) -> Nothing,
 ) {
   fun requiredString(key: String): String {
-    val value = map[key]
-      ?: fail("Feature-task-runtime artifact map is missing required field '$key'.")
+    val value =
+      map[key]
+        ?: fail("Feature-task-runtime artifact map is missing required field '$key'.")
     return (value as? String)?.takeIf(String::isNotBlank)
       ?: fail("Feature-task-runtime artifact field '$key' must decode to a non-blank string.")
   }
@@ -62,15 +63,17 @@ internal class DurableArtifactMapReader(
       ?: fail("Feature-task-runtime artifact field '$key' must decode to a boolean when present.")
   }
 
-  fun requiredBoolean(key: String): Boolean = optionalBoolean(key)
-    ?: fail("Feature-task-runtime artifact map is missing required boolean field '$key'.")
+  fun requiredBoolean(key: String): Boolean =
+    optionalBoolean(key)
+      ?: fail("Feature-task-runtime artifact map is missing required boolean field '$key'.")
 
   fun optionalStringList(key: String): List<String> {
     if (!map.containsKey(key) || map[key] == null) {
       return emptyList()
     }
-    val list = map[key] as? List<*>
-      ?: fail("Feature-task-runtime artifact field '$key' must decode to a list of strings when present.")
+    val list =
+      map[key] as? List<*>
+        ?: fail("Feature-task-runtime artifact field '$key' must decode to a list of strings when present.")
     return list.map { element ->
       (element as? String)?.takeIf(String::isNotBlank)
         ?: fail("Feature-task-runtime artifact field '$key' must contain only non-blank strings.")
@@ -78,10 +81,12 @@ internal class DurableArtifactMapReader(
   }
 
   fun requiredStringList(key: String): List<String> {
-    val value = map[key]
-      ?: fail("Feature-task-runtime artifact map is missing required list field '$key'.")
-    val list = value as? List<*>
-      ?: fail("Feature-task-runtime artifact field '$key' must decode to a list.")
+    val value =
+      map[key]
+        ?: fail("Feature-task-runtime artifact map is missing required list field '$key'.")
+    val list =
+      value as? List<*>
+        ?: fail("Feature-task-runtime artifact field '$key' must decode to a list.")
     return list.mapIndexed { index, element ->
       (element as? String)?.takeIf(String::isNotBlank)
         ?: fail("Feature-task-runtime artifact field '$key[$index]' must be non-blank.")
@@ -89,8 +94,9 @@ internal class DurableArtifactMapReader(
   }
 
   fun requiredList(key: String): List<*> {
-    val value = map[key]
-      ?: fail("Feature-task-runtime artifact map is missing required list field '$key'.")
+    val value =
+      map[key]
+        ?: fail("Feature-task-runtime artifact map is missing required list field '$key'.")
     return value as? List<*>
       ?: fail("Feature-task-runtime artifact field '$key' must decode to a list.")
   }
@@ -104,8 +110,9 @@ internal class DurableArtifactMapReader(
   }
 
   fun requiredNestedObject(key: String): Map<String, Any?> {
-    val value = map[key]
-      ?: fail("Feature-task-runtime artifact map is missing required object field '$key'.")
+    val value =
+      map[key]
+        ?: fail("Feature-task-runtime artifact map is missing required object field '$key'.")
     return value.asStringKeyMap()
       ?: fail("Feature-task-runtime artifact field '$key' must decode to an object.")
   }
@@ -118,8 +125,12 @@ internal class DurableArtifactMapReader(
       ?: fail("Feature-task-runtime artifact field '$key' must decode to an object when present.")
   }
 
-  fun nestedObjectFromValue(value: Any?, fieldPath: String): Map<String, Any?> = value.asStringKeyMap()
-    ?: fail("Feature-task-runtime artifact field '$fieldPath' must decode to an object.")
+  fun nestedObjectFromValue(
+    value: Any?,
+    fieldPath: String,
+  ): Map<String, Any?> =
+    value.asStringKeyMap()
+      ?: fail("Feature-task-runtime artifact field '$fieldPath' must decode to an object.")
 }
 
 internal fun durableArtifactMapReader(map: Map<String, Any?>): DurableArtifactMapReader =
@@ -131,22 +142,25 @@ internal fun Any?.toStringKeyedArtifactMap(fail: (String) -> Nothing): Map<Strin
     stringKey to value
   } ?: fail("Artifact value must decode to an object.")
 
-internal fun Any?.asExactIntOrNull(): Int? = asExactLongOrNull()?.let { value ->
-  if (value in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) value.toInt() else null
-}
+internal fun Any?.asExactIntOrNull(): Int? =
+  asExactLongOrNull()?.let { value ->
+    if (value in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) value.toInt() else null
+  }
 
-internal fun Any?.asExactLongOrNull(): Long? = when (this) {
-  is Byte -> toLong()
-  is Short -> toLong()
-  is Int -> toLong()
-  is Long -> this
-  is BigInteger -> runCatching { longValueExact() }.getOrNull()
-  is BigDecimal -> runCatching { longValueExact() }.getOrNull()
-  is String -> toLongOrNull()
-  else -> null
-}
+internal fun Any?.asExactLongOrNull(): Long? =
+  when (this) {
+    is Byte -> toLong()
+    is Short -> toLong()
+    is Int -> toLong()
+    is Long -> this
+    is BigInteger -> runCatching { longValueExact() }.getOrNull()
+    is BigDecimal -> runCatching { longValueExact() }.getOrNull()
+    is String -> toLongOrNull()
+    else -> null
+  }
 
-private fun Any?.asStringKeyMap(): Map<String, Any?>? = (this as? Map<*, *>)?.entries?.associate { (key, value) ->
-  val stringKey = key as? String ?: return null
-  stringKey to value
-}
+private fun Any?.asStringKeyMap(): Map<String, Any?>? =
+  (this as? Map<*, *>)?.entries?.associate { (key, value) ->
+    val stringKey = key as? String ?: return null
+    stringKey to value
+  }

@@ -3,6 +3,7 @@ package skillbill.infrastructure.skills.scaffold.authoring
 import skillbill.error.core.SkillBillRuntimeException
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.REQUIRED_GOVERNED_SECTIONS
 import java.nio.file.Files
+
 private val horizontalSkillFamilies: Map<String, String> =
   mapOf(
     "bill-feature-verify" to "workflow",
@@ -16,19 +17,24 @@ private val horizontalSkillFamilies: Map<String, String> =
     "bill-code-check" to "advisor",
   )
 
-internal fun replaceSectionBody(text: String, sectionName: String, newBody: String): String {
+internal fun replaceSectionBody(
+  text: String,
+  sectionName: String,
+  newBody: String,
+): String {
   val (prefix, sections) = parseContentSections(text)
   val normalized = normalizeSectionHeading(sectionName)
   rejectGeneratedWrapperSectionEdit(normalized)
   var matched = false
-  val updated = sections.map { (heading, body) ->
-    if (heading == normalized) {
-      matched = true
-      heading to newBody.trimEnd()
-    } else {
-      heading to body
+  val updated =
+    sections.map { (heading, body) ->
+      if (heading == normalized) {
+        matched = true
+        heading to newBody.trimEnd()
+      } else {
+        heading to body
+      }
     }
-  }
   if (!matched) {
     val available = sections.joinToString(", ") { (heading, _) -> heading.removePrefix("## ").trim() }
     throw SkillBillRuntimeException(
@@ -38,7 +44,10 @@ internal fun replaceSectionBody(text: String, sectionName: String, newBody: Stri
   return renderContentSections(prefix, updated)
 }
 
-internal fun coerceFullContentText(target: AuthoringTarget, bodyText: String): String {
+internal fun coerceFullContentText(
+  target: AuthoringTarget,
+  bodyText: String,
+): String {
   val stripped = bodyText.trim()
   if (stripped.isBlank()) {
     throw SkillBillRuntimeException("Filled content must be non-empty.")
@@ -46,13 +55,14 @@ internal fun coerceFullContentText(target: AuthoringTarget, bodyText: String): S
 
   val (existingFrontmatter, _) = splitFrontmatter(Files.readString(target.contentFile))
   val (suppliedFrontmatter, suppliedBody) = splitFrontmatter(stripped)
-  val frontmatter = suppliedFrontmatter ?: existingFrontmatter
-    ?: throw SkillBillRuntimeException(
-      "${target.contentFile}: content.md must already carry a YAML frontmatter block before " +
-        "fill/edit (and the supplied body does not provide one). Run `skill-bill render " +
-        "--skill-name ${target.skillName}` to regenerate the canonical frontmatter, or restore " +
-        "the file from version control before retrying.",
-    )
+  val frontmatter =
+    suppliedFrontmatter ?: existingFrontmatter
+      ?: throw SkillBillRuntimeException(
+        "${target.contentFile}: content.md must already carry a YAML frontmatter block before " +
+          "fill/edit (and the supplied body does not provide one). Run `skill-bill render " +
+          "--skill-name ${target.skillName}` to regenerate the canonical frontmatter, or restore " +
+          "the file from version control before retrying.",
+      )
   val body = if (suppliedBody.startsWith("# ")) suppliedBody else "${fullContentTitle(target)}\n\n$suppliedBody"
   val trimmedBody = body.trimEnd()
   return "$frontmatter\n$trimmedBody\n"
@@ -82,7 +92,10 @@ internal fun inferFamily(skillName: String): String {
   }
 }
 
-internal fun inferArea(skillName: String, family: String): String =
+internal fun inferArea(
+  skillName: String,
+  family: String,
+): String =
   if (family == "code-review" && "-code-review-" in skillName) skillName.substringAfter("-code-review-") else ""
 
 private fun fullContentTitle(target: AuthoringTarget): String =
@@ -99,9 +112,10 @@ private fun normalizeSectionHeading(sectionName: String): String {
 
 private fun rejectGeneratedWrapperSectionEdit(normalizedHeading: String) {
   val label = normalizedHeading.removePrefix("## ").trim()
-  val generatedHeading = REQUIRED_GOVERNED_SECTIONS.firstOrNull { heading ->
-    heading.removePrefix("## ").trim().equals(label, ignoreCase = true)
-  } ?: return
+  val generatedHeading =
+    REQUIRED_GOVERNED_SECTIONS.firstOrNull { heading ->
+      heading.removePrefix("## ").trim().equals(label, ignoreCase = true)
+    } ?: return
   throw SkillBillRuntimeException(
     "Cannot edit generated wrapper section '$generatedHeading' through content.md. " +
       "Descriptor, Execution, and Ceremony are generated into SKILL.md render/install output. " +

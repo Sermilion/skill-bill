@@ -22,21 +22,22 @@ class FeatureTaskRuntimePersistenceMapFieldsTest {
 
   @Test
   fun `durable reader exposes typed scalar collection and object accessors`() {
-    val reader = durableArtifactMapReader(
-      mapOf(
-        "count" to 3,
-        "bytes" to 12L,
-        "enabled" to true,
-        "names" to listOf("plan", "implement"),
-        "nested" to mapOf("value" to "kept"),
-        "optional_text" to "optional",
-        "optional_bytes" to 4L,
-        "optional_enabled" to false,
-        "optional_names" to listOf("audit"),
-        "optional_values" to listOf(1, "two"),
-        "optional_nested" to mapOf("value" to "optional"),
-      ),
-    )
+    val reader =
+      durableArtifactMapReader(
+        mapOf(
+          "count" to 3,
+          "bytes" to 12L,
+          "enabled" to true,
+          "names" to listOf("plan", "implement"),
+          "nested" to mapOf("value" to "kept"),
+          "optional_text" to "optional",
+          "optional_bytes" to 4L,
+          "optional_enabled" to false,
+          "optional_names" to listOf("audit"),
+          "optional_values" to listOf(1, "two"),
+          "optional_nested" to mapOf("value" to "optional"),
+        ),
+      )
     assertEquals(3, reader.requiredInt("count"))
     assertEquals(12L, reader.requiredLong("bytes"))
     assertEquals(true, reader.requiredBoolean("enabled"))

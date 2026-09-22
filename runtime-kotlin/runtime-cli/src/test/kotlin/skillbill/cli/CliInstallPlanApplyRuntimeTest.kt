@@ -48,6 +48,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class CliInstallPlanApplyRuntimeTest {
   @Test
   fun `install plan maps manual agents platforms telemetry and mcp choices`() {
@@ -146,10 +147,11 @@ class CliInstallPlanApplyRuntimeTest {
     val fixture = installPlanApplyFixture()
     val targetsByAgent = supportedAgents.associateWith { agent -> fixture.home.resolve("manual-targets/$agent") }
 
-    val result = CliRuntime.run(
-      manualBaseOnlyApplyArguments(fixture, targetsByAgent),
-      installPlanCliContext(fixture.home),
-    )
+    val result =
+      CliRuntime.run(
+        manualBaseOnlyApplyArguments(fixture, targetsByAgent),
+        installPlanCliContext(fixture.home),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     val payload = decodeInstallPlanApplyJson(result.stdout)
@@ -213,33 +215,34 @@ class CliInstallPlanApplyRuntimeTest {
     enqueueTelemetryEvent(componentDb, componentHome)
     enqueueTelemetryEvent(overrideDb, fixture.home)
 
-    val result = CliRuntime.run(
-      listOf(
-        "--home",
-        fixture.home.toString(),
-        "--db",
-        overrideDb.toString(),
-        "install",
-        "apply",
-        "--repo-root",
-        fixture.repoRoot.toString(),
-        "--agent-mode",
-        "manual",
-        "--agent",
-        "codex",
-        "--agent-target",
-        "codex=${fixture.home.resolve("manual-targets/codex")}",
-        "--platform-mode",
-        "none",
-        "--telemetry",
-        "off",
-        "--mcp",
-        "skip",
-        "--format",
-        "json",
-      ),
-      CliRuntimeContext(userHome = componentHome, environment = isolatedCliEnvironment(componentHome)),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--home",
+          fixture.home.toString(),
+          "--db",
+          overrideDb.toString(),
+          "install",
+          "apply",
+          "--repo-root",
+          fixture.repoRoot.toString(),
+          "--agent-mode",
+          "manual",
+          "--agent",
+          "codex",
+          "--agent-target",
+          "codex=${fixture.home.resolve("manual-targets/codex")}",
+          "--platform-mode",
+          "none",
+          "--telemetry",
+          "off",
+          "--mcp",
+          "skip",
+          "--format",
+          "json",
+        ),
+        CliRuntimeContext(userHome = componentHome, environment = isolatedCliEnvironment(componentHome)),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     val payload = decodeInstallPlanApplyJson(result.stdout)
@@ -261,13 +264,14 @@ class CliInstallPlanApplyRuntimeTest {
   fun `install apply refuses to mutate during goal continuation`() {
     val fixture = installPlanApplyFixture()
 
-    val result = CliRuntime.run(
-      singleCodexApplyArguments(fixture, platformMode = "none"),
-      CliRuntimeContext(
-        userHome = fixture.home,
-        environment = mapOf("SKILL_BILL_GOAL_CONTINUATION" to "1"),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        singleCodexApplyArguments(fixture, platformMode = "none"),
+        CliRuntimeContext(
+          userHome = fixture.home,
+          environment = mapOf("SKILL_BILL_GOAL_CONTINUATION" to "1"),
+        ),
+      )
 
     assertEquals(64, result.exitCode, result.stdout)
     assertContains(result.stdout, "Refusing to run skill-bill install apply during skill-bill goal-continuation.")
@@ -279,33 +283,37 @@ class CliInstallPlanApplyRuntimeTest {
   fun `install apply links selected and all platform pack payloads through cli contract`() {
     val selectedFixture = installPlanApplyFixture()
     assertApplyPlatformSkills(
-      payload = decodeInstallPlanApplyJson(
-        CliRuntime.run(
-          singleCodexApplyArguments(selectedFixture, platformMode = "selected", platforms = listOf("kotlin")),
-          installPlanCliContext(selectedFixture.home),
-        ).also { result -> assertEquals(0, result.exitCode, result.stdout) }.stdout,
-      ),
+      payload =
+        decodeInstallPlanApplyJson(
+          CliRuntime.run(
+            singleCodexApplyArguments(selectedFixture, platformMode = "selected", platforms = listOf("kotlin")),
+            installPlanCliContext(selectedFixture.home),
+          ).also { result -> assertEquals(0, result.exitCode, result.stdout) }.stdout,
+        ),
       expectedSelectedPlatforms = setOf("kotlin"),
-      expectedSkillNames = setOf(
-        "bill-code-review",
-        "bill-code-check",
-      ),
+      expectedSkillNames =
+        setOf(
+          "bill-code-review",
+          "bill-code-check",
+        ),
       targetDir = selectedFixture.home.resolve("manual-targets/codex"),
     )
 
     val allFixture = installPlanApplyFixture()
     assertApplyPlatformSkills(
-      payload = decodeInstallPlanApplyJson(
-        CliRuntime.run(
-          singleCodexApplyArguments(allFixture, platformMode = "all"),
-          installPlanCliContext(allFixture.home),
-        ).also { result -> assertEquals(0, result.exitCode, result.stdout) }.stdout,
-      ),
+      payload =
+        decodeInstallPlanApplyJson(
+          CliRuntime.run(
+            singleCodexApplyArguments(allFixture, platformMode = "all"),
+            installPlanCliContext(allFixture.home),
+          ).also { result -> assertEquals(0, result.exitCode, result.stdout) }.stdout,
+        ),
       expectedSelectedPlatforms = setOf("kmp", "kotlin"),
-      expectedSkillNames = setOf(
-        "bill-code-review",
-        "bill-code-check",
-      ),
+      expectedSkillNames =
+        setOf(
+          "bill-code-review",
+          "bill-code-check",
+        ),
       targetDir = allFixture.home.resolve("manual-targets/codex"),
     )
   }
@@ -334,10 +342,11 @@ class CliInstallPlanApplyRuntimeTest {
     val fixture = installPlanApplyFixture()
     val runtimeMcpBin = fixture.home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp")
 
-    val result = CliRuntime.run(
-      manualSelectedPlatformRegisterMcpApplyArguments(fixture, runtimeMcpBin),
-      installPlanCliContext(fixture.home),
-    )
+    val result =
+      CliRuntime.run(
+        manualSelectedPlatformRegisterMcpApplyArguments(fixture, runtimeMcpBin),
+        installPlanCliContext(fixture.home),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     val selection = readInstallSelection(fixture.home)
@@ -363,14 +372,15 @@ class CliInstallPlanApplyRuntimeTest {
       Files.writeString(managed.resolve("SKILL.md"), "old managed install")
     }
 
-    val result = CliRuntime.run(
-      singleCodexApplyArguments(
-        fixture = fixture,
-        platformMode = "none",
-        extraArgs = listOf("--replace-existing-skill-bill-links"),
-      ),
-      installPlanCliContext(fixture.home),
-    )
+    val result =
+      CliRuntime.run(
+        singleCodexApplyArguments(
+          fixture = fixture,
+          platformMode = "none",
+          extraArgs = listOf("--replace-existing-skill-bill-links"),
+        ),
+        installPlanCliContext(fixture.home),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertFalse(Files.exists(legacyManaged))
@@ -409,17 +419,20 @@ class CliInstallPlanApplyRuntimeTest {
     val fixture = installPlanApplyFixture()
     val invalidPlan = invalidCliInstallPlan(fixture)
 
-    val installService = RuntimeComponent::class
-      .create(installPlanCliContext(fixture.home).toRuntimeContext())
-      .installService
-    val planError = assertFailsWith<InvalidInstallPlanSchemaError> {
-      installPlanPayload(invalidPlan, installService)
-    }
+    val installService =
+      RuntimeComponent::class
+        .create(installPlanCliContext(fixture.home).toRuntimeContext())
+        .installService
+    val planError =
+      assertFailsWith<InvalidInstallPlanSchemaError> {
+        installPlanPayload(invalidPlan, installService)
+      }
     assertContains(planError.message.orEmpty(), "mcp_registration.runtime_mcp_bin")
 
-    val applyError = assertFailsWith<InvalidInstallPlanSchemaError> {
-      installApplyPayload(invalidPlan, minimalApplyResult(invalidPlan), installService)
-    }
+    val applyError =
+      assertFailsWith<InvalidInstallPlanSchemaError> {
+        installApplyPayload(invalidPlan, minimalApplyResult(invalidPlan), installService)
+      }
     assertContains(applyError.message.orEmpty(), "mcp_registration.runtime_mcp_bin")
   }
 
@@ -431,10 +444,11 @@ class CliInstallPlanApplyRuntimeTest {
     assertEquals(0, planResult.exitCode, planResult.stdout)
     assertEquals(CliOutput.emit(singleCodexPlanGoldenPayload(fixture), CliFormat.JSON), planResult.stdout)
 
-    val applyResult = CliRuntime.run(
-      singleCodexApplyArguments(fixture, platformMode = "none"),
-      installPlanCliContext(fixture.home),
-    )
+    val applyResult =
+      CliRuntime.run(
+        singleCodexApplyArguments(fixture, platformMode = "none"),
+        installPlanCliContext(fixture.home),
+      )
     assertEquals(0, applyResult.exitCode, applyResult.stdout)
     assertEquals(CliOutput.emit(singleCodexApplyGoldenPayload(fixture), CliFormat.JSON), applyResult.stdout)
   }
@@ -470,220 +484,232 @@ class CliInstallPlanApplyRuntimeTest {
     assertTrue(links.all { link -> link["status"] == "created" })
   }
 
-  private fun cursorPlanArguments(fixture: InstallPlanApplyFixture): List<String> = listOf(
-    "install",
-    "plan",
-    "--repo-root",
-    fixture.repoRoot.toString(),
-    "--agent-mode",
-    "manual",
-    "--agent",
-    "cursor",
-    "--telemetry",
-    "anonymous",
-    "--mcp",
-    "register",
-    "--runtime-mcp-bin",
-    "/tmp/runtime-mcp",
-    "--format",
-    "json",
-  )
+  private fun cursorPlanArguments(fixture: InstallPlanApplyFixture): List<String> =
+    listOf(
+      "install",
+      "plan",
+      "--repo-root",
+      fixture.repoRoot.toString(),
+      "--agent-mode",
+      "manual",
+      "--agent",
+      "cursor",
+      "--telemetry",
+      "anonymous",
+      "--mcp",
+      "register",
+      "--runtime-mcp-bin",
+      "/tmp/runtime-mcp",
+      "--format",
+      "json",
+    )
 
-  private fun manualPlanArguments(fixture: InstallPlanApplyFixture): List<String> = listOf(
-    "install",
-    "plan",
-    "--repo-root",
-    fixture.repoRoot.toString(),
-    "--agent-mode",
-    "manual",
-    "--agent",
-    "claude",
-    "--agent",
-    "codex",
-    "--agent",
-    "junie",
-    "--agent",
-    "cursor",
-    "--platform",
-    "kotlin",
-    "--telemetry",
-    "full",
-    "--mcp",
-    "register",
-    "--runtime-mcp-bin",
-    "/tmp/runtime-mcp",
-    "--windows-symlink-state",
-    "requires-elevation-or-developer-mode",
-    "--windows-symlink-decision",
-    "proceed-with-symlinks",
-    "--windows-symlink-message",
-    "Windows symlink support was not confirmed.",
-    "--format",
-    "json",
-  )
+  private fun manualPlanArguments(fixture: InstallPlanApplyFixture): List<String> =
+    listOf(
+      "install",
+      "plan",
+      "--repo-root",
+      fixture.repoRoot.toString(),
+      "--agent-mode",
+      "manual",
+      "--agent",
+      "claude",
+      "--agent",
+      "codex",
+      "--agent",
+      "junie",
+      "--agent",
+      "cursor",
+      "--platform",
+      "kotlin",
+      "--telemetry",
+      "full",
+      "--mcp",
+      "register",
+      "--runtime-mcp-bin",
+      "/tmp/runtime-mcp",
+      "--windows-symlink-state",
+      "requires-elevation-or-developer-mode",
+      "--windows-symlink-decision",
+      "proceed-with-symlinks",
+      "--windows-symlink-message",
+      "Windows symlink support was not confirmed.",
+      "--format",
+      "json",
+    )
 
   private fun manualBaseOnlyApplyArguments(
     fixture: InstallPlanApplyFixture,
     targetsByAgent: Map<String, Path>,
-  ): List<String> = buildList {
-    add("install")
-    add("apply")
-    add("--repo-root")
-    add(fixture.repoRoot.toString())
-    add("--agent-mode")
-    add("manual")
-    supportedAgents.sorted().forEach { agent ->
-      add("--agent")
-      add(agent)
-      add("--agent-target")
-      add("$agent=${targetsByAgent.getValue(agent)}")
+  ): List<String> =
+    buildList {
+      add("install")
+      add("apply")
+      add("--repo-root")
+      add(fixture.repoRoot.toString())
+      add("--agent-mode")
+      add("manual")
+      supportedAgents.sorted().forEach { agent ->
+        add("--agent")
+        add(agent)
+        add("--agent-target")
+        add("$agent=${targetsByAgent.getValue(agent)}")
+      }
+      add("--platform-mode")
+      add("none")
+      add("--telemetry")
+      add("anonymous")
+      add("--mcp")
+      add("skip")
+      add("--format")
+      add("json")
     }
-    add("--platform-mode")
-    add("none")
-    add("--telemetry")
-    add("anonymous")
-    add("--mcp")
-    add("skip")
-    add("--format")
-    add("json")
-  }
 
   private fun singleCodexApplyArguments(
     fixture: InstallPlanApplyFixture,
     platformMode: String,
     platforms: List<String> = emptyList(),
     extraArgs: List<String> = emptyList(),
-  ): List<String> = buildList {
-    add("install")
-    add("apply")
-    add("--repo-root")
-    add(fixture.repoRoot.toString())
-    add("--agent-mode")
-    add("manual")
-    add("--agent")
-    add("codex")
-    add("--agent-target")
-    add("codex=${fixture.home.resolve("manual-targets/codex")}")
-    add("--platform-mode")
-    add(platformMode)
-    platforms.forEach { platform ->
-      add("--platform")
-      add(platform)
+  ): List<String> =
+    buildList {
+      add("install")
+      add("apply")
+      add("--repo-root")
+      add(fixture.repoRoot.toString())
+      add("--agent-mode")
+      add("manual")
+      add("--agent")
+      add("codex")
+      add("--agent-target")
+      add("codex=${fixture.home.resolve("manual-targets/codex")}")
+      add("--platform-mode")
+      add(platformMode)
+      platforms.forEach { platform ->
+        add("--platform")
+        add(platform)
+      }
+      add("--telemetry")
+      add("anonymous")
+      add("--mcp")
+      add("skip")
+      addAll(extraArgs)
+      add("--format")
+      add("json")
     }
-    add("--telemetry")
-    add("anonymous")
-    add("--mcp")
-    add("skip")
-    addAll(extraArgs)
-    add("--format")
-    add("json")
-  }
 
-  private fun detectedPlanArguments(fixture: InstallPlanApplyFixture, telemetry: String): List<String> = listOf(
-    "install",
-    "plan",
-    "--repo-root",
-    fixture.repoRoot.toString(),
-    "--agent-mode",
-    "detected",
-    "--platform-mode",
-    "all",
-    "--telemetry",
-    telemetry,
-    "--mcp",
-    "skip",
-    "--format",
-    "json",
-  )
+  private fun detectedPlanArguments(
+    fixture: InstallPlanApplyFixture,
+    telemetry: String,
+  ): List<String> =
+    listOf(
+      "install",
+      "plan",
+      "--repo-root",
+      fixture.repoRoot.toString(),
+      "--agent-mode",
+      "detected",
+      "--platform-mode",
+      "all",
+      "--telemetry",
+      telemetry,
+      "--mcp",
+      "skip",
+      "--format",
+      "json",
+    )
 
-  private fun detectedApplyArguments(fixture: InstallPlanApplyFixture): List<String> = listOf(
-    "install",
-    "apply",
-    "--repo-root",
-    fixture.repoRoot.toString(),
-    "--agent-mode",
-    "detected",
-    "--platform-mode",
-    "all",
-    "--telemetry",
-    "off",
-    "--mcp",
-    "skip",
-    "--format",
-    "json",
-  )
+  private fun detectedApplyArguments(fixture: InstallPlanApplyFixture): List<String> =
+    listOf(
+      "install",
+      "apply",
+      "--repo-root",
+      fixture.repoRoot.toString(),
+      "--agent-mode",
+      "detected",
+      "--platform-mode",
+      "all",
+      "--telemetry",
+      "off",
+      "--mcp",
+      "skip",
+      "--format",
+      "json",
+    )
 
   private fun manualSelectedPlatformRegisterMcpApplyArguments(
     fixture: InstallPlanApplyFixture,
     runtimeMcpBin: Path,
-  ): List<String> = listOf(
-    "install",
-    "apply",
-    "--repo-root",
-    fixture.repoRoot.toString(),
-    "--agent-mode",
-    "manual",
-    "--agent",
-    "codex",
-    "--agent-target",
-    "codex=${fixture.home.resolve("manual-targets/codex")}",
-    "--platform-mode",
-    "selected",
-    "--platform",
-    "kotlin",
-    "--telemetry",
-    "full",
-    "--mcp",
-    "register",
-    "--runtime-mcp-bin",
-    runtimeMcpBin.toString(),
-    "--format",
-    "json",
-  )
+  ): List<String> =
+    listOf(
+      "install",
+      "apply",
+      "--repo-root",
+      fixture.repoRoot.toString(),
+      "--agent-mode",
+      "manual",
+      "--agent",
+      "codex",
+      "--agent-target",
+      "codex=${fixture.home.resolve("manual-targets/codex")}",
+      "--platform-mode",
+      "selected",
+      "--platform",
+      "kotlin",
+      "--telemetry",
+      "full",
+      "--mcp",
+      "register",
+      "--runtime-mcp-bin",
+      runtimeMcpBin.toString(),
+      "--format",
+      "json",
+    )
 
-  private fun windowsFailureApplyArguments(fixture: InstallPlanApplyFixture): List<String> = listOf(
-    "install",
-    "apply",
-    "--repo-root",
-    fixture.repoRoot.toString(),
-    "--agent-mode",
-    "manual",
-    "--agent",
-    "codex",
-    "--platform-mode",
-    "none",
-    "--mcp",
-    "skip",
-    "--windows-symlink-state",
-    "decision-required",
-    "--windows-symlink-decision",
-    "require-user-action",
-    "--windows-symlink-message",
-    "Windows requires elevation or Developer Mode before symlink install.",
-    "--format",
-    "json",
-  )
+  private fun windowsFailureApplyArguments(fixture: InstallPlanApplyFixture): List<String> =
+    listOf(
+      "install",
+      "apply",
+      "--repo-root",
+      fixture.repoRoot.toString(),
+      "--agent-mode",
+      "manual",
+      "--agent",
+      "codex",
+      "--platform-mode",
+      "none",
+      "--mcp",
+      "skip",
+      "--windows-symlink-state",
+      "decision-required",
+      "--windows-symlink-decision",
+      "require-user-action",
+      "--windows-symlink-message",
+      "Windows requires elevation or Developer Mode before symlink install.",
+      "--format",
+      "json",
+    )
 
-  private fun singleCodexPlanArguments(fixture: InstallPlanApplyFixture): List<String> = listOf(
-    "install",
-    "plan",
-    "--repo-root",
-    fixture.repoRoot.toString(),
-    "--agent-mode",
-    "manual",
-    "--agent",
-    "codex",
-    "--agent-target",
-    "codex=${fixture.home.resolve("manual-targets/codex")}",
-    "--platform-mode",
-    "none",
-    "--telemetry",
-    "anonymous",
-    "--mcp",
-    "skip",
-    "--format",
-    "json",
-  )
+  private fun singleCodexPlanArguments(fixture: InstallPlanApplyFixture): List<String> =
+    listOf(
+      "install",
+      "plan",
+      "--repo-root",
+      fixture.repoRoot.toString(),
+      "--agent-mode",
+      "manual",
+      "--agent",
+      "codex",
+      "--agent-target",
+      "codex=${fixture.home.resolve("manual-targets/codex")}",
+      "--platform-mode",
+      "none",
+      "--telemetry",
+      "anonymous",
+      "--mcp",
+      "skip",
+      "--format",
+      "json",
+    )
 }
 
 private val supportedAgents = setOf("claude", "codex", "junie", "cursor")
@@ -727,90 +753,112 @@ private fun invalidCliInstallPlan(fixture: InstallPlanApplyFixture): InstallPlan
   )
 }
 
-private fun codexInstallTarget(fixture: InstallPlanApplyFixture): InstallAgentTarget = InstallAgentTarget(
-  agent = InstallAgent.CODEX,
-  path = fixture.home.resolve("manual-targets/codex").toFileLocation(),
-  source = InstallAgentTargetSource.MANUAL,
-)
+private fun codexInstallTarget(fixture: InstallPlanApplyFixture): InstallAgentTarget =
+  InstallAgentTarget(
+    agent = InstallAgent.CODEX,
+    path = fixture.home.resolve("manual-targets/codex").toFileLocation(),
+    source = InstallAgentTargetSource.MANUAL,
+  )
 
 private fun invalidCliInstallRequest(
   fixture: InstallPlanApplyFixture,
   target: InstallAgentTarget,
-): InstallPlanRequest = InstallPlanRequest(
-  repoRoot = fixture.repoRoot.toFileLocation(),
-  home = fixture.home.toFileLocation(),
-  agentSelection = InstallAgentSelection(
-    mode = InstallAgentSelectionMode.MANUAL,
-    manualAgents = setOf(InstallAgent.CODEX),
-  ),
-  platformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.NONE),
-  telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
-  mcpRegistrationChoice = McpRegistrationChoice(register = true, runtimeMcpBin = Path.of("").toFileLocation()),
-  runtimeDistributionInputs = RuntimeDistributionInputs(
-    runtimeInstallRoot = fixture.home.resolve(".skill-bill/runtime").toFileLocation(),
-  ),
-  targetPaths = InstallationTargetPaths(
-    skillsRoot = fixture.repoRoot.resolve("skills").toFileLocation(),
-    platformPacksRoot = fixture.repoRoot.resolve("platform-packs").toFileLocation(),
-    agentTargets = listOf(target),
-  ),
-  windowsSymlinkPreflight = WindowsSymlinkPreflight(
-    state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-    decision = WindowsSymlinkDecision.NOT_REQUIRED,
-  ),
-)
+): InstallPlanRequest =
+  InstallPlanRequest(
+    repoRoot = fixture.repoRoot.toFileLocation(),
+    home = fixture.home.toFileLocation(),
+    agentSelection =
+      InstallAgentSelection(
+        mode = InstallAgentSelectionMode.MANUAL,
+        manualAgents = setOf(InstallAgent.CODEX),
+      ),
+    platformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.NONE),
+    telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
+    mcpRegistrationChoice = McpRegistrationChoice(register = true, runtimeMcpBin = Path.of("").toFileLocation()),
+    runtimeDistributionInputs =
+      RuntimeDistributionInputs(
+        runtimeInstallRoot = fixture.home.resolve(".skill-bill/runtime").toFileLocation(),
+      ),
+    targetPaths =
+      InstallationTargetPaths(
+        skillsRoot = fixture.repoRoot.resolve("skills").toFileLocation(),
+        platformPacksRoot = fixture.repoRoot.resolve("platform-packs").toFileLocation(),
+        agentTargets = listOf(target),
+      ),
+    windowsSymlinkPreflight =
+      WindowsSymlinkPreflight(
+        state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+        decision = WindowsSymlinkDecision.NOT_REQUIRED,
+      ),
+  )
 
-private fun baseInstallPlanSkill(sourceDir: Path): InstallPlanSkill = InstallPlanSkill(
-  name = "bill-code-review",
-  sourceDir = sourceDir.toFileLocation(),
-  kind = InstallPlanSkillKind.BASE,
-)
+private fun baseInstallPlanSkill(sourceDir: Path): InstallPlanSkill =
+  InstallPlanSkill(
+    name = "bill-code-review",
+    sourceDir = sourceDir.toFileLocation(),
+    kind = InstallPlanSkillKind.BASE,
+  )
 
-private fun invalidCliStagingIntent(stagingRoot: Path, sourceDir: Path): InstallStagingIntent = InstallStagingIntent(
-  root = stagingRoot.toFileLocation(),
-  skillPaths = listOf(
-    InstallStagingPathIntent(
-      skillName = "bill-code-review",
-      sourceDir = sourceDir.toFileLocation(),
-      stagingRoot = stagingRoot.toFileLocation(),
-      stagingDir = stagingRoot.resolve("bill-code-review-testhash").toFileLocation(),
-      contentHash = "testhash",
-    ),
-  ),
-)
+private fun invalidCliStagingIntent(
+  stagingRoot: Path,
+  sourceDir: Path,
+): InstallStagingIntent =
+  InstallStagingIntent(
+    root = stagingRoot.toFileLocation(),
+    skillPaths =
+      listOf(
+        InstallStagingPathIntent(
+          skillName = "bill-code-review",
+          sourceDir = sourceDir.toFileLocation(),
+          stagingRoot = stagingRoot.toFileLocation(),
+          stagingDir = stagingRoot.resolve("bill-code-review-testhash").toFileLocation(),
+          contentHash = "testhash",
+        ),
+      ),
+  )
 
-private fun invalidMcpRegistrationIntent(): McpRegistrationIntent = McpRegistrationIntent(
-  register = true,
-  runtimeMcpBin = Path.of("").toFileLocation(),
-  agents = listOf(InstallAgent.CODEX),
-)
+private fun invalidMcpRegistrationIntent(): McpRegistrationIntent =
+  McpRegistrationIntent(
+    register = true,
+    runtimeMcpBin = Path.of("").toFileLocation(),
+    agents = listOf(InstallAgent.CODEX),
+  )
 
-private fun minimalApplyResult(plan: InstallPlan): InstallApplyResult = InstallApplyResult(
-  status = InstallApplyStatus.SUCCESS,
-  skills = emptyList(),
-  nativeAgents = emptyList(),
-  telemetryOutcome = InstallTelemetryApplyOutcome(
-    level = plan.telemetryLevel,
-    status = InstallTelemetryApplyStatus.SKIPPED,
-  ),
-  mcpRegistrationOutcomes = emptyList(),
-  warnings = emptyList(),
-  failures = emptyList(),
-  windowsSymlinkOutcome = WindowsSymlinkApplyOutcome(
-    preflight = plan.windowsSymlinkPreflight,
-    fallbackState = WindowsSymlinkFallbackState.NOT_REQUIRED,
-  ),
-  telemetryLevel = plan.telemetryLevel,
-  mcpRegistrationIntent = plan.mcpRegistrationIntent,
-)
+private fun minimalApplyResult(plan: InstallPlan): InstallApplyResult =
+  InstallApplyResult(
+    status = InstallApplyStatus.SUCCESS,
+    skills = emptyList(),
+    nativeAgents = emptyList(),
+    telemetryOutcome =
+      InstallTelemetryApplyOutcome(
+        level = plan.telemetryLevel,
+        status = InstallTelemetryApplyStatus.SKIPPED,
+      ),
+    mcpRegistrationOutcomes = emptyList(),
+    warnings = emptyList(),
+    failures = emptyList(),
+    windowsSymlinkOutcome =
+      WindowsSymlinkApplyOutcome(
+        preflight = plan.windowsSymlinkPreflight,
+        fallbackState = WindowsSymlinkFallbackState.NOT_REQUIRED,
+      ),
+    telemetryLevel = plan.telemetryLevel,
+    mcpRegistrationIntent = plan.mcpRegistrationIntent,
+  )
 
-private fun seedCliBaseSkill(repoRoot: Path, skillName: String) {
+private fun seedCliBaseSkill(
+  repoRoot: Path,
+  skillName: String,
+) {
   val skillDir = repoRoot.resolve("skills").resolve(skillName)
   Files.createDirectories(skillDir)
   Files.writeString(skillDir.resolve("content.md"), cliSkillContent(skillName))
 }
 
-private fun seedCliPlatformPack(repoRoot: Path, slug: String) {
+private fun seedCliPlatformPack(
+  repoRoot: Path,
+  slug: String,
+) {
   val codeReviewName = "bill-$slug-code-review"
   val architectureName = "$codeReviewName-architecture"
   val qualityCheckName = "bill-$slug-code-check"
@@ -835,7 +883,12 @@ private fun seedCliPlatformPack(repoRoot: Path, slug: String) {
   Files.writeString(baselineDir.resolve("native-agents/agents.yaml"), cliNativeAgents(slug))
 }
 
-private fun cliPlatformManifest(slug: String, codeReviewName: String, qualityCheckName: String): String = """
+private fun cliPlatformManifest(
+  slug: String,
+  codeReviewName: String,
+  qualityCheckName: String,
+): String =
+  """
   |platform: "$slug"
   |contract_version: "1.8"
   |routing_signals:
@@ -858,9 +911,13 @@ private fun cliPlatformManifest(slug: String, codeReviewName: String, qualityChe
   |  code-review/$codeReviewName: []
   |  code-review/$codeReviewName-architecture: []
   |
-""".trimMargin()
+  """.trimMargin()
 
-private fun cliSkillContent(skillName: String, internalFor: String? = null, body: String = "Test body."): String =
+private fun cliSkillContent(
+  skillName: String,
+  internalFor: String? = null,
+  body: String = "Test body.",
+): String =
   buildString {
     appendLine("---")
     appendLine("name: $skillName")
@@ -873,7 +930,8 @@ private fun cliSkillContent(skillName: String, internalFor: String? = null, body
     appendLine(body)
   }
 
-private fun cliBaselineBody(slug: String): String = """
+private fun cliBaselineBody(slug: String): String =
+  """
   ## Classification Rules
 
   If $slug source dominates, select the $slug pack. Otherwise select the adjacent pack.
@@ -893,9 +951,10 @@ private fun cliBaselineBody(slug: String): String = """
 
   Calibrate severity and verify each precondition. Keep findings attributed through merge.
   Deduplicate overlaps without losing evidence.
-""".trimIndent()
+  """.trimIndent()
 
-private fun cliArchitectureBody(slug: String): String = """
+private fun cliArchitectureBody(slug: String): String =
+  """
   ## Focus
 
   Review $slug architecture boundaries.
@@ -914,9 +973,10 @@ private fun cliArchitectureBody(slug: String): String = """
 
   - Verify `$slug module APIs` preserve their invariant; reject dependency boundary failure.
   - For Blocker or Major findings, describe the concrete dependency-cycle or ownership-boundary failure scenario.
-""".trimIndent()
+  """.trimIndent()
 
-private fun cliQualityCheckBody(slug: String): String = """
+private fun cliQualityCheckBody(slug: String): String =
+  """
   ## Purpose
 
   Check $slug changes.
@@ -937,15 +997,16 @@ private fun cliQualityCheckBody(slug: String): String = """
     compile, format-task, quality-check command, pack checker, `bill-code-check`,
       or delegated subagent check. Allowed work is read, search, and source edits only.
   Escalate to the full suite when targeted checks cannot establish safety.
-""".trimIndent()
+  """.trimIndent()
 
-private fun cliNativeAgents(slug: String): String = """
+private fun cliNativeAgents(slug: String): String =
+  """
   contract_version: "0.1"
   agents:
     - name: bill-$slug-code-review-architecture
       description: "$slug architecture specialist — $slug architecture boundary APIs and failure modes."
       compose: governed-content
-""".trimIndent()
+  """.trimIndent()
 
 private fun createDetectedAgentHomes(home: Path) {
   Files.createDirectories(home.resolve(".claude"))
@@ -954,13 +1015,19 @@ private fun createDetectedAgentHomes(home: Path) {
   Files.createDirectories(home.resolve(".cursor"))
 }
 
-private fun enqueueTelemetryEvent(dbPath: Path, userHome: Path) {
+private fun enqueueTelemetryEvent(
+  dbPath: Path,
+  userHome: Path,
+) {
   sqliteSessionFactoryForTests(userHome, dbPath.toString(), environment = emptyMap()).transaction {
     it.telemetryOutbox.enqueue("test.event", """{"ok":true}""")
   }
 }
 
-private fun pendingTelemetryEvents(dbPath: Path, userHome: Path): Int =
+private fun pendingTelemetryEvents(
+  dbPath: Path,
+  userHome: Path,
+): Int =
   sqliteSessionFactoryForTests(userHome, dbPath.toString(), environment = emptyMap()).read {
     it.telemetryOutbox.pendingCount()
   }
@@ -987,31 +1054,34 @@ private fun singleCodexPlanGoldenPayload(fixture: InstallPlanApplyFixture): Map<
     "agents" to listOf(codexAgentGoldenPayload(paths)),
     "platform_packs" to emptyList<Map<String, Any?>>(),
     "selected_platforms" to emptyList<String>(),
-    "skills" to listOf(
-      plannedSkillGoldenPayload("bill-code-check", paths.qualityCheckSourceDir),
-      plannedSkillGoldenPayload("bill-code-review", paths.codeReviewSourceDir),
-    ),
+    "skills" to
+      listOf(
+        plannedSkillGoldenPayload("bill-code-check", paths.qualityCheckSourceDir),
+        plannedSkillGoldenPayload("bill-code-review", paths.codeReviewSourceDir),
+      ),
     "staging_root" to paths.stagingRoot,
-    "staging" to listOf(
-      stagingIntentGoldenPayload(
-        skillName = "bill-code-check",
-        sourceDir = paths.qualityCheckSourceDir,
-        stagingDir = paths.qualityCheckStagingDir,
-        contentHash = QUALITY_CHECK_GOLDEN_CONTENT_HASH,
+    "staging" to
+      listOf(
+        stagingIntentGoldenPayload(
+          skillName = "bill-code-check",
+          sourceDir = paths.qualityCheckSourceDir,
+          stagingDir = paths.qualityCheckStagingDir,
+          contentHash = QUALITY_CHECK_GOLDEN_CONTENT_HASH,
+        ),
+        stagingIntentGoldenPayload(
+          skillName = "bill-code-review",
+          sourceDir = paths.codeReviewSourceDir,
+          stagingDir = paths.codeReviewStagingDir,
+          contentHash = CODE_REVIEW_GOLDEN_CONTENT_HASH,
+        ),
       ),
-      stagingIntentGoldenPayload(
-        skillName = "bill-code-review",
-        sourceDir = paths.codeReviewSourceDir,
-        stagingDir = paths.codeReviewStagingDir,
-        contentHash = CODE_REVIEW_GOLDEN_CONTENT_HASH,
-      ),
-    ),
     "telemetry_level" to "anonymous",
-    "mcp_registration" to mapOf(
-      "register" to false,
-      "runtime_mcp_bin" to null,
-      "agents" to listOf("codex"),
-    ),
+    "mcp_registration" to
+      mapOf(
+        "register" to false,
+        "runtime_mcp_bin" to null,
+        "agents" to listOf("codex"),
+      ),
     "runtime_distribution" to runtimeDistributionGoldenPayload(paths),
     "windows_symlink_preflight" to windowsPreflightGoldenPayload(),
     "replace_existing_skill_bill_links" to false,
@@ -1020,120 +1090,135 @@ private fun singleCodexPlanGoldenPayload(fixture: InstallPlanApplyFixture): Map<
 
 private fun singleCodexApplyGoldenPayload(fixture: InstallPlanApplyFixture): Map<String, Any?> {
   val paths = SingleCodexGoldenPaths(fixture)
-  return singleCodexPlanGoldenPayload(fixture) + mapOf(
-    "status" to "success",
-    "skills" to appliedSkillsGoldenPayload(paths),
-    "native_agents" to nativeAgentsGoldenPayload(),
-    "telemetry" to telemetryGoldenPayload(paths),
-    "mcp_registration" to applyMcpRegistrationGoldenPayload(),
-    "warnings" to emptyList<Map<String, Any?>>(),
-    "failures" to emptyList<Map<String, Any?>>(),
-    "windows_symlink_outcome" to windowsSymlinkOutcomeGoldenPayload(),
-  )
+  return singleCodexPlanGoldenPayload(fixture) +
+    mapOf(
+      "status" to "success",
+      "skills" to appliedSkillsGoldenPayload(paths),
+      "native_agents" to nativeAgentsGoldenPayload(),
+      "telemetry" to telemetryGoldenPayload(paths),
+      "mcp_registration" to applyMcpRegistrationGoldenPayload(),
+      "warnings" to emptyList<Map<String, Any?>>(),
+      "failures" to emptyList<Map<String, Any?>>(),
+      "windows_symlink_outcome" to windowsSymlinkOutcomeGoldenPayload(),
+    )
 }
 
-private fun appliedSkillsGoldenPayload(paths: SingleCodexGoldenPaths): List<Map<String, Any?>> = listOf(
-  appliedSkillGoldenPayload(
-    AppliedSkillGoldenValues(
-      skillName = "bill-code-check",
-      sourceDir = paths.qualityCheckSourceDir,
-      stagingDir = paths.qualityCheckStagingDir,
-      renderedSkillFile = paths.qualityCheckRenderedSkillFile,
-      contentHash = QUALITY_CHECK_GOLDEN_CONTENT_HASH,
-      targetDir = paths.codexTargetDir,
-      linkPath = paths.qualityCheckLinkPath,
+private fun appliedSkillsGoldenPayload(paths: SingleCodexGoldenPaths): List<Map<String, Any?>> =
+  listOf(
+    appliedSkillGoldenPayload(
+      AppliedSkillGoldenValues(
+        skillName = "bill-code-check",
+        sourceDir = paths.qualityCheckSourceDir,
+        stagingDir = paths.qualityCheckStagingDir,
+        renderedSkillFile = paths.qualityCheckRenderedSkillFile,
+        contentHash = QUALITY_CHECK_GOLDEN_CONTENT_HASH,
+        targetDir = paths.codexTargetDir,
+        linkPath = paths.qualityCheckLinkPath,
+      ),
     ),
-  ),
-  appliedSkillGoldenPayload(
-    AppliedSkillGoldenValues(
-      skillName = "bill-code-review",
-      sourceDir = paths.codeReviewSourceDir,
-      stagingDir = paths.codeReviewStagingDir,
-      renderedSkillFile = paths.codeReviewRenderedSkillFile,
-      contentHash = CODE_REVIEW_GOLDEN_CONTENT_HASH,
-      targetDir = paths.codexTargetDir,
-      linkPath = paths.codeReviewLinkPath,
-    ),
-  ),
-)
-
-private fun nativeAgentsGoldenPayload(): List<Map<String, Any?>> = listOf(
-  mapOf(
-    "provider" to "codex",
-    "agent" to "codex",
-    "status" to "skipped",
-    "path" to null,
-    "message" to "no native-agent target or artifacts available for selected plan",
-    "issue" to null,
-  ),
-)
-
-private fun telemetryGoldenPayload(paths: SingleCodexGoldenPaths): Map<String, Any?> = mapOf(
-  "level" to "anonymous",
-  "status" to "success",
-  "config_path" to paths.telemetryConfigPath,
-  "cleared_events" to 0,
-  "message" to "Telemetry level set to 'anonymous'.",
-  "issue" to null,
-)
-
-private fun applyMcpRegistrationGoldenPayload(): Map<String, Any?> = mapOf(
-  "register" to false,
-  "runtime_mcp_bin" to null,
-  "agents" to listOf("codex"),
-  "outcomes" to listOf(
-    mapOf(
-      "agent" to "codex",
-      "status" to "skipped",
-      "config_path" to null,
-      "changed" to false,
-      "message" to "MCP registration not requested.",
-      "issue" to null,
-      "profiles" to emptyList<Map<String, Any?>>(),
-    ),
-  ),
-)
-
-private fun windowsSymlinkOutcomeGoldenPayload(): Map<String, Any?> = mapOf(
-  "preflight" to windowsPreflightGoldenPayload(),
-  "fallback_state" to "not_required",
-  "guidance" to WINDOWS_SYMLINK_GUIDANCE,
-)
-
-private fun codexAgentGoldenPayload(paths: SingleCodexGoldenPaths): Map<String, Any?> = mapOf(
-  "agent" to "codex",
-  "path" to paths.codexTargetDir,
-  "source" to "manual",
-)
-
-private fun plannedSkillGoldenPayload(skillName: String, sourceDir: String): Map<String, Any?> = mapOf(
-  "name" to skillName,
-  "kind" to "base",
-  "platform" to null,
-  "source_dir" to sourceDir,
-)
-
-private fun appliedSkillGoldenPayload(values: AppliedSkillGoldenValues): Map<String, Any?> =
-  plannedSkillGoldenPayload(values.skillName, values.sourceDir) + mapOf(
-    "staging" to mapOf(
-      "status" to "staged",
-      "staging_dir" to values.stagingDir,
-      "rendered_skill_file" to values.renderedSkillFile,
-      "content_hash" to values.contentHash,
-      "issue" to null,
-    ),
-    "links" to listOf(
-      mapOf(
-        "agent" to "codex",
-        "target_dir" to values.targetDir,
-        "link_path" to values.linkPath,
-        "link_target" to values.stagingDir,
-        "status" to "created",
-        "message" to "linked to ${values.stagingDir}",
-        "issue" to null,
+    appliedSkillGoldenPayload(
+      AppliedSkillGoldenValues(
+        skillName = "bill-code-review",
+        sourceDir = paths.codeReviewSourceDir,
+        stagingDir = paths.codeReviewStagingDir,
+        renderedSkillFile = paths.codeReviewRenderedSkillFile,
+        contentHash = CODE_REVIEW_GOLDEN_CONTENT_HASH,
+        targetDir = paths.codexTargetDir,
+        linkPath = paths.codeReviewLinkPath,
       ),
     ),
   )
+
+private fun nativeAgentsGoldenPayload(): List<Map<String, Any?>> =
+  listOf(
+    mapOf(
+      "provider" to "codex",
+      "agent" to "codex",
+      "status" to "skipped",
+      "path" to null,
+      "message" to "no native-agent target or artifacts available for selected plan",
+      "issue" to null,
+    ),
+  )
+
+private fun telemetryGoldenPayload(paths: SingleCodexGoldenPaths): Map<String, Any?> =
+  mapOf(
+    "level" to "anonymous",
+    "status" to "success",
+    "config_path" to paths.telemetryConfigPath,
+    "cleared_events" to 0,
+    "message" to "Telemetry level set to 'anonymous'.",
+    "issue" to null,
+  )
+
+private fun applyMcpRegistrationGoldenPayload(): Map<String, Any?> =
+  mapOf(
+    "register" to false,
+    "runtime_mcp_bin" to null,
+    "agents" to listOf("codex"),
+    "outcomes" to
+      listOf(
+        mapOf(
+          "agent" to "codex",
+          "status" to "skipped",
+          "config_path" to null,
+          "changed" to false,
+          "message" to "MCP registration not requested.",
+          "issue" to null,
+          "profiles" to emptyList<Map<String, Any?>>(),
+        ),
+      ),
+  )
+
+private fun windowsSymlinkOutcomeGoldenPayload(): Map<String, Any?> =
+  mapOf(
+    "preflight" to windowsPreflightGoldenPayload(),
+    "fallback_state" to "not_required",
+    "guidance" to WINDOWS_SYMLINK_GUIDANCE,
+  )
+
+private fun codexAgentGoldenPayload(paths: SingleCodexGoldenPaths): Map<String, Any?> =
+  mapOf(
+    "agent" to "codex",
+    "path" to paths.codexTargetDir,
+    "source" to "manual",
+  )
+
+private fun plannedSkillGoldenPayload(
+  skillName: String,
+  sourceDir: String,
+): Map<String, Any?> =
+  mapOf(
+    "name" to skillName,
+    "kind" to "base",
+    "platform" to null,
+    "source_dir" to sourceDir,
+  )
+
+private fun appliedSkillGoldenPayload(values: AppliedSkillGoldenValues): Map<String, Any?> =
+  plannedSkillGoldenPayload(values.skillName, values.sourceDir) +
+    mapOf(
+      "staging" to
+        mapOf(
+          "status" to "staged",
+          "staging_dir" to values.stagingDir,
+          "rendered_skill_file" to values.renderedSkillFile,
+          "content_hash" to values.contentHash,
+          "issue" to null,
+        ),
+      "links" to
+        listOf(
+          mapOf(
+            "agent" to "codex",
+            "target_dir" to values.targetDir,
+            "link_path" to values.linkPath,
+            "link_target" to values.stagingDir,
+            "status" to "created",
+            "message" to "linked to ${values.stagingDir}",
+            "issue" to null,
+          ),
+        ),
+    )
 
 private data class AppliedSkillGoldenValues(
   val skillName: String,
@@ -1150,27 +1235,30 @@ private fun stagingIntentGoldenPayload(
   sourceDir: String,
   stagingDir: String,
   contentHash: String,
-): Map<String, Any?> = mapOf(
-  "skill_name" to skillName,
-  "source_dir" to sourceDir,
-  "staging_dir" to stagingDir,
-  "content_hash" to contentHash,
-)
+): Map<String, Any?> =
+  mapOf(
+    "skill_name" to skillName,
+    "source_dir" to sourceDir,
+    "staging_dir" to stagingDir,
+    "content_hash" to contentHash,
+  )
 
-private fun runtimeDistributionGoldenPayload(paths: SingleCodexGoldenPaths): Map<String, Any?> = mapOf(
-  "runtime_install_root" to paths.runtimeInstallRoot,
-  "runtime_cli_build_dir" to null,
-  "runtime_mcp_build_dir" to null,
-  "runtime_cli_install_dir" to null,
-  "runtime_mcp_install_dir" to null,
-  "runtime_launcher_bin_dir" to null,
-)
+private fun runtimeDistributionGoldenPayload(paths: SingleCodexGoldenPaths): Map<String, Any?> =
+  mapOf(
+    "runtime_install_root" to paths.runtimeInstallRoot,
+    "runtime_cli_build_dir" to null,
+    "runtime_mcp_build_dir" to null,
+    "runtime_cli_install_dir" to null,
+    "runtime_mcp_install_dir" to null,
+    "runtime_launcher_bin_dir" to null,
+  )
 
-private fun windowsPreflightGoldenPayload(): Map<String, Any?> = mapOf(
-  "state" to "not_windows",
-  "decision" to "not_required",
-  "message" to "",
-)
+private fun windowsPreflightGoldenPayload(): Map<String, Any?> =
+  mapOf(
+    "state" to "not_windows",
+    "decision" to "not_required",
+    "message" to "",
+  )
 
 private data class SingleCodexGoldenPaths(private val fixture: InstallPlanApplyFixture) {
   val codexTargetDir: String = fixture.home.resolve("manual-targets/codex").toString()
@@ -1186,8 +1274,10 @@ private data class SingleCodexGoldenPaths(private val fixture: InstallPlanApplyF
   val codeReviewLinkPath: String = fixture.home.resolve("manual-targets/codex/bill-code-review").toString()
   val qualityCheckLinkPath: String = fixture.home.resolve("manual-targets/codex/bill-code-check").toString()
 
-  private fun stagingDir(skillName: String, contentHash: String): String =
-    fixture.home.resolve(".skill-bill/installed-skills").resolve("$skillName-$contentHash").toString()
+  private fun stagingDir(
+    skillName: String,
+    contentHash: String,
+  ): String = fixture.home.resolve(".skill-bill/installed-skills").resolve("$skillName-$contentHash").toString()
 }
 
 private const val CODE_REVIEW_GOLDEN_CONTENT_HASH = "8047dd2294d395c3"
@@ -1196,10 +1286,11 @@ private const val WINDOWS_SYMLINK_GUIDANCE =
   "On Windows, enable Developer Mode (Settings -> Privacy & security -> For developers) or run the install command " +
     "from an elevated shell so the JVM can create symlinks."
 
-private fun installPlanCliContext(home: Path): CliRuntimeContext = CliRuntimeContext(
-  userHome = home,
-  environment = isolatedCliEnvironment(home),
-)
+private fun installPlanCliContext(home: Path): CliRuntimeContext =
+  CliRuntimeContext(
+    userHome = home,
+    environment = isolatedCliEnvironment(home),
+  )
 
 private fun Map<String, Any?>.mapValue(key: String): Map<String, Any?> = requireStringAnyMap(get(key), key)
 
@@ -1211,7 +1302,10 @@ private fun Map<String, Any?>.listOfMaps(key: String): List<Map<String, Any?>> {
 
 private fun Map<String, Any?>.agents(): List<Map<String, Any?>> = listOfMaps("agents")
 
-private fun requireStringAnyMap(rawValue: Any?, label: String): Map<String, Any?> {
+private fun requireStringAnyMap(
+  rawValue: Any?,
+  label: String,
+): Map<String, Any?> {
   require(rawValue is Map<*, *>) { "Expected '$label' to be an object." }
   return rawValue.entries.associate { (key, value) ->
     require(key is String) { "Expected '$label' keys to be strings." }

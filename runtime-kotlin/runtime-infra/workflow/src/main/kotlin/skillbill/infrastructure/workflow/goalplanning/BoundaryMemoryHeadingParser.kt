@@ -16,26 +16,36 @@ object BoundaryMemoryHeadingParser {
   private const val HEADING_ID_DIGEST_CHARS = 12
   private const val BYTE_ORDER_MARK = '\uFEFF'
 
-  fun parse(sourcePath: String, content: String): List<BoundaryMemoryEntry> {
+  fun parse(
+    sourcePath: String,
+    content: String,
+  ): List<BoundaryMemoryEntry> {
     val lines = content.trimStart(BYTE_ORDER_MARK).replace("\r\n", "\n").replace('\r', '\n').split("\n")
     val fenced = scan(lines, honourFences = true)
     val parsed = if (fenced.unclosedFence) scan(lines, honourFences = false).entries else fenced.entries
     return withStableIds(sourcePath, parsed)
   }
 
-  fun headingId(sourcePath: String, heading: String, occurrence: Int = 0): String =
-    "$sourcePath#${digest(heading)}" + if (occurrence == 0) "" else "-$occurrence"
+  fun headingId(
+    sourcePath: String,
+    heading: String,
+    occurrence: Int = 0,
+  ): String = "$sourcePath#${digest(heading)}" + if (occurrence == 0) "" else "-$occurrence"
 
   fun sourcePathOf(headingId: String): String? = headingId.substringBeforeLast('#', "").takeIf(String::isNotEmpty)
 
-  fun entryDate(heading: String): LocalDate? = runCatching {
-    val dateText = ENTRY_DATE.find(heading.trim())?.groupValues?.get(1) ?: return null
-    LocalDate.parse(dateText)
-  }.getOrNull()
+  fun entryDate(heading: String): LocalDate? =
+    runCatching {
+      val dateText = ENTRY_DATE.find(heading.trim())?.groupValues?.get(1) ?: return null
+      LocalDate.parse(dateText)
+    }.getOrNull()
 
   private data class Scan(val entries: List<Pair<String, String>>, val unclosedFence: Boolean)
 
-  private fun scan(lines: List<String>, honourFences: Boolean): Scan {
+  private fun scan(
+    lines: List<String>,
+    honourFences: Boolean,
+  ): Scan {
     val entries = mutableListOf<Pair<String, String>>()
     var heading: String? = null
     val body = StringBuilder()
@@ -54,7 +64,10 @@ object BoundaryMemoryHeadingParser {
     return Scan(entries, unclosedFence = openFence != null)
   }
 
-  private fun fenceStateAfter(openFence: String?, line: String): String? {
+  private fun fenceStateAfter(
+    openFence: String?,
+    line: String,
+  ): String? {
     val marker = FENCE.find(line)?.groupValues?.get(1) ?: return openFence
     return when {
       openFence == null -> marker
@@ -63,7 +76,10 @@ object BoundaryMemoryHeadingParser {
     }
   }
 
-  private fun withStableIds(sourcePath: String, parsed: List<Pair<String, String>>): List<BoundaryMemoryEntry> {
+  private fun withStableIds(
+    sourcePath: String,
+    parsed: List<Pair<String, String>>,
+  ): List<BoundaryMemoryEntry> {
     val occurrences = mutableMapOf<String, Int>()
     return parsed.map { (heading, body) ->
       val occurrence = occurrences.merge(heading, 1, Int::plus)!! - 1

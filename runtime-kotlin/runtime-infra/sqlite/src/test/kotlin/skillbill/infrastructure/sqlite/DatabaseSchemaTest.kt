@@ -12,6 +12,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class DatabaseSchemaTest {
   @Test
   fun `ensureDatabase creates parent directories enables foreign keys and bootstraps schema`() {
@@ -280,14 +281,21 @@ class DatabaseSchemaTest {
     assertEquals(2, goalIssueColumns.single { it.name == "issue_key" }.primaryKeyPosition)
   }
 
-  private fun pragmaInt(connection: Connection, name: String): Int = connection.createStatement().use { statement ->
-    statement.executeQuery("PRAGMA $name").use { resultSet ->
-      resultSet.next()
-      resultSet.getInt(1)
+  private fun pragmaInt(
+    connection: Connection,
+    name: String,
+  ): Int =
+    connection.createStatement().use { statement ->
+      statement.executeQuery("PRAGMA $name").use { resultSet ->
+        resultSet.next()
+        resultSet.getInt(1)
+      }
     }
-  }
 
-  private fun pragmaString(connection: Connection, name: String): String =
+  private fun pragmaString(
+    connection: Connection,
+    name: String,
+  ): String =
     connection.createStatement().use { statement ->
       statement.executeQuery("PRAGMA $name").use { resultSet ->
         resultSet.next()
@@ -295,24 +303,31 @@ class DatabaseSchemaTest {
       }
     }
 
-  private fun sqliteObjects(connection: Connection, type: String): Set<String> = connection.prepareStatement(
-    """
+  private fun sqliteObjects(
+    connection: Connection,
+    type: String,
+  ): Set<String> =
+    connection.prepareStatement(
+      """
       SELECT name
       FROM sqlite_master
       WHERE type = ?
-    """.trimIndent(),
-  ).use { statement ->
-    statement.setString(1, type)
-    statement.executeQuery().use { resultSet ->
-      buildSet {
-        while (resultSet.next()) {
-          add(resultSet.getString("name"))
+      """.trimIndent(),
+    ).use { statement ->
+      statement.setString(1, type)
+      statement.executeQuery().use { resultSet ->
+        buildSet {
+          while (resultSet.next()) {
+            add(resultSet.getString("name"))
+          }
         }
       }
     }
-  }
 
-  private fun tableInfo(connection: Connection, tableName: String): List<TableColumn> =
+  private fun tableInfo(
+    connection: Connection,
+    tableName: String,
+  ): List<TableColumn> =
     connection.prepareStatement("PRAGMA table_info($tableName)").use { statement ->
       statement.executeQuery().use { resultSet ->
         buildList {

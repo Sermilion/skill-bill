@@ -36,11 +36,12 @@ fun WorkflowGitOperations.deleteCheckpointRefsUnderPrefix(
 ): WorkflowGitOperationResult {
   val listed = listCheckpointRefs(repoRoot, subtaskRefPrefix)
   if (listed !is WorkflowGitOperationResult.Ok) return listed
-  val refs = listed.value.orEmpty()
-    .split('\u0000')
-    .filter(String::isNotBlank)
-    .chunked(2)
-    .mapNotNull { parts -> parts.getOrNull(1)?.trim()?.takeIf(String::isNotBlank) }
+  val refs =
+    listed.value.orEmpty()
+      .split('\u0000')
+      .filter(String::isNotBlank)
+      .chunked(2)
+      .mapNotNull { parts -> parts.getOrNull(1)?.trim()?.takeIf(String::isNotBlank) }
   refs.forEach { refName ->
     val deleted = deleteCheckpointRef(repoRoot, namespacePrefix, refName)
     if (deleted !is WorkflowGitOperationResult.Ok) return deleted
@@ -53,8 +54,9 @@ fun WorkflowGitOperations.amendHeadCommit(
   expectedOwnedHeadSha: String,
   replacementMessage: String? = null,
   allowUnchangedIndex: Boolean = false,
-): WorkflowGitOperationResult = checkpointHistoryOperations
-  .amendHeadCommit(repoRoot, expectedOwnedHeadSha, replacementMessage, allowUnchangedIndex)
+): WorkflowGitOperationResult =
+  checkpointHistoryOperations
+    .amendHeadCommit(repoRoot, expectedOwnedHeadSha, replacementMessage, allowUnchangedIndex)
 
 fun WorkflowGitOperations.headCommitMessage(repoRoot: Path): WorkflowGitOperationResult =
   checkpointHistoryOperations.headCommitMessage(repoRoot)
@@ -72,8 +74,10 @@ fun WorkflowGitOperations.resolveCheckpointRef(
   refName: String,
 ): WorkflowGitOperationResult = checkpointHistoryOperations.resolveRef(repoRoot, namespacePrefix, refName)
 
-fun WorkflowGitOperations.listCheckpointRefs(repoRoot: Path, namespacePrefix: String): WorkflowGitOperationResult =
-  checkpointHistoryOperations.listRefs(repoRoot, namespacePrefix)
+fun WorkflowGitOperations.listCheckpointRefs(
+  repoRoot: Path,
+  namespacePrefix: String,
+): WorkflowGitOperationResult = checkpointHistoryOperations.listRefs(repoRoot, namespacePrefix)
 
 fun WorkflowGitOperations.deleteCheckpointRef(
   repoRoot: Path,

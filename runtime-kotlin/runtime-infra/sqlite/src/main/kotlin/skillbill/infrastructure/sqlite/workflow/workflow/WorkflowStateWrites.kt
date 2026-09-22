@@ -15,23 +15,26 @@ import kotlin.random.Random
 internal const val FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION: String = "0.1"
 internal const val FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION: String = "0.3"
 
-private val terminalWorkflowStatusSqlValues: String = WorkflowStatus.terminalStatuses
-  .joinToString(", ") { status -> "'${status.wireValue}'" }
+private val terminalWorkflowStatusSqlValues: String =
+  WorkflowStatus.terminalStatuses
+    .joinToString(", ") { status -> "'${status.wireValue}'" }
 private const val SQLITE_TIMESTAMP_NOW = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
 private val sqliteInsertionTimestampFormatter: DateTimeFormatter =
   DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss").withZone(ZoneOffset.UTC)
 
 internal val FeatureTaskWorkflowMode.defaultImplementationSkill: String
-  get() = when (this) {
-    FeatureTaskWorkflowMode.PROSE -> "bill-feature"
-    FeatureTaskWorkflowMode.RUNTIME -> "bill-feature"
-  }
+  get() =
+    when (this) {
+      FeatureTaskWorkflowMode.PROSE -> "bill-feature"
+      FeatureTaskWorkflowMode.RUNTIME -> "bill-feature"
+    }
 
 internal val FeatureTaskWorkflowMode.defaultContractVersion: String
-  get() = when (this) {
-    FeatureTaskWorkflowMode.PROSE -> FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION
-    FeatureTaskWorkflowMode.RUNTIME -> FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION
-  }
+  get() =
+    when (this) {
+      FeatureTaskWorkflowMode.PROSE -> FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION
+      FeatureTaskWorkflowMode.RUNTIME -> FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION
+    }
 
 internal object WorkflowStateSqlWrites
 
@@ -220,13 +223,14 @@ private fun PreparedStatement.bindFeatureTaskWorkflowRow(
   parameters.bind()
 }
 
-private fun nextStateEnteredAtSql(tableName: String): String = """
+private fun nextStateEnteredAtSql(tableName: String): String =
+  """
   CASE
     WHEN julianday(NULLIF($tableName.state_entered_at, '')) IS NULL THEN $SQLITE_TIMESTAMP_NOW
     WHEN julianday($SQLITE_TIMESTAMP_NOW) > julianday($tableName.state_entered_at) THEN $SQLITE_TIMESTAMP_NOW
     ELSE strftime('%Y-%m-%dT%H:%M:%fZ', julianday($tableName.state_entered_at) + 0.001 / 86400.0)
   END
-""".trimIndent()
+  """.trimIndent()
 
 private fun String?.orInsertionTimestamp(clock: Clock): String =
   takeUnless { it.isNullOrBlank() } ?: sqliteInsertionTimestampFormatter.format(clock.instant())
@@ -252,10 +256,15 @@ private class SqlParameterBinder(
 internal const val WORKFLOW_ID_SUFFIX_LENGTH: Int = 4
 internal const val SUFFIX_CHARS: String = "abcdefghijklmnopqrstuvwxyz0123456789"
 
-internal fun generateWorkflowId(prefix: String, clock: Clock, random: Random): String {
+internal fun generateWorkflowId(
+  prefix: String,
+  clock: Clock,
+  random: Random,
+): String {
   val now = clock.instant().atOffset(ZoneOffset.UTC)
-  val suffix = (1..WORKFLOW_ID_SUFFIX_LENGTH).map { SUFFIX_CHARS[random.nextInt(SUFFIX_CHARS.length)] }
-    .joinToString("")
+  val suffix =
+    (1..WORKFLOW_ID_SUFFIX_LENGTH).map { SUFFIX_CHARS[random.nextInt(SUFFIX_CHARS.length)] }
+      .joinToString("")
   return "$prefix-${now.year}${now.monthValue.twoDigits()}${now.dayOfMonth.twoDigits()}-" +
     "${now.hour.twoDigits()}${now.minute.twoDigits()}${now.second.twoDigits()}-$suffix"
 }

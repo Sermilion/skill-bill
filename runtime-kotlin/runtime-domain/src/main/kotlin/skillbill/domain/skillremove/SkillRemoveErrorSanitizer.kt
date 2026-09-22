@@ -4,7 +4,10 @@ package skillbill.domain.skillremove
 import skillbill.model.FileLocation
 
 object SkillRemoveErrorSanitizer {
-  fun sanitize(message: String, repoRootAbsolutePath: String): String {
+  fun sanitize(
+    message: String,
+    repoRootAbsolutePath: String,
+  ): String {
     val repoRoot: FileLocation? = if (message.isBlank()) null else parseRepoRoot(repoRootAbsolutePath)
     if (repoRoot == null) return message
     val repoRootStr = repoRoot.value
@@ -31,7 +34,11 @@ object SkillRemoveErrorSanitizer {
     return token.substring(0, idx) to token.substring(idx)
   }
 
-  private fun sanitizeToken(token: String, repoRoot: FileLocation, repoRootStr: String): String? {
+  private fun sanitizeToken(
+    token: String,
+    repoRoot: FileLocation,
+    repoRootStr: String,
+  ): String? {
     if (token.contains('\u0000')) return null
     val parsed = FileLocation(token)
     if (!parsed.isAbsolute) return null

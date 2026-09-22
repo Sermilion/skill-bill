@@ -40,11 +40,11 @@ class ReviewIssueCategoryTest {
         routedSkill = "bill-code-review",
         specialistReviews = emptyList(),
         finding =
-        genericFinding.copy(
-          location = "Example.kt:12",
-          description = "Needs closer inspection.",
-          findingText = "Needs closer inspection.",
-        ),
+          genericFinding.copy(
+            location = "Example.kt:12",
+            description = "Needs closer inspection.",
+            findingText = "Needs closer inspection.",
+          ),
       ),
     )
   }

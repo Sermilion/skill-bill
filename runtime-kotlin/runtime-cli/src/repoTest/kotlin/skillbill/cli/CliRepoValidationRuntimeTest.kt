@@ -15,19 +15,20 @@ class CliRepoValidationRuntimeTest {
     val tempDir = Files.createTempDirectory("skillbill-release-ref")
     val output = tempDir.resolve("github-output.txt")
 
-    val result = CliRuntime.run(
-      listOf(
-        "validate-release-ref",
-        "refs/tags/v0.2.3-rc.1",
-        "--repo-root",
-        repositoryRoot().toString(),
-        "--github-output",
-        output.toString(),
-        "--format",
-        "json",
-      ),
-      CliRuntimeContext(),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "validate-release-ref",
+          "refs/tags/v0.2.3-rc.1",
+          "--repo-root",
+          repositoryRoot().toString(),
+          "--github-output",
+          output.toString(),
+          "--format",
+          "json",
+        ),
+        CliRuntimeContext(),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "\"tag\": \"v0.2.3-rc.1\"")
@@ -49,17 +50,18 @@ class CliRepoValidationRuntimeTest {
       "MIT License\n",
     )
 
-    val result = CliRuntime.run(
-      listOf(
-        "validate-release-ref",
-        "v1.0.0",
-        "--repo-root",
-        repoRoot.toString(),
-        "--format",
-        "json",
-      ),
-      CliRuntimeContext(),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "validate-release-ref",
+          "v1.0.0",
+          "--repo-root",
+          repoRoot.toString(),
+          "--format",
+          "json",
+        ),
+        CliRuntimeContext(),
+      )
 
     assertEquals(1, result.exitCode)
     assertContains(result.stdout, "\"status\": \"failed\"")
@@ -70,16 +72,17 @@ class CliRepoValidationRuntimeTest {
   fun `validate-agent-configs command returns failure payload for empty repo`() {
     val repoRoot = Files.createTempDirectory("skillbill-empty-validation")
 
-    val result = CliRuntime.run(
-      listOf(
-        "validate-agent-configs",
-        "--repo-root",
-        repoRoot.toString(),
-        "--format",
-        "json",
-      ),
-      CliRuntimeContext(),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "validate-agent-configs",
+          "--repo-root",
+          repoRoot.toString(),
+          "--format",
+          "json",
+        ),
+        CliRuntimeContext(),
+      )
 
     assertEquals(1, result.exitCode)
     assertContains(result.stdout, "\"status\": \"failed\"")
@@ -104,16 +107,17 @@ class CliRepoValidationRuntimeTest {
     )
     Files.writeString(skillDir.resolve("SKILL.md"), "generated wrapper\n")
 
-    val result = CliRuntime.run(
-      listOf(
-        "validate-agent-configs",
-        "--repo-root",
-        repoRoot.toString(),
-        "--format",
-        "json",
-      ),
-      CliRuntimeContext(),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "validate-agent-configs",
+          "--repo-root",
+          repoRoot.toString(),
+          "--format",
+          "json",
+        ),
+        CliRuntimeContext(),
+      )
 
     assertEquals(1, result.exitCode)
     assertContains(result.stdout, "\"status\": \"failed\"")
@@ -125,16 +129,17 @@ class CliRepoValidationRuntimeTest {
     val repoRoot = Files.createTempDirectory("skillbill-cli-native-composition")
     writeMalformedComposedNativeAgentFixture(repoRoot)
 
-    val result = CliRuntime.run(
-      listOf(
-        "validate-agent-configs",
-        "--repo-root",
-        repoRoot.toString(),
-        "--format",
-        "json",
-      ),
-      CliRuntimeContext(),
-    )
+    val result =
+      CliRuntime.run(
+        listOf(
+          "validate-agent-configs",
+          "--repo-root",
+          repoRoot.toString(),
+          "--format",
+          "json",
+        ),
+        CliRuntimeContext(),
+      )
 
     assertEquals(1, result.exitCode)
     assertContains(result.stdout, "\"status\": \"failed\"")
@@ -186,10 +191,14 @@ class CliRepoValidationRuntimeTest {
     )
   }
 
-  private fun repositoryRoot(): Path = generateSequence(Path.of("").toAbsolutePath().normalize()) { it.parent }
-    .first { Files.isRegularFile(it.resolve("LICENSE")) }
+  private fun repositoryRoot(): Path =
+    generateSequence(Path.of("").toAbsolutePath().normalize()) { it.parent }
+      .first { Files.isRegularFile(it.resolve("LICENSE")) }
 
-  private fun writeContent(path: Path, name: String) {
+  private fun writeContent(
+    path: Path,
+    name: String,
+  ) {
     Files.createDirectories(path.parent)
     Files.writeString(
       path,

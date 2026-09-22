@@ -10,18 +10,19 @@ class ExperimentObservationRecorderTest {
   @Test
   fun `records attempts setup usage and cost without converting unavailable values to zero`() {
     var imported: Map<String, Any?>? = null
-    val recorder = ExperimentObservationRecorder(
-      object : ExperimentPairOwnerPort {
-        override fun load(pairId: String) = null
+    val recorder =
+      ExperimentObservationRecorder(
+        object : ExperimentPairOwnerPort {
+          override fun load(pairId: String) = null
 
-        override fun save(state: ExperimentPairPersistedState) = Unit
+          override fun save(state: ExperimentPairPersistedState) = Unit
 
-        override fun importObservation(payload: Map<String, Any?>): Boolean {
-          imported = payload
-          return true
-        }
-      },
-    )
+          override fun importObservation(payload: Map<String, Any?>): Boolean {
+            imported = payload
+            return true
+          }
+        },
+      )
 
     assertTrue(
       recorder.record(
@@ -32,22 +33,23 @@ class ExperimentObservationRecorderTest {
           phaseId = "implement",
           attempt = 2,
           recordedAt = "2026-09-21T00:00:00Z",
-          measurements = listOf(
-            ExperimentObservationMeasurement("attempt_count", 2.0, "measured"),
-            ExperimentObservationMeasurement("setup_cost", 30.0, "measured"),
-            ExperimentObservationMeasurement(
-              "usage",
-              null,
-              "unavailable_incomplete",
-              "provider did not report usage",
+          measurements =
+            listOf(
+              ExperimentObservationMeasurement("attempt_count", 2.0, "measured"),
+              ExperimentObservationMeasurement("setup_cost", 30.0, "measured"),
+              ExperimentObservationMeasurement(
+                "usage",
+                null,
+                "unavailable_incomplete",
+                "provider did not report usage",
+              ),
+              ExperimentObservationMeasurement(
+                "cost",
+                null,
+                "unavailable_incomplete",
+                "provider did not report cost",
+              ),
             ),
-            ExperimentObservationMeasurement(
-              "cost",
-              null,
-              "unavailable_incomplete",
-              "provider did not report cost",
-            ),
-          ),
         ),
       ),
     )

@@ -20,14 +20,15 @@ class FileSystemReviewLaunchAgentStaging(
 ) : ReviewLaunchAgentStagingPort {
   override fun stage(request: ReviewLaunchAgentStagingRequest) {
     if (request.logicalWorkerNames.isEmpty()) return
-    val provider = provider(request.agentId)
-      ?: throw MissingInstalledNativeAgentError(
-        request.logicalWorkerNames.first(),
-        request.agentId,
-        environment.userHome.toString(),
-        "provider does not support native-agent staging",
-        REPAIR_COMMAND,
-      )
+    val provider =
+      provider(request.agentId)
+        ?: throw MissingInstalledNativeAgentError(
+          request.logicalWorkerNames.first(),
+          request.agentId,
+          environment.userHome.toString(),
+          "provider does not support native-agent staging",
+          REPAIR_COMMAND,
+        )
     val inventory = NativeAgentLinkInventory.read(environment.userHome, emptyList())
     request.logicalWorkerNames.distinct().forEach { logicalName ->
       val entry = inventoryEntry(inventory, provider, logicalName)
@@ -40,9 +41,10 @@ class FileSystemReviewLaunchAgentStaging(
     provider: NativeAgentProvider,
     logicalName: String,
   ): NativeAgentLinkInventoryEntry {
-    val entries = inventory.filter {
-      it.provider == provider.name.lowercase() && it.logicalName == logicalName
-    }
+    val entries =
+      inventory.filter {
+        it.provider == provider.name.lowercase() && it.logicalName == logicalName
+      }
     if (entries.isEmpty()) {
       fail(
         logicalName,
@@ -63,9 +65,10 @@ class FileSystemReviewLaunchAgentStaging(
     provider: NativeAgentProvider,
     reviewLaunchDirectory: Path,
   ) {
-    val destinationDir = reviewLaunchDirectory
-      .resolve(requireNotNull(provider.supportedAgent.simpleHomeDirectory))
-      .resolve("agents")
+    val destinationDir =
+      reviewLaunchDirectory
+        .resolve(requireNotNull(provider.supportedAgent.simpleHomeDirectory))
+        .resolve("agents")
     Files.createDirectories(destinationDir)
     val destination = destinationDir.resolve(provider.fileName(entry.logicalName))
     try {
@@ -75,11 +78,12 @@ class FileSystemReviewLaunchAgentStaging(
     }
   }
 
-  private fun provider(agentId: String): NativeAgentProvider? = runCatching {
-    SupportedAgent.fromWire(agentId)
-      .takeIf { agent -> agent == SupportedAgent.CURSOR }
-      ?.let(NativeAgentProvider::forSupportedAgent)
-  }.getOrNull()
+  private fun provider(agentId: String): NativeAgentProvider? =
+    runCatching {
+      SupportedAgent.fromWire(agentId)
+        .takeIf { agent -> agent == SupportedAgent.CURSOR }
+        ?.let(NativeAgentProvider::forSupportedAgent)
+    }.getOrNull()
 
   private fun fail(
     logicalName: String,
@@ -87,14 +91,15 @@ class FileSystemReviewLaunchAgentStaging(
     path: Path,
     reason: String,
     cause: Throwable? = null,
-  ): Nothing = throw MissingInstalledNativeAgentError(
-    logicalName,
-    provider.name.lowercase(),
-    path.toString(),
-    reason,
-    REPAIR_COMMAND,
-    cause,
-  )
+  ): Nothing =
+    throw MissingInstalledNativeAgentError(
+      logicalName,
+      provider.name.lowercase(),
+      path.toString(),
+      reason,
+      REPAIR_COMMAND,
+      cause,
+    )
 
   private companion object {
     const val REPAIR_COMMAND = "skill-bill install apply"

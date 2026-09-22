@@ -49,10 +49,11 @@ class FeatureTaskRuntimeImplementationAttemptSchemaValidatorTest {
     assertFailsWith<InvalidFeatureTaskRuntimeImplementationAttemptSchemaError> {
       FeatureTaskRuntimeImplementationAttemptSchemaValidator.validate(
         record(
-          attempt() + mapOf(
-            "completed_task_ids" to listOf("task-1"),
-            "changed_paths" to listOf("src/Foo.kt"),
-          ),
+          attempt() +
+            mapOf(
+              "completed_task_ids" to listOf("task-1"),
+              "changed_paths" to listOf("src/Foo.kt"),
+            ),
         ),
         SOURCE,
       )
@@ -99,27 +100,30 @@ class FeatureTaskRuntimeImplementationAttemptSchemaValidatorTest {
 
   @Test
   fun `failure names the source label so the offending record is identifiable`() {
-    val error = assertFailsWith<InvalidFeatureTaskRuntimeImplementationAttemptSchemaError> {
-      FeatureTaskRuntimeImplementationAttemptSchemaValidator.validate(record(attempt(status = "nope")), SOURCE)
-    }
+    val error =
+      assertFailsWith<InvalidFeatureTaskRuntimeImplementationAttemptSchemaError> {
+        FeatureTaskRuntimeImplementationAttemptSchemaValidator.validate(record(attempt(status = "nope")), SOURCE)
+      }
 
     assertTrue(error.message.orEmpty().contains(SOURCE), "Error must name '$SOURCE'; got: ${error.message}")
   }
 
-  private fun record(vararg attempts: Map<String, Any?>): Map<String, Any?> = mapOf(
-    "contract_version" to FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION,
-    "attempts" to attempts.toList(),
-  )
+  private fun record(vararg attempts: Map<String, Any?>): Map<String, Any?> =
+    mapOf(
+      "contract_version" to FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION,
+      "attempts" to attempts.toList(),
+    )
 
-  private fun attempt(status: String = "incomplete"): Map<String, Any?> = mapOf(
-    "sequence_number" to 1,
-    "phase_id" to "implement",
-    "attempt_number" to 1,
-    "agent_id" to "claude",
-    "status" to status,
-    "recorded_at" to "2026-08-04T10:00:00Z",
-    "value" to """{"projection_kind":"implementation_receipt","completed_task_ids":["task-1"]}""",
-  )
+  private fun attempt(status: String = "incomplete"): Map<String, Any?> =
+    mapOf(
+      "sequence_number" to 1,
+      "phase_id" to "implement",
+      "attempt_number" to 1,
+      "agent_id" to "claude",
+      "status" to status,
+      "recorded_at" to "2026-08-04T10:00:00Z",
+      "value" to """{"projection_kind":"implementation_receipt","completed_task_ids":["task-1"]}""",
+    )
 
   private companion object {
     const val SOURCE = "implement.attempt_history"

@@ -86,11 +86,12 @@ internal fun FeatureTaskRuntimeFinishedRequest.reconcileBlockedRuntimeFields(): 
   }
   return copy(
     lastIncompletePhase = lastIncompletePhase.takeIf(String::isNotBlank) ?: phaseOutcomes.firstIncompletePhase(),
-    blockedReason = normalizedBlockedReason(
-      reason = blockedReason,
-      category = "runtime",
-      fallback = "Feature-task-runtime blocked without a specific reason.",
-    ),
+    blockedReason =
+      normalizedBlockedReason(
+        reason = blockedReason,
+        category = "runtime",
+        fallback = "Feature-task-runtime blocked without a specific reason.",
+      ),
   )
 }
 
@@ -123,10 +124,11 @@ internal fun GoalSubtaskFinishedRequest.reconcileBlockedReason(): GoalSubtaskFin
     return this
   }
   return copy(
-    blockedReason = normalizedBlockedReason(
-      reason = blockedReason,
-      category = "runtime",
-      fallback = "Goal subtask $subtaskId is blocked.",
-    ),
+    blockedReason =
+      normalizedBlockedReason(
+        reason = blockedReason,
+        category = "runtime",
+        fallback = "Goal subtask $subtaskId is blocked.",
+      ),
   )
 }

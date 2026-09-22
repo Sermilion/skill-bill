@@ -8,20 +8,22 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class GoalSubtaskReviewStateLegacyContractTest {
-  private fun currentRecord() = GoalSubtaskReviewState.initial(
-    reviewBaseSha = "c".repeat(40),
-    baselineUntrackedPaths = emptyList(),
-    codeReviewMode = CodeReviewExecutionMode.AUTO,
-  ).toArtifactMap()
+  private fun currentRecord() =
+    GoalSubtaskReviewState.initial(
+      reviewBaseSha = "c".repeat(40),
+      baselineUntrackedPaths = emptyList(),
+      codeReviewMode = CodeReviewExecutionMode.AUTO,
+    ).toArtifactMap()
 
   @Test
   fun `every legacy contract version loud-fails through the typed error with no silent migration`() {
     listOf("0.1", "0.2", "0.3", "0.5", "0.6").forEach { legacyVersion ->
       val legacy = currentRecord().toMutableMap().apply { put("contract_version", legacyVersion) }
 
-      val error = assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
-        GoalSubtaskReviewState.fromArtifactMap(legacy)
-      }
+      val error =
+        assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
+          GoalSubtaskReviewState.fromArtifactMap(legacy)
+        }
       assertTrue(
         error.message.orEmpty().contains(legacyVersion),
         "The rejection must name the quarantined legacy contract version '$legacyVersion'.",
@@ -31,10 +33,11 @@ class GoalSubtaskReviewStateLegacyContractTest {
 
   @Test
   fun `a legacy record is never reinterpreted under the single-round remediation semantics`() {
-    val legacy = currentRecord().toMutableMap().apply {
-      put("contract_version", "0.5")
-      put("code_review_mode", "inline")
-    }
+    val legacy =
+      currentRecord().toMutableMap().apply {
+        put("contract_version", "0.5")
+        put("code_review_mode", "inline")
+      }
 
     assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
       GoalSubtaskReviewState.fromArtifactMap(legacy)

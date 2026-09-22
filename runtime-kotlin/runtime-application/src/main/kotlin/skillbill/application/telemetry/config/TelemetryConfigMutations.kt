@@ -6,6 +6,7 @@ import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.ports.telemetry.transport.writeTelemetryLevel
 import skillbill.telemetry.model.TelemetrySettings
 import skillbill.telemetry.telemetryLevels
+
 object TelemetryConfigMutations {
   fun setTelemetryLevel(
     level: String,
@@ -34,15 +35,19 @@ object TelemetryConfigMutations {
     configStore: TelemetryConfigStore,
     settingsProvider: TelemetrySettingsProvider,
     outbox: TelemetryOutboxRepository? = null,
-  ): Pair<TelemetrySettings, Int> = setTelemetryLevel(
-    level = if (enabled) "anonymous" else "off",
-    configStore = configStore,
-    settingsProvider = settingsProvider,
-    outbox = outbox,
-  )
+  ): Pair<TelemetrySettings, Int> =
+    setTelemetryLevel(
+      level = if (enabled) "anonymous" else "off",
+      configStore = configStore,
+      settingsProvider = settingsProvider,
+      outbox = outbox,
+    )
 }
 
-fun clearsPendingOutbox(currentLevel: String, newLevel: String): Boolean {
+fun clearsPendingOutbox(
+  currentLevel: String,
+  newLevel: String,
+): Boolean {
   if (newLevel == "off") return true
   val current = telemetryLevels.indexOf(currentLevel).takeIf { it >= 0 } ?: telemetryLevels.lastIndex
   return telemetryLevels.indexOf(newLevel) < current

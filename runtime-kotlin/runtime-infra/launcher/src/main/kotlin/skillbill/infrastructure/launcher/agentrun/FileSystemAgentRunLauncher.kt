@@ -11,6 +11,7 @@ import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.db.DatabaseSessionFactory
 import java.nio.file.Path
+
 class FileSystemAgentRunLauncher internal constructor(
   processRunner: AgentRunProcessRunner,
   executableLookup: ExecutableLookup = PathExecutableLookup(),
@@ -32,11 +33,12 @@ class FileSystemAgentRunLauncher internal constructor(
 
   override fun launch(request: AgentRunLaunchRequest): AgentRunLaunchOutcome {
     val agent = InstallAgent.fromNormalizedId(request.agentId)
-    val adapter = adapters[agent]
-      ?: return UnsupportedAgentRunLaunch(
-        agent = agent,
-        reason = "Agent '${agent.id}' does not have a supported headless feature runtime launch path.",
-      )
+    val adapter =
+      adapters[agent]
+        ?: return UnsupportedAgentRunLaunch(
+          agent = agent,
+          reason = "Agent '${agent.id}' does not have a supported headless feature runtime launch path.",
+        )
     return adapter.launch(request.skillRunRequest)
   }
 }

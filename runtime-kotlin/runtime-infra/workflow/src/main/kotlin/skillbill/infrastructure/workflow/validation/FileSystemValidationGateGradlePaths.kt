@@ -4,13 +4,21 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 internal object FileSystemValidationGateGradlePaths {
-  fun repoRelativeQualityPath(repo: Path, rawPath: String): String {
+  fun repoRelativeQualityPath(
+    repo: Path,
+    rawPath: String,
+  ): String {
     val diagnosticPath = Path.of(rawPath.removePrefix("file://"))
     val canonicalRepo = canonicalizeExisting(repo)
     return repoRelativeCompilerPath(repo, canonicalRepo, diagnosticPath, rawPath)
   }
 
-  fun repoRelativeCompilerPath(repo: Path, canonicalRepo: Path, diagnosticPath: Path, rawPath: String): String {
+  fun repoRelativeCompilerPath(
+    repo: Path,
+    canonicalRepo: Path,
+    diagnosticPath: Path,
+    rawPath: String,
+  ): String {
     val absolute = diagnosticPath.toAbsolutePath().normalize()
     val canonicalFile = canonicalizeMaybeMissing(absolute)
     if (canonicalFile.startsWith(canonicalRepo)) {

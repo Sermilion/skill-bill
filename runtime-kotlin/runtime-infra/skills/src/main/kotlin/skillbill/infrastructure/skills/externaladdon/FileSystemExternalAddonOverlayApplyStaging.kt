@@ -20,20 +20,23 @@ internal fun manifestStructureError(
   actual: Any?,
 ): ExternalAddonOverlayError {
   val found = actual?.javaClass?.simpleName ?: "null"
-  val message = "Installed platform.yaml for '$slug' has unexpected structure in '$field': " +
-    "expected $expected but found $found."
+  val message =
+    "Installed platform.yaml for '$slug' has unexpected structure in '$field': " +
+      "expected $expected but found $found."
   return ExternalAddonOverlayError(message)
 }
 
 internal fun readRawManifest(manifestPath: Path): MutableMap<String, Any?> {
-  val raw = Yaml().load<Any?>(Files.readString(manifestPath)) as? Map<*, *>
-    ?: throw ExternalAddonOverlayError("Installed platform manifest '$manifestPath' must be a YAML mapping.")
+  val raw =
+    Yaml().load<Any?>(Files.readString(manifestPath)) as? Map<*, *>
+      ?: throw ExternalAddonOverlayError("Installed platform manifest '$manifestPath' must be a YAML mapping.")
   val root = linkedMapOf<String, Any?>()
   raw.forEach { (k, v) ->
-    root[k as String] = when (v) {
-      is Map<*, *> -> linkedMapOfFrom(v)
-      else -> v
-    }
+    root[k as String] =
+      when (v) {
+        is Map<*, *> -> linkedMapOfFrom(v)
+        else -> v
+      }
   }
   return root
 }
@@ -41,16 +44,18 @@ internal fun readRawManifest(manifestPath: Path): MutableMap<String, Any?> {
 internal fun linkedMapOfFrom(map: Map<*, *>): MutableMap<String, Any?> {
   val out = linkedMapOf<String, Any?>()
   map.forEach { (k, v) ->
-    out[k as String] = when (v) {
-      is Map<*, *> -> linkedMapOfFrom(v)
-      is List<*> -> v.mapTo(mutableListOf()) { item ->
-        when (item) {
-          is Map<*, *> -> linkedMapOfFrom(item)
-          else -> item
-        }
+    out[k as String] =
+      when (v) {
+        is Map<*, *> -> linkedMapOfFrom(v)
+        is List<*> ->
+          v.mapTo(mutableListOf()) { item ->
+            when (item) {
+              is Map<*, *> -> linkedMapOfFrom(item)
+              else -> item
+            }
+          }
+        else -> v
       }
-      else -> v
-    }
   }
   return out
 }

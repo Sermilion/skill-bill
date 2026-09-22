@@ -17,25 +17,26 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 class NativeAgentCompositionValidatesExistingBundlesTest {
-
   @Test
   fun `every on-disk native-agent fixture validates clean against the canonical schema`() {
     val repoRoot: Path = repoRootFromTest()
-    val scopes = listOf(
-      repoRoot.resolve("skills"),
-      repoRoot.resolve("platform-packs"),
-    )
-    val fixtures: List<Path> = scopes
-      .filter { Files.isDirectory(it) }
-      .flatMap { scope ->
-        Files.walk(scope).use { stream ->
-          stream
-            .filter { Files.isRegularFile(it) }
-            .filter { path -> path.parent?.fileName?.toString() == NATIVE_AGENT_SOURCE_DIR }
-            .filter { path -> path.name == NATIVE_AGENT_BUNDLE_FILE || path.extension == "md" }
-            .toList()
+    val scopes =
+      listOf(
+        repoRoot.resolve("skills"),
+        repoRoot.resolve("platform-packs"),
+      )
+    val fixtures: List<Path> =
+      scopes
+        .filter { Files.isDirectory(it) }
+        .flatMap { scope ->
+          Files.walk(scope).use { stream ->
+            stream
+              .filter { Files.isRegularFile(it) }
+              .filter { path -> path.parent?.fileName?.toString() == NATIVE_AGENT_SOURCE_DIR }
+              .filter { path -> path.name == NATIVE_AGENT_BUNDLE_FILE || path.extension == "md" }
+              .toList()
+          }
         }
-      }
 
     assertTrue(
       fixtures.isNotEmpty(),
@@ -62,8 +63,9 @@ class NativeAgentCompositionValidatesExistingBundlesTest {
 
   @Test
   fun `the inline review worker declares only the governed evidence operations`() {
-    val bundle = repoRootFromTest()
-      .resolve("skills/bill-code-review-inline/native-agents/agents.yaml")
+    val bundle =
+      repoRootFromTest()
+        .resolve("skills/bill-code-review-inline/native-agents/agents.yaml")
     val worker = parseNativeAgentBundle(bundle).single { it.name == "bill-code-review-inline" }
 
     assertEquals(

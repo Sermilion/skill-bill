@@ -25,6 +25,9 @@ private const val UNSUPPORTED_HOST_SEGMENT = "unsupported-host"
 private const val CC_OPT_OUT_REASON =
   "Badass Runtime is not configuration-cache compatible (serializes Gradle model objects)."
 
+private const val AUTHORED_JAVA_GUARD =
+  "runtime-infra/host/src/main/resources/skillbill/infrastructure/host/jvm/skill-bill-java-guard.sh"
+
 private val IMAGE_MODULES =
   listOf(
     "java.base",
@@ -66,7 +69,11 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
       val imageZipFile = layout.buildDirectory.file(zipName.map { name -> "runtime-image/$name" })
       val repositoryLicense = rootProject.projectDir.parentFile.resolve("LICENSE")
 
-      configureStartScriptJavaGuard()
+      configureStartScriptJavaGuard(
+        objects.fileProperty().convention(
+          rootProject.layout.projectDirectory.file(AUTHORED_JAVA_GUARD),
+        ),
+      )
       configureStaticRuntimeWiring(host, imageZipFile)
       packageRepositoryLicense(repositoryLicense)
       configureRuntimeZipTask(
@@ -117,12 +124,11 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
     }
   }
 
-  private fun Project.registerLicenseVerification(
-    licenseSource: File,
-  ): TaskProvider<VerifyRuntimeImageLicenseTask> {
-    val installedLicense = tasks.named<Sync>("installDist").map { install ->
-      File(install.destinationDir, "LICENSE")
-    }
+  private fun Project.registerLicenseVerification(licenseSource: File): TaskProvider<VerifyRuntimeImageLicenseTask> {
+    val installedLicense =
+      tasks.named<Sync>("installDist").map { install ->
+        File(install.destinationDir, "LICENSE")
+      }
     val imageLicense = layout.buildDirectory.file("image/LICENSE")
     return tasks.register<VerifyRuntimeImageLicenseTask>("verifyRuntimeImageLicense") {
       group = "verification"

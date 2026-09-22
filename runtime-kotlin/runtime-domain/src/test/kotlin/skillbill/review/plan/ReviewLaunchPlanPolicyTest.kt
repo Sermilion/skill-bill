@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class ReviewLaunchPlanPolicyTest {
   @Test
   fun `kmp flattens kotlin baseline into ten direct specialists`() {
@@ -35,14 +36,16 @@ class ReviewLaunchPlanPolicyTest {
 
   @Test
   fun `a required baseline layer does not force a signal-gated composed area to be required`() {
-    val kotlin = pack(
-      "kotlin",
-      listOf("architecture", "security"),
-      laneConditions = mapOf(
-        "architecture" to ReviewLaneCondition(required = true),
-        "security" to ReviewLaneCondition(content = listOf("secret")),
-      ),
-    )
+    val kotlin =
+      pack(
+        "kotlin",
+        listOf("architecture", "security"),
+        laneConditions =
+          mapOf(
+            "architecture" to ReviewLaneCondition(required = true),
+            "security" to ReviewLaneCondition(content = listOf("secret")),
+          ),
+      )
     val kmp = pack("kmp", emptyList(), layers = listOf(layer("kotlin", required = true)))
 
     val plan = ReviewLaunchPlanPolicy.flatten("kmp", listOf(kmp, kotlin), setOf("architecture", "security"))
@@ -82,11 +85,12 @@ class ReviewLaunchPlanPolicyTest {
     val base = pack("base", listOf("security"))
     val left = pack("left", emptyList(), layers = listOf(layer("base", required = false)))
     val right = pack("right", emptyList(), layers = listOf(layer("base")))
-    val root = pack(
-      "root",
-      emptyList(),
-      layers = listOf(layer("left", required = false), layer("right", required = false)),
-    )
+    val root =
+      pack(
+        "root",
+        emptyList(),
+        layers = listOf(layer("left", required = false), layer("right", required = false)),
+      )
 
     val lane = ReviewLaunchPlanPolicy.flatten("root", listOf(root, left, right, base), setOf("security")).lanes.single()
 
@@ -98,11 +102,12 @@ class ReviewLaunchPlanPolicyTest {
   fun `nearest owner retains deeper required reachability for the same owner`() {
     val owner = pack("owner", listOf("security"))
     val bridge = pack("bridge", emptyList(), layers = listOf(layer("owner")))
-    val root = pack(
-      "root",
-      emptyList(),
-      layers = listOf(layer("owner", required = false), layer("bridge", required = false)),
-    )
+    val root =
+      pack(
+        "root",
+        emptyList(),
+        layers = listOf(layer("owner", required = false), layer("bridge", required = false)),
+      )
 
     val lane = ReviewLaunchPlanPolicy.flatten("root", listOf(root, owner, bridge), setOf("security")).lanes.single()
 
@@ -144,14 +149,16 @@ class ReviewLaunchPlanPolicyTest {
 
   @Test
   fun `flattened lanes preserve path and content signals for sparse commit routing`() {
-    val kotlin = pack(
-      "kotlin",
-      listOf("security", "ui"),
-      laneConditions = mapOf(
-        "security" to ReviewLaneCondition(path = listOf("auth/"), content = listOf("authorize")),
-        "ui" to ReviewLaneCondition(path = listOf("ui/"), content = listOf("@Composable")),
-      ),
-    )
+    val kotlin =
+      pack(
+        "kotlin",
+        listOf("security", "ui"),
+        laneConditions =
+          mapOf(
+            "security" to ReviewLaneCondition(path = listOf("auth/"), content = listOf("authorize")),
+            "ui" to ReviewLaneCondition(path = listOf("ui/"), content = listOf("@Composable")),
+          ),
+      )
 
     val plan = ReviewLaunchPlanPolicy.flatten("kotlin", listOf(kotlin), setOf("security", "ui"))
 
@@ -175,18 +182,23 @@ class ReviewLaunchPlanPolicyTest {
     contractVersion = "1.3",
     routingSignals = RoutingSignals(emptyList(), emptyList()),
     declaredCodeReviewAreas = areas,
-    declaredFiles = DeclaredFiles(
-      baseline = FileLocation("platform-packs/$slug/code-review/bill-$slug-code-review/content.md"),
-      areas = areas.associateWith {
-        FileLocation("platform-packs/$slug/code-review/bill-$slug-code-review-$it/content.md")
-      },
-    ),
+    declaredFiles =
+      DeclaredFiles(
+        baseline = FileLocation("platform-packs/$slug/code-review/bill-$slug-code-review/content.md"),
+        areas =
+          areas.associateWith {
+            FileLocation("platform-packs/$slug/code-review/bill-$slug-code-review-$it/content.md")
+          },
+      ),
     areaMetadata = emptyMap(),
     laneConditions = laneConditions,
     codeReviewComposition = layers.takeIf { it.isNotEmpty() }?.let(::CodeReviewComposition),
   )
 
-  private fun layer(slug: String, required: Boolean = true) = CodeReviewBaselineLayer(
+  private fun layer(
+    slug: String,
+    required: Boolean = true,
+  ) = CodeReviewBaselineLayer(
     platform = slug,
     skill = "bill-$slug-code-review",
     scope = CodeReviewCompositionScope.SameReviewScope,
@@ -196,9 +208,10 @@ class ReviewLaunchPlanPolicyTest {
 
   private companion object {
     val KMP_AREAS = listOf("platform-correctness", "ui", "ux-accessibility")
-    val KOTLIN_AREAS = listOf(
-      "architecture", "performance", "platform-correctness", "security", "testing",
-      "api-contracts", "persistence", "reliability", "ui", "ux-accessibility",
-    )
+    val KOTLIN_AREAS =
+      listOf(
+        "architecture", "performance", "platform-correctness", "security", "testing",
+        "api-contracts", "persistence", "reliability", "ui", "ux-accessibility",
+      )
   }
 }

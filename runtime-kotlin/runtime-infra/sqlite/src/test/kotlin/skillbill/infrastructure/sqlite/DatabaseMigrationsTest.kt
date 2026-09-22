@@ -214,9 +214,10 @@ class DatabaseMigrationsTest {
       assertTrue("parent_goal_workflow_id" in columns)
       assertTrue("subtask_id" in columns)
       assertTrue("preparation_status" in columns)
-      val migration = migrationRows(connection).singleOrNull { row ->
-        row.version == 8 && row.name == "add-goal-planning-preparations"
-      }
+      val migration =
+        migrationRows(connection).singleOrNull { row ->
+          row.version == 8 && row.name == "add-goal-planning-preparations"
+        }
       assertNotNull(migration, "Migration version 8 add-goal-planning-preparations should be recorded.")
     }
   }
@@ -323,9 +324,10 @@ class DatabaseMigrationsTest {
   fun `an already current database opens no write transaction while another connection holds the writer lock`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-gate-current").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).close()
-    val expected = DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
-      migrationRows(connection).map { row -> row.name }
-    }
+    val expected =
+      DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        migrationRows(connection).map { row -> row.name }
+      }
 
     DriverManager.getConnection("jdbc:sqlite:$dbPath").use { writer ->
       writer.createStatement().use { it.execute("BEGIN IMMEDIATE") }
@@ -355,16 +357,17 @@ class DatabaseMigrationsTest {
     val executor = Executors.newFixedThreadPool(2)
 
     try {
-      val races = (1..2).map {
-        executor.submit {
-          DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
-            connection.createStatement().use { it.execute("PRAGMA busy_timeout = 5000") }
-            ready.countDown()
-            check(start.await(5, TimeUnit.SECONDS))
-            DatabaseMigrations.apply(connection)
+      val races =
+        (1..2).map {
+          executor.submit {
+            DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+              connection.createStatement().use { it.execute("PRAGMA busy_timeout = 5000") }
+              ready.countDown()
+              check(start.await(5, TimeUnit.SECONDS))
+              DatabaseMigrations.apply(connection)
+            }
           }
         }
-      }
       assertTrue(ready.await(5, TimeUnit.SECONDS))
       start.countDown()
       races.forEach { it.get(10, TimeUnit.SECONDS) }
@@ -450,22 +453,23 @@ class DatabaseMigrationsTest {
       }
     }
 
-    val migratedDdl = DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      assertNotNull(
-        migrationRows(connection).singleOrNull { row ->
-          row.version == 16 && row.name == "rekey-producer-output-evidence-by-generation"
-        },
-      )
-      val rows = producerEvidenceRows(connection)
-      assertEquals(2, rows.size)
-      assertEquals(listOf(0, 0), rows.map { it.generation })
-      assertEquals(listOf(1, 2), rows.map { it.attempt })
-      assertEquals(listOf("2026-07-28T10:00:01Z", "2026-07-28T10:00:02Z"), rows.map { it.recordedAt })
-      assertEquals(listOf("1".repeat(64), "2".repeat(64)), rows.map { it.sha256 })
-      assertContentEquals(byteArrayOf(7, 8), rows[0].payload)
-      assertEquals(null, rows[1].payload)
-      producerEvidenceDdl(connection)
-    }
+    val migratedDdl =
+      DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+        assertNotNull(
+          migrationRows(connection).singleOrNull { row ->
+            row.version == 16 && row.name == "rekey-producer-output-evidence-by-generation"
+          },
+        )
+        val rows = producerEvidenceRows(connection)
+        assertEquals(2, rows.size)
+        assertEquals(listOf(0, 0), rows.map { it.generation })
+        assertEquals(listOf(1, 2), rows.map { it.attempt })
+        assertEquals(listOf("2026-07-28T10:00:01Z", "2026-07-28T10:00:02Z"), rows.map { it.recordedAt })
+        assertEquals(listOf("1".repeat(64), "2".repeat(64)), rows.map { it.sha256 })
+        assertContentEquals(byteArrayOf(7, 8), rows[0].payload)
+        assertEquals(null, rows[1].payload)
+        producerEvidenceDdl(connection)
+      }
 
     val baseSchemaPath = Files.createTempDirectory("runtime-kotlin-db-v16-base-schema").resolve("base.db")
     DriverManager.getConnection("jdbc:sqlite:$baseSchemaPath").use { connection ->
@@ -486,11 +490,12 @@ class DatabaseMigrationsTest {
 
     seedPreAgentProducerEvidenceForMigration28(dbPath, payload, sha)
 
-    val migratedDdl = DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      assertMigration28Applied(connection)
-      assertProducerEvidenceRowSurvivedMigration28(connection, payload, sha)
-      producerEvidenceDdl(connection)
-    }
+    val migratedDdl =
+      DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+        assertMigration28Applied(connection)
+        assertProducerEvidenceRowSurvivedMigration28(connection, payload, sha)
+        producerEvidenceDdl(connection)
+      }
 
     assertProducerEvidenceMigrationDdlParity(migratedDdl, "runtime-kotlin-db-v28-base-schema")
   }
@@ -504,27 +509,28 @@ class DatabaseMigrationsTest {
 
     seedPreRepairTurnDiagnosticsForMigration29(dbPath, payload, sha, identity)
 
-    val migratedDdl = DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      assertNotNull(
-        migrationRows(connection).singleOrNull { row ->
-          row.version == 29 && row.name == "rekey-diagnostic-evidence-by-repair-turn"
-        },
-      )
+    val migratedDdl =
+      DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+        assertNotNull(
+          migrationRows(connection).singleOrNull { row ->
+            row.version == 29 && row.name == "rekey-diagnostic-evidence-by-repair-turn"
+          },
+        )
 
-      assertEquals(listOf(0), producerEvidenceRepairTurns(connection))
-      assertEquals(payload.size.toLong(), producerEvidenceByteSizes(connection).single())
-      assertEquals(listOf(identity to 0), rejectedDiagnosticIdentitiesAndTurns(connection))
+        assertEquals(listOf(0), producerEvidenceRepairTurns(connection))
+        assertEquals(payload.size.toLong(), producerEvidenceByteSizes(connection).single())
+        assertEquals(listOf(identity to 0), rejectedDiagnosticIdentitiesAndTurns(connection))
 
-      assertEquals(
-        listOf(
-          "idx_rejected_output_diagnostic_retention",
-          "idx_rejected_output_diagnostic_selection",
-          "idx_rejected_output_diagnostics_selector",
-        ),
-        rejectedDiagnosticIndexNames(connection),
-      )
-      producerEvidenceDdl(connection)
-    }
+        assertEquals(
+          listOf(
+            "idx_rejected_output_diagnostic_retention",
+            "idx_rejected_output_diagnostic_selection",
+            "idx_rejected_output_diagnostics_selector",
+          ),
+          rejectedDiagnosticIndexNames(connection),
+        )
+        producerEvidenceDdl(connection)
+      }
 
     assertProducerEvidenceMigrationDdlParity(migratedDdl, "runtime-kotlin-db-v29-base-schema")
   }
@@ -633,16 +639,17 @@ class DatabaseMigrationsEnsureDatabaseTest {
     val executor = Executors.newFixedThreadPool(2)
 
     try {
-      val opens = (1..2).map {
-        executor.submit {
-          DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
-            connection.createStatement().use { it.execute("PRAGMA busy_timeout = 5000") }
-            ready.countDown()
-            check(start.await(5, TimeUnit.SECONDS))
-            DatabaseMigrations.apply(connection)
+      val opens =
+        (1..2).map {
+          executor.submit {
+            DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+              connection.createStatement().use { it.execute("PRAGMA busy_timeout = 5000") }
+              ready.countDown()
+              check(start.await(5, TimeUnit.SECONDS))
+              DatabaseMigrations.apply(connection)
+            }
           }
         }
-      }
       assertTrue(ready.await(5, TimeUnit.SECONDS))
       start.countDown()
       opens.forEach { it.get(10, TimeUnit.SECONDS) }
@@ -727,10 +734,11 @@ class DatabaseMigrationsEnsureDatabaseTest {
   fun `goal continuation recovery accepts the runtime and prose continuation contracts`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-goal-continuation-issue-key").resolve("metrics.db")
 
-    val runtimeGoalArtifactsJson = buildString {
-      append("""{"goal_continuation":{"issue_key":" SKILL-117 ","subtask_id":1,"""")
-      append("""suppress_pr":true,"goal_branch":"feature/117"}}""")
-    }
+    val runtimeGoalArtifactsJson =
+      buildString {
+        append("""{"goal_continuation":{"issue_key":" SKILL-117 ","subtask_id":1,"""")
+        append("""suppress_pr":true,"goal_branch":"feature/117"}}""")
+      }
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       connection.createStatement().use { statement ->
         statement.executeUpdate(
@@ -896,9 +904,10 @@ class DatabaseMigrationsEnsureDatabaseTest {
   fun `ensureDatabase adds review run lane attribution to a legacy store without losing rows`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-migrations").resolve("legacy-review-lanes.db")
     createLegacyFeedbackEventsDatabase(dbPath)
-    val before = DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
-      Triple(rowCount(connection, "review_runs"), rowCount(connection, "findings"), findingRows(connection))
-    }
+    val before =
+      DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        Triple(rowCount(connection, "review_runs"), rowCount(connection, "findings"), findingRows(connection))
+      }
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       assertTrue("review_run_lanes" in tableNames(connection))
@@ -923,9 +932,10 @@ class DatabaseMigrationsEnsureDatabaseTest {
   fun `relaxing telemetry outbox last_error backfills empty strings and preserves error text`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-outbox-migration").resolve("legacy-outbox.db")
     createLegacyTelemetryOutboxDatabase(dbPath)
-    val before = DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
-      rowCount(connection, "telemetry_outbox")
-    }
+    val before =
+      DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        rowCount(connection, "telemetry_outbox")
+      }
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       assertEquals(before, rowCount(connection, "telemetry_outbox"), "The rebuild must not drop a row.")
@@ -956,9 +966,10 @@ class DatabaseMigrationsEnsureDatabaseTest {
   fun `opening a legacy telemetry outbox adds skill_bill_version and preserves version-less rows`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-outbox-version").resolve("legacy-outbox.db")
     createLegacyTelemetryOutboxDatabase(dbPath)
-    val before = DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
-      rowCount(connection, "telemetry_outbox")
-    }
+    val before =
+      DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        rowCount(connection, "telemetry_outbox")
+      }
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       assertTrue(
@@ -980,9 +991,10 @@ class DatabaseMigrationsEnsureDatabaseTest {
     createLegacyTelemetryOutboxDatabase(dbPath)
 
     DatabaseRuntime.ensureDatabase(dbPath).close()
-    val afterFirst = DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
-      telemetryOutboxRows(connection)
-    }
+    val afterFirst =
+      DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        telemetryOutboxRows(connection)
+      }
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       assertEquals(afterFirst, telemetryOutboxRows(connection), "Re-application must not alter a single row.")
@@ -1058,26 +1070,27 @@ class DatabaseMigrationsEnsureDatabaseTest {
 }
 
 class DatabaseMigrationsReviewAttributionTest {
-
   @Test
   fun `migrating a copy of a real review metrics store leaves referential integrity sound`() {
     val realStore = requireRealStore()
     val copy = Files.createTempDirectory("runtime-kotlin-real-store-integrity").resolve("metrics.db")
     Files.copy(realStore, copy)
 
-    val trackedTables = listOf(
-      "telemetry_outbox",
-      "review_runs",
-      "findings",
-      "feedback_events",
-      "learnings",
-      "session_learnings",
-      "unaddressed_findings",
-    )
-    val before = DriverManager.getConnection("jdbc:sqlite:$copy").use { connection ->
-      val present = tableNames(connection)
-      trackedTables.filter(present::contains).associateWith { table -> rowCount(connection, table) }
-    }
+    val trackedTables =
+      listOf(
+        "telemetry_outbox",
+        "review_runs",
+        "findings",
+        "feedback_events",
+        "learnings",
+        "session_learnings",
+        "unaddressed_findings",
+      )
+    val before =
+      DriverManager.getConnection("jdbc:sqlite:$copy").use { connection ->
+        val present = tableNames(connection)
+        trackedTables.filter(present::contains).associateWith { table -> rowCount(connection, table) }
+      }
 
     DatabaseRuntime.ensureDatabase(copy).use { connection ->
       before.forEach { (table, count) ->
@@ -1293,9 +1306,10 @@ class DatabaseMigrationsReviewAttributionTest {
         )
       }
     }
-    val before = DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
-      legacyGoalSubtaskRows(connection)
-    }
+    val before =
+      DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+        legacyGoalSubtaskRows(connection)
+      }
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val columns = tableColumns(connection = connection, tableName = "goal_issue_progress")
@@ -1476,9 +1490,10 @@ class DatabaseMigrationsReviewAttributionTest {
     val copy = Files.createTempDirectory("runtime-kotlin-real-store-migration").resolve("metrics.db")
     Files.copy(source, copy)
 
-    val before = DriverManager.getConnection("jdbc:sqlite:$copy").use { connection ->
-      rowCount(connection, "review_runs") to rowCount(connection, "findings")
-    }
+    val before =
+      DriverManager.getConnection("jdbc:sqlite:$copy").use { connection ->
+        rowCount(connection, "review_runs") to rowCount(connection, "findings")
+      }
 
     DatabaseRuntime.ensureDatabase(copy).use { connection ->
       assertEquals(before.first, rowCount(connection, "review_runs"), "review_runs lost rows during migration.")
@@ -1499,9 +1514,10 @@ class DatabaseMigrationsReviewAttributionTest {
     SqliteTestDiagnostics.reset()
 
     val delegate = DriverManager.getDriver("jdbc:sqlite:$dbPath")
-    val observingDriver = SqliteConnectionRecordingDriver(delegate) { connection ->
-      connection.attachSqliteDiagnostics(SqliteTestDiagnostics)
-    }
+    val observingDriver =
+      SqliteConnectionRecordingDriver(delegate) { connection ->
+        connection.attachSqliteDiagnostics(SqliteTestDiagnostics)
+      }
     DriverManager.deregisterDriver(delegate)
     DriverManager.registerDriver(observingDriver)
     DriverManager.registerDriver(delegate)
@@ -1515,12 +1531,13 @@ class DatabaseMigrationsReviewAttributionTest {
         )
         assertEquals(
           mapOf(
-            2 to GoalRunnerOutOfBandAcceptance(
-              subtaskId = 2,
-              commitSha = "legacy-commit",
-              reason = "accepted outside the normal review path",
-              acceptedAt = "2026-09-17T10:00:00Z",
-            ),
+            2 to
+              GoalRunnerOutOfBandAcceptance(
+                subtaskId = 2,
+                commitSha = "legacy-commit",
+                reason = "accepted outside the normal review path",
+                acceptedAt = "2026-09-17T10:00:00Z",
+              ),
           ),
           store.outOfBandAcceptances("wftr-legacy-goal-parent"),
         )
@@ -1531,8 +1548,9 @@ class DatabaseMigrationsReviewAttributionTest {
       DriverManager.registerDriver(delegate)
     }
 
-    val migrationWarnings = SqliteTestDiagnostics.recordedWarnings()
-      .filter { warning -> warning.contains("record_kind=migration") }
+    val migrationWarnings =
+      SqliteTestDiagnostics.recordedWarnings()
+        .filter { warning -> warning.contains("record_kind=migration") }
     assertEquals(1, migrationWarnings.size)
     assertTrue(migrationWarnings.single().contains("parent_workflow_id=wftr-legacy-goal-parent"))
     assertTrue(migrationWarnings.single().contains(GOAL_REVIEW_POLICY_ARTIFACT_KEY))

@@ -24,6 +24,7 @@ import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
+
 abstract class FeatureTaskRuntimePhaseAgentCommand(
   name: String,
   help: String,
@@ -32,9 +33,10 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
   internal val maxWallClockMinutes by option(
     "--max-wall-clock-minutes",
     "--timeout-minutes",
-    help = "Per-phase wall-clock cap in minutes (default " +
-      "$DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES). Hard ceiling even when a child process is still " +
-      "alive. Pass 0 to disable.",
+    help =
+      "Per-phase wall-clock cap in minutes (default " +
+        "$DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES). Hard ceiling even when a child process is still " +
+        "alive. Pass 0 to disable.",
   ).int().default(DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES)
   internal val monitor by option(
     "--monitor",
@@ -54,8 +56,9 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
   ).multiple()
   internal val phaseModels by option(
     "--phase-model",
-    help = "Per-phase model directive as phase=model or phase=model@effort " +
-      "(e.g. --phase-model plan=claude-opus-4-8@high). Wins over the config execution_matrix. Repeatable.",
+    help =
+      "Per-phase model directive as phase=model or phase=model@effort " +
+        "(e.g. --phase-model plan=claude-opus-4-8@high). Wins over the config execution_matrix. Repeatable.",
   ).multiple()
   internal val goalParentIssueKey by option(
     "--goal-parent-issue-key",
@@ -88,14 +91,16 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
   ).multiple()
   internal val codeReviewModes by option(
     "--code-review-mode",
-    help = "Review execution mode for this run: inline (default, one review subagent per " +
-      "pass) or auto (also resolves inline). Supply at most once; a resumed workflow " +
-      "remains pinned to its original mode.",
+    help =
+      "Review execution mode for this run: inline (default, one review subagent per " +
+        "pass) or auto (also resolves inline). Supply at most once; a resumed workflow " +
+        "remains pinned to its original mode.",
   ).multiple()
   internal val operatorDecisions by option(
     "--operator-decision",
-    help = "Release a subtask paused on an unresolved Blocker or Major: " +
-      "${GoalSubtaskOperatorDecision.entries.joinToString { it.wireValue }}. Supply at most once.",
+    help =
+      "Release a subtask paused on an unresolved Blocker or Major: " +
+        "${GoalSubtaskOperatorDecision.entries.joinToString { it.wireValue }}. Supply at most once.",
   ).multiple()
   internal val suppressPr by option(
     "--suppress-pr",
@@ -107,8 +112,9 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
   ).multiple()
   internal val explicitWorkflowId by option(
     "--workflow-id",
-    help = "Open the run under this exact workflow id instead of minting a new one. Used by the goal " +
-      "driver's open-with-assigned-id path for a first runtime subtask run (distinct from resume).",
+    help =
+      "Open the run under this exact workflow id instead of minting a new one. Used by the goal " +
+        "driver's open-with-assigned-id path for a first runtime subtask run (distinct from resume).",
   )
   internal val agentAddonSelectionJson by option(
     "--agent-addon-selection-json",
@@ -120,13 +126,14 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
     issueKey: String,
     specPath: String,
     repoRoot: Path,
-  ): String = explicitWorkflowId?.takeIf(String::isNotBlank)
-    ?: workflowService.openRuntimeWorkflowId(
-      issueKey,
-      specPath,
-      repoRoot,
-      if (goalParentIssueKey != null) FeatureTaskRouteScope.GOAL_CHILD else FeatureTaskRouteScope.STANDALONE,
-    )
+  ): String =
+    explicitWorkflowId?.takeIf(String::isNotBlank)
+      ?: workflowService.openRuntimeWorkflowId(
+        issueKey,
+        specPath,
+        repoRoot,
+        if (goalParentIssueKey != null) FeatureTaskRouteScope.GOAL_CHILD else FeatureTaskRouteScope.STANDALONE,
+      )
 
   internal fun executeRuntimeRun(
     deps: FeatureTaskRuntimeRunDependencies,
@@ -137,31 +144,33 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
   ) {
     val state = deps.state
     val resolvedWorkflowId = workflowId()
-    val report = deps.workerCoordinator.runOwned(resolvedWorkflowId) {
-      deps.runner.run(
-        FeatureTaskRuntimeRunRequest(
-          issueKey = issueKey,
-          workflowId = resolvedWorkflowId,
-          sessionId =
-          "${FeatureTaskRuntimePhaseWorkflowDefinition.definition.defaultSessionPrefix}-$resolvedWorkflowId",
-          runInvariants = deps.runInvariantsSource.read(Path.of(specPath)).copy(
-            agentAddonSelection = prepared.agentAddonSelection.persisted,
+    val report =
+      deps.workerCoordinator.runOwned(resolvedWorkflowId) {
+        deps.runner.run(
+          FeatureTaskRuntimeRunRequest(
+            issueKey = issueKey,
+            workflowId = resolvedWorkflowId,
+            sessionId =
+              "${FeatureTaskRuntimePhaseWorkflowDefinition.definition.defaultSessionPrefix}-$resolvedWorkflowId",
+            runInvariants =
+              deps.runInvariantsSource.read(Path.of(specPath)).copy(
+                agentAddonSelection = prepared.agentAddonSelection.persisted,
+              ),
+            invokedAgentId = prepared.invokedAgentId,
+            agentAssignment = prepared.agentAssignment,
+            modelAssignment = prepared.modelAssignment,
+            compactionSettings = prepared.compactionSettings,
+            environment = deps.inputs.environment,
+            repoRoot = prepared.repoRoot,
+            timeout = maxWallClockMinutes.takeIf { it > 0 }?.minutes,
+            requestedCodeReviewMode = prepared.requestedReviewMode,
+            goalContinuation = prepared.goalContinuation,
+            operatorDecision = prepared.operatorDecision,
+            agentAddonSelection = prepared.agentAddonSelection,
+            eventSink = runtimeRunEventSink(deps.inputs, monitor),
           ),
-          invokedAgentId = prepared.invokedAgentId,
-          agentAssignment = prepared.agentAssignment,
-          modelAssignment = prepared.modelAssignment,
-          compactionSettings = prepared.compactionSettings,
-          environment = deps.inputs.environment,
-          repoRoot = prepared.repoRoot,
-          timeout = maxWallClockMinutes.takeIf { it > 0 }?.minutes,
-          requestedCodeReviewMode = prepared.requestedReviewMode,
-          goalContinuation = prepared.goalContinuation,
-          operatorDecision = prepared.operatorDecision,
-          agentAddonSelection = prepared.agentAddonSelection,
-          eventSink = runtimeRunEventSink(deps.inputs, monitor),
-        ),
-      )
-    }
+        )
+      }
     val payload = report.toRuntimeRunCliMap()
     state.completeText(runtimeRunText(payload), payload, exitCode = payload.runtimeRunExitCode())
     drainTelemetryOnCompletion(deps.telemetryService, deps.diagnostics)
@@ -173,13 +182,14 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
     explicitSpecPath: String?,
     repositoryRoot: Path,
   ): String {
-    val result = deps.specPathResolver.resolve(
-      FeatureSpecPathResolveInput(
-        issueKey = issueKey,
-        explicitSpecPath = explicitSpecPath,
-        repoRoot = repositoryRoot,
-      ),
-    )
+    val result =
+      deps.specPathResolver.resolve(
+        FeatureSpecPathResolveInput(
+          issueKey = issueKey,
+          explicitSpecPath = explicitSpecPath,
+          repoRoot = repositoryRoot,
+        ),
+      )
     return when (result) {
       is FeatureSpecPathResolveResult.Explicit -> result.specPath
       is FeatureSpecPathResolveResult.SingleMatch -> result.specPath
@@ -203,9 +213,9 @@ class FeatureTaskRuntimeRunCommand(
   control: FeatureTaskRuntimeControlSubcommands,
   rejectedOutput: FeatureTaskRejectedOutputSubcommands,
 ) : FeatureTaskRuntimePhaseAgentCommand(
-  "feature-task",
-  "Run the runtime-driven feature-task phase loop in the foreground.",
-) {
+    "feature-task",
+    "Run the runtime-driven feature-task phase loop in the foreground.",
+  ) {
   private val issueKey by argument(help = "Issue key the run implements.").optional()
   private val specPath by argument(help = "Path to the governed spec the run implements.").optional()
 
@@ -248,9 +258,9 @@ class FeatureTaskRuntimeExplicitRunCommand(
   private val deps: FeatureTaskRuntimeRunDependencies,
   private val workflowService: WorkflowService,
 ) : FeatureTaskRuntimePhaseAgentCommand(
-  "run",
-  "Run the feature-task phase loop (explicit form of the parent command's default run).",
-) {
+    "run",
+    "Run the feature-task phase loop (explicit form of the parent command's default run).",
+  ) {
   private val issueKey by argument(help = "Issue key the run implements.")
   private val specPath by argument(help = "Path to the governed spec the run implements.").optional()
 

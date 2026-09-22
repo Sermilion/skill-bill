@@ -41,12 +41,14 @@ class FeatureTaskRuntimeReadinessEvidenceSchemaTest {
 
   @Test
   fun `missing selected check result cannot validate as passing`() {
-    val payload = sampleEvidenceMap(
-      selectedChecks = listOf("pack-collect-all", "plugin-ci"),
-      checkResults = listOf(
-        checkResult("pack-collect-all", 0, FeatureTaskRuntimeReadinessCheckStatus.PASSED),
-      ),
-    )
+    val payload =
+      sampleEvidenceMap(
+        selectedChecks = listOf("pack-collect-all", "plugin-ci"),
+        checkResults =
+          listOf(
+            checkResult("pack-collect-all", 0, FeatureTaskRuntimeReadinessCheckStatus.PASSED),
+          ),
+      )
     FeatureTaskRuntimeReadinessEvidenceSchemaValidator.validate(payload, "missing-selected")
     assertFailsWith<InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError> {
       requireNotNull(decodeReadinessEvidenceFromArtifact(payload, "missing-selected")).requireReady(
@@ -60,11 +62,13 @@ class FeatureTaskRuntimeReadinessEvidenceSchemaTest {
 
   @Test
   fun `unpersisted selected check cannot validate as passing`() {
-    val payload = sampleEvidenceMap(
-      checkResults = listOf(
-        checkResult("pack-collect-all", 0, FeatureTaskRuntimeReadinessCheckStatus.UNPERSISTED),
-      ),
-    )
+    val payload =
+      sampleEvidenceMap(
+        checkResults =
+          listOf(
+            checkResult("pack-collect-all", 0, FeatureTaskRuntimeReadinessCheckStatus.UNPERSISTED),
+          ),
+      )
     FeatureTaskRuntimeReadinessEvidenceSchemaValidator.validate(payload, "unpersisted")
     assertFailsWith<InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError> {
       requireNotNull(decodeReadinessEvidenceFromArtifact(payload, "unpersisted")).requireReady(
@@ -78,11 +82,13 @@ class FeatureTaskRuntimeReadinessEvidenceSchemaTest {
 
   @Test
   fun `nonzero exit on selected check cannot validate as passing`() {
-    val payload = sampleEvidenceMap(
-      checkResults = listOf(
-        checkResult("pack-collect-all", 1, FeatureTaskRuntimeReadinessCheckStatus.FAILED),
-      ),
-    )
+    val payload =
+      sampleEvidenceMap(
+        checkResults =
+          listOf(
+            checkResult("pack-collect-all", 1, FeatureTaskRuntimeReadinessCheckStatus.FAILED),
+          ),
+      )
     FeatureTaskRuntimeReadinessEvidenceSchemaValidator.validate(payload, "nonzero-exit")
     assertFailsWith<InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError> {
       requireNotNull(decodeReadinessEvidenceFromArtifact(payload, "nonzero-exit")).requireReady(
@@ -96,19 +102,21 @@ class FeatureTaskRuntimeReadinessEvidenceSchemaTest {
 
   @Test
   fun `plugin check failure outside the runtime gate cannot validate as passing`() {
-    val payload = sampleEvidenceMap(
-      selectedChecks = listOf("plugin-ci:check"),
-      checkResults = listOf(
-        checkResult(
-          "plugin-ci:check",
-          1,
-          FeatureTaskRuntimeReadinessCheckStatus.FAILED,
-        ).toMutableMap().apply {
-          this[ReadinessEvidencePayloadKeys.COMMAND] =
-            "(cd intellij-plugin && ./gradlew clean check --no-build-cache)"
-        },
-      ),
-    )
+    val payload =
+      sampleEvidenceMap(
+        selectedChecks = listOf("plugin-ci:check"),
+        checkResults =
+          listOf(
+            checkResult(
+              "plugin-ci:check",
+              1,
+              FeatureTaskRuntimeReadinessCheckStatus.FAILED,
+            ).toMutableMap().apply {
+              this[ReadinessEvidencePayloadKeys.COMMAND] =
+                "(cd intellij-plugin && ./gradlew clean check --no-build-cache)"
+            },
+          ),
+      )
     FeatureTaskRuntimeReadinessEvidenceSchemaValidator.validate(payload, "plugin-failure")
     assertFailsWith<InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError> {
       requireNotNull(decodeReadinessEvidenceFromArtifact(payload, "plugin-failure")).requireReady(
@@ -131,26 +139,29 @@ class FeatureTaskRuntimeReadinessEvidenceSchemaTest {
 
   private fun sampleEvidenceMap(
     selectedChecks: List<String> = listOf("pack-collect-all"),
-    checkResults: List<Map<String, Any?>> = listOf(
-      checkResult("pack-collect-all", 0, FeatureTaskRuntimeReadinessCheckStatus.PASSED),
-    ),
-  ): Map<String, Any?> = mapOf(
-    ReadinessEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION,
-    ReadinessEvidencePayloadKeys.SOURCE_TREE_SHA to "tree1",
-    ReadinessEvidencePayloadKeys.BASE_REF_SHA to "base1",
-    ReadinessEvidencePayloadKeys.HEAD_SHA to "head1",
-    ReadinessEvidencePayloadKeys.SELECTED_CHECKS to selectedChecks,
-    ReadinessEvidencePayloadKeys.CHECK_RESULTS to checkResults,
-  )
+    checkResults: List<Map<String, Any?>> =
+      listOf(
+        checkResult("pack-collect-all", 0, FeatureTaskRuntimeReadinessCheckStatus.PASSED),
+      ),
+  ): Map<String, Any?> =
+    mapOf(
+      ReadinessEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION,
+      ReadinessEvidencePayloadKeys.SOURCE_TREE_SHA to "tree1",
+      ReadinessEvidencePayloadKeys.BASE_REF_SHA to "base1",
+      ReadinessEvidencePayloadKeys.HEAD_SHA to "head1",
+      ReadinessEvidencePayloadKeys.SELECTED_CHECKS to selectedChecks,
+      ReadinessEvidencePayloadKeys.CHECK_RESULTS to checkResults,
+    )
 
   private fun checkResult(
     checkId: String,
     exitCode: Int,
     status: FeatureTaskRuntimeReadinessCheckStatus,
-  ): Map<String, Any?> = mapOf(
-    ReadinessEvidencePayloadKeys.CHECK_ID to checkId,
-    ReadinessEvidencePayloadKeys.COMMAND to "./gradlew check",
-    ReadinessEvidencePayloadKeys.EXIT_CODE to exitCode,
-    ReadinessEvidencePayloadKeys.STATUS to status.wireValue,
-  )
+  ): Map<String, Any?> =
+    mapOf(
+      ReadinessEvidencePayloadKeys.CHECK_ID to checkId,
+      ReadinessEvidencePayloadKeys.COMMAND to "./gradlew check",
+      ReadinessEvidencePayloadKeys.EXIT_CODE to exitCode,
+      ReadinessEvidencePayloadKeys.STATUS to status.wireValue,
+    )
 }

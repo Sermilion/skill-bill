@@ -30,15 +30,16 @@ import skillbill.error.shellcontent.ReviewAggregationIntegrityError
 import skillbill.error.shellcontent.ShellContentContractException
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
+
 @Inject
 class CodeReviewCommand(
   private val runner: ParallelCodeReviewRunner,
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
-  "code-review",
-  "Run a standalone single-agent runtime-driven code review (inline or delegated).",
-) {
+    "code-review",
+    "Run a standalone single-agent runtime-driven code review (inline or delegated).",
+  ) {
   private val commitArgument by argument(
     name = "commit",
     help = "Review target: pr, last, a commit SHA, uncommitted, staged, or unstaged.",
@@ -77,8 +78,9 @@ class CodeReviewCommand(
   ).multiple()
   private val codeReviewMode by option(
     "--execution-mode",
-    help = "Execution mode: inline (default, one review prompt), auto (resolves inline), " +
-      "or delegated (parent launches specialists; parent authors the final prose result).",
+    help =
+      "Execution mode: inline (default, one review prompt), auto (resolves inline), " +
+        "or delegated (parent launches specialists; parent authors the final prose result).",
   ).default(RequestedReviewMode.defaultWireValue)
   private val baselineUntrackedIncludes by option(
     "--baseline-untracked-include",
@@ -90,8 +92,9 @@ class CodeReviewCommand(
   ).multiple()
   private val reviewRunId by option(
     "--review-run-id",
-    help = "Review run id (rvw-YYYYMMDD-HHMMSS-XXXX) this review will report. Pass the same id used " +
-      "in the review output and import so review accounting is reachable from review_finished telemetry.",
+    help =
+      "Review run id (rvw-YYYYMMDD-HHMMSS-XXXX) this review will report. Pass the same id used " +
+        "in the review output and import so review accounting is reachable from review_finished telemetry.",
   )
 
   override fun run() {
@@ -99,11 +102,12 @@ class CodeReviewCommand(
     val repo = resolveCliRepositoryRoot(repoRoot, inputs)
     validateCommitTarget()
     val target = resolveStandaloneCodeReviewTarget(commitArgument, scope)
-    val result = runParallelReviewDriver(
-      runner,
-      request(resolvedAgent1, target, repo),
-      state,
-    ) ?: return
+    val result =
+      runParallelReviewDriver(
+        runner,
+        request(resolvedAgent1, target, repo),
+        state,
+      ) ?: return
     writeParallelReviewResult(state, result)
   }
 
@@ -112,11 +116,12 @@ class CodeReviewCommand(
     target: StandaloneCodeReviewTarget,
     repo: Path,
   ): ParallelCodeReviewRequest {
-    val (resolvedBase, resolvedHead) = resolveCodeReviewRevisions(
-      target.commitRevision,
-      baseRevision,
-      headRevision,
-    )
+    val (resolvedBase, resolvedHead) =
+      resolveCodeReviewRevisions(
+        target.commitRevision,
+        baseRevision,
+        headRevision,
+      )
     return ParallelCodeReviewRequest(
       agent1Id = resolvedAgent1,
       scope = target.scope,
@@ -128,10 +133,11 @@ class CodeReviewCommand(
       baseRevision = resolvedBase,
       headRevision = resolvedHead,
       prelaunchExpansions = expandFiles.map(::parseExpansion),
-      baselineUntrackedPolicy = ParallelCodeReviewRequest.baselineUntrackedPolicy(
-        baselineUntrackedIncludes,
-        baselineUntrackedExcludes,
-      ),
+      baselineUntrackedPolicy =
+        ParallelCodeReviewRequest.baselineUntrackedPolicy(
+          baselineUntrackedIncludes,
+          baselineUntrackedExcludes,
+        ),
     )
   }
 
@@ -139,12 +145,13 @@ class CodeReviewCommand(
 
   private fun validateCommitTarget() {
     if (commitArgument.isNullOrBlank()) return
-    val error = when {
-      diffFile != null -> "A positional review target cannot be combined with --diff-file."
-      !baseRevision.isNullOrBlank() || !headRevision.isNullOrBlank() ->
-        "A positional review target cannot be combined with --base-revision or --head-revision."
-      else -> null
-    }
+    val error =
+      when {
+        diffFile != null -> "A positional review target cannot be combined with --diff-file."
+        !baseRevision.isNullOrBlank() || !headRevision.isNullOrBlank() ->
+          "A positional review target cannot be combined with --base-revision or --head-revision."
+        else -> null
+      }
     if (error != null) {
       throw UsageError(error)
     }
@@ -152,9 +159,10 @@ class CodeReviewCommand(
 
   private fun parseExecutionMode(value: String) = RequestedReviewMode.parse(value)
 
-  private fun suppliedDiffPath(): Path? = diffFile?.let { value ->
-    Path.of(value).toAbsolutePath().normalize()
-  }
+  private fun suppliedDiffPath(): Path? =
+    diffFile?.let { value ->
+      Path.of(value).toAbsolutePath().normalize()
+    }
 
   private fun parseExpansion(value: String): ReviewPrelaunchExpansion {
     val laneSeparator = value.indexOf(':')
@@ -165,15 +173,16 @@ class CodeReviewCommand(
     val prefix = value.substring(0, laneSeparator)
     val remainder = value.substring(laneSeparator + 1, reasonSeparator)
     val skill = remainder.substringBefore(':')
-    val resolvedLaneSeparator = if (
-      isPlatformLanePrefix(prefix) &&
-      ':' in remainder &&
-      skill.matches(Regex("bill-[a-z0-9]+(?:-[a-z0-9]+)*"))
-    ) {
-      value.indexOf(':', startIndex = laneSeparator + 1)
-    } else {
-      laneSeparator
-    }
+    val resolvedLaneSeparator =
+      if (
+        isPlatformLanePrefix(prefix) &&
+        ':' in remainder &&
+        skill.matches(Regex("bill-[a-z0-9]+(?:-[a-z0-9]+)*"))
+      ) {
+        value.indexOf(':', startIndex = laneSeparator + 1)
+      } else {
+        laneSeparator
+      }
     return ReviewPrelaunchExpansion(
       lane = value.substring(0, resolvedLaneSeparator),
       path = value.substring(resolvedLaneSeparator + 1, reasonSeparator),
@@ -199,20 +208,21 @@ private fun runParallelReviewDriver(
   runner: ParallelCodeReviewRunner,
   request: ParallelCodeReviewRequest,
   state: CliRunState,
-): ParallelCodeReviewResult? = try {
-  runner.run(request)
-} catch (error: UsageValidationException) {
-  usageError(error)
-} catch (error: DiffResolutionException) {
-  usageError(error)
-} catch (error: StackDetectionException) {
-  usageError(error)
-} catch (error: ShellContentContractException) {
-  usageError(error)
-} catch (error: ReviewAggregationIntegrityError) {
-  state.completeText(error.message.orEmpty(), emptyMap(), exitCode = 1)
-  null
-}
+): ParallelCodeReviewResult? =
+  try {
+    runner.run(request)
+  } catch (error: UsageValidationException) {
+    usageError(error)
+  } catch (error: DiffResolutionException) {
+    usageError(error)
+  } catch (error: StackDetectionException) {
+    usageError(error)
+  } catch (error: ShellContentContractException) {
+    usageError(error)
+  } catch (error: ReviewAggregationIntegrityError) {
+    state.completeText(error.message.orEmpty(), emptyMap(), exitCode = 1)
+    null
+  }
 
 private fun usageError(error: Throwable): Nothing {
   throw UsageError(error.message.orEmpty()).also { usage ->
@@ -220,37 +230,46 @@ private fun usageError(error: Throwable): Nothing {
   }
 }
 
-private fun writeParallelReviewResult(state: CliRunState, result: ParallelCodeReviewResult) {
+private fun writeParallelReviewResult(
+  state: CliRunState,
+  result: ParallelCodeReviewResult,
+) {
   val parent = result.lane1
   val exitCode = if (parent.success) 0 else 1
-  val output = buildString {
-    append(laneStatusOutput(listOf(parent), result.output))
-    laneDiagnosticsOutput(listOf(parent))?.let { diagnostics ->
-      appendLine()
-      append(diagnostics)
+  val output =
+    buildString {
+      append(laneStatusOutput(listOf(parent), result.output))
+      laneDiagnosticsOutput(listOf(parent))?.let { diagnostics ->
+        appendLine()
+        append(diagnostics)
+      }
+      result.coverage?.let { coverage ->
+        appendLine()
+        append(coverage.render())
+      }
+      result.accountingSummary?.let { summary ->
+        appendLine()
+        append("# Review accounting — ")
+        append(JsonCodec.mapToJsonString(summary.toReviewAccountingPayload()))
+      }
     }
-    result.coverage?.let { coverage ->
-      appendLine()
-      append(coverage.render())
-    }
-    result.accountingSummary?.let { summary ->
-      appendLine()
-      append("# Review accounting — ")
-      append(JsonCodec.mapToJsonString(summary.toReviewAccountingPayload()))
-    }
-  }
   state.completeText(output, emptyMap(), exitCode = exitCode)
 }
 
-private fun laneStatusOutput(lanes: List<ParallelReviewLaneStatus>, register: String): String {
+private fun laneStatusOutput(
+  lanes: List<ParallelReviewLaneStatus>,
+  register: String,
+): String {
   if (lanes.all(ParallelReviewLaneStatus::success)) return register
-  val summary = lanes.joinToString(" | ") { lane ->
-    if (lane.success) "${lane.agentId}: ok" else "${lane.agentId}: failed (${lane.failureReason ?: "unknown reason"})"
-  }
+  val summary =
+    lanes.joinToString(" | ") { lane ->
+      if (lane.success) "${lane.agentId}: ok" else "${lane.agentId}: failed (${lane.failureReason ?: "unknown reason"})"
+    }
   return "# Lane status — $summary\n$register"
 }
 
-private fun laneDiagnosticsOutput(lanes: List<ParallelReviewLaneStatus>): String? = lanes
-  .mapNotNull { lane -> lane.droppedCandidateDiagnostic?.let { "${lane.agentId}: $it" } }
-  .takeIf { it.isNotEmpty() }
-  ?.joinToString(" | ", prefix = "# Lane diagnostics — ")
+private fun laneDiagnosticsOutput(lanes: List<ParallelReviewLaneStatus>): String? =
+  lanes
+    .mapNotNull { lane -> lane.droppedCandidateDiagnostic?.let { "${lane.agentId}: $it" } }
+    .takeIf { it.isNotEmpty() }
+    ?.joinToString(" | ", prefix = "# Lane diagnostics — ")

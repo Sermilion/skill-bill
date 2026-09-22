@@ -11,18 +11,20 @@ import kotlin.test.assertNull
 class FeatureTaskRuntimeRunLoopSessionIsolationTest {
   @Test
   fun `run loop helpers do not accept the coordinator or an all access bundle`() {
-    val sourceRoot = listOf(
-      Path.of("runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask"),
-      Path.of("runtime-engine/src/main/kotlin/skillbill/engine/featuretask"),
-      Path.of("src/main/kotlin/skillbill/engine/featuretask"),
-    ).first(Files::isDirectory)
-    val source = Files.walk(sourceRoot).use { paths ->
-      paths
-        .filter { path -> path.toString().endsWith(".kt") }
-        .map(Path::toFile)
-        .toList()
-        .joinToString("\n") { file -> file.readText() }
-    }
+    val sourceRoot =
+      listOf(
+        Path.of("runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask"),
+        Path.of("runtime-engine/src/main/kotlin/skillbill/engine/featuretask"),
+        Path.of("src/main/kotlin/skillbill/engine/featuretask"),
+      ).first(Files::isDirectory)
+    val source =
+      Files.walk(sourceRoot).use { paths ->
+        paths
+          .filter { path -> path.toString().endsWith(".kt") }
+          .map(Path::toFile)
+          .toList()
+          .joinToString("\n") { file -> file.readText() }
+      }
 
     val persistencePortsName = listOf("FeatureTaskRuntimeRunLoop", "PersistencePorts").joinToString("")
     assertFalse(source.contains(persistencePortsName))
@@ -30,14 +32,16 @@ class FeatureTaskRuntimeRunLoopSessionIsolationTest {
 
   @Test
   fun `run loop sessions do not share per-run mutable flags`() {
-    val sessionOne = FeatureTaskRuntimeRunLoopSession(
-      operatorBlockRetry = null,
-      initialPendingReentry = null,
-    )
-    val sessionTwo = FeatureTaskRuntimeRunLoopSession(
-      operatorBlockRetry = null,
-      initialPendingReentry = null,
-    )
+    val sessionOne =
+      FeatureTaskRuntimeRunLoopSession(
+        operatorBlockRetry = null,
+        initialPendingReentry = null,
+      )
+    val sessionTwo =
+      FeatureTaskRuntimeRunLoopSession(
+        operatorBlockRetry = null,
+        initialPendingReentry = null,
+      )
     sessionOne.transitionResolvedBranch("feature-branch")
     sessionOne.consumeOperatorBlockRetryCompletion("implement")
     val identities = mutableMapOf("src/Foo.kt" to "abc")

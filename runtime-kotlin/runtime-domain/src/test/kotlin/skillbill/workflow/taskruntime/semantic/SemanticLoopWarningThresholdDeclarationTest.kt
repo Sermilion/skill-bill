@@ -32,14 +32,16 @@ class SemanticLoopWarningThresholdDeclarationTest {
 
   @Test
   fun `the declared threshold is control-flow inert across every iteration`() {
-    val cases = listOf(
-      def.PHASE_VERIFY_FINDINGS to FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
-    )
+    val cases =
+      listOf(
+        def.PHASE_VERIFY_FINDINGS to FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
+      )
     cases.forEach { (phaseId, verdict) ->
       val withThreshold = transitions
-      val withoutThreshold = transitions.copy(
-        backwardEdges = transitions.backwardEdges.map { it.copy(warnAfterIterations = null) },
-      )
+      val withoutThreshold =
+        transitions.copy(
+          backwardEdges = transitions.backwardEdges.map { it.copy(warnAfterIterations = null) },
+        )
       (1..10).forEach { iteration ->
         assertEquals(
           nextTransition(withoutThreshold, phaseId, verdict, iteration),
@@ -60,8 +62,9 @@ class SemanticLoopWarningThresholdDeclarationTest {
     currentPhaseId = phaseId,
     verdict = verdict,
     edgeIterationCount = iteration,
-    context = FeatureTaskRuntimeTransitionContext(
-      settledVerdictsByPhaseId = mapOf(def.PHASE_AUDIT to FeatureTaskRuntimeVerdict.SATISFIED),
-    ),
+    context =
+      FeatureTaskRuntimeTransitionContext(
+        settledVerdictsByPhaseId = mapOf(def.PHASE_AUDIT to FeatureTaskRuntimeVerdict.SATISFIED),
+      ),
   )
 }

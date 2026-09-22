@@ -33,14 +33,15 @@ data class ReconciliationPlan(
   val outcomes: List<SkillReconciliationOutcome>,
 ) {
   val baselineOverlay: Map<String, String>
-    get() = outcomes.mapNotNull { outcome ->
-      when (outcome) {
-        is SkillReconciliationOutcome.Adopt -> outcome.skillRelativePath to outcome.upstreamHash
-        is SkillReconciliationOutcome.Unchanged -> outcome.skillRelativePath to outcome.upstreamHash
-        is SkillReconciliationOutcome.Prune -> null
-        is SkillReconciliationOutcome.LocallyAuthored -> null
-      }
-    }.toMap()
+    get() =
+      outcomes.mapNotNull { outcome ->
+        when (outcome) {
+          is SkillReconciliationOutcome.Adopt -> outcome.skillRelativePath to outcome.upstreamHash
+          is SkillReconciliationOutcome.Unchanged -> outcome.skillRelativePath to outcome.upstreamHash
+          is SkillReconciliationOutcome.Prune -> null
+          is SkillReconciliationOutcome.LocallyAuthored -> null
+        }
+      }.toMap()
 
   val prunedPaths: List<String>
     get() = outcomes.filterIsInstance<SkillReconciliationOutcome.Prune>().map { it.skillRelativePath }
@@ -69,7 +70,9 @@ data class BaselineManifest(
 
     fun empty(): BaselineManifest = BaselineManifest(CONTRACT_VERSION, emptyMap())
 
-    fun of(contractVersion: String, entries: Map<String, String>): BaselineManifest =
-      BaselineManifest(contractVersion, entries.toSortedMap())
+    fun of(
+      contractVersion: String,
+      entries: Map<String, String>,
+    ): BaselineManifest = BaselineManifest(contractVersion, entries.toSortedMap())
   }
 }

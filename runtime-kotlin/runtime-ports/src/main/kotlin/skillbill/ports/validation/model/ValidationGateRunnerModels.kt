@@ -4,6 +4,7 @@ import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode
 import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome
 import java.nio.file.Path
+
 data class ValidationGateFinding(
   val module: String,
   val ruleOrTestId: String,

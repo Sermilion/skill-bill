@@ -22,33 +22,43 @@ import java.sql.Connection
 internal class LifecycleTelemetryGoalSessionAdapter(
   private val connection: Connection,
 ) : GoalLifecycleTelemetryRepository {
-  override fun goalStarted(record: GoalStartedRecord, level: String) {
+  override fun goalStarted(
+    record: GoalStartedRecord,
+    level: String,
+  ) {
     val outcome = saveGoalStarted(connection, record)
     if (outcome == GoalStartedSaveOutcome.INSERTED) {
       record.parentWorkflowId
         ?.takeIf(String::isNotBlank)?.let { parentWorkflowId ->
           recordGoalIssueSegmentStarted(
             connection = connection,
-            segment = GoalIssueSegmentStart(
-              parentWorkflowId = parentWorkflowId,
-              issueKey = record.issueKey,
-              workflowId = record.workflowId,
-              startedAt = record.startedAt,
-              resumed = record.resumed,
-              mode = record.mode,
-            ),
+            segment =
+              GoalIssueSegmentStart(
+                parentWorkflowId = parentWorkflowId,
+                issueKey = record.issueKey,
+                workflowId = record.workflowId,
+                startedAt = record.startedAt,
+                resumed = record.resumed,
+                mode = record.mode,
+              ),
           )
         }
     }
     emitGoalStarted(connection, record.workflowId, level)
   }
 
-  override fun goalSubtaskFinished(record: GoalSubtaskFinishedRecord, level: String) {
+  override fun goalSubtaskFinished(
+    record: GoalSubtaskFinishedRecord,
+    level: String,
+  ) {
     saveGoalSubtaskFinished(connection, record)
     emitGoalSubtaskFinished(connection, record, level)
   }
 
-  override fun goalFinished(record: GoalFinishedRecord, level: String) {
+  override fun goalFinished(
+    record: GoalFinishedRecord,
+    level: String,
+  ) {
     val outcome = saveGoalFinished(connection, record)
     if (outcome == GoalFinishedSaveOutcome.FIRST_TERMINAL && record.status != "completed") {
       record.parentWorkflowId?.takeIf(String::isNotBlank)?.let { parentWorkflowId ->
@@ -64,7 +74,10 @@ internal class LifecycleTelemetryGoalSessionAdapter(
     emitGoalFinished(connection, record.workflowId, level)
   }
 
-  override fun goalIssueFinished(record: GoalIssueFinishedRecord, level: String) {
+  override fun goalIssueFinished(
+    record: GoalIssueFinishedRecord,
+    level: String,
+  ) {
     if (saveGoalIssueFinished(connection, record).persisted) {
       emitGoalIssueFinished(connection, record.parentWorkflowId, record.issueKey, level)
     }

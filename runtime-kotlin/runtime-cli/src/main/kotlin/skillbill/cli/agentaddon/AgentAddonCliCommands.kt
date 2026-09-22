@@ -21,6 +21,7 @@ import skillbill.model.toPath
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest
+
 @Inject
 class AgentAddonCommand(
   resolveSelection: AgentAddonResolveSelectionCommand,
@@ -44,32 +45,35 @@ class AgentAddonResolveSelectionCommand(
   private val format by formatOption()
 
   override fun run() {
-    val slugs = tokens.map { token ->
-      if (!token.startsWith(PREFIX) || token.length == PREFIX.length) {
-        throw UsageError("Malformed agent add-on token '$token'; expected agent-addon:<slug>.")
+    val slugs =
+      tokens.map { token ->
+        if (!token.startsWith(PREFIX) || token.length == PREFIX.length) {
+          throw UsageError("Malformed agent add-on token '$token'; expected agent-addon:<slug>.")
+        }
+        token.removePrefix(PREFIX)
       }
-      token.removePrefix(PREFIX)
-    }
     complete {
-      val selection = resolver.resolveInitial(
-        resolveCliRepositoryRoot(repoRoot, inputs),
-        slugs,
-        AgentAddonConsumer.BILL_FEATURE,
-        receivingAgents,
-        externalSourceConfig.readExternalAgentAddonSources(
-          ExternalAgentAddonSourceConfigRequest(inputs.userHome, inputs.environment),
-        ).sources.map { source -> source.path.toPath() },
-      )
+      val selection =
+        resolver.resolveInitial(
+          resolveCliRepositoryRoot(repoRoot, inputs),
+          slugs,
+          AgentAddonConsumer.BILL_FEATURE,
+          receivingAgents,
+          externalSourceConfig.readExternalAgentAddonSources(
+            ExternalAgentAddonSourceConfigRequest(inputs.userHome, inputs.environment),
+          ).sources.map { source -> source.path.toPath() },
+        )
       linkedMapOf(
         SharedPayloadKeys.CONTRACT_VERSION to "0.1",
-        "entries" to selection.entries.map { entry ->
-          linkedMapOf(
-            "slug" to entry.persisted.slug,
-            "source_identity" to entry.persisted.sourceIdentity,
-            "content_sha256" to entry.persisted.contentSha256,
-            "description" to entry.description,
-          )
-        },
+        "entries" to
+          selection.entries.map { entry ->
+            linkedMapOf(
+              "slug" to entry.persisted.slug,
+              "source_identity" to entry.persisted.sourceIdentity,
+              "content_sha256" to entry.persisted.contentSha256,
+              "description" to entry.description,
+            )
+          },
       )
     }
   }
@@ -92,9 +96,9 @@ class AgentAddonVerifySelectionCommand(
   private val resolver: AgentAddonSelectionPort,
   private val state: CliRunState,
 ) : DocumentedCliCommand(
-  "verify-selection",
-  "Verify persisted identities and render the guarded prompt section.",
-) {
+    "verify-selection",
+    "Verify persisted identities and render the guarded prompt section.",
+  ) {
   private val selectionJson by option(
     "--selection-json",
     help = "Strict resolved selection JSON.",
@@ -104,22 +108,24 @@ class AgentAddonVerifySelectionCommand(
 
   override fun run() {
     try {
-      val hydrated = resolver.verifyPersisted(
-        parseAgentAddonSelection(selectionJson),
-        AgentAddonConsumer.BILL_FEATURE,
-        receivingAgents,
-      )
+      val hydrated =
+        resolver.verifyPersisted(
+          parseAgentAddonSelection(selectionJson),
+          AgentAddonConsumer.BILL_FEATURE,
+          receivingAgents,
+        )
       state.complete(
         linkedMapOf(
           SharedPayloadKeys.CONTRACT_VERSION to "0.1",
-          "entries" to hydrated.entries.map { entry ->
-            linkedMapOf(
-              "slug" to entry.persisted.slug,
-              "source_identity" to entry.persisted.sourceIdentity,
-              "content_sha256" to entry.persisted.contentSha256,
-              "description" to entry.description,
-            )
-          },
+          "entries" to
+            hydrated.entries.map { entry ->
+              linkedMapOf(
+                "slug" to entry.persisted.slug,
+                "source_identity" to entry.persisted.sourceIdentity,
+                "content_sha256" to entry.persisted.contentSha256,
+                "description" to entry.description,
+              )
+            },
           "prompt_section" to AgentAddonPromptFormatter.format(hydrated),
         ),
         format,

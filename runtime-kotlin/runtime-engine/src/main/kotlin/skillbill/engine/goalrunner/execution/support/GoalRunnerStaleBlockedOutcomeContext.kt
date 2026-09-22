@@ -21,14 +21,16 @@ internal fun diagnoseStaleBlockedOutcome(
   wedges: MutableList<GoalRunnerWedgeFinding>,
   passed: MutableList<String>,
 ) {
-  val identity = goalContinuation(context.artifacts)
-    ?.takeIf { it.issueKey == context.issueKey && it.subtaskId == context.subtaskId }
+  val identity =
+    goalContinuation(context.artifacts)
+      ?.takeIf { it.issueKey == context.issueKey && it.subtaskId == context.subtaskId }
   if (identity == null) {
     passed += PASSED_CONTINUATION_OUTCOME
     return
   }
-  val stored = goalContinuationOutcome(context.artifacts, context.issueKey, context.subtaskId, identity.suppressPr)
-    ?.takeIf { it.status == GoalRunnerTerminalStatus.BLOCKED }
+  val stored =
+    goalContinuationOutcome(context.artifacts, context.issueKey, context.subtaskId, identity.suppressPr)
+      ?.takeIf { it.status == GoalRunnerTerminalStatus.BLOCKED }
   if (stored == null) {
     passed += PASSED_CONTINUATION_OUTCOME
     return
@@ -43,10 +45,11 @@ internal fun diagnoseStaleBlockedOutcome(
   ) {
     passed += PASSED_CONTINUATION_OUTCOME
   } else {
-    wedges += GoalRunnerWedgeFinding(
-      wedgeClass = GoalRunnerWedgeClass.STALE_BLOCKED_CONTINUATION_OUTCOME,
-      field = GoalRunnerWedgeClass.STALE_BLOCKED_CONTINUATION_OUTCOME.durableField,
-      currentValue = stored.blockedReason,
-    )
+    wedges +=
+      GoalRunnerWedgeFinding(
+        wedgeClass = GoalRunnerWedgeClass.STALE_BLOCKED_CONTINUATION_OUTCOME,
+        field = GoalRunnerWedgeClass.STALE_BLOCKED_CONTINUATION_OUTCOME.durableField,
+        currentValue = stored.blockedReason,
+      )
   }
 }

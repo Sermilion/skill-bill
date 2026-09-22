@@ -19,31 +19,33 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+
 class ScaffoldPlatformPackInstallTest {
   @Test
-  fun `platform pack scaffold installs internal skills as parent sidecars`() = withIsolatedUserHome {
-    val repo = seedRepo()
-    val home = Path.of(System.getProperty("user.home"))
-    Files.createDirectories(home.resolve(".codex"))
+  fun `platform pack scaffold installs internal skills as parent sidecars`() =
+    withIsolatedUserHome {
+      val repo = seedRepo()
+      val home = Path.of(System.getProperty("user.home"))
+      Files.createDirectories(home.resolve(".codex"))
 
-    scaffoldWithInstall(payload(repo, "platform-pack", "platform" to "java"))
+      scaffoldWithInstall(payload(repo, "platform-pack", "platform" to "java"))
 
-    val codexSkills = home.resolve(".codex/skills")
-    assertFalse(
-      Files.exists(codexSkills.resolve("bill-java-code-check"), LinkOption.NOFOLLOW_LINKS),
-      "platform quality-check skill must not install as a listed skill",
-    )
-    assertFalse(Files.exists(repo.resolve("platform-packs/java/quality-check"), LinkOption.NOFOLLOW_LINKS))
-    val reviewParentTarget = readSymlinkTarget(codexSkills.resolve("bill-code-review"))
-    assertTrue(
-      Files.isRegularFile(reviewParentTarget.resolve("bill-java-code-review.md")),
-      "platform review baseline must install as a sidecar of bill-code-review",
-    )
-    assertTrue(
-      Files.isRegularFile(reviewParentTarget.resolve("bill-java-code-review-security.md")),
-      "platform review specialists must install as sidecars of bill-code-review",
-    )
-  }
+      val codexSkills = home.resolve(".codex/skills")
+      assertFalse(
+        Files.exists(codexSkills.resolve("bill-java-code-check"), LinkOption.NOFOLLOW_LINKS),
+        "platform quality-check skill must not install as a listed skill",
+      )
+      assertFalse(Files.exists(repo.resolve("platform-packs/java/quality-check"), LinkOption.NOFOLLOW_LINKS))
+      val reviewParentTarget = readSymlinkTarget(codexSkills.resolve("bill-code-review"))
+      assertTrue(
+        Files.isRegularFile(reviewParentTarget.resolve("bill-java-code-review.md")),
+        "platform review baseline must install as a sidecar of bill-code-review",
+      )
+      assertTrue(
+        Files.isRegularFile(reviewParentTarget.resolve("bill-java-code-review-security.md")),
+        "platform review specialists must install as sidecars of bill-code-review",
+      )
+    }
 }
 
 private fun scaffoldWithInstall(payload: Map<String, Any?>) {
@@ -62,7 +64,11 @@ private fun scaffoldWithInstall(payload: Map<String, Any?>) {
   )
 }
 
-private fun payload(repo: Path, kind: String, vararg pairs: Pair<String, Any?>): Map<String, Any?> =
+private fun payload(
+  repo: Path,
+  kind: String,
+  vararg pairs: Pair<String, Any?>,
+): Map<String, Any?> =
   mapOf("scaffold_payload_version" to "1.0", "kind" to kind, "repo_root" to repo.toString()) + pairs
 
 private fun seedRepo(): Path {
@@ -78,7 +84,10 @@ private fun seedRepo(): Path {
   return repo
 }
 
-private fun seedBaseSkill(repo: Path, skillName: String) {
+private fun seedBaseSkill(
+  repo: Path,
+  skillName: String,
+) {
   val skillDir = repo.resolve("skills").resolve(skillName)
   Files.createDirectories(skillDir)
   Files.writeString(

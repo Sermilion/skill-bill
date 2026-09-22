@@ -17,17 +17,21 @@ class JdkBoundedWorkFanOutPort : BoundedWorkFanOutPort {
   private val exclusion = Any()
   private val threadOrdinal = AtomicLong()
 
-  override fun <T> runBounded(maxInFlight: Int, units: List<() -> T>): List<Result<T>> {
+  override fun <T> runBounded(
+    maxInFlight: Int,
+    units: List<() -> T>,
+  ): List<Result<T>> {
     require(maxInFlight >= 1) { "maxInFlight must be at least 1." }
     if (units.size <= 1) return units.map(::capture)
     val pool = Executors.newFixedThreadPool(minOf(maxInFlight, units.size), ::fanOutThread)
     val tasks = units.map { unit -> pool.submit<Result<T>> { capture(unit) } }
-    val results = try {
-      tasks.map(::await)
-    } catch (cancelled: CancellationException) {
-      stopPeers(pool, tasks, cancelled)
-      throw cancelled
-    }
+    val results =
+      try {
+        tasks.map(::await)
+      } catch (cancelled: CancellationException) {
+        stopPeers(pool, tasks, cancelled)
+        throw cancelled
+      }
     pool.shutdown()
     return results
   }
@@ -44,18 +48,23 @@ private fun <T> capture(unit: () -> T): Result<T> {
   return result
 }
 
-private fun <T> await(task: Future<Result<T>>): Result<T> = try {
-  task.get()
-} catch (interrupted: InterruptedException) {
-  Thread.currentThread().interrupt()
-  Result.failure(interrupted)
-} catch (failed: ExecutionException) {
-  val cause = failed.cause ?: failed
-  if (cause is CancellationException) throw cause
-  Result.failure(cause)
-}
+private fun <T> await(task: Future<Result<T>>): Result<T> =
+  try {
+    task.get()
+  } catch (interrupted: InterruptedException) {
+    Thread.currentThread().interrupt()
+    Result.failure(interrupted)
+  } catch (failed: ExecutionException) {
+    val cause = failed.cause ?: failed
+    if (cause is CancellationException) throw cause
+    Result.failure(cause)
+  }
 
-private fun stopPeers(pool: ExecutorService, tasks: List<Future<*>>, cancelled: CancellationException) {
+private fun stopPeers(
+  pool: ExecutorService,
+  tasks: List<Future<*>>,
+  cancelled: CancellationException,
+) {
   tasks.forEach { it.cancel(true) }
   pool.shutdownNow()
   try {

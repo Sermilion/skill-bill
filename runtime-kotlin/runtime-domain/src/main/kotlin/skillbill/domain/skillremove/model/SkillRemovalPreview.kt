@@ -5,17 +5,11 @@ import skillbill.install.model.SupportedAgent
 typealias AgentSymlinkProvider = SupportedAgent
 
 data class SkillRemovalPreview(
-
   val filesystemPaths: List<String>,
-
   val manifestEdits: List<ManifestEdit>,
-
   val agentSymlinkUnlinks: List<AgentSymlinkUnlink>,
-
   val readmeCatalogEdits: List<ReadmeCatalogEdit>,
-
   val skillDirRoot: String,
-
   val cascadedSkillNames: List<String> = emptyList(),
 )
 

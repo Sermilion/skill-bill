@@ -132,12 +132,13 @@ class GitCheckpointHistoryOperationsTest {
     val update = GitCheckpointHistoryOperations.updateRef(repo, CHECKPOINT_PREFIX, "refs/heads/main", sha)
     val delete = GitCheckpointHistoryOperations.deleteRef(repo, CHECKPOINT_PREFIX, "refs/heads/main")
 
-    val siblingPrefix = GitCheckpointHistoryOperations.updateRef(
-      repo,
-      CHECKPOINT_PREFIX,
-      CHECKPOINT_PREFIX.trimEnd('/') + "-tmp/a",
-      sha,
-    )
+    val siblingPrefix =
+      GitCheckpointHistoryOperations.updateRef(
+        repo,
+        CHECKPOINT_PREFIX,
+        CHECKPOINT_PREFIX.trimEnd('/') + "-tmp/a",
+        sha,
+      )
 
     assertFalse(update is WorkflowGitOperationResult.Ok)
     assertFalse(delete is WorkflowGitOperationResult.Ok)
@@ -185,18 +186,22 @@ class GitCheckpointHistoryOperationsTest {
     assertContains(message.value, "phase=audit generation=0")
   }
 
-  private fun listedRefs(): Map<String, String> = GitCheckpointHistoryOperations
-    .listRefs(repo, CHECKPOINT_PREFIX).value.orEmpty()
-    .split(GIT_NUL)
-    .filter(String::isNotBlank)
-    .chunked(2)
-    .associate { (objectName, refName) -> refName.trim() to objectName.trim() }
+  private fun listedRefs(): Map<String, String> =
+    GitCheckpointHistoryOperations
+      .listRefs(repo, CHECKPOINT_PREFIX).value.orEmpty()
+      .split(GIT_NUL)
+      .filter(String::isNotBlank)
+      .chunked(2)
+      .associate { (objectName, refName) -> refName.trim() to objectName.trim() }
 
   private fun head(): String = runGitCommand(repo, "rev-parse", "HEAD").value.orEmpty().trim()
 
   private fun showAtHead(relative: String): String = runGitProcess(repo, listOf("show", "HEAD:$relative")).output + "\n"
 
-  private fun write(relative: String, content: String) {
+  private fun write(
+    relative: String,
+    content: String,
+  ) {
     val target = repo.resolve(relative)
     target.parent?.createDirectories()
     target.writeText(content)

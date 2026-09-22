@@ -17,7 +17,10 @@ internal class DecompositionManifestBundleJournal(
 ) {
   private val yamlMapper = YAMLMapper()
 
-  fun create(parent: Path, writes: List<Pair<Path, String>>): DecompositionManifestBundleTransaction =
+  fun create(
+    parent: Path,
+    writes: List<Pair<Path, String>>,
+  ): DecompositionManifestBundleTransaction =
     DecompositionManifestBundleJournalCreate.create(parent, writes, yamlMapper, this)
 
   fun apply(transaction: DecompositionManifestBundleTransaction) =
@@ -35,7 +38,10 @@ internal class DecompositionManifestBundleJournal(
   fun cleanup(transaction: DecompositionManifestBundleTransaction) =
     DecompositionManifestBundleJournalIo.cleanup(transaction)
 
-  fun writeAtomically(target: Path, content: String) {
+  fun writeAtomically(
+    target: Path,
+    content: String,
+  ) {
     atomicWriteString(target, content)
   }
 
@@ -49,6 +55,7 @@ internal class DecompositionManifestBundleJournal(
     const val STAGING_SUFFIX = ".staging"
   }
 }
+
 private val processBundleLocks = ConcurrentHashMap<Path, ReentrantLock>()
 
 internal fun <T> withDecompositionManifestBundleLock(
@@ -77,7 +84,10 @@ internal fun <T> withDecompositionManifestBundleLock(
   }
 }
 
-private fun decompositionManifestLockPath(parent: Path, hostPlatform: HostPlatformPort): Path {
+private fun decompositionManifestLockPath(
+  parent: Path,
+  hostPlatform: HostPlatformPort,
+): Path {
   val owner = lockOwner(parent)
   val digest = sha256Hex(owner.toString().toByteArray(Charsets.UTF_8))
   return hostPlatform.resolveTemporaryDirectory()

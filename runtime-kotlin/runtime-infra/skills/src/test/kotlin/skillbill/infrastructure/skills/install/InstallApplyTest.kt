@@ -103,12 +103,13 @@ class InstallApplyTest : InstallApplyTestSupport() {
   @Test
   fun `apply skips MCP registration when plan intent opts out`() {
     val fixture = setupApplyFixture()
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-        mcpRegistrationChoice = McpRegistrationChoice(register = false),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+          mcpRegistrationChoice = McpRegistrationChoice(register = false),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -127,11 +128,12 @@ class InstallApplyTest : InstallApplyTestSupport() {
     Files.createDirectories(configPath.parent)
     Files.writeString(configPath, "{\n  \"theme\": \"cursor\",\n  \"mcpServers\": \n")
     val sourceBefore = snapshotSource(fixture.repoRoot)
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CURSOR),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CURSOR),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -153,12 +155,13 @@ class InstallApplyTest : InstallApplyTestSupport() {
   fun `reapply reports existing skill and native links as structured skipped outcomes`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
     applyInstallForTest(plan)
 
     val second = applyInstallForTest(plan)
@@ -182,15 +185,16 @@ class InstallApplyTest : InstallApplyTestSupport() {
   fun `apply uses Windows preflight state as structured guidance without attempting writes`() {
     val fixture = setupApplyFixture()
     val sourceBefore = snapshotSource(fixture.repoRoot)
-    val plan = planInstallForTest(
-      fixture.requestWithWindowsSymlinkPreflight(
-        WindowsSymlinkPreflight(
-          state = WindowsSymlinkPreflightState.DECISION_REQUIRED,
-          decision = WindowsSymlinkDecision.REQUIRE_USER_ACTION,
-          message = "Windows requires elevation or Developer Mode before symlink install.",
+    val plan =
+      planInstallForTest(
+        fixture.requestWithWindowsSymlinkPreflight(
+          WindowsSymlinkPreflight(
+            state = WindowsSymlinkPreflightState.DECISION_REQUIRED,
+            decision = WindowsSymlinkDecision.REQUIRE_USER_ACTION,
+            message = "Windows requires elevation or Developer Mode before symlink install.",
+          ),
         ),
-      ),
-    )
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -200,9 +204,10 @@ class InstallApplyTest : InstallApplyTestSupport() {
     assertEquals(WindowsSymlinkDecision.REQUIRE_USER_ACTION, result.windowsSymlinkOutcome.preflight.decision)
     assertContains(result.windowsSymlinkOutcome.guidance, "Developer Mode")
     assertContains(result.windowsSymlinkOutcome.guidance, "elevated shell")
-    val failure = result.failures.single { failure ->
-      failure.kind == InstallApplyIssueKind.WINDOWS_SYMLINK_PRECHECK_FAILED
-    }
+    val failure =
+      result.failures.single { failure ->
+        failure.kind == InstallApplyIssueKind.WINDOWS_SYMLINK_PRECHECK_FAILED
+      }
     assertContains(failure.guidance.orEmpty(), "Developer Mode")
     assertContains(failure.guidance.orEmpty(), "elevated shell")
     assertTrue(result.skills.isEmpty(), "preflight failure should stop before staging/linking")
@@ -243,12 +248,13 @@ class InstallApplyTest : InstallApplyTestSupport() {
       |
       """.trimMargin(),
     )
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -279,12 +285,13 @@ class InstallApplyTest : InstallApplyTestSupport() {
       |
       """.trimMargin(),
     )
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -312,12 +319,13 @@ class InstallApplyTest : InstallApplyTestSupport() {
       |
       """.trimMargin(),
     )
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -330,8 +338,9 @@ class InstallApplyTest : InstallApplyTestSupport() {
   fun `apply ignores native agents inside selected pack but outside planned skill roots`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val unplannedSkillNativeAgents = fixture.repoRoot
-      .resolve("platform-packs/kotlin/code-review/bill-kotlin-unplanned/native-agents")
+    val unplannedSkillNativeAgents =
+      fixture.repoRoot
+        .resolve("platform-packs/kotlin/code-review/bill-kotlin-unplanned/native-agents")
     Files.createDirectories(unplannedSkillNativeAgents)
     Files.writeString(
       unplannedSkillNativeAgents.resolve("bill-kotlin-unplanned-worker.md"),
@@ -345,12 +354,13 @@ class InstallApplyTest : InstallApplyTestSupport() {
       |
       """.trimMargin(),
     )
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -363,15 +373,17 @@ class InstallApplyTest : InstallApplyTestSupport() {
   fun `apply native-agent cache root ignores tampered plan staging root`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan = planInstallForTest(
-      fixture.request(
-        selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
-    val tampered = plan.copy(
-      staging = plan.staging.copy(root = fixture.home.resolve("outside-installed-skills").toFileLocation()),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          selectedPlatforms = setOf("kotlin"),
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
+    val tampered =
+      plan.copy(
+        staging = plan.staging.copy(root = fixture.home.resolve("outside-installed-skills").toFileLocation()),
+      )
 
     val result = applyInstallForTest(tampered)
 
@@ -390,11 +402,12 @@ class InstallApplyTest : InstallApplyTestSupport() {
   fun `apply fails when current source no longer matches planned staging intent`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
     Files.writeString(
       fixture.repoRoot.resolve("skills/bill-code-review/content.md"),
       content("bill-code-review").replace("Test body.", "Changed after planning."),
@@ -428,21 +441,26 @@ class InstallApplyTest : InstallApplyTestSupport() {
     val fixture = setupApplyFixture()
     seedBaseSkill(fixture.repoRoot, "bill-extra")
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
-    val unsafePlan = plan.copy(
-      skills = plan.skills.map { skill ->
-        if (skill.name == "bill-extra") skill.copy(name = "../victim") else skill
-      },
-      staging = plan.staging.copy(
-        skillPaths = plan.staging.skillPaths.map { intent ->
-          if (intent.skillName == "bill-extra") intent.copy(skillName = "../victim") else intent
-        },
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
+    val unsafePlan =
+      plan.copy(
+        skills =
+          plan.skills.map { skill ->
+            if (skill.name == "bill-extra") skill.copy(name = "../victim") else skill
+          },
+        staging =
+          plan.staging.copy(
+            skillPaths =
+              plan.staging.skillPaths.map { intent ->
+                if (intent.skillName == "bill-extra") intent.copy(skillName = "../victim") else intent
+              },
+          ),
+      )
 
     val result = applyInstallForTest(unsafePlan)
 
@@ -468,11 +486,12 @@ class InstallApplyTest : InstallApplyTestSupport() {
     Files.createDirectories(targetDir)
     val userFile = targetDir.resolve("bill-code-review")
     Files.writeString(userFile, "user owned")
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -500,11 +519,12 @@ class InstallApplyTest : InstallApplyTestSupport() {
     val userTarget = Files.createTempFile("skillbill-user-symlink-target", ".md").also(tempDirs::add)
     val userLink = targetDir.resolve("bill-code-review")
     createSymlinkOrSkip(userLink, userTarget)
-    val plan = planInstallForTest(
-      fixture.request(
-        agents = setOf(InstallAgent.CODEX),
-      ),
-    )
+    val plan =
+      planInstallForTest(
+        fixture.request(
+          agents = setOf(InstallAgent.CODEX),
+        ),
+      )
 
     val result = applyInstallForTest(plan)
 
@@ -525,15 +545,16 @@ class InstallApplyTest : InstallApplyTestSupport() {
   @Test
   fun `apply surfaces Windows symlink warning state without parsing shell output`() {
     val fixture = setupApplyFixture()
-    val plan = planInstallForTest(
-      fixture.requestWithWindowsSymlinkPreflight(
-        WindowsSymlinkPreflight(
-          state = WindowsSymlinkPreflightState.REQUIRES_ELEVATION_OR_DEVELOPER_MODE,
-          decision = WindowsSymlinkDecision.PROCEED_WITH_SYMLINKS,
-          message = "Windows symlink support was not confirmed.",
+    val plan =
+      planInstallForTest(
+        fixture.requestWithWindowsSymlinkPreflight(
+          WindowsSymlinkPreflight(
+            state = WindowsSymlinkPreflightState.REQUIRES_ELEVATION_OR_DEVELOPER_MODE,
+            decision = WindowsSymlinkDecision.PROCEED_WITH_SYMLINKS,
+            message = "Windows symlink support was not confirmed.",
+          ),
         ),
-      ),
-    )
+      )
 
     val result = applyInstallForTest(plan)
 

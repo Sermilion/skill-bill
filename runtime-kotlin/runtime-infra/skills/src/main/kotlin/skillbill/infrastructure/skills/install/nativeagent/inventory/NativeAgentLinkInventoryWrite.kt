@@ -16,8 +16,9 @@ internal object NativeAgentLinkInventoryWrite {
       journalMissingAncestors(parent, request.beforeMutation)
       Files.createDirectories(parent)
     }
-    val root = request.mapper.createObjectNode()
-      .put(SharedPayloadKeys.CONTRACT_VERSION, NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION)
+    val root =
+      request.mapper.createObjectNode()
+        .put(SharedPayloadKeys.CONTRACT_VERSION, NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION)
     val array = root.putArray("entries")
     request.entries.forEach { entry ->
       array.addObject()
@@ -60,9 +61,13 @@ internal object NativeAgentLinkInventoryWrite {
     terminalFailure?.let { throw it }
   }
 
-  private fun journalMissingAncestors(path: Path, beforeMutation: (Path) -> Unit) {
-    val missing = generateSequence(path.toAbsolutePath().normalize()) { it.parent }
-      .takeWhile { !Files.exists(it, LinkOption.NOFOLLOW_LINKS) }.toList().asReversed()
+  private fun journalMissingAncestors(
+    path: Path,
+    beforeMutation: (Path) -> Unit,
+  ) {
+    val missing =
+      generateSequence(path.toAbsolutePath().normalize()) { it.parent }
+        .takeWhile { !Files.exists(it, LinkOption.NOFOLLOW_LINKS) }.toList().asReversed()
     missing.forEach(beforeMutation)
   }
 
@@ -73,5 +78,8 @@ internal object NativeAgentLinkInventoryWrite {
   ): InvalidNativeAgentLinkInventoryWriteError =
     InvalidNativeAgentLinkInventoryWriteError(path = path.toString(), reason = reason, cause = cause)
 
-  private fun invalidWrite(path: Path, reason: String): Nothing = throw writeError(path, reason)
+  private fun invalidWrite(
+    path: Path,
+    reason: String,
+  ): Nothing = throw writeError(path, reason)
 }

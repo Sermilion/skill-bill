@@ -5,7 +5,10 @@ import skillbill.review.parallel.ParallelReviewFindingParser
 private val REVIEW_VERDICT_LINE_PATTERN =
   Regex("""(?m)^\s*verdict:\s*(approved|changes_requested|needs_fix)\s*$""", RegexOption.IGNORE_CASE)
 
-internal fun verificationReviewOutput(reviewOutput: String, claims: List<ParallelReviewMergedFinding>): String {
+internal fun verificationReviewOutput(
+  reviewOutput: String,
+  claims: List<ParallelReviewMergedFinding>,
+): String {
   if (reviewOutput.isNotBlank() && !reviewOutput.startsWith("Review completed with no prose")) {
     return reviewOutput
   }
@@ -16,10 +19,11 @@ private fun formatMergedFindingAsRegisterLine(finding: ParallelReviewMergedFindi
   val specialist = finding.specialistSkillNames.firstOrNull().orEmpty()
   val path = finding.repositoryPath ?: finding.location.substringBefore(':')
   val line = finding.line ?: finding.location.substringAfter(':', "").toIntOrNull() ?: 1
-  val commitsSegment = finding.commitShas.takeIf { it.isNotEmpty() }
-    ?.joinToString(",")
-    ?.let { commits -> "commits=$commits | " }
-    .orEmpty()
+  val commitsSegment =
+    finding.commitShas.takeIf { it.isNotEmpty() }
+      ?.joinToString(",")
+      ?.let { commits -> "commits=$commits | " }
+      .orEmpty()
   return "- [${finding.fNumber}] ${finding.severity.displayName} | ${finding.confidence} | " +
     "specialist=$specialist | ${commitsSegment}path=\"$path\" | line=$line | ${finding.description}"
 }
@@ -34,5 +38,5 @@ internal fun reviewOutputNeedsProseVerification(reviewOutput: String): Boolean {
     ParallelReviewFindingParser.countRegisterCandidates(reviewOutput) > 0 ||
       parsed.rejections.isNotEmpty() ||
       REVIEW_VERDICT_LINE_PATTERN.containsMatchIn(reviewOutput)
-    )
+  )
 }

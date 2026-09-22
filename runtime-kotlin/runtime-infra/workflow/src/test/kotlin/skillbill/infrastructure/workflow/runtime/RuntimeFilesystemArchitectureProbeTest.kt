@@ -37,8 +37,9 @@ class RuntimeFilesystemArchitectureProbeTest {
       val journal = DecompositionManifestBundleJournal()
       val transaction = journal.create(root, listOf(target to "intended"))
       journal.apply(transaction)
-      val marker = Files.readString(transaction.marker)
-        .replace(transaction.stagingDirectory.toString(), unrelated.toString())
+      val marker =
+        Files.readString(transaction.marker)
+          .replace(transaction.stagingDirectory.toString(), unrelated.toString())
       Files.writeString(transaction.marker, marker)
       assertFailsWith<InvalidDecompositionManifestBundleJournalError> {
         journal.recoverPending(root)

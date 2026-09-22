@@ -22,17 +22,19 @@ data class McpRuntimeContext(
     McpComponent::class.create(RuntimeComponent::class.create(toRuntimeContext()))
   }
 
-  fun toRuntimeContext(stdinText: String? = null): RuntimeContext = RuntimeContext(
-    environment = EnvironmentContext(
-      stdinText = stdinText,
-      environment = environment,
-      userHome = userHome,
-      repositoryRoot = repositoryRoot ?: EnvironmentContext.UnspecifiedRepositoryRoot,
-    ),
-    transport = TransportContext(requester),
-    workflowOps = WorkflowOpsContext(workflowGitOperations),
-    callbacks = OptionalCallbacks(),
-  )
+  fun toRuntimeContext(stdinText: String? = null): RuntimeContext =
+    RuntimeContext(
+      environment =
+        EnvironmentContext(
+          stdinText = stdinText,
+          environment = environment,
+          userHome = userHome,
+          repositoryRoot = repositoryRoot ?: EnvironmentContext.UnspecifiedRepositoryRoot,
+        ),
+      transport = TransportContext(requester),
+      workflowOps = WorkflowOpsContext(workflowGitOperations),
+      callbacks = OptionalCallbacks(),
+    )
 
   internal fun mcpComponent(): McpComponent = component
 }

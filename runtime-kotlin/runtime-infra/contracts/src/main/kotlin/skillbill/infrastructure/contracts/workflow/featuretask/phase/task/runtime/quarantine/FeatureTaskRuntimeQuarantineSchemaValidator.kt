@@ -9,7 +9,10 @@ import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
 
 object FeatureTaskRuntimeQuarantineSchemaValidator {
-  fun validate(payload: Map<String, Any?>, sourceLabel: String) {
+  fun validate(
+    payload: Map<String, Any?>,
+    sourceLabel: String,
+  ) {
     val instance: JsonNode = ClasspathContractSchemaLoader.valueToTree(payload)
     val errors: Set<ValidationMessage> = ClasspathContractSchemaLoader.validate(schema(), instance)
     if (errors.isNotEmpty()) {
@@ -30,33 +33,35 @@ object FeatureTaskRuntimeQuarantineSchemaValidator {
   private const val MAX_REPORTED_VIOLATIONS: Int = 3
 }
 
-private fun schema(): JsonSchema = ClasspathContractSchemaLoader.compiledSchema(
-  CompiledSchemaRequest(
-    cacheKey = FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE,
-    classLoader = FeatureTaskRuntimeQuarantineSchemaValidator::class.java.classLoader,
-    classpathResource = FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE,
-    missingResource = {
-      InvalidFeatureTaskRuntimeQuarantineSchemaError(
-        sourceLabel = FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE,
-        reason = "Canonical feature-task-runtime quarantine schema is missing. Expected classpath resource " +
-          "'${FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE}'.",
-      )
-    },
-    processingFailure = { cause ->
-      InvalidFeatureTaskRuntimeQuarantineSchemaError(
-        sourceLabel = FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE,
-        reason = cause.message ?: cause::class.simpleName.orEmpty(),
-        cause = cause,
-      )
-    },
-    loadFailureLogger = {},
-    expectedSchemaId = FeatureTaskRuntimeQuarantineSchemaPaths.EXPECTED_SCHEMA_ID,
-    expectedContractVersion = FEATURE_TASK_RUNTIME_QUARANTINE_CONTRACT_VERSION,
-    identityFailure = { reason ->
-      InvalidFeatureTaskRuntimeQuarantineSchemaError(
-        sourceLabel = FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE,
-        reason = reason,
-      )
-    },
-  ),
-)
+private fun schema(): JsonSchema =
+  ClasspathContractSchemaLoader.compiledSchema(
+    CompiledSchemaRequest(
+      cacheKey = FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE,
+      classLoader = FeatureTaskRuntimeQuarantineSchemaValidator::class.java.classLoader,
+      classpathResource = FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE,
+      missingResource = {
+        InvalidFeatureTaskRuntimeQuarantineSchemaError(
+          sourceLabel = FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE,
+          reason =
+            "Canonical feature-task-runtime quarantine schema is missing. Expected classpath resource " +
+              "'${FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE}'.",
+        )
+      },
+      processingFailure = { cause ->
+        InvalidFeatureTaskRuntimeQuarantineSchemaError(
+          sourceLabel = FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE,
+          reason = cause.message ?: cause::class.simpleName.orEmpty(),
+          cause = cause,
+        )
+      },
+      loadFailureLogger = {},
+      expectedSchemaId = FeatureTaskRuntimeQuarantineSchemaPaths.EXPECTED_SCHEMA_ID,
+      expectedContractVersion = FEATURE_TASK_RUNTIME_QUARANTINE_CONTRACT_VERSION,
+      identityFailure = { reason ->
+        InvalidFeatureTaskRuntimeQuarantineSchemaError(
+          sourceLabel = FeatureTaskRuntimeQuarantineSchemaPaths.CLASSPATH_RESOURCE,
+          reason = reason,
+        )
+      },
+    ),
+  )

@@ -10,7 +10,11 @@ import java.util.logging.Logger
 
 private val stagingSupportLog: Logger = Logger.getLogger("skillbill.install.InstallStagingIO")
 
-internal fun writeInternalStagingFile(tempDir: Path, name: String, bytes: ByteArray): Path {
+internal fun writeInternalStagingFile(
+  tempDir: Path,
+  name: String,
+  bytes: ByteArray,
+): Path {
   val file = tempDir.resolve(name).normalize()
   require(file.parent == tempDir.toAbsolutePath().normalize()) {
     "Internal sidecar '$name' staging path '$file' escapes staging dir '$tempDir'."
@@ -19,7 +23,10 @@ internal fun writeInternalStagingFile(tempDir: Path, name: String, bytes: ByteAr
   return file
 }
 
-internal fun promoteByBackupAndMove(tempDir: Path, finalStagingDir: Path) {
+internal fun promoteByBackupAndMove(
+  tempDir: Path,
+  finalStagingDir: Path,
+) {
   val backup = finalStagingDir.resolveSibling(".${finalStagingDir.fileName}.backup-${UUID.randomUUID()}")
   atomicMoveReplacing(finalStagingDir, backup)
   try {
@@ -31,7 +38,11 @@ internal fun promoteByBackupAndMove(tempDir: Path, finalStagingDir: Path) {
   suppressedDelete(backup)
 }
 
-internal fun restoreInstallStagingBackup(backup: Path, finalStagingDir: Path, primaryError: Throwable) {
+internal fun restoreInstallStagingBackup(
+  backup: Path,
+  finalStagingDir: Path,
+  primaryError: Throwable,
+) {
   suppressedDelete(finalStagingDir)
   try {
     atomicMoveReplacing(backup, finalStagingDir)

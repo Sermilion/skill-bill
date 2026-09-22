@@ -17,13 +17,14 @@ import kotlin.test.assertTrue
 class FeatureTaskRuntimeCheckpointScopeTest {
   @Test
   fun `stages owned inventory without foreign staged paths`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Owned.kt", "src/AlsoOwned.kt"),
-        phaseIntroducedPaths = listOf("src/Owned.kt"),
-        foreignStagedPaths = listOf("unrelated/Foreign.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Owned.kt", "src/AlsoOwned.kt"),
+          phaseIntroducedPaths = listOf("src/Owned.kt"),
+          foreignStagedPaths = listOf("unrelated/Foreign.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf("src/AlsoOwned.kt", "src/Owned.kt"), stage.ownedPaths)
@@ -32,13 +33,14 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `a dirty path outside the durable inventory is not staged`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Owned.kt"),
-        phaseIntroducedPaths = listOf("src/Owned.kt"),
-        worktreeDeltaPaths = listOf("src/Owned.kt", "unrelated/AppearedSince.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Owned.kt"),
+          phaseIntroducedPaths = listOf("src/Owned.kt"),
+          worktreeDeltaPaths = listOf("src/Owned.kt", "unrelated/AppearedSince.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf("src/Owned.kt"), stage.ownedPaths)
@@ -46,38 +48,41 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `a dirty path is ignored when the durable inventory has no overlapping delta`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Owned.kt"),
-        phaseIntroducedPaths = emptyList(),
-        worktreeDeltaPaths = listOf("unrelated/ForeignOnly.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Owned.kt"),
+          phaseIntroducedPaths = emptyList(),
+          worktreeDeltaPaths = listOf("unrelated/ForeignOnly.kt"),
+        ),
+      )
 
     assertIs<FeatureTaskRuntimeCheckpointDecision.Skip>(decision)
   }
 
   @Test
   fun `foreign dirt alone is ignored as this subtask's work`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = emptyList(),
-        phaseIntroducedPaths = emptyList(),
-        foreignStagedPaths = listOf("unrelated/Foreign.kt", "unrelated/AlsoForeign.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = emptyList(),
+          phaseIntroducedPaths = emptyList(),
+          foreignStagedPaths = listOf("unrelated/Foreign.kt", "unrelated/AlsoForeign.kt"),
+        ),
+      )
 
     assertIs<FeatureTaskRuntimeCheckpointDecision.Skip>(decision)
   }
 
   @Test
   fun `a path introduced outside the owned inventory is staged when the phase wrote it`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Owned.kt"),
-        phaseIntroducedPaths = listOf("src/Owned.kt", "src/Smuggled.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Owned.kt"),
+          phaseIntroducedPaths = listOf("src/Owned.kt", "src/Smuggled.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf("src/Owned.kt", "src/Smuggled.kt"), stage.ownedPaths)
@@ -85,14 +90,15 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `package-move delete sources are adopted instead of blocking outside inventory`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/run/Owned.kt"),
-        phaseIntroducedPaths = listOf("src/Owned.kt", "src/run/Owned.kt"),
-        worktreeDeltaPaths = listOf("src/Owned.kt", "src/run/Owned.kt"),
-        deletedPaths = listOf("src/Owned.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/run/Owned.kt"),
+          phaseIntroducedPaths = listOf("src/Owned.kt", "src/run/Owned.kt"),
+          worktreeDeltaPaths = listOf("src/Owned.kt", "src/run/Owned.kt"),
+          deletedPaths = listOf("src/Owned.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf("src/Owned.kt", "src/run/Owned.kt"), stage.ownedPaths)
@@ -102,15 +108,17 @@ class FeatureTaskRuntimeCheckpointScopeTest {
   @Test
   fun `a concurrently prepared foreign feature spec is staged when the phase wrote it`() {
     val foreign = ".feature-specs/OTHER-999-concurrent/spec.md"
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf(".feature-specs/$ISSUE-scoped/spec.md"),
-        phaseIntroducedPaths = listOf(
-          ".feature-specs/$ISSUE-scoped/spec.md",
-          foreign,
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf(".feature-specs/$ISSUE-scoped/spec.md"),
+          phaseIntroducedPaths =
+            listOf(
+              ".feature-specs/$ISSUE-scoped/spec.md",
+              foreign,
+            ),
         ),
-      ),
-    )
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(
@@ -122,12 +130,13 @@ class FeatureTaskRuntimeCheckpointScopeTest {
   @Test
   fun `a foreign feature spec inside the owned inventory is staged with the rest`() {
     val foreign = ".feature-specs/OTHER-999-concurrent/spec.md"
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf(foreign, "src/Owned.kt"),
-        phaseIntroducedPaths = listOf("src/Owned.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf(foreign, "src/Owned.kt"),
+          phaseIntroducedPaths = listOf("src/Owned.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf(foreign, "src/Owned.kt"), stage.ownedPaths)
@@ -136,12 +145,13 @@ class FeatureTaskRuntimeCheckpointScopeTest {
   @Test
   fun `an already-owned foreign feature spec the phase left dirty is staged`() {
     val foreign = ".feature-specs/OTHER-999-concurrent/spec.md"
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf(foreign, "src/Owned.kt"),
-        phaseIntroducedPaths = listOf(foreign, "src/Owned.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf(foreign, "src/Owned.kt"),
+          phaseIntroducedPaths = listOf(foreign, "src/Owned.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf(foreign, "src/Owned.kt"), stage.ownedPaths)
@@ -149,26 +159,28 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `a foreign feature spec that is merely present and untouched produces no false block`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Owned.kt"),
-        phaseIntroducedPaths = listOf("src/Owned.kt"),
-        foreignStagedPaths = listOf(".feature-specs/OTHER-999-concurrent/spec.md"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Owned.kt"),
+          phaseIntroducedPaths = listOf("src/Owned.kt"),
+          foreignStagedPaths = listOf(".feature-specs/OTHER-999-concurrent/spec.md"),
+        ),
+      )
 
     assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
   }
 
   @Test
   fun `an owned path that is also foreign-staged is adopted and committed rather than blocking`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Contested.kt"),
-        phaseIntroducedPaths = listOf("src/Contested.kt"),
-        foreignStagedPaths = listOf("src/Contested.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Contested.kt"),
+          phaseIntroducedPaths = listOf("src/Contested.kt"),
+          foreignStagedPaths = listOf("src/Contested.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf("src/Contested.kt"), stage.ownedPaths)
@@ -177,13 +189,14 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `an owned path modified concurrently without staging is adopted rather than blocking`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Contested.kt", "src/Owned.kt"),
-        phaseIntroducedPaths = listOf("src/Contested.kt", "src/Owned.kt"),
-        concurrentlyModifiedOwnedPaths = listOf("src/Contested.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Contested.kt", "src/Owned.kt"),
+          phaseIntroducedPaths = listOf("src/Contested.kt", "src/Owned.kt"),
+          concurrentlyModifiedOwnedPaths = listOf("src/Contested.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf("src/Contested.kt", "src/Owned.kt"), stage.ownedPaths)
@@ -192,14 +205,15 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `a diverged owned path outside the working-tree delta is still staged`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Contested.kt"),
-        phaseIntroducedPaths = emptyList(),
-        worktreeDeltaPaths = emptyList(),
-        foreignStagedPaths = listOf("src/Contested.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Contested.kt"),
+          phaseIntroducedPaths = emptyList(),
+          worktreeDeltaPaths = emptyList(),
+          foreignStagedPaths = listOf("src/Contested.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf("src/Contested.kt"), stage.ownedPaths)
@@ -207,13 +221,14 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `case-aliased and separator-aliased overlaps adopt the inventory spelling of the path`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("Src/Contested.kt"),
-        phaseIntroducedPaths = listOf("Src/Contested.kt"),
-        foreignStagedPaths = listOf("src/contested.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("Src/Contested.kt"),
+          phaseIntroducedPaths = listOf("Src/Contested.kt"),
+          foreignStagedPaths = listOf("src/contested.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf("Src/Contested.kt"), stage.ownedPaths, "one path, not two aliases")
@@ -222,13 +237,14 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `a case-aliased concurrent modification adopts the inventory spelling of the path`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("Src/Contested.kt"),
-        phaseIntroducedPaths = listOf("Src/Contested.kt"),
-        concurrentlyModifiedOwnedPaths = listOf("src/contested.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("Src/Contested.kt"),
+          phaseIntroducedPaths = listOf("Src/Contested.kt"),
+          concurrentlyModifiedOwnedPaths = listOf("src/contested.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf("Src/Contested.kt"), stage.ownedPaths, "one path, not two aliases")
@@ -237,13 +253,14 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `a foreign staged path is ignored as this subtask's work`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Owned.kt"),
-        phaseIntroducedPaths = listOf("src/Owned.kt"),
-        foreignStagedPaths = listOf("unrelated/Foreign.kt"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Owned.kt"),
+          phaseIntroducedPaths = listOf("src/Owned.kt"),
+          foreignStagedPaths = listOf("unrelated/Foreign.kt"),
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf("src/Owned.kt"), stage.ownedPaths)
@@ -252,22 +269,24 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `an alias of an owned path is not reported as introduced outside the inventory`() {
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Owned.kt"),
-        phaseIntroducedPaths = listOf("SRC/OWNED.KT"),
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Owned.kt"),
+          phaseIntroducedPaths = listOf("SRC/OWNED.KT"),
+        ),
+      )
 
     assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
   }
 
   @Test
   fun `phase-written paths are the delta the phase's own file manifest accounts for`() {
-    val written = phaseWrittenPaths(
-      worktreeDeltaPaths = listOf("src/Owned.kt", "unrelated/SiblingAgentWrote.kt", "new/dir/Nested.kt"),
-      phaseManifestPaths = listOf("src/Owned.kt", "new/dir"),
-    )
+    val written =
+      phaseWrittenPaths(
+        worktreeDeltaPaths = listOf("src/Owned.kt", "unrelated/SiblingAgentWrote.kt", "new/dir/Nested.kt"),
+        phaseManifestPaths = listOf("src/Owned.kt", "new/dir"),
+      )
 
     assertEquals(listOf("new/dir/Nested.kt", "src/Owned.kt"), written)
   }
@@ -285,16 +304,18 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `review exclusions widen the baseline to every untracked path the run does not own`() {
-    val exclusions = reviewUntrackedExclusions(
-      baselineUntrackedPaths = listOf("pre/Existing.kt"),
-      currentUntrackedPaths = listOf(
-        "pre/Existing.kt",
-        "src/Owned.kt",
-        "unrelated/AppearedSince.kt",
-        ".feature-specs/OTHER-999-concurrent/spec.md",
-      ),
-      ownedPaths = listOf("src/Owned.kt"),
-    )
+    val exclusions =
+      reviewUntrackedExclusions(
+        baselineUntrackedPaths = listOf("pre/Existing.kt"),
+        currentUntrackedPaths =
+          listOf(
+            "pre/Existing.kt",
+            "src/Owned.kt",
+            "unrelated/AppearedSince.kt",
+            ".feature-specs/OTHER-999-concurrent/spec.md",
+          ),
+        ownedPaths = listOf("src/Owned.kt"),
+      )
 
     assertEquals(
       listOf(".feature-specs/OTHER-999-concurrent/spec.md", "pre/Existing.kt", "unrelated/AppearedSince.kt"),
@@ -322,13 +343,14 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `checkpoint subject carries the subtask name while metadata and trailer stay in the body`() {
-    val named = message(
-      phaseId = "audit",
-      loopId = "review_fix",
-      generation = 3,
-      intent = INTENT_FIX,
-      subtaskName = SUBTASK_NAME,
-    )
+    val named =
+      message(
+        phaseId = "audit",
+        loopId = "review_fix",
+        generation = 3,
+        intent = INTENT_FIX,
+        subtaskName = SUBTASK_NAME,
+      )
 
     val lines = named.lines()
     assertEquals("$ISSUE: $SUBTASK_NAME", lines.first())
@@ -377,30 +399,33 @@ class FeatureTaskRuntimeCheckpointScopeTest {
     generation: Int,
     intent: String,
     subtaskName: String? = null,
-  ): String = FeatureTaskRuntimeCheckpointMessage.build(
-    issueKey = ISSUE,
-    subtaskName = subtaskName,
-    metadata = FeatureTaskRuntimeCheckpointMetadata(
-      phaseId = phaseId,
-      loopId = loopId,
-      generation = generation,
-      branch = BRANCH,
-      intent = intent,
-    ),
-    identity = FeatureTaskRuntimeSubtaskCommitIdentity(issueKey = ISSUE, subtaskId = "7"),
-  )
+  ): String =
+    FeatureTaskRuntimeCheckpointMessage.build(
+      issueKey = ISSUE,
+      subtaskName = subtaskName,
+      metadata =
+        FeatureTaskRuntimeCheckpointMetadata(
+          phaseId = phaseId,
+          loopId = loopId,
+          generation = generation,
+          branch = BRANCH,
+          intent = intent,
+        ),
+      identity = FeatureTaskRuntimeSubtaskCommitIdentity(issueKey = ISSUE, subtaskId = "7"),
+    )
 
   @Test
   fun `runtime-private run-evidence does not block outside-inventory ownership`() {
     val evidence = ".skill-bill/run-evidence/wftr-1/fp/evidence.json"
     val patch = ".skill-bill/run-evidence/wftr-1/fp/diff.patch"
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Owned.kt"),
-        phaseIntroducedPaths = listOf("src/Owned.kt", evidence, patch, ".skill-bill/"),
-        workflowId = "wftr-1",
-      ),
-    )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Owned.kt"),
+          phaseIntroducedPaths = listOf("src/Owned.kt", evidence, patch, ".skill-bill/"),
+          workflowId = "wftr-1",
+        ),
+      )
 
     val stage = assertIs<FeatureTaskRuntimeCheckpointDecision.Stage>(decision)
     assertEquals(listOf("src/Owned.kt"), stage.ownedPaths)
@@ -408,14 +433,16 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `runtime-private paths are stripped from phaseWrittenPaths even when the manifest collapses the tree`() {
-    val written = phaseWrittenPaths(
-      worktreeDeltaPaths = listOf(
-        "src/Owned.kt",
-        ".skill-bill/state.db",
-        ".skill-bill/run-evidence/wf/fp/diff.patch",
-      ),
-      phaseManifestPaths = listOf("src/Owned.kt", ".skill-bill/"),
-    )
+    val written =
+      phaseWrittenPaths(
+        worktreeDeltaPaths =
+          listOf(
+            "src/Owned.kt",
+            ".skill-bill/state.db",
+            ".skill-bill/run-evidence/wf/fp/diff.patch",
+          ),
+        phaseManifestPaths = listOf("src/Owned.kt", ".skill-bill/"),
+      )
 
     assertEquals(
       listOf(".skill-bill/run-evidence/wf/fp/diff.patch", "src/Owned.kt"),
@@ -432,19 +459,21 @@ class FeatureTaskRuntimeCheckpointScopeTest {
 
   @Test
   fun `run-evidence ownership follows the active run, not the store prefix`() {
-    val runEvidence = listOf(
-      ".skill-bill/run-evidence/wf-mine/fp/diff.patch",
-      ".skill-bill/run-evidence/wf-other/fp/diff.patch",
-      ".skill-bill/run-evidence/forged.json",
-    )
-    val decision = decide(
-      CheckpointScopeDecideFixture(
-        ownedPaths = listOf("src/Owned.kt"),
-        phaseIntroducedPaths = listOf("src/Owned.kt") + runEvidence,
-        worktreeDeltaPaths = listOf("src/Owned.kt") + runEvidence,
-        workflowId = "wf-mine",
-      ),
-    )
+    val runEvidence =
+      listOf(
+        ".skill-bill/run-evidence/wf-mine/fp/diff.patch",
+        ".skill-bill/run-evidence/wf-other/fp/diff.patch",
+        ".skill-bill/run-evidence/forged.json",
+      )
+    val decision =
+      decide(
+        CheckpointScopeDecideFixture(
+          ownedPaths = listOf("src/Owned.kt"),
+          phaseIntroducedPaths = listOf("src/Owned.kt") + runEvidence,
+          worktreeDeltaPaths = listOf("src/Owned.kt") + runEvidence,
+          workflowId = "wf-mine",
+        ),
+      )
 
     assertEquals(
       FeatureTaskRuntimeCheckpointDecision.Stage(
@@ -482,18 +511,19 @@ class FeatureTaskRuntimeCheckpointScopeTest {
     val deletedPaths: List<String> = emptyList(),
     val workflowId: String? = null,
   ) {
-    fun decide(): FeatureTaskRuntimeCheckpointDecision = FeatureTaskRuntimeCheckpointScope.decide(
-      FeatureTaskRuntimeCheckpointScopeInput(
-        issueKey = ISSUE,
-        ownedPaths = ownedPaths,
-        phaseIntroducedPaths = phaseIntroducedPaths,
-        worktreeDeltaPaths = worktreeDeltaPaths,
-        foreignStagedPaths = foreignStagedPaths,
-        concurrentlyModifiedOwnedPaths = concurrentlyModifiedOwnedPaths,
-        deletedPaths = deletedPaths,
-        workflowId = workflowId,
-      ),
-    )
+    fun decide(): FeatureTaskRuntimeCheckpointDecision =
+      FeatureTaskRuntimeCheckpointScope.decide(
+        FeatureTaskRuntimeCheckpointScopeInput(
+          issueKey = ISSUE,
+          ownedPaths = ownedPaths,
+          phaseIntroducedPaths = phaseIntroducedPaths,
+          worktreeDeltaPaths = worktreeDeltaPaths,
+          foreignStagedPaths = foreignStagedPaths,
+          concurrentlyModifiedOwnedPaths = concurrentlyModifiedOwnedPaths,
+          deletedPaths = deletedPaths,
+          workflowId = workflowId,
+        ),
+      )
   }
 
   private fun decide(fixture: CheckpointScopeDecideFixture): FeatureTaskRuntimeCheckpointDecision = fixture.decide()

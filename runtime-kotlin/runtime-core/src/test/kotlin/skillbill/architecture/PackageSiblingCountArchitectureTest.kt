@@ -32,12 +32,14 @@ class PackageSiblingCountArchitectureTest {
   }
 
   private fun assertEngineAreaRootsKeepOnlyFacades() {
-    val featureTaskRoot = ArchitectureScanSupport.runtimeRoot.resolve(
-      "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask",
-    )
-    val goalRunnerRoot = ArchitectureScanSupport.runtimeRoot.resolve(
-      "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner",
-    )
+    val featureTaskRoot =
+      ArchitectureScanSupport.runtimeRoot.resolve(
+        "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask",
+      )
+    val goalRunnerRoot =
+      ArchitectureScanSupport.runtimeRoot.resolve(
+        "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner",
+      )
     val goalRunnerPlanningRoot = goalRunnerRoot.resolve("planning")
     assertEquals(
       emptyList(),
@@ -118,169 +120,190 @@ class PackageSiblingCountArchitectureTest {
 
   @Test
   fun `feature-task model sources stay data-only and below their parent boundary`() {
-    val modelRoot = ArchitectureScanSupport.runtimeRoot.resolve(
-      "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask/model",
-    )
-    val violations = ArchitectureScanSupport.kotlinFilesUnder(modelRoot).flatMap { sourceFile ->
-      val source = sourceFile.readText()
-      val parentImports = ArchitectureScanSupport.declaredImports(source)
-        .filter { imported ->
-          imported.startsWith("skillbill.engine.featuretask.") &&
-            !imported.startsWith("skillbill.engine.featuretask.model.")
-        }
-        .map { imported -> "${sourceFile.fileName}: imports $imported" }
-      val injected = Regex("""(?m)^\s*@Inject\b""")
-        .find(source)
-        ?.let { listOf("${sourceFile.fileName}: declares an injected model service") }
-        .orEmpty()
-      parentImports + injected
-    }
+    val modelRoot =
+      ArchitectureScanSupport.runtimeRoot.resolve(
+        "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask/model",
+      )
+    val violations =
+      ArchitectureScanSupport.kotlinFilesUnder(modelRoot).flatMap { sourceFile ->
+        val source = sourceFile.readText()
+        val parentImports =
+          ArchitectureScanSupport.declaredImports(source)
+            .filter { imported ->
+              imported.startsWith("skillbill.engine.featuretask.") &&
+                !imported.startsWith("skillbill.engine.featuretask.model.")
+            }
+            .map { imported -> "${sourceFile.fileName}: imports $imported" }
+        val injected =
+          Regex("""(?m)^\s*@Inject\b""")
+            .find(source)
+            ?.let { listOf("${sourceFile.fileName}: declares an injected model service") }
+            .orEmpty()
+        parentImports + injected
+      }
     assertEquals(emptyList(), violations)
   }
 
   @Test
   fun `intellij plugin retains its layer package roots`() {
-    val pluginRoot = ArchitectureScanSupport.runtimeRoot.resolve(
-      "intellij-plugin/src/main/kotlin/dev/skillbill/intellij",
-    )
+    val pluginRoot =
+      ArchitectureScanSupport.runtimeRoot.resolve(
+        "intellij-plugin/src/main/kotlin/dev/skillbill/intellij",
+      )
     val requiredLayers = setOf("domain", "application", "presentation", "ui", "infrastructure")
-    val missingLayers = requiredLayers.filterNot { layer ->
-      pluginRoot.resolve(layer).toFile().isDirectory
-    }
+    val missingLayers =
+      requiredLayers.filterNot { layer ->
+        pluginRoot.resolve(layer).toFile().isDirectory
+      }
     assertEquals(emptyList(), missingLayers)
   }
 
   @Test
   fun `task-runtime and application review models stay data-only below their parent boundaries`() {
-    val modelAreas = listOf(
-      Triple(
-        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model",
-        "skillbill.workflow.taskruntime.model",
-        "skillbill.workflow.taskruntime",
-      ),
-      Triple(
-        "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/review/model",
-        "skillbill.application.review.model",
-        "skillbill.application.review",
-      ),
-    )
-    val violations = modelAreas.flatMap { (relativeRoot, modelPackage, parentPackage) ->
-      val modelRoot = ArchitectureScanSupport.runtimeRoot.resolve(relativeRoot)
-      ArchitectureScanSupport.kotlinFilesUnder(modelRoot).flatMap { sourceFile ->
-        val source = sourceFile.readText()
-        val declaredPackage = ArchitectureScanSupport.declaredPackage(source).orEmpty()
-        if (declaredPackage != modelPackage && !declaredPackage.startsWith("$modelPackage.")) {
-          emptyList()
-        } else {
-          val parentImports = ArchitectureScanSupport.declaredImports(source)
-            .filter { imported ->
-              imported == parentPackage ||
-                (imported.startsWith("$parentPackage.") && !imported.startsWith("$modelPackage."))
-            }
-            .map { imported -> "${sourceFile.fileName}: imports $imported" }
-          val injected = Regex("""(?m)^\s*@Inject\b""")
-            .find(source)
-            ?.let { listOf("${sourceFile.fileName}: declares an injected model service") }
-            .orEmpty()
-          parentImports + injected
+    val modelAreas =
+      listOf(
+        Triple(
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model",
+          "skillbill.workflow.taskruntime.model",
+          "skillbill.workflow.taskruntime",
+        ),
+        Triple(
+          "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/review/model",
+          "skillbill.application.review.model",
+          "skillbill.application.review",
+        ),
+      )
+    val violations =
+      modelAreas.flatMap { (relativeRoot, modelPackage, parentPackage) ->
+        val modelRoot = ArchitectureScanSupport.runtimeRoot.resolve(relativeRoot)
+        ArchitectureScanSupport.kotlinFilesUnder(modelRoot).flatMap { sourceFile ->
+          val source = sourceFile.readText()
+          val declaredPackage = ArchitectureScanSupport.declaredPackage(source).orEmpty()
+          if (declaredPackage != modelPackage && !declaredPackage.startsWith("$modelPackage.")) {
+            emptyList()
+          } else {
+            val parentImports =
+              ArchitectureScanSupport.declaredImports(source)
+                .filter { imported ->
+                  imported == parentPackage ||
+                    (imported.startsWith("$parentPackage.") && !imported.startsWith("$modelPackage."))
+                }
+                .map { imported -> "${sourceFile.fileName}: imports $imported" }
+            val injected =
+              Regex("""(?m)^\s*@Inject\b""")
+                .find(source)
+                ?.let { listOf("${sourceFile.fileName}: declares an injected model service") }
+                .orEmpty()
+            parentImports + injected
+          }
         }
       }
-    }
     assertEquals(emptyList(), violations)
   }
 
   @Test
   fun `goal-runner model sources stay data-only and below their parent boundary`() {
-    val modelRoot = ArchitectureScanSupport.runtimeRoot.resolve(
-      "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner/model",
-    )
-    val violations = ArchitectureScanSupport.kotlinFilesUnder(modelRoot).flatMap { sourceFile ->
-      val source = sourceFile.readText()
-      val parentImports = ArchitectureScanSupport.declaredImports(source)
-        .filter { imported ->
-          imported.startsWith("skillbill.engine.goalrunner.") &&
-            !imported.startsWith("skillbill.engine.goalrunner.model.")
-        }
-        .map { imported -> "${sourceFile.fileName}: imports $imported" }
-      val injected = Regex("""(?m)^\s*@Inject\b""")
-        .find(source)
-        ?.let { listOf("${sourceFile.fileName}: declares an injected model service") }
-        .orEmpty()
-      parentImports + injected
-    }
+    val modelRoot =
+      ArchitectureScanSupport.runtimeRoot.resolve(
+        "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner/model",
+      )
+    val violations =
+      ArchitectureScanSupport.kotlinFilesUnder(modelRoot).flatMap { sourceFile ->
+        val source = sourceFile.readText()
+        val parentImports =
+          ArchitectureScanSupport.declaredImports(source)
+            .filter { imported ->
+              imported.startsWith("skillbill.engine.goalrunner.") &&
+                !imported.startsWith("skillbill.engine.goalrunner.model.")
+            }
+            .map { imported -> "${sourceFile.fileName}: imports $imported" }
+        val injected =
+          Regex("""(?m)^\s*@Inject\b""")
+            .find(source)
+            ?.let { listOf("${sourceFile.fileName}: declares an injected model service") }
+            .orEmpty()
+        parentImports + injected
+      }
     assertEquals(emptyList(), violations)
   }
 
   @Test
   fun `goal-runner test sources use the production package they exercise`() {
-    val sourceSetRoots = listOf(
-      ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/runtime-engine/src/test/kotlin"),
-      ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/runtime-engine/src/testFixtures/kotlin"),
-    )
-    val misplaced = sourceSetRoots.flatMap { sourceSetRoot ->
-      ArchitectureScanSupport.kotlinFilesUnder(sourceSetRoot.resolve("skillbill/engine/goalrunner"))
-        .mapNotNull { sourceFile ->
-          val packageName = ArchitectureScanSupport.declaredPackage(sourceFile.readText()) ?: return@mapNotNull null
-          val expectedDirectory = sourceSetRoot.resolve(packageName.replace('.', '/'))
-          (sourceFile.parent != expectedDirectory).let { isMisplaced ->
-            if (isMisplaced) {
-              "${sourceSetRoot.relativize(sourceFile)} declares $packageName"
-            } else {
-              null
+    val sourceSetRoots =
+      listOf(
+        ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/runtime-engine/src/test/kotlin"),
+        ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/runtime-engine/src/testFixtures/kotlin"),
+      )
+    val misplaced =
+      sourceSetRoots.flatMap { sourceSetRoot ->
+        ArchitectureScanSupport.kotlinFilesUnder(sourceSetRoot.resolve("skillbill/engine/goalrunner"))
+          .mapNotNull { sourceFile ->
+            val packageName = ArchitectureScanSupport.declaredPackage(sourceFile.readText()) ?: return@mapNotNull null
+            val expectedDirectory = sourceSetRoot.resolve(packageName.replace('.', '/'))
+            (sourceFile.parent != expectedDirectory).let { isMisplaced ->
+              if (isMisplaced) {
+                "${sourceSetRoot.relativize(sourceFile)} declares $packageName"
+              } else {
+                null
+              }
             }
           }
-        }
-    }
+      }
     assertEquals(emptyList(), misplaced)
   }
 
   @Test
   fun `feature-task test sources use the production package they exercise`() {
-    val sourceSetRoots = listOf(
-      ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/runtime-engine/src/test/kotlin"),
-      ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/runtime-engine/src/testFixtures/kotlin"),
-    )
-    val misplaced = sourceSetRoots.flatMap { sourceSetRoot ->
-      ArchitectureScanSupport.kotlinFilesUnder(sourceSetRoot.resolve("skillbill/engine/featuretask"))
-        .mapNotNull { sourceFile ->
-          val packageName = ArchitectureScanSupport.declaredPackage(sourceFile.readText()) ?: return@mapNotNull null
-          val expectedDirectory = sourceSetRoot.resolve(packageName.replace('.', '/'))
-          (sourceFile.parent != expectedDirectory).let { isMisplaced ->
-            if (isMisplaced) {
-              "${sourceSetRoot.relativize(sourceFile)} declares $packageName"
-            } else {
-              null
+    val sourceSetRoots =
+      listOf(
+        ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/runtime-engine/src/test/kotlin"),
+        ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/runtime-engine/src/testFixtures/kotlin"),
+      )
+    val misplaced =
+      sourceSetRoots.flatMap { sourceSetRoot ->
+        ArchitectureScanSupport.kotlinFilesUnder(sourceSetRoot.resolve("skillbill/engine/featuretask"))
+          .mapNotNull { sourceFile ->
+            val packageName = ArchitectureScanSupport.declaredPackage(sourceFile.readText()) ?: return@mapNotNull null
+            val expectedDirectory = sourceSetRoot.resolve(packageName.replace('.', '/'))
+            (sourceFile.parent != expectedDirectory).let { isMisplaced ->
+              if (isMisplaced) {
+                "${sourceSetRoot.relativize(sourceFile)} declares $packageName"
+              } else {
+                null
+              }
             }
           }
-        }
-    }
+      }
     assertEquals(emptyList(), misplaced)
   }
 
   @Test
   fun `runtime test sources remain co-located with their declared packages`() {
-    val sourceSetRoots = PrincipleEnforcementInventory.productionPackageSiblingCountSourceRoots
-      .mapNotNull { sourceRoot ->
-        val moduleRoot = ArchitectureScanSupport.runtimeRoot.resolve(sourceRoot).parent.parent.parent
-        listOf(
-          moduleRoot.resolve("src/test/kotlin"),
-          moduleRoot.resolve("src/testFixtures/kotlin"),
-          moduleRoot.resolve("src/repoTest/kotlin"),
-        ).filter { sourceSetRoot -> sourceSetRoot.toFile().isDirectory }
-      }
-      .flatten()
-    val misplaced = sourceSetRoots.flatMap { sourceSetRoot ->
-      ArchitectureScanSupport.kotlinFilesUnder(sourceSetRoot).mapNotNull { sourceFile ->
-        val packageName = ArchitectureScanSupport.declaredPackage(sourceFile.readText())
-          ?: return@mapNotNull null
-        val expectedDirectory = sourceSetRoot.resolve(packageName.replace('.', '/'))
-        if (sourceFile.parent == expectedDirectory) {
-          null
-        } else {
-          "${sourceSetRoot.relativize(sourceFile)} declares $packageName"
+    val sourceSetRoots =
+      PrincipleEnforcementInventory.productionPackageSiblingCountSourceRoots
+        .mapNotNull { sourceRoot ->
+          val moduleRoot = ArchitectureScanSupport.runtimeRoot.resolve(sourceRoot).parent.parent.parent
+          listOf(
+            moduleRoot.resolve("src/test/kotlin"),
+            moduleRoot.resolve("src/testFixtures/kotlin"),
+            moduleRoot.resolve("src/repoTest/kotlin"),
+          ).filter { sourceSetRoot -> sourceSetRoot.toFile().isDirectory }
+        }
+        .flatten()
+    val misplaced =
+      sourceSetRoots.flatMap { sourceSetRoot ->
+        ArchitectureScanSupport.kotlinFilesUnder(sourceSetRoot).mapNotNull { sourceFile ->
+          val packageName =
+            ArchitectureScanSupport.declaredPackage(sourceFile.readText())
+              ?: return@mapNotNull null
+          val expectedDirectory = sourceSetRoot.resolve(packageName.replace('.', '/'))
+          if (sourceFile.parent == expectedDirectory) {
+            null
+          } else {
+            "${sourceSetRoot.relativize(sourceFile)} declares $packageName"
+          }
         }
       }
-    }
     assertEquals(emptyList(), misplaced)
   }
 
@@ -291,13 +314,14 @@ class PackageSiblingCountArchitectureTest {
         "skillbill.synthetic has 13 production Kotlin siblings; the 12-file ceiling applies to this package.",
       ),
       ArchitectureScanSupport.productionPackageSiblingCountViolationsForCounts(
-        counts = listOf(
-          ArchitectureScanSupport.PackageSiblingCount(
-            packageName = "skillbill.synthetic",
-            fileCount = 13,
-            ceiling = 12,
+        counts =
+          listOf(
+            ArchitectureScanSupport.PackageSiblingCount(
+              packageName = "skillbill.synthetic",
+              fileCount = 13,
+              ceiling = 12,
+            ),
           ),
-        ),
         remainderInventory = emptySet(),
       ),
     )

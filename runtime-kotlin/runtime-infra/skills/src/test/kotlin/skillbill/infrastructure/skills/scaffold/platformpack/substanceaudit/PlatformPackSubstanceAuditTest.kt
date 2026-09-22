@@ -36,28 +36,31 @@ class PlatformPackSubstanceAuditTest {
     val root = Files.createTempDirectory("substance-threshold-boundary")
     seedConformingPlatformPack(root, "alpha")
     seedConformingPlatformPack(root, "beta")
-    val unrestricted = PlatformPackSubstanceAudit.audit(
-      root,
-      SubstancePolicy(maximumSharedShingles = Fraction(1, 1), maximumPairSimilarity = Fraction(1, 1)),
-    )
+    val unrestricted =
+      PlatformPackSubstanceAudit.audit(
+        root,
+        SubstancePolicy(maximumSharedShingles = Fraction(1, 1), maximumPairSimilarity = Fraction(1, 1)),
+      )
     val alpha = unrestricted.packs.single { it.pack == "alpha" }
     val pair = alpha.highestCorrespondingSimilarity!!.similarity
     assertTrue(alpha.sharedShingles.numerator > 0)
     assertTrue(pair.numerator > 0)
 
-    val exact = PlatformPackSubstanceAudit.audit(
-      root,
-      SubstancePolicy(maximumSharedShingles = alpha.sharedShingles, maximumPairSimilarity = pair),
-    )
+    val exact =
+      PlatformPackSubstanceAudit.audit(
+        root,
+        SubstancePolicy(maximumSharedShingles = alpha.sharedShingles, maximumPairSimilarity = pair),
+      )
     assertFalse(exact.violations.any { it.pack == "alpha" && it.areaOrRole == "shared-shingles" })
     assertFalse(exact.violations.any { it.pack == "alpha" && it.areaOrRole.startsWith("pair:") })
 
     val sharedBelow = immediatelyBelow(alpha.sharedShingles)
     val pairBelow = immediatelyBelow(pair)
-    val above = PlatformPackSubstanceAudit.audit(
-      root,
-      SubstancePolicy(maximumSharedShingles = sharedBelow, maximumPairSimilarity = pairBelow),
-    )
+    val above =
+      PlatformPackSubstanceAudit.audit(
+        root,
+        SubstancePolicy(maximumSharedShingles = sharedBelow, maximumPairSimilarity = pairBelow),
+      )
     assertTrue(above.violations.any { it.pack == "alpha" && it.areaOrRole == "shared-shingles" })
     assertTrue(above.violations.any { it.pack == "alpha" && it.areaOrRole.startsWith("pair:") && it.files.size == 2 })
   }
@@ -168,9 +171,10 @@ class PlatformPackSubstanceAuditTest {
     val root = Files.createTempDirectory("substance-under-coverage")
     seedConformingPlatformPack(root, "partial")
 
-    val violation = PlatformPackSubstanceAudit.audit(root).violations.single {
-      it.areaOrRole == "effective-area-coverage"
-    }
+    val violation =
+      PlatformPackSubstanceAudit.audit(root).violations.single {
+        it.areaOrRole == "effective-area-coverage"
+      }
 
     assertTrue("security" in violation.measured)
     assertEquals("all-approved-areas", violation.target)
@@ -197,15 +201,16 @@ class PlatformPackSubstanceAuditTest {
     seedConformingPlatformPack(root, "overlay", listOf("ui"))
     appendComposition(root, "overlay", "base")
 
-    val report = PlatformPackSubstanceAudit.audit(
-      root,
-      SubstancePolicy(
-        minimumRules = 0,
-        minimumClusters = 0,
-        maximumSharedShingles = Fraction(1, 1),
-        maximumPairSimilarity = Fraction(1, 1),
-      ),
-    )
+    val report =
+      PlatformPackSubstanceAudit.audit(
+        root,
+        SubstancePolicy(
+          minimumRules = 0,
+          minimumClusters = 0,
+          maximumSharedShingles = Fraction(1, 1),
+          maximumPairSimilarity = Fraction(1, 1),
+        ),
+      )
 
     val overlay = report.packs.single { it.pack == "overlay" }
     assertEquals((APPROVED_CODE_REVIEW_AREAS - "ui").sorted(), overlay.inheritedAreas)
@@ -219,15 +224,16 @@ class PlatformPackSubstanceAuditTest {
     seedConformingPlatformPack(root, "overlay", listOf("ui"))
     appendComposition(root, "overlay", "base")
 
-    val report = PlatformPackSubstanceAudit.audit(
-      root,
-      SubstancePolicy(
-        minimumRules = 0,
-        minimumClusters = 0,
-        maximumSharedShingles = Fraction(1, 1),
-        maximumPairSimilarity = Fraction(1, 1),
-      ),
-    )
+    val report =
+      PlatformPackSubstanceAudit.audit(
+        root,
+        SubstancePolicy(
+          minimumRules = 0,
+          minimumClusters = 0,
+          maximumSharedShingles = Fraction(1, 1),
+          maximumPairSimilarity = Fraction(1, 1),
+        ),
+      )
 
     assertTrue(report.packs.all { it.qualityCheckFile == null })
     assertFalse(report.violations.any { it.areaOrRole == "quality-check" })
@@ -250,7 +256,11 @@ class PlatformPackSubstanceAuditTest {
     assertFalse(report.violations.any { it.areaOrRole == "quality-check" })
   }
 
-  private fun appendComposition(root: Path, pack: String, target: String) {
+  private fun appendComposition(
+    root: Path,
+    pack: String,
+    target: String,
+  ) {
     Files.writeString(
       root.resolve("platform-packs/$pack/platform.yaml"),
       """

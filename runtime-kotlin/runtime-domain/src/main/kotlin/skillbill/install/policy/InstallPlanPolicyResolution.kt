@@ -24,8 +24,9 @@ internal fun resolveDetectionDerivedTargets(input: InstallPolicyInput): List<Ins
 internal fun resolveManualTargets(input: InstallPolicyInput): List<InstallAgentTarget> {
   val explicitTargets = input.request.targetPaths.agentTargets.groupBy(InstallAgentTarget::agent)
   val defaultTargets = input.defaultAgentTargets.groupBy { target -> target.agent }
-  val manualAgents = input.request.agentSelection.manualAgents
-    .ifEmpty { explicitTargets.keys }
+  val manualAgents =
+    input.request.agentSelection.manualAgents
+      .ifEmpty { explicitTargets.keys }
   return manualAgents
     .sortedBy(InstallAgent::id)
     .flatMap { agent ->
@@ -42,10 +43,11 @@ internal fun resolveManualTargets(input: InstallPolicyInput): List<InstallAgentT
 }
 
 internal fun selectedPlatformSlugs(input: InstallPolicyInput): List<String> {
-  val explicitlySelected = selectedPlatformSlugs(
-    selection = input.request.platformPackSelection,
-    discoveredSlugs = input.platformPacks.map(InstallPlatformPackSnapshot::slug),
-  )
+  val explicitlySelected =
+    selectedPlatformSlugs(
+      selection = input.request.platformPackSelection,
+      discoveredSlugs = input.platformPacks.map(InstallPlatformPackSnapshot::slug),
+    )
   val selected = explicitlySelected.toMutableSet()
   if (input.baseSkills.any { it.name == "bill-code-review" }) {
     input.resolvedReviewFallbackSlug?.let(selected::add)
@@ -54,9 +56,10 @@ internal fun selectedPlatformSlugs(input: InstallPolicyInput): List<String> {
   do {
     changed = false
     input.platformPacks.forEach { pack ->
-      val selectedRequiredBaseline = pack.baselineLayers.any { layer ->
-        layer.required && layer.platform in selected
-      }
+      val selectedRequiredBaseline =
+        pack.baselineLayers.any { layer ->
+          layer.required && layer.platform in selected
+        }
       if (selectedRequiredBaseline && selected.add(pack.slug)) {
         changed = true
       }
@@ -82,7 +85,10 @@ internal fun expandRequiredComposedPacks(
   return platformPacks.map(InstallPlatformPackDiscoverySnapshot::slug).filter(selected::contains)
 }
 
-internal fun selectedPlatformSlugs(selection: PlatformPackSelection, discoveredSlugs: List<String>): List<String> =
+internal fun selectedPlatformSlugs(
+  selection: PlatformPackSelection,
+  discoveredSlugs: List<String>,
+): List<String> =
   when (selection.mode) {
     PlatformPackSelectionMode.NONE -> emptyList()
     PlatformPackSelectionMode.ALL -> discoveredSlugs

@@ -14,6 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class WorkflowStateSchemaContractVersionTest {
   @Test
   fun `workflow state schema bundled on runtime contracts classpath matches canonical schema`() {
@@ -104,8 +105,9 @@ class WorkflowStateSchemaContractVersionTest {
   fun `paused is a non-terminal status on the featureTaskRuntime branch`() {
     val schema = loadSchemaNode()
     val defs = schema.path("\$defs")
-    val runtimeStatuses = defs.path("featureTaskRuntimeBranch").path("properties")
-      .path("workflow_status").enumStrings()
+    val runtimeStatuses =
+      defs.path("featureTaskRuntimeBranch").path("properties")
+        .path("workflow_status").enumStrings()
     assertTrue("paused" in runtimeStatuses, "featureTaskRuntimeBranch.workflow_status must allow 'paused'.")
     assertTrue(
       "paused" in FeatureTaskRuntimePhaseWorkflowDefinition.definition.workflowStatuses,
@@ -128,8 +130,9 @@ class WorkflowStateSchemaContractVersionTest {
   }
 
   private fun loadClasspathSchemaNode(): JsonNode {
-    val resourceStream = WorkflowStateSchemaValidator::class.java.classLoader
-      .getResourceAsStream(WorkflowStateSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      WorkflowStateSchemaValidator::class.java.classLoader
+        .getResourceAsStream(WorkflowStateSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical workflow-state schema is missing from the classpath at " +
@@ -139,12 +142,17 @@ class WorkflowStateSchemaContractVersionTest {
     return YAMLMapper().readTree(schemaText)
   }
 
-  private fun JsonNode.enumStrings(): Set<String> = path("enum")
-    .takeIf { !it.isMissingNode && it.isArray }
-    ?.let { node -> node.elements().asSequence().map { it.asText() }.toSet() }
-    .orEmpty()
+  private fun JsonNode.enumStrings(): Set<String> =
+    path("enum")
+      .takeIf { !it.isMissingNode && it.isArray }
+      ?.let { node -> node.elements().asSequence().map { it.asText() }.toSet() }
+      .orEmpty()
 
-  private fun assertBranchStatusesMatch(branch: JsonNode, expected: Set<String>, branchName: String) {
+  private fun assertBranchStatusesMatch(
+    branch: JsonNode,
+    expected: Set<String>,
+    branchName: String,
+  ) {
     val actual = branch.path("properties").path("workflow_status").enumStrings()
     assertEquals(
       expected,
@@ -153,7 +161,11 @@ class WorkflowStateSchemaContractVersionTest {
     )
   }
 
-  private fun assertBranchCurrentStepIdsMatch(branch: JsonNode, expected: Set<String>, branchName: String) {
+  private fun assertBranchCurrentStepIdsMatch(
+    branch: JsonNode,
+    expected: Set<String>,
+    branchName: String,
+  ) {
     val actual = branch.path("properties").path("current_step_id").enumStrings()
 
     val actualWithoutEmpty = actual - ""
@@ -169,15 +181,20 @@ class WorkflowStateSchemaContractVersionTest {
     )
   }
 
-  private fun assertBranchStepsStepIdMatch(branch: JsonNode, expected: Set<String>, branchName: String) {
+  private fun assertBranchStepsStepIdMatch(
+    branch: JsonNode,
+    expected: Set<String>,
+    branchName: String,
+  ) {
     val items = branch.path("properties").path("steps").path("items")
 
     val allOf = items.path("allOf")
     assertTrue(allOf.isArray, "Schema $branchName.steps.items.allOf must be an array.")
-    val stepIdEnum = allOf.elements().asSequence()
-      .map { it.path("properties").path("step_id") }
-      .firstOrNull { !it.path("enum").isMissingNode }
-      ?: error("Schema $branchName.steps.items must declare a step_id enum under allOf[].properties.step_id.")
+    val stepIdEnum =
+      allOf.elements().asSequence()
+        .map { it.path("properties").path("step_id") }
+        .firstOrNull { !it.path("enum").isMissingNode }
+        ?: error("Schema $branchName.steps.items must declare a step_id enum under allOf[].properties.step_id.")
     val actual = stepIdEnum.enumStrings()
     assertEquals(
       expected,

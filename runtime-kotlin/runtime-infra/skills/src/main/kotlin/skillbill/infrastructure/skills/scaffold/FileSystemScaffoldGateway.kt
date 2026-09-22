@@ -41,23 +41,29 @@ private const val CONTENT_PREVIEW_MAX_CHARS = 500
 class FileSystemScaffoldGateway(
   private val scaffoldOrchestrator: FileSystemScaffoldOrchestrator,
 ) : ScaffoldGateway {
-  override fun list(repoRoot: Path, skillNames: List<String>): ScaffoldListResult {
+  override fun list(
+    repoRoot: Path,
+    skillNames: List<String>,
+  ): ScaffoldListResult {
     val addonNames = skillNames.filter { it.startsWith(AGENT_ADDON_PREFIX) }
     val governedNames = skillNames.filterNot { it.startsWith(AGENT_ADDON_PREFIX) }
     val result = AuthoringOperations.list(repoRoot, governedNames)
-    val addonCatalogue = if (skillNames.isEmpty()) {
-      inspectFsAgentAddons(repoRoot).entries
-    } else {
-      AgentAddonDeliveryResolver().catalogue(repoRoot)
-    }
-    val addons = addonCatalogue
-      .filter { skillNames.isEmpty() || it.identity in addonNames }
-      .map { it.toSkillStatus(repoRoot, "none") }
-    val governedSkills = if (skillNames.isEmpty()) {
-      result.skills
-    } else {
-      result.skills.filter { it.skillName in governedNames }
-    }
+    val addonCatalogue =
+      if (skillNames.isEmpty()) {
+        inspectFsAgentAddons(repoRoot).entries
+      } else {
+        AgentAddonDeliveryResolver().catalogue(repoRoot)
+      }
+    val addons =
+      addonCatalogue
+        .filter { skillNames.isEmpty() || it.identity in addonNames }
+        .map { it.toSkillStatus(repoRoot, "none") }
+    val governedSkills =
+      if (skillNames.isEmpty()) {
+        result.skills
+      } else {
+        result.skills.filter { it.skillName in governedNames }
+      }
     val skills = governedSkills + addons
     return ScaffoldListResult(
       repoRoot = result.repoRoot,
@@ -66,15 +72,24 @@ class FileSystemScaffoldGateway(
     )
   }
 
-  override fun show(repoRoot: Path, skillName: String, contentMode: String): ScaffoldShowResult = ScaffoldShowResult(
-    status = if (skillName.startsWith(AGENT_ADDON_PREFIX)) {
-      requireAgentAddonEntry(repoRoot, skillName).toSkillStatus(repoRoot, contentMode)
-    } else {
-      AuthoringOperations.show(repoRoot, skillName, contentMode)
-    },
-  )
+  override fun show(
+    repoRoot: Path,
+    skillName: String,
+    contentMode: String,
+  ): ScaffoldShowResult =
+    ScaffoldShowResult(
+      status =
+        if (skillName.startsWith(AGENT_ADDON_PREFIX)) {
+          requireAgentAddonEntry(repoRoot, skillName).toSkillStatus(repoRoot, contentMode)
+        } else {
+          AuthoringOperations.show(repoRoot, skillName, contentMode)
+        },
+    )
 
-  override fun explain(repoRoot: Path, skillName: String?): ScaffoldExplainResult {
+  override fun explain(
+    repoRoot: Path,
+    skillName: String?,
+  ): ScaffoldExplainResult {
     if (skillName?.startsWith(AGENT_ADDON_PREFIX) == true) {
       val addon = requireAgentAddonEntry(repoRoot, skillName)
       return ScaffoldExplainResult(
@@ -83,16 +98,18 @@ class FileSystemScaffoldGateway(
         generatedSurface = listOf("agent-addon-<slug>.md install pointers"),
         governedSidecars = emptyList(),
         normalWorkflow = listOf("skill-bill show $skillName", "skill-bill validate", "skill-bill render bill-feature"),
-        notes = listOf(
-          "Supported agents: ${addon.agentIds.joinToString()}",
-          "Consumers: ${addon.consumers.joinToString()}",
-        ),
-        skill = ScaffoldExplainSkill(
-          skillName = addon.identity,
-          contentFile = addon.contentPath.toString(),
-          renderCommand = "skill-bill render bill-feature --repo-root ${repoRoot.toAbsolutePath().normalize()}",
-          recommendedCommands = listOf("skill-bill validate", "skill-bill render bill-feature"),
-        ),
+        notes =
+          listOf(
+            "Supported agents: ${addon.agentIds.joinToString()}",
+            "Consumers: ${addon.consumers.joinToString()}",
+          ),
+        skill =
+          ScaffoldExplainSkill(
+            skillName = addon.identity,
+            contentFile = addon.contentPath.toString(),
+            renderCommand = "skill-bill render bill-feature --repo-root ${repoRoot.toAbsolutePath().normalize()}",
+            recommendedCommands = listOf("skill-bill validate", "skill-bill render bill-feature"),
+          ),
       )
     }
     val result = AuthoringOperations.explain(repoRoot, skillName)
@@ -103,34 +120,44 @@ class FileSystemScaffoldGateway(
       governedSidecars = result.governedSidecars,
       normalWorkflow = result.normalWorkflow,
       notes = result.notes,
-      skill = result.skill?.let { skill ->
-        ScaffoldExplainSkill(
-          skillName = skill.skillName,
-          contentFile = skill.contentFile,
-          renderCommand = skill.renderCommand,
-          recommendedCommands = skill.recommendedCommands,
-        )
-      },
+      skill =
+        result.skill?.let { skill ->
+          ScaffoldExplainSkill(
+            skillName = skill.skillName,
+            contentFile = skill.contentFile,
+            renderCommand = skill.renderCommand,
+            recommendedCommands = skill.recommendedCommands,
+          )
+        },
     )
   }
 
-  override fun validate(repoRoot: Path, skillNames: List<String>): ScaffoldValidateResult {
+  override fun validate(
+    repoRoot: Path,
+    skillNames: List<String>,
+  ): ScaffoldValidateResult {
     val result = AuthoringOperations.validate(repoRoot, skillNames)
     return ScaffoldValidateResult(
       repoRoot = result.repoRoot,
-      mode = requireNotNull(ScaffoldValidationMode.fromWire(result.mode)) {
-        "Unknown scaffold validation mode '${result.mode}'."
-      },
-      status = requireNotNull(ScaffoldValidationStatus.fromWire(result.status)) {
-        "Unknown scaffold validation status '${result.status}'."
-      },
+      mode =
+        requireNotNull(ScaffoldValidationMode.fromWire(result.mode)) {
+          "Unknown scaffold validation mode '${result.mode}'."
+        },
+      status =
+        requireNotNull(ScaffoldValidationStatus.fromWire(result.status)) {
+          "Unknown scaffold validation status '${result.status}'."
+        },
       issues = result.issues,
       skillNames = result.skillNames,
       suggestedCommands = result.suggestedCommands,
     )
   }
 
-  override fun upgrade(repoRoot: Path, skillNames: List<String>, validate: Boolean): ScaffoldUpgradeResult {
+  override fun upgrade(
+    repoRoot: Path,
+    skillNames: List<String>,
+    validate: Boolean,
+  ): ScaffoldUpgradeResult {
     val result = AuthoringOperations.upgrade(repoRoot, skillNames, validate, installNativeAgentCompositionContext())
     return ScaffoldUpgradeResult(
       repoRoot = result.repoRoot,
@@ -142,7 +169,12 @@ class FileSystemScaffoldGateway(
     )
   }
 
-  override fun fill(repoRoot: Path, skillName: String, body: String, sectionName: String?): ScaffoldFillResult {
+  override fun fill(
+    repoRoot: Path,
+    skillName: String,
+    body: String,
+    sectionName: String?,
+  ): ScaffoldFillResult {
     val result = AuthoringOperations.fill(repoRoot, skillName, body, sectionName)
     return ScaffoldFillResult(
       status = result.mutation.status,
@@ -152,7 +184,11 @@ class FileSystemScaffoldGateway(
     )
   }
 
-  override fun saveExactContent(repoRoot: Path, skillName: String, content: String): ScaffoldSaveExactContentResult {
+  override fun saveExactContent(
+    repoRoot: Path,
+    skillName: String,
+    content: String,
+  ): ScaffoldSaveExactContentResult {
     val result = AuthoringOperations.saveExactContent(repoRoot, skillName, content)
     return ScaffoldSaveExactContentResult(
       status = result.mutation.status,
@@ -178,23 +214,33 @@ class FileSystemScaffoldGateway(
     )
   }
 
-  override fun scaffold(request: ScaffoldCommandRequest, dryRun: Boolean) =
-    scaffoldOrchestrator.scaffold(request, dryRun)
+  override fun scaffold(
+    request: ScaffoldCommandRequest,
+    dryRun: Boolean,
+  ) = scaffoldOrchestrator.scaffold(request, dryRun)
 
-  override fun render(repoRoot: Path, skillName: String): ScaffoldRenderResult =
-    renderAuthoringTarget(repoRoot, skillName).toPortRenderResult()
+  override fun render(
+    repoRoot: Path,
+    skillName: String,
+  ): ScaffoldRenderResult = renderAuthoringTarget(repoRoot, skillName).toPortRenderResult()
 }
 
 private const val AGENT_ADDON_PREFIX = "agent-addon:"
 
-private fun requireAgentAddonEntry(repoRoot: Path, identity: String): AgentAddonCatalogueEntry =
+private fun requireAgentAddonEntry(
+  repoRoot: Path,
+  identity: String,
+): AgentAddonCatalogueEntry =
   AgentAddonDeliveryResolver().catalogue(repoRoot).firstOrNull { it.identity == identity }
     ?: throw MissingAgentAddonDeclarationError(
       identity.removePrefix(AGENT_ADDON_PREFIX),
       repoRoot.resolve("agent-addons").toString(),
     )
 
-private fun AgentAddonCatalogueEntry.toSkillStatus(repoRoot: Path, contentMode: String): ScaffoldSkillStatus {
+private fun AgentAddonCatalogueEntry.toSkillStatus(
+  repoRoot: Path,
+  contentMode: String,
+): ScaffoldSkillStatus {
   val contentText = Files.readString(contentPath.toPath())
   return ScaffoldSkillStatus(
     skillName = identity,
@@ -221,7 +267,11 @@ private fun AgentAddonCatalogueEntry.toSkillStatus(repoRoot: Path, contentMode: 
 
 @Inject
 class FileSystemUnsupportedScaffoldGateway : UnsupportedScaffoldGateway {
-  override fun retiredUnsupportedMessage(command: String, replacement: String, editor: Boolean) = if (editor) {
+  override fun retiredUnsupportedMessage(
+    command: String,
+    replacement: String,
+    editor: Boolean,
+  ) = if (editor) {
     AuthoringOperations.retiredEditorMessage(command, replacement)
   } else {
     AuthoringOperations.retiredInteractiveMessage(command, replacement)
@@ -250,8 +300,9 @@ class FileSystemScaffoldCatalogGateway : ScaffoldCatalogGateway {
   override fun discoverBaselineReviewCatalog(packsRoot: Path) = ScaffoldCatalog.discoverBaselineReviewCatalog(packsRoot)
 }
 
-private fun AuthoringRenderResult.toPortRenderResult(): ScaffoldRenderResult = ScaffoldRenderResult(
-  repoRoot = repoRoot,
-  skillName = skillName,
-  blocks = blocks.map { block -> ScaffoldRenderBlock(header = block.header, content = block.content) },
-)
+private fun AuthoringRenderResult.toPortRenderResult(): ScaffoldRenderResult =
+  ScaffoldRenderResult(
+    repoRoot = repoRoot,
+    skillName = skillName,
+    blocks = blocks.map { block -> ScaffoldRenderBlock(header = block.header, content = block.content) },
+  )

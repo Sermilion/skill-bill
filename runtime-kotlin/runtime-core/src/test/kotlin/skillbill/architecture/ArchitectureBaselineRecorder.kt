@@ -8,9 +8,10 @@ class ArchitectureBaselineRecorder {
   @Test
   fun recordBaselinesWhenRequested() {
     if (System.getenv("RECORD_ARCHITECTURE_BASELINES") != "1") return
-    val baselineDir = ArchitectureScanSupport.runtimeRoot.resolve(
-      "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/baselines",
-    )
+    val baselineDir =
+      ArchitectureScanSupport.runtimeRoot.resolve(
+        "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/baselines",
+      )
     Files.createDirectories(baselineDir)
 
     recordLogicalTypeLineCeilingBaseline(baselineDir)
@@ -22,9 +23,10 @@ class ArchitectureBaselineRecorder {
   }
 
   private fun recordLogicalTypeLineCeilingBaseline(baselineDir: Path) {
-    val logicalCounts = ArchitectureScanSupport.logicalTypeLineCounts(
-      productionRoots = listOf("runtime-kotlin", "intellij-plugin"),
-    ).filter { (_, count) -> count > PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING }
+    val logicalCounts =
+      ArchitectureScanSupport.logicalTypeLineCounts(
+        productionRoots = listOf("runtime-kotlin", "intellij-plugin"),
+      ).filter { (_, count) -> count > PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING }
     Files.writeString(
       baselineDir.resolve("logical-type-line-ceiling-baseline.txt"),
       logicalCounts.entries.sortedBy { it.key }.joinToString("\n") { (fqn, count) -> "$fqn $count" } + "\n",
@@ -74,36 +76,50 @@ class ArchitectureBaselineRecorder {
   }
 
   private fun recordSpilloverFileNameBaseline(baselineDir: Path) {
-    val scanRoots = PrincipleEnforcementInventory.moduleArchitectureScanCases.map { scanCase ->
-      scanCase.moduleSourceRoot
-    }
-    val paths = ArchitectureScanSupport.spilloverFileNamePaths(
-      scanRoots = scanRoots,
-      exemptPaths = PrincipleEnforcementInventory.spilloverFileNameExemptions,
-    )
+    val scanRoots =
+      PrincipleEnforcementInventory.moduleArchitectureScanCases.map { scanCase ->
+        scanCase.moduleSourceRoot
+      }
+    val paths =
+      ArchitectureScanSupport.spilloverFileNamePaths(
+        scanRoots = scanRoots,
+        exemptPaths = PrincipleEnforcementInventory.spilloverFileNameExemptions,
+      )
     Files.writeString(
       baselineDir.resolve(PrincipleEnforcementInventory.SPILLOVER_FILE_NAME_BASELINE),
       paths.sorted().joinToString("\n") + "\n",
     )
   }
 
-  private fun writePackageCycleBaseline(target: Path, scanRoot: String, packagePrefix: String) {
-    val cycles = ArchitectureScanSupport.packageCycles(scanRoot, packagePrefix)
-      .map { cycle -> cycle.areas.sorted().joinToString("|") }
-      .sorted()
+  private fun writePackageCycleBaseline(
+    target: Path,
+    scanRoot: String,
+    packagePrefix: String,
+  ) {
+    val cycles =
+      ArchitectureScanSupport.packageCycles(scanRoot, packagePrefix)
+        .map { cycle -> cycle.areas.sorted().joinToString("|") }
+        .sorted()
     Files.writeString(target, cycles.joinToString("\n") + "\n")
   }
 
-  private fun writeAmbientBaseline(target: Path, sites: List<ArchitectureScanSupport.AmbientCallSite>) {
+  private fun writeAmbientBaseline(
+    target: Path,
+    sites: List<ArchitectureScanSupport.AmbientCallSite>,
+  ) {
     Files.writeString(
       target,
       sites.joinToString("\n") { site -> ArchitectureScanSupport.encodeAmbientSite(site) } + "\n",
     )
   }
 
-  private fun writeInjectDefaultBaseline(target: Path, scanRoot: String) {
-    val sites = ArchitectureScanSupport.injectConstructorDefaultSites(scanRoot)
-      .map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
+  private fun writeInjectDefaultBaseline(
+    target: Path,
+    scanRoot: String,
+  ) {
+    val sites =
+      ArchitectureScanSupport.injectConstructorDefaultSites(scanRoot)
+        .map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
     Files.writeString(target, sites.joinToString("\n") + "\n")
   }
 }

@@ -8,7 +8,11 @@ import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import java.sql.Connection
 import java.sql.ResultSet
 
-internal fun emitGoalStarted(connection: Connection, workflowId: String, level: String) {
+internal fun emitGoalStarted(
+  connection: Connection,
+  workflowId: String,
+  level: String,
+) {
   val row = goalRunSessionRow(connection, workflowId) ?: return
   if (row.stringOrEmpty("started_event_emitted_at").isNotBlank()) {
     return
@@ -18,7 +22,11 @@ internal fun emitGoalStarted(connection: Connection, workflowId: String, level: 
   markGoalRunSessionEmitted(connection, "started_event_emitted_at", workflowId)
 }
 
-internal fun emitGoalFinished(connection: Connection, workflowId: String, level: String) {
+internal fun emitGoalFinished(
+  connection: Connection,
+  workflowId: String,
+  level: String,
+) {
   val row = goalRunSessionRow(connection, workflowId) ?: return
   if (row.stringOrEmpty("finished_event_emitted_at").isNotBlank()) {
     return
@@ -28,37 +36,51 @@ internal fun emitGoalFinished(connection: Connection, workflowId: String, level:
   markGoalRunSessionEmitted(connection, "finished_event_emitted_at", workflowId)
 }
 
-internal fun emitGoalIssueFinished(connection: Connection, parentWorkflowId: String, issueKey: String, level: String) {
+internal fun emitGoalIssueFinished(
+  connection: Connection,
+  parentWorkflowId: String,
+  issueKey: String,
+  level: String,
+) {
   val row = goalIssueProgressRow(connection, parentWorkflowId, issueKey) ?: return
   if (row.stringOrEmpty("finished_event_emitted_at").isNotBlank()) {
     return
   }
-  val payload = goalIssueFinishedPayload(
-    row,
-    level,
-    telemetryRedactionSalt(connection),
-    connection.sqliteDiagnostics(),
-  )
+  val payload =
+    goalIssueFinishedPayload(
+      row,
+      level,
+      telemetryRedactionSalt(connection),
+      connection.sqliteDiagnostics(),
+    )
   enqueueTelemetry(connection, "skillbill_goal_issue_finished", payload)
   markGoalIssueProgressEmitted(connection, parentWorkflowId, issueKey)
 }
 
-internal fun emitGoalSubtaskFinished(connection: Connection, record: GoalSubtaskFinishedRecord, level: String) {
+internal fun emitGoalSubtaskFinished(
+  connection: Connection,
+  record: GoalSubtaskFinishedRecord,
+  level: String,
+) {
   val row = goalSubtaskEventRow(connection, record.issueKey, record.subtaskId, record.workflowId) ?: return
   if (row.stringOrEmpty("subtask_event_emitted_at").isNotBlank()) {
     return
   }
-  val payload = goalSubtaskFinishedPayload(
-    row,
-    level,
-    telemetryRedactionSalt(connection),
-    connection.sqliteDiagnostics(),
-  )
+  val payload =
+    goalSubtaskFinishedPayload(
+      row,
+      level,
+      telemetryRedactionSalt(connection),
+      connection.sqliteDiagnostics(),
+    )
   enqueueTelemetry(connection, "skillbill_goal_subtask_finished", payload)
   markGoalSubtaskEventEmitted(connection, record.issueKey, record.subtaskId, record.workflowId)
 }
 
-private fun goalRunSessionRow(connection: Connection, workflowId: String): Map<String, Any?>? =
+private fun goalRunSessionRow(
+  connection: Connection,
+  workflowId: String,
+): Map<String, Any?>? =
   connection.prepareStatement("SELECT * FROM goal_run_sessions WHERE workflow_id = ?").use { statement ->
     statement.bindAll(workflowId)
     statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.toRowMap() else null }
@@ -69,25 +91,31 @@ private fun goalSubtaskEventRow(
   issueKey: String,
   subtaskId: Int,
   workflowId: String,
-): Map<String, Any?>? = connection.prepareStatement(
-  "SELECT * FROM goal_subtask_events WHERE issue_key = ? AND subtask_id = ? AND workflow_id = ?",
-).use { statement ->
-  statement.bindAll(issueKey, subtaskId, workflowId)
-  statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.toRowMap() else null }
-}
+): Map<String, Any?>? =
+  connection.prepareStatement(
+    "SELECT * FROM goal_subtask_events WHERE issue_key = ? AND subtask_id = ? AND workflow_id = ?",
+  ).use { statement ->
+    statement.bindAll(issueKey, subtaskId, workflowId)
+    statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.toRowMap() else null }
+  }
 
 private fun goalIssueProgressRow(
   connection: Connection,
   parentWorkflowId: String,
   issueKey: String,
-): Map<String, Any?>? = connection.prepareStatement(
-  "SELECT * FROM goal_issue_progress WHERE parent_workflow_id = ? AND issue_key = ?",
-).use { statement ->
-  statement.bindAll(parentWorkflowId, issueKey)
-  statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.toRowMap() else null }
-}
+): Map<String, Any?>? =
+  connection.prepareStatement(
+    "SELECT * FROM goal_issue_progress WHERE parent_workflow_id = ? AND issue_key = ?",
+  ).use { statement ->
+    statement.bindAll(parentWorkflowId, issueKey)
+    statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.toRowMap() else null }
+  }
 
-private fun markGoalRunSessionEmitted(connection: Connection, columnName: String, workflowId: String) {
+private fun markGoalRunSessionEmitted(
+  connection: Connection,
+  columnName: String,
+  workflowId: String,
+) {
   connection.prepareStatement(
     "UPDATE goal_run_sessions SET $columnName = CURRENT_TIMESTAMP WHERE workflow_id = ?",
   ).use { statement ->
@@ -96,7 +124,12 @@ private fun markGoalRunSessionEmitted(connection: Connection, columnName: String
   }
 }
 
-private fun markGoalSubtaskEventEmitted(connection: Connection, issueKey: String, subtaskId: Int, workflowId: String) {
+private fun markGoalSubtaskEventEmitted(
+  connection: Connection,
+  issueKey: String,
+  subtaskId: Int,
+  workflowId: String,
+) {
   connection.prepareStatement(
     """
     UPDATE goal_subtask_events
@@ -109,7 +142,11 @@ private fun markGoalSubtaskEventEmitted(connection: Connection, issueKey: String
   }
 }
 
-private fun markGoalIssueProgressEmitted(connection: Connection, parentWorkflowId: String, issueKey: String) {
+private fun markGoalIssueProgressEmitted(
+  connection: Connection,
+  parentWorkflowId: String,
+  issueKey: String,
+) {
   connection.prepareStatement(
     """
     UPDATE goal_issue_progress

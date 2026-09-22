@@ -48,24 +48,27 @@ class ReviewClaimVerificationRunner(
     }
     if (request.findings.isEmpty()) {
       return when {
-        !reviewOutputNeedsProseVerification(request.reviewOutput) -> ReviewClaimVerificationOutcome(
-          verdicts = emptyList(),
-          skipReason = "the review pass emitted no findings, so there is nothing to verify",
-        )
-        else -> verifyReviewOutput(
-          ProseVerificationInput(
-            packet = request.packet,
-            reviewOutput = request.reviewOutput,
-            mode = request.mode,
-            launch = request.launch,
-          ),
-        )
+        !reviewOutputNeedsProseVerification(request.reviewOutput) ->
+          ReviewClaimVerificationOutcome(
+            verdicts = emptyList(),
+            skipReason = "the review pass emitted no findings, so there is nothing to verify",
+          )
+        else ->
+          verifyReviewOutput(
+            ProseVerificationInput(
+              packet = request.packet,
+              reviewOutput = request.reviewOutput,
+              mode = request.mode,
+              launch = request.launch,
+            ),
+          )
       }
     }
-    val durableRefs = request.existingVerdicts
-      .filter { it.stage == ReviewStage.VERIFICATION }
-      .map { it.findingRef }
-      .toSet()
+    val durableRefs =
+      request.existingVerdicts
+        .filter { it.stage == ReviewStage.VERIFICATION }
+        .map { it.findingRef }
+        .toSet()
     val pending = request.findings.sortedBy { it.fNumber }.filterNot { it.fNumber in durableRefs }
     if (pending.isEmpty()) {
       return ReviewClaimVerificationOutcome(
@@ -75,24 +78,26 @@ class ReviewClaimVerificationRunner(
     }
     val recordedAt = clock.instant().toString()
     val citationDiagnostics = mutableListOf<ReviewFindingCitationDiagnosticWithFinding>()
-    val verdicts = pending.map { finding ->
-      verifyOne(
-        VerificationFindingInput(
-          packet = request.packet,
-          reviewOutput = request.reviewOutput,
-          finding = finding,
-          mode = request.mode,
-          launch = request.launch,
-          recordedAt = recordedAt,
-        ),
-      ).also { outcome ->
-        citationDiagnostics += outcome.citationDiagnostics
-      }.verdict
-    }
+    val verdicts =
+      pending.map { finding ->
+        verifyOne(
+          VerificationFindingInput(
+            packet = request.packet,
+            reviewOutput = request.reviewOutput,
+            finding = finding,
+            mode = request.mode,
+            launch = request.launch,
+            recordedAt = recordedAt,
+          ),
+        ).also { outcome ->
+          citationDiagnostics += outcome.citationDiagnostics
+        }.verdict
+      }
     return ReviewClaimVerificationOutcome(
-      verdicts = request.existingVerdicts.filter {
-        it.stage == ReviewStage.VERIFICATION && it.findingRef in durableRefs
-      } + verdicts,
+      verdicts =
+        request.existingVerdicts.filter {
+          it.stage == ReviewStage.VERIFICATION && it.findingRef in durableRefs
+        } + verdicts,
       citationDiagnostics = citationDiagnostics,
     )
   }
@@ -104,46 +109,52 @@ class ReviewClaimVerificationRunner(
         "the review phase produced no output to verify",
       )
     }
-    val phaseInput = AgentPhaseInput(
-      input = input.reviewOutput,
-      requestedAction = VERIFY_CLAIMS_ACTION,
-    )
-    val prompt = appendPromptSuffix(
-      proseVerificationPrompt(input.packet, phaseInput, input.mode),
-      input.launch.promptSuffix,
-    )
+    val phaseInput =
+      AgentPhaseInput(
+        input = input.reviewOutput,
+        requestedAction = VERIFY_CLAIMS_ACTION,
+      )
+    val prompt =
+      appendPromptSuffix(
+        proseVerificationPrompt(input.packet, phaseInput, input.mode),
+        input.launch.promptSuffix,
+      )
     if (prompt.toByteArray(Charsets.UTF_8).size.toLong() > input.launch.budget.maxLaneLaunchBytes) {
       return nonSuccessOutcome(
         ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
         "verification phase launch exceeded max_lane_launch_bytes",
       )
     }
-    val outcome = launcher.launch(
-      GoalRunnerSubtaskLaunchRequest(
-        invokedAgentId = input.launch.brokerId,
-        configuredAgentOverrideId = null,
-        skillRunRequest = SkillRunRequest(
-          issueKey = ISSUE_KEY,
-          repoRoot = input.launch.repoRoot,
-          timeout = input.launch.timeout,
-          promptOverride = prompt,
-          modelOverride = input.launch.modelOverride,
+    val outcome =
+      launcher.launch(
+        GoalRunnerSubtaskLaunchRequest(
+          invokedAgentId = input.launch.brokerId,
+          configuredAgentOverrideId = null,
+          skillRunRequest =
+            SkillRunRequest(
+              issueKey = ISSUE_KEY,
+              repoRoot = input.launch.repoRoot,
+              timeout = input.launch.timeout,
+              promptOverride = prompt,
+              modelOverride = input.launch.modelOverride,
+            ),
         ),
-      ),
-    )
-    return when (outcome) {
-      is UnsupportedAgentRunLaunch -> nonSuccessOutcome(
-        ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
-        "unsupported agent: ${outcome.reason}",
       )
+    return when (outcome) {
+      is UnsupportedAgentRunLaunch ->
+        nonSuccessOutcome(
+          ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
+          "unsupported agent: ${outcome.reason}",
+        )
       is AgentRunLaunchFacts -> proseVerificationOutcome(outcome)
     }
   }
 
   private fun proseVerificationOutcome(facts: AgentRunLaunchFacts): ReviewClaimVerificationOutcome {
     launchFailureReason(facts)?.let { reason ->
-      val classified = ReviewStageDegradationSelection.workerFailureReason(reason)
-        ?: ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED
+      val classified =
+        ReviewStageDegradationSelection.workerFailureReason(reason)
+          ?: ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED
       return nonSuccessOutcome(classified, reason, AgentPhaseOutput(facts.stdout))
     }
     if (facts.stdout.isBlank()) {
@@ -160,12 +171,13 @@ class ReviewClaimVerificationRunner(
     reason: ReviewStageDegradationReason,
     detail: String,
     output: AgentPhaseOutput? = null,
-  ): ReviewClaimVerificationOutcome = ReviewClaimVerificationOutcome(
-    verdicts = emptyList(),
-    output = output,
-    skipReason = detail,
-    nonSuccess = ReviewVerificationNonSuccess(reason, detail),
-  )
+  ): ReviewClaimVerificationOutcome =
+    ReviewClaimVerificationOutcome(
+      verdicts = emptyList(),
+      output = output,
+      skipReason = detail,
+      nonSuccess = ReviewVerificationNonSuccess(reason, detail),
+    )
 
   private data class VerificationFindingOutcome(
     val verdict: ReviewFindingVerdict,
@@ -173,19 +185,21 @@ class ReviewClaimVerificationRunner(
   )
 
   private fun verifyOne(input: VerificationFindingInput): VerificationFindingOutcome {
-    val region = citedRegionOf(input.finding)
-      ?: return VerificationFindingOutcome(
-        unresolved(input.finding, input.recordedAt, "finding has no cited file:line region"),
+    val region =
+      citedRegionOf(input.finding)
+        ?: return VerificationFindingOutcome(
+          unresolved(input.finding, input.recordedAt, "finding has no cited file:line region"),
+        )
+    val launch =
+      GovernedReviewVerificationLaunch(
+        packet = input.packet,
+        finding = input.finding,
+        citedRegion = region,
+        evidenceSurfaceRules = ReviewPreparationService.verificationEvidenceSurfaceRules(input.mode),
+        dependencyAllowlist = ReviewDependencyAllowlist(input.packet.dependencyAllowlist.normalized),
+        brokerId = input.launch.brokerId,
+        budget = input.launch.budget,
       )
-    val launch = GovernedReviewVerificationLaunch(
-      packet = input.packet,
-      finding = input.finding,
-      citedRegion = region,
-      evidenceSurfaceRules = ReviewPreparationService.verificationEvidenceSurfaceRules(input.mode),
-      dependencyAllowlist = ReviewDependencyAllowlist(input.packet.dependencyAllowlist.normalized),
-      brokerId = input.launch.brokerId,
-      budget = input.launch.budget,
-    )
     val envelope = launch.toVerificationLaunchEnvelope().asWireMap()
     val launchBytes = JsonCodec.mapToJsonString(envelope).toByteArray(Charsets.UTF_8).size.toLong()
     if (launchBytes > input.launch.budget.maxLaneLaunchBytes) {
@@ -200,27 +214,31 @@ class ReviewClaimVerificationRunner(
       )
     }
     envelopeValidator.validate(envelope, "review verification launch for ${input.finding.fNumber}")
-    val prompt = appendPromptSuffix(
-      verificationPrompt(launch, AgentPhaseInput(input.reviewOutput, VERIFY_CLAIMS_ACTION)),
-      input.launch.promptSuffix,
-    )
-    val outcome = launcher.launch(
-      GoalRunnerSubtaskLaunchRequest(
-        invokedAgentId = input.launch.brokerId,
-        configuredAgentOverrideId = null,
-        skillRunRequest = SkillRunRequest(
-          issueKey = ISSUE_KEY,
-          repoRoot = input.launch.repoRoot,
-          timeout = input.launch.timeout,
-          promptOverride = prompt,
-          modelOverride = input.launch.modelOverride,
-        ),
-      ),
-    )
-    return when (outcome) {
-      is UnsupportedAgentRunLaunch -> VerificationFindingOutcome(
-        unresolved(input.finding, input.recordedAt, "unsupported agent: ${outcome.reason}"),
+    val prompt =
+      appendPromptSuffix(
+        verificationPrompt(launch, AgentPhaseInput(input.reviewOutput, VERIFY_CLAIMS_ACTION)),
+        input.launch.promptSuffix,
       )
+    val outcome =
+      launcher.launch(
+        GoalRunnerSubtaskLaunchRequest(
+          invokedAgentId = input.launch.brokerId,
+          configuredAgentOverrideId = null,
+          skillRunRequest =
+            SkillRunRequest(
+              issueKey = ISSUE_KEY,
+              repoRoot = input.launch.repoRoot,
+              timeout = input.launch.timeout,
+              promptOverride = prompt,
+              modelOverride = input.launch.modelOverride,
+            ),
+        ),
+      )
+    return when (outcome) {
+      is UnsupportedAgentRunLaunch ->
+        VerificationFindingOutcome(
+          unresolved(input.finding, input.recordedAt, "unsupported agent: ${outcome.reason}"),
+        )
       is AgentRunLaunchFacts -> fromLaunchFacts(input.finding, outcome, input.recordedAt)
     }
   }
@@ -233,18 +251,23 @@ class ReviewClaimVerificationRunner(
     launchFailureReason(facts)?.let { reason ->
       return VerificationFindingOutcome(unresolved(finding, recordedAt, reason))
     }
-    val worker = parseWorkerResult(facts.stdout)
-      ?: return VerificationFindingOutcome(unresolved(finding, recordedAt, "unparseable verification output"))
-    val diagnostics = worker.citationDiagnostics.map { diagnostic ->
-      diagnostic.withFindingRef(finding.fNumber)
-    }
+    val worker =
+      parseWorkerResult(facts.stdout)
+        ?: return VerificationFindingOutcome(unresolved(finding, recordedAt, "unparseable verification output"))
+    val diagnostics =
+      worker.citationDiagnostics.map { diagnostic ->
+        diagnostic.withFindingRef(finding.fNumber)
+      }
     return VerificationFindingOutcome(
       verdict = ReviewClaimVerdictAdmission.admit(finding, worker, recordedAt).verdict,
       citationDiagnostics = diagnostics,
     )
   }
 
-  private fun verificationPrompt(launch: GovernedReviewVerificationLaunch, phaseInput: AgentPhaseInput): String =
+  private fun verificationPrompt(
+    launch: GovernedReviewVerificationLaunch,
+    phaseInput: AgentPhaseInput,
+  ): String =
     buildString {
       appendLine("Verify exactly one review finding against the cited region and the delta.")
       appendLine("Phase input:")
@@ -276,16 +299,17 @@ class ReviewClaimVerificationRunner(
     packet: ReviewContextPacket,
     phaseInput: AgentPhaseInput,
     mode: ResolvedReviewExecutionMode,
-  ): String = buildString {
-    appendLine("Verify each claim in the review phase output against the repository delta.")
-    appendLine("Phase input:")
-    appendLine(phaseInput.input)
-    appendLine("Requested action: ${phaseInput.requestedAction}")
-    appendLine("Review is read-only: do not build, compile, or run tests.")
-    appendLine("Verification depth: ${mode.name.lowercase()}.")
-    appendLine("Delta: ${packet.baseRevision}..${packet.headRevision}")
-    appendLine("Return free-form verification prose. The output string is authoritative.")
-  }
+  ): String =
+    buildString {
+      appendLine("Verify each claim in the review phase output against the repository delta.")
+      appendLine("Phase input:")
+      appendLine(phaseInput.input)
+      appendLine("Requested action: ${phaseInput.requestedAction}")
+      appendLine("Review is read-only: do not build, compile, or run tests.")
+      appendLine("Verification depth: ${mode.name.lowercase()}.")
+      appendLine("Delta: ${packet.baseRevision}..${packet.headRevision}")
+      appendLine("Return free-form verification prose. The output string is authoritative.")
+    }
 
   companion object {
     const val ISSUE_KEY: String = "code-review-verification"
@@ -309,19 +333,24 @@ private data class VerificationFindingInput(
   val recordedAt: String,
 )
 
-internal fun appendPromptSuffix(prompt: String, suffix: String): String {
+internal fun appendPromptSuffix(
+  prompt: String,
+  suffix: String,
+): String {
   if (suffix.isEmpty()) return prompt
   return prompt.trimEnd() + "\n\n" + suffix
 }
 
 internal fun citedRegionOf(finding: ParallelReviewMergedFinding): ReviewCitedRegion? {
-  val rawPath = finding.repositoryPath ?: finding.location.substringBefore(
-    ':',
-  ).takeIf { it.isNotBlank() } ?: return null
-  val path = runCatching {
-    requireRepositoryRelativePath(rawPath.trim())
-    rawPath.trim()
-  }.getOrNull() ?: return null
+  val rawPath =
+    finding.repositoryPath ?: finding.location.substringBefore(
+      ':',
+    ).takeIf { it.isNotBlank() } ?: return null
+  val path =
+    runCatching {
+      requireRepositoryRelativePath(rawPath.trim())
+      rawPath.trim()
+    }.getOrNull() ?: return null
   val line = finding.line ?: finding.location.substringAfter(':', "").toIntOrNull()?.takeIf { it >= 1 } ?: return null
   return runCatching { ReviewCitedRegion(path, line, line) }.getOrNull()
 }
@@ -357,31 +386,34 @@ internal fun parseCitations(raw: Any?): List<ReviewFindingCitation> = ReviewFind
 
 internal fun parseCitationsWithDiagnostics(raw: Any?) = ReviewFindingFieldCodec.decodeCitations(raw)
 
-internal fun intValue(raw: Any?): Int? = when (raw) {
-  is Int -> raw
-  is Long -> raw.toInt()
-  is String -> raw.toIntOrNull()
-  else -> null
-}
+internal fun intValue(raw: Any?): Int? =
+  when (raw) {
+    is Int -> raw
+    is Long -> raw.toInt()
+    is String -> raw.toIntOrNull()
+    else -> null
+  }
 
-internal fun launchFailureReason(facts: AgentRunLaunchFacts): String? = when {
-  facts.timedOut -> "agent timed out"
-  facts.spawnFailed -> "agent process failed to spawn"
-  facts.interrupted -> "agent was interrupted"
-  facts.exitStatus == null -> "agent exited with unknown status"
-  facts.exitStatus != 0 -> "agent exited with status ${facts.exitStatus}"
-  facts.stdoutTruncated -> "agent output exceeded the retention cap before completion"
-  else -> null
-}
+internal fun launchFailureReason(facts: AgentRunLaunchFacts): String? =
+  when {
+    facts.timedOut -> "agent timed out"
+    facts.spawnFailed -> "agent process failed to spawn"
+    facts.interrupted -> "agent was interrupted"
+    facts.exitStatus == null -> "agent exited with unknown status"
+    facts.exitStatus != 0 -> "agent exited with status ${facts.exitStatus}"
+    facts.stdoutTruncated -> "agent output exceeded the retention cap before completion"
+    else -> null
+  }
 
 private fun unresolved(
   finding: ParallelReviewMergedFinding,
   recordedAt: String,
   reason: String,
-): ReviewFindingVerdict = ReviewFindingVerdict(
-  stage = ReviewStage.VERIFICATION,
-  findingRef = finding.fNumber,
-  claimVerdict = ReviewClaimVerdict.UNRESOLVED,
-  recordedAt = recordedAt,
-  rejectionReason = reason,
-)
+): ReviewFindingVerdict =
+  ReviewFindingVerdict(
+    stage = ReviewStage.VERIFICATION,
+    findingRef = finding.fNumber,
+    claimVerdict = ReviewClaimVerdict.UNRESOLVED,
+    recordedAt = recordedAt,
+    rejectionReason = reason,
+  )

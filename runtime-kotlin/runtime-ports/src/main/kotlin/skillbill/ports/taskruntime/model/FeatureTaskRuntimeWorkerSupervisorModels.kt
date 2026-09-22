@@ -9,20 +9,25 @@ data class FeatureTaskRuntimeProcessIdentity(
 
 sealed interface FeatureTaskRuntimeProcessInspection {
   data object ExactLive : FeatureTaskRuntimeProcessInspection
+
   data object NotRunning : FeatureTaskRuntimeProcessInspection
+
   data class OwnershipMismatch(val reason: String) : FeatureTaskRuntimeProcessInspection
+
   data class Unsupported(val reason: String) : FeatureTaskRuntimeProcessInspection
 }
 
-fun FeatureTaskRuntimeProcessInspection.isConfirmedDead(): Boolean = when (this) {
-  FeatureTaskRuntimeProcessInspection.NotRunning -> true
-  FeatureTaskRuntimeProcessInspection.ExactLive -> false
-  is FeatureTaskRuntimeProcessInspection.OwnershipMismatch -> false
-  is FeatureTaskRuntimeProcessInspection.Unsupported -> false
-}
+fun FeatureTaskRuntimeProcessInspection.isConfirmedDead(): Boolean =
+  when (this) {
+    FeatureTaskRuntimeProcessInspection.NotRunning -> true
+    FeatureTaskRuntimeProcessInspection.ExactLive -> false
+    is FeatureTaskRuntimeProcessInspection.OwnershipMismatch -> false
+    is FeatureTaskRuntimeProcessInspection.Unsupported -> false
+  }
 
 sealed interface FeatureTaskRuntimeHeartbeatTick {
   data object Renewed : FeatureTaskRuntimeHeartbeatTick
+
   data class FencingLost(val reason: String) : FeatureTaskRuntimeHeartbeatTick
 }
 

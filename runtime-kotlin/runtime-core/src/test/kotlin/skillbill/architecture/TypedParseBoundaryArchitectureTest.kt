@@ -6,9 +6,10 @@ import kotlin.test.assertEquals
 class TypedParseBoundaryArchitectureTest {
   @Test
   fun `named untrusted-input parse boundaries do not use forbidden malformed-input reporters`() {
-    val violations = ArchitectureScanSupport.parseBoundaryViolations(
-      PrincipleEnforcementInventory.parseBoundarySites,
-    )
+    val violations =
+      ArchitectureScanSupport.parseBoundaryViolations(
+        PrincipleEnforcementInventory.parseBoundarySites,
+      )
     assertEquals(
       emptyList(),
       violations,
@@ -26,13 +27,15 @@ class TypedParseBoundaryArchitectureTest {
         return value.toString()
       }
       """.trimIndent()
-    val violations = ArchitectureScanSupport.parseBoundaryViolationsInSource(
-      source = fixture,
-      site = ArchitectureScanSupport.ParseBoundarySite(
-        relativePath = "Synthetic.kt",
-        functionNames = setOf("decodeBad"),
-      ),
-    )
+    val violations =
+      ArchitectureScanSupport.parseBoundaryViolationsInSource(
+        source = fixture,
+        site =
+          ArchitectureScanSupport.ParseBoundarySite(
+            relativePath = "Synthetic.kt",
+            functionNames = setOf("decodeBad"),
+          ),
+      )
     assertEquals(
       listOf(
         "Synthetic.kt::decodeBad reports malformed external input via error(); use a typed contract failure instead.",

@@ -24,8 +24,9 @@ data class Fraction(val numerator: Int, val denominator: Int) : Comparable<Fract
   override fun compareTo(other: Fraction): Int =
     numerator.toLong() * other.denominator compareTo other.numerator.toLong() * denominator
 
-  fun percentage(): String = BigDecimal(numerator).multiply(BigDecimal(PERCENT_SCALE))
-    .divide(BigDecimal(denominator), PERCENTAGE_DECIMAL_PLACES, RoundingMode.HALF_UP).toPlainString() + "%"
+  fun percentage(): String =
+    BigDecimal(numerator).multiply(BigDecimal(PERCENT_SCALE))
+      .divide(BigDecimal(denominator), PERCENTAGE_DECIMAL_PLACES, RoundingMode.HALF_UP).toPlainString() + "%"
 }
 
 internal enum class AuthoredFileRole { BASELINE, SPECIALIST, SIDECAR }
@@ -77,10 +78,11 @@ internal data class SubstanceViolation(
   val target: String,
   val rule: String,
 ) {
-  fun format(): String = buildString {
-    append("platform pack substance [$id] pack=$pack role=$areaOrRole files=${files.joinToString(",")}")
-    append(" measured=$measured required=$target: $rule")
-  }
+  fun format(): String =
+    buildString {
+      append("platform pack substance [$id] pack=$pack role=$areaOrRole files=${files.joinToString(",")}")
+      append(" measured=$measured required=$target: $rule")
+    }
 }
 
 internal data class PlatformPackSubstanceReport(

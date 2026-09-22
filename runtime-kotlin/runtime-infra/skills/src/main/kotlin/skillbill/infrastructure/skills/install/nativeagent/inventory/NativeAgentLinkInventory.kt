@@ -26,28 +26,29 @@ data class NativeAgentLinkInventoryEntry(
 object NativeAgentLinkInventory {
   private val mapper = ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
   private val schema: JsonSchema
-    get() = ClasspathContractSchemaLoader.compiledSchema(
-      CompiledSchemaRequest(
-        cacheKey = NativeAgentLinkInventorySchemaPaths.CLASSPATH_RESOURCE,
-        classLoader = javaClass.classLoader,
-        classpathResource = NativeAgentLinkInventorySchemaPaths.CLASSPATH_RESOURCE,
-        missingResource = {
-          InvalidNativeAgentLinkInventorySchemaError(
-            "Canonical native-agent link inventory schema resource is missing from the classpath.",
-          )
-        },
-        processingFailure = { cause ->
-          InvalidNativeAgentLinkInventorySchemaError(
-            cause.message ?: cause::class.simpleName.orEmpty(),
-            cause,
-          )
-        },
-        loadFailureLogger = {},
-        expectedSchemaId = NativeAgentLinkInventorySchemaPaths.EXPECTED_SCHEMA_ID,
-        expectedContractVersion = NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION,
-        identityFailure = { reason -> InvalidNativeAgentLinkInventorySchemaError(reason) },
-      ),
-    )
+    get() =
+      ClasspathContractSchemaLoader.compiledSchema(
+        CompiledSchemaRequest(
+          cacheKey = NativeAgentLinkInventorySchemaPaths.CLASSPATH_RESOURCE,
+          classLoader = javaClass.classLoader,
+          classpathResource = NativeAgentLinkInventorySchemaPaths.CLASSPATH_RESOURCE,
+          missingResource = {
+            InvalidNativeAgentLinkInventorySchemaError(
+              "Canonical native-agent link inventory schema resource is missing from the classpath.",
+            )
+          },
+          processingFailure = { cause ->
+            InvalidNativeAgentLinkInventorySchemaError(
+              cause.message ?: cause::class.simpleName.orEmpty(),
+              cause,
+            )
+          },
+          loadFailureLogger = {},
+          expectedSchemaId = NativeAgentLinkInventorySchemaPaths.EXPECTED_SCHEMA_ID,
+          expectedContractVersion = NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION,
+          identityFailure = { reason -> InvalidNativeAgentLinkInventorySchemaError(reason) },
+        ),
+      )
 
   internal fun reconcile(request: NativeAgentLinkInventoryReconcileRequest) {
     val path = NativeAgentLinkInventoryPaths.inventoryPath(request.home)
@@ -76,7 +77,11 @@ object NativeAgentLinkInventory {
     }
   }
 
-  fun read(home: Path, managedRoots: List<Path>, sourceRoot: Path? = null): List<NativeAgentLinkInventoryEntry> {
+  fun read(
+    home: Path,
+    managedRoots: List<Path>,
+    sourceRoot: Path? = null,
+  ): List<NativeAgentLinkInventoryEntry> {
     val path = NativeAgentLinkInventoryPaths.inventoryPath(home)
     if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
       return sourceRoot?.let {
@@ -108,7 +113,11 @@ internal fun isCanonicalNativeAgentArtifactTarget(
   return matchesManagedNativeAgentCacheRoot(home, root, logicalName)
 }
 
-private fun matchesManagedNativeAgentCacheRoot(home: Path, root: Path, logicalName: String): Boolean {
+private fun matchesManagedNativeAgentCacheRoot(
+  home: Path,
+  root: Path,
+  logicalName: String,
+): Boolean {
   val normalizedHome = home.toAbsolutePath().normalize()
   val parent = root.parent ?: return false
   val leaf = root.fileName.toString()
@@ -122,13 +131,17 @@ private fun matchesManagedNativeAgentCacheRoot(home: Path, root: Path, logicalNa
   }
 }
 
-private fun isLegacyGeneratedRepositoryArtifactTarget(root: Path, logicalName: String): Boolean {
+private fun isLegacyGeneratedRepositoryArtifactTarget(
+  root: Path,
+  logicalName: String,
+): Boolean {
   val owner = root.fileName.toString()
   val authoredSurface = root.parent
   val matchesOwner = logicalName == owner || logicalName.startsWith("$owner-")
   val isBaseSkill = authoredSurface?.fileName?.toString() == "skills"
-  val isPlatformReview = authoredSurface?.fileName?.toString() == "code-review" &&
-    authoredSurface.parent?.parent?.fileName?.toString() == "platform-packs"
+  val isPlatformReview =
+    authoredSurface?.fileName?.toString() == "code-review" &&
+      authoredSurface.parent?.parent?.fileName?.toString() == "platform-packs"
   return matchesOwner && (isBaseSkill || isPlatformReview)
 }
 

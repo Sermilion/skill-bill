@@ -11,14 +11,16 @@ import kotlin.test.assertFailsWith
 class FeatureTaskRuntimeValidationEvidenceTest {
   @Test
   fun `valid evidence preserves command and exit code through wire round trip`() {
-    val evidence = FeatureTaskRuntimeValidationEvidence(
-      listOf(FeatureTaskRuntimeValidationCommandResult("./gradlew check", 0)),
-    )
+    val evidence =
+      FeatureTaskRuntimeValidationEvidence(
+        listOf(FeatureTaskRuntimeValidationCommandResult("./gradlew check", 0)),
+      )
 
-    val restored = FeatureTaskRuntimeValidationEvidence.fromArtifactMap(
-      evidence.toArtifactMap(),
-      "test",
-    )
+    val restored =
+      FeatureTaskRuntimeValidationEvidence.fromArtifactMap(
+        evidence.toArtifactMap(),
+        "test",
+      )
 
     assertEquals("./gradlew check", restored.results.single().command)
     assertEquals(0, restored.results.single().exitCode)
@@ -33,9 +35,10 @@ class FeatureTaskRuntimeValidationEvidenceTest {
       FeatureTaskRuntimeValidationEvidence.fromArtifactMap(
         mapOf(
           ValidationEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
-          ValidationEvidencePayloadKeys.RESULTS to listOf(
-            mapOf(ValidationEvidencePayloadKeys.COMMAND to "./gradlew check"),
-          ),
+          ValidationEvidencePayloadKeys.RESULTS to
+            listOf(
+              mapOf(ValidationEvidencePayloadKeys.COMMAND to "./gradlew check"),
+            ),
         ),
         "malformed",
       )
@@ -44,9 +47,10 @@ class FeatureTaskRuntimeValidationEvidenceTest {
 
   @Test
   fun `non-zero final result cannot satisfy completion`() {
-    val evidence = FeatureTaskRuntimeValidationEvidence(
-      listOf(FeatureTaskRuntimeValidationCommandResult("./gradlew check", 1)),
-    )
+    val evidence =
+      FeatureTaskRuntimeValidationEvidence(
+        listOf(FeatureTaskRuntimeValidationCommandResult("./gradlew check", 1)),
+      )
 
     assertFailsWith<InvalidFeatureTaskRuntimeValidationEvidenceSchemaError> {
       evidence.requireSuccessfulResult("test")
@@ -55,12 +59,13 @@ class FeatureTaskRuntimeValidationEvidenceTest {
 
   @Test
   fun `required command cannot be masked by a later unrelated success`() {
-    val evidence = FeatureTaskRuntimeValidationEvidence(
-      listOf(
-        FeatureTaskRuntimeValidationCommandResult("./gradlew check", 1),
-        FeatureTaskRuntimeValidationCommandResult("unrelated", 0),
-      ),
-    )
+    val evidence =
+      FeatureTaskRuntimeValidationEvidence(
+        listOf(
+          FeatureTaskRuntimeValidationCommandResult("./gradlew check", 1),
+          FeatureTaskRuntimeValidationCommandResult("unrelated", 0),
+        ),
+      )
 
     assertFailsWith<InvalidFeatureTaskRuntimeValidationEvidenceSchemaError> {
       evidence.requireSuccessfulCommand("./gradlew check", "test")
@@ -69,20 +74,22 @@ class FeatureTaskRuntimeValidationEvidenceTest {
 
   @Test
   fun `provider extended result metadata stays admissible`() {
-    val restored = FeatureTaskRuntimeValidationEvidence.fromArtifactMap(
-      mapOf(
-        ValidationEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
-        ValidationEvidencePayloadKeys.RESULTS to listOf(
-          mapOf(
-            ValidationEvidencePayloadKeys.COMMAND to "./gradlew check",
-            ValidationEvidencePayloadKeys.EXIT_CODE to 0,
-            "signal" to mapOf("provider" to listOf("opaque")),
-            "provider_metadata" to "opaque",
-          ),
+    val restored =
+      FeatureTaskRuntimeValidationEvidence.fromArtifactMap(
+        mapOf(
+          ValidationEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
+          ValidationEvidencePayloadKeys.RESULTS to
+            listOf(
+              mapOf(
+                ValidationEvidencePayloadKeys.COMMAND to "./gradlew check",
+                ValidationEvidencePayloadKeys.EXIT_CODE to 0,
+                "signal" to mapOf("provider" to listOf("opaque")),
+                "provider_metadata" to "opaque",
+              ),
+            ),
         ),
-      ),
-      "provider-extended",
-    )
+        "provider-extended",
+      )
 
     assertEquals(0, restored.results.single().exitCode)
     assertEquals("./gradlew check", restored.results.single().command)
@@ -90,17 +97,19 @@ class FeatureTaskRuntimeValidationEvidenceTest {
 
   @Test
   fun `multiple command results preserve each identity and exit code`() {
-    val evidence = FeatureTaskRuntimeValidationEvidence(
-      listOf(
-        FeatureTaskRuntimeValidationCommandResult("./gradlew check", 1),
-        FeatureTaskRuntimeValidationCommandResult("./gradlew check --offline", 0),
-      ),
-    )
+    val evidence =
+      FeatureTaskRuntimeValidationEvidence(
+        listOf(
+          FeatureTaskRuntimeValidationCommandResult("./gradlew check", 1),
+          FeatureTaskRuntimeValidationCommandResult("./gradlew check --offline", 0),
+        ),
+      )
 
-    val restored = FeatureTaskRuntimeValidationEvidence.fromArtifactMap(
-      evidence.toArtifactMap(),
-      "multiple",
-    )
+    val restored =
+      FeatureTaskRuntimeValidationEvidence.fromArtifactMap(
+        evidence.toArtifactMap(),
+        "multiple",
+      )
 
     assertEquals(2, restored.results.size)
     assertEquals(1, restored.results.first().exitCode)

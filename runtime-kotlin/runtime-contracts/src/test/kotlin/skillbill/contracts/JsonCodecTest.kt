@@ -8,6 +8,7 @@ import java.math.BigInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
 class JsonCodecTest {
   @Test
   fun `strict array parse accepts whitespace formatted empty arrays`() {

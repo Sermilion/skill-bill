@@ -39,15 +39,17 @@ class InstallerShellReconcileTest {
     Files.writeString(liveSkill, "USER EDIT SENTINEL\n")
 
     val newUpstreamBody = "---\nname: bill-sample\ndescription: Sample skill.\n---\n\nUPSTREAM ADOPT BODY.\n"
-    val second = runInstallerShellRaw(
-      input = "1\nclaude\nbase only\noff\nskip\n",
-      reuse = first,
-      scenario = ReconcileScenario(
-        mutateUpstream = { repoRoot ->
-          Files.writeString(repoRoot.resolve("skills/bill-sample/content.md"), newUpstreamBody)
-        },
-      ),
-    )
+    val second =
+      runInstallerShellRaw(
+        input = "1\nclaude\nbase only\noff\nskip\n",
+        reuse = first,
+        scenario =
+          ReconcileScenario(
+            mutateUpstream = { repoRoot ->
+              Files.writeString(repoRoot.resolve("skills/bill-sample/content.md"), newUpstreamBody)
+            },
+          ),
+      )
 
     assertEquals(0, second.exitCode, second.output)
     assertEquals(
@@ -105,10 +107,11 @@ class InstallerShellReconcileTest {
 
   @Test
   fun `reconcile failure retries once with clean copied source reset`() {
-    val run = runInstallerShellRaw(
-      input = "1\nclaude\nbase only\noff\nskip\n",
-      scenario = ReconcileScenario(reconcileFailOnce = true),
-    )
+    val run =
+      runInstallerShellRaw(
+        input = "1\nclaude\nbase only\noff\nskip\n",
+        scenario = ReconcileScenario(reconcileFailOnce = true),
+      )
 
     assertEquals(0, run.exitCode, run.output)
     assertContains(run.output, "retrying once with a clean copied-source reset")
@@ -166,23 +169,24 @@ class InstallerShellReconcileTest {
     InstallerShellFixtures.seedInstallerRuntime(repoRoot)
     scenario.mutateUpstream?.invoke(repoRoot)
 
-    val process = ProcessBuilder("bash", repoRoot.resolve("install.sh").toString())
-      .directory(repoRoot.toFile())
-      .redirectErrorStream(true)
-      .apply {
-        environment()["HOME"] = home.toString()
-        environment()["SKILL_BILL_BIN_DIR"] = binDir.toString()
-        environment()["SKILL_BILL_SKIP_RUNTIME_DISTRIBUTION_BUILD"] = "1"
-        environment()["SKILL_BILL_SKIP_PREINSTALL_UNINSTALL"] = "1"
-        environment()["SKILL_BILL_TEST_RUNTIME_LOG"] = logPath.toString()
-        environment().remove("SKILL_BILL_GOAL_CONTINUATION")
-        environment().remove("DISPLAY")
-        environment().remove("WAYLAND_DISPLAY")
-        if (scenario.reconcileFailOnce) {
-          environment()["SKILL_BILL_FAKE_RECONCILE_FAIL_ONCE"] = "1"
+    val process =
+      ProcessBuilder("bash", repoRoot.resolve("install.sh").toString())
+        .directory(repoRoot.toFile())
+        .redirectErrorStream(true)
+        .apply {
+          environment()["HOME"] = home.toString()
+          environment()["SKILL_BILL_BIN_DIR"] = binDir.toString()
+          environment()["SKILL_BILL_SKIP_RUNTIME_DISTRIBUTION_BUILD"] = "1"
+          environment()["SKILL_BILL_SKIP_PREINSTALL_UNINSTALL"] = "1"
+          environment()["SKILL_BILL_TEST_RUNTIME_LOG"] = logPath.toString()
+          environment().remove("SKILL_BILL_GOAL_CONTINUATION")
+          environment().remove("DISPLAY")
+          environment().remove("WAYLAND_DISPLAY")
+          if (scenario.reconcileFailOnce) {
+            environment()["SKILL_BILL_FAKE_RECONCILE_FAIL_ONCE"] = "1"
+          }
         }
-      }
-      .start()
+        .start()
     process.outputStream.bufferedWriter().use { writer -> writer.write(input) }
     val output = process.inputStream.bufferedReader().readText()
     val exitCode = process.waitFor()

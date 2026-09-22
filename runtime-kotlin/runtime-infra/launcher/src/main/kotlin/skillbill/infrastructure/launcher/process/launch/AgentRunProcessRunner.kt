@@ -28,14 +28,16 @@ fun interface AgentRunIdlePolicy {
   fun extendIdleWindow(signals: AgentRunIdleSignals): Boolean
 
   companion object {
-    val HEARTBEAT_EXTENDED: AgentRunIdlePolicy = AgentRunIdlePolicy { signals ->
-      signals.nowNanos - signals.lastLiveHeartbeatNanos < signals.idleTimeoutNanos
-    }
+    val HEARTBEAT_EXTENDED: AgentRunIdlePolicy =
+      AgentRunIdlePolicy { signals ->
+        signals.nowNanos - signals.lastLiveHeartbeatNanos < signals.idleTimeoutNanos
+      }
     val DB_PROGRESS_ONLY: AgentRunIdlePolicy = AgentRunIdlePolicy { false }
 
-    val OUTPUT_EXTENDED: AgentRunIdlePolicy = AgentRunIdlePolicy { signals ->
-      signals.lastOutputNanos?.let { observed -> signals.nowNanos - observed < signals.idleTimeoutNanos } == true
-    }
+    val OUTPUT_EXTENDED: AgentRunIdlePolicy =
+      AgentRunIdlePolicy { signals ->
+        signals.lastOutputNanos?.let { observed -> signals.nowNanos - observed < signals.idleTimeoutNanos } == true
+      }
   }
 }
 
@@ -51,10 +53,8 @@ data class AgentRunProcessResult(
   val interrupted: Boolean,
   val spawnFailed: Boolean,
   val liveness: AgentRunLivenessSnapshot? = null,
-
   val processStarted: Boolean = !spawnFailed,
   val mcpStartupObserved: Boolean = false,
-
   val stdoutTruncated: Boolean = false,
   val stdoutByteSize: Long = stdoutBytes.size.toLong(),
   val stdoutSha256: String = launcherSha256Hex(stdoutBytes),

@@ -11,10 +11,11 @@ import kotlin.test.assertNull
 class FeatureTaskRuntimeModelResolverTest {
   @Test
   fun `cli directive wins over matrix directive`() {
-    val assignment = FeatureTaskRuntimeModelAssignment(
-      perPhaseDirectives = mapOf("plan" to PhaseModelDirective("cli-model", "high")),
-      matrix = matrix(),
-    )
+    val assignment =
+      FeatureTaskRuntimeModelAssignment(
+        perPhaseDirectives = mapOf("plan" to PhaseModelDirective("cli-model", "high")),
+        matrix = matrix(),
+      )
 
     assertEquals(
       PhaseModelDirective("cli-model", "high"),
@@ -54,10 +55,12 @@ class FeatureTaskRuntimeModelResolverTest {
     )
   }
 
-  private fun matrix(): ExecutionMatrix = ExecutionMatrix(
-    agents = mapOf(
-      InstallAgent.CLAUDE to mapOf(ExecutionTier.REASONING to PhaseModelDirective("claude-opus", "high")),
-      InstallAgent.CODEX to mapOf(ExecutionTier.REASONING to PhaseModelDirective("gpt-sol", "xhigh")),
-    ),
-  )
+  private fun matrix(): ExecutionMatrix =
+    ExecutionMatrix(
+      agents =
+        mapOf(
+          InstallAgent.CLAUDE to mapOf(ExecutionTier.REASONING to PhaseModelDirective("claude-opus", "high")),
+          InstallAgent.CODEX to mapOf(ExecutionTier.REASONING to PhaseModelDirective("gpt-sol", "xhigh")),
+        ),
+    )
 }

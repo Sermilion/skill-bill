@@ -11,28 +11,31 @@ import kotlin.test.assertTrue
 class DecompositionManifestArchitectureTest {
   private val runtimeRoot: Path = ArchitectureScanSupport.runtimeRoot
   private val infraWorkflowModule = RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:workflow")
-  private val domainDecompositionManifestRuntimeSeamTokens = listOf(
-    "DecompositionManifestSchemaValidator",
-    "validateYamlText",
-    "YAMLMapper",
-    "readTree(",
-    "readValue(",
-    "writeValueAsString(",
-    "fun encodeYaml",
-    "fun decodeYaml",
-  )
+  private val domainDecompositionManifestRuntimeSeamTokens =
+    listOf(
+      "DecompositionManifestSchemaValidator",
+      "validateYamlText",
+      "YAMLMapper",
+      "readTree(",
+      "readValue(",
+      "writeValueAsString(",
+      "fun encodeYaml",
+      "fun decodeYaml",
+    )
 
   @Test
   fun `decomposition manifest schema validation stays at application seams`() {
-    val architecture = Files.readString(
-      runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"),
-    )
-    val applicationSeam = Files.readString(
-      runtimeRoot.resolve(
-        "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/decomposition/" +
-          "DecompositionManifestFileWrites.kt",
-      ),
-    )
+    val architecture =
+      Files.readString(
+        runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"),
+      )
+    val applicationSeam =
+      Files.readString(
+        runtimeRoot.resolve(
+          "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/decomposition/" +
+            "DecompositionManifestFileWrites.kt",
+        ),
+      )
 
     assertContains(architecture, "decomposition-manifest file-store ports")
 
@@ -54,69 +57,74 @@ class DecompositionManifestArchitectureTest {
       "Application seam must not reference the concrete schema validator directly.",
     )
 
-    val infraStoreSeam = Files.readString(
-      runtimeRoot.resolve(
-        "$infraWorkflowModule/src/main/kotlin/skillbill/infrastructure/workflow/decomposition/" +
-          "FileSystemDecompositionManifestFileStore.kt",
-      ),
-    )
+    val infraStoreSeam =
+      Files.readString(
+        runtimeRoot.resolve(
+          "$infraWorkflowModule/src/main/kotlin/skillbill/infrastructure/workflow/decomposition/" +
+            "FileSystemDecompositionManifestFileStore.kt",
+        ),
+      )
     assertContains(infraStoreSeam, "YAMLMapper")
     assertContains(infraStoreSeam, "writeValueAsString")
   }
 
   @Test
   fun `domain workflow code does not own decomposition manifest schema or YAML seams`() {
-    val domainWorkflowRoot = runtimeRoot.resolve(
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow",
-    )
+    val domainWorkflowRoot =
+      runtimeRoot.resolve(
+        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow",
+      )
 
     val validatorPortFile =
       domainWorkflowRoot.resolve("decomposition/DecompositionManifestValidator.kt").normalize()
-    val violations = Files.walk(domainWorkflowRoot).use { paths ->
-      paths
-        .filter { path -> path.isRegularFile() && path.toString().endsWith(".kt") }
-        .filter { path -> path.normalize() != validatorPortFile }
-        .flatMap { path ->
-          val text = Files.readString(path)
-          val tokens = domainDecompositionManifestRuntimeSeamTokens.filter { token -> text.contains(token) }
-          tokens
-            .map { token -> "${runtimeRoot.relativize(path)} contains $token" }
-            .stream()
-        }
-        .toList()
-    }
+    val violations =
+      Files.walk(domainWorkflowRoot).use { paths ->
+        paths
+          .filter { path -> path.isRegularFile() && path.toString().endsWith(".kt") }
+          .filter { path -> path.normalize() != validatorPortFile }
+          .flatMap { path ->
+            val text = Files.readString(path)
+            val tokens = domainDecompositionManifestRuntimeSeamTokens.filter { token -> text.contains(token) }
+            tokens
+              .map { token -> "${runtimeRoot.relativize(path)} contains $token" }
+              .stream()
+          }
+          .toList()
+      }
 
     assertTrue(violations.isEmpty(), violations.joinToString(separator = "\n"))
   }
 
   @Test
   fun `application decomposition runtime artifact emission uses validated seam`() {
-    val applicationRoot = runtimeRoot.resolve(
-      "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application",
-    )
+    val applicationRoot =
+      runtimeRoot.resolve(
+        "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application",
+      )
     val allowedRawWireMapFile = applicationRoot.resolve("decomposition/DecompositionManifestFileWrites.kt").normalize()
-    val violations = Files.walk(applicationRoot).use { paths ->
-      paths
-        .filter { path -> path.isRegularFile() && path.toString().endsWith(".kt") }
-        .filter { path -> path.normalize() != allowedRawWireMapFile }
-        .flatMap { path ->
-          val text = Files.readString(path)
-          buildList {
-            if (text.contains(".toWireMap()") || text.contains("toWireMap(")) {
-              add("${runtimeRoot.relativize(path)} calls toWireMap directly")
-            }
-            decompositionRuntimeEmissionPatterns.forEach { pattern ->
-              pattern.findAll(text).forEach { match ->
-                val emissionExpression = match.value
-                if (!emissionExpression.contains("encodeManifestWireMap")) {
-                  add("${runtimeRoot.relativize(path)} emits decomposition_runtime without validated map seam")
+    val violations =
+      Files.walk(applicationRoot).use { paths ->
+        paths
+          .filter { path -> path.isRegularFile() && path.toString().endsWith(".kt") }
+          .filter { path -> path.normalize() != allowedRawWireMapFile }
+          .flatMap { path ->
+            val text = Files.readString(path)
+            buildList {
+              if (text.contains(".toWireMap()") || text.contains("toWireMap(")) {
+                add("${runtimeRoot.relativize(path)} calls toWireMap directly")
+              }
+              decompositionRuntimeEmissionPatterns.forEach { pattern ->
+                pattern.findAll(text).forEach { match ->
+                  val emissionExpression = match.value
+                  if (!emissionExpression.contains("encodeManifestWireMap")) {
+                    add("${runtimeRoot.relativize(path)} emits decomposition_runtime without validated map seam")
+                  }
                 }
               }
-            }
-          }.stream()
-        }
-        .toList()
-    }
+            }.stream()
+          }
+          .toList()
+      }
 
     assertTrue(violations.isEmpty(), violations.joinToString(separator = "\n"))
   }
@@ -125,15 +133,16 @@ class DecompositionManifestArchitectureTest {
   fun `tracked decomposition manifests omit runtime result payloads`() {
     val repoRoot = runtimeRoot
     val featureSpecRoot = repoRoot.resolve(".feature-specs")
-    val manifests = if (Files.isDirectory(featureSpecRoot)) {
-      Files.walk(featureSpecRoot).use { paths ->
-        paths
-          .filter { path -> path.isRegularFile() && path.fileName.toString() == "decomposition-manifest.yaml" }
-          .toList()
+    val manifests =
+      if (Files.isDirectory(featureSpecRoot)) {
+        Files.walk(featureSpecRoot).use { paths ->
+          paths
+            .filter { path -> path.isRegularFile() && path.fileName.toString() == "decomposition-manifest.yaml" }
+            .toList()
+        }
+      } else {
+        emptyList()
       }
-    } else {
-      emptyList()
-    }
 
     assertTrue(manifests.isNotEmpty(), "Expected at least one tracked decomposition manifest fixture.")
     manifests.forEach { manifest ->

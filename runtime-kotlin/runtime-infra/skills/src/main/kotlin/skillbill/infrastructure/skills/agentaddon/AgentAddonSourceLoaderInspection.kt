@@ -28,13 +28,14 @@ internal fun collectAgentAddonCatalogueEntries(
             entries += declaration.toCatalogueEntry()
           }
           .onFailure { error ->
-            invalidEntries += InvalidAgentAddonCatalogueEntry(
-              identity = "agent-addon:${sourceRoot.name}",
-              slug = sourceRoot.name,
-              manifestPath = manifest.toFileLocation(),
-              contentPath = content.toFileLocation(),
-              diagnostics = listOf(error.message ?: "Agent add-on declaration is invalid."),
-            )
+            invalidEntries +=
+              InvalidAgentAddonCatalogueEntry(
+                identity = "agent-addon:${sourceRoot.name}",
+                slug = sourceRoot.name,
+                manifestPath = manifest.toFileLocation(),
+                contentPath = content.toFileLocation(),
+                diagnostics = listOf(error.message ?: "Agent add-on declaration is invalid."),
+              )
           }
       }
     }
@@ -66,19 +67,23 @@ internal fun reconcileAgentAddonCatalogueIncoherence(
   }
   entries.removeAll { entry ->
     incoherent[entry.manifestPath]?.let { diagnostics ->
-      invalidEntries += InvalidAgentAddonCatalogueEntry(
-        identity = "agent-addon:${entry.manifestPath.toPath().parent.name}",
-        slug = entry.manifestPath.toPath().parent.name,
-        manifestPath = entry.manifestPath,
-        contentPath = entry.contentPath,
-        diagnostics = diagnostics,
-      )
+      invalidEntries +=
+        InvalidAgentAddonCatalogueEntry(
+          identity = "agent-addon:${entry.manifestPath.toPath().parent.name}",
+          slug = entry.manifestPath.toPath().parent.name,
+          manifestPath = entry.manifestPath,
+          contentPath = entry.contentPath,
+          diagnostics = diagnostics,
+        )
       true
     } ?: false
   }
 }
 
-internal fun agentAddonInspectionRoots(repoRoot: Path, externalSourceRoots: List<Path>): List<Path> =
+internal fun agentAddonInspectionRoots(
+  repoRoot: Path,
+  externalSourceRoots: List<Path>,
+): List<Path> =
   listOf(repoRoot.toAbsolutePath().normalize().resolve(AGENT_ADDONS_DIRECTORY)) +
     externalSourceRoots.map { it.toAbsolutePath().normalize() }
 

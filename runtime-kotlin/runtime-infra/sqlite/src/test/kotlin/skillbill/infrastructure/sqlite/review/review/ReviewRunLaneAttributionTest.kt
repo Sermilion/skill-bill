@@ -19,7 +19,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class ReviewRunLaneAttributionTest {
-
   @Test
   fun `saving a review records one row per lane and attributes each finding to its lane`() {
     val (_, connection) = tempDbConnection("review-lanes")
@@ -98,10 +97,11 @@ class ReviewRunLaneAttributionTest {
       assertEquals(1, attributed.acceptedFindings)
       assertEquals(0, attributed.rejectedFindings)
 
-      val unattributed = assertNotNull(
-        rows["unattributed" to "unattributed"],
-        "A finding with no lane must be reported under an explicit unattributed bucket.",
-      )
+      val unattributed =
+        assertNotNull(
+          rows["unattributed" to "unattributed"],
+          "A finding with no lane must be reported under an explicit unattributed bucket.",
+        )
       assertEquals(1, unattributed.totalFindings)
       assertEquals(1, unattributed.rejectedFindings)
     }
@@ -141,61 +141,64 @@ class ReviewRunLaneAttributionTest {
     }
   }
 
-  private fun reviewWithLanes() = ImportedReview(
-    reviewRunId = RUN_ID,
-    reviewSessionId = "rvs-lane-001",
-    rawText = "raw",
-    routedSkill = "bill-kmp-code-review",
-    detectedScope = "unstaged changes",
-    detectedStack = "kmp",
-    executionMode = ReviewExecutionMode.INLINE,
-    specialistReviews = listOf("bill-kmp-code-review-architecture", "bill-kotlin-code-review-testing"),
-    findings = listOf(
-      ImportedFinding(
-        findingId = "F-001",
-        severity = "Major",
-        confidence = "High",
-        location = "Repo.kt:12",
-        description = "Transaction is not rolled back.",
-        findingText = "raw finding",
-        laneSkillName = "bill-kmp-code-review-architecture",
-      ),
-      ImportedFinding(
-        findingId = "F-002",
-        severity = "Minor",
-        confidence = "Low",
-        location = "README.md:1",
-        description = "Wording is stale.",
-        findingText = "raw finding",
-      ),
-    ),
-    routedSkillCanonical = "bill-kmp-code-review",
-    detectedStackCanonical = "kmp",
-    planLanes = listOf(
-      ReviewRunLane(
-        laneSkillName = "bill-kmp-code-review-architecture",
-        packSlug = "kmp",
-        area = "architecture",
-        depth = 0,
-        required = false,
-        orderIndex = 0,
-        originLayerChain = listOf("kmp"),
-        resolutionState = ReviewLaneResolutionState.RESOLVED,
-        reviewDisposition = ReviewLaneReviewDisposition.INCOMPLETE,
-      ),
-      ReviewRunLane(
-        laneSkillName = "bill-kotlin-code-review-testing",
-        packSlug = "kotlin",
-        area = "testing",
-        depth = 1,
-        required = true,
-        orderIndex = 1,
-        originLayerChain = listOf("kmp", "kotlin"),
-        resolutionState = ReviewLaneResolutionState.RESOLVED,
-        reviewDisposition = ReviewLaneReviewDisposition.INCOMPLETE,
-      ),
-    ),
-  )
+  private fun reviewWithLanes() =
+    ImportedReview(
+      reviewRunId = RUN_ID,
+      reviewSessionId = "rvs-lane-001",
+      rawText = "raw",
+      routedSkill = "bill-kmp-code-review",
+      detectedScope = "unstaged changes",
+      detectedStack = "kmp",
+      executionMode = ReviewExecutionMode.INLINE,
+      specialistReviews = listOf("bill-kmp-code-review-architecture", "bill-kotlin-code-review-testing"),
+      findings =
+        listOf(
+          ImportedFinding(
+            findingId = "F-001",
+            severity = "Major",
+            confidence = "High",
+            location = "Repo.kt:12",
+            description = "Transaction is not rolled back.",
+            findingText = "raw finding",
+            laneSkillName = "bill-kmp-code-review-architecture",
+          ),
+          ImportedFinding(
+            findingId = "F-002",
+            severity = "Minor",
+            confidence = "Low",
+            location = "README.md:1",
+            description = "Wording is stale.",
+            findingText = "raw finding",
+          ),
+        ),
+      routedSkillCanonical = "bill-kmp-code-review",
+      detectedStackCanonical = "kmp",
+      planLanes =
+        listOf(
+          ReviewRunLane(
+            laneSkillName = "bill-kmp-code-review-architecture",
+            packSlug = "kmp",
+            area = "architecture",
+            depth = 0,
+            required = false,
+            orderIndex = 0,
+            originLayerChain = listOf("kmp"),
+            resolutionState = ReviewLaneResolutionState.RESOLVED,
+            reviewDisposition = ReviewLaneReviewDisposition.INCOMPLETE,
+          ),
+          ReviewRunLane(
+            laneSkillName = "bill-kotlin-code-review-testing",
+            packSlug = "kotlin",
+            area = "testing",
+            depth = 1,
+            required = true,
+            orderIndex = 1,
+            originLayerChain = listOf("kmp", "kotlin"),
+            resolutionState = ReviewLaneResolutionState.RESOLVED,
+            reviewDisposition = ReviewLaneReviewDisposition.INCOMPLETE,
+          ),
+        ),
+    )
 
   private fun findingLaneRows(connection: Connection): List<Triple<String?, String?, String?>> =
     connection.createStatement().use { statement ->
@@ -210,7 +213,12 @@ class ReviewRunLaneAttributionTest {
       }
     }
 
-  private fun recordFeedback(connection: Connection, runId: String, findingId: String, eventType: String) {
+  private fun recordFeedback(
+    connection: Connection,
+    runId: String,
+    findingId: String,
+    eventType: String,
+  ) {
     connection.prepareStatement(
       "INSERT INTO feedback_events (review_run_id, finding_id, event_type, note) VALUES (?, ?, ?, '')",
     ).use { statement ->
@@ -221,12 +229,16 @@ class ReviewRunLaneAttributionTest {
     }
   }
 
-  private fun rowCount(connection: Connection, tableName: String): Int = connection.createStatement().use { statement ->
-    statement.executeQuery("SELECT COUNT(*) FROM $tableName").use { resultSet ->
-      check(resultSet.next())
-      resultSet.getInt(1)
+  private fun rowCount(
+    connection: Connection,
+    tableName: String,
+  ): Int =
+    connection.createStatement().use { statement ->
+      statement.executeQuery("SELECT COUNT(*) FROM $tableName").use { resultSet ->
+        check(resultSet.next())
+        resultSet.getInt(1)
+      }
     }
-  }
 
   private companion object {
     const val RUN_ID = "rvw-lane-001"

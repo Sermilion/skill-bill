@@ -16,27 +16,35 @@ internal fun tempDb(): Path =
 
 internal fun identity() = GoalPlanningIdentity("goal-1", "SKILL-128", "repo-root-realpath-v1:/repository")
 
-internal fun provenance() = GoalPlanningContractProvenance(
-  parentSpecHash = "a".repeat(64),
-  decompositionManifestHash = "b".repeat(64),
-  planningContractId = EXPECTED_SCHEMA_ID,
-)
+internal fun provenance() =
+  GoalPlanningContractProvenance(
+    parentSpecHash = "a".repeat(64),
+    decompositionManifestHash = "b".repeat(64),
+    planningContractId = EXPECTED_SCHEMA_ID,
+  )
 
-internal fun sharedCheckpoint() = SharedGoalPreplanCheckpoint(
-  identity = identity(),
-  provenance = provenance(),
-  payloadSha256 = "c".repeat(64),
-  preplanPayload = "preplan-payload",
-)
+internal fun sharedCheckpoint() =
+  SharedGoalPreplanCheckpoint(
+    identity = identity(),
+    provenance = provenance(),
+    payloadSha256 = "c".repeat(64),
+    preplanPayload = "preplan-payload",
+  )
 
-internal fun descriptor(subtaskId: Int, order: Int) = GovernedGoalSubtaskDescriptor(
+internal fun descriptor(
+  subtaskId: Int,
+  order: Int,
+) = GovernedGoalSubtaskDescriptor(
   subtaskId,
   order,
   ".feature-specs/SKILL-128/spec_subtask_$subtaskId.md",
   "d".repeat(64),
 )
 
-internal fun planCheckpoint(subtaskId: Int, order: Int): GoalSubtaskPlanCheckpoint {
+internal fun planCheckpoint(
+  subtaskId: Int,
+  order: Int,
+): GoalSubtaskPlanCheckpoint {
   val descriptor = descriptor(subtaskId, order)
   return GoalSubtaskPlanCheckpoint(
     identity = identity(),
@@ -55,18 +63,20 @@ internal fun preparationRecord(
   subtaskId: Int,
   repositoryIdentity: String = "repo-root-realpath-v1:/repository",
   subSpecHash: String = "sub-spec-default",
-): GoalPlanningPreparationRecord = GoalPlanningPreparationRecord(
-  parentGoalWorkflowId = parentGoalWorkflowId,
-  normalizedIssueKey = "SKILL-128",
-  repositoryIdentity = repositoryIdentity,
-  subtaskId = subtaskId,
-  governedSubSpecPath = ".feature-specs/SKILL-128/spec_subtask_$subtaskId.md",
-  preparationStatus = GoalPlanningPreparationState.PREPARED,
-  provenance = GoalPlanningPreparationProvenance(
-    parentSpecHash = "parent-spec-$parentGoalWorkflowId",
-    subSpecHash = subSpecHash,
-    decompositionManifestHash = "manifest-$parentGoalWorkflowId",
-  ),
-  preplanPayload = """{"phase_id":"preplan"}""",
-  planPayload = """{"phase_id":"plan"}""",
-)
+): GoalPlanningPreparationRecord =
+  GoalPlanningPreparationRecord(
+    parentGoalWorkflowId = parentGoalWorkflowId,
+    normalizedIssueKey = "SKILL-128",
+    repositoryIdentity = repositoryIdentity,
+    subtaskId = subtaskId,
+    governedSubSpecPath = ".feature-specs/SKILL-128/spec_subtask_$subtaskId.md",
+    preparationStatus = GoalPlanningPreparationState.PREPARED,
+    provenance =
+      GoalPlanningPreparationProvenance(
+        parentSpecHash = "parent-spec-$parentGoalWorkflowId",
+        subSpecHash = subSpecHash,
+        decompositionManifestHash = "manifest-$parentGoalWorkflowId",
+      ),
+    preplanPayload = """{"phase_id":"preplan"}""",
+    planPayload = """{"phase_id":"plan"}""",
+  )

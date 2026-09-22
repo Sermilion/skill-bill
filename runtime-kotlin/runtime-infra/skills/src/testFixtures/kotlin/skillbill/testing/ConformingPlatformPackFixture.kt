@@ -10,16 +10,18 @@ import skillbill.model.toPath
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.assertEquals
+
 internal fun assertConcreteAndManifestFallbackSelected(
   plan: InstallPlan,
   concreteSlug: String,
   additionalSlugs: Set<String> = emptySet(),
 ) {
-  val fallbackSlugs = plan.discoveredPlatformPacks
-    .filter { pack ->
-      CODE_REVIEW_FALLBACK_CAPABILITY in loadPlatformPack(pack.packRoot.toPath()).fallbackCapabilities
-    }
-    .map { it.slug }
+  val fallbackSlugs =
+    plan.discoveredPlatformPacks
+      .filter { pack ->
+        CODE_REVIEW_FALLBACK_CAPABILITY in loadPlatformPack(pack.packRoot.toPath()).fallbackCapabilities
+      }
+      .map { it.slug }
   assertEquals(1, fallbackSlugs.size)
   assertEquals((fallbackSlugs + concreteSlug + additionalSlugs).sorted(), plan.selectedPlatformSlugs)
 }
@@ -75,40 +77,45 @@ private fun conformingManifest(
   areaSkillNames: Map<String, String>,
   focuses: Map<String, String>,
   baselinePointerTarget: String?,
-): String = buildString {
-  val baselineName = "bill-$slug-code-review"
-  appendLine("platform: \"$slug\"")
-  appendLine("contract_version: \"1.8\"")
-  appendLine("routing_signals:")
-  appendLine("  strong: [\".$slug\", \"*.$slug\"]")
-  appendLine("  tie_breakers:")
-  appendLine("    - \"Prefer $slug when $slug source signals dominate the changed product surface.\"")
-  appendLine("    - \"Do not prefer $slug when an adjacent pack's declared signals dominate.\"")
-  appendLine("    - \"Exclude generated and vendored files from dominance scoring.\"")
-  appendLine("declared_code_review_areas:")
-  areaSkillNames.keys.forEach { area -> appendLine("  - $area") }
-  appendLine("declared_files:")
-  appendLine("  baseline: \"code-review/$baselineName/content.md\"")
-  appendLine("  areas:")
-  areaSkillNames.forEach { (area, skillName) -> appendLine("    $area: \"code-review/$skillName/content.md\"") }
-  appendLine("area_metadata:")
-  focuses.forEach { (area, focus) ->
-    appendLine("  $area:")
-    appendLine("    focus: \"$focus\"")
+): String =
+  buildString {
+    val baselineName = "bill-$slug-code-review"
+    appendLine("platform: \"$slug\"")
+    appendLine("contract_version: \"1.8\"")
+    appendLine("routing_signals:")
+    appendLine("  strong: [\".$slug\", \"*.$slug\"]")
+    appendLine("  tie_breakers:")
+    appendLine("    - \"Prefer $slug when $slug source signals dominate the changed product surface.\"")
+    appendLine("    - \"Do not prefer $slug when an adjacent pack's declared signals dominate.\"")
+    appendLine("    - \"Exclude generated and vendored files from dominance scoring.\"")
+    appendLine("declared_code_review_areas:")
+    areaSkillNames.keys.forEach { area -> appendLine("  - $area") }
+    appendLine("declared_files:")
+    appendLine("  baseline: \"code-review/$baselineName/content.md\"")
+    appendLine("  areas:")
+    areaSkillNames.forEach { (area, skillName) -> appendLine("    $area: \"code-review/$skillName/content.md\"") }
+    appendLine("area_metadata:")
+    focuses.forEach { (area, focus) ->
+      appendLine("  $area:")
+      appendLine("    focus: \"$focus\"")
+    }
+    appendLine("display_name: \"$slug\"")
+    appendLine("pointers:")
+    if (baselinePointerTarget == null) {
+      appendLine("  code-review/$baselineName: []")
+    } else {
+      appendLine("  code-review/$baselineName:")
+      appendLine("    - name: review-orchestrator.md")
+      appendLine("      target: $baselinePointerTarget")
+    }
+    areaSkillNames.values.forEach { skillName -> appendLine("  code-review/$skillName: []") }
   }
-  appendLine("display_name: \"$slug\"")
-  appendLine("pointers:")
-  if (baselinePointerTarget == null) {
-    appendLine("  code-review/$baselineName: []")
-  } else {
-    appendLine("  code-review/$baselineName:")
-    appendLine("    - name: review-orchestrator.md")
-    appendLine("      target: $baselinePointerTarget")
-  }
-  areaSkillNames.values.forEach { skillName -> appendLine("  code-review/$skillName: []") }
-}
 
-private fun conformingNativeAgents(slug: String, areaNames: List<String>, focuses: Map<String, String>): String =
+private fun conformingNativeAgents(
+  slug: String,
+  areaNames: List<String>,
+  focuses: Map<String, String>,
+): String =
   buildString {
     appendLine("contract_version: \"0.1\"")
     appendLine("agents:")
@@ -121,7 +128,12 @@ private fun conformingNativeAgents(slug: String, areaNames: List<String>, focuse
     }
   }
 
-private fun governedContent(name: String, description: String, internalFor: String, body: String): String =
+private fun governedContent(
+  name: String,
+  description: String,
+  internalFor: String,
+  body: String,
+): String =
   buildString {
     append(renderFrontmatter(name, description, internalFor))
     appendLine()

@@ -13,12 +13,13 @@ internal fun compositionViolations(
 ): List<SubstanceViolation> =
   pack.codeReviewComposition?.baselineLayers.orEmpty().filter { it.required }.mapNotNull { layer ->
     val target = packs[layer.platform]
-    val measured = when {
-      target == null -> "missing-pack:${layer.platform}"
-      target.routedSkillName != layer.skill -> "mismatched-skill:${target.routedSkillName ?: "absent"}"
-      hasRequiredCycle(layer.platform, packs, setOf(pack.slug)) -> "cyclic-required-composition"
-      else -> return@mapNotNull null
-    }
+    val measured =
+      when {
+        target == null -> "missing-pack:${layer.platform}"
+        target.routedSkillName != layer.skill -> "mismatched-skill:${target.routedSkillName ?: "absent"}"
+        hasRequiredCycle(layer.platform, packs, setOf(pack.slug)) -> "cyclic-required-composition"
+        else -> return@mapNotNull null
+      }
     packViolation(
       PackViolationArgs(
         pack = pack.slug,
@@ -49,23 +50,26 @@ internal fun specialistMetrics(
   effective: Map<String, Set<String>>,
   packs: Map<String, PlatformManifest>,
 ): List<SpecialistMetric> {
-  val physical = pack.declaredFiles.areas.map { (area, path) ->
-    metric(
-      root,
-      pack.slug,
-      area,
-      path.toPath(),
-      inherited = false,
-    )
-  }
-  val inherited = (effective.getValue(pack.slug) - pack.declaredCodeReviewAreas.toSet()).map { area ->
-    val source = findAreaSource(
-      pack.slug,
-      area,
-      packs,
-    ) ?: return@map SpecialistMetric(pack.slug, area, "absent", true, 0, 0, 0, emptyList())
-    metric(root, pack.slug, area, source, inherited = true)
-  }
+  val physical =
+    pack.declaredFiles.areas.map { (area, path) ->
+      metric(
+        root,
+        pack.slug,
+        area,
+        path.toPath(),
+        inherited = false,
+      )
+    }
+  val inherited =
+    (effective.getValue(pack.slug) - pack.declaredCodeReviewAreas.toSet()).map { area ->
+      val source =
+        findAreaSource(
+          pack.slug,
+          area,
+          packs,
+        ) ?: return@map SpecialistMetric(pack.slug, area, "absent", true, 0, 0, 0, emptyList())
+      metric(root, pack.slug, area, source, inherited = true)
+    }
   return (physical + inherited).sortedWith(compareBy({ it.area }, { it.inherited }))
 }
 
@@ -85,7 +89,13 @@ internal fun findAreaSource(
   }
 }
 
-internal fun metric(root: Path, pack: String, area: String, path: Path, inherited: Boolean): SpecialistMetric {
+internal fun metric(
+  root: Path,
+  pack: String,
+  area: String,
+  path: Path,
+  inherited: Boolean,
+): SpecialistMetric {
   val bullets = governedRuleBullets(Files.readString(path))
   val substantive = bullets.filter { isSubstantive(it, pack) }
   return SpecialistMetric(
@@ -118,13 +128,22 @@ internal fun governedRuleBullets(text: String): List<String> {
   }.toList()
 }
 
-internal fun isSubstantive(rule: String, pack: String): Boolean = OBLIGATION.containsMatchIn(
-  rule,
-) && FAILURE.containsMatchIn(rule) && hasEvidence(rule, pack)
-internal fun hasEvidence(rule: String, pack: String): Boolean {
-  val candidates = EVIDENCE.findAll(rule).map { match ->
-    match.groups[1]?.value ?: match.value.trim()
-  }
+internal fun isSubstantive(
+  rule: String,
+  pack: String,
+): Boolean =
+  OBLIGATION.containsMatchIn(
+    rule,
+  ) && FAILURE.containsMatchIn(rule) && hasEvidence(rule, pack)
+
+internal fun hasEvidence(
+  rule: String,
+  pack: String,
+): Boolean {
+  val candidates =
+    EVIDENCE.findAll(rule).map { match ->
+      match.groups[1]?.value ?: match.value.trim()
+    }
   return candidates.any { candidate ->
     val normalized = candidate.lowercase(Locale.ROOT).trim('`', ' ', '.', '/', ':', '-', '_')
     normalized.isNotBlank() &&
@@ -132,5 +151,6 @@ internal fun hasEvidence(rule: String, pack: String): Boolean {
       !GENERIC_EVIDENCE.containsMatchIn(normalized)
   }
 }
+
 internal fun placeholders(text: String): List<String> =
   PLACEHOLDERS.findAll(text).map { it.value.lowercase(Locale.ROOT) }.distinct().sorted().toList()

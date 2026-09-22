@@ -9,13 +9,15 @@ import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepair
 import skillbill.workflow.taskruntime.model.repair.task.attemptedUnresolvedEntries
 import skillbill.workflow.taskruntime.model.repair.task.omittedCarriedFindings
 import skillbill.workflow.taskruntime.model.repair.task.withStableFindingRefs
+
 fun featureTaskRuntimeCarriedFindings(
   reviewState: GoalSubtaskReviewState,
   refutedFindingIds: Set<String> = emptySet(),
-): List<GoalSubtaskReviewCompactFinding> = withoutRefutedFindings(
-  withStableFindingRefs(reviewState.passResults.lastOrNull()?.findings.orEmpty()),
-  refutedFindingIds,
-)
+): List<GoalSubtaskReviewCompactFinding> =
+  withoutRefutedFindings(
+    withStableFindingRefs(reviewState.passResults.lastOrNull()?.findings.orEmpty()),
+    refutedFindingIds,
+  )
 
 fun featureTaskRuntimeRepairReceiptOmittedFindings(
   receipt: FeatureTaskRuntimeRepairReceipt,
@@ -40,10 +42,11 @@ class FeatureTaskRuntimeUnresolvedFindings(
   val refs: Set<String>,
   val detail: String,
 ) {
-  val retryReason: String get() = "You reported these carried findings still open after your " +
-    "attempt: $detail. You have one more attempt at each. Close it, or report it unresolved again " +
-    "and the run stops for an operator instead of trying a third time. Do not silently drop it from " +
-    "the receipt and do not restate the same attempt as if it were new work."
+  val retryReason: String get() =
+    "You reported these carried findings still open after your " +
+      "attempt: $detail. You have one more attempt at each. Close it, or report it unresolved again " +
+      "and the run stops for an operator instead of trying a third time. Do not silently drop it from " +
+      "the receipt and do not restate the same attempt as if it were new work."
 }
 
 fun featureTaskRuntimeUnresolvedFindings(

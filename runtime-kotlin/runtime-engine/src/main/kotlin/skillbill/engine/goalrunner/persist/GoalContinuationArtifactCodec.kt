@@ -23,6 +23,7 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence
 import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
   (artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY] as? Map<*, *>)?.let { payload ->
     val issueKey = payload[SharedPayloadKeys.ISSUE_KEY]?.toString()?.takeIf(String::isNotBlank)
@@ -34,9 +35,10 @@ fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
         issueKey = issueKey,
         subtaskId = subtaskId,
         suppressPr = payload[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUPPRESS_PR] == true,
-        goalBranch = payload[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.GOAL_BRANCH]
-          ?.toString()
-          ?.takeIf(String::isNotBlank),
+        goalBranch =
+          payload[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.GOAL_BRANCH]
+            ?.toString()
+            ?.takeIf(String::isNotBlank),
       )
     }
   }
@@ -52,10 +54,11 @@ fun validatedGoalReviewPasses(
   review.state.passResults.forEach { pass ->
     val rawResult = review.rawResults.getValue(pass.passNumber.toString())
     val output = goalReviewEmissionEnvelope(rawResult, phaseOutputValidator)
-    val recordedVerdicts = GoalSubtaskReviewSummaryReducer.recordedVerdicts(
-      unitOfWork.reviews::fetchFindingVerdicts,
-      output,
-    )
+    val recordedVerdicts =
+      GoalSubtaskReviewSummaryReducer.recordedVerdicts(
+        unitOfWork.reviews::fetchFindingVerdicts,
+        output,
+      )
     val findings = GoalSubtaskReviewSummaryReducer.fromOutput(output, recordedVerdicts)
     val outcome = GoalSubtaskReviewSummaryReducer.outcomeFor(output, findings)
     if (
@@ -67,8 +70,8 @@ fun validatedGoalReviewPasses(
         sourceLabel = GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
         fieldPath = "pass_results.${pass.passNumber}",
         reason =
-        "must exactly match the verdict, unresolved count, and compact findings derived from " +
-          "its durable raw review result.",
+          "must exactly match the verdict, unresolved count, and compact findings derived from " +
+            "its durable raw review result.",
       )
     }
   }
@@ -87,15 +90,19 @@ fun goalReviewEmissionEnvelope(
     .envelopeWireMap()
 }
 
-fun taskRuntimeRecordOrNull(workflowStates: WorkflowStateRepository, workflowId: String): WorkflowStateSnapshot? = try {
-  WorkflowFamily.TASK_RUNTIME.get(workflowStates, workflowId)
-} catch (error: InvalidWorkflowStateSchemaError) {
-  if (error.message.orEmpty().contains("mode='")) {
-    null
-  } else {
-    throw error
+fun taskRuntimeRecordOrNull(
+  workflowStates: WorkflowStateRepository,
+  workflowId: String,
+): WorkflowStateSnapshot? =
+  try {
+    WorkflowFamily.TASK_RUNTIME.get(workflowStates, workflowId)
+  } catch (error: InvalidWorkflowStateSchemaError) {
+    if (error.message.orEmpty().contains("mode='")) {
+      null
+    } else {
+      throw error
+    }
   }
-}
 
 fun featureTaskRecordForLegacyControls(
   workflowStates: WorkflowStateRepository,

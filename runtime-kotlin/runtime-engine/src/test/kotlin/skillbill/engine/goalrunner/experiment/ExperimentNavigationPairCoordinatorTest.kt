@@ -26,43 +26,49 @@ class ExperimentNavigationPairCoordinatorTest {
   @Test
   fun `both arms receive the resolved revision and exact criteria`() {
     val requests = mutableListOf<ExperimentNavigationSessionRequest>()
-    val gitOperations = RecordingWorkflowGitOperations().also {
-      it.onResolveCommit = { WorkflowGitOperationResult.Ok(value = "resolved-commit") }
-      it.repositoryFingerprintValue = "repo"
-      it.worktreeStatusValue = ""
-    }
-    val coordinator = ExperimentNavigationPairCoordinator(
-      selectionPort = object : ExperimentSelectionPort {
-        override fun resolveForLaunch(
-          repoRoot: Path,
-          parameter: String?,
-          mode: ExperimentExecutionMode,
-          savedSelection: List<String>?,
-        ): ExperimentLaunchSelection = ExperimentLaunchSelection(
-          normalizedNames = listOf("fixture-navigation"),
-          descriptors = listOf("fixture-navigation"),
-          availabilitySummary = "explicit",
-        )
-      },
-      sessionRunner = object : ExperimentNavigationSessionRunnerPort {
-        override fun runSession(request: ExperimentNavigationSessionRequest): ExperimentNavigationSessionResult {
-          requests += request
-          return ExperimentNavigationSessionResult(
-            outcome = ExperimentNavigationTerminalOutcome.SEARCH_COMPLETED,
-            deliveredPaths = emptyList(),
-            shortlistedPaths = emptyList(),
-          )
-        }
-      },
-      gitOperations = gitOperations,
-      pairOwner = InMemoryPairOwner(),
-    )
+    val gitOperations =
+      RecordingWorkflowGitOperations().also {
+        it.onResolveCommit = { WorkflowGitOperationResult.Ok(value = "resolved-commit") }
+        it.repositoryFingerprintValue = "repo"
+        it.worktreeStatusValue = ""
+      }
+    val coordinator =
+      ExperimentNavigationPairCoordinator(
+        selectionPort =
+          object : ExperimentSelectionPort {
+            override fun resolveForLaunch(
+              repoRoot: Path,
+              parameter: String?,
+              mode: ExperimentExecutionMode,
+              savedSelection: List<String>?,
+            ): ExperimentLaunchSelection =
+              ExperimentLaunchSelection(
+                normalizedNames = listOf("fixture-navigation"),
+                descriptors = listOf("fixture-navigation"),
+                availabilitySummary = "explicit",
+              )
+          },
+        sessionRunner =
+          object : ExperimentNavigationSessionRunnerPort {
+            override fun runSession(request: ExperimentNavigationSessionRequest): ExperimentNavigationSessionResult {
+              requests += request
+              return ExperimentNavigationSessionResult(
+                outcome = ExperimentNavigationTerminalOutcome.SEARCH_COMPLETED,
+                deliveredPaths = emptyList(),
+                shortlistedPaths = emptyList(),
+              )
+            }
+          },
+        gitOperations = gitOperations,
+        pairOwner = InMemoryPairOwner(),
+      )
 
-    val pairId = coordinator.run(
-      navigationRequest(
-        specBytes = "## Acceptance Criteria\n1. Find the file.".toByteArray(),
-      ),
-    )
+    val pairId =
+      coordinator.run(
+        navigationRequest(
+          specBytes = "## Acceptance Criteria\n1. Find the file.".toByteArray(),
+        ),
+      )
 
     assertEquals(listOf("resolved-commit", "resolved-commit"), requests.map { it.revision })
     assertEquals(listOf("Find the file.", "Find the file."), requests.flatMap { it.acceptanceCriteria })
@@ -80,39 +86,44 @@ class ExperimentNavigationPairCoordinatorTest {
         pairId = "pair-resume",
         executionMode = ExperimentExecutionMode.NAVIGATION,
         selectedNames = listOf("fixture-navigation"),
-        armOrder = listOf(
-          ExperimentArmId.CONTROL,
-          ExperimentArmId.TREATMENT,
-        ),
+        armOrder =
+          listOf(
+            ExperimentArmId.CONTROL,
+            ExperimentArmId.TREATMENT,
+          ),
         randomSeed = "pair-resume",
-        pairPayload = mapOf(
-          ExperimentPairPayloadKeys.PAIR_ID to "pair-resume",
-          ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-navigation"),
-          ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
-          ExperimentPairPayloadKeys.RANDOM_SEED to "pair-resume",
-          ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to mapOf(
-            ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to "repo",
-            ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to "resolved-commit",
-            ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to sha256Hex("spec".toByteArray()),
+        pairPayload =
+          mapOf(
+            ExperimentPairPayloadKeys.PAIR_ID to "pair-resume",
+            ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-navigation"),
+            ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
+            ExperimentPairPayloadKeys.RANDOM_SEED to "pair-resume",
+            ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to
+              mapOf(
+                ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to "repo",
+                ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to "resolved-commit",
+                ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to sha256Hex("spec".toByteArray()),
+              ),
+            ExperimentPairPayloadKeys.ARM_OUTCOMES to
+              listOf(
+                mapOf(
+                  ExperimentPairPayloadKeys.ARM_ID to "control",
+                  ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
+                ),
+              ),
           ),
-          ExperimentPairPayloadKeys.ARM_OUTCOMES to listOf(
-            mapOf(
-              ExperimentPairPayloadKeys.ARM_ID to "control",
-              ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
-            ),
-          ),
-        ),
       ),
     )
-    val coordinator = coordinator(
-      requests,
-      owner,
-      RecordingWorkflowGitOperations().also {
-        it.onResolveCommit = { WorkflowGitOperationResult.Ok(value = "resolved-commit") }
-        it.repositoryFingerprintSequence.addAll(listOf("repo", "repo", "repo"))
-        it.worktreeStatusValue = ""
-      },
-    )
+    val coordinator =
+      coordinator(
+        requests,
+        owner,
+        RecordingWorkflowGitOperations().also {
+          it.onResolveCommit = { WorkflowGitOperationResult.Ok(value = "resolved-commit") }
+          it.repositoryFingerprintSequence.addAll(listOf("repo", "repo", "repo"))
+          it.worktreeStatusValue = ""
+        },
+      )
 
     coordinator.run(navigationRequest("spec".toByteArray(), "pair-resume"))
 
@@ -122,16 +133,18 @@ class ExperimentNavigationPairCoordinatorTest {
   @Test
   fun `source identity drift is rejected before an arm starts`() {
     val requests = mutableListOf<ExperimentNavigationSessionRequest>()
-    val gitOperations = RecordingWorkflowGitOperations().also {
-      it.onResolveCommit = { WorkflowGitOperationResult.Ok(value = "resolved-commit") }
-      it.repositoryFingerprintSequence.addAll(listOf("repo", "changed"))
-      it.worktreeStatusValue = ""
-    }
-    val coordinator = coordinator(
-      requests,
-      InMemoryPairOwner(),
-      gitOperations,
-    )
+    val gitOperations =
+      RecordingWorkflowGitOperations().also {
+        it.onResolveCommit = { WorkflowGitOperationResult.Ok(value = "resolved-commit") }
+        it.repositoryFingerprintSequence.addAll(listOf("repo", "changed"))
+        it.worktreeStatusValue = ""
+      }
+    val coordinator =
+      coordinator(
+        requests,
+        InMemoryPairOwner(),
+        gitOperations,
+      )
 
     assertFailsWith<ExperimentNavigationRevisionError> {
       coordinator.run(navigationRequest("spec".toByteArray()))
@@ -144,16 +157,17 @@ class ExperimentNavigationPairCoordinatorTest {
   fun `cancellation persists the arm and prevents the other arm from starting`() {
     val requests = mutableListOf<ExperimentNavigationSessionRequest>()
     val owner = InMemoryPairOwner()
-    val coordinator = coordinator(
-      requests,
-      owner,
-      RecordingWorkflowGitOperations().also {
-        it.onResolveCommit = { WorkflowGitOperationResult.Ok(value = "resolved-commit") }
-        it.repositoryFingerprintSequence.addAll(listOf("repo", "repo", "repo"))
-        it.worktreeStatusValue = ""
-      },
-      outcome = ExperimentNavigationTerminalOutcome.CANCELLED,
-    )
+    val coordinator =
+      coordinator(
+        requests,
+        owner,
+        RecordingWorkflowGitOperations().also {
+          it.onResolveCommit = { WorkflowGitOperationResult.Ok(value = "resolved-commit") }
+          it.repositoryFingerprintSequence.addAll(listOf("repo", "repo", "repo"))
+          it.worktreeStatusValue = ""
+        },
+        outcome = ExperimentNavigationTerminalOutcome.CANCELLED,
+      )
 
     val pairId = coordinator.run(navigationRequest("spec".toByteArray()))
 
@@ -165,11 +179,12 @@ class ExperimentNavigationPairCoordinatorTest {
   fun `a live pair lease refuses a second navigation recovery before a session starts`() {
     val requests = mutableListOf<ExperimentNavigationSessionRequest>()
     val owner = InMemoryPairOwner().also { it.leaseAvailable = false }
-    val coordinator = coordinator(
-      requests,
-      owner,
-      RecordingWorkflowGitOperations(),
-    )
+    val coordinator =
+      coordinator(
+        requests,
+        owner,
+        RecordingWorkflowGitOperations(),
+      )
 
     assertFailsWith<ExperimentIsolationCapabilityRefusalError> {
       coordinator.run(navigationRequest("spec".toByteArray()))
@@ -181,48 +196,54 @@ class ExperimentNavigationPairCoordinatorTest {
   private fun navigationRequest(
     specBytes: ByteArray = "spec".toByteArray(),
     pairId: String? = null,
-  ): ExperimentNavigationPairRequest = ExperimentNavigationPairRequest(
-    source = ExperimentNavigationPairSource(
-      name = "fixture-navigation",
-      repoRoot = Path.of("."),
-      revision = "main",
-      specBytes = specBytes,
-      criteria = listOf("Find the file."),
-    ),
-    pairId = pairId,
-  )
+  ): ExperimentNavigationPairRequest =
+    ExperimentNavigationPairRequest(
+      source =
+        ExperimentNavigationPairSource(
+          name = "fixture-navigation",
+          repoRoot = Path.of("."),
+          revision = "main",
+          specBytes = specBytes,
+          criteria = listOf("Find the file."),
+        ),
+      pairId = pairId,
+    )
 
   private fun coordinator(
     requests: MutableList<ExperimentNavigationSessionRequest>,
     owner: InMemoryPairOwner,
     gitOperations: RecordingWorkflowGitOperations,
     outcome: ExperimentNavigationTerminalOutcome = ExperimentNavigationTerminalOutcome.SEARCH_COMPLETED,
-  ): ExperimentNavigationPairCoordinator = ExperimentNavigationPairCoordinator(
-    selectionPort = object : ExperimentSelectionPort {
-      override fun resolveForLaunch(
-        repoRoot: Path,
-        parameter: String?,
-        mode: ExperimentExecutionMode,
-        savedSelection: List<String>?,
-      ): ExperimentLaunchSelection = ExperimentLaunchSelection(
-        normalizedNames = listOf("fixture-navigation"),
-        descriptors = listOf("fixture-navigation"),
-        availabilitySummary = "explicit",
-      )
-    },
-    sessionRunner = object : ExperimentNavigationSessionRunnerPort {
-      override fun runSession(request: ExperimentNavigationSessionRequest): ExperimentNavigationSessionResult {
-        requests += request
-        return ExperimentNavigationSessionResult(
-          outcome = outcome,
-          deliveredPaths = emptyList(),
-          shortlistedPaths = emptyList(),
-        )
-      }
-    },
-    gitOperations = gitOperations,
-    pairOwner = owner,
-  )
+  ): ExperimentNavigationPairCoordinator =
+    ExperimentNavigationPairCoordinator(
+      selectionPort =
+        object : ExperimentSelectionPort {
+          override fun resolveForLaunch(
+            repoRoot: Path,
+            parameter: String?,
+            mode: ExperimentExecutionMode,
+            savedSelection: List<String>?,
+          ): ExperimentLaunchSelection =
+            ExperimentLaunchSelection(
+              normalizedNames = listOf("fixture-navigation"),
+              descriptors = listOf("fixture-navigation"),
+              availabilitySummary = "explicit",
+            )
+        },
+      sessionRunner =
+        object : ExperimentNavigationSessionRunnerPort {
+          override fun runSession(request: ExperimentNavigationSessionRequest): ExperimentNavigationSessionResult {
+            requests += request
+            return ExperimentNavigationSessionResult(
+              outcome = outcome,
+              deliveredPaths = emptyList(),
+              shortlistedPaths = emptyList(),
+            )
+          }
+        },
+      gitOperations = gitOperations,
+      pairOwner = owner,
+    )
 
   private class InMemoryPairOwner : ExperimentPairOwnerPort {
     private val states = mutableMapOf<String, ExperimentPairPersistedState>()
@@ -236,8 +257,12 @@ class ExperimentNavigationPairCoordinatorTest {
 
     override fun importObservation(payload: Map<String, Any?>): Boolean = true
 
-    override fun acquireLease(pairId: String, ownerToken: String, nowEpochMillis: Long, leaseMillis: Long): Boolean =
-      leaseAvailable
+    override fun acquireLease(
+      pairId: String,
+      ownerToken: String,
+      nowEpochMillis: Long,
+      leaseMillis: Long,
+    ): Boolean = leaseAvailable
   }
 
   private fun sha256Hex(bytes: ByteArray): String =

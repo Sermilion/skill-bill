@@ -16,6 +16,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
+
 internal const val CLAIM_LEASE_MINUTES: Long = 5
 
 private val CLAIM_LEASE: Duration = Duration.ofMinutes(CLAIM_LEASE_MINUTES)
@@ -63,7 +64,10 @@ internal fun drainPendingBatches(request: DrainRequest): SyncResult {
   return drainedSyncResult(request, syncedTotal)
 }
 
-private fun claimBatch(request: DrainRequest, claimToken: String): List<TelemetryOutboxRecord> {
+private fun claimBatch(
+  request: DrainRequest,
+  claimToken: String,
+): List<TelemetryOutboxRecord> {
   val batchNow = request.nowSupplier()
   return request.outboxRepository.claimPending(
     TelemetryOutboxClaimRequest(
@@ -133,18 +137,19 @@ private fun acknowledgeBatch(
         }
         return Acknowledgement(
           settlement = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0),
-          failure = failedBatchResult(
-            request,
-            syncedTotal,
-            "delivery accepted but the local acknowledgement failed: ${thrown.message.orEmpty()}",
-            markFailure = {
-              request.outboxRepository.markFailed(
-                eventIds,
-                claimToken,
-                "delivery accepted but the local acknowledgement failed: ${thrown.message.orEmpty()}",
-              )
-            },
-          ),
+          failure =
+            failedBatchResult(
+              request,
+              syncedTotal,
+              "delivery accepted but the local acknowledgement failed: ${thrown.message.orEmpty()}",
+              markFailure = {
+                request.outboxRepository.markFailed(
+                  eventIds,
+                  claimToken,
+                  "delivery accepted but the local acknowledgement failed: ${thrown.message.orEmpty()}",
+                )
+              },
+            ),
         )
       }
   return Acknowledgement(settlement, failure = null)
@@ -176,7 +181,10 @@ private fun settleFailedDelivery(args: FailedDelivery): SyncResult? {
   return null
 }
 
-private fun attemptDelivery(request: DrainRequest, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport {
+private fun attemptDelivery(
+  request: DrainRequest,
+  rows: List<TelemetryOutboxRecord>,
+): TelemetryDeliveryReport {
   val report =
     runCatching { request.client.sendBatch(request.settings, rows) }
       .getOrElse { thrown ->
@@ -227,15 +235,22 @@ private fun failedBatchResult(
   )
 }
 
-private fun lostClaimBatchResult(request: DrainRequest, syncedTotal: Int): SyncResult = syncResult(
-  status = TelemetrySyncStatus.FAILED,
-  syncedEvents = syncedTotal,
-  pendingEvents = request.outboxRepository.pendingCount(),
-  syncContext = request.syncContext,
-  message = LOST_CLAIM_MESSAGE,
-)
+private fun lostClaimBatchResult(
+  request: DrainRequest,
+  syncedTotal: Int,
+): SyncResult =
+  syncResult(
+    status = TelemetrySyncStatus.FAILED,
+    syncedEvents = syncedTotal,
+    pendingEvents = request.outboxRepository.pendingCount(),
+    syncContext = request.syncContext,
+    message = LOST_CLAIM_MESSAGE,
+  )
 
-private fun drainedSyncResult(request: DrainRequest, syncedTotal: Int): SyncResult {
+private fun drainedSyncResult(
+  request: DrainRequest,
+  syncedTotal: Int,
+): SyncResult {
   val pending = request.outboxRepository.pendingCount()
   val blocked = request.outboxRepository.blockedCount(TELEMETRY_DELIVERY_ATTEMPT_BUDGET)
   if (blocked > 0) {
@@ -259,7 +274,10 @@ private fun drainedSyncResult(request: DrainRequest, syncedTotal: Int): SyncResu
   return completedSyncResult(request.syncContext, syncedTotal, pending)
 }
 
-private fun blockedMessage(blocked: Int, latestError: String?): String =
+private fun blockedMessage(
+  blocked: Int,
+  latestError: String?,
+): String =
   "$blocked telemetry event(s) exceeded the $TELEMETRY_DELIVERY_ATTEMPT_BUDGET-attempt delivery budget and stay " +
     "queued without further delivery attempts. There is no redelivery command: `skill-bill telemetry status` " +
     "reports them as blocked_events and `skill-bill telemetry clear` discards them. Latest error: " +
@@ -269,7 +287,10 @@ private fun undrainedMessage(pending: Int): String =
   "$pending telemetry event(s) stayed queued through this drain, held by a concurrent drain's claim or " +
     "enqueued while it ran. The next sync delivers them."
 
-private fun batchBudget(pendingEvents: Int, batchSize: Int): Int {
+private fun batchBudget(
+  pendingEvents: Int,
+  batchSize: Int,
+): Int {
   if (batchSize <= 0) {
     return 1
   }
@@ -280,7 +301,10 @@ private fun Throwable.isCooperativeCancellation(): Boolean = this is Cancellatio
 
 private fun rethrowCancellation(error: Throwable): Nothing = throw error
 
-internal fun rethrowInterrupted(error: InterruptedException, interruptSignal: InterruptSignalPort): Nothing {
+internal fun rethrowInterrupted(
+  error: InterruptedException,
+  interruptSignal: InterruptSignalPort,
+): Nothing {
   runCatching { interruptSignal.restore() }.exceptionOrNull()?.let { restorationFailure ->
     if (restorationFailure !== error) {
       error.addSuppressed(restorationFailure)

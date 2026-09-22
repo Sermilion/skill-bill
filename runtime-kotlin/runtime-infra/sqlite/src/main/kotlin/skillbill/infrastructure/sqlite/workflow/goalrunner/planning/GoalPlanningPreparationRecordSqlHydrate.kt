@@ -23,13 +23,14 @@ internal fun ResultSet.toPreparedRecord(): GoalPlanningPreparationRecord {
     subtaskId = subtaskId,
     governedSubSpecPath = requireColumn(this, label, "governed_sub_spec_path"),
     preparationStatus = decodeState(label, getString("preparation_status")),
-    provenance = GoalPlanningPreparationProvenance(
-      parentSpecHash = requireColumn(this, label, "parent_spec_hash"),
-      subSpecHash = requireColumn(this, label, "sub_spec_hash"),
-      decompositionManifestHash = requireColumn(this, label, "decomposition_manifest_hash"),
-      phaseOutputContractId = requireColumn(this, label, "phase_output_contract_id"),
-      phaseOutputContractVersion = requireColumn(this, label, "phase_output_contract_version"),
-    ),
+    provenance =
+      GoalPlanningPreparationProvenance(
+        parentSpecHash = requireColumn(this, label, "parent_spec_hash"),
+        subSpecHash = requireColumn(this, label, "sub_spec_hash"),
+        decompositionManifestHash = requireColumn(this, label, "decomposition_manifest_hash"),
+        phaseOutputContractId = requireColumn(this, label, "phase_output_contract_id"),
+        phaseOutputContractVersion = requireColumn(this, label, "phase_output_contract_version"),
+      ),
     preplanPayload = requireColumn(this, label, "preplan_payload_json"),
     planPayload = requireColumn(this, label, "plan_payload_json"),
     preplanRepairEvidence = optionalRepairEvidence(this, label, "preplan_repair_evidence_json"),
@@ -40,17 +41,19 @@ internal fun ResultSet.toPreparedRecord(): GoalPlanningPreparationRecord {
   )
 }
 
-internal fun selectRecordSql(): String = """
+internal fun selectRecordSql(): String =
+  """
   ${selectRecordColumns()}
   FROM goal_planning_preparations
   WHERE parent_goal_workflow_id = ? AND subtask_id = ?
-""".trimIndent()
+  """.trimIndent()
 
-internal fun selectRecordColumns(): String = """
+internal fun selectRecordColumns(): String =
+  """
   SELECT parent_goal_workflow_id, normalized_issue_key, repository_identity, subtask_id,
          governed_sub_spec_path, preparation_status, contract_version, parent_spec_hash,
          sub_spec_hash, decomposition_manifest_hash, phase_output_contract_id,
          phase_output_contract_version, preplan_payload_json, plan_payload_json,
          preplan_repair_evidence_json, plan_repair_evidence_json,
          created_at, updated_at
-""".trimIndent()
+  """.trimIndent()

@@ -74,22 +74,23 @@ internal object GitRepositoryFingerprintOperations : RepositoryFingerprintGitOpe
     baseCommit: String?,
     headCommit: String,
     ownedPaths: List<String>,
-  ): WorkflowGitOperationResult = runCatching {
-    val digest = newSha256Digest()
-    UntrackedFingerprintDigest.digestPart(digest, "base", baseCommit.orEmpty().toByteArray())
-    UntrackedFingerprintDigest.digestPart(digest, "head", headCommit.toByteArray())
-    val root = repoRoot.normalize()
-    ownedPaths.distinct().sorted().forEach { path ->
-      val resolved = root.resolve(path).normalize()
-      requirePathContainedIn(resolved, root) { "Checkpoint path escapes repository root: $path" }
-      UntrackedFingerprintDigest.digestUntrackedEntry(digest, path, resolved)
+  ): WorkflowGitOperationResult =
+    runCatching {
+      val digest = newSha256Digest()
+      UntrackedFingerprintDigest.digestPart(digest, "base", baseCommit.orEmpty().toByteArray())
+      UntrackedFingerprintDigest.digestPart(digest, "head", headCommit.toByteArray())
+      val root = repoRoot.normalize()
+      ownedPaths.distinct().sorted().forEach { path ->
+        val resolved = root.resolve(path).normalize()
+        requirePathContainedIn(resolved, root) { "Checkpoint path escapes repository root: $path" }
+        UntrackedFingerprintDigest.digestUntrackedEntry(digest, path, resolved)
+      }
+      WorkflowGitOperationResult.Ok(value = digest.digest().joinToString("") { "%02x".format(it) })
+    }.getOrElse { error ->
+      WorkflowGitOperationResult.Failed(
+        error = "Could not fingerprint workflow-owned repository checkpoint: ${error.message}",
+      )
     }
-    WorkflowGitOperationResult.Ok(value = digest.digest().joinToString("") { "%02x".format(it) })
-  }.getOrElse { error ->
-    WorkflowGitOperationResult.Failed(
-      error = "Could not fingerprint workflow-owned repository checkpoint: ${error.message}",
-    )
-  }
 
   fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult {
     val status = runGitCommand(repoRoot, "status", "--porcelain")
@@ -110,14 +111,15 @@ internal object GitRepositoryFingerprintOperations : RepositoryFingerprintGitOpe
     val untracked = runGitForActivity(repoRoot, listOf("ls-files", "--others", "--exclude-standard", "-z"))
     if (untracked !is WorkflowGitOperationResult.Ok) return numstatFailure(untracked.error)
     val root = repoRoot.normalize()
-    val untrackedEntries = untracked.value.split('\u0000')
-      .filter(String::isNotBlank)
-      .sorted()
-      .mapNotNull { path ->
-        untrackedLineCount(root, path)?.let { lines ->
-          GoalObservabilityFileDiffStat(path = path, insertions = lines, deletions = 0)
+    val untrackedEntries =
+      untracked.value.split('\u0000')
+        .filter(String::isNotBlank)
+        .sorted()
+        .mapNotNull { path ->
+          untrackedLineCount(root, path)?.let { lines ->
+            GoalObservabilityFileDiffStat(path = path, insertions = lines, deletions = 0)
+          }
         }
-      }
     return WorkflowWorktreeNumstatResult(
       status = WorkflowGitOperationStatus.OK,
       files = parseNumstatEntries(tracked.value) + untrackedEntries,
@@ -127,11 +129,15 @@ internal object GitRepositoryFingerprintOperations : RepositoryFingerprintGitOpe
   private fun numstatFailure(error: String): WorkflowWorktreeNumstatResult =
     WorkflowWorktreeNumstatResult(status = WorkflowGitOperationStatus.ERROR, files = emptyList(), error = error)
 
-  private fun untrackedLineCount(root: Path, path: String): Int? {
+  private fun untrackedLineCount(
+    root: Path,
+    path: String,
+  ): Int? {
     val resolved = root.resolve(path).normalize()
-    val contained = runCatching {
-      requirePathContainedIn(resolved, root) { "Untracked path escapes repository root: $path" }
-    }
+    val contained =
+      runCatching {
+        requirePathContainedIn(resolved, root) { "Untracked path escapes repository root: $path" }
+      }
     if (contained.isFailure) return null
     if (Files.isSymbolicLink(resolved) || !Files.isRegularFile(resolved, LinkOption.NOFOLLOW_LINKS)) return null
     return try {
@@ -161,7 +167,10 @@ internal object GitRepositoryFingerprintOperations : RepositoryFingerprintGitOpe
     return lines
   }
 
-  fun selectedDiffHunks(repoRoot: Path, request: WorkflowSelectedDiffHunksRequest): WorkflowSelectedDiffHunksResult {
+  fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult {
     if (request.paths.isEmpty() || (!request.includeStaged && !request.includeUnstaged)) {
       return WorkflowSelectedDiffHunksResult(status = WorkflowGitOperationStatus.OK)
     }
@@ -181,39 +190,53 @@ internal object GitRepositoryFingerprintOperations : RepositoryFingerprintGitOpe
     val errorResult = results.firstOrNull { result -> result.status != WorkflowGitOperationStatus.OK }
     return errorResult ?: WorkflowSelectedDiffHunksResult(
       status = WorkflowGitOperationStatus.OK,
-      selectedDiffHunks = GoalObservabilitySelectedDiffHunks(
-        hunks = chunks,
-        truncated = results.any { result -> result.selectedDiffHunks.truncated },
-      ),
+      selectedDiffHunks =
+        GoalObservabilitySelectedDiffHunks(
+          hunks = chunks,
+          truncated = results.any { result -> result.selectedDiffHunks.truncated },
+        ),
     )
   }
 }
 
 internal object UntrackedFingerprintDigest {
-  fun digestPart(digest: MessageDigest, label: String, bytes: ByteArray) {
+  fun digestPart(
+    digest: MessageDigest,
+    label: String,
+    bytes: ByteArray,
+  ) {
     digestPartHeader(digest, label, bytes.size.toString())
     digest.update(bytes)
   }
 
-  private fun digestPartHeader(digest: MessageDigest, label: String, length: String) {
+  private fun digestPartHeader(
+    digest: MessageDigest,
+    label: String,
+    length: String,
+  ) {
     digest.update(label.toByteArray())
     digest.update(0)
     digest.update(length.toByteArray())
     digest.update(0)
   }
 
-  fun digestUntrackedEntry(digest: MessageDigest, path: String, resolved: Path) {
+  fun digestUntrackedEntry(
+    digest: MessageDigest,
+    path: String,
+    resolved: Path,
+  ) {
     val label = "untracked:$path"
     if (!Files.isRegularFile(resolved, LinkOption.NOFOLLOW_LINKS)) {
       digestPart(digest, label, UNTRACKED_NON_REGULAR_MARKER.toByteArray())
       return
     }
-    val attributes = try {
-      Files.readAttributes(resolved, BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
-    } catch (error: IOException) {
-      digestPart(digest, label, "$UNTRACKED_UNREADABLE_MARKER:${error::class.simpleName}".toByteArray())
-      return
-    }
+    val attributes =
+      try {
+        Files.readAttributes(resolved, BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
+      } catch (error: IOException) {
+        digestPart(digest, label, "$UNTRACKED_UNREADABLE_MARKER:${error::class.simpleName}".toByteArray())
+        return
+      }
     if (attributes.size() > UNTRACKED_FINGERPRINT_CONTENT_MAX_BYTES) {
       digestPart(
         digest,
@@ -225,7 +248,12 @@ internal object UntrackedFingerprintDigest {
     digestUntrackedContent(digest, label, resolved, attributes.size())
   }
 
-  private fun digestUntrackedContent(digest: MessageDigest, label: String, resolved: Path, declaredSize: Long) {
+  private fun digestUntrackedContent(
+    digest: MessageDigest,
+    label: String,
+    resolved: Path,
+    declaredSize: Long,
+  ) {
     try {
       Files.newInputStream(resolved).use { input ->
         digestPartHeader(digest, label, declaredSize.toString())
@@ -249,11 +277,12 @@ internal object GitRuntimePhaseFileManifestOperations : RuntimePhaseFileManifest
     repoRoot: Path,
     beforeCommit: String,
     afterCommit: String,
-  ): WorkflowGitOperationResult = if (beforeCommit == afterCommit) {
-    WorkflowGitOperationResult.Ok(value = "")
-  } else {
-    runGitCommand(repoRoot, "diff", "--name-only", beforeCommit, afterCommit)
-  }
+  ): WorkflowGitOperationResult =
+    if (beforeCommit == afterCommit) {
+      WorkflowGitOperationResult.Ok(value = "")
+    } else {
+      runGitCommand(repoRoot, "diff", "--name-only", beforeCommit, afterCommit)
+    }
 }
 
 internal object GitSuppressionEvidenceOperations : SuppressionEvidenceGitOperations {
@@ -276,17 +305,18 @@ internal object GitSuppressionEvidenceOperations : SuppressionEvidenceGitOperati
     if (renameToBase.status != WorkflowGitOperationStatus.OK) {
       return WorkflowScopedPathContentsResult(status = WorkflowGitOperationStatus.ERROR, error = renameToBase.error)
     }
-    val pairs = scoped.map { headPath ->
-      val basePath = renameToBase.value[headPath] ?: headPath
-      val headContent = readWorktreeContent(repoRoot, headPath)
-      val baseContent = readContentAtRef(repoRoot, baseRef, basePath)
-      WorkflowScopedPathContent(
-        headPath = headPath,
-        basePath = basePath.takeIf { baseContent != null },
-        headContent = headContent,
-        baseContent = baseContent,
-      )
-    }
+    val pairs =
+      scoped.map { headPath ->
+        val basePath = renameToBase.value[headPath] ?: headPath
+        val headContent = readWorktreeContent(repoRoot, headPath)
+        val baseContent = readContentAtRef(repoRoot, baseRef, basePath)
+        WorkflowScopedPathContent(
+          headPath = headPath,
+          basePath = basePath.takeIf { baseContent != null },
+          headContent = headContent,
+          baseContent = baseContent,
+        )
+      }
     return WorkflowScopedPathContentsResult(status = WorkflowGitOperationStatus.OK, pairs = pairs)
   }
 
@@ -296,7 +326,10 @@ internal object GitSuppressionEvidenceOperations : SuppressionEvidenceGitOperati
     val error: String = "",
   )
 
-  private fun renameBasePaths(repoRoot: Path, baseRef: String): RenameMapResult {
+  private fun renameBasePaths(
+    repoRoot: Path,
+    baseRef: String,
+  ): RenameMapResult {
     val diff = runGitCommand(repoRoot, "diff", "-M", "--name-status", "--find-renames", baseRef)
     if (diff !is WorkflowGitOperationResult.Ok) {
       return RenameMapResult(
@@ -321,7 +354,10 @@ internal object GitSuppressionEvidenceOperations : SuppressionEvidenceGitOperati
     return RenameMapResult(status = WorkflowGitOperationStatus.OK, value = renames)
   }
 
-  private fun readWorktreeContent(repoRoot: Path, path: String): String? {
+  private fun readWorktreeContent(
+    repoRoot: Path,
+    path: String,
+  ): String? {
     val resolved = repoRoot.resolve(path).normalize()
     if (!resolved.startsWith(repoRoot.normalize())) return null
     return try {
@@ -335,7 +371,11 @@ internal object GitSuppressionEvidenceOperations : SuppressionEvidenceGitOperati
     }
   }
 
-  private fun readContentAtRef(repoRoot: Path, baseRef: String, path: String): String? {
+  private fun readContentAtRef(
+    repoRoot: Path,
+    baseRef: String,
+    path: String,
+  ): String? {
     val result = runGitCommand(repoRoot, "show", "$baseRef:$path")
     return if (result is WorkflowGitOperationResult.Ok) result.value else null
   }
@@ -351,7 +391,10 @@ internal fun combinedDiffStat(repoRoot: Path): GoalObservabilityDiffStat {
   )
 }
 
-internal fun runCatchingDiffStat(repoRoot: Path, vararg args: String): GoalObservabilityDiffStat {
+internal fun runCatchingDiffStat(
+  repoRoot: Path,
+  vararg args: String,
+): GoalObservabilityDiffStat {
   val result = runGitForActivity(repoRoot, args.toList())
   return if (result is WorkflowGitOperationResult.Ok) {
     parseDiffStat(result.value)

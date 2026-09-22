@@ -24,13 +24,14 @@ class CliConfigResolveExternalAddonsRuntimeTest {
   fun `absent machine-global config resolves to empty`() {
     val home = Files.createTempDirectory("ext-addon-no-config")
 
-    val result = CliRuntime.run(
-      listOf("config", "resolve-external-addons"),
-      CliRuntimeContext(
-        userHome = home,
-        environment = mapOf(CONFIG_ENVIRONMENT_KEY to home.resolve("config.json").toString()),
-      ),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("config", "resolve-external-addons"),
+        CliRuntimeContext(
+          userHome = home,
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to home.resolve("config.json").toString()),
+        ),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertTrue(result.stdout.isBlank())
@@ -52,10 +53,11 @@ class CliConfigResolveExternalAddonsRuntimeTest {
       ),
     )
 
-    val result = CliRuntime.run(
-      listOf("config", "resolve-external-addons"),
-      CliRuntimeContext(userHome = home, environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("config", "resolve-external-addons"),
+        CliRuntimeContext(userHome = home, environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "kotlin\t$kotlin")
@@ -78,10 +80,11 @@ class CliConfigResolveExternalAddonsRuntimeTest {
       ),
     )
 
-    val result = CliRuntime.run(
-      listOf("config", "resolve-external-addons"),
-      CliRuntimeContext(userHome = home, environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("config", "resolve-external-addons"),
+        CliRuntimeContext(userHome = home, environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals("ios\t$ios\n", result.stdout)
@@ -103,10 +106,11 @@ class CliConfigResolveExternalAddonsRuntimeTest {
       ),
     )
 
-    val result = CliRuntime.run(
-      listOf("config", "resolve-external-agent-addons"),
-      CliRuntimeContext(userHome = home, environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("config", "resolve-external-agent-addons"),
+        CliRuntimeContext(userHome = home, environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
+      )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals("$agentAddons\n", result.stdout)
@@ -118,10 +122,11 @@ class CliConfigResolveExternalAddonsRuntimeTest {
     Files.createDirectories(home.resolve(".skill-bill"))
     Files.writeString(configPath(home), "{ broken json")
 
-    val result = CliRuntime.run(
-      listOf("config", "resolve-external-addons"),
-      CliRuntimeContext(userHome = home, environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
-    )
+    val result =
+      CliRuntime.run(
+        listOf("config", "resolve-external-addons"),
+        CliRuntimeContext(userHome = home, environment = mapOf(CONFIG_ENVIRONMENT_KEY to configPath(home).toString())),
+      )
 
     assertEquals(1, result.exitCode, result.stdout)
     assertContains(result.stdout, "config")
@@ -129,7 +134,10 @@ class CliConfigResolveExternalAddonsRuntimeTest {
 
   private fun configPath(home: Path): Path = home.resolve(".skill-bill").resolve("config.json")
 
-  private fun writeConfig(home: Path, payload: Map<String, Any?>) {
+  private fun writeConfig(
+    home: Path,
+    payload: Map<String, Any?>,
+  ) {
     Files.createDirectories(home.resolve(".skill-bill"))
     Files.writeString(configPath(home), JsonCodec.mapToJsonString(payload) + "\n")
   }

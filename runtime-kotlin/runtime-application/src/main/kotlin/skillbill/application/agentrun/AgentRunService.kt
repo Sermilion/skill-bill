@@ -14,22 +14,25 @@ class AgentRunService(
 ) {
   fun launch(request: AgentRunStartRequest): AgentRunResult {
     val invokedAgent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "invokedAgentId")
-    val overrideAgent = request.configuredAgentOverrideId
-      ?.let { id -> InstallAgent.fromNormalizedId(id, label = "configuredAgentOverrideId") }
+    val overrideAgent =
+      request.configuredAgentOverrideId
+        ?.let { id -> InstallAgent.fromNormalizedId(id, label = "configuredAgentOverrideId") }
     val effectiveAgent = overrideAgent ?: invokedAgent
-    val resolution = AgentRunAgentResolution(
-      invokedAgent = invokedAgent,
-      configuredOverrideAgent = overrideAgent,
-      effectiveAgent = effectiveAgent,
-    )
+    val resolution =
+      AgentRunAgentResolution(
+        invokedAgent = invokedAgent,
+        configuredOverrideAgent = overrideAgent,
+        effectiveAgent = effectiveAgent,
+      )
     return AgentRunResult(
       resolution = resolution,
-      launchOutcome = agentRunLauncher.launch(
-        AgentRunLaunchRequest(
-          agentId = effectiveAgent.id,
-          skillRunRequest = request.skillRunRequest,
+      launchOutcome =
+        agentRunLauncher.launch(
+          AgentRunLaunchRequest(
+            agentId = effectiveAgent.id,
+            skillRunRequest = request.skillRunRequest,
+          ),
         ),
-      ),
     )
   }
 }

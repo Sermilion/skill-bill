@@ -90,14 +90,15 @@ class NativeAgentOperationsTest {
     val unselectedSources = Files.createDirectories(repoRoot.resolve("skills/bill-unselected/native-agents"))
     Files.writeString(unselectedSources.resolve("agents.yaml"), "agents: [\n")
 
-    val result = NativeAgentOperations.regenerate(
-      NativeAgentRegenerationRequest(
-        repoRoot = repoRoot,
-        compositionContext = testNativeAgentCompositionContext(repoRoot),
-        skillNames = listOf("bill-selected"),
-        home = home,
-      ),
-    )
+    val result =
+      NativeAgentOperations.regenerate(
+        NativeAgentRegenerationRequest(
+          repoRoot = repoRoot,
+          compositionContext = testNativeAgentCompositionContext(repoRoot),
+          skillNames = listOf("bill-selected"),
+          home = home,
+        ),
+      )
 
     assertEquals(NativeAgentProvider.entries.size, result.regeneratedFiles.size)
     assertTrue(result.regeneratedFiles.all { path -> path.fileName.toString().startsWith("bill-selected-worker.") })
@@ -122,31 +123,33 @@ class NativeAgentOperationsTest {
       """.trimIndent(),
     )
 
-    val first = NativeAgentOperations.renderInstallArtifacts(
-      NativeAgentInstallRenderRequest(
-        platformPacksRoot = platformPacks,
-        skillsRoot = skills,
-        selectedPlatforms = null,
-        provider = NativeAgentProvider.Claude,
-        home = home,
-        compositionContext = testNativeAgentCompositionContext(repoRoot),
-      ),
-    )
+    val first =
+      NativeAgentOperations.renderInstallArtifacts(
+        NativeAgentInstallRenderRequest(
+          platformPacksRoot = platformPacks,
+          skillsRoot = skills,
+          selectedPlatforms = null,
+          provider = NativeAgentProvider.Claude,
+          home = home,
+          compositionContext = testNativeAgentCompositionContext(repoRoot),
+        ),
+      )
     val providerRoot = first.cacheRoot.resolve(NativeAgentProvider.Claude.directoryName)
     assertEquals(NativeAgentOperations.installCacheRoot(home, platformPacks, skills), first.cacheRoot)
     assertTrue(providerRoot.startsWith(home.resolve(".skill-bill/native-agents")))
     Files.writeString(providerRoot.resolve("orphan.md"), "# stale\n")
 
-    val second = NativeAgentOperations.renderInstallArtifacts(
-      NativeAgentInstallRenderRequest(
-        platformPacksRoot = platformPacks,
-        skillsRoot = skills,
-        selectedPlatforms = null,
-        provider = NativeAgentProvider.Claude,
-        home = home,
-        compositionContext = testNativeAgentCompositionContext(repoRoot),
-      ),
-    )
+    val second =
+      NativeAgentOperations.renderInstallArtifacts(
+        NativeAgentInstallRenderRequest(
+          platformPacksRoot = platformPacks,
+          skillsRoot = skills,
+          selectedPlatforms = null,
+          provider = NativeAgentProvider.Claude,
+          home = home,
+          compositionContext = testNativeAgentCompositionContext(repoRoot),
+        ),
+      )
 
     assertEquals(listOf(providerRoot.resolve("bill-basic-worker.md")), second.generatedFiles)
     assertFalse(Files.exists(providerRoot.resolve("orphan.md")), "orphan provider artifact should be pruned")

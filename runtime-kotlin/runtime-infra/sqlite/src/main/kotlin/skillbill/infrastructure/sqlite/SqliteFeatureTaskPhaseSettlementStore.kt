@@ -5,6 +5,7 @@ import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
 import java.sql.Connection
+
 internal class SqliteFeatureTaskPhaseSettlementStore(
   private val connection: Connection,
 ) : FeatureTaskPhaseSettlementRepository {
@@ -32,7 +33,11 @@ internal class SqliteFeatureTaskPhaseSettlementStore(
     }
   }
 
-  override fun find(workflowId: String, phaseId: String, attempt: Int): FeatureTaskPhaseSettlement? {
+  override fun find(
+    workflowId: String,
+    phaseId: String,
+    attempt: Int,
+  ): FeatureTaskPhaseSettlement? {
     connection.prepareStatement(
       """
       SELECT workflow_id, phase_id, attempt, kind, envelope_json, recorded_at
@@ -55,7 +60,11 @@ internal class SqliteFeatureTaskPhaseSettlementStore(
     }
   }
 
-  override fun delete(workflowId: String, phaseId: String, attempt: Int): Boolean {
+  override fun delete(
+    workflowId: String,
+    phaseId: String,
+    attempt: Int,
+  ): Boolean {
     connection.prepareStatement(
       """
       DELETE FROM feature_task_phase_settlements

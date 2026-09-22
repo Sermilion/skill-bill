@@ -13,8 +13,9 @@ object ReviewLaneAggregation {
     val integrityFailure = laneIntegrityFailure(expectedLanes, results, commitSequenceDigest)
     if (integrityFailure != null) throw integrityFailure
     return ReviewCoverageReport(
-      cleanLanes = results.filter { it.disposition == ReviewLaneReviewDisposition.COMPLETE }
-        .map { it.lane }.sorted(),
+      cleanLanes =
+        results.filter { it.disposition == ReviewLaneReviewDisposition.COMPLETE }
+          .map { it.lane }.sorted(),
       incompleteLanes = results.filter { it.disposition == ReviewLaneReviewDisposition.INCOMPLETE },
       integrationCompleted = false,
     )
@@ -40,10 +41,11 @@ object ReviewLaneAggregation {
     }
     val mismatched = results.filter { it.commitSequenceDigest != commitSequenceDigest }.map { it.lane }
     return when {
-      mismatched.isNotEmpty() -> ReviewAggregationIntegrityError(
-        "a result was minted against a different commit sequence than the one under review",
-        mismatched,
-      )
+      mismatched.isNotEmpty() ->
+        ReviewAggregationIntegrityError(
+          "a result was minted against a different commit sequence than the one under review",
+          mismatched,
+        )
       else -> null
     }
   }

@@ -1,5 +1,6 @@
 package skillbill.config.model
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
 const val COMPACTION_KEY: String = "compaction"
 
 const val DEFAULT_COMPACTION_ENABLED: Boolean = true
@@ -51,11 +52,12 @@ sealed interface CompactionSettingsParse {
   ) : CompactionSettingsParse
 }
 
-fun parseCompactionSettings(raw: Any?): CompactionSettingsParse = try {
-  CompactionSettingsParse.Valid(parseCompactionMapping(raw))
-} catch (failure: InvalidCompactionSettings) {
-  failure.invalid
-}
+fun parseCompactionSettings(raw: Any?): CompactionSettingsParse =
+  try {
+    CompactionSettingsParse.Valid(parseCompactionMapping(raw))
+  } catch (failure: InvalidCompactionSettings) {
+    failure.invalid
+  }
 
 private fun parseCompactionMapping(raw: Any?): CompactionSettings {
   val root = raw as? Map<*, *> ?: invalidCompaction(COMPACTION_KEY, raw, "must be a mapping.")
@@ -64,11 +66,12 @@ private fun parseCompactionMapping(raw: Any?): CompactionSettings {
     invalidCompaction("$COMPACTION_KEY.$key", value, "is not a supported compaction field.")
   }
 
-  val enabled = when (val value = fields[ENABLED_KEY]) {
-    null -> DEFAULT_COMPACTION_ENABLED
-    is Boolean -> value
-    else -> invalidCompaction("$COMPACTION_KEY.$ENABLED_KEY", value, "must be a boolean.")
-  }
+  val enabled =
+    when (val value = fields[ENABLED_KEY]) {
+      null -> DEFAULT_COMPACTION_ENABLED
+      is Boolean -> value
+      else -> invalidCompaction("$COMPACTION_KEY.$ENABLED_KEY", value, "must be a boolean.")
+    }
   val windowTokens = intField(COMPACTION_KEY, fields, WINDOW_KEY, DEFAULT_COMPACTION_WINDOW_TOKENS)
   val triggerPct = intField(COMPACTION_KEY, fields, TRIGGER_PCT_KEY, DEFAULT_COMPACTION_TRIGGER_PCT)
   requireSaneTrigger(COMPACTION_KEY, windowTokens, triggerPct)
@@ -81,15 +84,20 @@ private fun parseCompactionMapping(raw: Any?): CompactionSettings {
   )
 }
 
-private fun parsePhases(raw: Any?, defaultWindow: Int, defaultPct: Int): Map<String, PhaseCompactionDirective> {
+private fun parsePhases(
+  raw: Any?,
+  defaultWindow: Int,
+  defaultPct: Int,
+): Map<String, PhaseCompactionDirective> {
   if (raw == null) return emptyMap()
   val phases = raw as? Map<*, *> ?: invalidCompaction("$COMPACTION_KEY.$PHASES_KEY", raw, "must be a mapping.")
   return phases.entries.associate { (rawPhaseId, rawDirective) ->
-    val phaseId = rawPhaseId as? String ?: invalidCompaction(
-      "$COMPACTION_KEY.$PHASES_KEY.$rawPhaseId",
-      rawDirective,
-      "is not a runtime phase.",
-    )
+    val phaseId =
+      rawPhaseId as? String ?: invalidCompaction(
+        "$COMPACTION_KEY.$PHASES_KEY.$rawPhaseId",
+        rawDirective,
+        "is not a runtime phase.",
+      )
     if (phaseId !in FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds) {
       invalidCompaction("$COMPACTION_KEY.$PHASES_KEY.$phaseId", rawDirective, "is not a runtime phase.")
     }
@@ -106,14 +114,24 @@ private fun parsePhases(raw: Any?, defaultWindow: Int, defaultPct: Int): Map<Str
   }
 }
 
-private fun intField(path: String, fields: Map<String, Any?>, key: String, fallback: Int): Int {
+private fun intField(
+  path: String,
+  fields: Map<String, Any?>,
+  key: String,
+  fallback: Int,
+): Int {
   val value = fields[key] ?: return fallback
-  val number = (value as? Number)?.takeIf { it.toDouble() == it.toInt().toDouble() }
-    ?: invalidCompaction("$path.$key", value, "must be a whole number.")
+  val number =
+    (value as? Number)?.takeIf { it.toDouble() == it.toInt().toDouble() }
+      ?: invalidCompaction("$path.$key", value, "must be a whole number.")
   return number.toInt()
 }
 
-private fun requireSaneTrigger(path: String, windowTokens: Int, triggerPct: Int) {
+private fun requireSaneTrigger(
+  path: String,
+  windowTokens: Int,
+  triggerPct: Int,
+) {
   if (windowTokens <= 0) {
     invalidCompaction("$path.$WINDOW_KEY", windowTokens, "must be a positive number of tokens.")
   }
@@ -136,9 +154,14 @@ private fun requireSaneTrigger(path: String, windowTokens: Int, triggerPct: Int)
   }
 }
 
-private fun invalidCompaction(keyPath: String, value: Any?, reason: String): Nothing = throw InvalidCompactionSettings(
-  CompactionSettingsParse.Invalid(keyPath = keyPath, value = value?.toString() ?: "null", reason = reason),
-)
+private fun invalidCompaction(
+  keyPath: String,
+  value: Any?,
+  reason: String,
+): Nothing =
+  throw InvalidCompactionSettings(
+    CompactionSettingsParse.Invalid(keyPath = keyPath, value = value?.toString() ?: "null", reason = reason),
+  )
 
 private class InvalidCompactionSettings(
   val invalid: CompactionSettingsParse.Invalid,

@@ -12,6 +12,7 @@ import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
+
 internal data class PointerRegenerationResult(
   val regeneratedFiles: List<Path>,
 )
@@ -34,12 +35,13 @@ object PointerOperations {
     if (!Files.isDirectory(packsRoot)) {
       return PointerRegenerationResult(emptyList())
     }
-    val context = PointerRegenerationContext(
-      repoRoot = resolvedRepoRoot,
-      originalBytes = originalBytes,
-      createdPaths = createdPaths,
-      written = mutableListOf(),
-    )
+    val context =
+      PointerRegenerationContext(
+        repoRoot = resolvedRepoRoot,
+        originalBytes = originalBytes,
+        createdPaths = createdPaths,
+        written = mutableListOf(),
+      )
     discoverPlatformPackManifests(packsRoot).forEach { pack ->
 
       requireMatchingContractVersion(pack)
@@ -49,16 +51,24 @@ object PointerOperations {
   }
 }
 
-private fun regeneratePackPointers(context: PointerRegenerationContext, pack: PlatformManifest) {
-  val sortedPointers = pack.pointers.sortedWith(
-    compareBy({ it.skillRelativeDir }, { it.name }),
-  )
+private fun regeneratePackPointers(
+  context: PointerRegenerationContext,
+  pack: PlatformManifest,
+) {
+  val sortedPointers =
+    pack.pointers.sortedWith(
+      compareBy({ it.skillRelativeDir }, { it.name }),
+    )
   sortedPointers.forEach { spec ->
     writePointerIfChanged(context, pack.packRoot.toPath(), spec)
   }
 }
 
-private fun writePointerIfChanged(context: PointerRegenerationContext, packRoot: Path, spec: PointerSpec) {
+private fun writePointerIfChanged(
+  context: PointerRegenerationContext,
+  packRoot: Path,
+  spec: PointerSpec,
+) {
   val resolvedPackRoot = packRoot.toAbsolutePath().normalize()
   val pointerFile = resolvedPackRoot.resolve(spec.skillRelativeDir).resolve(spec.name).normalize()
   require(pointerFile.startsWith(resolvedPackRoot)) {
@@ -68,21 +78,23 @@ private fun writePointerIfChanged(context: PointerRegenerationContext, packRoot:
 
   val existed = Files.exists(pointerFile, LinkOption.NOFOLLOW_LINKS)
   val isSymlink = Files.isSymbolicLink(pointerFile)
-  val currentContent: String? = when {
-    !existed -> null
-    isSymlink -> Files.readSymbolicLink(pointerFile).toString().replace(File.separatorChar, '/')
-    else -> Files.readString(pointerFile).trimEnd('\n', '\r')
-  }
+  val currentContent: String? =
+    when {
+      !existed -> null
+      isSymlink -> Files.readSymbolicLink(pointerFile).toString().replace(File.separatorChar, '/')
+      else -> Files.readString(pointerFile).trimEnd('\n', '\r')
+    }
   if (currentContent == rendered) {
     return
   }
   Files.createDirectories(pointerFile.parent)
   if (existed && context.originalBytes != null && pointerFile !in context.originalBytes) {
-    val originalBytesForRollback = if (isSymlink) {
-      currentContent.orEmpty().toByteArray(Charsets.UTF_8)
-    } else {
-      Files.readAllBytes(pointerFile)
-    }
+    val originalBytesForRollback =
+      if (isSymlink) {
+        currentContent.orEmpty().toByteArray(Charsets.UTF_8)
+      } else {
+        Files.readAllBytes(pointerFile)
+      }
     context.originalBytes[pointerFile] = originalBytesForRollback
   }
   writePointerArtifact(pointerFile, rendered, existed, isSymlink)
@@ -92,7 +104,12 @@ private fun writePointerIfChanged(context: PointerRegenerationContext, packRoot:
   context.written.add(pointerFile)
 }
 
-private fun writePointerArtifact(pointerFile: Path, rendered: String, existed: Boolean, wasSymlink: Boolean) {
+private fun writePointerArtifact(
+  pointerFile: Path,
+  rendered: String,
+  existed: Boolean,
+  wasSymlink: Boolean,
+) {
   if (existed) {
     if (wasSymlink) {
       Files.delete(pointerFile)

@@ -28,8 +28,9 @@ class GoalProgressEventSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = GoalProgressEventSchemaValidator::class.java.classLoader
-      .getResourceAsStream(GoalProgressEventSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      GoalProgressEventSchemaValidator::class.java.classLoader
+        .getResourceAsStream(GoalProgressEventSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
       "Canonical goal progress event schema is missing from the classpath at " +

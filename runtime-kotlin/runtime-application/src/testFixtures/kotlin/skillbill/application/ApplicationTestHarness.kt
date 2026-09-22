@@ -19,7 +19,10 @@ val testRepositoryRoot: RepositoryRoot = RepositoryRoot(Path.of("").toAbsolutePa
 
 val testWorkflowSnapshotValidator: WorkflowSnapshotValidator =
   object : WorkflowSnapshotValidator {
-    override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+    override fun validate(
+      snapshot: WorkflowStateSnapshot,
+      slug: String,
+    ) = Unit
   }
 
 internal val testInstallPlanWireValidator: InstallPlanWireValidator =
@@ -29,7 +32,10 @@ internal val testInstallPlanWireValidator: InstallPlanWireValidator =
 
 val testDecompositionManifestWriter = DecompositionManifestWriter()
 
-fun seedHarnessSpecIntentProjection(repoRoot: Path, specReference: String) {
+fun seedHarnessSpecIntentProjection(
+  repoRoot: Path,
+  specReference: String,
+) {
   val specPath = repoRoot.resolve(specReference)
   if (Files.isRegularFile(specPath)) return
   writeTextAtomically(
@@ -48,7 +54,10 @@ fun seedHarnessSpecIntentProjection(repoRoot: Path, specReference: String) {
   )
 }
 
-private fun writeTextAtomically(target: Path, content: String) {
+private fun writeTextAtomically(
+  target: Path,
+  content: String,
+) {
   Files.createDirectories(target.parent)
   val temp = Files.createTempFile(target.parent, "${target.fileName}.", ".tmp")
   Files.writeString(temp, content)

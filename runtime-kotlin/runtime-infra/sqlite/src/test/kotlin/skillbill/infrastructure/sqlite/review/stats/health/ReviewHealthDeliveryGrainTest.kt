@@ -69,23 +69,31 @@ class ReviewHealthDeliveryGrainTest {
     }
   }
 
-  private fun reviewPayload(reviewRunId: String, findings: Int): String = JsonCodec.mapToJsonString(
-    buildMap {
-      if (reviewRunId.isNotBlank()) put("review_run_id", reviewRunId)
-      put("platform_slug", "kotlin")
-      put("scope_type", "branch_diff")
-      put("total_findings", findings)
-      put("accepted_findings", findings)
-      put("rejected_findings", 0)
-      put("unresolved_findings", 0)
-    },
-  )
+  private fun reviewPayload(
+    reviewRunId: String,
+    findings: Int,
+  ): String =
+    JsonCodec.mapToJsonString(
+      buildMap {
+        if (reviewRunId.isNotBlank()) put("review_run_id", reviewRunId)
+        put("platform_slug", "kotlin")
+        put("scope_type", "branch_diff")
+        put("total_findings", findings)
+        put("accepted_findings", findings)
+        put("rejected_findings", 0)
+        put("unresolved_findings", 0)
+      },
+    )
 
-  private fun Connection.setDeliveryAttempts(outboxId: Long, attempts: Int) = createStatement().use { statement ->
+  private fun Connection.setDeliveryAttempts(
+    outboxId: Long,
+    attempts: Int,
+  ) = createStatement().use { statement ->
     statement.executeUpdate("UPDATE telemetry_outbox SET delivery_attempts = $attempts WHERE id = $outboxId")
   }
 
-  private fun Connection.clearDeliveryIdentity(outboxId: Long) = createStatement().use { statement ->
-    statement.executeUpdate("UPDATE telemetry_outbox SET event_uuid = NULL WHERE id = $outboxId")
-  }
+  private fun Connection.clearDeliveryIdentity(outboxId: Long) =
+    createStatement().use { statement ->
+      statement.executeUpdate("UPDATE telemetry_outbox SET event_uuid = NULL WHERE id = $outboxId")
+    }
 }

@@ -16,10 +16,11 @@ internal data class PendingDecompositionProjection(
 internal fun ContinuationStepResult.withPendingProjection(
   ownerWorkflowId: String,
   artifactsJson: String,
-): ContinuationStepResult = copy(
-  projectionOwnerWorkflowId = ownerWorkflowId,
-  projectionArtifactsJson = artifactsJson,
-)
+): ContinuationStepResult =
+  copy(
+    projectionOwnerWorkflowId = ownerWorkflowId,
+    projectionArtifactsJson = artifactsJson,
+  )
 
 internal fun resolveDecompositionProjectionOwner(
   record: WorkflowStateSnapshot,

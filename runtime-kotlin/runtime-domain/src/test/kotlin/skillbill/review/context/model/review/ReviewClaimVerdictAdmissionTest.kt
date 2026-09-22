@@ -10,11 +10,12 @@ class ReviewClaimVerdictAdmissionTest {
   @Test
   fun `a refuted verdict with no file line citation is recorded unresolved and the finding is preserved`() {
     val claim = claim()
-    val admitted = ReviewClaimVerdictAdmission.admit(
-      claim,
-      ReviewClaimWorkerResult(claimVerdict = "refuted"),
-      RECORDED_AT,
-    )
+    val admitted =
+      ReviewClaimVerdictAdmission.admit(
+        claim,
+        ReviewClaimWorkerResult(claimVerdict = "refuted"),
+        RECORDED_AT,
+      )
     assertEquals(claim, admitted.claim)
     assertEquals(ReviewClaimVerdict.UNRESOLVED, admitted.verdict.claimVerdict)
     assertEquals(ReviewClaimVerdictAdmission.UNCITED_REFUTATION, admitted.verdict.rejectionReason)
@@ -24,16 +25,17 @@ class ReviewClaimVerdictAdmissionTest {
   @Test
   fun `a result that alters finding text severity or location is rejected and the original claim is kept`() {
     val claim = claim(severity = ParallelReviewSeverity.BLOCKER)
-    val admitted = ReviewClaimVerdictAdmission.admit(
-      claim,
-      ReviewClaimWorkerResult(
-        claimVerdict = "refuted",
-        citations = listOf(ReviewFindingCitation("src/A.kt", 12)),
-        severity = ParallelReviewSeverity.NIT.displayName,
-        description = "rewritten as a nit",
-      ),
-      RECORDED_AT,
-    )
+    val admitted =
+      ReviewClaimVerdictAdmission.admit(
+        claim,
+        ReviewClaimWorkerResult(
+          claimVerdict = "refuted",
+          citations = listOf(ReviewFindingCitation("src/A.kt", 12)),
+          severity = ParallelReviewSeverity.NIT.displayName,
+          description = "rewritten as a nit",
+        ),
+        RECORDED_AT,
+      )
     assertEquals(claim, admitted.claim)
     assertEquals(ParallelReviewSeverity.BLOCKER, admitted.claim.severity)
     assertEquals(ReviewClaimVerdict.UNRESOLVED, admitted.verdict.claimVerdict)
@@ -43,11 +45,12 @@ class ReviewClaimVerdictAdmissionTest {
   @Test
   fun `an unsettled worker result is recorded unresolved and never refuted`() {
     val claim = claim()
-    val admitted = ReviewClaimVerdictAdmission.admit(
-      claim,
-      ReviewClaimWorkerResult(claimVerdict = "probably fine"),
-      RECORDED_AT,
-    )
+    val admitted =
+      ReviewClaimVerdictAdmission.admit(
+        claim,
+        ReviewClaimWorkerResult(claimVerdict = "probably fine"),
+        RECORDED_AT,
+      )
     assertEquals(claim, admitted.claim)
     assertEquals(ReviewClaimVerdict.UNRESOLVED, admitted.verdict.claimVerdict)
     assertEquals(ReviewClaimVerdictAdmission.UNSETTLED, admitted.verdict.rejectionReason)

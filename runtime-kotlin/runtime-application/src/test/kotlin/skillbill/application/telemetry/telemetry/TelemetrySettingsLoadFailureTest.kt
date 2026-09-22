@@ -14,9 +14,10 @@ class TelemetrySettingsLoadFailureTest {
   @Test
   fun `a failing load emits one diagnostic and returns the disabled fallback`() {
     val diagnostics = RecordingRuntimeDiagnostics()
-    val provider = object : TelemetrySettingsProvider {
-      override fun load(materialize: Boolean): TelemetrySettings = error("config unreadable")
-    }
+    val provider =
+      object : TelemetrySettingsProvider {
+        override fun load(materialize: Boolean): TelemetrySettings = error("config unreadable")
+      }
 
     val settings = telemetrySettingsOrNull(provider, diagnostics)
 
@@ -28,12 +29,14 @@ class TelemetrySettingsLoadFailureTest {
 
   @Test
   fun `cooperative cancellation still propagates from optional telemetry loading`() {
-    val cancelled = object : TelemetrySettingsProvider {
-      override fun load(materialize: Boolean) = throw CancellationException("cancelled")
-    }
-    val interrupted = object : TelemetrySettingsProvider {
-      override fun load(materialize: Boolean) = throw InterruptedException("interrupted")
-    }
+    val cancelled =
+      object : TelemetrySettingsProvider {
+        override fun load(materialize: Boolean) = throw CancellationException("cancelled")
+      }
+    val interrupted =
+      object : TelemetrySettingsProvider {
+        override fun load(materialize: Boolean) = throw InterruptedException("interrupted")
+      }
     val diagnostics = RecordingRuntimeDiagnostics()
 
     assertFailsWith<CancellationException> { telemetrySettingsOrNull(cancelled, diagnostics) }
@@ -47,9 +50,15 @@ private class RecordingRuntimeDiagnostics : RuntimeDiagnostics {
 
   val errors = mutableListOf<Record>()
 
-  override fun warning(message: String, error: Throwable?) = Unit
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 
-  override fun error(message: String, error: Throwable?) {
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) {
     errors += Record(message, error)
   }
 }

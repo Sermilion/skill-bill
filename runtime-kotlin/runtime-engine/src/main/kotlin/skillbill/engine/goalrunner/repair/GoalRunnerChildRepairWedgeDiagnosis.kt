@@ -24,6 +24,7 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY
 import java.nio.file.Path
 import java.time.Clock
+
 const val PASSED_VALIDATION_DEPTH: String = "validation_depth_present"
 const val PASSED_QUALITY_GATE_SELECTION: String = "quality_gate_selection_present"
 const val PASSED_REVIEW_BASE: String = "review_base_reachable"
@@ -44,8 +45,9 @@ class GoalRunnerChildRepairWedgeDiagnosis(
     subtaskId: Int,
     repoRoot: Path,
   ): GoalRunnerChildWedgeDiagnosis {
-    val record = WorkflowFamily.TASK_RUNTIME.get(workflowStates, workflowId)
-      ?: return healthyDiagnosis(subtaskId, workflowId)
+    val record =
+      WorkflowFamily.TASK_RUNTIME.get(workflowStates, workflowId)
+        ?: return healthyDiagnosis(subtaskId, workflowId)
     val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
     val wedges = mutableListOf<GoalRunnerWedgeFinding>()
     val passed = mutableListOf<String>()
@@ -70,26 +72,33 @@ class GoalRunnerChildRepairWedgeDiagnosis(
     )
   }
 
-  fun isUnreachable(repoRoot: Path, sha: String): Boolean {
+  fun isUnreachable(
+    repoRoot: Path,
+    sha: String,
+  ): Boolean {
     val head = gitOperations.headCommitSha(repoRoot)
     if (head !is WorkflowGitOperationResult.Ok || head.value.isBlank()) return false
     val ancestry = gitOperations.isCommitAncestor(repoRoot, sha, head.value.trim())
     return ancestry is WorkflowGitOperationResult.Ok && ancestry.value != "true"
   }
 
-  private fun healthyDiagnosis(subtaskId: Int, workflowId: String) = GoalRunnerChildWedgeDiagnosis(
+  private fun healthyDiagnosis(
+    subtaskId: Int,
+    workflowId: String,
+  ) = GoalRunnerChildWedgeDiagnosis(
     subtaskId = subtaskId,
     workflowId = workflowId,
-    passedChecks = listOf(
-      PASSED_VALIDATION_DEPTH,
-      PASSED_QUALITY_GATE_SELECTION,
-      PASSED_REVIEW_BASE,
-      PASSED_REMEDIATION_BASE,
-      PASSED_CONTINUATION_OUTCOME,
-      PASSED_UPSTREAM_OUTPUT,
-      PASSED_PHASE_OUTPUT_CONTRACT,
-      PASSED_WORKER_LEASE,
-    ),
+    passedChecks =
+      listOf(
+        PASSED_VALIDATION_DEPTH,
+        PASSED_QUALITY_GATE_SELECTION,
+        PASSED_REVIEW_BASE,
+        PASSED_REMEDIATION_BASE,
+        PASSED_CONTINUATION_OUTCOME,
+        PASSED_UPSTREAM_OUTPUT,
+        PASSED_PHASE_OUTPUT_CONTRACT,
+        PASSED_WORKER_LEASE,
+      ),
   )
 
   private fun diagnoseStaleChildWorkerLease(
@@ -103,11 +112,12 @@ class GoalRunnerChildRepairWedgeDiagnosis(
       passed += PASSED_WORKER_LEASE
       return
     }
-    wedges += GoalRunnerWedgeFinding(
-      wedgeClass = GoalRunnerWedgeClass.STALE_CHILD_WORKER_LEASE,
-      field = GoalRunnerWedgeClass.STALE_CHILD_WORKER_LEASE.durableField,
-      currentValue = ownership.expiresAt,
-    )
+    wedges +=
+      GoalRunnerWedgeFinding(
+        wedgeClass = GoalRunnerWedgeClass.STALE_CHILD_WORKER_LEASE,
+        field = GoalRunnerWedgeClass.STALE_CHILD_WORKER_LEASE.durableField,
+        currentValue = ownership.expiresAt,
+      )
   }
 
   private fun leaseExpired(ownership: FeatureTaskRuntimeWorkerOwnership): Boolean =
@@ -124,11 +134,12 @@ class GoalRunnerChildRepairWedgeDiagnosis(
       passed += PASSED_PHASE_OUTPUT_CONTRACT
       return
     }
-    wedges += GoalRunnerWedgeFinding(
-      wedgeClass = GoalRunnerWedgeClass.PHASE_OUTPUT_CONTRACT_INCOMPATIBLE,
-      field = GoalRunnerWedgeClass.PHASE_OUTPUT_CONTRACT_INCOMPATIBLE.durableField,
-      currentValue = storedVersion,
-    )
+    wedges +=
+      GoalRunnerWedgeFinding(
+        wedgeClass = GoalRunnerWedgeClass.PHASE_OUTPUT_CONTRACT_INCOMPATIBLE,
+        field = GoalRunnerWedgeClass.PHASE_OUTPUT_CONTRACT_INCOMPATIBLE.durableField,
+        currentValue = storedVersion,
+      )
   }
 
   private fun diagnoseCompletedUpstreamMissingOutput(
@@ -137,22 +148,25 @@ class GoalRunnerChildRepairWedgeDiagnosis(
     passed: MutableList<String>,
   ) {
     val phaseRecords = decodePhaseRecords(artifacts)
-    val qualityGateSelection = continuationArtifact(artifacts)?.qualityGateSelection
-      ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
-    val resumePhaseId = diagnoseUnsettledCompletedUpstreamPhaseId(
-      phaseRecords,
-      featureSizeFromArtifacts(artifacts),
-      qualityGateSelection,
-    )
+    val qualityGateSelection =
+      continuationArtifact(artifacts)?.qualityGateSelection
+        ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
+    val resumePhaseId =
+      diagnoseUnsettledCompletedUpstreamPhaseId(
+        phaseRecords,
+        featureSizeFromArtifacts(artifacts),
+        qualityGateSelection,
+      )
     if (resumePhaseId == null) {
       passed += PASSED_UPSTREAM_OUTPUT
       return
     }
-    wedges += GoalRunnerWedgeFinding(
-      wedgeClass = GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT,
-      field = resumePhaseId,
-      currentValue = "completed_without_output",
-    )
+    wedges +=
+      GoalRunnerWedgeFinding(
+        wedgeClass = GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT,
+        field = resumePhaseId,
+        currentValue = "completed_without_output",
+      )
   }
 
   private fun diagnoseValidationDepth(
@@ -165,11 +179,12 @@ class GoalRunnerChildRepairWedgeDiagnosis(
       passed += PASSED_VALIDATION_DEPTH
       return
     }
-    wedges += GoalRunnerWedgeFinding(
-      wedgeClass = GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH,
-      field = GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH.durableField,
-      currentValue = null,
-    )
+    wedges +=
+      GoalRunnerWedgeFinding(
+        wedgeClass = GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH,
+        field = GoalRunnerWedgeClass.MISSING_VALIDATION_DEPTH.durableField,
+        currentValue = null,
+      )
   }
 
   private fun diagnoseQualityGateSelection(
@@ -182,11 +197,12 @@ class GoalRunnerChildRepairWedgeDiagnosis(
       passed += PASSED_QUALITY_GATE_SELECTION
       return
     }
-    wedges += GoalRunnerWedgeFinding(
-      wedgeClass = GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION,
-      field = GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION.durableField,
-      currentValue = null,
-    )
+    wedges +=
+      GoalRunnerWedgeFinding(
+        wedgeClass = GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION,
+        field = GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION.durableField,
+        currentValue = null,
+      )
   }
 
   private fun diagnoseReviewBases(
@@ -202,29 +218,33 @@ class GoalRunnerChildRepairWedgeDiagnosis(
       return
     }
     if (isUnreachable(repoRoot, review.reviewBaseSha)) {
-      wedges += GoalRunnerWedgeFinding(
-        wedgeClass = GoalRunnerWedgeClass.UNREACHABLE_REVIEW_BASE,
-        field = GoalRunnerWedgeClass.UNREACHABLE_REVIEW_BASE.durableField,
-        currentValue = review.reviewBaseSha,
-      )
+      wedges +=
+        GoalRunnerWedgeFinding(
+          wedgeClass = GoalRunnerWedgeClass.UNREACHABLE_REVIEW_BASE,
+          field = GoalRunnerWedgeClass.UNREACHABLE_REVIEW_BASE.durableField,
+          currentValue = review.reviewBaseSha,
+        )
     } else {
       passed += PASSED_REVIEW_BASE
     }
     val remediation = review.remediationBaseSha
     when {
       remediation == null -> passed += PASSED_REMEDIATION_BASE
-      isUnreachable(repoRoot, remediation) -> wedges += GoalRunnerWedgeFinding(
-        wedgeClass = GoalRunnerWedgeClass.UNREACHABLE_REMEDIATION_BASE,
-        field = GoalRunnerWedgeClass.UNREACHABLE_REMEDIATION_BASE.durableField,
-        currentValue = remediation,
-      )
+      isUnreachable(repoRoot, remediation) ->
+        wedges +=
+          GoalRunnerWedgeFinding(
+            wedgeClass = GoalRunnerWedgeClass.UNREACHABLE_REMEDIATION_BASE,
+            field = GoalRunnerWedgeClass.UNREACHABLE_REMEDIATION_BASE.durableField,
+            currentValue = remediation,
+          )
       else -> passed += PASSED_REMEDIATION_BASE
     }
   }
 
   private fun continuationArtifact(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact? {
-    val raw = JsonCodec.anyToStringAnyMap(artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY])
-      ?: return null
+    val raw =
+      JsonCodec.anyToStringAnyMap(artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY])
+        ?: return null
     return decodeGoalContinuationArtifactFromArtifact(raw)
   }
 }

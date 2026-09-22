@@ -27,7 +27,7 @@ fun WorkflowStateRepository.findDecomposedParentOrCorruptFallback(
         (
           snapshot.hasDecompositionPlan() ||
             DECOMPOSITION_RUNTIME_ARTIFACT_KEY in decodeWorkflowArtifacts(snapshot.artifactsJson)
-          )
+        )
     }
     .forEach { row ->
       val manifest = row.toSnapshot().decompositionRuntime(validator)
@@ -85,9 +85,10 @@ private fun DecompositionManifest.sameRuntimeIdentity(other: DecompositionManife
 fun WorkflowStateRepository.findDecomposedParentWorkflowForRuntime(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
-): WorkflowStateRecord? = listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, Int.MAX_VALUE).firstOrNull { row ->
-  val snapshot = row.toSnapshot()
-  !snapshot.isGoalContinuationChildWorkflow() &&
-    (snapshot.hasDecompositionPlan() || row.issueKey?.trim() == manifest.issueKey) &&
-    snapshot.decompositionRuntime(validator)?.sameRuntimeIdentity(manifest) == true
-}
+): WorkflowStateRecord? =
+  listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, Int.MAX_VALUE).firstOrNull { row ->
+    val snapshot = row.toSnapshot()
+    !snapshot.isGoalContinuationChildWorkflow() &&
+      (snapshot.hasDecompositionPlan() || row.issueKey?.trim() == manifest.issueKey) &&
+      snapshot.decompositionRuntime(validator)?.sameRuntimeIdentity(manifest) == true
+  }

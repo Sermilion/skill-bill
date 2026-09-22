@@ -8,6 +8,7 @@ import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaEr
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
 import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
+
 const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_VERSION: String =
   FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_CONTRACT_VERSION
 
@@ -18,12 +19,13 @@ enum class FeatureTaskRuntimePhaseOutputFormat(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): FeatureTaskRuntimePhaseOutputFormat = entries.firstOrNull { it.wireValue == value }
-      ?: throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-        sourceLabel = "<wire>",
-        reason = "Unrecognized phase-output format wire value '$value'.",
-        payloadFreeReason = "Unrecognized phase-output format wire value.",
-      )
+    fun fromWire(value: String): FeatureTaskRuntimePhaseOutputFormat =
+      entries.firstOrNull { it.wireValue == value }
+        ?: throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+          sourceLabel = "<wire>",
+          reason = "Unrecognized phase-output format wire value '$value'.",
+          payloadFreeReason = "Unrecognized phase-output format wire value.",
+        )
   }
 }
 
@@ -89,6 +91,7 @@ data class FeatureTaskRuntimePhaseOutputRepairEvidence(
 
   companion object {
     private val SHA256_HEX = Regex("[0-9a-f]{64}")
+
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseOutputRepairEvidence {
       requireRepairEvidenceExactFields(raw)
       val location = requireRepairEvidenceLocation(raw)
@@ -102,29 +105,33 @@ data class FeatureTaskRuntimePhaseOutputRepairEvidence(
         originalDigest = reader.requiredString("original_digest"),
         repairedDigest = reader.requiredString("repaired_digest"),
         operation = FeatureTaskRuntimePhaseOutputRepairOperation.fromWire(reader.requiredString("operation")),
-        sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation(
-          sourceLabel = locationReader.requiredString("source_label"),
-          offset = locationReader.requiredInt("offset"),
-          line = locationReader.requiredInt("line"),
-          column = locationReader.requiredInt("column"),
-        ),
+        sourceLocation =
+          FeatureTaskRuntimePhaseOutputSourceLocation(
+            sourceLabel = locationReader.requiredString("source_label"),
+            offset = locationReader.requiredInt("offset"),
+            line = locationReader.requiredInt("line"),
+            column = locationReader.requiredInt("column"),
+          ),
       )
     }
   }
-  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
-    "validator_version" to validatorVersion,
-    "format" to format.wireValue,
-    "original_digest" to originalDigest,
-    "repaired_digest" to repairedDigest,
-    "operation" to operation.wireValue,
-    "source_location" to linkedMapOf(
-      "source_label" to sourceLocation.sourceLabel,
-      "offset" to sourceLocation.offset,
-      "line" to sourceLocation.line,
-      "column" to sourceLocation.column,
-    ),
-  )
+
+  internal fun toArtifactMap(): Map<String, Any?> =
+    linkedMapOf(
+      SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
+      "validator_version" to validatorVersion,
+      "format" to format.wireValue,
+      "original_digest" to originalDigest,
+      "repaired_digest" to repairedDigest,
+      "operation" to operation.wireValue,
+      "source_location" to
+        linkedMapOf(
+          "source_label" to sourceLocation.sourceLabel,
+          "offset" to sourceLocation.offset,
+          "line" to sourceLocation.line,
+          "column" to sourceLocation.column,
+        ),
+    )
 }
 
 private fun phaseOutputRepairEvidenceSchemaError(reason: String): Nothing =
@@ -135,15 +142,16 @@ private fun phaseOutputRepairEvidenceSchemaError(reason: String): Nothing =
   )
 
 private fun requireRepairEvidenceExactFields(raw: Map<String, Any?>) {
-  val expectedFields = setOf(
-    SharedPayloadKeys.CONTRACT_VERSION,
-    "validator_version",
-    "format",
-    "original_digest",
-    "repaired_digest",
-    "operation",
-    "source_location",
-  )
+  val expectedFields =
+    setOf(
+      SharedPayloadKeys.CONTRACT_VERSION,
+      "validator_version",
+      "format",
+      "original_digest",
+      "repaired_digest",
+      "operation",
+      "source_location",
+    )
   if (raw.keys != expectedFields) {
     phaseOutputRepairEvidenceSchemaError(
       "Phase-output repair evidence contains unsupported or missing fields.",
@@ -152,15 +160,18 @@ private fun requireRepairEvidenceExactFields(raw: Map<String, Any?>) {
 }
 
 private fun requireRepairEvidenceLocation(raw: Map<String, Any?>): Map<String, Any?> {
-  val location = raw["source_location"]
-    ?: phaseOutputRepairEvidenceSchemaError(
-      "Phase-output repair evidence source_location must be an object.",
-    )
-  val locationMap = raw["source_location"] as? Map<*, *>
-    ?: phaseOutputRepairEvidenceSchemaError("Phase-output repair evidence source_location must be an object.")
-  val converted = locationMap.toStringKeyedArtifactMap { detail ->
-    phaseOutputRepairEvidenceSchemaError("Phase-output repair evidence source_location $detail")
-  }
+  val location =
+    raw["source_location"]
+      ?: phaseOutputRepairEvidenceSchemaError(
+        "Phase-output repair evidence source_location must be an object.",
+      )
+  val locationMap =
+    raw["source_location"] as? Map<*, *>
+      ?: phaseOutputRepairEvidenceSchemaError("Phase-output repair evidence source_location must be an object.")
+  val converted =
+    locationMap.toStringKeyedArtifactMap { detail ->
+      phaseOutputRepairEvidenceSchemaError("Phase-output repair evidence source_location $detail")
+    }
   if (converted.keys != setOf("source_label", "offset", "line", "column")) {
     phaseOutputRepairEvidenceSchemaError(
       "Phase-output repair evidence source_location contains unsupported fields.",
@@ -202,43 +213,47 @@ data class AcceptedFeatureTaskRuntimePhaseOutput(
 
 fun FeatureTaskRuntimePhaseOutputValidationResult.requireAcceptedOutput(
   sourceLabel: String,
-): AcceptedFeatureTaskRuntimePhaseOutput = when (this) {
-  is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged ->
-    AcceptedFeatureTaskRuntimePhaseOutput(normalizedOutput, null)
-  is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair ->
-    AcceptedFeatureTaskRuntimePhaseOutput(normalizedOutput, evidence)
-  is FeatureTaskRuntimePhaseOutputValidationResult.Rejected -> {
-    requireAccepted(sourceLabel)
-    error("Rejected phase-output validation unexpectedly returned an accepted payload.")
+): AcceptedFeatureTaskRuntimePhaseOutput =
+  when (this) {
+    is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged ->
+      AcceptedFeatureTaskRuntimePhaseOutput(normalizedOutput, null)
+    is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair ->
+      AcceptedFeatureTaskRuntimePhaseOutput(normalizedOutput, evidence)
+    is FeatureTaskRuntimePhaseOutputValidationResult.Rejected -> {
+      requireAccepted(sourceLabel)
+      error("Rejected phase-output validation unexpectedly returned an accepted payload.")
+    }
   }
-}
 
 fun FeatureTaskRuntimePhaseOutputValidationResult.requireAccepted(
   sourceLabel: String,
-): NormalizedFeatureTaskRuntimePhaseOutput = when (this) {
-  is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged -> normalizedOutput
-  is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair -> normalizedOutput
-  is FeatureTaskRuntimePhaseOutputValidationResult.Rejected -> {
-    val evidence = structuralRepairEvidence
-    throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-      sourceLabel = sourceLabel,
-      reason = diagnosticReason,
-      payloadFreeReason = payloadFreeReason,
-      failureCode = code.wireValue,
-      structuralRepair = evidence?.let {
-        FeatureTaskRuntimePhaseOutputStructuralRepair(
-          originalDigest = it.originalDigest,
-          repairedDigest = it.repairedDigest,
-          format = it.format.wireValue,
-          operation = it.operation.wireValue,
-          source = FeatureTaskRuntimePhaseOutputStructuralRepairSource(
-            label = it.sourceLocation.sourceLabel,
-            offset = it.sourceLocation.offset,
-            line = it.sourceLocation.line,
-            column = it.sourceLocation.column,
-          ),
-        )
-      },
-    )
+): NormalizedFeatureTaskRuntimePhaseOutput =
+  when (this) {
+    is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged -> normalizedOutput
+    is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair -> normalizedOutput
+    is FeatureTaskRuntimePhaseOutputValidationResult.Rejected -> {
+      val evidence = structuralRepairEvidence
+      throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+        sourceLabel = sourceLabel,
+        reason = diagnosticReason,
+        payloadFreeReason = payloadFreeReason,
+        failureCode = code.wireValue,
+        structuralRepair =
+          evidence?.let {
+            FeatureTaskRuntimePhaseOutputStructuralRepair(
+              originalDigest = it.originalDigest,
+              repairedDigest = it.repairedDigest,
+              format = it.format.wireValue,
+              operation = it.operation.wireValue,
+              source =
+                FeatureTaskRuntimePhaseOutputStructuralRepairSource(
+                  label = it.sourceLocation.sourceLabel,
+                  offset = it.sourceLocation.offset,
+                  line = it.sourceLocation.line,
+                  column = it.sourceLocation.column,
+                ),
+            )
+          },
+      )
+    }
   }
-}

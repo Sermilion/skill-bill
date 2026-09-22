@@ -13,6 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
 class SkillRemoveJvmFileSystemTest {
   private val tempDirs = mutableListOf<Path>()
 
@@ -31,11 +32,11 @@ class SkillRemoveJvmFileSystemTest {
   fun `discoverCascadedSkillNames strips the bill prefix from the horizontal slug`() {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val request = SkillRemovalRequest(
-
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
-      repoRootAbsolutePath = repoRoot.toString(),
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
+        repoRootAbsolutePath = repoRoot.toString(),
+      )
 
     val discovered = fs.discoverCascadedSkillNames(request).toSet()
 
@@ -54,10 +55,11 @@ class SkillRemoveJvmFileSystemTest {
   fun `discoverCascadedSkillNames finds quality-check overrides as well as code-review overrides`() {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-check", allowShipped = true),
-      repoRootAbsolutePath = repoRoot.toString(),
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-check", allowShipped = true),
+        repoRootAbsolutePath = repoRoot.toString(),
+      )
 
     val discovered = fs.discoverCascadedSkillNames(request).toSet()
 
@@ -68,26 +70,28 @@ class SkillRemoveJvmFileSystemTest {
   fun `planManifestEdits emits one REMOVE_CODE_REVIEW_AREA per discovered specialist`() {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val request = SkillRemovalRequest(
-
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
-      repoRootAbsolutePath = repoRoot.toString(),
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
+        repoRootAbsolutePath = repoRoot.toString(),
+      )
     val cascaded = fs.discoverCascadedSkillNames(request)
 
     val edits = fs.planManifestEdits(request, listOf("bill-code-review") + cascaded)
 
     val byManifest = edits.groupBy { it.manifestPath }
-    val kotlinAreas = byManifest["platform-packs/kotlin/platform.yaml"]
-      ?.filter { it.editKind == ManifestEditKind.REMOVE_CODE_REVIEW_AREA }
-      ?.map { it.detail }
-      ?.toSet()
-      .orEmpty()
-    val kmpAreas = byManifest["platform-packs/kmp/platform.yaml"]
-      ?.filter { it.editKind == ManifestEditKind.REMOVE_CODE_REVIEW_AREA }
-      ?.map { it.detail }
-      ?.toSet()
-      .orEmpty()
+    val kotlinAreas =
+      byManifest["platform-packs/kotlin/platform.yaml"]
+        ?.filter { it.editKind == ManifestEditKind.REMOVE_CODE_REVIEW_AREA }
+        ?.map { it.detail }
+        ?.toSet()
+        .orEmpty()
+    val kmpAreas =
+      byManifest["platform-packs/kmp/platform.yaml"]
+        ?.filter { it.editKind == ManifestEditKind.REMOVE_CODE_REVIEW_AREA }
+        ?.map { it.detail }
+        ?.toSet()
+        .orEmpty()
     assertEquals(setOf("architecture"), kotlinAreas)
     assertEquals(setOf("ui"), kmpAreas)
   }
@@ -96,18 +100,19 @@ class SkillRemoveJvmFileSystemTest {
   fun `planManifestEdits emits REMOVE_DECLARED_FILES_BASELINE for each pack with a baseline override`() {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val request = SkillRemovalRequest(
-
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
-      repoRootAbsolutePath = repoRoot.toString(),
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
+        repoRootAbsolutePath = repoRoot.toString(),
+      )
 
     val edits = fs.planManifestEdits(request, emptyList())
 
-    val baselineManifests = edits
-      .filter { it.editKind == ManifestEditKind.REMOVE_DECLARED_FILES_BASELINE }
-      .map { it.manifestPath }
-      .toSet()
+    val baselineManifests =
+      edits
+        .filter { it.editKind == ManifestEditKind.REMOVE_DECLARED_FILES_BASELINE }
+        .map { it.manifestPath }
+        .toSet()
     assertEquals(
       setOf("platform-packs/kotlin/platform.yaml", "platform-packs/kmp/platform.yaml"),
       baselineManifests,
@@ -118,18 +123,19 @@ class SkillRemoveJvmFileSystemTest {
   fun `planManifestEdits emits REMOVE_POINTERS_BLOCK_KEY for every removed code-review skill dir`() {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val request = SkillRemovalRequest(
-
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
-      repoRootAbsolutePath = repoRoot.toString(),
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
+        repoRootAbsolutePath = repoRoot.toString(),
+      )
 
     val edits = fs.planManifestEdits(request, emptyList())
 
-    val pointerKeysByPack = edits
-      .filter { it.editKind == ManifestEditKind.REMOVE_POINTERS_BLOCK_KEY }
-      .groupBy({ it.manifestPath }, { it.detail })
-      .mapValues { it.value.toSet() }
+    val pointerKeysByPack =
+      edits
+        .filter { it.editKind == ManifestEditKind.REMOVE_POINTERS_BLOCK_KEY }
+        .groupBy({ it.manifestPath }, { it.detail })
+        .mapValues { it.value.toSet() }
     assertEquals(
       setOf(
         "code-review/bill-kotlin-code-review",
@@ -150,11 +156,11 @@ class SkillRemoveJvmFileSystemTest {
   fun `applyCascade rewrites platform yaml removing baseline and pointer entries`() {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val request = SkillRemovalRequest(
-
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
-      repoRootAbsolutePath = repoRoot.toString(),
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
+        repoRootAbsolutePath = repoRoot.toString(),
+      )
 
     fs.executeRemoval(request)
 
@@ -178,11 +184,11 @@ class SkillRemoveJvmFileSystemTest {
   fun `applyCascade leaves platform packs in a state the schema accepts on reload`() {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val request = SkillRemovalRequest(
-
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
-      repoRootAbsolutePath = repoRoot.toString(),
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
+        repoRootAbsolutePath = repoRoot.toString(),
+      )
 
     fs.executeRemoval(request)
 
@@ -204,10 +210,11 @@ class SkillRemoveJvmFileSystemTest {
     val packRoot = repoRoot.resolve("platform-packs/kotlin")
     val otherPackRoot = repoRoot.resolve("platform-packs/kmp")
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.PlatformPack(platform = "kotlin"),
-      repoRootAbsolutePath = repoRoot.toString(),
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.PlatformPack(platform = "kotlin"),
+        repoRootAbsolutePath = repoRoot.toString(),
+      )
 
     fs.executeRemoval(request)
 
@@ -219,10 +226,11 @@ class SkillRemoveJvmFileSystemTest {
   fun `planManifestEdits emits REMOVE_DECLARED_QUALITY_CHECK_FILE when a quality-check override exists`() {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-check", allowShipped = true),
-      repoRootAbsolutePath = repoRoot.toString(),
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-check", allowShipped = true),
+        repoRootAbsolutePath = repoRoot.toString(),
+      )
 
     val edits = fs.planManifestEdits(request, listOf("bill-code-check", "bill-kotlin-code-check"))
 
@@ -239,10 +247,11 @@ class SkillRemoveJvmFileSystemTest {
   fun `executeRemoval AddOn removes platform and skill-class references`() {
     val (repoRoot, addon) = seedRepoWithAddonReferences()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.AddOn("platform-packs/kmp/addons/android-compose-edge-to-edge.md"),
-      repoRootAbsolutePath = repoRoot.toString(),
-    )
+    val request =
+      SkillRemovalRequest(
+        target = SkillRemovalTarget.AddOn("platform-packs/kmp/addons/android-compose-edge-to-edge.md"),
+        repoRootAbsolutePath = repoRoot.toString(),
+      )
 
     fs.executeRemoval(request)
 
@@ -280,14 +289,16 @@ class SkillRemoveJvmFileSystemTest {
       """.trimMargin(),
     )
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
-    val request = SkillRemovalRequest(
-      target = SkillRemovalTarget.ExternalAddOn(
-        sourceRootAbsolutePath = externalDir.toString(),
-        platform = "kmp",
-        fileName = "awesome.md",
-      ),
-      repoRootAbsolutePath = repoRoot.toString(),
-    )
+    val request =
+      SkillRemovalRequest(
+        target =
+          SkillRemovalTarget.ExternalAddOn(
+            sourceRootAbsolutePath = externalDir.toString(),
+            platform = "kmp",
+            fileName = "awesome.md",
+          ),
+        repoRootAbsolutePath = repoRoot.toString(),
+      )
 
     fs.executeRemoval(request)
 
@@ -298,30 +309,33 @@ class SkillRemoveJvmFileSystemTest {
   }
 
   private fun SkillRemoveJvmFileSystem.executeRemoval(request: SkillRemovalRequest) {
-    val cascadedSkillNames = when (val target = request.target) {
-      is SkillRemovalTarget.HorizontalSkill ->
-        listOf(target.skillName) +
-          discoverCascadedSkillNames(request).filter { it != target.skillName }
-      is SkillRemovalTarget.PlatformPack,
-      is SkillRemovalTarget.AddOn,
-      is SkillRemovalTarget.ExternalAddOn,
-      -> emptyList()
-    }
-    val skillDirRoot = when (val target = request.target) {
-      is SkillRemovalTarget.HorizontalSkill -> "skills/${target.skillName}"
-      is SkillRemovalTarget.PlatformPack -> "platform-packs/${target.platform}"
-      is SkillRemovalTarget.AddOn -> target.relativePath
-      is SkillRemovalTarget.ExternalAddOn ->
-        Path.of(target.sourceRootAbsolutePath).resolve(target.fileName).normalize().toString().replace('\\', '/')
-    }
-    val preview = SkillRemovalPreview(
-      filesystemPaths = resolveCascadeFilesystemPaths(request, cascadedSkillNames),
-      manifestEdits = planManifestEdits(request, cascadedSkillNames),
-      agentSymlinkUnlinks = planAgentSymlinkUnlinks(request, cascadedSkillNames),
-      readmeCatalogEdits = planReadmeCatalogEdits(request),
-      skillDirRoot = skillDirRoot,
-      cascadedSkillNames = cascadedSkillNames,
-    )
+    val cascadedSkillNames =
+      when (val target = request.target) {
+        is SkillRemovalTarget.HorizontalSkill ->
+          listOf(target.skillName) +
+            discoverCascadedSkillNames(request).filter { it != target.skillName }
+        is SkillRemovalTarget.PlatformPack,
+        is SkillRemovalTarget.AddOn,
+        is SkillRemovalTarget.ExternalAddOn,
+        -> emptyList()
+      }
+    val skillDirRoot =
+      when (val target = request.target) {
+        is SkillRemovalTarget.HorizontalSkill -> "skills/${target.skillName}"
+        is SkillRemovalTarget.PlatformPack -> "platform-packs/${target.platform}"
+        is SkillRemovalTarget.AddOn -> target.relativePath
+        is SkillRemovalTarget.ExternalAddOn ->
+          Path.of(target.sourceRootAbsolutePath).resolve(target.fileName).normalize().toString().replace('\\', '/')
+      }
+    val preview =
+      SkillRemovalPreview(
+        filesystemPaths = resolveCascadeFilesystemPaths(request, cascadedSkillNames),
+        manifestEdits = planManifestEdits(request, cascadedSkillNames),
+        agentSymlinkUnlinks = planAgentSymlinkUnlinks(request, cascadedSkillNames),
+        readmeCatalogEdits = planReadmeCatalogEdits(request),
+        skillDirRoot = skillDirRoot,
+        cascadedSkillNames = cascadedSkillNames,
+      )
     applyCascade(request, preview)
   }
 
@@ -356,7 +370,8 @@ class SkillRemoveJvmFileSystemTest {
   }
 
   private companion object {
-    private val KOTLIN_PLATFORM_YAML = """
+    private val KOTLIN_PLATFORM_YAML =
+      """
       |platform: kotlin
       |contract_version: "1.8"
       |routing_signals:
@@ -383,9 +398,10 @@ class SkillRemoveJvmFileSystemTest {
       |    - name: shell-ceremony.md
       |      target: orchestration/shell-content-contract/shell-ceremony.md
       |
-    """.trimMargin()
+      """.trimMargin()
 
-    private val KMP_PLATFORM_YAML = """
+    private val KMP_PLATFORM_YAML =
+      """
       |platform: kmp
       |contract_version: "1.8"
       |routing_signals:
@@ -408,9 +424,10 @@ class SkillRemoveJvmFileSystemTest {
       |    - name: shell-ceremony.md
       |      target: orchestration/shell-content-contract/shell-ceremony.md
       |
-    """.trimMargin()
+      """.trimMargin()
 
-    private val ADDON_SKILL_CLASS_YAML = """
+    private val ADDON_SKILL_CLASS_YAML =
+      """
       |class: feature-task
       |contract_version: "1.8"
       |matchers:
@@ -421,9 +438,10 @@ class SkillRemoveJvmFileSystemTest {
       |  - android-navigation-implementation
       |ceremony_lines: []
       |
-    """.trimMargin()
+      """.trimMargin()
 
-    private val KMP_PLATFORM_YAML_WITH_ADDON_REFERENCES = """
+    private val KMP_PLATFORM_YAML_WITH_ADDON_REFERENCES =
+      """
       |platform: kmp
       |contract_version: "1.8"
       |routing_signals:
@@ -450,6 +468,6 @@ class SkillRemoveJvmFileSystemTest {
       |        - android-compose-edge-to-edge.md
       |        - android-navigation-review.md
       |
-    """.trimMargin()
+      """.trimMargin()
   }
 }

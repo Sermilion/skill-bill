@@ -15,7 +15,6 @@ data class WorkflowUpdateInput(
   val stepUpdates: WorkflowStepUpdates?,
   val artifactsPatch: WorkflowArtifactPatch?,
   val sessionId: String,
-
   val replaceArtifacts: Boolean = false,
 )
 
@@ -53,7 +52,10 @@ fun interface RequiredArtifactPresenceResolver {
     requiredArtifacts: List<String>,
   ): List<String>
 
-  fun resolveRequiredArtifact(snapshot: WorkflowSnapshotView, artifactKey: String): ResolvedRequiredArtifact =
+  fun resolveRequiredArtifact(
+    snapshot: WorkflowSnapshotView,
+    artifactKey: String,
+  ): ResolvedRequiredArtifact =
     ResolvedRequiredArtifact(
       present = snapshot.artifacts.containsKey(artifactKey),
       value = snapshot.artifacts[artifactKey],

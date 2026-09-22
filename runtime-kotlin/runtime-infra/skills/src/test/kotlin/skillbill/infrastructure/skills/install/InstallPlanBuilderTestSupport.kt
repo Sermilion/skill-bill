@@ -47,11 +47,17 @@ open class InstallPlanBuilderTestSupport {
     return PlanFixture(repoRoot = repoRoot, home = home)
   }
 
-  protected fun seedBaseSkill(repoRoot: Path, skillName: String) {
+  protected fun seedBaseSkill(
+    repoRoot: Path,
+    skillName: String,
+  ) {
     seedBaseSkillAt(repoRoot.resolve("skills"), skillName)
   }
 
-  protected fun seedBaseSkillAt(skillsRoot: Path, skillName: String) {
+  protected fun seedBaseSkillAt(
+    skillsRoot: Path,
+    skillName: String,
+  ) {
     val skillDir = skillsRoot.resolve(skillName)
     Files.createDirectories(skillDir)
     Files.writeString(
@@ -84,19 +90,27 @@ open class InstallPlanBuilderTestSupport {
     )
   }
 
-  protected fun content(name: String, internalFor: String? = null): String = buildString {
-    appendLine("---")
-    appendLine("name: $name")
-    appendLine("description: Test skill.")
-    internalFor?.let { parent -> appendLine("internal-for: $parent") }
-    appendLine("---")
-    appendLine()
-    appendLine("# $name")
-    appendLine()
-    appendLine("Test body.")
-  }
+  protected fun content(
+    name: String,
+    internalFor: String? = null,
+  ): String =
+    buildString {
+      appendLine("---")
+      appendLine("name: $name")
+      appendLine("description: Test skill.")
+      internalFor?.let { parent -> appendLine("internal-for: $parent") }
+      appendLine("---")
+      appendLine()
+      appendLine("# $name")
+      appendLine()
+      appendLine("Test body.")
+    }
 
-  protected fun seedSkillClass(repoRoot: Path, skillName: String, pointers: List<String>) {
+  protected fun seedSkillClass(
+    repoRoot: Path,
+    skillName: String,
+    pointers: List<String>,
+  ) {
     val classRoot = repoRoot.resolve("orchestration/skill-classes")
     Files.createDirectories(classRoot)
     Files.writeString(
@@ -113,7 +127,10 @@ open class InstallPlanBuilderTestSupport {
     )
   }
 
-  protected fun seedSupportTarget(repoRoot: Path, relativePath: String) {
+  protected fun seedSupportTarget(
+    repoRoot: Path,
+    relativePath: String,
+  ) {
     val target = repoRoot.resolve(relativePath)
     Files.createDirectories(target.parent)
     Files.writeString(target, "# Support target\n")
@@ -128,21 +145,26 @@ open class InstallPlanBuilderTestSupport {
         .sorted()
         .toList()
         .associate { path ->
-          val relative = root.relativize(path)
-            .toString()
-            .replace(File.separatorChar, '/')
-            .ifEmpty { "." }
-          val value = when {
-            Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) -> "<DIR>"
-            Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) -> Files.readString(path)
-            else -> "<OTHER>"
-          }
+          val relative =
+            root.relativize(path)
+              .toString()
+              .replace(File.separatorChar, '/')
+              .ifEmpty { "." }
+          val value =
+            when {
+              Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) -> "<DIR>"
+              Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) -> Files.readString(path)
+              else -> "<OTHER>"
+            }
           relative to value
         }
     }
   }
 
-  protected fun declareCodeReviewFallback(repoRoot: Path, slug: String) {
+  protected fun declareCodeReviewFallback(
+    repoRoot: Path,
+    slug: String,
+  ) {
     val manifest = repoRoot.resolve("platform-packs/$slug/platform.yaml")
     Files.writeString(
       manifest,
@@ -169,27 +191,30 @@ data class PlanFixture(
     )
 
   fun request(
-    agentSelection: InstallAgentSelection = InstallAgentSelection(
-      mode = InstallAgentSelectionMode.MANUAL,
-      manualAgents = setOf(InstallAgent.CODEX),
-    ),
+    agentSelection: InstallAgentSelection =
+      InstallAgentSelection(
+        mode = InstallAgentSelectionMode.MANUAL,
+        manualAgents = setOf(InstallAgent.CODEX),
+      ),
     platformPackSelection: PlatformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.NONE),
     telemetryLevel: InstallTelemetryLevel = InstallTelemetryLevel.ANONYMOUS,
     targetPaths: InstallationTargetPaths = targetPaths(),
-    windowsSymlinkPreflight: WindowsSymlinkPreflight = WindowsSymlinkPreflight(
-      state = WindowsSymlinkPreflightState.NOT_WINDOWS,
-      decision = WindowsSymlinkDecision.NOT_REQUIRED,
-    ),
-  ): InstallPlanRequest = InstallPlanRequest(
-    repoRoot = repoRoot.toFileLocation(),
-    home = home.toFileLocation(),
-    agentSelection = agentSelection,
-    platformPackSelection = platformPackSelection,
-    telemetryLevel = telemetryLevel,
-    mcpRegistrationChoice = McpRegistrationChoice(register = true, runtimeMcpBin = runtimeMcpBin.toFileLocation()),
-    runtimeDistributionInputs = RuntimeDistributionInputs(runtimeInstallRoot = runtimeInstallRoot.toFileLocation()),
-    targetPaths = targetPaths,
-    windowsSymlinkPreflight = windowsSymlinkPreflight,
-    environment = installTestEnvironment(home),
-  )
+    windowsSymlinkPreflight: WindowsSymlinkPreflight =
+      WindowsSymlinkPreflight(
+        state = WindowsSymlinkPreflightState.NOT_WINDOWS,
+        decision = WindowsSymlinkDecision.NOT_REQUIRED,
+      ),
+  ): InstallPlanRequest =
+    InstallPlanRequest(
+      repoRoot = repoRoot.toFileLocation(),
+      home = home.toFileLocation(),
+      agentSelection = agentSelection,
+      platformPackSelection = platformPackSelection,
+      telemetryLevel = telemetryLevel,
+      mcpRegistrationChoice = McpRegistrationChoice(register = true, runtimeMcpBin = runtimeMcpBin.toFileLocation()),
+      runtimeDistributionInputs = RuntimeDistributionInputs(runtimeInstallRoot = runtimeInstallRoot.toFileLocation()),
+      targetPaths = targetPaths,
+      windowsSymlinkPreflight = windowsSymlinkPreflight,
+      environment = installTestEnvironment(home),
+    )
 }

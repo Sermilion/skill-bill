@@ -28,13 +28,14 @@ class InstallRegisterMcpCommand(
     if (state.refuseInstallMutationDuringGoalContinuation(inputs, "register-mcp")) {
       return
     }
-    val result = installMcpRegistrationPort.registerMcp(
-      InstallMcpRegistrationRequest(
-        agent = agent,
-        runtimeMcpBin = Path.of(runtimeMcpBin),
-        home = inputs.userHome,
-      ),
-    ).mutation
+    val result =
+      installMcpRegistrationPort.registerMcp(
+        InstallMcpRegistrationRequest(
+          agent = agent,
+          runtimeMcpBin = Path.of(runtimeMcpBin),
+          home = inputs.userHome,
+        ),
+      ).mutation
     state.completeText(mcpProfilePathsText(result), mcpProfilesMap(agent, result))
   }
 }
@@ -51,38 +52,46 @@ class InstallUnregisterMcpCommand(
     if (state.refuseInstallMutationDuringGoalContinuation(inputs, "unregister-mcp")) {
       return
     }
-    val result = try {
-      installMcpRegistrationPort.unregisterMcp(
-        InstallMcpUnregistrationRequest(
-          agent = agent,
-          home = inputs.userHome,
-        ),
-      ).mutation
-    } catch (error: ClaudeMcpProfileFailure) {
-      val removed = changedProfilePathsText(error.succeeded)
-      if (removed.isNotEmpty()) {
-        inputs.liveStdout("$removed\n")
+    val result =
+      try {
+        installMcpRegistrationPort.unregisterMcp(
+          InstallMcpUnregistrationRequest(
+            agent = agent,
+            home = inputs.userHome,
+          ),
+        ).mutation
+      } catch (error: ClaudeMcpProfileFailure) {
+        val removed = changedProfilePathsText(error.succeeded)
+        if (removed.isNotEmpty()) {
+          inputs.liveStdout("$removed\n")
+        }
+        throw error
       }
-      throw error
-    }
     state.completeText(mcpProfilePathsText(result), mcpProfilesMap(agent, result))
   }
 }
 
-private fun mcpProfilePathsText(result: McpMutationResult): String = if (result.profiles.isEmpty()) {
-  result.configPath.toString()
-} else {
-  changedProfilePathsText(result.profiles)
-}
+private fun mcpProfilePathsText(result: McpMutationResult): String =
+  if (result.profiles.isEmpty()) {
+    result.configPath.toString()
+  } else {
+    changedProfilePathsText(result.profiles)
+  }
 
-private fun changedProfilePathsText(profiles: List<McpProfileOutcome>): String = profiles
-  .filter { it.changed }
-  .joinToString("\n") { it.configPath.toString() }
+private fun changedProfilePathsText(profiles: List<McpProfileOutcome>): String =
+  profiles
+    .filter { it.changed }
+    .joinToString("\n") { it.configPath.toString() }
 
-private fun mcpProfilesMap(agent: String, result: McpMutationResult): Map<String, Any?> = mapOf(
-  "agent" to agent,
-  "changed" to result.changed,
-  "profiles" to result.profiles.map { profile ->
-    mapOf("config_path" to profile.configPath.toString(), "changed" to profile.changed)
-  },
-)
+private fun mcpProfilesMap(
+  agent: String,
+  result: McpMutationResult,
+): Map<String, Any?> =
+  mapOf(
+    "agent" to agent,
+    "changed" to result.changed,
+    "profiles" to
+      result.profiles.map { profile ->
+        mapOf("config_path" to profile.configPath.toString(), "changed" to profile.changed)
+      },
+  )

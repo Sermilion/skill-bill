@@ -52,9 +52,10 @@ class DecompositionWorkflowContinuation(
     requestedSubtaskId: Int? = null,
   ): ContinuationStepResult {
     val diskManifest = findProjectedManifestByIssueKey(issueKey)
-    var parentRecord = unitOfWork.workflowStates
-      .findDecomposedParentWorkflow(issueKey, validator, diskManifest)
-      ?.toSnapshot()
+    var parentRecord =
+      unitOfWork.workflowStates
+        .findDecomposedParentWorkflow(issueKey, validator, diskManifest)
+        ?.toSnapshot()
     var manifest = parentRecord?.decompositionRuntime(validator)
     if (parentRecord == null || manifest == null) {
       if (diskManifest != null) {
@@ -62,18 +63,19 @@ class DecompositionWorkflowContinuation(
         manifest = parentRecord.decompositionRuntime(validator)
       }
     }
-    val result = if (parentRecord == null || manifest == null) {
-      ContinuationStepResult(
-        WorkflowContinueResult.UnknownWorkflow(
-          dbPath = unitOfWork.dbPath.toString(),
-          workflowId = issueKey,
-        ),
-      )
-    } else {
-      unitOfWork.workflowStates.getFeatureTaskWorkflow(parentRecord.workflowId)
-        ?.requireRuntimeModeForEngineWrite()
-      continueManifest(parentRecord, manifest, unitOfWork, requestedSubtaskId)
-    }
+    val result =
+      if (parentRecord == null || manifest == null) {
+        ContinuationStepResult(
+          WorkflowContinueResult.UnknownWorkflow(
+            dbPath = unitOfWork.dbPath.toString(),
+            workflowId = issueKey,
+          ),
+        )
+      } else {
+        unitOfWork.workflowStates.getFeatureTaskWorkflow(parentRecord.workflowId)
+          ?.requireRuntimeModeForEngineWrite()
+        continueManifest(parentRecord, manifest, unitOfWork, requestedSubtaskId)
+      }
     return result
   }
 
@@ -92,49 +94,53 @@ class DecompositionWorkflowContinuation(
     unitOfWork: UnitOfWork,
   ): WorkflowStateSnapshot {
     val issueKey = normalizeRequiredIssueKey(manifest.issueKey)
-    val existingRecord = unitOfWork.workflowStates.findDecomposedParentOrCorruptFallback(
-      manifest.issueKey,
-      validator,
-      manifest,
-    )
+    val existingRecord =
+      unitOfWork.workflowStates.findDecomposedParentOrCorruptFallback(
+        manifest.issueKey,
+        validator,
+        manifest,
+      )
     existingRecord?.requireRuntimeModeForEngineWrite()
     val existing = existingRecord?.toSnapshot()
-    val base = existing ?: engine.openRecord(
-      WorkflowFamily.TASK_RUNTIME.definition,
-      generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, workflowIdRandom),
-      WorkflowFamily.TASK_RUNTIME.definition.defaultSessionPrefix,
-      "plan",
-    )
+    val base =
+      existing ?: engine.openRecord(
+        WorkflowFamily.TASK_RUNTIME.definition,
+        generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, workflowIdRandom),
+        WorkflowFamily.TASK_RUNTIME.definition.defaultSessionPrefix,
+        "plan",
+      )
     existing?.let { migrateLegacyGoalRunnerControls(unitOfWork, it) }
-    val imported = engine.updateRecord(
-      WorkflowFamily.TASK_RUNTIME.definition,
-      base,
-      WorkflowUpdateInput(
-        workflowStatus = WorkflowStatus.PAUSED,
-        currentStepId = "plan",
-        stepUpdates = if (existing != null) {
-          null
-        } else {
-          WorkflowStepUpdates.from(
-            listOf(
-              mapOf(
-                SharedPayloadKeys.STEP_ID to "preplan",
-                SharedPayloadKeys.STATUS to "completed",
-                "attempt_count" to 1,
-              ),
-              mapOf(
-                SharedPayloadKeys.STEP_ID to "plan",
-                SharedPayloadKeys.STATUS to "completed",
-                "attempt_count" to 1,
-              ),
-            ),
-          )
-        },
-        artifactsPatch = parentProjectionArtifacts(manifest, validator, base.artifactsJson),
-        sessionId = base.sessionId.orEmpty(),
-        replaceArtifacts = true,
-      ),
-    )
+    val imported =
+      engine.updateRecord(
+        WorkflowFamily.TASK_RUNTIME.definition,
+        base,
+        WorkflowUpdateInput(
+          workflowStatus = WorkflowStatus.PAUSED,
+          currentStepId = "plan",
+          stepUpdates =
+            if (existing != null) {
+              null
+            } else {
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf(
+                    SharedPayloadKeys.STEP_ID to "preplan",
+                    SharedPayloadKeys.STATUS to "completed",
+                    "attempt_count" to 1,
+                  ),
+                  mapOf(
+                    SharedPayloadKeys.STEP_ID to "plan",
+                    SharedPayloadKeys.STATUS to "completed",
+                    "attempt_count" to 1,
+                  ),
+                ),
+              )
+            },
+          artifactsPatch = parentProjectionArtifacts(manifest, validator, base.artifactsJson),
+          sessionId = base.sessionId.orEmpty(),
+          replaceArtifacts = true,
+        ),
+      )
     WorkflowFamily.TASK_RUNTIME.saveRecord(
       unitOfWork.workflowStates,
       imported.toRecord().copy(issueKey = issueKey),
@@ -148,26 +154,28 @@ class DecompositionWorkflowContinuation(
     unitOfWork: UnitOfWork,
     requestedSubtaskId: Int?,
   ): ContinuationStepResult {
-    val advancement = if (requestedSubtaskId == null) {
-      engine.advanceCompletedSubtasks(
-        AdvanceCompletedSubtasksRequest(
-          parentRecord = parentRecord,
-          manifest = manifest,
-          unitOfWork = unitOfWork,
-          validator = validator,
-          gitOperations = gitOperations,
-          repoRootProvider = { repoRoot },
-        ),
-      )
-    } else {
-      AdvancementResult(manifest)
-    }
+    val advancement =
+      if (requestedSubtaskId == null) {
+        engine.advanceCompletedSubtasks(
+          AdvanceCompletedSubtasksRequest(
+            parentRecord = parentRecord,
+            manifest = manifest,
+            unitOfWork = unitOfWork,
+            validator = validator,
+            gitOperations = gitOperations,
+            repoRootProvider = { repoRoot },
+          ),
+        )
+      } else {
+        AdvancementResult(manifest)
+      }
     if (advancement.error != null) {
-      val blocked = ContinuationStepResult(
-        blockedGitResult(parentRecord.workflowId, manifest.issueKey, unitOfWork.dbPath.toString(), advancement.error),
-        advancement.projectionArtifactsJson,
-        projectionOwnerWorkflowId = parentRecord.workflowId.takeIf { advancement.projectionArtifactsJson != null },
-      )
+      val blocked =
+        ContinuationStepResult(
+          blockedGitResult(parentRecord.workflowId, manifest.issueKey, unitOfWork.dbPath.toString(), advancement.error),
+          advancement.projectionArtifactsJson,
+          projectionOwnerWorkflowId = parentRecord.workflowId.takeIf { advancement.projectionArtifactsJson != null },
+        )
       return blocked
     }
     val advancedManifest = advancement.manifest
@@ -189,27 +197,29 @@ class DecompositionWorkflowContinuation(
     manifest: DecompositionManifest,
     unitOfWork: UnitOfWork,
     requestedSubtaskId: Int?,
-  ): ContinuationStepResult = when (
-    val selection = DecompositionContinuationSelector.select(manifest, requestedSubtaskId)
-  ) {
-    is DecompositionContinuationSelection.Resume -> continueSelectedSubtask(manifest, selection, unitOfWork)
-    is DecompositionContinuationSelection.Start -> startSelectedSubtask(parentRecord, manifest, selection, unitOfWork)
-    is DecompositionContinuationSelection.Blocked ->
-      ContinuationStepResult(blockedSubtaskResult(parentRecord, manifest, selection, unitOfWork.dbPath.toString()))
-    is DecompositionContinuationSelection.TerminalSubtask ->
-      ContinuationStepResult(terminalSubtaskResult(parentRecord, manifest, selection, unitOfWork.dbPath.toString()))
-    is DecompositionContinuationSelection.Done ->
-      ContinuationStepResult(doneDecompositionResult(parentRecord, selection.manifest, unitOfWork.dbPath.toString()))
-  }
+  ): ContinuationStepResult =
+    when (
+      val selection = DecompositionContinuationSelector.select(manifest, requestedSubtaskId)
+    ) {
+      is DecompositionContinuationSelection.Resume -> continueSelectedSubtask(manifest, selection, unitOfWork)
+      is DecompositionContinuationSelection.Start -> startSelectedSubtask(parentRecord, manifest, selection, unitOfWork)
+      is DecompositionContinuationSelection.Blocked ->
+        ContinuationStepResult(blockedSubtaskResult(parentRecord, manifest, selection, unitOfWork.dbPath.toString()))
+      is DecompositionContinuationSelection.TerminalSubtask ->
+        ContinuationStepResult(terminalSubtaskResult(parentRecord, manifest, selection, unitOfWork.dbPath.toString()))
+      is DecompositionContinuationSelection.Done ->
+        ContinuationStepResult(doneDecompositionResult(parentRecord, selection.manifest, unitOfWork.dbPath.toString()))
+    }
 
   private fun continueSelectedSubtask(
     manifest: DecompositionManifest,
     selection: DecompositionContinuationSelection.Resume,
     unitOfWork: UnitOfWork,
   ): ContinuationStepResult {
-    val record = selection.workflowId
-      .takeIf(String::isNotBlank)
-      ?.let { WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, it) }
+    val record =
+      selection.workflowId
+        .takeIf(String::isNotBlank)
+        ?.let { WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, it) }
     return if (record == null) {
       missingSubtaskWorkflowResult(selection, unitOfWork)
     } else {
@@ -240,17 +250,18 @@ class DecompositionWorkflowContinuation(
     unitOfWork: UnitOfWork,
   ): ContinuationStepResult {
     val issueKey = normalizeRequiredIssueKey(manifest.issueKey)
-    val branchError = engine.checkoutAndValidateBranch(
-      CheckoutAndValidateBranchRequest(
-        parentRecord = parentRecord,
-        manifest = manifest,
-        selection = selection,
-        unitOfWork = unitOfWork,
-        validator = validator,
-        gitOperations = gitOperations,
-        repoRootProvider = { repoRoot },
-      ),
-    )
+    val branchError =
+      engine.checkoutAndValidateBranch(
+        CheckoutAndValidateBranchRequest(
+          parentRecord = parentRecord,
+          manifest = manifest,
+          selection = selection,
+          unitOfWork = unitOfWork,
+          validator = validator,
+          gitOperations = gitOperations,
+          repoRootProvider = { repoRoot },
+        ),
+      )
     return if (branchError != null) {
       ContinuationStepResult(branchError)
     } else {
@@ -268,27 +279,34 @@ class DecompositionWorkflowContinuation(
     val workflowId =
       generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, workflowIdRandom)
     val updatedManifest = manifest.withStartedSubtask(selection.subtask.id, workflowId, selection.branchPlan.branch)
-    val opened = engine.openRecord(
-      WorkflowFamily.TASK_RUNTIME.definition,
-      workflowId,
-      parentRecord.sessionId.orEmpty(),
-      "preplan",
-    )
-    val started = engine.updateRecord(
-      WorkflowFamily.TASK_RUNTIME.definition,
-      opened,
-      WorkflowUpdateInput(
-        workflowStatus = WorkflowStatus.RUNNING,
-        currentStepId = "preplan",
-        stepUpdates = WorkflowStepUpdates.from(
-          listOf(
-            mapOf(SharedPayloadKeys.STEP_ID to "preplan", SharedPayloadKeys.STATUS to "running", "attempt_count" to 1),
-          ),
+    val opened =
+      engine.openRecord(
+        WorkflowFamily.TASK_RUNTIME.definition,
+        workflowId,
+        parentRecord.sessionId.orEmpty(),
+        "preplan",
+      )
+    val started =
+      engine.updateRecord(
+        WorkflowFamily.TASK_RUNTIME.definition,
+        opened,
+        WorkflowUpdateInput(
+          workflowStatus = WorkflowStatus.RUNNING,
+          currentStepId = "preplan",
+          stepUpdates =
+            WorkflowStepUpdates.from(
+              listOf(
+                mapOf(
+                  SharedPayloadKeys.STEP_ID to "preplan",
+                  SharedPayloadKeys.STATUS to "running",
+                  "attempt_count" to 1,
+                ),
+              ),
+            ),
+          artifactsPatch = subtaskStartArtifacts(selection, updatedManifest, validator),
+          sessionId = parentRecord.sessionId.orEmpty(),
         ),
-        artifactsPatch = subtaskStartArtifacts(selection, updatedManifest, validator),
-        sessionId = parentRecord.sessionId.orEmpty(),
-      ),
-    )
+      )
     WorkflowFamily.TASK_RUNTIME.saveRecord(
       unitOfWork.workflowStates,
       started.toRecord().copy(issueKey = issueKey),
@@ -311,8 +329,9 @@ class DecompositionWorkflowContinuation(
         issueKey = manifest.issueKey,
         subtaskId = selection.subtask.id,
         specPath = selection.subtask.specPath,
-        outcome = updatedManifest.subtasks.single { it.id == selection.subtask.id }
-          .toGoalContinuationOutcome(manifest.issueKey),
+        outcome =
+          updatedManifest.subtasks.single { it.id == selection.subtask.id }
+            .toGoalContinuationOutcome(manifest.issueKey),
       )
   }
 }

@@ -13,6 +13,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.specscratch.SpecScratchStore
 import java.time.Clock
+
 @Inject
 data class GoalRunnerRunBoundaries(
   val manifestStore: GoalRunnerManifestStore,

@@ -16,18 +16,21 @@ class SqliteExperimentPairOwnerStore(
   private val database: DatabaseSessionFactory,
   private val payloadValidation: ExperimentPayloadValidationPort?,
 ) : ExperimentPairOwnerPort {
-  override fun load(pairId: String): ExperimentPairPersistedState? = database.read { session ->
-    val loaded = session.experimentPairs.loadPairPayload(pairId) ?: return@read null
-    val (modeWire, payload) = loaded
-    val mode = ExperimentExecutionMode.fromWire(modeWire) ?: return@read null
-    val names = (payload[ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES] as? List<*>)?.map { it.toString() }
-      ?: emptyList()
-    val armOrder = (payload[ExperimentPairPayloadKeys.ARM_ORDER] as? List<*>)?.mapNotNull {
-      ExperimentArmId.fromWire(it.toString())
-    } ?: listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT)
-    val seed = payload[ExperimentPairPayloadKeys.RANDOM_SEED]?.toString() ?: ""
-    ExperimentPairPersistedState(pairId, mode, names, armOrder, seed, payload)
-  }
+  override fun load(pairId: String): ExperimentPairPersistedState? =
+    database.read { session ->
+      val loaded = session.experimentPairs.loadPairPayload(pairId) ?: return@read null
+      val (modeWire, payload) = loaded
+      val mode = ExperimentExecutionMode.fromWire(modeWire) ?: return@read null
+      val names =
+        (payload[ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES] as? List<*>)?.map { it.toString() }
+          ?: emptyList()
+      val armOrder =
+        (payload[ExperimentPairPayloadKeys.ARM_ORDER] as? List<*>)?.mapNotNull {
+          ExperimentArmId.fromWire(it.toString())
+        } ?: listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT)
+      val seed = payload[ExperimentPairPayloadKeys.RANDOM_SEED]?.toString() ?: ""
+      ExperimentPairPersistedState(pairId, mode, names, armOrder, seed, payload)
+    }
 
   override fun save(state: ExperimentPairPersistedState) {
     payloadValidation?.validatePair(state.pairPayload, "experiment-pair:${state.pairId}")
@@ -61,9 +64,10 @@ class SqliteExperimentPairOwnerStore(
         observationId = requireNotNull(observationId),
         pairId = requireNotNull(pairId),
         armId = requireNotNull(armId),
-        eventIdentityJson = JsonCodec.mapToJsonString(
-          JsonCodec.anyToStringAnyMap(eventIdentity)?.toSortedMap().orEmpty(),
-        ),
+        eventIdentityJson =
+          JsonCodec.mapToJsonString(
+            JsonCodec.anyToStringAnyMap(eventIdentity)?.toSortedMap().orEmpty(),
+          ),
         payloadJson = JsonCodec.mapToJsonString(payload),
         recordedAt = requireNotNull(recordedAt),
       )
@@ -78,7 +82,10 @@ class SqliteExperimentPairOwnerStore(
     eventIdentity: Map<*, *>?,
   ): Boolean = listOf(observationId, pairId, armId, recordedAt, eventIdentity).all { it != null }
 
-  override fun saveReport(pairId: String, reportPayload: Map<String, Any?>) {
+  override fun saveReport(
+    pairId: String,
+    reportPayload: Map<String, Any?>,
+  ) {
     payloadValidation?.validateReport(reportPayload, "experiment-report:$pairId")
     database.transaction { session ->
       session.experimentPairs.saveReport(pairId, reportPayload)
@@ -91,12 +98,20 @@ class SqliteExperimentPairOwnerStore(
   override fun listReports(): List<Map<String, Any?>> =
     database.read { session -> session.experimentPairs.listReports() }
 
-  override fun acquireLease(pairId: String, ownerToken: String, nowEpochMillis: Long, leaseMillis: Long): Boolean =
+  override fun acquireLease(
+    pairId: String,
+    ownerToken: String,
+    nowEpochMillis: Long,
+    leaseMillis: Long,
+  ): Boolean =
     database.transaction { session ->
       session.experimentPairs.acquireLease(pairId, ownerToken, nowEpochMillis, leaseMillis)
     }
 
-  override fun releaseLease(pairId: String, ownerToken: String) {
+  override fun releaseLease(
+    pairId: String,
+    ownerToken: String,
+  ) {
     database.transaction { session ->
       session.experimentPairs.releaseLease(pairId, ownerToken)
     }

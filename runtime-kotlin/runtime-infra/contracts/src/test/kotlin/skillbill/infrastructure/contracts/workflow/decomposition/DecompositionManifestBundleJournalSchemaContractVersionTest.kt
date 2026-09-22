@@ -33,8 +33,9 @@ class DecompositionManifestBundleJournalSchemaContractVersionTest {
   fun `packaged schema is copied from the canonical repository schema`() {
     val canonical = repoRootFromTest().resolve(DecompositionManifestBundleJournalSchemaPaths.REPO_RELATIVE_PATH)
     assertTrue(Files.isRegularFile(canonical))
-    val packaged = DecompositionManifestBundleJournalSchemaValidator::class.java.classLoader
-      .getResourceAsStream(DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE)
+    val packaged =
+      DecompositionManifestBundleJournalSchemaValidator::class.java.classLoader
+        .getResourceAsStream(DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(packaged)
     packaged.use { stream ->
       assertEquals(Files.readString(canonical), stream.readBytes().toString(Charsets.UTF_8))
@@ -43,22 +44,26 @@ class DecompositionManifestBundleJournalSchemaContractVersionTest {
 
   @Test
   fun `schema content hash matches known hash for current contract version — bump version if schema changed`() {
-    val resourceStream = DecompositionManifestBundleJournalSchemaValidator::class.java.classLoader
-      .getResourceAsStream(DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      DecompositionManifestBundleJournalSchemaValidator::class.java.classLoader
+        .getResourceAsStream(DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(resourceStream)
     val yamlText = resourceStream.use { it.readBytes().toString(Charsets.UTF_8) }
-    val contentWithoutVersionLine = yamlText.lines()
-      .filter { !it.trimStart().startsWith("const:") }
-      .joinToString("\n")
-    val actualHash = MessageDigest.getInstance("SHA-256")
-      .digest(contentWithoutVersionLine.toByteArray(Charsets.UTF_8))
-      .joinToString("") { "%02x".format(it) }
+    val contentWithoutVersionLine =
+      yamlText.lines()
+        .filter { !it.trimStart().startsWith("const:") }
+        .joinToString("\n")
+    val actualHash =
+      MessageDigest.getInstance("SHA-256")
+        .digest(contentWithoutVersionLine.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
     assertEquals(KNOWN_SCHEMA_CONTENT_HASH, actualHash)
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = DecompositionManifestBundleJournalSchemaValidator::class.java.classLoader
-      .getResourceAsStream(DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE)
+    val resourceStream =
+      DecompositionManifestBundleJournalSchemaValidator::class.java.classLoader
+        .getResourceAsStream(DecompositionManifestBundleJournalSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(resourceStream)
     val yamlText = resourceStream.use { it.readBytes().toString(Charsets.UTF_8) }
     return YAMLMapper().readTree(yamlText)

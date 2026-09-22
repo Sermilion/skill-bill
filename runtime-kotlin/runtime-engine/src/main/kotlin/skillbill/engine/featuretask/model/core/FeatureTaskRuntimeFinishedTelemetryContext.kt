@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.model.core
 import skillbill.application.telemetry.model.FeatureTaskRuntimeAgentContext
+
 internal data class FeatureTaskRuntimeFinishedTelemetryContext(
   val telemetrySessionId: String,
   val phaseOutcomes: () -> Map<String, String>,

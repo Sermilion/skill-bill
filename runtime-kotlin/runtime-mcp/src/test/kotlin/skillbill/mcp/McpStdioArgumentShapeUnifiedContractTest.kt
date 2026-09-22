@@ -12,8 +12,8 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-class McpStdioArgumentShapeUnifiedContractTest {
 
+class McpStdioArgumentShapeUnifiedContractTest {
   @Test
   fun `strict-args unknown property surfaces as isError=true`() {
     val response =
@@ -39,24 +39,26 @@ class McpStdioArgumentShapeUnifiedContractTest {
 
   @Test
   fun `dispatcher rejects the same unknown property through the canonical schema validator`() {
-    val error = assertFailsWith<InvalidTelemetryEventSchemaError> {
-      McpToolDispatcher.call(
-        toolName = "resolve_learnings",
-        arguments = mapOf("repo" to "skill-bill", "unexpected" to true),
-        context = McpRuntimeContext(),
-      )
-    }
+    val error =
+      assertFailsWith<InvalidTelemetryEventSchemaError> {
+        McpToolDispatcher.call(
+          toolName = "resolve_learnings",
+          arguments = mapOf("repo" to "skill-bill", "unexpected" to true),
+          context = McpRuntimeContext(),
+        )
+      }
 
     assertContains(error.message.orEmpty(), "unexpected")
-    val response = decodeStdioObject(
-      McpStdioServer.handleLine(
-        stdioToolCallRequest(
-          id = 403,
-          name = "resolve_learnings",
-          arguments = mapOf("repo" to "skill-bill", "unexpected" to true),
+    val response =
+      decodeStdioObject(
+        McpStdioServer.handleLine(
+          stdioToolCallRequest(
+            id = 403,
+            name = "resolve_learnings",
+            arguments = mapOf("repo" to "skill-bill", "unexpected" to true),
+          ),
         ),
-      ),
-    )
+      )
     val result = requireNotNull(JsonCodec.anyToStringAnyMap(response["result"]))
     assertEquals(true, result["isError"])
     val payload = decodeFirstTextContent(result)
@@ -94,7 +96,11 @@ class McpStdioArgumentShapeUnifiedContractTest {
     )
   }
 
-  private fun stdioToolCallRequest(id: Int, name: String, arguments: Map<String, Any?>): String =
+  private fun stdioToolCallRequest(
+    id: Int,
+    name: String,
+    arguments: Map<String, Any?>,
+  ): String =
     JsonCodec.mapToJsonString(
       mapOf(
         "jsonrpc" to "2.0",

@@ -26,42 +26,49 @@ internal fun ParallelCodeReviewRunnerPlanning.canonicalRange(
   request: ParallelCodeReviewRequest,
 ): Pair<String, String> {
   val head = canonicalRevision(request.headRevision ?: PARALLEL_REVIEW_HEAD_REVISION, request.repoRoot)
-  val base = request.baseRevision?.let { canonicalRevision(it, request.repoRoot) } ?: when (request.scope) {
-    ParallelReviewScope.PR -> detectPrBase(request.repoRoot)
-    ParallelReviewScope.STAGED,
-    ParallelReviewScope.UNSTAGED,
-    ParallelReviewScope.UNCOMMITTED,
-    ParallelReviewScope.BRANCH,
-    ParallelReviewScope.WORKTREE_FROM_BASE,
-    -> detectBranchBase(request.repoRoot)
-  }
+  val base =
+    request.baseRevision?.let { canonicalRevision(it, request.repoRoot) } ?: when (request.scope) {
+      ParallelReviewScope.PR -> detectPrBase(request.repoRoot)
+      ParallelReviewScope.STAGED,
+      ParallelReviewScope.UNSTAGED,
+      ParallelReviewScope.UNCOMMITTED,
+      ParallelReviewScope.BRANCH,
+      ParallelReviewScope.WORKTREE_FROM_BASE,
+      -> detectBranchBase(request.repoRoot)
+    }
   return base to head
 }
 
 internal fun ParallelCodeReviewRunnerPlanning.declaredRange(request: ParallelCodeReviewRequest): Pair<String, String> {
-  val head = request.headRevision
-    ?: if (hasSuppliedDiff(request)) {
-      PARALLEL_REVIEW_HEAD_REVISION
-    } else {
-      canonicalRevision(PARALLEL_REVIEW_HEAD_REVISION, request.repoRoot)
-    }
+  val head =
+    request.headRevision
+      ?: if (hasSuppliedDiff(request)) {
+        PARALLEL_REVIEW_HEAD_REVISION
+      } else {
+        canonicalRevision(PARALLEL_REVIEW_HEAD_REVISION, request.repoRoot)
+      }
   return (request.baseRevision ?: head) to head
 }
 
-internal fun ParallelCodeReviewRunnerPlanning.canonicalRevision(revision: String, repoRoot: Path): String =
+internal fun ParallelCodeReviewRunnerPlanning.canonicalRevision(
+  revision: String,
+  repoRoot: Path,
+): String =
   diffResolver.runProcess(listOf("git", "rev-parse", "--verify", "$revision^{commit}"), repoRoot)
     ?.trim()
     ?.takeIf { it.isNotBlank() }
     ?: throw DiffResolutionException("Review revision '$revision' does not resolve to a commit here.")
 
 internal fun ParallelCodeReviewRunnerPlanning.detectPrBase(repoRoot: Path): String {
-  val baseRefOid = diffResolver
-    .runProcess(listOf("gh", "pr", "view", "--json", "baseRefOid", "--jq", ".baseRefOid"), repoRoot)
-    ?.trim()
-    ?.takeIf { it.isNotBlank() }
-  val merged = baseRefOid?.let {
-    diffResolver.runProcess(listOf("git", "merge-base", "HEAD", it), repoRoot)?.trim()
-  }
+  val baseRefOid =
+    diffResolver
+      .runProcess(listOf("gh", "pr", "view", "--json", "baseRefOid", "--jq", ".baseRefOid"), repoRoot)
+      ?.trim()
+      ?.takeIf { it.isNotBlank() }
+  val merged =
+    baseRefOid?.let {
+      diffResolver.runProcess(listOf("git", "merge-base", "HEAD", it), repoRoot)?.trim()
+    }
   return merged?.takeIf { it.isNotBlank() } ?: detectBranchBase(repoRoot)
 }
 

@@ -2,7 +2,8 @@ package skillbill.engine
 
 internal const val CONVERGENCE_PLAN_TASK_COUNT = 3
 
-internal fun planProseOutput(): String = """
+internal fun planProseOutput(): String =
+  """
   {
     "contract_version": "0.4",
     "phase_id": "plan",
@@ -12,24 +13,28 @@ internal fun planProseOutput(): String = """
       "value": "Fixture plan prose for downstream implement and audit."
     }
   }
-""".trimIndent()
+  """.trimIndent()
 
 internal fun partialImplementOutput(closedTaskCount: Int = 1): String {
   val paths = (1..closedTaskCount).joinToString(",") { "src/Foo$it.kt" }
   return """
-  {
-    "contract_version": "0.4",
-    "phase_id": "implement",
-    "status": "completed",
-    "summary": "Implementation segment produced a validated output.",
-    "produced_outputs": {
-      "value": "Segment closed paths [$paths] at target state."
+    {
+      "contract_version": "0.4",
+      "phase_id": "implement",
+      "status": "completed",
+      "summary": "Implementation segment produced a validated output.",
+      "produced_outputs": {
+        "value": "Segment closed paths [$paths] at target state."
+      }
     }
-  }
-  """.trimIndent()
+    """.trimIndent()
 }
 
-private fun terminalImplementOutput(status: String, disposition: String = "retryable"): String = """
+private fun terminalImplementOutput(
+  status: String,
+  disposition: String = "retryable",
+): String =
+  """
   {
     "contract_version": "0.4",
     "phase_id": "implement",
@@ -38,7 +43,7 @@ private fun terminalImplementOutput(status: String, disposition: String = "retry
     "summary": "Implementation hit a transient obstacle.",
     "produced_outputs": {}
   }
-""".trimIndent()
+  """.trimIndent()
 
 internal fun unresolvedItemsImplementLauncher(agentBlockAfterSegments: Int? = null): RuntimeRecordingLauncher {
   var implementLaunches = 0
@@ -72,11 +77,12 @@ internal fun convergingImplementLauncher(
         if (agentBlockAfterSegments != null && implementSegment > agentBlockAfterSegments) {
           facts(terminalImplementOutput("blocked", disposition = "needs_user_action"))
         } else {
-          val closed = if (implementSegment >= closeAllOnSegment) {
-            CONVERGENCE_PLAN_TASK_COUNT
-          } else {
-            implementSegment.coerceAtMost(CONVERGENCE_PLAN_TASK_COUNT - 1)
-          }
+          val closed =
+            if (implementSegment >= closeAllOnSegment) {
+              CONVERGENCE_PLAN_TASK_COUNT
+            } else {
+              implementSegment.coerceAtMost(CONVERGENCE_PLAN_TASK_COUNT - 1)
+            }
           facts(partialImplementOutput(closed))
         }
       }

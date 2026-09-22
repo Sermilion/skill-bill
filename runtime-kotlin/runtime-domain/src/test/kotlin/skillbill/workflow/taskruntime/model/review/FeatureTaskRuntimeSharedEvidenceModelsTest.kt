@@ -6,14 +6,15 @@ import kotlin.test.assertFailsWith
 class FeatureTaskRuntimeSharedEvidenceModelsTest {
   @Test
   fun `carries fingerprint refs indexes and payload reference`() {
-    val artifact = FeatureTaskRuntimeSharedEvidenceArtifact(
-      fingerprint = "fp-1",
-      baseRef = "main",
-      headRef = "feature",
-      files = listOf(FeatureTaskRuntimeSharedEvidenceFileEntry("src/A.kt", "modified")),
-      hunks = listOf(FeatureTaskRuntimeSharedEvidenceHunkEntry("src/A.kt", "@@ -1,2 +1,3 @@")),
-      diffPayload = FeatureTaskRuntimeSharedEvidenceDiffPayloadRef("diff.patch", 42),
-    )
+    val artifact =
+      FeatureTaskRuntimeSharedEvidenceArtifact(
+        fingerprint = "fp-1",
+        baseRef = "main",
+        headRef = "feature",
+        files = listOf(FeatureTaskRuntimeSharedEvidenceFileEntry("src/A.kt", "modified")),
+        hunks = listOf(FeatureTaskRuntimeSharedEvidenceHunkEntry("src/A.kt", "@@ -1,2 +1,3 @@")),
+        diffPayload = FeatureTaskRuntimeSharedEvidenceDiffPayloadRef("diff.patch", 42),
+      )
 
     assertEquals("fp-1", artifact.fingerprint)
     assertEquals("main", artifact.baseRef)

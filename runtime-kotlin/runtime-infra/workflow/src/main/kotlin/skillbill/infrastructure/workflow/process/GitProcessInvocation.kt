@@ -15,8 +15,11 @@ import kotlin.concurrent.thread
 internal const val GIT_PROCESS_CLEANUP_BUDGET_SECONDS = PROCESS_CLEANUP_BUDGET_SECONDS
 internal const val GIT_PROCESS_POLL_MILLIS = PROCESS_POLL_MILLIS
 
-internal fun startGitProcess(repoRoot: Path, args: List<String>, configure: ProcessBuilder.() -> Unit = {}): Process =
-  ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args).apply(configure).start()
+internal fun startGitProcess(
+  repoRoot: Path,
+  args: List<String>,
+  configure: ProcessBuilder.() -> Unit = {},
+): Process = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args).apply(configure).start()
 
 internal fun invokeGitProcess(
   repoRoot: Path,
@@ -24,12 +27,13 @@ internal fun invokeGitProcess(
   stdin: ByteArray?,
   extraEnvironment: Map<String, String> = emptyMap(),
 ): GitProcessResult {
-  val process = startGitProcess(repoRoot, args) {
-    redirectErrorStream(true)
-    if (extraEnvironment.isNotEmpty()) {
-      environment().putAll(extraEnvironment)
+  val process =
+    startGitProcess(repoRoot, args) {
+      redirectErrorStream(true)
+      if (extraEnvironment.isNotEmpty()) {
+        environment().putAll(extraEnvironment)
+      }
     }
-  }
   return GitProcessSession(process, args, stdin).run()
 }
 
@@ -92,29 +96,30 @@ private class GitProcessBoundedLineSession(
   }
 
   private fun startOutputCapture() {
-    outputThread = thread(start = true, name = "skill-bill-git-bounded-lines") {
-      try {
-        process.inputStream.bufferedReader().use { reader ->
-          var keepReading = true
-          while (keepReading) {
-            val line = reader.readBoundedDiffLine(readLineMaxBytes)
-            if (line == null) {
-              keepReading = false
-            } else {
-              onLine(line)
-              if (shouldStopReading()) {
-                parserTruncated.countDown()
+    outputThread =
+      thread(start = true, name = "skill-bill-git-bounded-lines") {
+        try {
+          process.inputStream.bufferedReader().use { reader ->
+            var keepReading = true
+            while (keepReading) {
+              val line = reader.readBoundedDiffLine(readLineMaxBytes)
+              if (line == null) {
                 keepReading = false
+              } else {
+                onLine(line)
+                if (shouldStopReading()) {
+                  parserTruncated.countDown()
+                  keepReading = false
+                }
               }
             }
           }
-        }
-      } catch (error: IOException) {
-        if (!shouldStopReading()) {
-          readFailure = error
+        } catch (error: IOException) {
+          if (!shouldStopReading()) {
+            readFailure = error
+          }
         }
       }
-    }
   }
 
   private fun awaitProcess(): Boolean {
@@ -238,13 +243,14 @@ private class GitProcessSession(
 
   private fun startOutputThread() {
     try {
-      outputThread = thread(start = true, name = "skill-bill-git-output") {
-        try {
-          process.inputStream.bufferedReader().use { reader -> output.append(reader.readText()) }
-        } catch (error: IOException) {
-          readFailure.compareAndSet(null, error)
+      outputThread =
+        thread(start = true, name = "skill-bill-git-output") {
+          try {
+            process.inputStream.bufferedReader().use { reader -> output.append(reader.readText()) }
+          } catch (error: IOException) {
+            readFailure.compareAndSet(null, error)
+          }
         }
-      }
     } catch (failure: IllegalThreadStateException) {
       primaryFailure = failure
       throw failure
@@ -274,23 +280,24 @@ private class GitProcessSession(
     }
   }
 
-  private fun startInputWorker(stdin: ByteArray): Thread = runCatching {
-    thread(start = true, name = "skill-bill-git-input") {
-      try {
-        process.outputStream.use { stream -> stream.write(stdin) }
-      } catch (error: IOException) {
-        inputFailure.compareAndSet(null, error)
-      } catch (error: IllegalStateException) {
-        inputRuntimeFailure.compareAndSet(null, error)
-      } catch (error: SecurityException) {
-        inputRuntimeFailure.compareAndSet(null, error)
+  private fun startInputWorker(stdin: ByteArray): Thread =
+    runCatching {
+      thread(start = true, name = "skill-bill-git-input") {
+        try {
+          process.outputStream.use { stream -> stream.write(stdin) }
+        } catch (error: IOException) {
+          inputFailure.compareAndSet(null, error)
+        } catch (error: IllegalStateException) {
+          inputRuntimeFailure.compareAndSet(null, error)
+        } catch (error: SecurityException) {
+          inputRuntimeFailure.compareAndSet(null, error)
+        }
       }
+    }.getOrElse { failure ->
+      primaryFailure = failure
+      (failure as? IOException)?.let { readFailure.set(it) }
+      throw failure
     }
-  }.getOrElse { failure ->
-    primaryFailure = failure
-    (failure as? IOException)?.let { readFailure.set(it) }
-    throw failure
-  }
 
   private fun failInput(failure: RuntimeException): Nothing {
     primaryFailure = failure
@@ -321,10 +328,11 @@ private class GitProcessSession(
   }
 
   private fun settleOwnedDescendants() {
-    val deadlineNanos = minOf(
-      operationDeadlineNanos,
-      System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS),
-    )
+    val deadlineNanos =
+      minOf(
+        operationDeadlineNanos,
+        System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS),
+      )
     while (ownedDescendants.any { it.isAlive } && System.nanoTime() < deadlineNanos) {
       Thread.sleep(GIT_PROCESS_POLL_MILLIS)
     }
@@ -334,10 +342,11 @@ private class GitProcessSession(
   }
 
   private fun settleOutput() {
-    val outputDeadlineNanos = minOf(
-      operationDeadlineNanos,
-      System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS),
-    )
+    val outputDeadlineNanos =
+      minOf(
+        operationDeadlineNanos,
+        System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS),
+      )
     if (!closeInputAndJoin(process, requireNotNull(outputThread), outputDeadlineNanos)) {
       readFailure.compareAndSet(null, IOException("git output capture did not settle before deadline"))
     }
@@ -369,10 +378,11 @@ private class GitProcessSession(
       when {
         primaryFailure != null -> primaryFailure?.addSuppressed(failure)
         readFailure.get() != null -> readFailure.get()?.addSuppressed(failure)
-        timedOut -> readFailure.compareAndSet(
-          null,
-          IOException("git process cleanup failed").also { it.addSuppressed(failure) },
-        )
+        timedOut ->
+          readFailure.compareAndSet(
+            null,
+            IOException("git process cleanup failed").also { it.addSuppressed(failure) },
+          )
       }
     }
   }

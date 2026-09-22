@@ -52,8 +52,9 @@ class GoalRunnerStopVerbTest {
   fun `an unknown issue key reports not found and writes nothing`() {
     val store = StopFakeManifestStore(loaded = false)
 
-    val result = stopService(store, RecordingSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive))
-      .stop("SKILL-404", Path.of("."))
+    val result =
+      stopService(store, RecordingSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive))
+        .stop("SKILL-404", Path.of("."))
 
     assertEquals(GoalRunnerStopStatus.NOT_FOUND, result.status)
     assertEquals(0, store.pauseNowCalls)
@@ -97,16 +98,18 @@ class GoalRunnerStopVerbTest {
 
   @Test
   fun `a goal already carrying an operator stop with no live lease reports already stopped`() {
-    val store = StopFakeManifestStore(
-      lease = null,
-      control = GoalRunnerControlState(
-        pauseRequested = true,
-        pauseConsumed = true,
-        paused = true,
-        pauseReason = GOAL_PAUSE_REASON_OPERATOR_STOP,
-        pausedAt = "2026-08-07T11:00:00Z",
-      ),
-    )
+    val store =
+      StopFakeManifestStore(
+        lease = null,
+        control =
+          GoalRunnerControlState(
+            pauseRequested = true,
+            pauseConsumed = true,
+            paused = true,
+            pauseReason = GOAL_PAUSE_REASON_OPERATOR_STOP,
+            pausedAt = "2026-08-07T11:00:00Z",
+          ),
+      )
     val supervisor = RecordingSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive)
 
     val result = stopService(store, supervisor).stop("SKILL-168", null)
@@ -135,9 +138,10 @@ class GoalRunnerStopVerbTest {
   @Test
   fun `an ownership mismatch refuses to terminate and reports the refusal`() {
     val store = StopFakeManifestStore(lease = liveLease())
-    val supervisor = RecordingSupervisor(
-      FeatureTaskRuntimeProcessInspection.OwnershipMismatch("lease was recorded on another boot"),
-    )
+    val supervisor =
+      RecordingSupervisor(
+        FeatureTaskRuntimeProcessInspection.OwnershipMismatch("lease was recorded on another boot"),
+      )
 
     val result = stopService(store, supervisor).stop("SKILL-168", null)
 
@@ -161,15 +165,17 @@ class GoalRunnerStopVerbTest {
   fun `the no-op supervisor never terminates anything`() {
     val store = StopFakeManifestStore(lease = liveLease())
 
-    val result = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      clock = stopClock(),
-      ports = GoalRunnerStatusTestPorts(
-        workerSupervisor = NoopFeatureTaskRuntimeWorkerSupervisor,
-      ),
-    ).stop("SKILL-168", null)
+    val result =
+      testGoalRunnerStatusService(
+        manifestStore = store,
+        outcomeStore = RecordingOutcomeStore(),
+        phaseRecorder = goalTestPhaseRecorder(),
+        clock = stopClock(),
+        ports =
+          GoalRunnerStatusTestPorts(
+            workerSupervisor = NoopFeatureTaskRuntimeWorkerSupervisor,
+          ),
+      ).stop("SKILL-168", null)
 
     assertEquals(GoalRunnerStopStatus.IDENTITY_MISMATCH, result.status)
     assertFalse(result.terminationAttempted)
@@ -238,8 +244,9 @@ class GoalRunnerStopVerbTest {
   fun `the pause timestamp comes from the injected clock`() {
     val store = StopFakeManifestStore(lease = liveLease())
 
-    val result = stopService(store, RecordingSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive))
-      .stop("SKILL-168", null)
+    val result =
+      stopService(store, RecordingSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive))
+        .stop("SKILL-168", null)
 
     assertEquals(STOP_NOW.toString(), result.pausedAt)
     assertEquals(STOP_NOW.toString(), store.controlStateValue.pausedAt)
@@ -247,16 +254,18 @@ class GoalRunnerStopVerbTest {
 
   @Test
   fun `a stop overwrites a plain operator pause reason with the more specific operator stop`() {
-    val store = StopFakeManifestStore(
-      lease = liveLease(),
-      control = GoalRunnerControlState(
-        pauseRequested = true,
-        pauseConsumed = true,
-        paused = true,
-        pauseReason = GOAL_PAUSE_REASON_OPERATOR_REQUEST,
-        pausedAt = "2026-08-07T11:00:00Z",
-      ),
-    )
+    val store =
+      StopFakeManifestStore(
+        lease = liveLease(),
+        control =
+          GoalRunnerControlState(
+            pauseRequested = true,
+            pauseConsumed = true,
+            paused = true,
+            pauseReason = GOAL_PAUSE_REASON_OPERATOR_REQUEST,
+            pausedAt = "2026-08-07T11:00:00Z",
+          ),
+      )
 
     stopService(store, RecordingSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive)).stop("SKILL-168", null)
 
@@ -264,30 +273,34 @@ class GoalRunnerStopVerbTest {
     assertEquals(STOP_NOW.toString(), store.controlStateValue.pausedAt)
   }
 
-  private fun stopService(store: StopFakeManifestStore, supervisor: FeatureTaskRuntimeWorkerSupervisor) =
-    testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      clock = stopClock(),
-      ports = GoalRunnerStatusTestPorts(
+  private fun stopService(
+    store: StopFakeManifestStore,
+    supervisor: FeatureTaskRuntimeWorkerSupervisor,
+  ) = testGoalRunnerStatusService(
+    manifestStore = store,
+    outcomeStore = RecordingOutcomeStore(),
+    phaseRecorder = goalTestPhaseRecorder(),
+    clock = stopClock(),
+    ports =
+      GoalRunnerStatusTestPorts(
         workerSupervisor = supervisor,
       ),
-    )
+  )
 }
 
 private fun stopClock(): Clock = Clock.fixed(STOP_NOW, ZoneOffset.UTC)
 
-private fun liveLease() = GoalRunnerExecutionLease(
-  generation = 1,
-  ownerToken = "owner-token-123456",
-  hostIdentity = "host",
-  bootIdentity = "boot",
-  pid = 4242,
-  processBirthToken = "birth-4242",
-  heartbeatAt = "2026-08-07T11:59:50Z",
-  expiresAt = "2026-08-07T12:00:20Z",
-)
+private fun liveLease() =
+  GoalRunnerExecutionLease(
+    generation = 1,
+    ownerToken = "owner-token-123456",
+    hostIdentity = "host",
+    bootIdentity = "boot",
+    pid = 4242,
+    processBirthToken = "birth-4242",
+    heartbeatAt = "2026-08-07T11:59:50Z",
+    expiresAt = "2026-08-07T12:00:20Z",
+  )
 
 private class StopFakeManifestStore(
   var lease: GoalRunnerExecutionLease? = null,
@@ -299,20 +312,24 @@ private class StopFakeManifestStore(
   var pauseNowCalls: Int = 0
     private set
 
-  override fun loadByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState? {
+  override fun loadByIssueKey(
+    issueKey: String,
+    repoRoot: Path?,
+  ): GoalRunnerManifestState? {
     if (!loaded) return null
     return GoalRunnerManifestState(
       parentWorkflowId = "goal-parent-1",
       dbPath = "/fake/goal.db",
-      manifest = DecompositionManifest(
-        issueKey = issueKey,
-        featureName = "goal-stop",
-        parentSpecPath = ".feature-specs/$issueKey/spec.md",
-        baseBranch = "main",
-        featureBranch = "feat/$issueKey",
-        currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "start"),
-        subtasks = listOf(DecompositionSubtask(id = 1, name = "One", specPath = "spec_1.md", status = "in_progress")),
-      ),
+      manifest =
+        DecompositionManifest(
+          issueKey = issueKey,
+          featureName = "goal-stop",
+          parentSpecPath = ".feature-specs/$issueKey/spec.md",
+          baseBranch = "main",
+          featureBranch = "feat/$issueKey",
+          currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "start"),
+          subtasks = listOf(DecompositionSubtask(id = 1, name = "One", specPath = "spec_1.md", status = "in_progress")),
+        ),
       controlState = controlStateValue,
     )
   }
@@ -329,13 +346,14 @@ private class StopFakeManifestStore(
   ): GoalRunnerControlState {
     pauseNowCalls += 1
     if (controlStateValue.paused && !overwriteExistingReason) return controlStateValue
-    controlStateValue = controlStateValue.copy(
-      pauseRequested = true,
-      pauseConsumed = true,
-      paused = true,
-      pauseReason = reason,
-      pausedAt = pausedAt,
-    )
+    controlStateValue =
+      controlStateValue.copy(
+        pauseRequested = true,
+        pauseConsumed = true,
+        paused = true,
+        pauseReason = reason,
+        pausedAt = pausedAt,
+      )
     return controlStateValue
   }
 
@@ -347,9 +365,16 @@ private class StopFakeManifestStore(
     expectedOwnerToken: String?,
   ): Boolean = false
 
-  override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean = false
+  override fun heartbeatExecutionLease(
+    parentWorkflowId: String,
+    lease: GoalRunnerExecutionLease,
+  ): Boolean = false
 
-  override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean = false
+  override fun releaseExecutionLease(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+  ): Boolean = false
 }
 
 private class RecordingSupervisor(
@@ -373,7 +398,10 @@ private class RecordingSupervisor(
     return if (calls.contains("terminateGracefully")) inspectionAfterGraceful ?: inspection else inspection
   }
 
-  override fun awaitExit(ownership: FeatureTaskRuntimeWorkerOwnership, timeout: Duration) = Unit
+  override fun awaitExit(
+    ownership: FeatureTaskRuntimeWorkerOwnership,
+    timeout: Duration,
+  ) = Unit
 
   override fun terminateGracefully(ownership: FeatureTaskRuntimeWorkerOwnership): Boolean {
     record("terminateGracefully")

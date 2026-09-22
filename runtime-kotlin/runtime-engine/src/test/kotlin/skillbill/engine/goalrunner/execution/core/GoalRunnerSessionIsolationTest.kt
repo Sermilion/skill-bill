@@ -22,16 +22,18 @@ class GoalRunnerSessionIsolationTest {
     val start = CyclicBarrier(2)
     val executor = Executors.newFixedThreadPool(2)
     try {
-      val first = executor.submit {
-        start.await(5, TimeUnit.SECONDS)
-        runA.bind("workflow-a")
-        repeat(40) { runA.incrementValidationQualityRetry(1) }
-      }
-      val second = executor.submit {
-        start.await(5, TimeUnit.SECONDS)
-        runB.bind("workflow-b")
-        repeat(40) { runB.incrementValidationQualityRetry(2) }
-      }
+      val first =
+        executor.submit {
+          start.await(5, TimeUnit.SECONDS)
+          runA.bind("workflow-a")
+          repeat(40) { runA.incrementValidationQualityRetry(1) }
+        }
+      val second =
+        executor.submit {
+          start.await(5, TimeUnit.SECONDS)
+          runB.bind("workflow-b")
+          repeat(40) { runB.incrementValidationQualityRetry(2) }
+        }
       first.get(10, TimeUnit.SECONDS)
       second.get(10, TimeUnit.SECONDS)
       runA.bind("workflow-a")
@@ -52,12 +54,18 @@ private class ConcurrentControlManifestStore : GoalRunnerManifestStoreDefaults()
   override fun controlState(parentWorkflowId: String): GoalRunnerControlState =
     controls.getOrPut(parentWorkflowId) { GoalRunnerControlState() }
 
-  override fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState {
+  override fun persistControlState(
+    parentWorkflowId: String,
+    state: GoalRunnerControlState,
+  ): GoalRunnerControlState {
     controls[parentWorkflowId] = state
     return state
   }
 
-  override fun loadByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState? = null
+  override fun loadByIssueKey(
+    issueKey: String,
+    repoRoot: Path?,
+  ): GoalRunnerManifestState? = null
 
   override fun save(state: GoalRunnerManifestState): GoalRunnerManifestState = state
 
@@ -67,7 +75,14 @@ private class ConcurrentControlManifestStore : GoalRunnerManifestStoreDefaults()
     expectedOwnerToken: String?,
   ): Boolean = false
 
-  override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean = false
+  override fun heartbeatExecutionLease(
+    parentWorkflowId: String,
+    lease: GoalRunnerExecutionLease,
+  ): Boolean = false
 
-  override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean = false
+  override fun releaseExecutionLease(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+  ): Boolean = false
 }

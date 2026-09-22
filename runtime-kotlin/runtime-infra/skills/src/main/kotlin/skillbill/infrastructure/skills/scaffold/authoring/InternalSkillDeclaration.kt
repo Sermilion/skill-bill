@@ -4,6 +4,7 @@ import skillbill.error.shellcontent.InvalidInternalSkillClassificationError
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
+
 internal data class InternalSkillDeclaration(
   val skillName: String,
   val contentFile: Path,
@@ -28,17 +29,22 @@ internal fun internalSkillClassificationViolations(declarations: Collection<Inte
   }
 }
 
-private fun parentViolation(prefix: String, declaredParent: String, parent: InternalSkillDeclaration?): String? = when {
-  parent == null ->
-    "$prefix declares parent '$declaredParent' which is not a discovered skill."
-  !parent.isBaseSkill ->
-    "$prefix declares parent '$declaredParent' which is a platform-pack skill; an internal " +
-      "skill's parent must be a listed base skill under skills/."
-  parent.declaredParent != null ->
-    "$prefix declares parent '$declaredParent' which is itself an internal skill (chained " +
-      "internal-for is not allowed; depth is 1)."
-  else -> null
-}
+private fun parentViolation(
+  prefix: String,
+  declaredParent: String,
+  parent: InternalSkillDeclaration?,
+): String? =
+  when {
+    parent == null ->
+      "$prefix declares parent '$declaredParent' which is not a discovered skill."
+    !parent.isBaseSkill ->
+      "$prefix declares parent '$declaredParent' which is a platform-pack skill; an internal " +
+        "skill's parent must be a listed base skill under skills/."
+    parent.declaredParent != null ->
+      "$prefix declares parent '$declaredParent' which is itself an internal skill (chained " +
+        "internal-for is not allowed; depth is 1)."
+    else -> null
+  }
 
 internal fun requireValidInternalSkillClassification(declarations: Collection<InternalSkillDeclaration>) {
   internalSkillClassificationViolations(declarations).firstOrNull()?.let { violation ->

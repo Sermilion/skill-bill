@@ -22,11 +22,12 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ParallelCodeReviewStageResumeTest {
-  private val pack = sparseReviewPack(
-    slug = "kotlin",
-    requiredArea = "architecture",
-    pathAreas = mapOf("testing" to listOf("src/test/")),
-  )
+  private val pack =
+    sparseReviewPack(
+      slug = "kotlin",
+      requiredArea = "architecture",
+      pathAreas = mapOf("testing" to listOf("src/test/")),
+    )
 
   @Test
   fun `a completed review pass records verification and resumes into adjudication without relaunching lanes`() {
@@ -63,18 +64,20 @@ class ParallelCodeReviewStageResumeTest {
     val recorder = ReviewRecorder()
     val config = delegatedConfig()
     reviewHarness(config, recorder).run(delegatedRequest())
-    val verdict = ReviewFindingVerdict(
-      stage = ReviewStage.VERIFICATION,
-      findingRef = "F-001",
-      claimVerdict = ReviewClaimVerdict.CONFIRMED,
-      citations = listOf(ReviewFindingCitation("src/Main.kt", 1)),
-      recordedAt = "2026-08-14T08:00:00Z",
-    )
-    recorder.durableStageBoundaries += ReviewStageBoundary(
-      ReviewStage.VERIFICATION,
-      ReviewStageReached.REACHED,
-      "2026-08-14T08:01:00Z",
-    )
+    val verdict =
+      ReviewFindingVerdict(
+        stage = ReviewStage.VERIFICATION,
+        findingRef = "F-001",
+        claimVerdict = ReviewClaimVerdict.CONFIRMED,
+        citations = listOf(ReviewFindingCitation("src/Main.kt", 1)),
+        recordedAt = "2026-08-14T08:00:00Z",
+      )
+    recorder.durableStageBoundaries +=
+      ReviewStageBoundary(
+        ReviewStage.VERIFICATION,
+        ReviewStageReached.REACHED,
+        "2026-08-14T08:01:00Z",
+      )
     recorder.durableFindingVerdicts += verdict
 
     val resumed = reviewHarness(config, recorder).run(delegatedRequest())
@@ -95,23 +98,26 @@ class ParallelCodeReviewStageResumeTest {
     )
   }
 
-  private fun delegatedRequest() = harnessRequest(
-    reviewRunId = RUN_ID,
-    codeReviewMode = CodeReviewExecutionMode.DELEGATED,
-  )
+  private fun delegatedRequest() =
+    harnessRequest(
+      reviewRunId = RUN_ID,
+      codeReviewMode = CodeReviewExecutionMode.DELEGATED,
+    )
 
   private fun delegatedConfig(): ReviewHarnessConfig {
     val paths = listOf("src/Main.kt", "src/test/AppTest.kt")
-    val shas = paths.indices.map { index ->
-      if (index == paths.lastIndex) HARNESS_HEAD_REVISION else "c$index"
-    }
+    val shas =
+      paths.indices.map { index ->
+        if (index == paths.lastIndex) HARNESS_HEAD_REVISION else "c$index"
+      }
     return ReviewHarnessConfig(
       manifests = listOf(pack),
       diff = diffForPaths(*paths.toTypedArray()),
       response = { RecordedWorkerResponse() },
-      commits = paths.mapIndexed { index, path ->
-        RecordedCommit(shas[index], "commit touching $path", diffForPaths(path))
-      },
+      commits =
+        paths.mapIndexed { index, path ->
+          RecordedCommit(shas[index], "commit touching $path", diffForPaths(path))
+        },
     )
   }
 

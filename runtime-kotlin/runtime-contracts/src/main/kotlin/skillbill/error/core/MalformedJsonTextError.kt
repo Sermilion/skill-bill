@@ -1,6 +1,7 @@
 package skillbill.error.core
 
 import skillbill.error.shellcontent.ShellContentContractException
+
 class MalformedJsonTextError(cause: Throwable) : ShellContentContractException(
   "JSON text is malformed: ${cause.message.orEmpty()}",
   cause,

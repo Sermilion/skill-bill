@@ -45,7 +45,10 @@ internal fun assertCopyInPopulatedRealFiles(run: InstallerShellRun) {
 
 internal fun runInstallerShell(input: String): InstallerShellRun = runInstallerShell(input, fromSource = false)
 
-internal fun runInstallerShell(input: String, fromSource: Boolean): InstallerShellRun {
+internal fun runInstallerShell(
+  input: String,
+  fromSource: Boolean,
+): InstallerShellRun {
   val repoRoot = Files.createTempDirectory("skillbill-installer-shell-repo")
   val home = Files.createTempDirectory("skillbill-installer-shell-home")
   val binDir = Files.createTempDirectory("skillbill-installer-shell-bin")
@@ -64,25 +67,27 @@ internal fun runInstallerShell(input: String, fromSource: Boolean): InstallerShe
   if (fromSource) {
     command.add("--from-source")
   }
-  val process = ProcessBuilder(command)
-    .directory(repoRoot.toFile())
-    .redirectErrorStream(true)
-    .apply {
-      environment()["HOME"] = home.toString()
-      environment()["SKILL_BILL_BIN_DIR"] = binDir.toString()
-      environment()["SKILL_BILL_SKIP_RUNTIME_DISTRIBUTION_BUILD"] = "1"
-      environment()["SKILL_BILL_SKIP_PREINSTALL_UNINSTALL"] = "1"
-      environment()["SKILL_BILL_TEST_RUNTIME_LOG"] = logPath.toString()
-      environment().remove("SKILL_BILL_GOAL_CONTINUATION")
-    }
-    .start()
+  val process =
+    ProcessBuilder(command)
+      .directory(repoRoot.toFile())
+      .redirectErrorStream(true)
+      .apply {
+        environment()["HOME"] = home.toString()
+        environment()["SKILL_BILL_BIN_DIR"] = binDir.toString()
+        environment()["SKILL_BILL_SKIP_RUNTIME_DISTRIBUTION_BUILD"] = "1"
+        environment()["SKILL_BILL_SKIP_PREINSTALL_UNINSTALL"] = "1"
+        environment()["SKILL_BILL_TEST_RUNTIME_LOG"] = logPath.toString()
+        environment().remove("SKILL_BILL_GOAL_CONTINUATION")
+      }
+      .start()
   process.outputStream.bufferedWriter().use { writer -> writer.write(input) }
   val output = process.inputStream.bufferedReader().readText()
   val exitCode = process.waitFor()
   assertEquals(0, exitCode, output)
-  val applyCalls = parseRuntimeCalls(logPath).filter { args ->
-    args.drop(2).take(2) == listOf("install", "apply")
-  }
+  val applyCalls =
+    parseRuntimeCalls(logPath).filter { args ->
+      args.drop(2).take(2) == listOf("install", "apply")
+    }
   assertEquals(1, applyCalls.size, "installer must invoke runtime apply exactly once. Output:\n$output")
   return InstallerShellRun(
     repoRoot = repoRoot,
@@ -93,41 +98,42 @@ internal fun runInstallerShell(input: String, fromSource: Boolean): InstallerShe
   )
 }
 
-internal fun expectedApplyArgs(expected: ExpectedApply): List<String> = listOf(
-  "--home",
-  expected.run.home.toString(),
-  "install",
-  "apply",
-  "--repo-root",
-  expected.run.home.resolve(".skill-bill").toString(),
-  "--skills",
-  expected.run.home.resolve(".skill-bill/skills").toString(),
-  "--platform-packs",
-  expected.run.home.resolve(".skill-bill/platform-packs").toString(),
-  "--agent-mode",
-  expected.agentMode,
-  "--platform-mode",
-  expected.platformMode,
-  "--telemetry",
-  expected.telemetry,
-  "--mcp",
-  expected.mcp,
-  "--replace-existing-skill-bill-links",
-  "--runtime-install-root",
-  expected.run.home.resolve(".skill-bill/runtime").toString(),
-  "--runtime-cli-build-dir",
-  expected.run.repoRoot.resolve("runtime-kotlin/runtime-cli/build/install/runtime-cli").toString(),
-  "--runtime-mcp-build-dir",
-  expected.run.repoRoot.resolve("runtime-kotlin/runtime-mcp/build/install/runtime-mcp").toString(),
-  "--runtime-cli-install-dir",
-  expected.run.home.resolve(".skill-bill/runtime/runtime-cli").toString(),
-  "--runtime-mcp-install-dir",
-  expected.run.home.resolve(".skill-bill/runtime/runtime-mcp").toString(),
-  "--runtime-launcher-bin-dir",
-  expected.run.binDir.toString(),
-  "--runtime-mcp-bin",
-  expected.run.home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp").toString(),
-)
+internal fun expectedApplyArgs(expected: ExpectedApply): List<String> =
+  listOf(
+    "--home",
+    expected.run.home.toString(),
+    "install",
+    "apply",
+    "--repo-root",
+    expected.run.home.resolve(".skill-bill").toString(),
+    "--skills",
+    expected.run.home.resolve(".skill-bill/skills").toString(),
+    "--platform-packs",
+    expected.run.home.resolve(".skill-bill/platform-packs").toString(),
+    "--agent-mode",
+    expected.agentMode,
+    "--platform-mode",
+    expected.platformMode,
+    "--telemetry",
+    expected.telemetry,
+    "--mcp",
+    expected.mcp,
+    "--replace-existing-skill-bill-links",
+    "--runtime-install-root",
+    expected.run.home.resolve(".skill-bill/runtime").toString(),
+    "--runtime-cli-build-dir",
+    expected.run.repoRoot.resolve("runtime-kotlin/runtime-cli/build/install/runtime-cli").toString(),
+    "--runtime-mcp-build-dir",
+    expected.run.repoRoot.resolve("runtime-kotlin/runtime-mcp/build/install/runtime-mcp").toString(),
+    "--runtime-cli-install-dir",
+    expected.run.home.resolve(".skill-bill/runtime/runtime-cli").toString(),
+    "--runtime-mcp-install-dir",
+    expected.run.home.resolve(".skill-bill/runtime/runtime-mcp").toString(),
+    "--runtime-launcher-bin-dir",
+    expected.run.binDir.toString(),
+    "--runtime-mcp-bin",
+    expected.run.home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp").toString(),
+  )
 
 internal fun runUninstallerShellWithDesktopInstall(seedRuntime: Boolean = true): UninstallerShellRun {
   val repoRoot = Files.createTempDirectory("skillbill-uninstaller-shell-repo")
@@ -147,23 +153,24 @@ internal fun runUninstallerShellWithDesktopInstall(seedRuntime: Boolean = true):
 
   val desktopInstall = InstallerShellFixtures.seedDesktopInstall(desktopRoot, binDir)
 
-  val process = ProcessBuilder(
-    "bash",
-    repoRoot.resolve("uninstall.sh").toString(),
-    "--desktop-app-dir",
-    desktopRoot.toString(),
-  )
-    .directory(repoRoot.toFile())
-    .redirectErrorStream(true)
-    .apply {
-      environment()["HOME"] = home.toString()
-      environment()["SKILL_BILL_BIN_DIR"] = binDir.toString()
-      environment()["SKILL_BILL_SKIP_RUNTIME_DISTRIBUTION_BUILD"] = "1"
-      environment()["SKILL_BILL_SKIP_PREINSTALL_UNINSTALL"] = "1"
-      environment()["SKILL_BILL_TEST_RUNTIME_LOG"] = logPath.toString()
-      environment().remove("SKILL_BILL_GOAL_CONTINUATION")
-    }
-    .start()
+  val process =
+    ProcessBuilder(
+      "bash",
+      repoRoot.resolve("uninstall.sh").toString(),
+      "--desktop-app-dir",
+      desktopRoot.toString(),
+    )
+      .directory(repoRoot.toFile())
+      .redirectErrorStream(true)
+      .apply {
+        environment()["HOME"] = home.toString()
+        environment()["SKILL_BILL_BIN_DIR"] = binDir.toString()
+        environment()["SKILL_BILL_SKIP_RUNTIME_DISTRIBUTION_BUILD"] = "1"
+        environment()["SKILL_BILL_SKIP_PREINSTALL_UNINSTALL"] = "1"
+        environment()["SKILL_BILL_TEST_RUNTIME_LOG"] = logPath.toString()
+        environment().remove("SKILL_BILL_GOAL_CONTINUATION")
+      }
+      .start()
   val output = process.inputStream.bufferedReader().readText()
   val exitCode = process.waitFor()
 
@@ -214,27 +221,32 @@ internal fun seedStateDirForWipe(failingNativeUnlinkCommand: String? = null): Wi
   )
 }
 
-internal fun runUninstaller(fixtures: WipeFixtures, preserveSource: Boolean, goalContinuation: Boolean): UninstallRun {
-  val process = ProcessBuilder("bash", fixtures.repoRoot.resolve("uninstall.sh").toString())
-    .directory(fixtures.repoRoot.toFile())
-    .redirectErrorStream(true)
-    .apply {
-      environment()["HOME"] = fixtures.home.toString()
-      environment()["SKILL_BILL_BIN_DIR"] = fixtures.binDir.toString()
-      environment()["SKILL_BILL_SKIP_RUNTIME_DISTRIBUTION_BUILD"] = "1"
-      environment()["SKILL_BILL_TEST_RUNTIME_LOG"] = fixtures.logPath.toString()
-      if (preserveSource) {
-        environment()["SKILL_BILL_PRESERVE_SOURCE_ON_WIPE"] = "1"
-      } else {
-        environment().remove("SKILL_BILL_PRESERVE_SOURCE_ON_WIPE")
+internal fun runUninstaller(
+  fixtures: WipeFixtures,
+  preserveSource: Boolean,
+  goalContinuation: Boolean,
+): UninstallRun {
+  val process =
+    ProcessBuilder("bash", fixtures.repoRoot.resolve("uninstall.sh").toString())
+      .directory(fixtures.repoRoot.toFile())
+      .redirectErrorStream(true)
+      .apply {
+        environment()["HOME"] = fixtures.home.toString()
+        environment()["SKILL_BILL_BIN_DIR"] = fixtures.binDir.toString()
+        environment()["SKILL_BILL_SKIP_RUNTIME_DISTRIBUTION_BUILD"] = "1"
+        environment()["SKILL_BILL_TEST_RUNTIME_LOG"] = fixtures.logPath.toString()
+        if (preserveSource) {
+          environment()["SKILL_BILL_PRESERVE_SOURCE_ON_WIPE"] = "1"
+        } else {
+          environment().remove("SKILL_BILL_PRESERVE_SOURCE_ON_WIPE")
+        }
+        if (goalContinuation) {
+          environment()["SKILL_BILL_GOAL_CONTINUATION"] = "1"
+        } else {
+          environment().remove("SKILL_BILL_GOAL_CONTINUATION")
+        }
       }
-      if (goalContinuation) {
-        environment()["SKILL_BILL_GOAL_CONTINUATION"] = "1"
-      } else {
-        environment().remove("SKILL_BILL_GOAL_CONTINUATION")
-      }
-    }
-    .start()
+      .start()
   val output = process.inputStream.bufferedReader().readText()
   val exitCode = process.waitFor()
   return UninstallRun(exitCode = exitCode, output = output)
@@ -262,9 +274,10 @@ internal fun runPrebuiltInstaller(
   stageRelease(releaseDir, releaseValid, options.omitRuntimeAssets)
 
   val command = PrebuiltReleaseStager.buildPrebuiltCommand(repoRoot, extraArgs, options.interactiveTty)
-  val builder = ProcessBuilder(command)
-    .directory(repoRoot.toFile())
-    .redirectErrorStream(true)
+  val builder =
+    ProcessBuilder(command)
+      .directory(repoRoot.toFile())
+      .redirectErrorStream(true)
   builder.environment()["HOME"] = home.toString()
   builder.environment()["SKILL_BILL_BIN_DIR"] = binDir.toString()
   builder.environment()["SKILL_BILL_RELEASE_DIR"] = releaseDir.toString()
@@ -304,7 +317,11 @@ internal fun seedPrebuiltRepo(repoRoot: Path) {
   InstallerShellFixtures.seedFakeGradlew(repoRoot)
 }
 
-internal fun stageRelease(releaseDir: Path, releaseValid: Boolean, omitRuntimeAssets: Boolean) {
+internal fun stageRelease(
+  releaseDir: Path,
+  releaseValid: Boolean,
+  omitRuntimeAssets: Boolean,
+) {
   PrebuiltReleaseStager.stage(releaseDir, releaseValid, omitRuntimeAssets)
 }
 
@@ -473,7 +490,12 @@ internal object InstallerShellFixtures {
     |fi
     """.trimMargin()
 
-  private fun fakeRuntimeCliScript(homeInit: String, middleBlocks: String, trailingBlock: String = ""): String = """
+  private fun fakeRuntimeCliScript(
+    homeInit: String,
+    middleBlocks: String,
+    trailingBlock: String = "",
+  ): String =
+    """
     |#!/usr/bin/env bash
     |set -euo pipefail
     |$fakeRuntimeCliLoggingBlock
@@ -484,9 +506,12 @@ internal object InstallerShellFixtures {
     |$fakeRuntimeCliCleanupCaseBlock
     |exit 2
     |
-  """.trimMargin()
+    """.trimMargin()
 
-  private fun writeFakeRuntimeBins(repoRoot: Path, cliScript: String) {
+  private fun writeFakeRuntimeBins(
+    repoRoot: Path,
+    cliScript: String,
+  ) {
     val cliBin = repoRoot.resolve("runtime-kotlin/runtime-cli/build/install/runtime-cli/bin/runtime-cli")
     val mcpBin = repoRoot.resolve("runtime-kotlin/runtime-mcp/build/install/runtime-mcp/bin/runtime-mcp")
     Files.createDirectories(cliBin.parent)
@@ -522,22 +547,23 @@ internal object InstallerShellFixtures {
   private val fakeGradlewEmbeddedCliBody: String =
     fakeRuntimeCliScript(
       homeInit = """home=""""",
-      middleBlocks = listOf(
-        fakeRuntimeCliAgentPathBlock,
-        """
+      middleBlocks =
+        listOf(
+          fakeRuntimeCliAgentPathBlock,
+          """
         |if [[ "${'$'}{1:-}" == "install" && ( "${'$'}{2:-}" == "apply" ||\
          "${'$'}{2:-}" == "apply-external-addons" ) ]]; then
         |  exit 0
         |fi
-        """.trimMargin(),
-        fakeRuntimeCliRootBlocks,
-        """
+          """.trimMargin(),
+          fakeRuntimeCliRootBlocks,
+          """
         |if [[ "${'$'}{1:-}" == "install" && "${'$'}{2:-}" == "reconcile" ]]; then
         |  printf 'reconcile_summary: applied=false baseline_refreshed=false installed_count=0 pruned_count=0\n'
         |  exit 0
         |fi
-        """.trimMargin(),
-      ).joinToString(separator = "\n"),
+          """.trimMargin(),
+        ).joinToString(separator = "\n"),
     )
 
   fun seedInstallerRuntime(repoRoot: Path) {
@@ -550,7 +576,10 @@ internal object InstallerShellFixtures {
     )
   }
 
-  fun seedInstallerPlatformPack(repoRoot: Path, slug: String) {
+  fun seedInstallerPlatformPack(
+    repoRoot: Path,
+    slug: String,
+  ) {
     val packRoot = repoRoot.resolve("platform-packs/$slug")
     Files.createDirectories(packRoot)
     Files.writeString(packRoot.resolve("platform.yaml"), "platform: \"$slug\"\n")
@@ -569,18 +598,22 @@ internal object InstallerShellFixtures {
     Files.writeString(orchestrationDir.resolve("PLAYBOOK.md"), "# Review orchestrator\n")
   }
 
-  fun seedUninstallerRuntime(repoRoot: Path, failingNativeUnlinkCommand: String? = null) {
-    val failingNativeUnlinkBlock = if (failingNativeUnlinkCommand == null) {
-      ""
-    } else {
-      """
+  fun seedUninstallerRuntime(
+    repoRoot: Path,
+    failingNativeUnlinkCommand: String? = null,
+  ) {
+    val failingNativeUnlinkBlock =
+      if (failingNativeUnlinkCommand == null) {
+        ""
+      } else {
+        """
       |if [[ "${'$'}{1:-} ${'$'}{2:-}" == "$failingNativeUnlinkCommand" ]]; then
       |  printf '%s\n' "synthetic native cleanup failure" >&2
       |  exit 9
       |fi
       |
-      """.trimMargin()
-    }
+        """.trimMargin()
+      }
     writeFakeRuntimeBins(
       repoRoot,
       fakeRuntimeCliScript(
@@ -616,35 +649,45 @@ internal object InstallerShellFixtures {
     gradlew.toFile().setExecutable(true)
   }
 
-  fun seedDesktopInstall(desktopRoot: Path, binDir: Path): DesktopInstallFixture {
+  fun seedDesktopInstall(
+    desktopRoot: Path,
+    binDir: Path,
+  ): DesktopInstallFixture {
     val os = currentDesktopOs()
-    val appTarget = when (os) {
-      "macos" -> desktopRoot.resolve("SkillBill.app")
-      else -> desktopRoot.resolve("SkillBill")
-    }
-    val executable = when (os) {
-      "macos" -> appTarget.resolve("Contents/MacOS/SkillBill")
-      "windows" -> appTarget.resolve("bin/SkillBill.bat")
-      else -> appTarget.resolve("bin/SkillBill")
-    }
+    val appTarget =
+      when (os) {
+        "macos" -> desktopRoot.resolve("SkillBill.app")
+        else -> desktopRoot.resolve("SkillBill")
+      }
+    val executable =
+      when (os) {
+        "macos" -> appTarget.resolve("Contents/MacOS/SkillBill")
+        "windows" -> appTarget.resolve("bin/SkillBill.bat")
+        else -> appTarget.resolve("bin/SkillBill")
+      }
     Files.createDirectories(executable.parent)
     Files.writeString(executable, "")
     executable.toFile().setExecutable(true)
     return DesktopInstallFixture(appTarget, seedDesktopLauncher(os, binDir, executable))
   }
 
-  private fun seedDesktopLauncher(os: String, binDir: Path, executable: Path): Path = when (os) {
-    "windows" -> {
-      val launcher = binDir.resolve("skillbill-desktop.cmd")
-      Files.writeString(launcher, "@echo off\ncall \"${executable}\" %*\n")
-      launcher
+  private fun seedDesktopLauncher(
+    os: String,
+    binDir: Path,
+    executable: Path,
+  ): Path =
+    when (os) {
+      "windows" -> {
+        val launcher = binDir.resolve("skillbill-desktop.cmd")
+        Files.writeString(launcher, "@echo off\ncall \"${executable}\" %*\n")
+        launcher
+      }
+      else -> {
+        val launcher = binDir.resolve("skillbill-desktop")
+        Files.createSymbolicLink(launcher, executable)
+        launcher
+      }
     }
-    else -> {
-      val launcher = binDir.resolve("skillbill-desktop")
-      Files.createSymbolicLink(launcher, executable)
-      launcher
-    }
-  }
 
   private fun currentDesktopOs(): String {
     val osName = System.getProperty("os.name").lowercase()
@@ -729,17 +772,19 @@ internal object PrebuiltReleaseStager {
   private const val VERSION = "9.9.9"
 
   fun hostToken(): String {
-    val os = when {
-      System.getProperty("os.name").lowercase().contains("mac") -> "macos"
-      System.getProperty("os.name").lowercase().contains("win") -> "windows"
-      System.getProperty("os.name").lowercase().contains("linux") -> "linux"
-      else -> "unknown"
-    }
-    val arch = when (val raw = System.getProperty("os.arch").lowercase()) {
-      "aarch64", "arm64" -> "arm64"
-      "x86_64", "amd64" -> "x64"
-      else -> raw
-    }
+    val os =
+      when {
+        System.getProperty("os.name").lowercase().contains("mac") -> "macos"
+        System.getProperty("os.name").lowercase().contains("win") -> "windows"
+        System.getProperty("os.name").lowercase().contains("linux") -> "linux"
+        else -> "unknown"
+      }
+    val arch =
+      when (val raw = System.getProperty("os.arch").lowercase()) {
+        "aarch64", "arm64" -> "arm64"
+        "x86_64", "amd64" -> "x64"
+        else -> raw
+      }
     return "$os-$arch"
   }
 
@@ -750,12 +795,17 @@ internal object PrebuiltReleaseStager {
     )
   }
 
-  fun toolOnPath(tool: String): Boolean = (System.getenv("PATH") ?: "")
-    .split(File.pathSeparatorChar)
-    .filter { it.isNotEmpty() }
-    .any { dir -> Files.isExecutable(Path.of(dir).resolve(tool)) }
+  fun toolOnPath(tool: String): Boolean =
+    (System.getenv("PATH") ?: "")
+      .split(File.pathSeparatorChar)
+      .filter { it.isNotEmpty() }
+      .any { dir -> Files.isExecutable(Path.of(dir).resolve(tool)) }
 
-  fun buildPrebuiltCommand(repoRoot: Path, extraArgs: List<String>, interactiveTty: Boolean): List<String> {
+  fun buildPrebuiltCommand(
+    repoRoot: Path,
+    extraArgs: List<String>,
+    interactiveTty: Boolean,
+  ): List<String> {
     val installArgs = mutableListOf(repoRoot.resolve("install.sh").toString())
     installArgs.addAll(extraArgs)
     if (!interactiveTty) {
@@ -765,7 +815,11 @@ internal object PrebuiltReleaseStager {
     return listOf("script", "-qec", quoted, "/dev/null")
   }
 
-  fun stage(releaseDir: Path, releaseValid: Boolean, omitRuntimeAssets: Boolean) {
+  fun stage(
+    releaseDir: Path,
+    releaseValid: Boolean,
+    omitRuntimeAssets: Boolean,
+  ) {
     val token = hostToken()
     if (!omitRuntimeAssets) {
       val cliZip = releaseDir.resolve("runtime-cli-$VERSION-$token.zip")
@@ -777,7 +831,10 @@ internal object PrebuiltReleaseStager {
     }
   }
 
-  private fun writeRuntimeImageZip(zipPath: Path, base: String) {
+  private fun writeRuntimeImageZip(
+    zipPath: Path,
+    base: String,
+  ) {
     val staging = Files.createTempDirectory("skillbill-image-$base")
     val binDir = staging.resolve("$base/bin")
     Files.createDirectories(binDir)
@@ -790,14 +847,20 @@ internal object PrebuiltReleaseStager {
     runOrThrow(staging, listOf("bsdtar", "-a", "-cf", zipPath.toString(), base))
   }
 
-  private fun writeChecksumSibling(asset: Path, corrupt: Boolean) {
+  private fun writeChecksumSibling(
+    asset: Path,
+    corrupt: Boolean,
+  ) {
     val digest = MessageDigest.getInstance("SHA-256")
     val hexReal = digest.digest(Files.readAllBytes(asset)).joinToString("") { "%02x".format(it) }
     val hex = if (corrupt) "0".repeat(64) else hexReal
     Files.writeString(asset.resolveSibling("${asset.fileName}.sha256"), "$hex  ${asset.fileName}\n")
   }
 
-  private fun runOrThrow(cwd: Path, command: List<String>) {
+  private fun runOrThrow(
+    cwd: Path,
+    command: List<String>,
+  ) {
     val process = ProcessBuilder(command).directory(cwd.toFile()).redirectErrorStream(true).start()
     val out = process.inputStream.bufferedReader().readText()
     check(process.waitFor() == 0) { "command failed: ${command.joinToString(" ")}\n$out" }

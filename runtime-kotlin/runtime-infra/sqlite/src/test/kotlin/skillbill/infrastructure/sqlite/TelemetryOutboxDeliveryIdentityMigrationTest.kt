@@ -9,8 +9,8 @@ import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-class TelemetryOutboxDeliveryIdentityMigrationTest {
 
+class TelemetryOutboxDeliveryIdentityMigrationTest {
   @Test
   fun `legacy pending rows get an identity once and every unsynced row survives`() {
     val dbPath = newDatabase()
@@ -96,22 +96,24 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
     }
   }
 
-  private fun identities(connection: Connection): Map<Long, String> = connection.createStatement().use { statement ->
-    statement.executeQuery(
-      "SELECT id, event_uuid FROM telemetry_outbox WHERE synced_at IS NULL ORDER BY id",
-    ).use { rows ->
-      buildMap {
-        while (rows.next()) {
-          put(rows.getLong("id"), rows.getString("event_uuid").orEmpty())
+  private fun identities(connection: Connection): Map<Long, String> =
+    connection.createStatement().use { statement ->
+      statement.executeQuery(
+        "SELECT id, event_uuid FROM telemetry_outbox WHERE synced_at IS NULL ORDER BY id",
+      ).use { rows ->
+        buildMap {
+          while (rows.next()) {
+            put(rows.getLong("id"), rows.getString("event_uuid").orEmpty())
+          }
         }
       }
     }
-  }
 
-  private fun rowCount(connection: Connection): Int = connection.createStatement().use { statement ->
-    statement.executeQuery("SELECT COUNT(*) FROM telemetry_outbox").use { rows ->
-      check(rows.next())
-      rows.getInt(1)
+  private fun rowCount(connection: Connection): Int =
+    connection.createStatement().use { statement ->
+      statement.executeQuery("SELECT COUNT(*) FROM telemetry_outbox").use { rows ->
+        check(rows.next())
+        rows.getInt(1)
+      }
     }
-  }
 }

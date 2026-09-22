@@ -11,6 +11,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+
 class ShellContentLoaderValidationGateTest {
   @Test
   fun `absent validation_gate parses to null`() {
@@ -91,9 +92,10 @@ class ShellContentLoaderValidationGateTest {
     val gate = wellFormedGate().toMutableMap()
     gate["build_command"] = listOf("./gradlew", "check", "--continue")
     val manifest = mapOf("validation_gate" to gate)
-    val error = assertFailsWith<InvalidValidationGateDeclarationError> {
-      parseValidationGate(manifest, "kotlin")
-    }
+    val error =
+      assertFailsWith<InvalidValidationGateDeclarationError> {
+        parseValidationGate(manifest, "kotlin")
+      }
     assertEquals(
       "Platform pack 'kotlin': 'validation_gate.build_command' must not be byte-identical to " +
         "'validation_gate.collect_all_full_gate_command'.",
@@ -106,9 +108,10 @@ class ShellContentLoaderValidationGateTest {
     val gate = wellFormedGate().toMutableMap()
     gate["cache_bypassing_build_command"] = listOf("./gradlew", "check", "--continue", "--rerun-tasks")
     val manifest = mapOf("validation_gate" to gate)
-    val error = assertFailsWith<InvalidValidationGateDeclarationError> {
-      parseValidationGate(manifest, "kotlin")
-    }
+    val error =
+      assertFailsWith<InvalidValidationGateDeclarationError> {
+        parseValidationGate(manifest, "kotlin")
+      }
     assertEquals(
       "Platform pack 'kotlin': 'validation_gate.cache_bypassing_build_command' must not be " +
         "byte-identical to 'validation_gate.cache_bypassing_collect_all_full_gate_command'.",
@@ -152,12 +155,13 @@ class ShellContentLoaderValidationGateTest {
 
   @Test
   fun `malformed validation_gate loud-fails`() {
-    val manifest = Yaml().load<Map<String, Any?>>(
-      """
-      validation_gate:
-        full_gate_command: []
-      """.trimIndent(),
-    )
+    val manifest =
+      Yaml().load<Map<String, Any?>>(
+        """
+        validation_gate:
+          full_gate_command: []
+        """.trimIndent(),
+      )
     assertFailsWith<InvalidValidationGateDeclarationError> {
       parseValidationGate(manifest, "kotlin")
     }
@@ -165,19 +169,21 @@ class ShellContentLoaderValidationGateTest {
 
   private fun wellFormedGateManifest(): Map<String, Any?> = mapOf("validation_gate" to wellFormedGate())
 
-  private fun wellFormedGate(): Map<String, Any?> = mapOf(
-    "full_gate_command" to listOf("./gradlew", "check"),
-    "cache_bypassing_full_gate_command" to listOf("./gradlew", "check", "--rerun-tasks"),
-    "collect_all_full_gate_command" to listOf("./gradlew", "check", "--continue"),
-    "cache_bypassing_collect_all_full_gate_command" to listOf("./gradlew", "check", "--continue", "--rerun-tasks"),
-    "build_command" to listOf("./gradlew", "compileKotlin"),
-    "cache_bypassing_build_command" to listOf("./gradlew", "compileKotlin", "--no-build-cache"),
-    "findings" to mapOf(
-      "format" to "junit_xml",
-      "artifact_globs" to listOf("**/build/test-results/**/*.xml"),
-      "compiler_diagnostics" to mapOf("format" to "gradle_kotlin_compiler_stdout"),
-      "executed_work" to mapOf("format" to "gradle_actionable_summary"),
-    ),
-    "suppression_markers" to listOf("@Suppress", "@file:Suppress"),
-  )
+  private fun wellFormedGate(): Map<String, Any?> =
+    mapOf(
+      "full_gate_command" to listOf("./gradlew", "check"),
+      "cache_bypassing_full_gate_command" to listOf("./gradlew", "check", "--rerun-tasks"),
+      "collect_all_full_gate_command" to listOf("./gradlew", "check", "--continue"),
+      "cache_bypassing_collect_all_full_gate_command" to listOf("./gradlew", "check", "--continue", "--rerun-tasks"),
+      "build_command" to listOf("./gradlew", "compileKotlin"),
+      "cache_bypassing_build_command" to listOf("./gradlew", "compileKotlin", "--no-build-cache"),
+      "findings" to
+        mapOf(
+          "format" to "junit_xml",
+          "artifact_globs" to listOf("**/build/test-results/**/*.xml"),
+          "compiler_diagnostics" to mapOf("format" to "gradle_kotlin_compiler_stdout"),
+          "executed_work" to mapOf("format" to "gradle_actionable_summary"),
+        ),
+      "suppression_markers" to listOf("@Suppress", "@file:Suppress"),
+    )
 }

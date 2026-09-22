@@ -50,9 +50,10 @@ class FileSystemReviewEvidenceBrokerBudgetTest {
     val broker = locatorBroker(LocatorBrokerSpec(root, listOf(hunk), storePath, payloads))
     payloads[storePath] = overwritten
 
-    val failure = assertFailsWith<ReviewHunkEvidenceIntegrityError> {
-      broker.readBatch(batch("A.kt"))
-    }
+    val failure =
+      assertFailsWith<ReviewHunkEvidenceIntegrityError> {
+        broker.readBatch(batch("A.kt"))
+      }
     assertEquals(storePath, failure.storePath)
     assertEquals(ReviewChangedHunk.digestOfBody(original), failure.expectedDigest)
     assertEquals(ReviewChangedHunk.digestOfBody(overwritten), failure.observedDigest)
@@ -64,11 +65,12 @@ class FileSystemReviewEvidenceBrokerBudgetTest {
     val small = ReviewChangedHunk("A.kt", 1, 1, 1, 1, "aa")
     val large = ReviewChangedHunk("B.kt", 1, 1, 1, 1, "bbbb")
     val storePath = ".skill-bill/run-evidence/code-review/fp-budget"
-    val broker = locatorBroker(
-      LocatorBrokerSpec(root, listOf(small, large), storePath, mapOf(storePath to "aa")),
-      policy(result = 3, cumulative = 3),
-      ReviewStoredHunkBodyExtractor { _, hunk -> if (hunk.path == "A.kt") "aa" else "bbbb" },
-    )
+    val broker =
+      locatorBroker(
+        LocatorBrokerSpec(root, listOf(small, large), storePath, mapOf(storePath to "aa")),
+        policy(result = 3, cumulative = 3),
+        ReviewStoredHunkBodyExtractor { _, hunk -> if (hunk.path == "A.kt") "aa" else "bbbb" },
+      )
     val first = broker.readBatch(batch("A.kt")).results.single()
     val second = broker.readBatch(batch("B.kt")).results.single()
 
@@ -83,21 +85,24 @@ class FileSystemReviewEvidenceBrokerBudgetTest {
 
   @Test fun `mid batch lane evidence refusal records denied unit for refused target only`() {
     val root = repo("A.kt" to "12345", "B.kt" to "67890", "C.kt" to "abcde")
-    val hunks = listOf("A.kt", "B.kt", "C.kt").map { path ->
-      ReviewChangedHunk(path, 1, 1, 1, 1, Files.readString(root.resolve(path)))
-    }
-    val assigned = assignment(listOf("A.kt", "B.kt", "C.kt")).copy(
-      assignedHunks = hunks.map { it.hunkId },
-    )
-    val broker = FileSystemReviewEvidenceBroker(
-      ReviewEvidenceBrokerBinding(
-        root,
-        assigned,
-        "security",
-        policy(result = 8, cumulative = 8),
-        projectedHunks = hunks,
-      ),
-    )
+    val hunks =
+      listOf("A.kt", "B.kt", "C.kt").map { path ->
+        ReviewChangedHunk(path, 1, 1, 1, 1, Files.readString(root.resolve(path)))
+      }
+    val assigned =
+      assignment(listOf("A.kt", "B.kt", "C.kt")).copy(
+        assignedHunks = hunks.map { it.hunkId },
+      )
+    val broker =
+      FileSystemReviewEvidenceBroker(
+        ReviewEvidenceBrokerBinding(
+          root,
+          assigned,
+          "security",
+          policy(result = 8, cumulative = 8),
+          projectedHunks = hunks,
+        ),
+      )
     broker.readBatch(batch("A.kt"))
     broker.readBatch(batch("B.kt"))
     val accounting = broker.accounting()
@@ -133,19 +138,23 @@ class FileSystemReviewEvidenceBrokerBudgetTest {
     return root
   }
 
-  private fun broker(root: Path, assignment: ReviewAssignment, budget: ReviewContextBudgetPolicy = policy()) =
-    FileSystemReviewEvidenceBroker(
-      ReviewEvidenceBrokerBinding(root, assignment, "security", budget),
-    )
+  private fun broker(
+    root: Path,
+    assignment: ReviewAssignment,
+    budget: ReviewContextBudgetPolicy = policy(),
+  ) = FileSystemReviewEvidenceBroker(
+    ReviewEvidenceBrokerBinding(root, assignment, "security", budget),
+  )
 
   private fun projectedBroker(
     root: Path,
     assignment: ReviewAssignment,
     budget: ReviewContextBudgetPolicy = policy(),
   ): FileSystemReviewEvidenceBroker {
-    val hunks = assignment.assignedPaths.map { path ->
-      ReviewChangedHunk(path, 1, 1, 1, 1, Files.readString(root.resolve(path)))
-    }
+    val hunks =
+      assignment.assignedPaths.map { path ->
+        ReviewChangedHunk(path, 1, 1, 1, 1, Files.readString(root.resolve(path)))
+      }
     val projectedAssignment = assignment.copy(assignedHunks = hunks.map { it.hunkId })
     return FileSystemReviewEvidenceBroker(
       ReviewEvidenceBrokerBinding(root, projectedAssignment, "security", budget, projectedHunks = hunks),
@@ -164,18 +173,19 @@ class FileSystemReviewEvidenceBrokerBudgetTest {
     budget: ReviewContextBudgetPolicy = policy(),
     extractor: ReviewStoredHunkBodyExtractor? = null,
   ): FileSystemReviewEvidenceBroker {
-    val indexed = spec.hunks.map { hunk ->
-      hunk.asIndex(
-        ReviewHunkEvidenceLocator.atStore(
-          spec.storePath,
-          hunk.oldStart,
-          hunk.oldCount,
-          hunk.newStart,
-          hunk.newCount,
-        ),
-        hunk.content,
-      )
-    }
+    val indexed =
+      spec.hunks.map { hunk ->
+        hunk.asIndex(
+          ReviewHunkEvidenceLocator.atStore(
+            spec.storePath,
+            hunk.oldStart,
+            hunk.oldCount,
+            hunk.newStart,
+            hunk.newCount,
+          ),
+          hunk.content,
+        )
+      }
     val assigned = assignment(indexed.map { it.path }.distinct()).copy(assignedHunks = indexed.map { it.hunkId })
     return FileSystemReviewEvidenceBroker(
       ReviewEvidenceBrokerBinding(
@@ -184,17 +194,22 @@ class FileSystemReviewEvidenceBrokerBudgetTest {
         "security",
         budget,
         projectedHunks = indexed,
-        locatorReader = FeatureTaskRuntimeSharedEvidenceLocatorReadPort { request ->
-          spec.payloads[request.storePath] ?: error("missing locator payload")
-        },
-        bodyExtractor = extractor ?: ReviewStoredHunkBodyExtractor { payload, _ ->
-          payload.replace("\r\n", "\n")
-        },
+        locatorReader =
+          FeatureTaskRuntimeSharedEvidenceLocatorReadPort { request ->
+            spec.payloads[request.storePath] ?: error("missing locator payload")
+          },
+        bodyExtractor =
+          extractor ?: ReviewStoredHunkBodyExtractor { payload, _ ->
+            payload.replace("\r\n", "\n")
+          },
       ),
     )
   }
 
-  private fun assignment(paths: List<String>, dependencies: List<String> = emptyList()) = ReviewAssignment(
+  private fun assignment(
+    paths: List<String>,
+    dependencies: List<String> = emptyList(),
+  ) = ReviewAssignment(
     "review",
     "a".repeat(64),
     "security",
@@ -203,15 +218,16 @@ class FileSystemReviewEvidenceBrokerBudgetTest {
     paths,
     emptyList(),
     reviewRevision = ReviewRevision("rvs-1", 1),
-    laneDecision = ReviewLaneDecision(
-      "security",
-      true,
-      "routed",
-      ownedPaths = paths.ifEmpty { listOf("A.kt") },
-      originLayerChains = listOf(listOf("kotlin")),
-      owningPack = "kotlin",
-      specialistSkillName = "bill-kotlin-code-review-security",
-    ),
+    laneDecision =
+      ReviewLaneDecision(
+        "security",
+        true,
+        "routed",
+        ownedPaths = paths.ifEmpty { listOf("A.kt") },
+        originLayerChains = listOf(listOf("kotlin")),
+        owningPack = "kotlin",
+        specialistSkillName = "bill-kotlin-code-review-security",
+      ),
     dependencyAllowlist = ReviewDependencyAllowlist(dependencies),
   )
 
