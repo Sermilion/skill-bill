@@ -462,7 +462,6 @@ are optional execution work after implementation, not acceptance prerequisites.
 
 ## References
 
-- [Original CodeGraph consumer](../../SKILL-365-codegraph-paired-experiments/spec.md).
 - [Jev navigation consumer](../../SKILL-367-jev-navigation-experiment/spec.md).
 - `../../../runtime-kotlin/ARCHITECTURE.md`, `docs/code-principles.md`, and `docs/observability-policy.md`.
 - `../../../skills/bill-feature/content.md` and `docs/skill-source-generation.md`.
