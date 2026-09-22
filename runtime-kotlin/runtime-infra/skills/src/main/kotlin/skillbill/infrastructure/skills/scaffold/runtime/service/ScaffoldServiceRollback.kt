@@ -5,6 +5,7 @@ import skillbill.infrastructure.host.jvm.rollbackDeleteEmptyDirectory
 import skillbill.infrastructure.host.jvm.rollbackDeleteIfExists
 import skillbill.infrastructure.host.jvm.rollbackDeleteRegularFileOrSymlink
 import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
+import skillbill.infrastructure.skills.scaffold.runtime.service.externalpack.rollbackRegisteredExternalPlatformPack
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import java.io.IOException
 import java.nio.file.Files
@@ -15,6 +16,7 @@ internal fun rollback(
   adapters: ScaffoldAdapterSeams,
 ) {
   val errors = mutableListOf<String>()
+  rollbackRegisteredExternalPlatformPack(txn, errors)
   adapters.rollbackInstallTargets(txn, errors)
   rollbackSymlinks(txn, errors)
   rollbackManifests(txn, errors)

@@ -46,7 +46,10 @@ internal data class NativeAgentPlatformPack(
 }
 
 internal interface NativeAgentPlatformPackLoader {
-  fun loadPlatformPack(packRoot: Path): NativeAgentPlatformPack
+  fun loadPlatformPack(
+    packRoot: Path,
+    additionalPackRoots: List<Path> = emptyList(),
+  ): NativeAgentPlatformPack
 
   fun discoverPlatformPackManifests(platformPacksRoot: Path): List<NativeAgentPlatformPack>
 }

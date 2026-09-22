@@ -26,6 +26,7 @@ data class NativeAgentLinkRequest(
   val home: Path? = null,
   val selectedPlatforms: List<String>? = null,
   val overrides: NativeAgentLinkOverrides = NativeAgentLinkOverrides(),
+  val environment: Map<String, String> = emptyMap(),
 )
 
 data class NativeAgentLinkOutcome(

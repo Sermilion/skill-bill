@@ -8,6 +8,9 @@ import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallR
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderResult
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.childDirectories
 import skillbill.install.model.AgentTarget
 import skillbill.model.toPath
 import java.nio.file.Files
@@ -22,7 +25,7 @@ internal fun linkProviderAgentsBody(args: NativeAgentLinkProviderBodyArgs): Nati
         selectedPlatforms = args.request.selectedPlatforms,
         provider = args.provider,
         home = args.resolvedHome,
-        compositionContext = installNativeAgentCompositionContext(),
+        compositionContext = args.compositionContext,
         overrides =
           NativeAgentInstallRenderOverrides(
             cacheRoot = args.request.overrides.installCacheRoot,
@@ -38,6 +41,7 @@ internal fun linkProviderAgentsBody(args: NativeAgentLinkProviderBodyArgs): Nati
     args.request.selectedPlatforms,
     generated.cacheRoot,
     args.journal,
+    args.effectivePackRoots,
   )
   val linkResults = linkGeneratedNativeAgentFiles(args, generated, managedRoots)
   val desired =
@@ -124,6 +128,32 @@ internal fun desiredNativeAgentInventory(
       )
     }
   }
+}
+
+internal fun effectivePackRootsForInstall(
+  platformPacksRoot: Path,
+  userHome: Path,
+  environment: Map<String, String>,
+  selectedPlatforms: List<String>?,
+  catalogLoader: PlatformPackCatalogLoader? = null,
+): List<Path> {
+  val repoRoot = platformPacksRoot.toAbsolutePath().normalize().parent ?: return emptyList()
+  val selected = selectedPlatforms?.toSet()
+  val loader =
+    catalogLoader ?: return childDirectories(platformPacksRoot)
+      .map { packRoot -> packRoot.toAbsolutePath().normalize() }
+      .filter { packRoot -> selected == null || packRoot.fileName.toString() in selected }
+  return loader.loadEffectiveCatalog(
+    PlatformPackDiscoveryContext(
+      repoRoot = repoRoot,
+      userHome = userHome,
+      environment = environment,
+      catalogLoader = loader,
+    ),
+  ).entries
+    .map { entry -> entry.loaded }
+    .filter { loaded -> selected == null || loaded.manifest.slug in selected }
+    .map { loaded -> Path.of(loaded.canonicalRoot) }
 }
 
 internal fun linkProviderAgentsWithJournal(

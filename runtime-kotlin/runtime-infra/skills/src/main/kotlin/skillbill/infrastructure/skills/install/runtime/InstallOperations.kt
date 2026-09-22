@@ -6,6 +6,7 @@ import skillbill.infrastructure.skills.install.plan.buildInstallPlan
 import skillbill.infrastructure.skills.install.plan.detectAgents
 import skillbill.infrastructure.skills.install.plan.resolveInstallEnvironment
 import skillbill.infrastructure.skills.install.plan.resolveInstallHome
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.AgentTarget
 import skillbill.install.model.InstallApplyResult
 import skillbill.install.model.InstallPlan
@@ -29,7 +30,15 @@ object InstallOperations {
     telemetryLevelMutator: TelemetryLevelMutator? = null,
     telemetryConfigStore: TelemetryConfigStore? = null,
     mcpRegistrationPort: InstallMcpRegistrationPort,
-  ): InstallApplyResult = applyInstallPlan(plan, telemetryLevelMutator, telemetryConfigStore, mcpRegistrationPort)
+    catalogLoader: PlatformPackCatalogLoader? = null,
+  ): InstallApplyResult =
+    applyInstallPlan(
+      plan,
+      telemetryLevelMutator,
+      telemetryConfigStore,
+      mcpRegistrationPort,
+      catalogLoader,
+    )
 
   fun agentPath(
     agent: String,

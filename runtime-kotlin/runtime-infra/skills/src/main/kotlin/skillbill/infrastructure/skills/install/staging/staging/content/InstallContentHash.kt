@@ -15,7 +15,7 @@ import java.nio.file.Path
 import java.security.MessageDigest
 
 internal const val INSTALL_CACHE_KEY_BYTES = 8
-private const val INSTALL_STAGING_RECIPE_VERSION = "install-staging-v5-no-staged-content-md"
+private const val INSTALL_STAGING_RECIPE_VERSION = "install-staging-v6-source-path"
 
 internal data class InstallContentHashInputs(
   val sourceSkillDir: Path,
@@ -24,6 +24,7 @@ internal data class InstallContentHashInputs(
   val generatedSupportPointers: List<GeneratedSupportPointer> = emptyList(),
   val internalChildren: List<InternalSidecarTarget> = emptyList(),
   val agentAddonPointers: List<AgentAddonPointer> = emptyList(),
+  val checkoutRepoRoot: Path? = null,
 )
 
 internal fun computeInstallContentHash(
@@ -42,10 +43,25 @@ internal fun computeInstallContentHash(
   )
 
 internal fun computeInstallContentHash(inputs: InstallContentHashInputs): String {
+  return computeContentHash(inputs, includeSourcePath = true)
+}
+
+internal fun computeReconciliationContentHash(inputs: InstallContentHashInputs): String {
+  return computeContentHash(inputs, includeSourcePath = false)
+}
+
+private fun computeContentHash(
+  inputs: InstallContentHashInputs,
+  includeSourcePath: Boolean,
+): String {
   val digest = newSha256Digest()
   val newline = byteArrayOf('\n'.code.toByte())
   digest.update(INSTALL_STAGING_RECIPE_VERSION.toByteArray(StandardCharsets.UTF_8))
   digest.update(newline)
+  if (includeSourcePath) {
+    digest.update(inputs.sourceSkillDir.toAbsolutePath().normalize().toString().toByteArray(StandardCharsets.UTF_8))
+    digest.update(newline)
+  }
   inputs.authored.forEach { file ->
     val rel = inputs.sourceSkillDir.relativize(file).toString().replace(File.separatorChar, '/')
     digest.update(rel.toByteArray(StandardCharsets.UTF_8))
@@ -73,7 +89,8 @@ private fun updatePointerHash(
       digest.update(line.toByteArray(StandardCharsets.UTF_8))
       digest.update(newline)
       val repoRoot =
-        manifest.packRoot.toPath().toAbsolutePath().normalize().parent?.parent
+        inputs.checkoutRepoRoot?.toAbsolutePath()?.normalize()
+          ?: manifest.packRoot.toPath().toAbsolutePath().normalize().parent?.parent
           ?: error("Platform pack '${manifest.slug}' root '${manifest.packRoot}' has no repo root parent.")
       val targetFile = repoRoot.resolve(spec.target).normalize()
       requirePathContainedIn(targetFile, repoRoot) {

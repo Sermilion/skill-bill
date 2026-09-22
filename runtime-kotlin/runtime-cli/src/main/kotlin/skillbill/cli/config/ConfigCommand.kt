@@ -20,6 +20,9 @@ class ConfigCommand(
   resolveSpecTypeCommand: ConfigResolveSpecTypeCommand,
   resolveExternalAddonsCommand: ConfigResolveExternalAddonsCommand,
   resolveExternalAgentAddonsCommand: ConfigResolveExternalAgentAddonsCommand,
+  resolveExternalPlatformPacksCommand: ConfigResolveExternalPlatformPacksCommand,
+  registerExternalPlatformPackCommand: ConfigRegisterExternalPlatformPackCommand,
+  unregisterExternalPlatformPackCommand: ConfigUnregisterExternalPlatformPackCommand,
 ) : DocumentedNoOpCliCommand(
     "config",
     "Inspect resolved repo-local configuration (.skill-bill/config.yaml).",
@@ -29,6 +32,9 @@ class ConfigCommand(
       resolveSpecTypeCommand,
       resolveExternalAddonsCommand,
       resolveExternalAgentAddonsCommand,
+      resolveExternalPlatformPacksCommand,
+      registerExternalPlatformPackCommand,
+      unregisterExternalPlatformPackCommand,
     )
   }
 }

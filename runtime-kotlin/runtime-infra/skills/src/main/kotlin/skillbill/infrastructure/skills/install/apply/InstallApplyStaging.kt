@@ -24,6 +24,7 @@ import skillbill.infrastructure.skills.install.staging.staging.sidecar.prepareIn
 import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
 import skillbill.infrastructure.skills.install.staging.staging.support.GeneratedSupportPointer
 import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
@@ -52,6 +53,7 @@ internal fun validatedPlannedStaging(
   skill: InstallPlanSkill,
   intent: InstallStagingPathIntent,
   platformManifests: List<PlatformManifest>,
+  catalogLoader: PlatformPackCatalogLoader? = null,
 ): RenderedSkill {
   val expectedRoot = installedSkillsCacheRoot(plan.request.home.toPath())
   val resolvedSource = skill.sourceDir.toPath().toAbsolutePath().normalize()
@@ -77,6 +79,7 @@ internal fun validatedPlannedStaging(
       platformManifests = platformManifests,
       resolvedSource = resolvedSource,
       expectedStagingDir = expectedStagingDir,
+      catalogLoader = catalogLoader,
     ),
   )
 }
@@ -107,6 +110,7 @@ private fun materializeValidatedPlannedStaging(inputs: PlannedStagingMaterializa
         generatedSupportPointers = internal.supportPointers,
         internalChildren = internal.children,
         agentAddonPointers = agentAddonPointers,
+        checkoutRepoRoot = plan.request.repoRoot.toPath(),
       ),
     )
   validatePlannedStagingSource(inputs, currentHash)
@@ -146,6 +150,8 @@ private fun reuseOrFreshPlannedStaging(
         repoRoot = plan.request.repoRoot.toPath(),
         sourceSkillDir = inputs.resolvedSource,
         home = plan.request.home.toPath(),
+        environment = plan.request.environment,
+        catalogLoader = inputs.catalogLoader,
         manifests = inputs.platformManifests,
         skillsRoot = plan.request.targetPaths.skillsRoot.toPath(),
         selectedPackSkills = selectedPackSkills,
@@ -202,6 +208,9 @@ private fun plannedInternalStaging(
     selectedPlatformManifests = selectedPlatformManifests(inputs.plan, inputs.platformManifests),
     parentSupportPointers = supportPointers,
     parentPointerNames = pointers.map { (_, pointer) -> pointer.name }.toSet(),
+    userHome = inputs.plan.request.home.toPath(),
+    environment = inputs.plan.request.environment,
+    catalogLoader = inputs.catalogLoader,
   ),
 )
 
@@ -236,4 +245,5 @@ private data class PlannedStagingMaterialization(
   val platformManifests: List<PlatformManifest>,
   val resolvedSource: Path,
   val expectedStagingDir: Path,
+  val catalogLoader: PlatformPackCatalogLoader? = null,
 )

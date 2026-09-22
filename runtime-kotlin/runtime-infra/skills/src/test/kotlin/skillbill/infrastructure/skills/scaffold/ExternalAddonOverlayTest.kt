@@ -3,7 +3,6 @@ package skillbill.infrastructure.skills.scaffold
 
 import org.junit.jupiter.api.io.TempDir
 import skillbill.error.core.ExternalAddonOverlayError
-import skillbill.infrastructure.skills.externaladdon.FileSystemExternalAddonOverlay
 import skillbill.install.model.ExternalAddonSource
 import skillbill.ports.install.addon.ExternalAddonOverlayPort
 import skillbill.ports.install.addon.model.ExternalAddonOverlayRequest
@@ -22,7 +21,7 @@ class ExternalAddonOverlayTest {
 
   private lateinit var platformPacksRoot: Path
 
-  private val overlay: ExternalAddonOverlayPort = FileSystemExternalAddonOverlay()
+  private val overlay: ExternalAddonOverlayPort = overlayPort()
 
   private fun request(sources: List<ExternalAddonSource>): ExternalAddonOverlayRequest =
     ExternalAddonOverlayRequest(platformPacksRoot = platformPacksRoot, sources = sources)

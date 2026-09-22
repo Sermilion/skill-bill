@@ -1,5 +1,6 @@
 package skillbill.infrastructure.skills.install.plan
 
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentDefaultTarget
 import skillbill.install.model.InstallAgentTarget
@@ -26,7 +27,7 @@ internal fun buildInstallPlan(
   wireValidator: InstallPlanWireValidator,
 ): InstallPlan {
   requireSupportedAgentContract()
-  val platformManifests = discoverPlatformManifests(request.targetPaths.platformPacksRoot.toPath())
+  val platformManifests = discoverPlatformManifests(request)
   val policyInput = buildInstallPolicyInput(request, platformManifests, enforceContractVersion = true)
   val draft = InstallPlanPolicy.buildPlanDraft(policyInput)
   validateInstallPlanInternalSkills(draft.skills)
@@ -77,7 +78,7 @@ private fun buildInstallPolicyInput(
           packRoot = manifest.packRoot,
           skills =
             if (manifest.slug in selectedPlatformSlugs) {
-              platformSkills(manifest, enforceContractVersion)
+              platformSkills(manifest, enforceContractVersion, packRootsBySlug(platformManifests))
             } else {
               emptyList()
             },
@@ -99,13 +100,10 @@ private fun buildInstallPolicyInput(
 internal fun enumerateInstallPlanSkills(
   request: InstallPlanRequest,
   enforceContractVersion: Boolean = true,
+  catalogLoader: PlatformPackCatalogLoader? = null,
 ): List<InstallPlanSkill> {
   requireSupportedAgentContract()
-  val platformManifests =
-    discoverPlatformManifests(
-      request.targetPaths.platformPacksRoot.toPath(),
-      enforceContractVersion,
-    )
+  val platformManifests = discoverPlatformManifests(request, enforceContractVersion, catalogLoader)
   val skills =
     InstallPlanPolicy.buildPlanDraft(
       buildInstallPolicyInput(request, platformManifests, enforceContractVersion),
@@ -114,9 +112,12 @@ internal fun enumerateInstallPlanSkills(
   return skills
 }
 
-internal fun collectInstallPlanningFacts(request: InstallPlanRequest): InstallPlanningFacts {
+internal fun collectInstallPlanningFacts(
+  request: InstallPlanRequest,
+  catalogLoader: PlatformPackCatalogLoader? = null,
+): InstallPlanningFacts {
   requireSupportedAgentContract()
-  val platformManifests = discoverPlatformManifests(request.targetPaths.platformPacksRoot.toPath())
+  val platformManifests = discoverPlatformManifests(request, catalogLoader = catalogLoader)
   return InstallPlanningFacts(
     baseSkills = discoverBaseSkills(request.targetPaths.skillsRoot.toPath()),
     platformManifests = platformManifests,
@@ -143,7 +144,7 @@ internal fun materializeSelectedPlatformSkills(
       packRoot = manifest.packRoot,
       skills =
         if (manifest.slug in selected) {
-          platformSkills(manifest)
+          platformSkills(manifest, packRootsBySlug = packRootsBySlug(platformManifests))
         } else {
           emptyList()
         },
@@ -151,6 +152,11 @@ internal fun materializeSelectedPlatformSkills(
     )
   }
 }
+
+private fun packRootsBySlug(platformManifests: List<PlatformManifest>): Map<String, Path> =
+  platformManifests.associate { manifest ->
+    manifest.slug to manifest.packRoot.toPath().toAbsolutePath().normalize()
+  }
 
 private fun installPlanEnvironment(request: InstallPlanRequest): Map<String, String> = request.environment
 

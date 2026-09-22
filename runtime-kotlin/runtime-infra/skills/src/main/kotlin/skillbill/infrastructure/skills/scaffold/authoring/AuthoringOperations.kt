@@ -4,6 +4,7 @@ import skillbill.error.core.SkillBillRuntimeException
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionContext
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentRegenerationRequest
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.ports.scaffold.model.ScaffoldSkillStatus
 import skillbill.scaffold.model.CodeReviewComposition
 import skillbill.scaffold.model.GovernedAddonSelection
@@ -33,9 +34,10 @@ object AuthoringOperations {
   internal fun list(
     repoRoot: Path,
     skillNames: List<String>,
+    externalDiscovery: PlatformPackDiscoveryContext? = null,
   ): AuthoringListResult {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
-    val targets = selectedTargets(resolvedRoot, skillNames)
+    val targets = selectedTargets(resolvedRoot, skillNames, externalDiscovery)
     return AuthoringListResult(
       repoRoot = resolvedRoot.toString(),
       skillCount = targets.size,
@@ -47,20 +49,22 @@ object AuthoringOperations {
     repoRoot: Path,
     skillName: String,
     contentMode: String,
+    externalDiscovery: PlatformPackDiscoveryContext? = null,
   ): ScaffoldSkillStatus {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
-    val target = resolveTarget(resolvedRoot, skillName)
+    val target = resolveTarget(resolvedRoot, skillName, externalDiscovery)
     return skillStatus(resolvedRoot, target, contentMode)
   }
 
   internal fun explain(
     repoRoot: Path,
     skillName: String?,
+    externalDiscovery: PlatformPackDiscoveryContext? = null,
   ): AuthoringExplain {
     val skill =
       skillName?.let { name ->
         val resolvedRoot = repoRoot.toAbsolutePath().normalize()
-        val target = resolveTarget(resolvedRoot, name)
+        val target = resolveTarget(resolvedRoot, name, externalDiscovery)
         AuthoringExplainSkill(
           skillName = target.skillName,
           contentFile = target.contentFile.toString(),
@@ -99,11 +103,12 @@ object AuthoringOperations {
   internal fun validate(
     repoRoot: Path,
     skillNames: List<String>,
+    externalDiscovery: PlatformPackDiscoveryContext? = null,
   ): AuthoringValidateResult {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
     if (skillNames.isEmpty()) {
       val issues =
-        discoverTargets(resolvedRoot).values.flatMap { target ->
+        discoverTargets(resolvedRoot, externalDiscovery = externalDiscovery).values.flatMap { target ->
           validateTarget(target, resolvedRoot)
         }
       return AuthoringValidateResult(
@@ -115,10 +120,13 @@ object AuthoringOperations {
         suggestedCommands = null,
       )
     }
-    val issues = selectedTargets(resolvedRoot, skillNames).flatMap { target -> validateTarget(target, resolvedRoot) }
+    val issues =
+      selectedTargets(resolvedRoot, skillNames, externalDiscovery).flatMap { target ->
+        validateTarget(target, resolvedRoot)
+      }
     val suggestedCommands =
       skillNames.flatMap { skillName ->
-        val target = resolveTarget(resolvedRoot, skillName)
+        val target = resolveTarget(resolvedRoot, skillName, externalDiscovery)
         recommendedCommands(
           resolvedRoot,
           target,
@@ -141,9 +149,10 @@ object AuthoringOperations {
     skillNames: List<String>,
     validate: Boolean,
     nativeAgentCompositionContext: NativeAgentCompositionContext,
+    externalDiscovery: PlatformPackDiscoveryContext? = null,
   ): AuthoringUpgradeResult {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
-    val targets = selectedTargets(resolvedRoot, skillNames)
+    val targets = selectedTargets(resolvedRoot, skillNames, externalDiscovery)
     val originalBytes = mutableMapOf<Path, ByteArray>()
     val createdPaths = mutableListOf<Path>()
     val regenerated = mutableListOf<Path>()
@@ -184,9 +193,10 @@ object AuthoringOperations {
     skillName: String,
     body: String,
     sectionName: String?,
+    externalDiscovery: PlatformPackDiscoveryContext? = null,
   ): AuthoringFillResult {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
-    val target = resolveTarget(resolvedRoot, skillName)
+    val target = resolveTarget(resolvedRoot, skillName, externalDiscovery)
     val replacement =
       if (sectionName == null) {
         coerceFullContentText(target, body)
@@ -205,9 +215,10 @@ object AuthoringOperations {
     repoRoot: Path,
     skillName: String,
     content: String,
+    externalDiscovery: PlatformPackDiscoveryContext? = null,
   ): AuthoringSaveExactContentResult {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
-    val target = resolveTarget(resolvedRoot, skillName)
+    val target = resolveTarget(resolvedRoot, skillName, externalDiscovery)
     val mutation = mutateContent(resolvedRoot, target, content)
     return AuthoringSaveExactContentResult(
       mutation = mutation,
@@ -220,9 +231,10 @@ object AuthoringOperations {
     skillName: String,
     body: String,
     sectionName: String?,
+    externalDiscovery: PlatformPackDiscoveryContext? = null,
   ): AuthoringEditWithBodyFileResult {
     val resolvedRoot = repoRoot.toAbsolutePath().normalize()
-    val target = resolveTarget(resolvedRoot, skillName)
+    val target = resolveTarget(resolvedRoot, skillName, externalDiscovery)
     val replacement =
       if (sectionName == null) {
         coerceFullContentText(target, body)

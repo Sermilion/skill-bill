@@ -4,9 +4,11 @@ import skillbill.infrastructure.skills.install.nativeagent.install.native.Instal
 import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOutcome
 import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOverrides
 import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest
+import skillbill.infrastructure.skills.install.nativeagent.install.native.effectivePackRootsForInstall
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
@@ -22,6 +24,7 @@ import java.nio.file.Path
 internal fun applyNativeAgents(
   plan: InstallPlan,
   failures: MutableList<InstallApplyIssue>,
+  catalogLoader: PlatformPackCatalogLoader? = null,
 ): List<NativeAgentApplyOutcome> {
   val selectedAgents = plan.agents.map { target -> target.agent }.toSet()
   val context =
@@ -30,7 +33,18 @@ internal fun applyNativeAgents(
       failures = failures,
       installCacheRoot = nativeAgentApplyCacheRoot(plan),
       legacyManagedRoot = nativeAgentLegacyCacheRoot(plan),
-      sourceRoots = nativeAgentSourceRoots(plan.skills, plan.selectedPlatformSlugs.toSet()),
+      sourceRoots =
+        nativeAgentSourceRoots(
+          NativeAgentSourceRootsRequest(
+            skills = plan.skills,
+            selectedPlatformSlugs = plan.selectedPlatformSlugs.toSet(),
+            platformPacksRoot = plan.request.repoRoot.toPath().resolve("platform-packs"),
+            home = plan.request.home.toPath(),
+            environment = plan.request.environment,
+            catalogLoader = catalogLoader,
+          ),
+        ),
+      catalogLoader = catalogLoader,
     )
   return nativeAgentInstallers
     .filter { installer -> installer.agent in selectedAgents }
@@ -65,6 +79,7 @@ private data class NativeAgentApplyContext(
   val installCacheRoot: Path,
   val legacyManagedRoot: Path,
   val sourceRoots: List<Path>,
+  val catalogLoader: PlatformPackCatalogLoader? = null,
 )
 
 private fun nativeAgentLinkRequest(context: NativeAgentApplyContext): NativeAgentLinkRequest {
@@ -74,6 +89,8 @@ private fun nativeAgentLinkRequest(context: NativeAgentApplyContext): NativeAgen
     skillsRoot = plan.installationTargetPaths.skillsRoot.toPath(),
     home = plan.request.home.toPath(),
     selectedPlatforms = plan.selectedPlatformSlugs,
+    environment = plan.request.environment,
+    catalogLoader = context.catalogLoader,
     overrides =
       NativeAgentLinkOverrides(
         installCacheRoot = context.installCacheRoot,
@@ -173,13 +190,34 @@ private fun nativeAgentLegacyCacheRoot(plan: InstallPlan): Path =
     skillsRoot = plan.installationTargetPaths.skillsRoot.toPath(),
   )
 
-internal fun nativeAgentSourceRoots(
-  skills: List<InstallPlanSkill>,
-  selectedPlatformSlugs: Set<String>,
-): List<Path> =
-  skills
-    .filter { skill -> skill.platformSlug == null || skill.platformSlug in selectedPlatformSlugs }
-    .map { skill -> skill.sourceDir.toPath() }
+internal data class NativeAgentSourceRootsRequest(
+  val skills: List<InstallPlanSkill>,
+  val selectedPlatformSlugs: Set<String>,
+  val platformPacksRoot: Path? = null,
+  val home: Path? = null,
+  val environment: Map<String, String> = emptyMap(),
+  val catalogLoader: PlatformPackCatalogLoader? = null,
+)
+
+internal fun nativeAgentSourceRoots(request: NativeAgentSourceRootsRequest): List<Path> {
+  val skillRoots =
+    request.skills
+      .filter { skill -> skill.platformSlug == null || skill.platformSlug in request.selectedPlatformSlugs }
+      .map { skill -> skill.sourceDir.toPath() }
+  val packRoots =
+    if (request.platformPacksRoot != null && request.home != null && request.catalogLoader != null) {
+      effectivePackRootsForInstall(
+        platformPacksRoot = request.platformPacksRoot,
+        userHome = request.home,
+        environment = request.environment,
+        selectedPlatforms = request.selectedPlatformSlugs.toList(),
+        catalogLoader = request.catalogLoader,
+      )
+    } else {
+      emptyList()
+    }
+  return (skillRoots + packRoots).distinct()
+}
 
 private val nativeAgentInstallers: List<NativeAgentInstaller> =
   NativeAgentProvider.entries.map { provider ->

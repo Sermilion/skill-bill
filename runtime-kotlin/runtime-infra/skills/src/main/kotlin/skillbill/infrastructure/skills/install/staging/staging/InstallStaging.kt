@@ -10,6 +10,7 @@ import skillbill.infrastructure.skills.install.staging.staging.installed.StageIn
 import skillbill.infrastructure.skills.install.staging.staging.installed.prepareStageInstalledSkill
 import skillbill.infrastructure.skills.install.staging.staging.installed.tryReusePreparedStageInstalledSkill
 import skillbill.infrastructure.skills.install.staging.staging.support.GeneratedSupportPointer
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.RenderedSkill
@@ -35,6 +36,8 @@ internal data class StagedSymlinkTargetInput(
   val manifests: List<PlatformManifest>? = null,
   val selectedPackSkills: List<InstallPlanSkill> = emptyList(),
   val selectedPlatformSlugs: Set<String> = emptySet(),
+  val environment: Map<String, String> = emptyMap(),
+  val catalogLoader: PlatformPackCatalogLoader? = null,
 )
 
 internal fun installedSkillsCacheRoot(home: Path): Path =
@@ -262,6 +265,8 @@ internal fun resolveStagedSymlinkTarget(input: StagedSymlinkTargetInput): Path {
       manifests = input.manifests,
       selectedPackSkills = input.selectedPackSkills,
       selectedPlatformSlugs = input.selectedPlatformSlugs,
+      environment = input.environment,
+      catalogLoader = input.catalogLoader,
       suppliedCompactIdentity = suppliedSkillContentIdentity(input.resolvedSkill).compact(),
     ),
   ).stagingDir.toPath().toAbsolutePath().normalize()

@@ -71,11 +71,15 @@ internal fun collectReviewLaunchAreaCandidates(
       candidates += ReviewLaunchAreaCandidate(pack, area, depth, chain + pack.slug, requiredByComposition)
     }
     pack.codeReviewComposition?.baselineLayers.orEmpty().forEach { layer ->
-      val target =
-        bySlug[layer.platform]
-          ?: ReviewLaunchPlanCompositionFailures.missingLayer(
+      val target = bySlug[layer.platform]
+      if (target == null) {
+        if (ReviewFallbackResolver.resolveOptional(bySlug.values.toList()) == null) {
+          ReviewLaunchPlanCompositionFailures.missingLayer(
             "Platform pack '${pack.slug}' references missing composition layer '${layer.platform}/${layer.skill}'.",
           )
+        }
+        return@forEach
+      }
       if (target.contractVersion != root.contractVersion) {
         ReviewLaunchPlanCompositionFailures.incompatibleContract(
           "Composition layer '${target.slug}' uses contract '${target.contractVersion}', " +

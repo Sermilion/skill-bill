@@ -4,6 +4,7 @@ import me.tatarka.inject.annotations.Provides
 import skillbill.application.agentrun.AgentRunService
 import skillbill.application.config.ConfigResolutionService
 import skillbill.application.install.ExternalAddonOverlayService
+import skillbill.application.install.ExternalPlatformPackResolutionService
 import skillbill.application.install.InstallService
 import skillbill.application.learning.LearningService
 import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunner
@@ -28,6 +29,7 @@ import skillbill.di.goal.RuntimeGoalPlanningProvides
 import skillbill.di.goal.RuntimeGoalPlanningSweepProvides
 import skillbill.di.goal.RuntimeGoalRunnerLaunchProvides
 import skillbill.di.goal.RuntimeGoalRunnerStoreProvides
+import skillbill.di.install.RuntimeExternalPlatformPackProvides
 import skillbill.di.install.RuntimeInstallPlanProvides
 import skillbill.di.install.RuntimeInstallTargetProvides
 import skillbill.di.install.RuntimeInstallerProvides
@@ -89,6 +91,7 @@ abstract class RuntimeComponent(
 ) :
   RuntimeInstallTargetProvides,
     RuntimeInstallPlanProvides,
+    RuntimeExternalPlatformPackProvides,
     RuntimeTelemetryProvides,
     RuntimeGoalPlanningProvides,
     RuntimeGoalPlanningSweepProvides,
@@ -165,6 +168,7 @@ abstract class RuntimeComponent(
   abstract val externalAgentAddonSourceConfigPort: ExternalAgentAddonSourceConfigPort
   abstract val installService: InstallService
   abstract val externalAddonOverlayService: ExternalAddonOverlayService
+  abstract val externalPlatformPackResolutionService: ExternalPlatformPackResolutionService
   abstract val agentRunService: AgentRunService
   abstract val featureTaskRuntimePhaseRecorder: FeatureTaskRuntimePhaseRecorder
   abstract val featureTaskRuntimeRunner: FeatureTaskRuntimeRunner

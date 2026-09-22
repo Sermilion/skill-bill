@@ -11,6 +11,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -18,7 +19,7 @@ import kotlin.test.assertTrue
 
 class AmbientInputsAndLoudFailSeamsTest {
   @Test
-  fun `explicit resume reopens the requested phase and downstream phases`() {
+  fun `explicit resume of a finished audit continues from the furthest later phase`() {
     val completed =
       mapOf(
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to PREPLAN_OUTPUT,
@@ -26,31 +27,94 @@ class AmbientInputsAndLoudFailSeamsTest {
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to auditSatisfiedOutput(),
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to VALID_REVIEW_OUTPUT,
       ).mapValues { (phaseId, output) ->
-        FeatureTaskRuntimePhaseRecord(
-          phaseId = phaseId,
-          status = WorkflowStepStatus.COMPLETED,
-          attemptCount = 1,
-          startedAt = "2026-09-08T00:00:00Z",
-          resolvedAgentId = "codex",
-          outputArtifact = output,
-        )
+        completedRecord(phaseId, output)
       }
     val state =
       FeatureTaskRuntimeRunState(
-        initialRecords = completed,
+        initialRecords =
+          completed + (
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY to
+              FeatureTaskRuntimePhaseRecord(
+                phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
+                status = WorkflowStepStatus.RUNNING,
+                attemptCount = 1,
+                startedAt = "2026-09-08T00:00:00Z",
+                resolvedAgentId = "codex",
+              )
+          ),
         transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
         outputValidator = AlwaysValidValidator,
       )
 
+    val start = state.explicitResumeStart(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT)
+    assertEquals(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY, start.phaseId)
+    assertTrue(start.reopen)
+    state.reopenFromExplicitResume(start.phaseId)
+
     assertTrue(state.isComplete(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT))
     assertTrue(state.isComplete(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW))
+    assertFalse(state.isComplete(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY))
+  }
 
-    state.reopenFromExplicitResume(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT)
+  @Test
+  fun `explicit resume of a finished audit with no later phase starts the next phase`() {
+    val state =
+      FeatureTaskRuntimeRunState(
+        initialRecords =
+          mapOf(
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to
+              completedRecord(
+                FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
+                PREPLAN_OUTPUT,
+              ),
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to
+              completedRecord(
+                FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
+                PLAN_OUTPUT,
+              ),
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to
+              completedRecord(
+                FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+                auditSatisfiedOutput(),
+              ),
+          ),
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        outputValidator = AlwaysValidValidator,
+      )
 
-    assertTrue(state.isComplete(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN))
-    assertTrue(state.isComplete(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN))
-    assertFalse(state.isComplete(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT))
+    val start = state.explicitResumeStart(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT)
+    assertEquals(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW, start.phaseId)
+    assertTrue(start.reopen)
+    state.reopenFromExplicitResume(start.phaseId)
+
+    assertTrue(state.isComplete(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT))
     assertFalse(state.isComplete(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW))
+  }
+
+  @Test
+  fun `explicit resume of an unfinished audit still reopens audit`() {
+    val state =
+      FeatureTaskRuntimeRunState(
+        initialRecords =
+          mapOf(
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to
+              completedRecord(
+                FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
+                PREPLAN_OUTPUT,
+              ),
+            FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to
+              completedRecord(
+                FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
+                PLAN_OUTPUT,
+              ),
+          ),
+        transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+        outputValidator = AlwaysValidValidator,
+      )
+
+    val start = state.explicitResumeStart(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT)
+    assertEquals(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT, start.phaseId)
+    assertTrue(start.reopen)
   }
 
   @Test
@@ -84,3 +148,16 @@ class AmbientInputsAndLoudFailSeamsTest {
     assertIs<GoalRunnerChildProgressRead.Failed>(reader.read("wfl-child"))
   }
 }
+
+private fun completedRecord(
+  phaseId: String,
+  output: String,
+): FeatureTaskRuntimePhaseRecord =
+  FeatureTaskRuntimePhaseRecord(
+    phaseId = phaseId,
+    status = WorkflowStepStatus.COMPLETED,
+    attemptCount = 1,
+    startedAt = "2026-09-08T00:00:00Z",
+    resolvedAgentId = "codex",
+    outputArtifact = output,
+  )

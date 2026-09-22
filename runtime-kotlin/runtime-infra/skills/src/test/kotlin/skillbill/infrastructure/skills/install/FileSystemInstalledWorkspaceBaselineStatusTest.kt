@@ -1,8 +1,10 @@
 package skillbill.infrastructure.skills.install
 
+import skillbill.infrastructure.skills.externalplatformpack.FileExternalPlatformPackSourceConfigStore
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceRoots
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceSide
 import skillbill.infrastructure.skills.install.reconcile.enumerateSkills
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.BaselineManifest
 import skillbill.ports.install.baseline.model.InstalledWorkspaceBaselineStatusRequest
 import skillbill.ports.install.baseline.model.WriteBaselineManifestRequest
@@ -14,7 +16,11 @@ import kotlin.test.assertTrue
 
 class FileSystemInstalledWorkspaceBaselineStatusTest : InstallApplyTestSupport() {
   private val persistence = FileSystemBaselineManifestPersistence()
-  private val status = FileSystemInstalledWorkspaceBaselineStatus(persistence)
+  private val status =
+    FileSystemInstalledWorkspaceBaselineStatus(
+      persistence,
+      PlatformPackCatalogLoader(FileExternalPlatformPackSourceConfigStore()),
+    )
 
   private fun roots(installRoot: Path) =
     ReconcileSourceRoots(

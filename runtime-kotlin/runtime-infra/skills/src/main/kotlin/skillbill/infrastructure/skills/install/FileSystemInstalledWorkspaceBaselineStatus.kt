@@ -3,6 +3,7 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceRoots
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceSide
 import skillbill.infrastructure.skills.install.reconcile.enumerateSkills
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.ports.install.baseline.BaselineManifestPersistencePort
 import skillbill.ports.install.baseline.InstalledWorkspaceBaselineStatusPort
 import skillbill.ports.install.baseline.model.InstalledWorkspaceBaselineStatusRequest
@@ -12,6 +13,7 @@ import skillbill.ports.install.baseline.model.ReadBaselineManifestRequest
 @Inject
 class FileSystemInstalledWorkspaceBaselineStatus(
   private val baselinePersistence: BaselineManifestPersistencePort,
+  private val catalogLoader: PlatformPackCatalogLoader,
 ) : InstalledWorkspaceBaselineStatusPort {
   override fun modifiedSkillRelativePaths(
     request: InstalledWorkspaceBaselineStatusRequest,
@@ -26,6 +28,7 @@ class FileSystemInstalledWorkspaceBaselineStatus(
         repoRoot = installRoot,
         skillsRoot = installRoot.resolve("skills"),
         platformPacksRoot = installRoot.resolve("platform-packs"),
+        catalogLoader = catalogLoader,
       )
     val live = enumerateSkills(roots, home = request.installHome, sourceSide = ReconcileSourceSide.LOCAL)
     val modified =

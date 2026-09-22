@@ -2176,3 +2176,17 @@ Decision: Remove the ratchet and format the whole tree to ktlint's fixed point i
 Reason: Tree-wide linting is the honest end state and makes worktrees and fresh clones work. The `LongMethod` bump absorbs line growth from the `ktlint_official` wrapping rules, which put assignment right-hand sides on their own line; the 62 functions that crossed the old limit measured 60-68 lines and gained height, not complexity. Extracting them would have been a large unrelated refactor driven by formatting.
 Alternatives considered: Keep the ratchet (rejected: leaves the tree unlinted and keeps worktrees broken). Ratchet from a merge-base sha (rejected: avoids the jgit failure but still leaves the tree unlinted). Switch to `ktlint_code_style = intellij_idea` (rejected: same 2,400-file churn and stops enforcing the 120-column limit).
 Consequence: One mechanical reformat commit touches about 2,400 files; `spotlessApply` converges and normal edits produce normal diffs from here.
+
+## [2026-09-22] External platform pack copy allowlist (SKILL-369)
+
+Context: Install and review-catalog staging copy declared pack files from registered external roots into managed output.
+Decision: A resolved path may be read only inside the registered pack root for that slug or under the checkout `.bill-shared` directory referenced by governed pointers. Symlink or join escapes outside those roots fail before promotion.
+Reason: Prevents external pack registration from becoming an arbitrary file read during install or catalog staging.
+Alternatives considered: Trusting symlink targets under the author tree (rejected: escapes user home or VCS boundaries). Merging shadowed bundled files into external packs (rejected: whole-pack replacement only).
+
+## [2026-09-22] Review-routing fallback is returned, not logged in the domain (SKILL-368 merge)
+
+Context: `ReviewStackRouting` warned through `java.util.logging` when a routed pack's baseline platform was absent, which the runtime-domain effect-purity guard bans.
+Decision: `route` returns `missingPackFallbacks` on `ReviewStackRoutingResult`, and `FileSystemDeclaredReviewSpecialists` emits the record with the same seam, pack, used, expected, and cause fields.
+Reason: The observability policy still gets its fallback record, and the domain stays free of ambient effects.
+Alternatives considered: Exempt the file from the purity guard (rejected: the guard is what keeps the domain testable without ambient wiring). Drop the warning (rejected: a silent routing fallback is the defect the policy names).

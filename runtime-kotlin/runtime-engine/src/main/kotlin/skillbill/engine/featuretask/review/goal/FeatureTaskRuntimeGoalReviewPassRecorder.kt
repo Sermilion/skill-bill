@@ -49,13 +49,14 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
         return@transaction GoalSubtaskReviewPassInFlight(state)
       }
       val reserved = state.reserveNextPass()
-      if (reserved != state) {
-        patcher.save(
-          record,
-          unitOfWork.workflowStates,
-          mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to reserved.toPersistenceWire()),
-        )
+      if (reserved == state) {
+        return@transaction GoalSubtaskReviewPassCarryForward(state)
       }
+      patcher.save(
+        record,
+        unitOfWork.workflowStates,
+        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to reserved.toPersistenceWire()),
+      )
       GoalSubtaskReviewPassReserved(reserved)
     }
 
@@ -127,6 +128,9 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
           loaded.dispositions,
           GoalSubtaskReviewRevision(commitFocusedAccounting = request.commitFocusedAccounting),
         )
+      if (completed == loaded.state) {
+        return@requiredWrite completed
+      }
       persistGoalReviewPassWrite(unitOfWork, loaded, request, completed)
       completed
     }

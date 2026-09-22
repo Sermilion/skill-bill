@@ -6,6 +6,7 @@ import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentGover
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPlatformPack
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPlatformPackLoader
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPointerSpec
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.model.toPath
 import skillbill.scaffold.model.GovernedAddonActivation
 import skillbill.scaffold.model.GovernedAddonSelection
@@ -17,8 +18,17 @@ import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlat
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack as scaffoldLoadPlatformPack
 
 internal object InstallNativeAgentPlatformPackLoader : NativeAgentPlatformPackLoader {
-  override fun loadPlatformPack(packRoot: Path): NativeAgentPlatformPack =
-    scaffoldLoadPlatformPack(packRoot).toNativeAgentPlatformPack()
+  override fun loadPlatformPack(
+    packRoot: Path,
+    additionalPackRoots: List<Path>,
+  ): NativeAgentPlatformPack {
+    if (additionalPackRoots.isEmpty()) {
+      return scaffoldLoadPlatformPack(packRoot).toNativeAgentPlatformPack()
+    }
+    val manifests = additionalPackRoots.map { root -> loadPlatformManifest(root.toAbsolutePath().normalize()) }
+    return scaffoldLoadPlatformPack(packRoot, manifests.associateBy { manifest -> manifest.slug })
+      .toNativeAgentPlatformPack()
+  }
 
   override fun discoverPlatformPackManifests(platformPacksRoot: Path): List<NativeAgentPlatformPack> =
     scaffoldDiscoverPlatformPackManifests(platformPacksRoot).map(PlatformManifest::toNativeAgentPlatformPack)

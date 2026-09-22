@@ -61,22 +61,28 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
     completion: GoalReviewPhaseCompletionRequest,
   ): Boolean {
     val write = goalReviewCompletionWrite(unitOfWork, request, completion) ?: return false
-    persistUnaddressedFindings(
-      unitOfWork,
-      request,
-      write.continuation,
-      write.completedState.completedPassCount,
-      write.dispositions,
-    )
+    if (!write.keptStoredPass) {
+      persistUnaddressedFindings(
+        unitOfWork,
+        request,
+        write.continuation,
+        write.completedState.completedPassCount,
+        write.dispositions,
+      )
+    }
+    val rawResults =
+      if (write.keptStoredPass) {
+        write.persisted.rawResults
+      } else {
+        write.persisted.rawResults +
+          (write.completedState.completedPassCount.toString() to completion.rawReviewResult)
+      }
     workflowPersistence.persistArtifactsPatch(
       unitOfWork.workflowStates,
       write.record,
       mapOf(
         GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to write.completedState.toPersistenceWire(),
-        GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to (
-          write.persisted.rawResults +
-            (write.completedState.completedPassCount.toString() to completion.rawReviewResult)
-        ),
+        GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to rawResults,
         FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
           write.persisted.updatedRecords.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
         FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
@@ -101,6 +107,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
     val record: WorkflowStateSnapshot,
     val continuation: FeatureTaskRuntimeGoalContinuationArtifact,
     val completedState: GoalSubtaskReviewState,
+    val keptStoredPass: Boolean,
     val dispositions: List<GoalSubtaskBlockerDisposition>,
     val persisted: GoalReviewCompletionArtifacts,
   )
@@ -146,20 +153,23 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
         recordedVerdicts,
       )
     val existingRecords = decodePhaseRecords(artifacts)
+    val priorState = reviewArtifacts.state
+    val completedState =
+      priorState.completeReservedPass(
+        verdict = completion.verdict,
+        unresolvedFindingCount = completion.unresolvedFindingCount,
+        findings = completion.findings,
+        blockerDispositions = dispositions,
+        revision =
+          GoalSubtaskReviewRevision(
+            commitFocusedAccounting = completion.commitFocusedAccounting,
+          ),
+      )
     return GoalReviewCompletionWrite(
       record = record,
       continuation = reviewArtifacts.continuation,
-      completedState =
-        reviewArtifacts.state.completeReservedPass(
-          verdict = completion.verdict,
-          unresolvedFindingCount = completion.unresolvedFindingCount,
-          findings = completion.findings,
-          blockerDispositions = dispositions,
-          revision =
-            GoalSubtaskReviewRevision(
-              commitFocusedAccounting = completion.commitFocusedAccounting,
-            ),
-        ),
+      completedState = completedState,
+      keptStoredPass = completedState == priorState,
       dispositions = dispositions,
       persisted =
         GoalReviewCompletionArtifacts(

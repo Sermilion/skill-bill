@@ -3,6 +3,7 @@ package skillbill.infrastructure.skills.scaffold.authoring
 import skillbill.error.core.SkillBillRuntimeException
 import skillbill.infrastructure.host.jvm.rollbackDeleteIfExists
 import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.addonUsageFor
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.displayNameFromSlug
@@ -18,8 +19,9 @@ private const val PRE_SHELL_PLATFORM_PATH_PARTS = 3
 internal fun selectedTargets(
   repoRoot: Path,
   skillNames: List<String>,
+  externalDiscovery: PlatformPackDiscoveryContext? = null,
 ): List<AuthoringTarget> {
-  val targets = discoverTargets(repoRoot)
+  val targets = discoverTargets(repoRoot, externalDiscovery = externalDiscovery)
   if (skillNames.isEmpty()) {
     return targets.values.sortedBy { target -> target.skillName }
   }
@@ -63,8 +65,9 @@ private fun rollbackUpgrade(
 internal fun resolveTarget(
   repoRoot: Path,
   skillName: String,
+  externalDiscovery: PlatformPackDiscoveryContext? = null,
 ): AuthoringTarget =
-  discoverTargets(repoRoot)[skillName]
+  discoverTargets(repoRoot, externalDiscovery = externalDiscovery)[skillName]
     ?: throw SkillBillRuntimeException(
       "Skill '$skillName' is not a content-managed skill with a sibling content.md file.",
     )
@@ -72,12 +75,10 @@ internal fun resolveTarget(
 internal fun discoverTargets(
   repoRoot: Path,
   enforceContractVersion: Boolean = true,
+  externalDiscovery: PlatformPackDiscoveryContext? = null,
 ): Map<String, AuthoringTarget> {
   val discovered = linkedMapOf<String, AuthoringTarget>()
-  discoverPlatformPackManifests(
-    repoRoot.resolve("platform-packs"),
-    enforceContractVersion,
-  ).forEach { pack ->
+  platformPacksForAuthoring(repoRoot, enforceContractVersion, externalDiscovery).forEach { pack ->
     recordPackTargets(discovered, pack)
   }
 
@@ -94,6 +95,28 @@ internal fun discoverTargets(
   }
   validateInternalSkillClassification(discovered)
   return discovered
+}
+
+private fun platformPacksForAuthoring(
+  repoRoot: Path,
+  enforceContractVersion: Boolean,
+  externalDiscovery: PlatformPackDiscoveryContext?,
+): List<PlatformManifest> {
+  val checkoutPacks = repoRoot.resolve("platform-packs")
+  if (externalDiscovery == null) {
+    return discoverPlatformPackManifests(checkoutPacks, enforceContractVersion)
+  }
+  val loader =
+    externalDiscovery.catalogLoader ?: return discoverPlatformPackManifests(
+      checkoutPacks,
+      enforceContractVersion,
+    )
+  return loader.loadEffectiveManifests(
+    externalDiscovery.copy(
+      repoRoot = repoRoot.toAbsolutePath().normalize(),
+      enforceContractVersion = enforceContractVersion,
+    ),
+  )
 }
 
 private fun restoreFiles(originalBytes: Map<Path, ByteArray>) {

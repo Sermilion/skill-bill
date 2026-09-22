@@ -99,8 +99,8 @@ class GoalSubtaskReviewStateTest {
   }
 
   @Test
-  fun `completing the first review without a reservation records pass one`() {
-    val completed =
+  fun `completing a review without a reservation fails`() {
+    assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
       GoalSubtaskReviewState.initial(
         reviewBaseSha = "d".repeat(40),
         baselineUntrackedPaths = emptyList(),
@@ -110,10 +110,30 @@ class GoalSubtaskReviewStateTest {
         unresolvedFindingCount = 0,
         findings = emptyList(),
       )
+    }
+  }
 
-    assertNull(completed.reservedPassNumber)
-    assertEquals(1, completed.completedPassCount)
-    assertEquals(1, completed.passResults.single().passNumber)
+  @Test
+  fun `completing a stored pass without a reservation keeps that pass`() {
+    val stored =
+      GoalSubtaskReviewState.initial(
+        reviewBaseSha = "e".repeat(40),
+        baselineUntrackedPaths = emptyList(),
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+      ).reserveNextPass().completeReservedPass(
+        verdict = FeatureTaskRuntimeVerdict.APPROVED,
+        unresolvedFindingCount = 0,
+        findings = emptyList(),
+      )
+
+    val again =
+      stored.completeReservedPass(
+        verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
+        unresolvedFindingCount = 1,
+        findings = listOf(GoalSubtaskReviewCompactFinding("blocker", "Repository", "Unsafe mutation")),
+      )
+
+    assertEquals(stored, again)
   }
 
   @Test

@@ -264,6 +264,21 @@ class FeatureTaskRuntimeRunState(
     fixLoopBudgetBaseByPhase[phaseId] = maxOf(nextIteration(phaseId) - 1, 0)
   }
 
+  fun explicitResumeStart(requestedPhaseId: String): ExplicitResumeStart {
+    val requestedStart = ExplicitResumeStart(requestedPhaseId, reopen = true)
+    val auditPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
+    if (requestedPhaseId != auditPhaseId || !isComplete(auditPhaseId)) return requestedStart
+    val auditIndex = transitions.forwardPhaseIds.indexOf(auditPhaseId)
+    if (auditIndex < 0) return requestedStart
+    val laterPhaseIds = transitions.forwardPhaseIds.drop(auditIndex + 1)
+    val furthestLater =
+      laterPhaseIds.lastOrNull { phaseId ->
+        hasPriorRecord(phaseId) || isComplete(phaseId)
+      }
+    val resumePhaseId = furthestLater ?: laterPhaseIds.firstOrNull() ?: return requestedStart
+    return ExplicitResumeStart(resumePhaseId, reopen = !isComplete(resumePhaseId))
+  }
+
   fun reopenFromExplicitResume(phaseId: String) {
     val start = transitions.forwardPhaseIds.indexOf(phaseId)
     require(start >= 0) { "Unknown explicit resume phase '$phaseId'." }
@@ -341,7 +356,7 @@ class FeatureTaskRuntimeRunState(
     ) {
       return false
     }
-    val recentBlocks = recentBlockedReasons(phaseId)
+    val recentBlocks = recentBlockedReasons(normalizedInitialLedger, phaseId)
     return recentBlocks.firstOrNull() == currentReason &&
       recentBlocks.getOrNull(1)
         ?.startsWith("Goal-subtask review state or durable raw evidence is malformed: [SQLITE_BUSY]") == true
@@ -356,18 +371,11 @@ class FeatureTaskRuntimeRunState(
     ) {
       return false
     }
-    val recentBlocks = recentBlockedReasons(phaseId)
+    val recentBlocks = recentBlockedReasons(normalizedInitialLedger, phaseId)
     return recentBlocks.firstOrNull() == currentReason &&
       recentBlocks.getOrNull(1)
         ?.contains("rejected an upstream bounded planning projection at the launch seam") == true
   }
-
-  private fun recentBlockedReasons(phaseId: String): List<String?> =
-    normalizedInitialLedger
-      .filter { entry -> entry.phaseId == phaseId && entry.action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED }
-      .sortedByDescending(FeatureTaskRuntimePhaseLedgerEntry::sequenceNumber)
-      .take(2)
-      .map(FeatureTaskRuntimePhaseLedgerEntry::blockedReason)
 
   fun hasPriorRecord(phaseId: String): Boolean = phaseId in priorRecords
 
@@ -465,6 +473,18 @@ class FeatureTaskRuntimeRunState(
     return FeatureTaskRuntimeOutputVerification.verdictFor(phaseId, parsedOutput(output))
   }
 }
+
+private fun recentBlockedReasons(
+  ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
+  phaseId: String,
+): List<String?> =
+  ledger
+    .filter { entry -> entry.phaseId == phaseId && entry.action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED }
+    .sortedByDescending(FeatureTaskRuntimePhaseLedgerEntry::sequenceNumber)
+    .take(2)
+    .map(FeatureTaskRuntimePhaseLedgerEntry::blockedReason)
+
+data class ExplicitResumeStart(val phaseId: String, val reopen: Boolean)
 
 internal data class FeatureTaskRuntimeNonOutputAttempt(val paused: Boolean, val reason: String)
 

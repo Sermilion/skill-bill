@@ -27,15 +27,20 @@ internal fun loadPlatformManifest(
 
 internal fun loadPlatformPack(
   packRoot: Path,
+  packsBySlug: Map<String, PlatformManifest> = emptyMap(),
   enforceGovernedReviewStructure: Boolean = false,
 ): PlatformManifest {
   val pack = loadPlatformManifest(packRoot)
-  val closure = loadCompositionClosure(pack)
-  validatePlatformPackCompositions(closure)
+  val closure = loadCompositionClosure(pack, packsBySlug)
+  val compositionCatalog = if (packsBySlug.isNotEmpty()) packsBySlug else closure.associateBy { it.slug }
+  validatePlatformPackCompositions(closure, compositionCatalog)
   validatePlatformPackFallbacks(closure)
   validatePlatformPack(pack, SHELL_CONTRACT_VERSION)
   if (enforceGovernedReviewStructure) {
-    ReviewSkillStructureValidator.validate(pack.packRoot.toPath())
+    ReviewSkillStructureValidator.validate(
+      pack.packRoot.toPath(),
+      compositionCatalog.mapValues { (_, inherited) -> inherited.packRoot.toPath().toAbsolutePath().normalize() },
+    )
   }
   return pack
 }

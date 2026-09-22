@@ -239,6 +239,9 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
         fixture.repoRoot.resolve("skills"),
       ).resolve("review-catalog/platform-packs")
     val publishedManifest = Files.readString(catalog.resolve("kotlin/platform.yaml"))
+    val userFile = fixture.home.resolve(".codex/agents/user-notes.md")
+    Files.createDirectories(userFile.parent)
+    Files.writeString(userFile, "KEEP_USER_BYTES")
 
     val inventory = fixture.home.resolve(".skill-bill/native-agent-link-inventory.json")
     Files.writeString(inventory, "not-json")
@@ -252,6 +255,7 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     assertEquals(InstallApplyStatus.FAILURE, result.status)
     assertEquals(publishedManifest, Files.readString(catalog.resolve("kotlin/platform.yaml")))
     assertFalse(Files.exists(catalog.resolve("kmp"), LinkOption.NOFOLLOW_LINKS))
+    assertEquals("KEEP_USER_BYTES", Files.readString(userFile))
   }
 
   @Test

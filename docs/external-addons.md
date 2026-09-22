@@ -8,6 +8,7 @@ selection time.
 Use [Getting Started](getting-started.md) for install and full CLI coverage, and
 [Getting Started for Teams](getting-started-for-teams.md) for the broader customization model.
 External addons are the lightest way to ship an add-on that must stay outside the shared repo.
+To replace an entire platform pack (not just add-ons), see [External platform packs](external-platform-packs.md).
 
 ## When To Use This
 

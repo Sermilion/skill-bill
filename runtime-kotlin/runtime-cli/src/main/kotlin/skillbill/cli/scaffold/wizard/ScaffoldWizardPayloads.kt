@@ -45,6 +45,7 @@ internal fun platformPackWizardPayload(
     promptOptional(state, inputs, "Description").ifNotBlank { description -> put("description", description) }
     promptRoutingSignals(state, inputs, platform, platform in platformPackPresets)
       .ifNotEmpty { signals -> put("routing_signals", mapOf("strong" to signals)) }
+    applyExternalPackSourcePrompts(state, inputs, this)
   }
 
 internal fun assistedPlatformPackWizardPayload(
@@ -53,7 +54,28 @@ internal fun assistedPlatformPackWizardPayload(
   platformPackPresets: Map<String, String>,
 ): Map<String, Any?> {
   val platformInput = promptRequired(state, inputs, "Language or platform")
-  return assistedPlatformPackPayload(platformInput, platformPackPresets)
+  return assistedPlatformPackPayload(platformInput, platformPackPresets).toMutableMap().also { payload ->
+    applyExternalPackSourcePrompts(state, inputs, payload)
+  }
+}
+
+internal fun applyExternalPackSourcePrompts(
+  state: CliRunState,
+  inputs: CliRunInputs,
+  payload: MutableMap<String, Any?>,
+) {
+  val source =
+    normalizePlatformPackSourceMode(
+      promptDefault(state, inputs, "Pack source (native/external)", "native"),
+    )
+  if (source != "external") {
+    return
+  }
+  payload["pack_location_path"] = promptRequired(state, inputs, "External pack root path")
+  payload["pack_registration"] =
+    normalizePlatformPackRegistration(
+      promptDefault(state, inputs, "Create new pack or register existing (create/register)", "create"),
+    )
 }
 
 internal fun assistedPlatformPackPayload(

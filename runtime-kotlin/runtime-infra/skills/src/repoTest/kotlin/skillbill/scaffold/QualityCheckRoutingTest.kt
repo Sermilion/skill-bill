@@ -1,9 +1,12 @@
 package skillbill.scaffold
 
 import skillbill.error.shellcontent.MissingValidationGateError
+import skillbill.infrastructure.skills.externalplatformpack.FileExternalPlatformPackSourceConfigStore
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.routeQualityCheck
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -14,6 +17,16 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class QualityCheckRoutingTest {
+  private val isolatedConfigHome: Path = Files.createTempDirectory("skillbill-quality-routing-home")
+
+  private fun routeRepo(evidence: Collection<String>) =
+    routeQualityCheck(
+      repoRootFromTest(),
+      evidence,
+      isolatedConfigHome,
+      catalogLoader = PlatformPackCatalogLoader(FileExternalPlatformPackSourceConfigStore()),
+    )
+
   @Test
   fun `every maintained dominant stack routes to bill-code-check with pack slug unchanged`() {
     val cases =
@@ -29,7 +42,7 @@ class QualityCheckRoutingTest {
       )
 
     cases.forEach { (stack, evidence, routedSkill) ->
-      val route = assertNotNull(routeQualityCheck(repoRootFromTest(), listOf(evidence)))
+      val route = assertNotNull(routeRepo(listOf(evidence)))
       assertEquals(stack, route.detectedStack)
       assertEquals(routedSkill, route.routedSkill)
       assertFalse(route.fallback)
@@ -50,7 +63,7 @@ class QualityCheckRoutingTest {
       )
 
     cases.forEach { (evidence, expected) ->
-      assertEquals(expected, assertNotNull(routeQualityCheck(repoRootFromTest(), listOf(evidence))).detectedStack)
+      assertEquals(expected, assertNotNull(routeRepo(listOf(evidence))).detectedStack)
     }
   }
 
@@ -58,8 +71,7 @@ class QualityCheckRoutingTest {
   fun `mixed Kotlin and KMP ownership routes through the KMP pack with bill-code-check`() {
     val route =
       assertNotNull(
-        routeQualityCheck(
-          repoRootFromTest(),
+        routeRepo(
           listOf(
             "server/src/main/kotlin/App.kt",
             "server/build.gradle.kts",
@@ -88,18 +100,14 @@ class QualityCheckRoutingTest {
   fun `dominant pack without validation_gate throws typed missing-gate error`() {
     val error =
       assertFailsWith<MissingValidationGateError> {
-        routeQualityCheck(repoRootFromTest(), listOf("manifest-declared code-review fallback"))
+        routeRepo(listOf("manifest-declared code-review fallback"))
       }
     assertContains(error.message.orEmpty(), "generic")
   }
 
   @Test
   fun `literal signals do not match unrelated substrings`() {
-    val route =
-      routeQualityCheck(
-        repoRootFromTest(),
-        listOf("docs/unexpected-results.md", "docs/actuality.md", "docs/toolkit-notes.md"),
-      )
+    val route = routeRepo(listOf("docs/unexpected-results.md", "docs/actuality.md", "docs/toolkit-notes.md"))
 
     assertNull(route)
   }
@@ -108,7 +116,7 @@ class QualityCheckRoutingTest {
   fun `unresolved mixed-stack evidence does not select by pack ordering`() {
     val failure =
       assertFailsWith<IllegalArgumentException> {
-        routeQualityCheck(repoRootFromTest(), listOf("src/main.go", "src/main.rs"))
+        routeRepo(listOf("src/main.go", "src/main.rs"))
       }
 
     assertTrue(failure.message.orEmpty().contains("ambiguous"))

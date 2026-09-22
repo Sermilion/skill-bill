@@ -442,7 +442,14 @@ class CliInstallPlanApplyRuntimeTest {
 
     val planResult = CliRuntime.run(singleCodexPlanArguments(fixture), installPlanCliContext(fixture.home))
     assertEquals(0, planResult.exitCode, planResult.stdout)
-    assertEquals(CliOutput.emit(singleCodexPlanGoldenPayload(fixture), CliFormat.JSON), planResult.stdout)
+    val planPayload = decodeInstallPlanApplyJson(planResult.stdout)
+    val contentHashes =
+      planPayload.listOfMaps("staging")
+        .associate { staging -> staging["skill_name"].toString() to staging["content_hash"].toString() }
+    assertEquals(
+      CliOutput.emit(singleCodexPlanGoldenPayload(fixture, contentHashes), CliFormat.JSON),
+      planResult.stdout,
+    )
 
     val applyResult =
       CliRuntime.run(
@@ -450,7 +457,10 @@ class CliInstallPlanApplyRuntimeTest {
         installPlanCliContext(fixture.home),
       )
     assertEquals(0, applyResult.exitCode, applyResult.stdout)
-    assertEquals(CliOutput.emit(singleCodexApplyGoldenPayload(fixture), CliFormat.JSON), applyResult.stdout)
+    assertEquals(
+      CliOutput.emit(singleCodexApplyGoldenPayload(fixture, contentHashes), CliFormat.JSON),
+      applyResult.stdout,
+    )
   }
 
   private fun assertPlannedSkillKinds(payload: Map<String, Any?>) {
@@ -1046,8 +1056,11 @@ private fun readInstallSelection(home: Path): Map<String, Any?> =
 
 private fun installSelectionPath(home: Path): Path = home.resolve(".skill-bill/install-selection.json")
 
-private fun singleCodexPlanGoldenPayload(fixture: InstallPlanApplyFixture): Map<String, Any?> {
-  val paths = SingleCodexGoldenPaths(fixture)
+private fun singleCodexPlanGoldenPayload(
+  fixture: InstallPlanApplyFixture,
+  contentHashes: Map<String, String> = emptyMap(),
+): Map<String, Any?> {
+  val paths = SingleCodexGoldenPaths(fixture, contentHashes)
   return mapOf(
     "status" to "planned",
     "contract_version" to "0.3",
@@ -1066,13 +1079,13 @@ private fun singleCodexPlanGoldenPayload(fixture: InstallPlanApplyFixture): Map<
           skillName = "bill-code-check",
           sourceDir = paths.qualityCheckSourceDir,
           stagingDir = paths.qualityCheckStagingDir,
-          contentHash = QUALITY_CHECK_GOLDEN_CONTENT_HASH,
+          contentHash = paths.qualityCheckHash,
         ),
         stagingIntentGoldenPayload(
           skillName = "bill-code-review",
           sourceDir = paths.codeReviewSourceDir,
           stagingDir = paths.codeReviewStagingDir,
-          contentHash = CODE_REVIEW_GOLDEN_CONTENT_HASH,
+          contentHash = paths.codeReviewHash,
         ),
       ),
     "telemetry_level" to "anonymous",
@@ -1088,9 +1101,12 @@ private fun singleCodexPlanGoldenPayload(fixture: InstallPlanApplyFixture): Map<
   )
 }
 
-private fun singleCodexApplyGoldenPayload(fixture: InstallPlanApplyFixture): Map<String, Any?> {
-  val paths = SingleCodexGoldenPaths(fixture)
-  return singleCodexPlanGoldenPayload(fixture) +
+private fun singleCodexApplyGoldenPayload(
+  fixture: InstallPlanApplyFixture,
+  contentHashes: Map<String, String> = emptyMap(),
+): Map<String, Any?> {
+  val paths = SingleCodexGoldenPaths(fixture, contentHashes)
+  return singleCodexPlanGoldenPayload(fixture, contentHashes) +
     mapOf(
       "status" to "success",
       "skills" to appliedSkillsGoldenPayload(paths),
@@ -1111,7 +1127,7 @@ private fun appliedSkillsGoldenPayload(paths: SingleCodexGoldenPaths): List<Map<
         sourceDir = paths.qualityCheckSourceDir,
         stagingDir = paths.qualityCheckStagingDir,
         renderedSkillFile = paths.qualityCheckRenderedSkillFile,
-        contentHash = QUALITY_CHECK_GOLDEN_CONTENT_HASH,
+        contentHash = paths.qualityCheckHash,
         targetDir = paths.codexTargetDir,
         linkPath = paths.qualityCheckLinkPath,
       ),
@@ -1122,7 +1138,7 @@ private fun appliedSkillsGoldenPayload(paths: SingleCodexGoldenPaths): List<Map<
         sourceDir = paths.codeReviewSourceDir,
         stagingDir = paths.codeReviewStagingDir,
         renderedSkillFile = paths.codeReviewRenderedSkillFile,
-        contentHash = CODE_REVIEW_GOLDEN_CONTENT_HASH,
+        contentHash = paths.codeReviewHash,
         targetDir = paths.codexTargetDir,
         linkPath = paths.codeReviewLinkPath,
       ),
@@ -1260,19 +1276,27 @@ private fun windowsPreflightGoldenPayload(): Map<String, Any?> =
     "message" to "",
   )
 
-private data class SingleCodexGoldenPaths(private val fixture: InstallPlanApplyFixture) {
+private data class SingleCodexGoldenPaths(
+  private val fixture: InstallPlanApplyFixture,
+  private val contentHashes: Map<String, String>,
+) {
   val codexTargetDir: String = fixture.home.resolve("manual-targets/codex").toString()
   val stagingRoot: String = fixture.home.resolve(".skill-bill/installed-skills").toString()
   val runtimeInstallRoot: String = fixture.home.resolve(".skill-bill/runtime").toString()
   val telemetryConfigPath: String = fixture.home.resolve(".config/skill-bill/config.json").toString()
   val codeReviewSourceDir: String = fixture.repoRoot.resolve("skills/bill-code-review").toString()
   val qualityCheckSourceDir: String = fixture.repoRoot.resolve("skills/bill-code-check").toString()
-  val codeReviewStagingDir: String = stagingDir("bill-code-review", CODE_REVIEW_GOLDEN_CONTENT_HASH)
-  val qualityCheckStagingDir: String = stagingDir("bill-code-check", QUALITY_CHECK_GOLDEN_CONTENT_HASH)
+  val codeReviewStagingDir: String = stagingDir("bill-code-review", codeReviewHash)
+  val qualityCheckStagingDir: String = stagingDir("bill-code-check", qualityCheckHash)
   val codeReviewRenderedSkillFile: String = Path.of(codeReviewStagingDir).resolve("SKILL.md").toString()
   val qualityCheckRenderedSkillFile: String = Path.of(qualityCheckStagingDir).resolve("SKILL.md").toString()
   val codeReviewLinkPath: String = fixture.home.resolve("manual-targets/codex/bill-code-review").toString()
   val qualityCheckLinkPath: String = fixture.home.resolve("manual-targets/codex/bill-code-check").toString()
+
+  val codeReviewHash: String
+    get() = contentHashes["bill-code-review"] ?: CODE_REVIEW_GOLDEN_CONTENT_HASH
+  val qualityCheckHash: String
+    get() = contentHashes["bill-code-check"] ?: QUALITY_CHECK_GOLDEN_CONTENT_HASH
 
   private fun stagingDir(
     skillName: String,

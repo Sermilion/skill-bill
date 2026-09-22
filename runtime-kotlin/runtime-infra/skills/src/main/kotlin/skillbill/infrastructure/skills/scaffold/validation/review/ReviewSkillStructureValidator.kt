@@ -10,8 +10,11 @@ import java.nio.file.Path
 import kotlin.io.path.name
 
 internal object ReviewSkillStructureValidator {
-  fun validate(pack: Path) {
-    val violations = violations(pack)
+  fun validate(
+    pack: Path,
+    packRootsBySlug: Map<String, Path> = emptyMap(),
+  ) {
+    val violations = violations(pack, packRootsBySlug)
     if (violations.isNotEmpty()) {
       throw InvalidReviewSkillStructureError(
         "Platform pack '${pack.fileName}' violates the governed review-skill structure: " +
@@ -23,10 +26,13 @@ internal object ReviewSkillStructureValidator {
     }
   }
 
-  fun violations(pack: Path): List<ReviewSkillStructureViolation> {
+  fun violations(
+    pack: Path,
+    packRootsBySlug: Map<String, Path> = emptyMap(),
+  ): List<ReviewSkillStructureViolation> {
     if (pack.name == "platform-packs") {
       return Files.list(pack).use { packDirectories ->
-        packDirectories.filter(Files::isDirectory).toList().flatMap(::violations)
+        packDirectories.filter(Files::isDirectory).toList().flatMap { child -> violations(child, packRootsBySlug) }
       }
     }
     val manifest =
@@ -43,7 +49,7 @@ internal object ReviewSkillStructureValidator {
         addAll(ReviewSkillStructureValidatorManifest.manifestViolations(pack, manifest))
         addAll(
           reviewFiles.flatMap { file ->
-            ReviewSkillStructureValidatorContent.contentViolations(pack, manifest, file)
+            ReviewSkillStructureValidatorContent.contentViolations(pack, manifest, file, packRootsBySlug)
           },
         )
         addAll(ReviewSkillStructureValidatorContent.nativeAgentViolations(pack, manifest))

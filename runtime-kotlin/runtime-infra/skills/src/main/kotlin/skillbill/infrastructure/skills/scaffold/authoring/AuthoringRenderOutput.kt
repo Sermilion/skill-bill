@@ -3,6 +3,7 @@ package skillbill.infrastructure.skills.scaffold.authoring
 import skillbill.agentaddon.model.AgentAddonConsumer
 import skillbill.error.shellcontent.ContractVersionMismatchError
 import skillbill.infrastructure.skills.agentaddon.AgentAddonDeliveryResolver
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.pointer.renderPointer
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
@@ -10,9 +11,8 @@ import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.nio.file.Path
-
-private const val PLATFORM_PACK_SKILL_MIN_PARTS = 3
 
 data class AuthoringRenderBlock(
   val header: String,
@@ -55,9 +55,10 @@ private fun renderBlocks(blocks: List<AuthoringRenderBlock>): String =
 fun renderAuthoringTarget(
   repoRoot: Path,
   skillName: String,
+  externalDiscovery: PlatformPackDiscoveryContext? = null,
 ): AuthoringRenderResult {
   val resolvedRoot = repoRoot.toAbsolutePath().normalize()
-  val target = resolveTarget(resolvedRoot, skillName)
+  val target = resolveTarget(resolvedRoot, skillName, externalDiscovery)
   return renderAuthoringTarget(resolvedRoot, target)
 }
 
@@ -91,7 +92,7 @@ private fun renderPlatformPointerBlocks(
   repoRoot: Path,
   target: AuthoringTarget,
 ): List<AuthoringRenderBlock> {
-  val packRoot = targetPlatformPackRoot(repoRoot, target) ?: return emptyList()
+  val packRoot = targetPlatformPackRoot(target) ?: return emptyList()
   val pack = loadPlatformManifest(packRoot)
   requireMatchingRenderContractVersion(pack)
   val skillRelativeDir = normalizedRelativePath(packRoot, target.skillFile.parent)
@@ -131,16 +132,9 @@ private fun renderPointerBlock(
   )
 }
 
-private fun targetPlatformPackRoot(
-  repoRoot: Path,
-  target: AuthoringTarget,
-): Path? {
-  val relative = repoRoot.relativize(target.skillFile.toAbsolutePath().normalize())
-  if (relative.nameCount < PLATFORM_PACK_SKILL_MIN_PARTS || relative.getName(0).toString() != "platform-packs") {
-    return null
-  }
-  return repoRoot.resolve("platform-packs").resolve(relative.getName(1).toString()).normalize()
-}
+private fun targetPlatformPackRoot(target: AuthoringTarget): Path? =
+  generateSequence(target.skillFile.toAbsolutePath().normalize().parent) { path -> path.parent }
+    .firstOrNull { candidate -> Files.isRegularFile(candidate.resolve("platform.yaml")) }
 
 private fun requireMatchingRenderContractVersion(pack: PlatformManifest) {
   if (pack.contractVersion != SHELL_CONTRACT_VERSION) {

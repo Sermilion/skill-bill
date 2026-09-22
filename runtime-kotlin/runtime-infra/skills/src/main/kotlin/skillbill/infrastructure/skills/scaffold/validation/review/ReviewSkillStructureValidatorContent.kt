@@ -10,6 +10,7 @@ internal object ReviewSkillStructureValidatorContent {
     pack: Path,
     manifest: Map<*, *>,
     file: Path,
+    packRootsBySlug: Map<String, Path> = emptyMap(),
   ): List<ReviewSkillStructureViolation> {
     val parentViolation =
       if (hasInternalParent(file, "bill-code-review")) {
@@ -20,7 +21,7 @@ internal object ReviewSkillStructureValidatorContent {
     val relativeFile = pack.relativize(file).let(::portablePath)
     return parentViolation +
       if (relativeFile == declaredBaseline(manifest)) {
-        baselineViolations(file)
+        baselineViolations(file, packRootsBySlug)
       } else {
         specialistViolations(file, declaredAreaForFile(manifest, relativeFile))
       }

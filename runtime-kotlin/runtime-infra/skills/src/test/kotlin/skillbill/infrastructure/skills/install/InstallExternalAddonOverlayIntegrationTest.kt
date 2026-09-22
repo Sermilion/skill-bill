@@ -1,11 +1,11 @@
 
 package skillbill.infrastructure.skills.install
 
-import skillbill.infrastructure.skills.externaladdon.FileSystemExternalAddonOverlay
 import skillbill.infrastructure.skills.install.nativeagent.install.native.installNativeAgentCompositionContext
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderRequest
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
+import skillbill.infrastructure.skills.scaffold.overlayPort
 import skillbill.install.model.ExternalAddonSource
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyResult
@@ -219,7 +219,7 @@ class InstallExternalAddonOverlayIntegrationTest : InstallApplyTestSupport() {
     fixture: ApplyFixture,
     sources: List<ExternalAddonSource>,
   ) {
-    val port: ExternalAddonOverlayPort = FileSystemExternalAddonOverlay()
+    val port: ExternalAddonOverlayPort = overlayPort()
     port.applyOverlay(
       ExternalAddonOverlayRequest(
         platformPacksRoot = fixture.repoRoot.resolve("platform-packs"),

@@ -9,7 +9,10 @@ import skillbill.infrastructure.skills.scaffold.authoring.AuthoringRenderResult
 import skillbill.infrastructure.skills.scaffold.authoring.recommendedCommands
 import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoringTarget
 import skillbill.infrastructure.skills.scaffold.catalog.ScaffoldCatalog
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
+import skillbill.model.EnvironmentContext
 import skillbill.model.toPath
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.ScaffoldGateway
@@ -40,6 +43,8 @@ private const val CONTENT_PREVIEW_MAX_CHARS = 500
 @Inject
 class FileSystemScaffoldGateway(
   private val scaffoldOrchestrator: FileSystemScaffoldOrchestrator,
+  private val environmentContext: EnvironmentContext,
+  private val catalogLoader: PlatformPackCatalogLoader,
 ) : ScaffoldGateway {
   override fun list(
     repoRoot: Path,
@@ -47,7 +52,7 @@ class FileSystemScaffoldGateway(
   ): ScaffoldListResult {
     val addonNames = skillNames.filter { it.startsWith(AGENT_ADDON_PREFIX) }
     val governedNames = skillNames.filterNot { it.startsWith(AGENT_ADDON_PREFIX) }
-    val result = AuthoringOperations.list(repoRoot, governedNames)
+    val result = AuthoringOperations.list(repoRoot, governedNames, discovery(repoRoot))
     val addonCatalogue =
       if (skillNames.isEmpty()) {
         inspectFsAgentAddons(repoRoot).entries
@@ -82,7 +87,7 @@ class FileSystemScaffoldGateway(
         if (skillName.startsWith(AGENT_ADDON_PREFIX)) {
           requireAgentAddonEntry(repoRoot, skillName).toSkillStatus(repoRoot, contentMode)
         } else {
-          AuthoringOperations.show(repoRoot, skillName, contentMode)
+          AuthoringOperations.show(repoRoot, skillName, contentMode, discovery(repoRoot))
         },
     )
 
@@ -112,7 +117,7 @@ class FileSystemScaffoldGateway(
           ),
       )
     }
-    val result = AuthoringOperations.explain(repoRoot, skillName)
+    val result = AuthoringOperations.explain(repoRoot, skillName, discovery(repoRoot))
     return ScaffoldExplainResult(
       explanation = result.explanation,
       editableSurface = result.editableSurface,
@@ -136,7 +141,7 @@ class FileSystemScaffoldGateway(
     repoRoot: Path,
     skillNames: List<String>,
   ): ScaffoldValidateResult {
-    val result = AuthoringOperations.validate(repoRoot, skillNames)
+    val result = AuthoringOperations.validate(repoRoot, skillNames, discovery(repoRoot))
     return ScaffoldValidateResult(
       repoRoot = result.repoRoot,
       mode =
@@ -158,7 +163,14 @@ class FileSystemScaffoldGateway(
     skillNames: List<String>,
     validate: Boolean,
   ): ScaffoldUpgradeResult {
-    val result = AuthoringOperations.upgrade(repoRoot, skillNames, validate, installNativeAgentCompositionContext())
+    val result =
+      AuthoringOperations.upgrade(
+        repoRoot,
+        skillNames,
+        validate,
+        installNativeAgentCompositionContext(),
+        discovery(repoRoot),
+      )
     return ScaffoldUpgradeResult(
       repoRoot = result.repoRoot,
       regeneratedCount = result.regeneratedCount,
@@ -175,7 +187,7 @@ class FileSystemScaffoldGateway(
     body: String,
     sectionName: String?,
   ): ScaffoldFillResult {
-    val result = AuthoringOperations.fill(repoRoot, skillName, body, sectionName)
+    val result = AuthoringOperations.fill(repoRoot, skillName, body, sectionName, discovery(repoRoot))
     return ScaffoldFillResult(
       status = result.mutation.status,
       wrapperRegenerated = result.mutation.wrapperRegenerated,
@@ -189,7 +201,7 @@ class FileSystemScaffoldGateway(
     skillName: String,
     content: String,
   ): ScaffoldSaveExactContentResult {
-    val result = AuthoringOperations.saveExactContent(repoRoot, skillName, content)
+    val result = AuthoringOperations.saveExactContent(repoRoot, skillName, content, discovery(repoRoot))
     return ScaffoldSaveExactContentResult(
       status = result.mutation.status,
       wrapperRegenerated = result.mutation.wrapperRegenerated,
@@ -203,7 +215,14 @@ class FileSystemScaffoldGateway(
     body: String,
     sectionName: String?,
   ): ScaffoldEditWithBodyFileResult {
-    val result = AuthoringOperations.editWithBodyFile(repoRoot, skillName, body, sectionName)
+    val result =
+      AuthoringOperations.editWithBodyFile(
+        repoRoot,
+        skillName,
+        body,
+        sectionName,
+        discovery(repoRoot),
+      )
     return ScaffoldEditWithBodyFileResult(
       usedEditor = result.usedEditor,
       guidedSections = result.guidedSections,
@@ -222,7 +241,15 @@ class FileSystemScaffoldGateway(
   override fun render(
     repoRoot: Path,
     skillName: String,
-  ): ScaffoldRenderResult = renderAuthoringTarget(repoRoot, skillName).toPortRenderResult()
+  ): ScaffoldRenderResult = renderAuthoringTarget(repoRoot, skillName, discovery(repoRoot)).toPortRenderResult()
+
+  private fun discovery(repoRoot: Path): PlatformPackDiscoveryContext =
+    PlatformPackDiscoveryContext(
+      repoRoot = repoRoot.toAbsolutePath().normalize(),
+      userHome = environmentContext.userHome,
+      environment = environmentContext.environment,
+      catalogLoader = catalogLoader,
+    )
 }
 
 private const val AGENT_ADDON_PREFIX = "agent-addon:"

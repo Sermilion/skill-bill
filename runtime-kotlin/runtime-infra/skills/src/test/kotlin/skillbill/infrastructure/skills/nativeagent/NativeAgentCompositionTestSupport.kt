@@ -38,9 +38,7 @@ internal fun testComposeNativeAgentSource(
   return composeNativeAgentSource(
     repoRoot,
     source,
-    context.reviewContextBudgetBytes,
-    context.renderGovernedBody,
-    context.packLoader,
+    context,
   )
 }
 

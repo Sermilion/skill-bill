@@ -44,18 +44,17 @@ private data class AddonPointerLookup(
 internal fun resolveDeclaredAddonTargets(
   root: Path,
   target: NativeAgentCompositionTarget,
+  additionalPackRoots: List<Path> = emptyList(),
 ): ResolvedAddonComposition {
   if (target.source != NativeAgentCompositionTargetSource.PlatformManifest) {
     return ResolvedAddonComposition(emptyList(), emptyList())
   }
   val contentPath = target.contentPath.toAbsolutePath().normalize()
-  val packRoot = platformPackRoot(root, contentPath) ?: return ResolvedAddonComposition(emptyList(), emptyList())
+  val packRoot = platformPackRoot(root, contentPath, additionalPackRoots)
   val pack =
     requireNotNull(target.manifest) {
-      "${displayPath(
-        root,
-        contentPath,
-      )}: platform-pack native agent composition requires a parsed platform.yaml manifest"
+      "${displayPath(root, contentPath)}: platform-pack native agent composition requires a parsed " +
+        "platform.yaml manifest"
     }
   val skillName = contentPath.parent.name
   val selections = NativeAgentAddonSelectionPolicy.select(pack, skillName)

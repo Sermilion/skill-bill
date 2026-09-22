@@ -1,6 +1,7 @@
 package skillbill.review.plan
 
 import skillbill.review.plan.model.ReviewRoutingChangedFile
+import skillbill.review.plan.model.ReviewStackRoutingFallback
 import skillbill.review.plan.model.ReviewStackRoutingResult
 import skillbill.scaffold.model.PlatformManifest
 
@@ -27,6 +28,7 @@ object ReviewStackRouting {
     }
     val routedSlugs = linkedSetOf<String>()
     val ownedPathsBySlug = linkedMapOf<String, LinkedHashSet<String>>()
+    val missingPackFallbacks = mutableListOf<ReviewStackRoutingFallback>()
 
     changedFiles.forEach { changed ->
       val scores =
@@ -55,9 +57,17 @@ object ReviewStackRouting {
           val strongestContent = pathWinners.values.maxOf { score -> score.second }
           resolveComposition(pathWinners.filterValues { score -> score.second == strongestContent }.keys)
         }
+      val missingBaselinePlatforms =
+        resolved?.codeReviewComposition?.baselineLayers.orEmpty()
+          .map { layer -> layer.platform }
+          .filter { platform -> manifests.none { it.slug == platform } }
+      val fallbackPack = fallback
       val owners =
-        if (resolved == null) {
-          fallback?.let { setOf(it.slug) }.orEmpty()
+        if (resolved == null || missingBaselinePlatforms.isNotEmpty()) {
+          if (resolved != null && missingBaselinePlatforms.isNotEmpty() && fallbackPack != null) {
+            missingPackFallbacks += missingPackFallback(resolved.slug, missingBaselinePlatforms, fallbackPack.slug)
+          }
+          fallbackPack?.let { setOf(it.slug) }.orEmpty()
         } else {
           linkedSetOf(resolved.slug).apply {
             resolved.codeReviewComposition?.baselineLayers?.mapTo(this) { it.platform }
@@ -69,7 +79,7 @@ object ReviewStackRouting {
       }
     }
 
-    return ReviewStackRoutingResult(routedSlugs, ownedPathsBySlug)
+    return ReviewStackRoutingResult(routedSlugs, ownedPathsBySlug, missingPackFallbacks.toList())
   }
 
   private fun resolveComposition(winners: Set<PlatformManifest>): PlatformManifest? {
@@ -82,6 +92,13 @@ object ReviewStackRouting {
       }
     return survivors.singleOrNull()
   }
+
+  private fun missingPackFallback(
+    routedSlug: String,
+    missingPlatforms: List<String>,
+    fallbackSlug: String,
+  ): ReviewStackRoutingFallback =
+    ReviewStackRoutingFallback(routedSlug, fallbackSlug, missingPlatforms.distinct().sorted())
 
   private const val CODE_REVIEW_CAPABILITY = "code-review"
   private const val UNIQUE_PATH_SIGNAL_SCORE = 10

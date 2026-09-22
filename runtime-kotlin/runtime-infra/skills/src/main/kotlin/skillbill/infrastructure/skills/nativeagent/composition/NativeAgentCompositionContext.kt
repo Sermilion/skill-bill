@@ -7,4 +7,5 @@ internal data class NativeAgentCompositionContext(
   val reviewContextBudgetBytes: Long,
   val renderGovernedBody: (Path, String) -> String,
   val packLoader: NativeAgentPlatformPackLoader,
+  val additionalPackRoots: List<Path> = emptyList(),
 )

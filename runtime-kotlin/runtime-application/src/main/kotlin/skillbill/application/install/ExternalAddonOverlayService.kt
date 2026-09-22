@@ -43,6 +43,13 @@ class ExternalAddonOverlayService(
     if (sources.isEmpty()) {
       return ExternalAddonOverlayResult(touched = false)
     }
-    return overlayPort.applyOverlay(ExternalAddonOverlayRequest(platformPacksRoot, sources))
+    return overlayPort.applyOverlay(
+      ExternalAddonOverlayRequest(
+        platformPacksRoot = platformPacksRoot,
+        sources = sources,
+        userHome = home,
+        environment = environment,
+      ),
+    )
   }
 }

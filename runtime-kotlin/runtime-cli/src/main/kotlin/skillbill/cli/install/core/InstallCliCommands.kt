@@ -99,6 +99,7 @@ class InstallReconcileCommand(
             localRepoRoot = localRequest.repoRoot.toPath(),
             localSkillsRoot = localRequest.targetPaths.skillsRoot.toPath(),
             localPlatformPacksRoot = localRequest.targetPaths.platformPacksRoot.toPath(),
+            environment = inputs.environment,
           ),
         )
       completeReconcile(
@@ -121,6 +122,7 @@ class InstallReconcileCommand(
           localRepoRoot = localRequest.repoRoot.toPath(),
           localSkillsRoot = localRequest.targetPaths.skillsRoot.toPath(),
           localPlatformPacksRoot = localRequest.targetPaths.platformPacksRoot.toPath(),
+          environment = inputs.environment,
         ),
       )
     completeReconcile(plan, refreshed = false, applied = false, installedPaths = emptyList())
