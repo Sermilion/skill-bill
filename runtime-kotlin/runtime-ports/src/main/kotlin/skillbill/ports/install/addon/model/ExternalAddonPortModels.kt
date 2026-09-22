@@ -21,6 +21,9 @@ data class ExternalAddonSourceConfigResult(
 data class ExternalAddonOverlayRequest(
   val platformPacksRoot: Path,
   val sources: List<ExternalAddonSource>,
+  val userHome: Path? = null,
+  val environment: Map<String, String> = emptyMap(),
+  val repoRoot: Path? = null,
 )
 
 data class ExternalAddonOverlayResult(

@@ -8,6 +8,8 @@ import skillbill.infrastructure.skills.install.staging.staging.support.generated
 import skillbill.infrastructure.skills.scaffold.authoring.discoverTargets
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
 import skillbill.infrastructure.skills.scaffold.authoring.renderWrapper
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.install.model.InstallPlanSkill
 import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
@@ -40,6 +42,9 @@ internal data class InternalStagingPreparation(
   val parentSupportPointers: List<GeneratedSupportPointer>,
   val parentPointerNames: Set<String>,
   val enforceContractVersion: Boolean = true,
+  val userHome: Path? = null,
+  val environment: Map<String, String> = emptyMap(),
+  val catalogLoader: PlatformPackCatalogLoader? = null,
 )
 
 internal data class PreparedInternalStaging(
@@ -59,7 +64,12 @@ internal fun prepareInternalStaging(request: InternalStagingPreparation): Prepar
     parentSkillName = request.parentSkillName,
     skillsRoot = request.skillsRoot,
     selectedPackSkills = request.selectedPackSkills,
-    enforceContractVersion = request.enforceContractVersion,
+    packDiscovery = InternalSidecarPackDiscovery(
+      enforceContractVersion = request.enforceContractVersion,
+      userHome = request.userHome,
+      environment = request.environment,
+      catalogLoader = request.catalogLoader,
+    ),
   )
   val supportPointers = mergeInternalSupportPointers(request, children)
   val sidecarNames = internalSidecarStagingNames(children)
@@ -111,12 +121,19 @@ private fun mergeInternalSupportPointers(
   return merged.values.map(OwnedPointer::pointer).sortedBy { pointer -> portableFileName(pointer.name) }
 }
 
+internal data class InternalSidecarPackDiscovery(
+  val enforceContractVersion: Boolean = true,
+  val userHome: Path? = null,
+  val environment: Map<String, String> = emptyMap(),
+  val catalogLoader: PlatformPackCatalogLoader? = null,
+)
+
 internal fun discoverInternalSidecarTargets(
   repoRoot: Path,
   parentSkillName: String,
   skillsRoot: Path,
   selectedPackSkills: List<InstallPlanSkill> = emptyList(),
-  enforceContractVersion: Boolean = true,
+  packDiscovery: InternalSidecarPackDiscovery = InternalSidecarPackDiscovery(),
 ): List<InternalSidecarTarget> {
   val baseChildren = discoverBaseSkillSidecarTargets(parentSkillName, skillsRoot)
   val packChildren = selectedPackSkills
@@ -125,7 +142,16 @@ internal fun discoverInternalSidecarTargets(
   if (baseChildren.isEmpty() && packChildren.isEmpty()) {
     return emptyList()
   }
-  val discovered = discoverTargets(repoRoot.toAbsolutePath().normalize(), enforceContractVersion)
+  val normalizedRepo = repoRoot.toAbsolutePath().normalize()
+  val externalDiscovery = packDiscovery.userHome?.let { home ->
+    PlatformPackDiscoveryContext(
+      repoRoot = normalizedRepo,
+      userHome = home,
+      environment = packDiscovery.environment,
+      catalogLoader = packDiscovery.catalogLoader,
+    )
+  }
+  val discovered = discoverTargets(normalizedRepo, packDiscovery.enforceContractVersion, externalDiscovery)
   val byName = sortedMapOf<String, InternalSidecarTarget>()
   baseChildren.forEach { (skillName, sourceDir) ->
     byName[skillName] = InternalSidecarTarget(

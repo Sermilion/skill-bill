@@ -6,6 +6,7 @@ import skillbill.infrastructure.skills.install.plan.CLAUDE_AGENTS_KIND
 import skillbill.infrastructure.skills.install.plan.CURSOR_AGENTS_KIND
 import skillbill.infrastructure.skills.install.plan.JUNIE_AGENTS_KIND
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.AgentTarget
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Files
@@ -30,6 +31,8 @@ data class NativeAgentLinkRequest(
   val home: Path? = null,
   val selectedPlatforms: List<String>? = null,
   val overrides: NativeAgentLinkOverrides = NativeAgentLinkOverrides(),
+  val environment: Map<String, String> = emptyMap(),
+  val catalogLoader: PlatformPackCatalogLoader? = null,
 )
 
 object InstallNativeAgentOperations {

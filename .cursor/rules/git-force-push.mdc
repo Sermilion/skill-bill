@@ -1,0 +1,6 @@
+---
+description: Allow an explicit force-push of main in this personal repository
+alwaysApply: true
+---
+
+This is a personal repository. When the user explicitly asks to force-push `main`, run `git push --force-with-lease origin main`. Do not refuse that request, and do not substitute a warning for the push.

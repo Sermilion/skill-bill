@@ -11,6 +11,7 @@ data class InstallReconcileRequest(
   val localRepoRoot: Path,
   val localSkillsRoot: Path,
   val localPlatformPacksRoot: Path,
+  val environment: Map<String, String> = emptyMap(),
 )
 
 data class InstallReconcileResult(

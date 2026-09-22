@@ -14,6 +14,7 @@ import skillbill.infrastructure.skills.install.reconcile.computeReconciliationPl
 import skillbill.infrastructure.skills.install.runtime.InstallOperations
 import skillbill.infrastructure.skills.install.runtime.linkInstalledSkill
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.install.agent.InstallAgentTargetPort
 import skillbill.ports.install.agent.model.ClaudeConfigRootsRequest
@@ -72,6 +73,7 @@ import skillbill.infrastructure.skills.install.nativeagent.install.native.Native
 @Inject
 class FileSystemInstallPlanningFacts(
   private val hostPlatform: HostPlatformPort,
+  private val catalogLoader: PlatformPackCatalogLoader,
 ) : InstallPlanningFactsPort {
   override fun collectPlanningFacts(request: InstallPlanningFactsRequest): InstallPlanningFactsResult =
     InstallPlanningFactsResult(
@@ -79,6 +81,7 @@ class FileSystemInstallPlanningFacts(
         request.installRequest.copy(
           environment = resolveInstallEnvironment(request.installRequest.environment, hostPlatform),
         ),
+        catalogLoader,
       ),
     )
 }
@@ -96,13 +99,16 @@ class FileSystemInstallPlatformSkillMaterialization : InstallPlatformSkillMateri
 }
 
 @Inject
-class FileSystemInstallStagingIntent : InstallStagingIntentPort {
+class FileSystemInstallStagingIntent(
+  private val catalogLoader: PlatformPackCatalogLoader,
+) : InstallStagingIntentPort {
   override fun buildStagingIntent(request: InstallStagingIntentRequest): InstallStagingIntentResult =
     InstallStagingIntentResult(
       staging = buildInstallStagingIntent(
         request = request.installRequest,
         draftSkills = request.draft.skills,
         platformManifests = request.platformManifests,
+        catalogLoader = catalogLoader,
       ),
     )
 }
@@ -110,6 +116,7 @@ class FileSystemInstallStagingIntent : InstallStagingIntentPort {
 @Inject
 class FileSystemInstallReconcile(
   private val baselineManifestPersistence: BaselineManifestPersistencePort,
+  private val catalogLoader: PlatformPackCatalogLoader,
 ) : InstallReconcilePort {
   override fun reconcile(request: InstallReconcileRequest): InstallReconcileResult {
     val baseline = baselineManifestPersistence
@@ -121,14 +128,17 @@ class FileSystemInstallReconcile(
           repoRoot = request.upstreamRepoRoot,
           skillsRoot = request.upstreamSkillsRoot,
           platformPacksRoot = request.upstreamPlatformPacksRoot,
+          catalogLoader = catalogLoader,
         ),
         local = ReconcileSourceRoots(
           repoRoot = request.localRepoRoot,
           skillsRoot = request.localSkillsRoot,
           platformPacksRoot = request.localPlatformPacksRoot,
+          catalogLoader = catalogLoader,
         ),
         home = request.home,
         baseline = baseline,
+        environment = request.environment,
       ),
     )
   }
@@ -137,6 +147,7 @@ class FileSystemInstallReconcile(
 @Inject
 class FileSystemInstallReconcileApply(
   private val baselineManifestPersistence: BaselineManifestPersistencePort,
+  private val catalogLoader: PlatformPackCatalogLoader,
 ) : InstallReconcileApplyPort {
   override fun apply(request: InstallReconcileApplyRequest): InstallReconcileApplyResult {
     val baseline = baselineManifestPersistence
@@ -148,14 +159,17 @@ class FileSystemInstallReconcileApply(
         repoRoot = request.upstreamRepoRoot,
         skillsRoot = request.upstreamSkillsRoot,
         platformPacksRoot = request.upstreamPlatformPacksRoot,
+        catalogLoader = catalogLoader,
       ),
       local = ReconcileSourceRoots(
         repoRoot = request.localRepoRoot,
         skillsRoot = request.localSkillsRoot,
         platformPacksRoot = request.localPlatformPacksRoot,
+        catalogLoader = catalogLoader,
       ),
       home = request.home,
       baseline = baseline,
+      environment = request.environment,
     )
     return InstallReconcileApplyResult(
       plan = output.plan,
@@ -169,6 +183,7 @@ class FileSystemInstallReconcileApply(
 class FileSystemInstallApplyExecution(
   private val telemetryConfigStore: TelemetryConfigStore,
   private val installMcpRegistrationPort: InstallMcpRegistrationPort,
+  private val catalogLoader: PlatformPackCatalogLoader,
 ) : InstallApplyExecutionPort {
   override fun applyInstall(request: InstallApplyExecutionRequest): InstallApplyExecutionResult =
     InstallApplyExecutionResult(
@@ -177,6 +192,7 @@ class FileSystemInstallApplyExecution(
         request.telemetryLevelMutator,
         telemetryConfigStore,
         installMcpRegistrationPort,
+        catalogLoader,
       ),
     )
 }
@@ -255,11 +271,13 @@ class FileSystemInstallAgentTargets(
 }
 
 @Inject
-class FileSystemInstallNativeAgentLinks : InstallNativeAgentLinkPort {
+class FileSystemInstallNativeAgentLinks(
+  private val catalogLoader: PlatformPackCatalogLoader,
+) : InstallNativeAgentLinkPort {
   override fun linkNativeAgents(
     request: InstallNativeAgentLinkOperationRequest,
   ): InstallNativeAgentLinkOperationResult {
-    val fsRequest = request.linkRequest.toFsRequest()
+    val fsRequest = request.linkRequest.toFsRequest(catalogLoader)
     val outcome = when (request.provider) {
       NativeAgentLinkProvider.CLAUDE -> InstallNativeAgentOperations.linkClaudeAgents(fsRequest)
       NativeAgentLinkProvider.CODEX -> InstallNativeAgentOperations.linkCodexAgents(fsRequest)
@@ -277,7 +295,7 @@ class FileSystemInstallNativeAgentLinks : InstallNativeAgentLinkPort {
   override fun unlinkNativeAgents(
     request: InstallNativeAgentLinkOperationRequest,
   ): InstallNativeAgentUnlinkOperationResult {
-    val fsRequest = request.linkRequest.toFsRequest()
+    val fsRequest = request.linkRequest.toFsRequest(catalogLoader)
     return InstallNativeAgentUnlinkOperationResult(
       unlinked = when (request.provider) {
         NativeAgentLinkProvider.CLAUDE -> InstallNativeAgentOperations.unlinkClaudeAgents(fsRequest)
@@ -313,14 +331,17 @@ class FileSystemInstallMcpRegistration(
     )
 }
 
-private fun NativeAgentLinkRequest.toFsRequest(): FsNativeAgentLinkRequest = FsNativeAgentLinkRequest(
-  platformPacksRoot = platformPacksRoot,
-  skillsRoot = skillsRoot,
-  home = home,
-  selectedPlatforms = selectedPlatforms,
-  overrides = FsNativeAgentLinkOverrides(
-    installCacheRoot = overrides.installCacheRoot,
-    sourceRoots = overrides.sourceRoots,
-    legacyManagedRoot = overrides.legacyManagedRoot,
-  ),
-)
+private fun NativeAgentLinkRequest.toFsRequest(catalogLoader: PlatformPackCatalogLoader): FsNativeAgentLinkRequest =
+  FsNativeAgentLinkRequest(
+    platformPacksRoot = platformPacksRoot,
+    skillsRoot = skillsRoot,
+    home = home,
+    selectedPlatforms = selectedPlatforms,
+    environment = environment,
+    catalogLoader = catalogLoader,
+    overrides = FsNativeAgentLinkOverrides(
+      installCacheRoot = overrides.installCacheRoot,
+      sourceRoots = overrides.sourceRoots,
+      legacyManagedRoot = overrides.legacyManagedRoot,
+    ),
+  )

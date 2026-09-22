@@ -10,8 +10,12 @@ import java.nio.file.Path
 
 private val LOCAL_MARKDOWN_LINK_PATTERN = Regex("""\[([^]\n]+)]\(([^)\s]+\.md(?:#[^)]*)?)\)""")
 
-internal class SidecarInliningSession(repoRoot: Path, target: NativeAgentCompositionTarget) {
-  private val resolver = sidecarResolver(repoRoot, target)
+internal class SidecarInliningSession(
+  repoRoot: Path,
+  target: NativeAgentCompositionTarget,
+  additionalPackRoots: List<Path> = emptyList(),
+) {
+  private val resolver = sidecarResolver(repoRoot, target, additionalPackRoots)
   private val inlined = linkedMapOf<Path, String>()
   private val claimed = linkedSetOf<Path>()
 
@@ -49,19 +53,26 @@ private fun rewriteMarkdownLinks(
   label
 }
 
-private fun sidecarResolver(repoRoot: Path, target: NativeAgentCompositionTarget): MarkdownSidecarResolver =
-  when (target.source) {
-    NativeAgentCompositionTargetSource.PlatformManifest -> platformPointerSidecarResolver(repoRoot, target)
-    NativeAgentCompositionTargetSource.SiblingContent -> siblingMarkdownSidecarResolver(repoRoot, target.contentPath)
-  }
+private fun sidecarResolver(
+  repoRoot: Path,
+  target: NativeAgentCompositionTarget,
+  additionalPackRoots: List<Path>,
+): MarkdownSidecarResolver = when (target.source) {
+  NativeAgentCompositionTargetSource.PlatformManifest ->
+    platformPointerSidecarResolver(repoRoot, target, additionalPackRoots)
+  NativeAgentCompositionTargetSource.SiblingContent -> siblingMarkdownSidecarResolver(repoRoot, target.contentPath)
+}
 
 private fun platformPointerSidecarResolver(
   repoRoot: Path,
   target: NativeAgentCompositionTarget,
+  additionalPackRoots: List<Path> = emptyList(),
 ): MarkdownSidecarResolver {
   val root = repoRoot.toAbsolutePath().normalize()
   val contentPath = target.contentPath
-  val packRoot = requireNotNull(platformPackRoot(root, contentPath.toAbsolutePath().normalize())) {
+  val packRoot = requireNotNull(
+    platformPackRoot(root, contentPath.toAbsolutePath().normalize(), additionalPackRoots),
+  ) {
     "${displayPath(root, contentPath)}: platform-pack native agent composition requires a platform.yaml manifest"
   }
   val pack = requireNotNull(target.manifest) {

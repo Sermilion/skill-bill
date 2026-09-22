@@ -58,14 +58,18 @@ internal fun declaredAreasForContent(file: Path): Set<String> = manifest(file.pa
   ?.toSet()
   .orEmpty()
 
-internal fun composedBaselineSections(file: Path, heading: String): String {
+internal fun composedBaselineSections(
+  file: Path,
+  heading: String,
+  packRootsBySlug: Map<String, Path> = emptyMap(),
+): String {
   val pack = file.parent.parent.parent
   val packManifest = manifest(pack) ?: return h2Section(Files.readString(file), heading)
   val composition = packManifest["code_review_composition"] as? Map<*, *> ?: emptyMap<Any?, Any?>()
   val layers = (composition["baseline_layers"] as? List<*>)?.filterIsInstance<Map<*, *>>().orEmpty()
   val inheritedSections = layers.filter { it["required"] == true }.mapNotNull { layer ->
     val platform = layer["platform"] as? String ?: return@mapNotNull null
-    val inheritedPack = pack.parent.resolve(platform)
+    val inheritedPack = packRootsBySlug[platform] ?: pack.parent.resolve(platform)
     val inheritedManifest = manifest(inheritedPack) ?: return@mapNotNull null
     val baseline = declaredBaseline(inheritedManifest) ?: return@mapNotNull null
     h2Section(Files.readString(inheritedPack.resolve(baseline)), heading)

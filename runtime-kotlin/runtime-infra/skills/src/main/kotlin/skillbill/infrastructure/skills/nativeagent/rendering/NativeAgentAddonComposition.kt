@@ -14,13 +14,14 @@ internal fun composeGovernedAgentBody(
   repoRoot: Path,
   target: NativeAgentCompositionTarget,
   body: String,
+  additionalPackRoots: List<Path> = emptyList(),
 ): GovernedAgentComposition {
   val root = repoRoot.toAbsolutePath().normalize()
-  val resolvedAddons = resolveDeclaredAddonTargets(root, target)
-  val session = SidecarInliningSession(root, target)
+  val resolvedAddons = resolveDeclaredAddonTargets(root, target, additionalPackRoots)
+  val session = SidecarInliningSession(root, target, additionalPackRoots)
   resolvedAddons.targets.forEach { addon -> session.claim(addon.path) }
   val rewrittenBody = session.rewrite(body, target.contentPath)
-  claimExcludedAddonPointerTargets(root, target, session)
+  claimExcludedAddonPointerTargets(root, target, session, additionalPackRoots)
   val addonBlocks = resolvedAddons.targets.map { addon ->
     addon to session.rewrite(readAddonFile(root, addon), addon.path)
   }
@@ -53,10 +54,15 @@ internal fun enforceComposedAgentBudget(
   target: NativeAgentCompositionTarget,
   rendered: String,
   maxBytes: Long,
+  additionalPackRoots: List<Path> = emptyList(),
 ) {
   val bytes = rendered.toByteArray(Charsets.UTF_8).size
   if (bytes > maxBytes) {
-    val packRoot = platformPackRoot(root, target.contentPath.toAbsolutePath().normalize())
+    val packRoot = platformPackRoot(
+      root,
+      target.contentPath.toAbsolutePath().normalize(),
+      additionalPackRoots,
+    )
     throw ComposedNativeAgentBudgetExceededError(
       "pack '${packRoot?.fileName ?: displayPath(root, target.contentPath)}' skill directory " +
         "'${nativeAgentSkillRelativeDir(packRoot, target.contentPath)}': rendered native agent is $bytes bytes, " +
@@ -130,13 +136,14 @@ private fun claimExcludedAddonPointerTargets(
   root: Path,
   target: NativeAgentCompositionTarget,
   session: SidecarInliningSession,
+  additionalPackRoots: List<Path>,
 ) {
   if (target.source != NativeAgentCompositionTargetSource.PlatformManifest) {
     return
   }
   val pack = target.manifest ?: return
   val contentPath = target.contentPath.toAbsolutePath().normalize()
-  val packRoot = platformPackRoot(root, contentPath) ?: return
+  val packRoot = platformPackRoot(root, contentPath, additionalPackRoots) ?: return
   val skillRelativeDir = nativeAgentSkillRelativeDir(packRoot, contentPath)
   val addonPointerNames = pack.addonUsage
     .flatMap { usage ->

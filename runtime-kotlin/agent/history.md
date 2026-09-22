@@ -1,3 +1,12 @@
+## [2026-09-22] SKILL-369 — External platform packs
+Areas: runtime-kotlin/{runtime-domain,runtime-ports,runtime-contracts,runtime-infra/skills,runtime-application,runtime-cli,runtime-mcp}, docs
+- Machine-global `external_platform_pack_sources` and an effective catalog route whole-pack overrides before discovery, install, review composition, native-agent inventory, and quality gates.
+- Pattern: domain-owned catalog policy, config and read-allowlist adapters outside the domain, and redacted telemetry that names slug, source kind, and failure family without source paths. reusable
+- Scaffold, registration, resolution, overlay, and reconcile seams preserve author sources and refresh or restore managed output.
+- Known limitations: scaffold pack-source prompts and complete registration rollback are partial; source-identity hashing and all telemetry failure seams remain incomplete; integration coverage for switch and overlay paths is partial.
+Feature flag: N/A
+Acceptance criteria: 8/12 implemented
+
 ## [2026-09-21] SKILL-366 subtask 1 — Experiment execution and reports
 Areas: orchestration/contracts, runtime-kotlin/{runtime-contracts,runtime-domain,runtime-engine,runtime-ports,runtime-infra,runtime-cli}, skills/bill-feature
 - Added manifest-backed experiment selection, paired goal/navigation execution seams, arm isolation and persistence, observation/report projections, telemetry boundaries, and CLI surfaces.

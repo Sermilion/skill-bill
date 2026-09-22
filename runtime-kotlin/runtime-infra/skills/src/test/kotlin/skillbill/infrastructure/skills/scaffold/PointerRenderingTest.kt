@@ -199,6 +199,34 @@ class PointerRenderingTest {
   }
 
   @Test
+  fun `renders a pointer whose pack root sits outside the checkout`() {
+    val packRoot = Files.createTempDirectory("skillbill-external-pointer-pack-")
+    try {
+      Files.createDirectories(packRoot.resolve("code-review/bill-kotlin-code-review"))
+      val playbook = tempRoot.resolve("orchestration/review-orchestrator/PLAYBOOK.md")
+      Files.createDirectories(playbook.parent)
+      Files.writeString(playbook, "playbook")
+
+      val rendered = renderPointer(
+        repoRoot = tempRoot,
+        packRoot = packRoot,
+        spec = PointerSpec(
+          skillRelativeDir = "code-review/bill-kotlin-code-review",
+          name = "review-orchestrator.md",
+          target = "orchestration/review-orchestrator/PLAYBOOK.md",
+        ),
+      )
+
+      assertTrue(rendered.endsWith("orchestration/review-orchestrator/PLAYBOOK.md"), rendered)
+      assertFalse(rendered.startsWith("/"), rendered)
+    } finally {
+      Files.walk(packRoot).use { stream ->
+        stream.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists)
+      }
+    }
+  }
+
+  @Test
   fun `rendered relative paths use forward slashes only`() {
     val packRoot = tempRoot.resolve("platform-packs/kmp")
     Files.createDirectories(packRoot.resolve("code-review/bill-kmp-code-review"))

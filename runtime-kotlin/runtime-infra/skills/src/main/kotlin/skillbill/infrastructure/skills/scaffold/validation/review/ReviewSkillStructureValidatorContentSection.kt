@@ -2,7 +2,10 @@ package skillbill.infrastructure.skills.scaffold.validation.review
 import java.nio.file.Files
 import java.nio.file.Path
 
-internal fun baselineViolations(file: Path): List<ReviewSkillStructureViolation> {
+internal fun baselineViolations(
+  file: Path,
+  packRootsBySlug: Map<String, Path> = emptyMap(),
+): List<ReviewSkillStructureViolation> {
   val required = listOf(
     "Classification Rules",
     "Diff-Signal Routing Table",
@@ -14,8 +17,8 @@ internal fun baselineViolations(file: Path): List<ReviewSkillStructureViolation>
   val routing = h2Section(content, "Diff-Signal Routing Table")
   val mixedDiffs = h2Section(content, "Mixed Diffs")
   val discipline = h2Section(content, "Finding Discipline")
-  val composedMixedDiffs = composedBaselineSections(file, "Mixed Diffs")
-  val composedDiscipline = composedBaselineSections(file, "Finding Discipline")
+  val composedMixedDiffs = composedBaselineSections(file, "Mixed Diffs", packRootsBySlug)
+  val composedDiscipline = composedBaselineSections(file, "Finding Discipline", packRootsBySlug)
   return listOfNotNull(
     baselineHeadingSequenceViolation(file, required),
     baselineClassificationViolation(file, classification),

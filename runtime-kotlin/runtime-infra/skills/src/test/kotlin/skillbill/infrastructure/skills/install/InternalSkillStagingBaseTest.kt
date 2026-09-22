@@ -1,6 +1,7 @@
 package skillbill.infrastructure.skills.install
 
 import skillbill.error.shellcontent.InternalSkillSidecarCollisionError
+import skillbill.infrastructure.skills.install.apply.NativeAgentSourceRootsRequest
 import skillbill.infrastructure.skills.install.apply.nativeAgentSourceRoots
 import skillbill.infrastructure.skills.install.apply.standaloneInstallableSkills
 import skillbill.infrastructure.skills.install.plan.InstallContext
@@ -288,7 +289,9 @@ class InternalSkillStagingBaseTest : InternalSkillStagingTestSupport() {
       "internal skills and unselected pack skills must not stage standalone or link into skills_dir",
     )
 
-    val sourceRoots = nativeAgentSourceRoots(skills, selectedPlatformSlugs = setOf("kotlin"))
+    val sourceRoots = nativeAgentSourceRoots(
+      NativeAgentSourceRootsRequest(skills = skills, selectedPlatformSlugs = setOf("kotlin")),
+    )
     assertTrue(
       child.sourceDir.toPath() in sourceRoots,
       "an internal skill's dir must remain a native-agent source root (native-agent parity)",

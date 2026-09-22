@@ -1,5 +1,8 @@
 package skillbill.infrastructure.skills.install.apply
 
+import skillbill.infrastructure.host.jvm.atomicMoveReplacing
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.assertExternalPlatformPackDeclaredReads
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.assertExternalPlatformPackTreeReads
 import skillbill.install.model.InstallAppliedSkill
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
@@ -37,13 +40,21 @@ internal fun materializeAgentPlatformPackViews(
     .filter { skill -> skill.kind == InstallPlanSkillKind.PLATFORM_PACK && skill.internalFor != null }
     .map { skill -> skill.sourceDir.toPath().toAbsolutePath().normalize() }
     .toSet()
+  val billSharedRoot = plan.request.repoRoot.toPath().toAbsolutePath().normalize().resolve(".bill-shared")
   plan.agents.forEach { agentTarget ->
     runCatching {
-      val root = agentTarget.path.toPath().toAbsolutePath().normalize().resolve(PLATFORM_PACKS_DIR)
-      replaceManagedPlatformPackView(root)
       selectedManifests.forEach { manifest ->
-        materializeOnePack(root, manifest, stagedPlatformSkills, internalPlatformSkillDirs)
+        val packRoot = manifest.packRoot.toPath().toAbsolutePath().normalize()
+        assertExternalPlatformPackTreeReads(packRoot, billSharedRoot)
+        assertExternalPlatformPackDeclaredReads(manifest, billSharedRoot)
       }
+      val root = agentTarget.path.toPath().toAbsolutePath().normalize().resolve(PLATFORM_PACKS_DIR)
+      materializeAgentPlatformPackView(
+        root,
+        selectedManifests,
+        stagedPlatformSkills,
+        internalPlatformSkillDirs,
+      )
     }.getOrElse { error ->
       failures.add(
         InstallApplyIssue(
@@ -79,7 +90,12 @@ internal fun cleanupManagedPlatformPackViews(plan: InstallPlan, failures: Mutabl
   }
 }
 
-private fun replaceManagedPlatformPackView(root: Path) {
+private fun materializeAgentPlatformPackView(
+  root: Path,
+  manifests: List<PlatformManifest>,
+  stagedPlatformSkills: Map<Path, InstallAppliedSkill>,
+  internalPlatformSkillDirs: Set<Path>,
+) {
   if (Files.isSymbolicLink(root)) {
     error("Existing symlink at $root was preserved.")
   }
@@ -87,10 +103,46 @@ private fun replaceManagedPlatformPackView(root: Path) {
     require(Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS) && Files.exists(root.resolve(MANAGED_INSTALL_MARKER))) {
       "Existing non-managed platform-packs path at $root was preserved."
     }
-    deleteTree(root)
   }
-  Files.createDirectories(root)
-  Files.writeString(root.resolve(MANAGED_INSTALL_MARKER), "")
+  val parent = requireNotNull(root.parent) { "Managed platform-packs path '$root' has no parent." }
+  Files.createDirectories(parent)
+  val staging = parent.resolve(".${root.fileName}.platform-packs-staging")
+  val superseded = parent.resolve(".${root.fileName}.platform-packs-superseded")
+  deleteTree(staging)
+  deleteTree(superseded)
+  Files.createDirectories(staging)
+  Files.writeString(staging.resolve(MANAGED_INSTALL_MARKER), "")
+  var supersededMoved = false
+  var preserveSuperseded = false
+  try {
+    manifests.forEach { manifest ->
+      materializeOnePack(staging, manifest, stagedPlatformSkills, internalPlatformSkillDirs)
+    }
+    if (Files.exists(root, LinkOption.NOFOLLOW_LINKS)) {
+      atomicMoveReplacing(root, superseded)
+      supersededMoved = true
+    }
+    val publishResult = runCatching { atomicMoveReplacing(staging, root) }
+    publishResult.exceptionOrNull()?.let { error ->
+      if (supersededMoved && Files.exists(superseded, LinkOption.NOFOLLOW_LINKS)) {
+        runCatching {
+          if (Files.exists(root, LinkOption.NOFOLLOW_LINKS)) {
+            deleteTree(root)
+          }
+          atomicMoveReplacing(superseded, root)
+        }.onFailure { restoreError ->
+          preserveSuperseded = true
+          error.addSuppressed(restoreError)
+        }
+      }
+      publishResult.getOrThrow()
+    }
+  } finally {
+    deleteTree(staging)
+    if (!preserveSuperseded) {
+      deleteTree(superseded)
+    }
+  }
 }
 
 private fun materializeOnePack(

@@ -5,6 +5,7 @@ import skillbill.infrastructure.host.jvm.rollbackDeleteIfExists
 import skillbill.infrastructure.skills.install.staging.staging.StagedSymlinkTargetInput
 import skillbill.infrastructure.skills.install.staging.staging.resolveStagedSymlinkTarget
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.AgentTarget
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallTransaction
@@ -79,6 +80,8 @@ internal data class InstallContext(
   val manifests: List<PlatformManifest>? = null,
   val selectedPackSkills: List<InstallPlanSkill> = emptyList(),
   val selectedPlatformSlugs: Set<String> = emptySet(),
+  val environment: Map<String, String> = emptyMap(),
+  val catalogLoader: PlatformPackCatalogLoader? = null,
 )
 
 internal data class InstallSkillOutcome(
@@ -111,6 +114,8 @@ internal fun installSkill(
       manifests = context.manifests,
       selectedPackSkills = context.selectedPackSkills,
       selectedPlatformSlugs = context.selectedPlatformSlugs,
+      environment = context.environment,
+      catalogLoader = context.catalogLoader,
     ),
   )
   val created = mutableListOf<Path>()
