@@ -3,6 +3,7 @@ package skillbill.review.plan
 import skillbill.review.plan.model.ReviewRoutingChangedFile
 import skillbill.review.plan.model.ReviewStackRoutingResult
 import skillbill.scaffold.model.PlatformManifest
+import java.util.logging.Logger
 
 object ReviewStackRouting {
 
@@ -46,8 +47,15 @@ object ReviewStackRouting {
         val strongestContent = pathWinners.values.maxOf { score -> score.second }
         resolveComposition(pathWinners.filterValues { score -> score.second == strongestContent }.keys)
       }
-      val owners = if (resolved == null) {
-        fallback?.let { setOf(it.slug) }.orEmpty()
+      val missingBaselinePlatforms = resolved?.codeReviewComposition?.baselineLayers.orEmpty()
+        .map { layer -> layer.platform }
+        .filter { platform -> manifests.none { it.slug == platform } }
+      val fallbackPack = fallback
+      val owners = if (resolved == null || missingBaselinePlatforms.isNotEmpty()) {
+        if (resolved != null && missingBaselinePlatforms.isNotEmpty() && fallbackPack != null) {
+          recordMissingPackFallback(resolved.slug, missingBaselinePlatforms, fallbackPack.slug)
+        }
+        fallbackPack?.let { setOf(it.slug) }.orEmpty()
       } else {
         linkedSetOf(resolved.slug).apply {
           resolved.codeReviewComposition?.baselineLayers?.mapTo(this) { it.platform }
@@ -72,7 +80,18 @@ object ReviewStackRouting {
     return survivors.singleOrNull()
   }
 
+  private fun recordMissingPackFallback(routedSlug: String, missingPlatforms: List<String>, fallbackSlug: String) {
+    val expected = missingPlatforms.distinct().sorted().joinToString(",")
+    routingLog.warning(
+      "code-review routing fell back because a required platform pack is absent: " +
+        "seam=ReviewStackRouting.route pack=$routedSlug used=$fallbackSlug expected=$expected " +
+        "cause=the platform pack is not in the effective catalog as an external or bundled pack",
+    )
+  }
+
   private const val CODE_REVIEW_CAPABILITY = "code-review"
   private const val UNIQUE_PATH_SIGNAL_SCORE = 10
   private const val CONTENT_SIGNAL_SCORE = 20
+
+  private val routingLog: Logger = Logger.getLogger("skillbill.review.plan.ReviewStackRouting")
 }

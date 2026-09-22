@@ -192,17 +192,17 @@ class FileExternalPlatformPackSourceConfigStoreTest {
   }
 
   @Test
-  fun `missing pack directory loud-fails`(@TempDir home: Path) {
+  fun `missing pack directory stays in the source list for catalog resolution`(@TempDir home: Path) {
+    val missing = home.resolve("missing-pack")
     writeConfig(
       home,
       mapOf(
         ExternalPlatformPackConfigKeys.EXTERNAL_PLATFORM_PACK_SOURCES to
-          listOf(mapOf("path" to home.resolve("missing-pack").toString())),
+          listOf(mapOf("path" to missing.toString())),
       ),
     )
-    assertFailsWith<ExternalPlatformPackConfigError> {
-      store.readExternalPlatformPackSources(request(home, configPath(home)))
-    }
+    val sources = store.readExternalPlatformPackSources(request(home, configPath(home))).sources
+    assertEquals(missing.toAbsolutePath().normalize(), sources.single().path.toPath())
   }
 
   @Test

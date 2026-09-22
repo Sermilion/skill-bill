@@ -1,6 +1,7 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
 import skillbill.model.toPath
+import skillbill.review.plan.ReviewFallbackResolver
 import skillbill.review.plan.ReviewLaunchPlanPolicy
 import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.CodeReviewCompositionMode
@@ -81,10 +82,15 @@ internal fun validateCompositionReferences(pack: PlatformManifest, packsBySlug: 
       )
     }
     val targetPack = packsBySlug[layer.platform]
-      ?: invalidManifestSchema(
-        "Platform pack '${pack.slug}': code_review_composition.baseline_layers[$index] references " +
-          "missing platform pack '${layer.platform}'.",
-      )
+    if (targetPack == null) {
+      if (ReviewFallbackResolver.resolveOptional(packsBySlug.values.toList()) == null) {
+        invalidManifestSchema(
+          "Platform pack '${pack.slug}': code_review_composition.baseline_layers[$index] references " +
+            "missing platform pack '${layer.platform}'.",
+        )
+      }
+      return@forEachIndexed
+    }
     if (layer.skill !in targetPack.declaredCodeReviewSkillNames()) {
       invalidManifestSchema(
         "Platform pack '${pack.slug}': code_review_composition.baseline_layers[$index] references " +

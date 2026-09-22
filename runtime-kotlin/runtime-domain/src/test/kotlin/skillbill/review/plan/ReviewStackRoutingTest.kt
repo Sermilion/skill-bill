@@ -121,6 +121,30 @@ class ReviewStackRoutingTest {
   }
 
   @Test
+  fun `a required baseline pack that is neither external nor bundled routes to the declared fallback`() {
+    val result = ReviewStackRouting.route(
+      listOf(
+        pack("kmp", path = listOf("*.kt"), content = emptyList(), baselinePlatform = "kotlin"),
+        pack("generic", path = emptyList(), content = emptyList(), fallback = true),
+      ),
+      listOf(ReviewRoutingChangedFile("src/Main.kt", "class Main")),
+    )
+
+    assertEquals(setOf("generic"), result.routedSlugs)
+    assertEquals(mapOf("generic" to setOf("src/Main.kt")), result.ownedPathsBySlug)
+  }
+
+  @Test
+  fun `a changed file with no concrete platform pack routes to the declared fallback`() {
+    val result = ReviewStackRouting.route(
+      listOf(pack("generic", path = emptyList(), content = emptyList(), fallback = true)),
+      listOf(ReviewRoutingChangedFile("src/Main.kt", "class Main")),
+    )
+
+    assertEquals(setOf("generic"), result.routedSlugs)
+  }
+
+  @Test
   fun `clear concrete ownership excludes fallback and weaker content match`() {
     val result = ReviewStackRouting.route(
       listOf(

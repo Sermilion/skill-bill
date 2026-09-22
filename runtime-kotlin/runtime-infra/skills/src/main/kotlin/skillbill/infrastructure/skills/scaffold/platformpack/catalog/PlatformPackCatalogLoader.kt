@@ -26,6 +26,7 @@ import skillbill.scaffold.policy.platformpack.model.LoadedPlatformPack
 import skillbill.scaffold.policy.platformpack.model.PlatformPackSourceKind
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.logging.Logger
 
 data class PlatformPackDiscoveryContext(
   val repoRoot: Path,
@@ -148,6 +149,12 @@ class PlatformPackCatalogLoader(
     return childDirectories(packsRoot).map { packRoot -> packRoot.fileName.toString() }.toSet()
   }
 
+  private fun bundledPackDirectoryExists(context: PlatformPackDiscoveryContext, slug: String): Boolean {
+    if (slug.isEmpty()) return false
+    val packsRoot = context.repoRoot.toAbsolutePath().normalize().resolve("platform-packs")
+    return Files.isDirectory(packsRoot.resolve(slug))
+  }
+
   private fun externalPacksIncludingPending(
     context: PlatformPackDiscoveryContext,
     pendingExternalRoot: Path?,
@@ -177,7 +184,24 @@ class PlatformPackCatalogLoader(
         environment = context.environment,
       ),
     ).sources
-    return sources.map { source -> loadExternalPack(source, context) }
+    return sources.mapNotNull { source ->
+      val canonicalRoot = source.path.toPath().toAbsolutePath().normalize()
+      val slug = canonicalRoot.fileName?.toString().orEmpty()
+      if (!Files.isDirectory(canonicalRoot) && !bundledPackDirectoryExists(context, slug)) {
+        catalogLog.warning(
+          "external platform pack source skipped: seam=PlatformPackCatalogLoader.loadExternalPacks " +
+            "pack=$slug used=omitted expected=$canonicalRoot " +
+            "cause=the external directory is absent and no bundled pack directory exists",
+        )
+        null
+      } else if (!Files.isDirectory(canonicalRoot)) {
+        throw ExternalPlatformPackConfigError(
+          "External platform pack source '$canonicalRoot' does not resolve to an existing directory.",
+        )
+      } else {
+        loadExternalPack(source, context)
+      }
+    }
   }
 
   private fun loadExternalPack(
@@ -195,5 +219,9 @@ class PlatformPackCatalogLoader(
       sourceKind = PlatformPackSourceKind.EXTERNAL,
       canonicalRoot = canonicalRoot.toString(),
     )
+  }
+
+  private companion object {
+    val catalogLog: Logger = Logger.getLogger("skillbill.scaffold.platformpack.PlatformPackCatalogLoader")
   }
 }

@@ -58,6 +58,8 @@ import skillbill.model.toPath
 import skillbill.ports.install.platformpack.model.ExternalPlatformPackRootRequest
 import skillbill.ports.install.platformpack.model.PlatformPackCatalogRequest
 import skillbill.ports.repository.toFileLocation
+import skillbill.review.plan.ReviewStackRouting
+import skillbill.review.plan.model.ReviewRoutingChangedFile
 import skillbill.scaffold.model.DeclaredFiles
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
@@ -311,6 +313,38 @@ class ExternalPlatformPackCatalogIntegrationTest {
     assertFailsWith<InvalidManifestSchemaError> {
       InstallNativeAgentPlatformPackLoader.loadPlatformPack(kmpRoot, emptyList())
     }
+  }
+
+  @Test
+  fun `review uses generic when kotlin exists neither externally nor as a bundled pack`(@TempDir root: Path) {
+    val home = Files.createDirectories(root.resolve("home"))
+    val repo = Files.createDirectories(root.resolve("repo"))
+    val config = home.resolve("config.json")
+    writePack(
+      repo.resolve("platform-packs/generic"),
+      "generic",
+      "GENERIC_BASELINE_MARKER",
+      listOf("manifest-declared code-review fallback"),
+      PackFixtureOptions(fallback = true),
+    )
+    writePack(
+      repo.resolve("platform-packs/kmp"),
+      "kmp",
+      "KMP_BASELINE_MARKER",
+      listOf(".kt"),
+      PackFixtureOptions(gate = "kmp-gate", compositionSkill = "bill-kotlin-code-review"),
+    )
+    writeSources(config)
+
+    val absentNative = loader().loadEffectiveCatalog(context(repo, home, config))
+    assertEquals(null, absentNative.entryForSlug("kotlin"))
+    assertEquals(setOf("generic"), reviewRoute(absentNative.manifests))
+
+    writeSources(config, root.resolve("missing/kotlin"))
+    val absentExternal = loader().loadEffectiveCatalog(context(repo, home, config))
+    assertEquals(null, absentExternal.entryForSlug("kotlin"))
+    assertEquals(PlatformPackSourceKind.BUNDLED, absentExternal.entryForSlug("generic")?.loaded?.sourceKind)
+    assertEquals(setOf("generic"), reviewRoute(absentExternal.manifests))
   }
 
   @Test
@@ -678,6 +712,11 @@ class ExternalPlatformPackCatalogIntegrationTest {
     )
   }
 
+  private fun reviewRoute(manifests: List<PlatformManifest>): Set<String> = ReviewStackRouting.route(
+    manifests,
+    listOf(ReviewRoutingChangedFile("src/Main.kt", "class Main")),
+  ).routedSlugs
+
   private fun writeSources(config: Path, vararg packs: Path) {
     Files.createDirectories(config.parent)
     Files.writeString(
@@ -844,6 +883,10 @@ class ExternalPlatformPackCatalogIntegrationTest {
       appendLine("  strong:")
       appendLine(signals)
       appendLine("  tie_breakers: []")
+      if (options.fallback) {
+        appendLine("fallback_capabilities:")
+        appendLine("  - code-review")
+      }
       appendLine()
       append(packAreaYaml(options.areaMarker))
       appendLine("declared_files:")
@@ -917,4 +960,5 @@ private data class PackFixtureOptions(
   val contractVersion: String = SHELL_CONTRACT_VERSION,
   val areaMarker: String? = null,
   val compositionSkill: String? = null,
+  val fallback: Boolean = false,
 )

@@ -140,12 +140,6 @@ class FileExternalPlatformPackSourceConfigStore : ExternalPlatformPackSourceConf
 
   private fun parseEntry(configPath: Path, userHome: Path, index: Int, entry: Any?): ExternalPlatformPackSource {
     val resolvedPath = entryLocation(configPath, userHome, index, entry)
-    if (!Files.isDirectory(resolvedPath)) {
-      throw ExternalPlatformPackConfigError(
-        "External platform pack config at '$configPath': 'external_platform_pack_sources[$index].path' " +
-          "does not resolve to an existing directory at '$resolvedPath'.",
-      )
-    }
     return ExternalPlatformPackSource(path = resolvedPath.toFileLocation())
   }
 
