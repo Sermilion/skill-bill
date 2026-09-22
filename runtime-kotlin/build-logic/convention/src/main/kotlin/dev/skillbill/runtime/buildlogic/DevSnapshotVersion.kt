@@ -20,4 +20,4 @@ private fun parseStableSemver(tag: String): StableSemver? {
   return StableSemver(major.toInt(), minor.toInt(), patch.toInt())
 }
 
-private const val UNVERSIONED_SNAPSHOT = "0.0.0-SNAPSHOT"
+internal const val UNVERSIONED_SNAPSHOT = "0.0.0-SNAPSHOT"

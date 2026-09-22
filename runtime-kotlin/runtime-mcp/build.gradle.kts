@@ -4,6 +4,7 @@ plugins {
   alias(libs.plugins.ksp)
   application
   id("skillbill.jvm-library")
+  id("skillbill.repo-test")
   id("skillbill.quality")
 
   id("skillbill.runtime-image")

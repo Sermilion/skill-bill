@@ -2,6 +2,7 @@ import java.io.File
 
 plugins {
   id("skillbill.jvm-library")
+  id("skillbill.repo-test")
   id("skillbill.quality")
 }
 

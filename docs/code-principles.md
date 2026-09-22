@@ -208,20 +208,31 @@ site; a flag that is never flipped. `@OpenBoundaryMap` sites inventoried in
 
 **Rule.** Shared JVM test and toolchain settings live in convention plugins;
 module `build.gradle.kts` files do not re-declare what `configureKotlinJvm` already
-owns. Production Kotlin files stay within `PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING`
-unless explicitly exempted in that inventory.
+owns. An opt-in capability gets its own convention plugin rather than a filesystem
+probe inside a shared one: `skillbill.repo-test` wires the `repoTest` source set and
+fails at apply time when a module has no `src/repoTest/kotlin`. Production Kotlin
+files stay within `PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING` unless
+explicitly exempted in that inventory.
 
 **Preferred shapes.** `skillbill.jvm-library` convention applying
-`configureKotlinJvm`; file splits by verb family or responsibility within the same
-package; empty exemption map when the tree is clean.
+`configureKotlinJvm`; `skillbill.repo-test` applied after it by the six modules that
+carry repository-contract suites; every build-logic class in
+`dev.skillbill.runtime.buildlogic` with the fully qualified `implementationClass` in
+the `gradlePlugin` block; convention behavior asserted by `ProjectBuilder` tests in
+`build-logic/convention/src/test`; file splits by verb family or responsibility
+within the same package; empty exemption map when the tree is clean.
 
 **Anti-patterns.** Copy-pasting `update-snapshots` `systemProperty` into module
-build files; `@Suppress("LargeClass")` instead of splitting; applying the
+build files; a shared convention silently skipping its wiring when a directory is
+absent; asserting convention behavior by reading plugin source text from another
+module's test suite; `@Suppress("LargeClass")` instead of splitting; applying the
 production line-ceiling gate to test sources.
 
 **Reference examples.**
 
 - `runtime-kotlin/build-logic/convention/src/main/kotlin/dev/skillbill/runtime/buildlogic/Jvm.kt`
+- `runtime-kotlin/build-logic/convention/src/main/kotlin/dev/skillbill/runtime/buildlogic/RepoTestConventionPlugin.kt`
+- `runtime-kotlin/build-logic/convention/src/test/kotlin/dev/skillbill/runtime/buildlogic/RuntimeImageConventionPluginTest.kt`
 - `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ProductionFileLineCeilingArchitectureTest.kt`
 - `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ConventionReapplicationArchitectureTest.kt`
 

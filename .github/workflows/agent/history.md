@@ -1,5 +1,13 @@
 # .github/workflows — Boundary History
 
+## [2026-09-22] SKILL-368 subtask 1 — spotless ratchet fetch retired
+Areas: .github/workflows/validate-agent-configs.yml
+- `ratchetFrom("origin/main")` is gone from `Quality.kt`, so the `Fetch origin/main for Spotless ratchet` step has no consumer and is removed. This supersedes `[2026-08-26] spotless-ratchet-origin-main-fetch` and `[2026-09-04] spotless-ratchet-fetch-must-not-shallow`; both entries stay for the record and neither applies to the current workflow.
+- `actions/checkout` keeps `fetch-depth: 0` for a different reason: stable-tag version resolution needs the full tag list, and a shallow clone makes the runtime report `0.0.0-SNAPSHOT` and fails the update-check tests. Do not trade it for a shallow checkout now that the ratchet is gone. reusable
+- Spotless now formats the whole tree on every run instead of the diff against `origin/main`, which also makes `spotlessCheck` pass inside linked `git worktree` clones where jgit could not resolve the gitdir file.
+Feature flag: N/A
+Acceptance criteria: N/A (CI follow-up to AC-004)
+
 ## [2026-08-30] SKILL-222 subtask 2 — extension-release workflow
 Areas: .github/workflows/extension-release.yml, RELEASING.md, vscode-extension/README.md
 - Extension ships on its own `extension-v*.*.*` tag stream via dedicated `extension-release.yml`; runtime `release.yml` and `plugin-release.yml` stay independent — an extension tag never builds the runtime/plugin and vice versa. reusable

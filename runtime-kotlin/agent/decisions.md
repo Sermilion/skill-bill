@@ -4,6 +4,51 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-22] Build-logic declares one plugin classpath; modules keep ksp
+
+`build-logic:convention` declares the Kotlin, Spotless, Detekt, and Badass
+Runtime Gradle plugins as `implementation` rather than splitting them between
+`compileOnly` in build-logic and `apply false` aliases in
+`runtime-kotlin/build.gradle.kts`. Two half-strategies meant the version catalog
+was read from two places and a convention plugin could compile against a plugin
+the root build never put on the classpath. One `implementation` classpath makes
+the convention plugins self-contained, so build-logic's own tests can apply them
+through `ProjectBuilder`.
+
+`ksp` is the deliberate exception: no convention plugin applies or configures it,
+so an `implementation` entry would be an unused dependency. `runtime-core`,
+`runtime-cli`, and `runtime-mcp` keep `alias(libs.plugins.ksp)` in their own
+`plugins` blocks, and the version catalog stays the single version source either
+way.
+
+## [2026-09-22] Spotless has no ratchet; .editorconfig is the only formatter source
+
+`ratchetFrom("origin/main")` is removed. The ratchet made formatting depend on a
+ref that is absent in fresh CI checkouts and unresolvable from linked
+`git worktree` clones (jgit does not follow gitdir files), so it cost a CI fetch
+step and broke worktree-based work for a guarantee the tree did not need. Spotless
+now formats every file it targets.
+
+The ktlint `editorConfigOverride` maps are removed with it. `runtime-kotlin/.editorconfig`
+is `root = true` and the only `.editorconfig` in the repository, so ktlint, Detekt
+`MaxLineLength`, and the IDE all read the same 120-column limit and the same
+trailing-comma settings from one file instead of two Kotlin maps that had to be
+kept identical by hand.
+
+## [2026-09-22] Convention-plugin tests live in build-logic, not runtime-core
+
+Behavior owned by a convention plugin is asserted in
+`build-logic/convention/src/test` with `ProjectBuilder`, against the observable
+task graph and task properties. `runtime-core`'s architecture suite cannot apply
+build-logic plugins, so its only alternative was reading plugin source text and
+asserting on substrings — a test that passes when the wiring is broken and fails
+when the source is merely reformatted. `RuntimeGradleModuleLayeringTest` keeps the
+assertions it can make from the repository layout (declared modules, nested
+directories, dependency direction) and no longer reads plugin sources.
+
+`ProjectBuilder` only; no Gradle TestKit and no nested Gradle process, so these
+tests stay cheap enough to run under every `check`.
+
 ## [2026-09-19] Runtime package sibling ceilings
 
 Production packages use a 12-sibling ceiling for non-model noun families and a

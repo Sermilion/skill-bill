@@ -68,16 +68,7 @@ class RuntimeGradleModuleLayeringTest {
   }
 
   @Test
-  fun `nested library builds use the prefixed archive convention`() {
-    val convention = Files.readString(
-      runtimeRoot.resolve(
-        "runtime-kotlin/build-logic/convention/src/main/kotlin/JvmLibraryConventionPlugin.kt",
-      ),
-    )
-    assertContains(
-      convention,
-      "archiveBaseName.set(\"${'$'}parentName-${'$'}{project.name}\")",
-    )
+  fun `nested library builds apply the jvm-library convention`() {
     nestedInfrastructureModules.forEach { moduleName ->
       val build = Files.readString(
         runtimeRoot.resolve(

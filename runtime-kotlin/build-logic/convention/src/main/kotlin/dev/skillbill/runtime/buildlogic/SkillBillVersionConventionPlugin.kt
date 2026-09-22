@@ -1,4 +1,5 @@
-import dev.skillbill.runtime.buildlogic.resolveSkillBillVersion
+package dev.skillbill.runtime.buildlogic
+
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -15,7 +16,9 @@ private fun gitListedVersionTags(project: Project): List<String> {
     isIgnoreExitValue = true
   }
   return try {
-    if (listed.result.get().exitValue != 0) {
+    val exitValue = listed.result.get().exitValue
+    if (exitValue != 0) {
+      project.logger.warn(versionTagFallbackMessage("git tag -l exited with $exitValue"))
       emptyList()
     } else {
       listed.standardOutput.asText.get()
@@ -24,7 +27,12 @@ private fun gitListedVersionTags(project: Project): List<String> {
         .filter(String::isNotEmpty)
         .toList()
     }
-  } catch (_: Exception) {
+  } catch (expectedGitFailure: Exception) {
+    project.logger.warn(versionTagFallbackMessage(expectedGitFailure.toString()), expectedGitFailure)
     emptyList()
   }
 }
+
+private fun versionTagFallbackMessage(cause: String): String =
+  "Cannot list git version tags ($cause). Falling back to the unversioned $UNVERSIONED_SNAPSHOT build version; " +
+    "release artifacts built from this checkout will not carry a release version."

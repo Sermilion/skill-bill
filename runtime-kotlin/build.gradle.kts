@@ -1,10 +1,6 @@
 plugins {
   id("skillbill.version")
   base
-  alias(libs.plugins.kotlin.jvm) apply false
-  alias(libs.plugins.ksp) apply false
-  alias(libs.plugins.spotless) apply false
-  alias(libs.plugins.detekt) apply false
 }
 
 group = "dev.skillbill"

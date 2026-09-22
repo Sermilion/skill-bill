@@ -1,5 +1,8 @@
+import dev.skillbill.runtime.buildlogic.GovernedResourceEntry
+
 plugins {
   id("skillbill.jvm-library")
+  id("skillbill.repo-test")
   id("skillbill.quality")
   id("skillbill.governed-resources")
 }
