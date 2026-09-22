@@ -403,13 +403,16 @@ object FeatureTaskRuntimeRunLoopDrive {
   }
 
   internal fun FeatureTaskRuntimeRunLoopContext.runPhaseDriveLoop(advance: (String) -> PhaseSettlement) {
-    val explicitResumePhase = request.goalContinuation?.lastResumableStep
+    val explicitResume = request.goalContinuation?.lastResumableStep
       ?.takeIf(String::isNotBlank)
-    if (explicitResumePhase != null) {
-      state.reopenFromExplicitResume(explicitResumePhase)
+      ?.let(state::explicitResumeStart)
+    if (explicitResume != null) {
+      if (explicitResume.reopen) {
+        state.reopenFromExplicitResume(explicitResume.phaseId)
+      }
       session.transitionReentryPair(null, null)
     }
-    var phaseId: String? = explicitResumePhase
+    var phaseId: String? = explicitResume?.phaseId
       ?: session.pendingReentry?.phaseId
       ?: transitions.forwardPhaseIds.first()
     while (phaseId != null) {

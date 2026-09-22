@@ -248,6 +248,12 @@ class FeatureTaskRuntimeRunState(
     fixLoopBudgetBaseByPhase[phaseId] = maxOf(nextIteration(phaseId) - 1, 0)
   }
 
+  fun explicitResumeStart(requestedPhaseId: String): ExplicitResumeStart {
+    val preservedAudit = finishedAuditResume(requestedPhaseId)
+    if (preservedAudit != null) return preservedAudit
+    return ExplicitResumeStart(requestedPhaseId, reopen = true)
+  }
+
   fun reopenFromExplicitResume(phaseId: String) {
     val start = transitions.forwardPhaseIds.indexOf(phaseId)
     require(start >= 0) { "Unknown explicit resume phase '$phaseId'." }
@@ -261,6 +267,22 @@ class FeatureTaskRuntimeRunState(
     inFlightReentries.clear()
     edgeIterationByLoop.clear()
     liveClaimedLoops.clear()
+  }
+
+  private fun finishedAuditResume(requestedPhaseId: String): ExplicitResumeStart? {
+    val auditPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
+    if (requestedPhaseId != auditPhaseId || !isComplete(auditPhaseId)) return null
+    val auditIndex = transitions.forwardPhaseIds.indexOf(auditPhaseId)
+    if (auditIndex < 0) return null
+    val laterPhaseIds = transitions.forwardPhaseIds.drop(auditIndex + 1)
+    val furthestLater = laterPhaseIds.lastOrNull { phaseId ->
+      hasPriorRecord(phaseId) || isComplete(phaseId)
+    }
+    if (furthestLater != null) {
+      return ExplicitResumeStart(furthestLater, reopen = !isComplete(furthestLater))
+    }
+    val nextPhaseId = laterPhaseIds.firstOrNull() ?: return null
+    return ExplicitResumeStart(nextPhaseId, reopen = true)
   }
 
   fun invalidateProducerOutput(phaseId: String) {
@@ -436,6 +458,8 @@ class FeatureTaskRuntimeRunState(
     return FeatureTaskRuntimeOutputVerification.verdictFor(phaseId, parsedOutput(output))
   }
 }
+
+data class ExplicitResumeStart(val phaseId: String, val reopen: Boolean)
 
 internal data class FeatureTaskRuntimeNonOutputAttempt(val paused: Boolean, val reason: String)
 
