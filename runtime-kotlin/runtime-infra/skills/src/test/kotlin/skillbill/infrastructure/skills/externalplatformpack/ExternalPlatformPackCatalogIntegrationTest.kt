@@ -12,6 +12,7 @@ import skillbill.error.shellcontent.InvalidManifestSchemaError
 import skillbill.error.shellcontent.MissingContentFileError
 import skillbill.error.shellcontent.MissingValidationGateError
 import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentOperations
+import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentPlatformPackLoader
 import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOverrides
 import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest
 import skillbill.infrastructure.skills.install.nativeagent.install.native.ProviderMutationJournal
@@ -19,10 +20,6 @@ import skillbill.infrastructure.skills.install.nativeagent.install.native.effect
 import skillbill.infrastructure.skills.install.nativeagent.install.native.installNativeAgentCompositionContext
 import skillbill.infrastructure.skills.install.nativeagent.install.native.publishInstalledReviewCatalog
 import skillbill.infrastructure.skills.install.nativeagent.install.native.uninstallNativeAgentFiles
-import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderOverrides
-import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderRequest
-import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
-import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.install.plan.buildInstallStagingIntent
 import skillbill.infrastructure.skills.install.plan.discoverPlatformManifests
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceRoots
@@ -30,6 +27,10 @@ import skillbill.infrastructure.skills.install.reconcile.reconcileEnumerationReq
 import skillbill.infrastructure.skills.install.reconcile.skillRelativePath
 import skillbill.infrastructure.skills.install.staging.staging.content.InstallContentHashInputs
 import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
+import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderOverrides
+import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderRequest
+import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
+import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.scaffold.authoring.AuthoringOperations
 import skillbill.infrastructure.skills.scaffold.authoring.resolveTarget
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
@@ -54,6 +55,8 @@ import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
 import skillbill.model.toPath
+import skillbill.ports.install.platformpack.model.ExternalPlatformPackRootRequest
+import skillbill.ports.install.platformpack.model.PlatformPackCatalogRequest
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.DeclaredFiles
 import skillbill.scaffold.model.PlatformManifest
@@ -136,140 +139,17 @@ class ExternalPlatformPackCatalogIntegrationTest {
 
   @Test
   fun `native agent generation reads the effective external pack source`(@TempDir root: Path) {
-    val home = Files.createDirectories(root.resolve("home"))
-    val repo = Files.createDirectories(root.resolve("repo"))
-    val config = home.resolve("config.json")
-    seedExternalKotlinReplacement(root, repo, config)
-    Files.createDirectories(repo.resolve("skills"))
-    val external = root.resolve("external/kotlin")
-    val bundledAgents = repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review/native-agents")
-    val externalAgents = external.resolve("code-review/bill-kotlin-code-review/native-agents")
-    Files.createDirectories(bundledAgents)
-    Files.createDirectories(externalAgents)
-    Files.writeString(
-      bundledAgents.resolve("agents.yaml"),
-      nativeAgentBundle("BUNDLED_AGENT_MARKER"),
-    )
-    Files.writeString(
-      externalAgents.resolve("agents.yaml"),
-      nativeAgentBundle("EXTERNAL_AGENT_MARKER"),
-    )
-
-    val environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString())
-    Files.createDirectories(home.resolve(".claude"))
-    fun link(roots: List<Path>): Path {
-      val outcome = InstallNativeAgentOperations.linkClaudeAgents(
-        NativeAgentLinkRequest(
-          platformPacksRoot = repo.resolve("platform-packs"),
-          skillsRoot = repo.resolve("skills"),
-          home = home,
-          selectedPlatforms = listOf("kotlin"),
-          overrides = NativeAgentLinkOverrides(
-            installCacheRoot = root.resolve("native-agent-link-cache"),
-            sourceRoots = roots,
-          ),
-          environment = environment,
-          catalogLoader = loader(),
-        ),
-      )
-      return (outcome.linked + outcome.skipped.map { skipped -> skipped.path })
-        .single { path -> path.fileName.toString() == "bill-kotlin-code-review.md" }
-    }
-
-    val effectiveRoots = effectivePackRootsForInstall(
-      platformPacksRoot = repo.resolve("platform-packs"),
-      userHome = home,
-      environment = environment,
-      selectedPlatforms = listOf("kotlin"),
-      catalogLoader = loader(),
-    )
-    val rendered = NativeAgentOperations.renderInstallArtifacts(
-      NativeAgentInstallRenderRequest(
-        platformPacksRoot = repo.resolve("platform-packs"),
-        skillsRoot = repo.resolve("skills"),
-        selectedPlatforms = listOf("kotlin"),
-        provider = NativeAgentProvider.Claude,
-        home = home,
-        compositionContext = installNativeAgentCompositionContext(effectiveRoots),
-        overrides = NativeAgentInstallRenderOverrides(
-          cacheRoot = root.resolve("native-agent-cache"),
-          sourceRoots = effectiveRoots,
-        ),
-      ),
-    )
-
-    val artifact = rendered.generatedFiles.single { path ->
-      path.fileName.toString() == "bill-kotlin-code-review.md"
-    }
-    assertTrue(Files.readString(artifact).contains("EXTERNAL_AGENT_MARKER"))
-    assertFalse(Files.readString(artifact).contains("BUNDLED_AGENT_MARKER"))
-    val linkedArtifact = link(effectiveRoots)
-    assertTrue(Files.readString(linkedArtifact).contains("EXTERNAL_AGENT_MARKER"))
+    val fixture = nativeAgentFixture(root)
+    assertNativeAgentMarker(fixture, "EXTERNAL_AGENT_MARKER", "BUNDLED_AGENT_MARKER")
 
     Files.writeString(
-      externalAgents.resolve("agents.yaml"),
+      fixture.externalAgents.resolve("agents.yaml"),
       nativeAgentBundle("EDITED_AGENT_MARKER"),
     )
-    val editedRoots = effectivePackRootsForInstall(
-      platformPacksRoot = repo.resolve("platform-packs"),
-      userHome = home,
-      environment = environment,
-      selectedPlatforms = listOf("kotlin"),
-      catalogLoader = loader(),
-    )
-    val edited = NativeAgentOperations.renderInstallArtifacts(
-      NativeAgentInstallRenderRequest(
-        platformPacksRoot = repo.resolve("platform-packs"),
-        skillsRoot = repo.resolve("skills"),
-        selectedPlatforms = listOf("kotlin"),
-        provider = NativeAgentProvider.Claude,
-        home = home,
-        compositionContext = installNativeAgentCompositionContext(editedRoots),
-        overrides = NativeAgentInstallRenderOverrides(
-          cacheRoot = root.resolve("native-agent-cache"),
-          sourceRoots = editedRoots,
-        ),
-      ),
-    )
-    val editedArtifact = edited.generatedFiles.single { path ->
-      path.fileName.toString() == "bill-kotlin-code-review.md"
-    }
-    assertTrue(Files.readString(editedArtifact).contains("EDITED_AGENT_MARKER"))
-    assertFalse(Files.readString(editedArtifact).contains("EXTERNAL_AGENT_MARKER"))
-    val editedLinkedArtifact = link(editedRoots)
-    assertTrue(Files.readString(editedLinkedArtifact).contains("EDITED_AGENT_MARKER"))
-    assertFalse(Files.readString(editedLinkedArtifact).contains("EXTERNAL_AGENT_MARKER"))
+    assertNativeAgentMarker(fixture, "EDITED_AGENT_MARKER", "EXTERNAL_AGENT_MARKER")
 
-    writeSources(config)
-    val restoredRoots = effectivePackRootsForInstall(
-      platformPacksRoot = repo.resolve("platform-packs"),
-      userHome = home,
-      environment = environment,
-      selectedPlatforms = listOf("kotlin"),
-      catalogLoader = loader(),
-    )
-    val restored = NativeAgentOperations.renderInstallArtifacts(
-      NativeAgentInstallRenderRequest(
-        platformPacksRoot = repo.resolve("platform-packs"),
-        skillsRoot = repo.resolve("skills"),
-        selectedPlatforms = listOf("kotlin"),
-        provider = NativeAgentProvider.Claude,
-        home = home,
-        compositionContext = installNativeAgentCompositionContext(restoredRoots),
-        overrides = NativeAgentInstallRenderOverrides(
-          cacheRoot = root.resolve("native-agent-cache"),
-          sourceRoots = restoredRoots,
-        ),
-      ),
-    )
-    val restoredArtifact = restored.generatedFiles.single { path ->
-      path.fileName.toString() == "bill-kotlin-code-review.md"
-    }
-    assertTrue(Files.readString(restoredArtifact).contains("BUNDLED_AGENT_MARKER"))
-    assertFalse(Files.readString(restoredArtifact).contains("EDITED_AGENT_MARKER"))
-    val restoredLinkedArtifact = link(restoredRoots)
-    assertTrue(Files.readString(restoredLinkedArtifact).contains("BUNDLED_AGENT_MARKER"))
-    assertFalse(Files.readString(restoredLinkedArtifact).contains("EDITED_AGENT_MARKER"))
+    writeSources(fixture.config)
+    assertNativeAgentMarker(fixture, "BUNDLED_AGENT_MARKER", "EDITED_AGENT_MARKER")
   }
 
   @Test
@@ -391,6 +271,46 @@ class ExternalPlatformPackCatalogIntegrationTest {
       loader().loadEffectiveCatalog(context(repo, home, config))
     }
     assertFalse(error.message.orEmpty().contains("BUNDLED_AREA_MARKER"))
+  }
+
+  @Test
+  fun `registration accepts external kotlin when bundled kotlin is absent and kmp requires it`(@TempDir root: Path) {
+    val home = Files.createDirectories(root.resolve("home"))
+    val repo = Files.createDirectories(root.resolve("repo"))
+    val config = home.resolve("config.json")
+    val external = root.resolve("external/kotlin")
+    writePack(external, "kotlin", "EXTERNAL_BASELINE_MARKER", listOf(".kt"), "external-gate")
+    writePack(
+      repo.resolve("platform-packs/kmp"),
+      "kmp",
+      "KMP_BASELINE_MARKER",
+      listOf("kmp-marker"),
+      PackFixtureOptions(gate = "kmp-gate", compositionSkill = "bill-kotlin-code-review"),
+    )
+    writeSources(config)
+
+    val slug = loader().assertRegistrableExternalPack(
+      ExternalPlatformPackRootRequest(
+        packRoot = external,
+        catalog = PlatformPackCatalogRequest(
+          repoRoot = repo,
+          userHome = home,
+          environment = mapOf(CONFIG_ENVIRONMENT_KEY to config.toString()),
+        ),
+      ),
+    ).slug
+
+    assertEquals("kotlin", slug)
+    assertFalse(Files.isDirectory(repo.resolve("platform-packs/kotlin")))
+
+    val kmpRoot = repo.resolve("platform-packs/kmp")
+    InstallNativeAgentPlatformPackLoader.loadPlatformPack(
+      kmpRoot,
+      listOf(external, kmpRoot),
+    )
+    assertFailsWith<InvalidManifestSchemaError> {
+      InstallNativeAgentPlatformPackLoader.loadPlatformPack(kmpRoot, emptyList())
+    }
   }
 
   @Test
@@ -716,19 +636,15 @@ class ExternalPlatformPackCatalogIntegrationTest {
     assertEquals("SECRET_POINTER_BYTES\n", Files.readString(outside))
   }
 
-  private fun pointerHash(
-    skill: Path,
-    manifest: PlatformManifest,
-    pointer: PointerSpec,
-    checkout: Path,
-  ): String = computeInstallContentHash(
-    InstallContentHashInputs(
-      sourceSkillDir = skill,
-      authored = listOf(skill.resolve("content.md")),
-      applicablePointers = listOf(manifest to pointer),
-      checkoutRepoRoot = checkout,
-    ),
-  )
+  private fun pointerHash(skill: Path, manifest: PlatformManifest, pointer: PointerSpec, checkout: Path): String =
+    computeInstallContentHash(
+      InstallContentHashInputs(
+        sourceSkillDir = skill,
+        authored = listOf(skill.resolve("content.md")),
+        applicablePointers = listOf(manifest to pointer),
+        checkoutRepoRoot = checkout,
+      ),
+    )
 
   private fun loader() = PlatformPackCatalogLoader(FileExternalPlatformPackSourceConfigStore())
 
@@ -775,6 +691,91 @@ class ExternalPlatformPackCatalogIntegrationTest {
         ),
       ) + "\n",
     )
+  }
+
+  private data class NativeAgentFixture(
+    val root: Path,
+    val home: Path,
+    val repo: Path,
+    val config: Path,
+    val externalAgents: Path,
+  )
+
+  private fun nativeAgentFixture(root: Path): NativeAgentFixture {
+    val home = Files.createDirectories(root.resolve("home"))
+    val repo = Files.createDirectories(root.resolve("repo"))
+    val config = home.resolve("config.json")
+    seedExternalKotlinReplacement(root, repo, config)
+    Files.createDirectories(repo.resolve("skills"))
+    val bundledAgents = repo.resolve("platform-packs/kotlin/code-review/bill-kotlin-code-review/native-agents")
+    val externalAgents = root.resolve("external/kotlin/code-review/bill-kotlin-code-review/native-agents")
+    Files.createDirectories(bundledAgents)
+    Files.createDirectories(externalAgents)
+    Files.writeString(
+      bundledAgents.resolve("agents.yaml"),
+      nativeAgentBundle("BUNDLED_AGENT_MARKER"),
+    )
+    Files.writeString(
+      externalAgents.resolve("agents.yaml"),
+      nativeAgentBundle("EXTERNAL_AGENT_MARKER"),
+    )
+    Files.createDirectories(home.resolve(".claude"))
+    return NativeAgentFixture(root, home, repo, config, externalAgents)
+  }
+
+  private fun assertNativeAgentMarker(fixture: NativeAgentFixture, expected: String, unexpected: String) {
+    val roots = effectivePackRootsForInstall(
+      platformPacksRoot = fixture.repo.resolve("platform-packs"),
+      userHome = fixture.home,
+      environment = mapOf(CONFIG_ENVIRONMENT_KEY to fixture.config.toString()),
+      selectedPlatforms = listOf("kotlin"),
+      catalogLoader = loader(),
+    )
+    val rendered = renderNativeAgent(fixture, roots)
+    assertTrue(Files.readString(rendered).contains(expected))
+    assertFalse(Files.readString(rendered).contains(unexpected))
+    val linked = linkNativeAgent(fixture, roots)
+    assertTrue(Files.readString(linked).contains(expected))
+    assertFalse(Files.readString(linked).contains(unexpected))
+  }
+
+  private fun renderNativeAgent(fixture: NativeAgentFixture, roots: List<Path>): Path {
+    val rendered = NativeAgentOperations.renderInstallArtifacts(
+      NativeAgentInstallRenderRequest(
+        platformPacksRoot = fixture.repo.resolve("platform-packs"),
+        skillsRoot = fixture.repo.resolve("skills"),
+        selectedPlatforms = listOf("kotlin"),
+        provider = NativeAgentProvider.Claude,
+        home = fixture.home,
+        compositionContext = installNativeAgentCompositionContext(roots),
+        overrides = NativeAgentInstallRenderOverrides(
+          cacheRoot = fixture.root.resolve("native-agent-cache"),
+          sourceRoots = roots,
+        ),
+      ),
+    )
+    return rendered.generatedFiles.single { path ->
+      path.fileName.toString() == "bill-kotlin-code-review.md"
+    }
+  }
+
+  private fun linkNativeAgent(fixture: NativeAgentFixture, roots: List<Path>): Path {
+    val outcome = InstallNativeAgentOperations.linkClaudeAgents(
+      NativeAgentLinkRequest(
+        platformPacksRoot = fixture.repo.resolve("platform-packs"),
+        skillsRoot = fixture.repo.resolve("skills"),
+        home = fixture.home,
+        selectedPlatforms = listOf("kotlin"),
+        overrides = NativeAgentLinkOverrides(
+          installCacheRoot = fixture.root.resolve("native-agent-link-cache"),
+          sourceRoots = roots,
+        ),
+        environment = mapOf(CONFIG_ENVIRONMENT_KEY to fixture.config.toString()),
+        catalogLoader = loader(),
+      ),
+    )
+    return (outcome.linked + outcome.skipped.map { skipped -> skipped.path })
+      .single { path -> path.fileName.toString() == "bill-kotlin-code-review.md" }
   }
 
   private fun seedExternalKotlinReplacement(root: Path, repo: Path, config: Path) {

@@ -12,6 +12,7 @@ import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_C
 import skillbill.install.model.ExternalPlatformPackSource
 import skillbill.model.toPath
 import skillbill.ports.install.platformpack.ExternalPlatformPackSourceConfigPort
+import skillbill.ports.repository.toFileLocation
 import skillbill.ports.install.platformpack.PlatformPackCatalogPort
 import skillbill.ports.install.platformpack.model.ExternalPlatformPackRootRequest
 import skillbill.ports.install.platformpack.model.ExternalPlatformPackRootResult
@@ -53,8 +54,11 @@ class PlatformPackCatalogLoader(
   fun loadEffectiveCatalog(context: PlatformPackDiscoveryContext): EffectivePlatformPackCatalog =
     loadEffectiveCatalogInternal(context)
 
-  private fun loadEffectiveCatalogInternal(context: PlatformPackDiscoveryContext): EffectivePlatformPackCatalog {
-    val external = loadExternalPacks(context)
+  private fun loadEffectiveCatalogInternal(
+    context: PlatformPackDiscoveryContext,
+    pendingExternalRoot: Path? = null,
+  ): EffectivePlatformPackCatalog {
+    val external = externalPacksIncludingPending(context, pendingExternalRoot)
     val shadowedSlugs = external.map { pack -> pack.manifest.slug }.toSet()
     val bundled = loadBundledPacks(context, shadowedSlugs)
     val catalog = buildEffectivePlatformPackCatalog(
@@ -89,7 +93,15 @@ class PlatformPackCatalogLoader(
         "Pack path '$normalized' does not resolve to an existing directory.",
       )
     }
-    val catalog = loadEffectiveCatalog(request.catalog).catalog
+    val catalog = loadEffectiveCatalogInternal(
+      PlatformPackDiscoveryContext(
+        repoRoot = request.catalog.repoRoot,
+        userHome = request.catalog.userHome,
+        environment = request.catalog.environment,
+        enforceContractVersion = request.catalog.enforceContractVersion,
+      ),
+      pendingExternalRoot = normalized,
+    )
     val incoming = loadPlatformPack(normalized, catalog.manifestsBySlug)
     val billSharedRoot = request.catalog.repoRoot.toAbsolutePath().normalize().resolve(".bill-shared")
     assertExternalPackContentPresent(incoming)
@@ -134,6 +146,28 @@ class PlatformPackCatalogLoader(
       return emptySet()
     }
     return childDirectories(packsRoot).map { packRoot -> packRoot.fileName.toString() }.toSet()
+  }
+
+  private fun externalPacksIncludingPending(
+    context: PlatformPackDiscoveryContext,
+    pendingExternalRoot: Path?,
+  ): List<LoadedPlatformPack> {
+    val registered = loadExternalPacks(context)
+    val pendingRoot = pendingExternalRoot?.toAbsolutePath()?.normalize() ?: return registered
+    val pending = loadExternalPack(ExternalPlatformPackSource(pendingRoot.toFileLocation()), context)
+    val conflict = registered.any { pack ->
+      pack.manifest.slug == pending.manifest.slug && pack.canonicalRoot != pending.canonicalRoot
+    }
+    if (conflict) {
+      throw AmbiguousExternalPlatformPackError(
+        "External platform pack slug '${pending.manifest.slug}' is already registered at a different root.",
+      )
+    }
+    return if (registered.any { pack -> pack.canonicalRoot == pending.canonicalRoot }) {
+      registered
+    } else {
+      registered + pending
+    }
   }
 
   private fun loadExternalPacks(context: PlatformPackDiscoveryContext): List<LoadedPlatformPack> {

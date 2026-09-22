@@ -11,7 +11,7 @@ import skillbill.infrastructure.skills.install.staging.staging.content.INSTALL_C
 import skillbill.infrastructure.skills.install.staging.staging.content.InstallContentHashInputs
 import skillbill.infrastructure.skills.install.staging.staging.content.agentAddonPointersForSkill
 import skillbill.infrastructure.skills.install.staging.staging.content.authoredStagingNames
-import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
+import skillbill.infrastructure.skills.install.staging.staging.content.computeReconciliationContentHash
 import skillbill.infrastructure.skills.install.staging.staging.content.validateAgentAddonPointerNamespace
 import skillbill.infrastructure.skills.install.staging.staging.sidecar.InternalStagingPreparation
 import skillbill.infrastructure.skills.install.staging.staging.sidecar.prepareInternalStaging
@@ -253,7 +253,7 @@ private fun reconcileSkillHash(
       listOf("SKILL.md", ".content-hash"),
     agentAddonPointers,
   )
-  return computeInstallContentHash(
+  return computeReconciliationContentHash(
     InstallContentHashInputs(
       sourceSkillDir = skill.sourceDir.toPath(),
       authored = authored,

@@ -92,17 +92,21 @@ internal fun publishInstalledReviewCatalog(
     stageReviewCatalogPacks(platformPacksRoot, selectedPlatforms, staging, effectivePackRoots)
   }.exceptionOrNull()
   if (failure != null) {
-    if (failure is CancellationException) throw failure
     deleteRecursively(staging)
-    throw retainedCatalogFailure(failure)
+    throwCatalogStageFailure(failure)
   }
   val publishFailure = runCatching {
     journalReviewCatalogSwap(catalogRoot, staging, journal)
     swapReviewCatalogIntoPlace(catalogRoot, staging, superseded)
   }.exceptionOrNull()
-  if (publishFailure != null) {
-    throw retainedCatalogFailure(publishFailure, platformPacksRoot, effectivePackRoots)
+  publishFailure?.let { failure ->
+    throw retainedCatalogFailure(failure, platformPacksRoot, effectivePackRoots)
   }
+}
+
+private fun throwCatalogStageFailure(error: Throwable): Nothing {
+  if (error is CancellationException) throw error
+  throw retainedCatalogFailure(error)
 }
 
 internal fun deleteRecursively(root: Path) {

@@ -1,6 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.adapters
 
-import me.tatarka.inject.annotations.Inject
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.error.shellcontent.MissingRequiredSectionError
 import skillbill.infrastructure.skills.agentaddon.discoverAgentAddons
@@ -25,11 +24,11 @@ import java.nio.file.Files
 import java.nio.file.Path
 import skillbill.scaffold.policy.scaffold.parseBaselineLayerPayload as policyParseBaselineLayerPayload
 
-@Inject
 class FileSystemScaffoldRepoValidation(
   private val environmentContext: EnvironmentContext? = null,
   private val catalogLoader: PlatformPackCatalogLoader? = null,
 ) : ScaffoldRepoValidationPort {
+
   override fun validateAuthoringTarget(
     request: ScaffoldAuthoringValidationRequest,
   ): ScaffoldAuthoringValidationResult {

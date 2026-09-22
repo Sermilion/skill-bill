@@ -22,9 +22,11 @@ internal object FileSystemNativeAgentComposition {
     return composeNativeAgentSource(
       repoRoot = normalizedRoot,
       source = source,
-      reviewContextBudgetBytes = budget,
-      renderGovernedBody = ::renderAuthoredContentBody,
-      packLoader = packLoader,
+      context = NativeAgentCompositionContext(
+        reviewContextBudgetBytes = budget,
+        renderGovernedBody = ::renderAuthoredContentBody,
+        packLoader = packLoader,
+      ),
     )
   }
 }

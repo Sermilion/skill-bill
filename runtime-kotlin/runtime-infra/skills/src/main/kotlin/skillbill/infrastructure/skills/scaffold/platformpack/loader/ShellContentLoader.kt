@@ -34,7 +34,10 @@ internal fun loadPlatformPack(
   validatePlatformPackFallbacks(closure)
   validatePlatformPack(pack, SHELL_CONTRACT_VERSION)
   if (enforceGovernedReviewStructure) {
-    ReviewSkillStructureValidator.validate(pack.packRoot.toPath())
+    ReviewSkillStructureValidator.validate(
+      pack.packRoot.toPath(),
+      compositionCatalog.mapValues { (_, inherited) -> inherited.packRoot.toPath().toAbsolutePath().normalize() },
+    )
   }
   return pack
 }

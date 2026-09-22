@@ -7,6 +7,7 @@ import skillbill.infrastructure.skills.install.plan.installSkill
 import skillbill.infrastructure.skills.install.plan.resolveInstallEnvironment
 import skillbill.infrastructure.skills.install.plan.resolveInstallHome
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
+import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
 import skillbill.infrastructure.skills.scaffold.runtime.service.ADD_ON_INSTALL_NOTE
 import skillbill.infrastructure.skills.scaffold.runtime.service.PLATFORM_PACK_INSTALL_NOTE
@@ -49,7 +50,7 @@ internal fun performScaffoldInstall(
   }
   val packsRoot = repoRoot.resolve("platform-packs")
   val manifests = runtime.catalogLoader?.loadEffectiveManifests(
-    skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext(
+    PlatformPackDiscoveryContext(
       repoRoot = repoRoot,
       userHome = home,
       environment = environment,

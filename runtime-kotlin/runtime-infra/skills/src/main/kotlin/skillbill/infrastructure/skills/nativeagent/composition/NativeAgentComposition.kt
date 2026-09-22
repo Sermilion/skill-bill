@@ -34,6 +34,7 @@ internal fun resolveNativeAgentCompositionTarget(
   repoRoot: Path,
   source: NativeAgentSource,
   packLoader: NativeAgentPlatformPackLoader,
+  additionalPackRoots: List<Path> = emptyList(),
 ): NativeAgentCompositionTarget? {
   if (source.composition == null) {
     return null
@@ -45,9 +46,16 @@ internal fun resolveNativeAgentCompositionTarget(
     "native agent composition resolution requires a source path"
   }.toAbsolutePath().normalize()
   val root = repoRoot.toAbsolutePath().normalize()
-  val packRoot = platformPackRoot(root, sourcePath)
+  val packRoot = platformPackRoot(root, sourcePath, additionalPackRoots)
   return if (packRoot != null) {
-    resolvePlatformManifestContentTarget(root, packRoot, sourcePath, source, packLoader)
+    resolvePlatformManifestContentTarget(
+      root,
+      packRoot,
+      sourcePath,
+      source,
+      packLoader,
+      additionalPackRoots,
+    )
   } else {
     resolveSiblingContentTarget(sourcePath, source)
   } ?: throw IllegalArgumentException(
@@ -71,12 +79,15 @@ internal fun nativeAgentCompositionRepoRoot(platformPacksRoot: Path, skillsRoot:
 internal fun composeNativeAgentSource(
   repoRoot: Path,
   source: NativeAgentSource,
-  reviewContextBudgetBytes: Long,
-  renderGovernedBody: (Path, String) -> String,
-  packLoader: NativeAgentPlatformPackLoader,
+  context: NativeAgentCompositionContext,
 ): NativeAgentSource {
-  val target = resolveNativeAgentCompositionTarget(repoRoot, source, packLoader) ?: return source
-  val governedBody = renderGovernedBody(target.contentPath, source.name).trimEnd()
+  val target = resolveNativeAgentCompositionTarget(
+    repoRoot,
+    source,
+    context.packLoader,
+    context.additionalPackRoots,
+  ) ?: return source
+  val governedBody = context.renderGovernedBody(target.contentPath, source.name).trimEnd()
   val localFraming = source.body.trim()
   val composedBody = buildString {
     if (localFraming.isNotBlank()) {
@@ -85,7 +96,7 @@ internal fun composeNativeAgentSource(
     }
     append(governedBody)
   }.trimEnd()
-  val governed = composeGovernedAgentBody(repoRoot, target, composedBody)
+  val governed = composeGovernedAgentBody(repoRoot, target, composedBody, context.additionalPackRoots)
   val composed = source.copy(
     body = governed.body,
     composition = null,
@@ -98,7 +109,8 @@ internal fun composeNativeAgentSource(
     repoRoot.toAbsolutePath().normalize(),
     target,
     renderNativeAgentSource(composed),
-    reviewContextBudgetBytes,
+    context.reviewContextBudgetBytes,
+    context.additionalPackRoots,
   )
   return composed
 }
@@ -106,15 +118,11 @@ internal fun composeNativeAgentSource(
 internal fun renderComposedNativeAgentSource(
   repoRoot: Path,
   source: NativeAgentSource,
-  reviewContextBudgetBytes: Long,
-  renderGovernedBody: (Path, String) -> String,
-  packLoader: NativeAgentPlatformPackLoader,
+  context: NativeAgentCompositionContext,
 ): String = renderNativeAgentSource(
   composeNativeAgentSource(
     repoRoot,
     source,
-    reviewContextBudgetBytes,
-    renderGovernedBody,
-    packLoader,
+    context,
   ),
 )

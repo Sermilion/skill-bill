@@ -91,20 +91,18 @@ class GoalSubtaskReviewStateTest {
   }
 
   @Test
-  fun `completing the first review without a reservation records pass one`() {
-    val completed = GoalSubtaskReviewState.initial(
-      reviewBaseSha = "d".repeat(40),
-      baselineUntrackedPaths = emptyList(),
-      codeReviewMode = CodeReviewExecutionMode.INLINE,
-    ).completeReservedPass(
-      verdict = FeatureTaskRuntimeVerdict.APPROVED,
-      unresolvedFindingCount = 0,
-      findings = emptyList(),
-    )
-
-    assertNull(completed.reservedPassNumber)
-    assertEquals(1, completed.completedPassCount)
-    assertEquals(1, completed.passResults.single().passNumber)
+  fun `completing a review without a reservation fails`() {
+    assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
+      GoalSubtaskReviewState.initial(
+        reviewBaseSha = "d".repeat(40),
+        baselineUntrackedPaths = emptyList(),
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+      ).completeReservedPass(
+        verdict = FeatureTaskRuntimeVerdict.APPROVED,
+        unresolvedFindingCount = 0,
+        findings = emptyList(),
+      )
+    }
   }
 
   @Test

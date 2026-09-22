@@ -83,9 +83,7 @@ object NativeAgentOperations {
       composeNativeAgentSource(
         root,
         source,
-        request.compositionContext.reviewContextBudgetBytes,
-        request.compositionContext.renderGovernedBody,
-        request.compositionContext.packLoader,
+        request.compositionContext,
       )
     }
     val byProvider = NativeAgentProvider.entries.associateWith { provider ->
@@ -191,9 +189,7 @@ object NativeAgentOperations {
       val composed = composeNativeAgentSource(
         repoRoot,
         source,
-        request.compositionContext.reviewContextBudgetBytes,
-        request.compositionContext.renderGovernedBody,
-        request.compositionContext.packLoader,
+        request.compositionContext,
       )
       RenderedAgent(
         targetName = "${composed.name}.${request.provider.extension}",

@@ -3,7 +3,6 @@ package skillbill.infrastructure.http
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.transport.RemoteTransportPort
 import java.net.http.HttpClient
-import java.net.http.HttpClient.Redirect
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse.BodyHandlers
 import java.time.Duration
@@ -43,7 +42,6 @@ class JdkHttpRemoteTransport(
           httpClient = HttpClient
             .newBuilder()
             .connectTimeout(connectTimeout ?: DEFAULT_HTTP_CONNECT_TIMEOUT)
-            .followRedirects(Redirect.NORMAL)
             .build(),
           requestTimeout = requestTimeout ?: DEFAULT_HTTP_REQUEST_TIMEOUT,
         )
@@ -55,7 +53,6 @@ object JdkHttpRequester : RemoteTransportPort by JdkHttpRemoteTransport(
   httpClient = HttpClient
     .newBuilder()
     .connectTimeout(DEFAULT_HTTP_CONNECT_TIMEOUT)
-    .followRedirects(Redirect.NORMAL)
     .build(),
   requestTimeout = DEFAULT_HTTP_REQUEST_TIMEOUT,
 )

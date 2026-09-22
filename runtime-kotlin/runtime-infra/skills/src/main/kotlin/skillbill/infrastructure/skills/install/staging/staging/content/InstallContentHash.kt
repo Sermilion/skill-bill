@@ -42,12 +42,22 @@ internal fun computeInstallContentHash(
 )
 
 internal fun computeInstallContentHash(inputs: InstallContentHashInputs): String {
+  return computeContentHash(inputs, includeSourcePath = true)
+}
+
+internal fun computeReconciliationContentHash(inputs: InstallContentHashInputs): String {
+  return computeContentHash(inputs, includeSourcePath = false)
+}
+
+private fun computeContentHash(inputs: InstallContentHashInputs, includeSourcePath: Boolean): String {
   val digest = newSha256Digest()
   val newline = byteArrayOf('\n'.code.toByte())
   digest.update(INSTALL_STAGING_RECIPE_VERSION.toByteArray(StandardCharsets.UTF_8))
   digest.update(newline)
-  digest.update(inputs.sourceSkillDir.toAbsolutePath().normalize().toString().toByteArray(StandardCharsets.UTF_8))
-  digest.update(newline)
+  if (includeSourcePath) {
+    digest.update(inputs.sourceSkillDir.toAbsolutePath().normalize().toString().toByteArray(StandardCharsets.UTF_8))
+    digest.update(newline)
+  }
   inputs.authored.forEach { file ->
     val rel = inputs.sourceSkillDir.relativize(file).toString().replace(File.separatorChar, '/')
     digest.update(rel.toByteArray(StandardCharsets.UTF_8))

@@ -108,9 +108,7 @@ private fun validateNativeAgentSources(
       composeNativeAgentSource(
         root,
         source,
-        compositionContext.reviewContextBudgetBytes,
-        compositionContext.renderGovernedBody,
-        compositionContext.packLoader,
+        compositionContext,
       )
     }.getOrElse { error ->
       issues += "${nativeAgentSourceDisplay(root, source)}: ${error.message.orEmpty()}"
@@ -121,7 +119,12 @@ private fun validateNativeAgentSources(
         "composed native agent bodies must be provider-agnostic; conditionals belong in the renderer"
     }
     runCatching {
-      val pack = resolveNativeAgentCompositionTarget(root, source, compositionContext.packLoader)?.manifest
+      val pack = resolveNativeAgentCompositionTarget(
+        root,
+        source,
+        compositionContext.packLoader,
+        compositionContext.additionalPackRoots,
+      )?.manifest
       if (pack != null) {
         enforceAddonProjectionParity(pack, composed.name, composed.composedAddonSlugs)
       }

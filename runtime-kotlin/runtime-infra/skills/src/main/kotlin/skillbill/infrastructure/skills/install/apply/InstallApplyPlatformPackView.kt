@@ -1,8 +1,8 @@
 package skillbill.infrastructure.skills.install.apply
 
+import skillbill.infrastructure.host.jvm.atomicMoveReplacing
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.assertExternalPlatformPackDeclaredReads
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.assertExternalPlatformPackTreeReads
-import skillbill.infrastructure.host.jvm.atomicMoveReplacing
 import skillbill.install.model.InstallAppliedSkill
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
@@ -112,26 +112,36 @@ private fun materializeAgentPlatformPackView(
   deleteTree(superseded)
   Files.createDirectories(staging)
   Files.writeString(staging.resolve(MANAGED_INSTALL_MARKER), "")
+  var supersededMoved = false
+  var preserveSuperseded = false
   try {
     manifests.forEach { manifest ->
       materializeOnePack(staging, manifest, stagedPlatformSkills, internalPlatformSkillDirs)
     }
     if (Files.exists(root, LinkOption.NOFOLLOW_LINKS)) {
       atomicMoveReplacing(root, superseded)
+      supersededMoved = true
     }
-    try {
-      atomicMoveReplacing(staging, root)
-    } catch (error: Throwable) {
-      if (Files.exists(superseded, LinkOption.NOFOLLOW_LINKS) &&
-        !Files.exists(root, LinkOption.NOFOLLOW_LINKS)
-      ) {
-        atomicMoveReplacing(superseded, root)
+    val publishResult = runCatching { atomicMoveReplacing(staging, root) }
+    publishResult.exceptionOrNull()?.let { error ->
+      if (supersededMoved && Files.exists(superseded, LinkOption.NOFOLLOW_LINKS)) {
+        runCatching {
+          if (Files.exists(root, LinkOption.NOFOLLOW_LINKS)) {
+            deleteTree(root)
+          }
+          atomicMoveReplacing(superseded, root)
+        }.onFailure { restoreError ->
+          preserveSuperseded = true
+          error.addSuppressed(restoreError)
+        }
       }
-      throw error
+      publishResult.getOrThrow()
     }
   } finally {
     deleteTree(staging)
-    deleteTree(superseded)
+    if (!preserveSuperseded) {
+      deleteTree(superseded)
+    }
   }
 }
 

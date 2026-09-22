@@ -34,14 +34,14 @@ internal fun loadCompositionClosure(
   packsBySlug: Map<String, PlatformManifest> = emptyMap(),
 ): List<PlatformManifest> {
   val loaded = linkedMapOf(rootPack.slug to rootPack)
-  val catalog = if (packsBySlug.isNotEmpty()) packsBySlug else siblingCatalog(rootPack)
+  val catalog = packsBySlug
 
   fun collect(pack: PlatformManifest) {
     pack.codeReviewComposition?.baselineLayers.orEmpty().forEach { layer ->
       if (layer.platform in loaded) {
         return@forEach
       }
-      val targetPack = catalog[layer.platform] ?: return@forEach
+      val targetPack = catalog[layer.platform] ?: siblingPack(rootPack, layer.platform) ?: return@forEach
       loaded[targetPack.slug] = targetPack
       collect(targetPack)
     }
@@ -51,19 +51,17 @@ internal fun loadCompositionClosure(
   return loaded.values.toList()
 }
 
-private fun siblingCatalog(rootPack: PlatformManifest): Map<String, PlatformManifest> {
+private fun siblingPack(rootPack: PlatformManifest, slug: String): PlatformManifest? {
   val packParent = rootPack.packRoot.toPath().parent
   return if (packParent == null || !Files.isDirectory(packParent)) {
-    emptyMap()
+    null
   } else {
-    childDirectories(packParent).mapNotNull { targetRoot ->
-      if (!Files.isRegularFile(targetRoot.resolve("platform.yaml"))) {
-        null
-      } else {
-        val targetPack = loadPlatformManifest(targetRoot)
-        targetPack.slug to targetPack
-      }
-    }.toMap()
+    val targetRoot = packParent.resolve(slug)
+    if (Files.isRegularFile(targetRoot.resolve("platform.yaml"))) {
+      loadPlatformManifest(targetRoot)
+    } else {
+      null
+    }
   }
 }
 

@@ -70,7 +70,7 @@ private fun buildInstallPolicyInput(
         slug = manifest.slug,
         packRoot = manifest.packRoot,
         skills = if (manifest.slug in selectedPlatformSlugs) {
-          platformSkills(manifest, enforceContractVersion)
+          platformSkills(manifest, enforceContractVersion, packRootsBySlug(platformManifests))
         } else {
           emptyList()
         },
@@ -132,7 +132,7 @@ internal fun materializeSelectedPlatformSkills(
       slug = manifest.slug,
       packRoot = manifest.packRoot,
       skills = if (manifest.slug in selected) {
-        platformSkills(manifest)
+        platformSkills(manifest, packRootsBySlug = packRootsBySlug(platformManifests))
       } else {
         emptyList()
       },
@@ -140,6 +140,11 @@ internal fun materializeSelectedPlatformSkills(
     )
   }
 }
+
+private fun packRootsBySlug(platformManifests: List<PlatformManifest>): Map<String, Path> =
+  platformManifests.associate { manifest ->
+    manifest.slug to manifest.packRoot.toPath().toAbsolutePath().normalize()
+  }
 
 private fun installPlanEnvironment(request: InstallPlanRequest): Map<String, String> = request.environment
 

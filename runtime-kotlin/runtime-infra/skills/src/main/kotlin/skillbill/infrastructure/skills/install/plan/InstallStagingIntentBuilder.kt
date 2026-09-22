@@ -138,7 +138,12 @@ private fun validatePointerInputs(
     val packRoot = manifest.packRoot.toPath().toAbsolutePath().normalize()
     val pointerFile = packRoot.resolve(spec.skillRelativeDir).normalize().resolve(spec.name).normalize()
     val targetFile = resolvedRepoRoot.resolve(spec.target).normalize()
-    validatePointerTarget(spec.name, targetFile, pointerFile, resolvedRepoRoot, realRepoRoot, packRoot)
+    validatePointerTarget(
+      name = spec.name,
+      targetFile = targetFile,
+      pointerFile = pointerFile,
+      roots = PointerValidationRoots(resolvedRepoRoot, realRepoRoot, packRoot),
+    )
   }
   supportPointers.forEach { pointer ->
     val targetFile = pointer.target.toAbsolutePath().normalize()
@@ -162,21 +167,24 @@ private fun validatePointerInputs(
   }
 }
 
-private fun validatePointerTarget(
-  name: String,
-  targetFile: Path,
-  pointerFile: Path,
-  repoRoot: Path,
-  realRepoRoot: Path,
-  packRoot: Path,
-) {
-  require(targetFile.startsWith(repoRoot)) { "Pointer '$name' target '$targetFile' escapes repoRoot '$repoRoot'." }
-  require(pointerFile.startsWith(packRoot)) { "Pointer '$name' path '$pointerFile' escapes pack root '$packRoot'." }
+private data class PointerValidationRoots(
+  val repoRoot: Path,
+  val realRepoRoot: Path,
+  val packRoot: Path,
+)
+
+private fun validatePointerTarget(name: String, targetFile: Path, pointerFile: Path, roots: PointerValidationRoots) {
+  require(targetFile.startsWith(roots.repoRoot)) {
+    "Pointer '$name' target '$targetFile' escapes repoRoot '${roots.repoRoot}'."
+  }
+  require(pointerFile.startsWith(roots.packRoot)) {
+    "Pointer '$name' path '$pointerFile' escapes pack root '${roots.packRoot}'."
+  }
   require(Files.isRegularFile(targetFile, LinkOption.NOFOLLOW_LINKS)) {
     "Pointer '$name' target '$targetFile' does not exist as a regular file."
   }
-  require(targetFile.toRealPath().startsWith(realRepoRoot)) {
-    "Pointer '$name' target '$targetFile' escapes repoRoot '$repoRoot' through its real path."
+  require(targetFile.toRealPath().startsWith(roots.realRepoRoot)) {
+    "Pointer '$name' target '$targetFile' escapes repoRoot '${roots.repoRoot}' through its real path."
   }
   require(pointerFile != targetFile) { "Pointer '$name' resolves to itself at '$targetFile'." }
 }

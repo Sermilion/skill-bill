@@ -147,7 +147,8 @@ data class GoalSubtaskReviewState(
   ): GoalSubtaskReviewState {
     val effectiveCommitFocusedAccounting = revision.commitFocusedAccounting
     val reviewedRevision = revision.reviewedRevision
-    val passNumber = reservedPassNumber ?: 1
+    val passNumber = reservedPassNumber
+      ?: reviewStateError("reserved_pass_number", "must be present before completing a review pass.")
     require(
       blockerDispositions.map(GoalSubtaskBlockerDisposition::findingId).distinct().size == blockerDispositions.size,
     ) {

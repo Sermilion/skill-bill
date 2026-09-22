@@ -90,6 +90,7 @@ internal fun validateInstallPlanInternalSkills(skills: List<InstallPlanSkill>) {
 internal fun platformSkills(
   manifest: PlatformManifest,
   enforceContractVersion: Boolean = true,
+  packRootsBySlug: Map<String, Path> = emptyMap(),
 ): List<InstallPlanSkill> {
   val contentFiles = listOfNotNull(manifest.declaredFiles.baseline) + manifest.declaredFiles.areas.values
   val skillDirs = contentFiles.map { contentFile -> platformSkillDir(manifest, contentFile.toPath()) }
@@ -98,7 +99,7 @@ internal fun platformSkills(
     "Platform pack '${manifest.slug}' produces duplicate skill name '${duplicateSkillDir?.fileName}'."
   }
   validatePlatformPack(manifest, SHELL_CONTRACT_VERSION, enforceContractVersion)
-  ReviewSkillStructureValidator.validate(manifest.packRoot.toPath())
+  ReviewSkillStructureValidator.validate(manifest.packRoot.toPath(), packRootsBySlug)
   return skillDirs
     .sortedBy { skillDir -> skillDir.fileName.toString() }
     .map { skillDir ->

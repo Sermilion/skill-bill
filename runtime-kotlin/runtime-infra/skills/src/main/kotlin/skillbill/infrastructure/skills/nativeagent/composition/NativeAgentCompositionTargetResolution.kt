@@ -15,8 +15,9 @@ internal fun resolvePlatformManifestContentTarget(
   sourcePath: Path,
   source: NativeAgentSource,
   packLoader: NativeAgentPlatformPackLoader,
+  additionalPackRoots: List<Path> = emptyList(),
 ): NativeAgentCompositionTarget? {
-  val pack = packLoader.loadPlatformPack(packRoot)
+  val pack = packLoader.loadPlatformPack(packRoot, additionalPackRoots)
   return declaredContentPaths(pack)
     .firstOrNull { path -> path.parent?.name == source.name }
     ?.also { contentPath ->
@@ -49,18 +50,23 @@ internal fun resolveSiblingContentTarget(sourcePath: Path, source: NativeAgentSo
       )
     }
 
-internal fun platformPackRoot(repoRoot: Path, sourcePath: Path): Path? {
-  val packsRoot = repoRoot.resolve("platform-packs")
-  val canonicalPacksRoot = canonicalize(packsRoot)
+internal fun platformPackRoot(repoRoot: Path, sourcePath: Path, additionalPackRoots: List<Path> = emptyList()): Path? {
+  val packRoots = listOf(repoRoot.resolve("platform-packs")) + additionalPackRoots
   val canonicalSourcePath = canonicalize(sourcePath)
-  if (!canonicalSourcePath.startsWith(canonicalPacksRoot)) {
-    return null
+  return packRoots.firstNotNullOfOrNull { root ->
+    val canonicalRoot = canonicalize(root)
+    if (!canonicalSourcePath.startsWith(canonicalRoot)) {
+      null
+    } else if (root in additionalPackRoots) {
+      root
+    } else {
+      runCatching { canonicalSourcePath.relativeTo(canonicalRoot) }
+        .getOrNull()
+        ?.firstOrNull()
+        ?.toString()
+        ?.let(root::resolve)
+    }
   }
-  return runCatching { canonicalSourcePath.relativeTo(canonicalPacksRoot) }
-    .getOrNull()
-    ?.firstOrNull()
-    ?.toString()
-    ?.let(packsRoot::resolve)
 }
 
 internal fun displayPath(root: Path, path: Path): String {

@@ -14,11 +14,18 @@ import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.nio.file.Path
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests as scaffoldDiscoverPlatformPackManifests
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack as scaffoldLoadPlatformPack
 
 internal object InstallNativeAgentPlatformPackLoader : NativeAgentPlatformPackLoader {
-  override fun loadPlatformPack(packRoot: Path): NativeAgentPlatformPack =
-    scaffoldLoadPlatformPack(packRoot).toNativeAgentPlatformPack()
+  override fun loadPlatformPack(packRoot: Path, additionalPackRoots: List<Path>): NativeAgentPlatformPack {
+    if (additionalPackRoots.isEmpty()) {
+      return scaffoldLoadPlatformPack(packRoot).toNativeAgentPlatformPack()
+    }
+    val manifests = additionalPackRoots.map { root -> loadPlatformManifest(root.toAbsolutePath().normalize()) }
+    return scaffoldLoadPlatformPack(packRoot, manifests.associateBy { manifest -> manifest.slug })
+      .toNativeAgentPlatformPack()
+  }
 
   override fun discoverPlatformPackManifests(platformPacksRoot: Path): List<NativeAgentPlatformPack> =
     scaffoldDiscoverPlatformPackManifests(platformPacksRoot).map(PlatformManifest::toNativeAgentPlatformPack)

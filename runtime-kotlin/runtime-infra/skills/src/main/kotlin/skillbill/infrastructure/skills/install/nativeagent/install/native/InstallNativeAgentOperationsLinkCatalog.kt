@@ -78,9 +78,9 @@ private fun reviewCatalogStageFailure(platformPacksRoot: Path, source: Path, err
 private fun sourceKind(platformPacksRoot: Path, source: Path): PlatformPackSourceKind = if (
   source.toAbsolutePath().normalize().startsWith(platformPacksRoot.toAbsolutePath().normalize())
 ) {
-    PlatformPackSourceKind.BUNDLED
-  } else {
-    PlatformPackSourceKind.EXTERNAL
+  PlatformPackSourceKind.BUNDLED
+} else {
+  PlatformPackSourceKind.EXTERNAL
 }
 
 private fun stageReviewCatalogPack(source: Path, staging: Path) {
@@ -130,23 +130,23 @@ internal fun journalReviewCatalogSwap(catalogRoot: Path, staging: Path, journal:
 
 internal fun swapReviewCatalogIntoPlace(catalogRoot: Path, staging: Path, superseded: Path) {
   var supersededMoved = false
-  try {
+  val publishResult = runCatching {
     if (Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)) {
       atomicMoveReplacing(catalogRoot, superseded)
       supersededMoved = true
     }
     atomicMoveReplacing(staging, catalogRoot)
     deleteRecursively(superseded)
-  } catch (error: Throwable) {
-    if (
-      supersededMoved &&
-      Files.exists(superseded, LinkOption.NOFOLLOW_LINKS) &&
-      !Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)
-    ) {
-      runCatching { atomicMoveReplacing(superseded, catalogRoot) }
-        .exceptionOrNull()
-        ?.let(error::addSuppressed)
+  }
+  publishResult.exceptionOrNull()?.let { error ->
+    if (supersededMoved && Files.exists(superseded, LinkOption.NOFOLLOW_LINKS)) {
+      runCatching {
+        if (Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)) {
+          deleteRecursively(catalogRoot)
+        }
+        atomicMoveReplacing(superseded, catalogRoot)
+      }.exceptionOrNull()?.let(error::addSuppressed)
     }
-    throw error
+    publishResult.getOrThrow()
   }
 }
