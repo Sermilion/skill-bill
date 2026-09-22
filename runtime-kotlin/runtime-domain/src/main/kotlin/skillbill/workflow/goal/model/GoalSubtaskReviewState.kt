@@ -145,6 +145,9 @@ data class GoalSubtaskReviewState(
     blockerDispositions: List<GoalSubtaskBlockerDisposition> = emptyList(),
     revision: GoalSubtaskReviewRevision = GoalSubtaskReviewRevision(),
   ): GoalSubtaskReviewState {
+    if (reservedPassNumber == null && passResults.isNotEmpty()) {
+      return this
+    }
     val effectiveCommitFocusedAccounting = revision.commitFocusedAccounting
     val reviewedRevision = revision.reviewedRevision
     val passNumber = reservedPassNumber

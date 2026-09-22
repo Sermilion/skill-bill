@@ -11,6 +11,7 @@ import skillbill.engine.featuretask.lifecycle.core.featureTaskGitIntegrationSnap
 import skillbill.engine.featuretask.lifecycle.remediation.featureTaskRuntimeParseRepairReceiptOrNull
 import skillbill.engine.featuretask.model.review.GoalSubtaskReviewInputBlocked
 import skillbill.engine.featuretask.model.review.GoalSubtaskReviewInputReady
+import skillbill.engine.featuretask.model.review.GoalSubtaskReviewPassCarryForward
 import skillbill.engine.featuretask.model.review.GoalSubtaskReviewPassInFlight
 import skillbill.engine.featuretask.model.subtask.RemediationBaseBlocked
 import skillbill.engine.featuretask.model.subtask.RemediationBaseCoherent
@@ -322,6 +323,28 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
     val reReserved = recorder.reserveGoalReviewPass(workflowId)
     val inFlight = assertIs<GoalSubtaskReviewPassInFlight>(reReserved)
     assertEquals(1, inFlight.state.reservedPassNumber, "A resumed reservation is reused, never re-allocated.")
+  }
+
+  @Test
+  fun `a completed pass carries forward instead of reserving pass one again`() {
+    val completed = GoalSubtaskReviewState.initial(
+      reviewBaseSha = "a".repeat(40),
+      baselineUntrackedPaths = emptyList(),
+      codeReviewMode = CodeReviewExecutionMode.INLINE,
+    ).reserveNextPass().completeReservedPass(
+      verdict = FeatureTaskRuntimeVerdict.APPROVED,
+      unresolvedFindingCount = 0,
+      findings = emptyList(),
+    )
+    val recorder = recorderWith(completed)
+
+    val reservation = recorder.reserveGoalReviewPass(workflowId)
+
+    assertIs<GoalSubtaskReviewPassCarryForward>(reservation)
+    val reloaded = assertNotNull(recorder.reviewStateRecorder.reviewState(workflowId))
+    assertEquals(1, reloaded.completedPassCount)
+    assertEquals(1, reloaded.passResults.size)
+    assertNull(reloaded.reservedPassNumber)
   }
 
   @Test
