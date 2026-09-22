@@ -199,8 +199,35 @@ internal object PhaseOutputExpectedShape {
       }
     }
     if (demoteStrayRootFields(root, produced)) changed = true
+    if (normalizeDerivedNotes(root)) changed = true
     if (salvageRepairReceiptSymbols(produced)) changed = true
     return root to changed
+  }
+
+  private fun normalizeDerivedNotes(root: ObjectNode): Boolean {
+    val notes = root.get(SharedPayloadKeys.DERIVED_NOTES) ?: return false
+    if (notes.isTextual) return false
+    val flattened = flattenNotes(notes)
+    if (flattened.isBlank()) {
+      root.remove(SharedPayloadKeys.DERIVED_NOTES)
+    } else {
+      root.put(SharedPayloadKeys.DERIVED_NOTES, flattened)
+    }
+    return true
+  }
+
+  private fun flattenNotes(notes: JsonNode): String = when {
+    notes.isNull -> ""
+    notes.isArray -> notes.asSequence()
+      .map(::flattenNotes)
+      .filter(String::isNotBlank)
+      .joinToString(separator = "\n")
+    notes.isObject -> notes.properties().asSequence()
+      .map { (name, value) -> "$name: ${flattenNotes(value)}" }
+      .filter { it.isNotBlank() }
+      .joinToString(separator = "\n")
+    notes.isValueNode -> notes.asText("").trim()
+    else -> ""
   }
 
   private fun demoteStrayRootFields(root: ObjectNode, produced: ObjectNode): Boolean {

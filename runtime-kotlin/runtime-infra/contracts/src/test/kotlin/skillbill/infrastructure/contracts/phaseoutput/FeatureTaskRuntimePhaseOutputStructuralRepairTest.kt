@@ -462,6 +462,34 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
   }
 
   @Test
+  fun `implement derived_notes array is flattened to one string instead of being rejected`() {
+    val payload =
+      """{"contract_version":"0.6","phase_id":"implement","status":"completed","summary":"Implemented.",""" +
+        """"produced_outputs":{"value":"done"},"derived_notes":["first note","second note"]}"""
+
+    val result = adapter.validatePhaseOutput(payload, "implement")
+
+    val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
+    assertEquals("first note\nsecond note", repaired.normalizedOutput.envelopeWireMap()["derived_notes"])
+    assertEquals(
+      FeatureTaskRuntimePhaseOutputRepairOperation.RESTORE_EXPECTED_SHAPE,
+      repaired.evidence.operation,
+    )
+  }
+
+  @Test
+  fun `implement derived_notes empty array is dropped because the field is optional`() {
+    val payload =
+      """{"contract_version":"0.6","phase_id":"implement","status":"completed","summary":"Implemented.",""" +
+        """"produced_outputs":{"value":"done"},"derived_notes":[]}"""
+
+    val result = adapter.validatePhaseOutput(payload, "implement")
+
+    val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
+    assertFalse(repaired.normalizedOutput.envelopeWireMap().containsKey("derived_notes"))
+  }
+
+  @Test
   fun `audit extra closer before trailing verdict is dropped and the envelope is kept`() {
     val payload =
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"Audited production.",""" +
