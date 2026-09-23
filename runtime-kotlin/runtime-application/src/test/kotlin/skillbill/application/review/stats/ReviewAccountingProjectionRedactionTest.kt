@@ -1,13 +1,14 @@
 package skillbill.application.review.stats
+
 import skillbill.application.review.model.ReviewPrelaunchExpansion
-import skillbill.application.review.review.RecordedWorkerResponse
-import skillbill.application.review.review.ReviewHarnessConfig
-import skillbill.application.review.review.ReviewRecorder
-import skillbill.application.review.review.diffForPaths
-import skillbill.application.review.review.harnessRequest
-import skillbill.application.review.review.reviewHarness
-import skillbill.application.review.review.reviewPack
-import skillbill.application.review.review.validateReviewContextPayload
+import skillbill.application.review.snapshot.RecordedWorkerResponse
+import skillbill.application.review.snapshot.ReviewHarnessConfig
+import skillbill.application.review.snapshot.ReviewRecorder
+import skillbill.application.review.snapshot.diffForPaths
+import skillbill.application.review.snapshot.harnessRequest
+import skillbill.application.review.snapshot.reviewHarness
+import skillbill.application.review.snapshot.reviewPack
+import skillbill.application.review.snapshot.validateReviewContextPayload
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.contracts.review.ReviewAccountingPayloadKeys

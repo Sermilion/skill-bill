@@ -2,7 +2,6 @@ package skillbill.engine.featuretask.review.finding
 
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
@@ -11,6 +10,7 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeFindingVerificationRecordError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch

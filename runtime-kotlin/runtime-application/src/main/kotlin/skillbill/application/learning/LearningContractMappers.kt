@@ -11,7 +11,7 @@ import skillbill.contracts.learning.LearningRecordContract
 import skillbill.contracts.learning.LearningResolveContract
 import skillbill.learnings.model.LearningEntry
 
-fun LearningEntry.toLearningEntryDto(): LearningEntryDto =
+internal fun LearningEntry.toLearningEntryDto(): LearningEntryDto =
   LearningEntryDto(
     reference = reference,
     scope = scope.wireName,

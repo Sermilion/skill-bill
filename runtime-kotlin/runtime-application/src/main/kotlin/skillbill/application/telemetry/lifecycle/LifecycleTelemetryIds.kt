@@ -10,7 +10,7 @@ private val sessionIdTimestampFormatter: DateTimeFormatter = DateTimeFormatter.o
 private val suffixChars = "abcdefghijklmnopqrstuvwxyz0123456789".toCharArray()
 private val random = SecureRandom()
 
-fun generateLifecycleSessionId(
+internal fun generateLifecycleSessionId(
   prefix: String,
   clock: Clock,
 ): String {

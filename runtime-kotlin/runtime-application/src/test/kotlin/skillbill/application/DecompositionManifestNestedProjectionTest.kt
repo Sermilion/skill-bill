@@ -1,10 +1,10 @@
 package skillbill.application
 import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
-import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.model.DecompositionPlanningSubtaskOptions
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import java.nio.file.Files
 import java.nio.file.Path

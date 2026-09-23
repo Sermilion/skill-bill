@@ -120,7 +120,7 @@ fun GovernedReviewLaunch.toLaunchEnvelope(): ReviewContextEnvelope =
     ),
   )
 
-fun GovernedReviewVerificationLaunch.toVerificationLaunchEnvelope(): ReviewContextEnvelope =
+internal fun GovernedReviewVerificationLaunch.toVerificationLaunchEnvelope(): ReviewContextEnvelope =
   ReviewContextEnvelope.from(
     linkedMapOf(
       SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,
@@ -149,7 +149,7 @@ fun GovernedReviewVerificationLaunch.toVerificationLaunchEnvelope(): ReviewConte
     ),
   )
 
-fun GovernedReviewAdjudicationLaunch.toAdjudicationLaunchEnvelope(): ReviewContextEnvelope =
+internal fun GovernedReviewAdjudicationLaunch.toAdjudicationLaunchEnvelope(): ReviewContextEnvelope =
   ReviewContextEnvelope.from(
     linkedMapOf(
       SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,

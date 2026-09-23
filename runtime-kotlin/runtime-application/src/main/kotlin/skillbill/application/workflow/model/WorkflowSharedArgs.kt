@@ -3,7 +3,7 @@ package skillbill.application.workflow.model
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.workflow.model.FeatureTaskRouteScope
 
-data class BuildFeatureTaskExecutionIdentityArgs(
+internal data class BuildFeatureTaskExecutionIdentityArgs(
   val kind: WorkflowFamilyKind,
   val hasIdentityCoordinates: Boolean,
   val workflowId: String,
@@ -41,7 +41,7 @@ data class RepairFeatureTaskRuntimeIdentityArgs(
   val reason: String,
 )
 
-data class FeatureTaskIdentityRepairArgs(
+internal data class FeatureTaskIdentityRepairArgs(
   val unitOfWork: UnitOfWork,
   val workflowId: String,
   val normalizedIssueKey: String,

@@ -3,7 +3,6 @@ package skillbill.cli.featuretask
 import com.github.ajalt.clikt.core.UsageError
 import skillbill.agentaddon.model.AgentAddonConsumer
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
-import skillbill.application.review.model.CodeReviewExecutionMode
 import skillbill.application.review.service.RuntimeOwnedReviewMode
 import skillbill.cli.kernel.agent.parseAgentAddonSelection
 import skillbill.cli.kernel.agent.refuseUnavailableAgentLaunchers
@@ -26,8 +25,7 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.prepareRuntimeRun(
   resolvedRepoRoot: Path = resolveCliRepositoryRoot(repoRoot, deps.inputs),
 ): PreparedRuntimeRun {
   val environment = deps.inputs.environment
-  val requestedReviewMode = requestedCodeReviewMode()
-  val goalContinuation = parseGoalContinuationContext(requestedReviewMode, environment)
+  val goalContinuation = parseGoalContinuationContext(environment)
   val operatorDecision = requestedOperatorDecision()
   val invokedAgentId = resolveInvokedRuntimeAgentId(agent, environment)
   val phaseAgentMap = parsePhaseAgents(phaseAgents).toMutableMap()
@@ -78,16 +76,15 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.prepareRuntimeRun(
     modelAssignment,
     compactionSettings,
     hydratedSelection,
-    requestedReviewMode,
     goalContinuation,
     operatorDecision,
   )
 }
 
 internal fun FeatureTaskRuntimePhaseAgentCommand.parseGoalContinuationContext(
-  requestedReviewMode: CodeReviewExecutionMode?,
   environment: Map<String, String>,
 ): FeatureTaskRuntimeGoalContinuationContext? {
+  val requestedReviewMode = requestedCodeReviewMode()
   val supplied =
     listOf(goalParentIssueKey, goalSubtaskId, goalBranch).count { it != null } +
       if (suppressPr) 1 else 0

@@ -2,9 +2,9 @@ package skillbill.application
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
-import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
-import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.contracts.JsonCodec
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
 import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.model.WorkflowArtifactPatch

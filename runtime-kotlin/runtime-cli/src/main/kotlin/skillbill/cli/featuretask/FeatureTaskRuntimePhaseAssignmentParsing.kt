@@ -2,7 +2,6 @@ package skillbill.cli.featuretask
 
 import com.github.ajalt.clikt.core.UsageError
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
-import skillbill.application.review.model.CodeReviewExecutionMode
 import skillbill.cli.kernel.agent.requireInvokingAgentId
 import skillbill.config.model.CompactionSettings
 import skillbill.config.model.PhaseModelDirective
@@ -74,7 +73,6 @@ internal data class PreparedRuntimeRun(
   val modelAssignment: FeatureTaskRuntimeModelAssignment,
   val compactionSettings: CompactionSettings,
   val agentAddonSelection: HydratedAgentAddonSelection,
-  val requestedReviewMode: CodeReviewExecutionMode?,
   val goalContinuation: FeatureTaskRuntimeGoalContinuationContext?,
   val operatorDecision: GoalSubtaskOperatorDecision?,
 )

@@ -5,7 +5,6 @@ import skillbill.application.RecordingSpecScratchStore
 import skillbill.application.RecordingSpecStatusWriter
 import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.idestatus.AgentActivityStampWriter
-import skillbill.application.idestatus.WorktreeEditJournalWriter
 import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.application.review.spec.SpecIntentProjectionExtractor
 import skillbill.application.review.spec.SpecIntentProjectionResolver
@@ -59,6 +58,7 @@ import skillbill.engine.featuretask.validation.FeatureTaskRuntimeReadinessGateCo
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateCoordinator
 import skillbill.engine.featuretask.validation.ReadinessCheckSelection
 import skillbill.engine.featuretask.validation.ValidationGateResolver
+import skillbill.engine.worktreeedit.WorktreeEditJournalWriter
 import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.error.core.RejectedOutputDiagnosticError.Absent
 import skillbill.error.core.RejectedOutputDiagnosticError.Conflict

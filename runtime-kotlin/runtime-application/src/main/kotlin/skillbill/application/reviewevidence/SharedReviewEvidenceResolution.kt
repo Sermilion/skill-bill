@@ -22,7 +22,7 @@ internal data class SharedReviewEvidenceQuery(
   val suppliedDiff: Boolean,
 )
 
-class SharedReviewEvidenceResolution(
+internal class SharedReviewEvidenceResolution(
   private val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort,
   private val diffResolver: DiffResolverPort,
 ) {

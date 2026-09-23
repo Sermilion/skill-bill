@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.phase.briefing
 
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeProjectionRejection
 import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
@@ -13,6 +12,7 @@ import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionEr
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.get
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.taskruntime.artifact.asTelemetryPayload
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.validateDeclaration

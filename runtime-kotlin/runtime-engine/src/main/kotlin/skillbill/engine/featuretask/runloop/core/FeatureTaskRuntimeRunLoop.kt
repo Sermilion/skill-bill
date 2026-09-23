@@ -1,7 +1,6 @@
 package skillbill.engine.featuretask.runloop.core
 
 import skillbill.application.idestatus.AgentActivityStampWriter
-import skillbill.application.idestatus.WorktreeEditJournalWriter
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
@@ -13,6 +12,7 @@ import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunO
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunEvidenceOwnership
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.recovery.recommendedDurableChildRecoveryCommand
+import skillbill.engine.worktreeedit.WorktreeEditJournalWriter
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.workflow.decomposition.model.SpecSource

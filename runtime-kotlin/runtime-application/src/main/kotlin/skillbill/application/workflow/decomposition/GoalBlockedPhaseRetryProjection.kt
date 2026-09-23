@@ -1,6 +1,5 @@
 package skillbill.application.workflow.decomposition
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.withRetriedSubtask
 import skillbill.application.workflow.service.migrateLegacyGoalRunnerControls
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
@@ -11,6 +10,7 @@ import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.workflow.decomposition.withRetriedSubtask
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch

@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.manifest
 
-import skillbill.application.decomposition.withParentStatus
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerResetSnapshot
 import skillbill.engine.goalrunner.model.GoalRunnerResetSubtaskSnapshot
@@ -10,6 +9,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.decomposition.withParentStatus
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 

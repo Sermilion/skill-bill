@@ -3,14 +3,14 @@ import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.executionModel
 import skillbill.application.decomposition.loadDecompositionManifest
-import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
-import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.decomposition.parseStackBranches
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.model.toPath
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
 import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest

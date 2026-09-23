@@ -1,6 +1,4 @@
 package skillbill.application.workflow.persist
-import skillbill.application.workflow.model.GoalObservabilityProgressInput
-import skillbill.application.workflow.model.GoalObservabilityWorktreeActivity
 import skillbill.application.workflow.model.PersistOpenedWorkflowArgs
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
@@ -18,6 +16,8 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.GoalObservabilityArtifacts
+import skillbill.goalrunner.model.GoalObservabilityProgressInput
+import skillbill.goalrunner.model.GoalObservabilityWorktreeActivity
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
@@ -39,7 +39,7 @@ import java.time.Clock
 import java.time.ZoneOffset
 import kotlin.random.Random
 
-fun incompleteFeatureTaskIdentityError(args: WorkflowServiceOpenArgs): WorkflowOpenResult.Error? {
+internal fun incompleteFeatureTaskIdentityError(args: WorkflowServiceOpenArgs): WorkflowOpenResult.Error? {
   val hasIdentityCoordinates = args.repositoryIdentity != null || args.governedSpecPath != null
   val hasIncompleteIdentity =
     hasIncompleteFeatureTaskIdentity(
@@ -59,7 +59,7 @@ fun incompleteFeatureTaskIdentityError(args: WorkflowServiceOpenArgs): WorkflowO
   }
 }
 
-fun persistOpenedWorkflow(args: PersistOpenedWorkflowArgs): WorkflowOpenResult =
+internal fun persistOpenedWorkflow(args: PersistOpenedWorkflowArgs): WorkflowOpenResult =
   args.database.transaction { unitOfWork ->
     val engine = args.engine
     val family = args.family
@@ -100,14 +100,17 @@ fun persistOpenedWorkflow(args: PersistOpenedWorkflowArgs): WorkflowOpenResult =
     )
   }
 
-val resolveEffectiveSessionId =
-  { kind: WorkflowFamilyKind, sessionId: String, definition: WorkflowDefinition, workflowId: String ->
-    sessionId.ifBlank {
-      if (kind == WorkflowFamilyKind.TASK_RUNTIME) "${definition.defaultSessionPrefix}-$workflowId" else ""
-    }
+internal fun resolveEffectiveSessionId(
+  kind: WorkflowFamilyKind,
+  sessionId: String,
+  definition: WorkflowDefinition,
+  workflowId: String,
+): String =
+  sessionId.ifBlank {
+    if (kind == WorkflowFamilyKind.TASK_RUNTIME) "${definition.defaultSessionPrefix}-$workflowId" else ""
   }
 
-fun WorkflowUpdateRequest.toWorkflowUpdateInput(): WorkflowUpdateInput =
+internal fun WorkflowUpdateRequest.toWorkflowUpdateInput(): WorkflowUpdateInput =
   WorkflowUpdateInput(
     workflowStatus =
       WorkflowStatus.fromWire(workflowStatus)
@@ -120,7 +123,7 @@ fun WorkflowUpdateRequest.toWorkflowUpdateInput(): WorkflowUpdateInput =
     sessionId = sessionId,
   )
 
-fun WorkflowContinueDecision.toReopenInput(sessionId: String): WorkflowUpdateInput =
+internal fun WorkflowContinueDecision.toReopenInput(sessionId: String): WorkflowUpdateInput =
   WorkflowUpdateInput(
     workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = resumeStepId,
@@ -138,7 +141,7 @@ fun WorkflowContinueDecision.toReopenInput(sessionId: String): WorkflowUpdateInp
     sessionId = sessionId,
   )
 
-fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
+internal fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
   existing: WorkflowStateSnapshot,
   workflowId: String,
   validator: GoalObservabilityEventValidator,
@@ -182,7 +185,7 @@ fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
   }
 }
 
-fun buildUpdateOk(
+internal fun buildUpdateOk(
   engine: WorkflowEngine,
   definition: WorkflowDefinition,
   updated: WorkflowStateSnapshot,
@@ -210,7 +213,7 @@ fun buildUpdateOk(
   )
 }
 
-fun launchProjectionIfReady(
+internal fun launchProjectionIfReady(
   engine: WorkflowEngine,
   definition: WorkflowDefinition,
   snapshot: WorkflowSnapshotView,

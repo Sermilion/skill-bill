@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.planning.outcome
 
-import skillbill.application.agentoutput.stderrExcerpt
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.agentoutput.stderrExcerpt
 import skillbill.engine.goalrunner.planning.model.GoalPlanningEmptyTurnEvidence
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants

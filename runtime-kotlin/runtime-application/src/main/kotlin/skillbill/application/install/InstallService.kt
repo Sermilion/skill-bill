@@ -99,8 +99,7 @@ class InstallService(
     return validatedInstallPlan(draft, staging, installPlanWireValidator)
   }
 
-  fun reconcile(request: InstallReconcileRequest): ReconciliationPlan =
-    reconcilePort.reconcile(request).plan
+  fun reconcile(request: InstallReconcileRequest): ReconciliationPlan = reconcilePort.reconcile(request).plan
 
   fun applyReconcile(request: InstallReconcileApplyRequest): InstallReconcileApplyOutcome {
     val applied = reconcileApplyPort.apply(request)

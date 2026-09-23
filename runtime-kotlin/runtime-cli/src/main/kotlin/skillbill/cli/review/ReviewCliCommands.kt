@@ -9,8 +9,8 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.model.ReviewSnapshotPruneResult
-import skillbill.application.review.review.ReviewSnapshotPruneService
 import skillbill.application.review.service.ReviewService
+import skillbill.application.review.snapshot.ReviewSnapshotPruneService
 import skillbill.cli.kernel.cli.CliOutput
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand

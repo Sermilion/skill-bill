@@ -2,7 +2,6 @@ package skillbill.engine.goalrunner.execution.support
 
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.error.shellcontent.InvalidAgentAddonSelectionError
@@ -11,6 +10,7 @@ import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_REQUEST
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_STOP_AFTER_SUBTASK
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 
 fun workflowFamilyFor(

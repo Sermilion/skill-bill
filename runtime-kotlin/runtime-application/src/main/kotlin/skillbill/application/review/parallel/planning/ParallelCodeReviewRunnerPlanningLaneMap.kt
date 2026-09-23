@@ -2,8 +2,8 @@ package skillbill.application.review.parallel.planning
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
-import skillbill.application.review.parallel.core.code.review.runner.PARALLEL_REVIEW_MAX_SUPPLIED_DIFF_BYTES
-import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewStackDetection
+import skillbill.application.review.parallel.runner.PARALLEL_REVIEW_MAX_SUPPLIED_DIFF_BYTES
+import skillbill.application.review.parallel.runner.ParallelCodeReviewStackDetection
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence

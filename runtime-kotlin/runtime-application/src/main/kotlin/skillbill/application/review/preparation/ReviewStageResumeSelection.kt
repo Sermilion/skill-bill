@@ -7,7 +7,7 @@ import skillbill.review.model.ReviewStageReached
 import skillbill.review.model.ReviewStageResumeDegradation
 import skillbill.review.model.ReviewStageResumeReport
 
-object ReviewStageResumeSelection {
+internal object ReviewStageResumeSelection {
   const val SEAM: String = "ReviewStageResumeSelection.select"
 
   fun select(

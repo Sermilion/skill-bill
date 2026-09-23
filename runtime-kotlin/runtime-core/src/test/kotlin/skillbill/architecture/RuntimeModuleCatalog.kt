@@ -56,8 +56,8 @@ object RuntimeModuleCatalog {
         ),
       "runtime-engine" to
         ModuleEdgeExpectation(
-          api = setOf("runtime-application", "runtime-contracts", "runtime-domain", "runtime-ports"),
-          implementation = emptySet(),
+          api = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
+          implementation = setOf("runtime-application"),
         ),
       "runtime-domain" to
         ModuleEdgeExpectation(

@@ -7,8 +7,6 @@ import skillbill.application.decomposition.clearDecompositionManifestProjectionF
 import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.loadDecompositionManifest
-import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
-import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.application.workflow.decomposition.decompositionRuntime
 import skillbill.application.workflow.model.WorkflowContinueResult
@@ -24,6 +22,8 @@ import skillbill.model.RepositoryRoot
 import skillbill.model.toPath
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.decomposition.encodeManifestWireMap

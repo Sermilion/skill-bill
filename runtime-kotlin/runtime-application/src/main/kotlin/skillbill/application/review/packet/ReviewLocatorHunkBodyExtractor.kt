@@ -2,7 +2,7 @@ package skillbill.application.review.packet
 import skillbill.ports.review.evidence.ReviewStoredHunkBodyExtractor
 import skillbill.review.context.model.hunk.ReviewChangedHunk
 
-object ReviewLocatorHunkBodyExtractor : ReviewStoredHunkBodyExtractor {
+internal object ReviewLocatorHunkBodyExtractor : ReviewStoredHunkBodyExtractor {
   override fun extract(
     payload: String,
     hunk: ReviewChangedHunk,

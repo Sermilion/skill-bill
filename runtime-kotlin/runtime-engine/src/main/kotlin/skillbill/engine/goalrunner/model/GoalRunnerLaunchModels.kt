@@ -1,9 +1,9 @@
 package skillbill.engine.goalrunner.model
 
-import skillbill.application.agentoutput.topLevelJsonObjectCandidates
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.implementationreturn.ImplementationReturnContractPayloadKeys
+import skillbill.engine.agentoutput.topLevelJsonObjectCandidates
 import skillbill.goalrunner.goalContinuationTerminalStatus
 import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerStopReason

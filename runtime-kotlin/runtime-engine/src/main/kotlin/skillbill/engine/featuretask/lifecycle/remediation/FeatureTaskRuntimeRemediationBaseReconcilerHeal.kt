@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.remediation
 
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.lifecycle.continuation.reviewStateFromArtifacts
 import skillbill.engine.featuretask.model.subtask.PersistHealedRemediationBaseRequest
 import skillbill.engine.featuretask.model.subtask.ResolvedReviewFixCheckpoint
@@ -11,6 +10,7 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRe
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputFailureReason
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.recoverGoalSubtaskReviewBaseline
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState

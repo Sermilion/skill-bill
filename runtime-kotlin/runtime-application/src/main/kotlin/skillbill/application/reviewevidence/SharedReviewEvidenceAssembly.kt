@@ -32,7 +32,7 @@ internal data class SharedReviewEvidenceRecord(
   val storePath: String? = null,
 )
 
-class SharedReviewEvidenceAssembler(private val diffResolver: DiffResolverPort) {
+internal class SharedReviewEvidenceAssembler(private val diffResolver: DiffResolverPort) {
   internal fun assemble(
     scope: ParallelReviewScope,
     repoRoot: Path,
@@ -120,7 +120,7 @@ class SharedReviewEvidenceAssembler(private val diffResolver: DiffResolverPort) 
   }
 }
 
-object SharedReviewEvidenceProjection {
+internal object SharedReviewEvidenceProjection {
   internal fun project(
     record: SharedReviewEvidenceCommits,
     aggregate: ReviewDiffEvidence,

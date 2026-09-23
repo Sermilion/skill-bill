@@ -511,6 +511,7 @@ object PrincipleEnforcementInventory {
       "systemService",
       "skillBillUpdateService",
       "skillBillUninstallService",
+      "updateCheckService",
       "telemetryConfigStorePort",
       "telemetryLevelMutator",
       "telemetryService",

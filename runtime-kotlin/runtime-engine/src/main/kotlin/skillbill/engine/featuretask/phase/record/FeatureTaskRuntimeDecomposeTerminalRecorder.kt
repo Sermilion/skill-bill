@@ -1,11 +1,11 @@
 package skillbill.engine.featuretask.phase.record
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.phase.core.decomposeTerminalFromWorkflowArtifacts
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator

@@ -9,7 +9,7 @@ import skillbill.review.model.ReviewFindingVerdict
 import java.nio.file.Path
 import kotlin.time.Duration
 
-data class ReviewDelegatedStageLaunch(
+internal data class ReviewDelegatedStageLaunch(
   val budget: ReviewContextBudgetPolicy,
   val brokerId: String,
   val repoRoot: Path,
@@ -18,7 +18,7 @@ data class ReviewDelegatedStageLaunch(
   val promptSuffix: String = "",
 )
 
-data class ReviewClaimVerificationRunRequest(
+internal data class ReviewClaimVerificationRunRequest(
   val packet: ReviewContextPacket?,
   val reviewOutput: String = "",
   val findings: List<ParallelReviewMergedFinding>,
@@ -27,7 +27,7 @@ data class ReviewClaimVerificationRunRequest(
   val launch: ReviewDelegatedStageLaunch,
 )
 
-data class ReviewSpecAdjudicationRunRequest(
+internal data class ReviewSpecAdjudicationRunRequest(
   val packet: ReviewContextPacket?,
   val findings: List<ParallelReviewMergedFinding>,
   val existingVerdicts: List<ReviewFindingVerdict>,
@@ -35,7 +35,7 @@ data class ReviewSpecAdjudicationRunRequest(
   val launch: ReviewDelegatedStageLaunch,
 )
 
-data class ReviewIntegrationPassRunRequest(
+internal data class ReviewIntegrationPassRunRequest(
   val packet: ReviewContextPacket,
   val lanes: List<ReviewLaneIntegrationInput>,
   val launch: ReviewDelegatedStageLaunch,

@@ -163,7 +163,7 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
             environment = deps.inputs.environment,
             repoRoot = prepared.repoRoot,
             timeout = maxWallClockMinutes.takeIf { it > 0 }?.minutes,
-            requestedCodeReviewMode = prepared.requestedReviewMode,
+            requestedCodeReviewMode = requestedCodeReviewMode(),
             goalContinuation = prepared.goalContinuation,
             operatorDecision = prepared.operatorDecision,
             agentAddonSelection = prepared.agentAddonSelection,

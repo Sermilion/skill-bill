@@ -1,16 +1,18 @@
 package skillbill.application.decomposition
 
-import skillbill.application.decomposition.model.DecompositionManifestFileCandidate
-import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestFileCandidate
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.intentFor
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.runtime.invalidManifest
 import skillbill.workflow.decomposition.runtime.isActiveGoalRuntime
+import skillbill.workflow.decomposition.withParentStatus
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 
@@ -139,7 +141,7 @@ internal fun manifestPathFromArtifacts(
   return specPath?.let { resolvedParentSpecPath(repoRoot, Path.of(it)).parent.resolve(DECOMPOSITION_MANIFEST_FILENAME) }
 }
 
-fun DecompositionManifest.assertExecutionModelCanReplace(
+internal fun DecompositionManifest.assertExecutionModelCanReplace(
   existing: DecompositionManifest?,
   manifestPath: Path,
 ): DecompositionManifest {
@@ -153,7 +155,7 @@ fun DecompositionManifest.assertExecutionModelCanReplace(
   return this
 }
 
-fun DecompositionManifest.withPreservedRuntimeState(existing: DecompositionManifest?): DecompositionManifest {
+internal fun DecompositionManifest.withPreservedRuntimeState(existing: DecompositionManifest?): DecompositionManifest {
   if (existing == null) {
     return this
   }
@@ -180,7 +182,7 @@ fun DecompositionManifest.withPreservedRuntimeState(existing: DecompositionManif
   )
 }
 
-fun DecompositionManifest.withRuntimeUpdate(
+internal fun DecompositionManifest.withRuntimeUpdate(
   repoRoot: Path,
   update: DecompositionManifestRuntimeUpdate,
 ): DecompositionManifest {

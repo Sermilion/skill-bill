@@ -1,6 +1,5 @@
 package skillbill.application.workflow.decomposition
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.withBlockedSubtask
 import skillbill.application.workflow.model.AdvanceCompletedSubtasksRequest
 import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
 import skillbill.application.workflow.model.GoalContinuationOutcome
@@ -16,6 +15,7 @@ import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.decomposition.withBlockedSubtask
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -87,7 +87,9 @@ internal fun commitCompletedSubtask(
   }
 }
 
-fun WorkflowEngine.checkoutAndValidateBranch(request: CheckoutAndValidateBranchRequest): WorkflowContinueResult? {
+internal fun WorkflowEngine.checkoutAndValidateBranch(
+  request: CheckoutAndValidateBranchRequest,
+): WorkflowContinueResult? {
   val branchPlan = request.selection.branchPlan
 
   fun blockedBranchStartResult(reason: String): WorkflowContinueResult {
@@ -125,7 +127,7 @@ fun WorkflowEngine.checkoutAndValidateBranch(request: CheckoutAndValidateBranchR
   return errorResult
 }
 
-fun subtaskStartArtifacts(
+internal fun subtaskStartArtifacts(
   selection: DecompositionContinuationSelection.Start,
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
@@ -162,7 +164,7 @@ fun subtaskStartArtifacts(
     ),
   )!!
 
-fun parentProjectionArtifacts(
+internal fun parentProjectionArtifacts(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
   existingArtifactsJson: String,
@@ -178,7 +180,7 @@ fun parentProjectionArtifacts(
     },
   )!!
 
-fun terminalSubtaskResult(
+internal fun terminalSubtaskResult(
   parentRecord: WorkflowStateSnapshot,
   manifest: DecompositionManifest,
   selection: DecompositionContinuationSelection.TerminalSubtask,
@@ -193,7 +195,7 @@ fun terminalSubtaskResult(
     outcome = selection.subtask.toGoalContinuationOutcome(manifest.issueKey),
   )
 
-fun DecompositionSubtask.toGoalContinuationOutcome(issueKey: String): GoalContinuationOutcome =
+internal fun DecompositionSubtask.toGoalContinuationOutcome(issueKey: String): GoalContinuationOutcome =
   GoalContinuationOutcome(
     issueKey = issueKey,
     subtaskId = id,

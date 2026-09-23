@@ -1,7 +1,7 @@
 package skillbill.application.reviewevidence
 import skillbill.review.context.model.commit.ReviewCommitSource
 
-object SharedReviewEvidenceCodec {
+internal object SharedReviewEvidenceCodec {
   private const val VERSION = "shared-review-evidence/1"
 
   internal fun encode(record: SharedReviewEvidenceRecord): String =

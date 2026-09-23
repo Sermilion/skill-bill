@@ -56,7 +56,7 @@ fun loadValidatedDecompositionManifestPersistingRepair(
   return persisted.copy(repairEvidence = repairEvidence)
 }
 
-fun loadValidatedDecompositionManifestOrNull(
+internal fun loadValidatedDecompositionManifestOrNull(
   path: Path,
   fileStore: DecompositionManifestStore,
   validator: DecompositionManifestValidator,
