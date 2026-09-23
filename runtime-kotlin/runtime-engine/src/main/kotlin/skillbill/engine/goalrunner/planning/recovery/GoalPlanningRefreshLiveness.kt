@@ -10,10 +10,6 @@ import java.time.Clock
 
 fun interface GoalPlanningRefreshLiveness {
   fun resolve(state: GoalRunnerManifestState): ExecutionLiveness
-
-  companion object {
-    val IDLE: GoalPlanningRefreshLiveness = GoalPlanningRefreshLiveness { _ -> ExecutionLiveness.IDLE }
-  }
 }
 
 @Inject

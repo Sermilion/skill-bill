@@ -2,6 +2,7 @@ package skillbill.infrastructure.sqlite
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.core.DatabaseAccessOperation
+import skillbill.error.core.DatabaseBusyError
 import skillbill.infrastructure.sqlite.core.ops.DatabaseTransactionBeginMode
 import skillbill.infrastructure.sqlite.core.ops.DatabaseTransactionSpec
 import skillbill.infrastructure.sqlite.core.ops.attachSqliteDiagnostics
@@ -92,20 +93,22 @@ class SQLiteDatabaseSessionFactory(
       error.rethrowIfCooperativeCancellationOrInterruption()
       if (!error.isSqliteBusy()) throw error
     }
-    return withWriteDatabase { openDb -> block(unitOfWork(openDb)) }
+    return translatingBusyFailures { withWriteDatabase { openDb -> block(unitOfWork(openDb)) } }
   }
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T =
-    withWriteDatabase { openDb ->
-      openDb.connection.inDatabaseTransaction(
-        DatabaseTransactionSpec(
-          dbPath = openDb.dbPath,
-          beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
-          operation = DatabaseAccessOperation.WRITE,
-          diagnostics = diagnostics,
-        ),
-      ) {
-        block(unitOfWork(openDb))
+    translatingBusyFailures {
+      withWriteDatabase { openDb ->
+        openDb.connection.inDatabaseTransaction(
+          DatabaseTransactionSpec(
+            dbPath = openDb.dbPath,
+            beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
+            operation = DatabaseAccessOperation.WRITE,
+            diagnostics = diagnostics,
+          ),
+        ) {
+          block(unitOfWork(openDb))
+        }
       }
     }
 
@@ -125,6 +128,13 @@ class SQLiteDatabaseSessionFactory(
     }
   }
 }
+
+private fun <T> translatingBusyFailures(block: () -> T): T =
+  runCatching(block).getOrElse { error ->
+    error.rethrowIfCooperativeCancellationOrInterruption()
+    if (error.isSqliteBusy()) throw DatabaseBusyError(error)
+    throw error
+  }
 
 private fun Throwable.rethrowIfCooperativeCancellationOrInterruption() {
   when (this) {

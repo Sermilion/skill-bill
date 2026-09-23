@@ -173,10 +173,6 @@ class GoalRunCommand(
     "--debug-child-output",
     help = "Show full child stdout/stderr. Noisy; default output keeps raw child streams hidden.",
   ).flag(default = false)
-  private val experiments by option(
-    "--experiments",
-    help = "Experiment selection for this goal run. Use none to disable or a comma-separated kebab-case list.",
-  )
 
   override val invokeWithoutSubcommand: Boolean = true
 
@@ -278,6 +274,5 @@ class GoalRunCommand(
       codeReviewMode = parseCodeReviewMode(codeReviewMode),
       agentAddonSelection = hydratedSelection,
       stopAfterSubtaskId = stopAfterSubtask,
-      experimentsParameter = experiments,
     )
 }

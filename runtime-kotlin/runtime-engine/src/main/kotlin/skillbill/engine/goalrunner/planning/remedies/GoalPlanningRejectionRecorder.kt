@@ -7,10 +7,6 @@ import skillbill.engine.goalrunner.planning.model.GoalPlanningRejectionRecord
 
 fun interface GoalPlanningRejectionRecorder {
   fun record(record: GoalPlanningRejectionRecord)
-
-  companion object {
-    val NONE: GoalPlanningRejectionRecorder = GoalPlanningRejectionRecorder {}
-  }
 }
 
 @Inject

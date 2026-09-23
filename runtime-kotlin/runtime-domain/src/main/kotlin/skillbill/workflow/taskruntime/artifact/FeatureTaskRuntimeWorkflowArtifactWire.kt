@@ -1,6 +1,7 @@
 package skillbill.workflow.taskruntime.artifact
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeRepairReceiptError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairLedgerEntry
@@ -20,6 +21,10 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeCheckpointIdentitiesFromArtifact
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeCheckpointIdentitiesToArtifact
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationFieldAdoption
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_PREVIOUS_BLOCKED_REASON_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_REASON_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_REOPENED_PHASE_IDS_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_RETRIED_AT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
@@ -61,6 +66,18 @@ fun resolvedBranchFromWorkflowArtifacts(artifacts: Any?): FeatureTaskRuntimeReso
 
 fun operatorBlockRetryFromWorkflowArtifacts(artifacts: Any?): FeatureTaskRuntimeOperatorBlockRetry? =
   operatorBlockRetryFrom(artifactsMap(artifacts))
+
+fun FeatureTaskRuntimeOperatorBlockRetry.asWorkflowArtifactEntry(
+  previousBlockedReason: String,
+  reopenedPhaseIds: List<String>,
+): Any =
+  mapOf(
+    SharedPayloadKeys.PHASE_ID to phaseId,
+    FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_REASON_KEY to reason,
+    FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_RETRIED_AT_KEY to retriedAt,
+    FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_PREVIOUS_BLOCKED_REASON_KEY to previousBlockedReason,
+    FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_REOPENED_PHASE_IDS_KEY to reopenedPhaseIds,
+  )
 
 fun goalContinuationFieldAdoptionFromWorkflowArtifacts(
   artifacts: Any?,

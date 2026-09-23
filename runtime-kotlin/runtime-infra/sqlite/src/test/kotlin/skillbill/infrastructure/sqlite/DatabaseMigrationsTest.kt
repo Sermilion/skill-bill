@@ -106,6 +106,7 @@ class DatabaseMigrationsTest {
         42 to "skill-366-add-experiment-pair-tables",
         43 to "skill-366-add-experiment-pair-leases",
         44 to "skill-366-preserve-experiment-arm-outcomes",
+        45 to "skill-378-drop-experiment-tables",
       ),
       migrationDefinitions,
     )
@@ -198,6 +199,45 @@ class DatabaseMigrationsTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       assertFalse(tableExists(connection, "review_lifecycle_events"))
       assertFalse(tableExists(connection, "review_delegated_lifecycle"))
+    }
+  }
+
+  @Test
+  fun `migration v45 drops the experiment tables a legacy database still carries and keeps its other rows`() {
+    val dbPath = Files.createTempDirectory("runtime-kotlin-db-v45-experiments").resolve("legacy.db")
+
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      DatabaseMigrations.migrations
+        .filter { migration -> migration.version in 42..44 }
+        .forEach { migration -> migration.apply(connection) }
+      connection.createStatement().use { statement ->
+        statement.executeUpdate("DELETE FROM schema_migrations WHERE version = 45")
+        LEGACY_EXPERIMENT_ROWS.forEach { sql -> statement.executeUpdate(sql) }
+        statement.executeUpdate(goalRunSessionInsert("wfl-kept"))
+      }
+      EXPERIMENT_TABLE_NAMES.forEach { table -> assertEquals(1, rowCount(connection, table), table) }
+    }
+
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      EXPERIMENT_TABLE_NAMES.forEach { table ->
+        assertFalse(tableExists(connection, table), "$table must not survive the drop migration.")
+      }
+      assertEquals(
+        listOf("wfl-kept"),
+        loadGoalRows(connection, "goal_run_sessions").map { row -> row["workflow_id"] },
+        "Unrelated goal telemetry rows must survive and stay readable by goal stats.",
+      )
+      connection.createStatement().use { statement -> statement.executeUpdate(goalRunSessionInsert("wfl-new")) }
+      assertEquals(2, rowCount(connection, "goal_run_sessions"))
+      assertNotNull(
+        migrationRows(connection).singleOrNull { row ->
+          row.version == 45 && row.name == "skill-378-drop-experiment-tables"
+        },
+      )
+    }
+
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      assertEquals(DatabaseMigrations.migrations.size, migrationRows(connection).size)
     }
   }
 

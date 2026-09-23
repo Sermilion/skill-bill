@@ -26,6 +26,7 @@ import skillbill.engine.goalrunner.launchFacts
 import skillbill.engine.goalrunner.manifest
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.planning.attempt.GoalPlanningAttemptRecorder
+import skillbill.engine.goalrunner.planning.attempt.NO_GOAL_PLANNING_ATTEMPT_RECORDER
 import skillbill.engine.goalrunner.planning.context.GoalPlanningSharedContextPacket
 import skillbill.engine.goalrunner.planning.model.GoalPlanningAttemptRecord
 import skillbill.engine.goalrunner.planning.model.GoalPlanningBurstSchedule
@@ -34,8 +35,10 @@ import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningProvenanceRecoverability
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRecoveryKind
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRefreshLiveness
+import skillbill.engine.goalrunner.planning.recovery.IDLE_GOAL_PLANNING_REFRESH_LIVENESS
 import skillbill.engine.goalrunner.planning.recovery.classifyGoalPlanningProvenanceRecoverability
 import skillbill.engine.goalrunner.planning.remedies.GoalPlanningRejectionRecorder
+import skillbill.engine.goalrunner.planning.remedies.NO_GOAL_PLANNING_REJECTION_RECORDER
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
@@ -3285,9 +3288,9 @@ private data class SweepHarnessConfig(
   val contextDiscovery: GoalPlanningContextDiscovery = fakeContextDiscovery,
   val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator =
     AcceptingFeatureTaskRuntimeWireArtifactValidator,
-  val planningAttemptRecorder: GoalPlanningAttemptRecorder = GoalPlanningAttemptRecorder.NONE,
+  val planningAttemptRecorder: GoalPlanningAttemptRecorder = NO_GOAL_PLANNING_ATTEMPT_RECORDER,
   val manifestStore: GoalRunnerManifestStore = NoopGoalPlanningManifestStore,
-  val planningRejectionRecorder: GoalPlanningRejectionRecorder = GoalPlanningRejectionRecorder.NONE,
+  val planningRejectionRecorder: GoalPlanningRejectionRecorder = NO_GOAL_PLANNING_REJECTION_RECORDER,
   val timingPort: RuntimeTimingPort = NoopRuntimeTimingPort,
   val fanOutPort: BoundedWorkFanOutPort = SequentialBoundedWorkFanOutPort,
   val burstSchedule: GoalPlanningBurstSchedule =
@@ -3297,7 +3300,7 @@ private data class SweepHarnessConfig(
       emptyTurnBackoffFactor = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_FACTOR,
       waitSlice = GoalPlanningBurstSchedule.DEFAULT_WAIT_SLICE,
     ),
-  val refreshLiveness: GoalPlanningRefreshLiveness = GoalPlanningRefreshLiveness.IDLE,
+  val refreshLiveness: GoalPlanningRefreshLiveness = IDLE_GOAL_PLANNING_REFRESH_LIVENESS,
 )
 
 private fun sweepFromFixtures(

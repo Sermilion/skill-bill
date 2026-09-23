@@ -10,10 +10,6 @@ import java.time.Clock
 
 fun interface GoalPlanningAttemptRecorder {
   fun record(attempt: GoalPlanningAttemptRecord)
-
-  companion object {
-    val NONE: GoalPlanningAttemptRecorder = GoalPlanningAttemptRecorder {}
-  }
 }
 
 @RuntimeSingleton

@@ -9,7 +9,6 @@ import skillbill.engine.goalrunner.model.GoalPreflightRequest
 import skillbill.engine.goalrunner.model.GoalPreflightResult
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
-import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
@@ -25,7 +24,6 @@ class GoalPreflightService(
   private val manifestFileStore: DecompositionManifestStore,
   private val manifestValidator: DecompositionManifestValidator,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
-  experimentSelectionPort: ExperimentSelectionPort,
 ) {
   private val gateBlockBuilder =
     GoalPreflightGateBlockBuilder(
@@ -33,7 +31,6 @@ class GoalPreflightService(
       agentAddonSelectionPort,
       externalAgentAddonSourceConfigPort,
       manifestFileStore,
-      experimentSelectionPort,
     )
   private val lookupResolver = GoalPreflightLookupResolver(gateBlockBuilder)
 

@@ -3476,7 +3476,8 @@ class GoalRunnerAcceptResetTest {
       parentWorkflowId = "wfl-parent",
       acceptance = GoalRunnerOutOfBandAcceptance(1, acceptedSha, "reviewed; ship it", acceptedAt),
     )
-    val service = acceptingStatusService(store)
+    val service =
+      acceptingStatusService(store, clock = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC))
     assertEquals(
       listOf(GoalRunnerAcceptedSubtask(1, acceptedSha, "reviewed; ship it", acceptedAt)),
       service.hardResetPreflight("SKILL-56"),
@@ -3488,17 +3489,22 @@ class GoalRunnerAcceptResetTest {
       assertIs<GoalRunnerAcceptResult.Accepted>(
         service.accept(acceptRequest(acceptedSha, restoreAfterHardReset = true)),
       )
+    assertEquals("2026-07-27T12:00Z", restored.acceptedAt)
     assertEquals(
-      listOf(GoalRunnerAcceptedSubtask(1, acceptedSha, "reviewed; ship it", restored.acceptedAt)),
+      listOf(GoalRunnerAcceptedSubtask(1, acceptedSha, "reviewed; ship it", "2026-07-27T12:00Z")),
       service.hardResetPreflight("SKILL-56"),
     )
   }
 
-  private fun acceptingStatusService(store: InMemoryGoalManifestStore) =
+  private fun acceptingStatusService(
+    store: InMemoryGoalManifestStore,
+    clock: Clock = testHarnessClock,
+  ) =
     testGoalRunnerStatusService(
       manifestStore = store,
       outcomeStore = RecordingOutcomeStore(),
       phaseRecorder = goalTestPhaseRecorder(),
+      clock = clock,
       ports =
         GoalRunnerStatusTestPorts(
           gitOperations = AcceptGitOperations(),

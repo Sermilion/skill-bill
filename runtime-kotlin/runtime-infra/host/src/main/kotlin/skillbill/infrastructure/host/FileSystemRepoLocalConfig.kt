@@ -4,7 +4,6 @@ package skillbill.infrastructure.host
 import com.fasterxml.jackson.core.JacksonException
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import me.tatarka.inject.annotations.Inject
-import skillbill.config.model.ExperimentAvailabilityPolicy
 import skillbill.config.model.RepoLocalConfig
 import skillbill.config.model.RepoLocalConfigKey
 import skillbill.config.model.ValidationGateRepoConfig
@@ -12,11 +11,8 @@ import skillbill.config.model.ValidationGateRepoConfigParse
 import skillbill.config.model.parseSpecType
 import skillbill.config.model.parseValidationGateRepoConfig
 import skillbill.contracts.JsonCodec
-import skillbill.error.shellcontent.ExperimentConfigMalformedError
 import skillbill.error.shellcontent.MalformedRepoLocalConfigError
 import skillbill.error.shellcontent.UnreadableRepoLocalConfigError
-import skillbill.experiment.model.ExperimentConfigParse
-import skillbill.experiment.model.parseExperimentAvailabilityValue
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.config.model.ReadRepoLocalConfigResult
@@ -64,26 +60,7 @@ class FileSystemRepoLocalConfig(
         } else {
           ValidationGateRepoConfig.defaults()
         },
-      experimentsAvailability =
-        if (raw.containsKey("experiments")) {
-          parseExperimentsAvailability(path, raw["experiments"])
-        } else {
-          null
-        },
     )
-
-  private fun parseExperimentsAvailability(
-    path: Path,
-    value: Any?,
-  ): ExperimentAvailabilityPolicy =
-    when (val parsed = parseExperimentAvailabilityValue(value)) {
-      is ExperimentConfigParse.Valid -> parsed.policy
-      is ExperimentConfigParse.Invalid -> throw ExperimentConfigMalformedError(
-        path = path.toString(),
-        key = parsed.key,
-        reason = parsed.reason,
-      )
-    }
 
   private fun rejectRemovedParallelAgentConfig(
     path: Path,

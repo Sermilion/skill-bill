@@ -676,4 +676,17 @@ internal val databaseMigrations: List<DatabaseMigration> =
         }
       },
     ),
+    DatabaseMigration(
+      version = 45,
+      name = "skill-378-drop-experiment-tables",
+      operation = { connection ->
+        connection.createStatement().use { statement ->
+          statement.execute("DROP TABLE IF EXISTS experiment_reports")
+          statement.execute("DROP TABLE IF EXISTS experiment_pair_leases")
+          statement.execute("DROP TABLE IF EXISTS experiment_arm_outcomes")
+          statement.execute("DROP TABLE IF EXISTS experiment_observations")
+          statement.execute("DROP TABLE IF EXISTS experiment_pairs")
+        }
+      },
+    ),
   )

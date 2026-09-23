@@ -72,6 +72,7 @@ class GoalRunnerStatusService(
       manifestStore = manifestStore,
       outcomeStore = outcomeStore,
       gitOperations = gitOperations,
+      clock = clock,
     )
 
   fun status(request: GoalRunnerStatusRequest): GoalRunnerStatusProjection? {

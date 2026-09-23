@@ -15,13 +15,14 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.Path
+import java.time.Clock
 import java.time.OffsetDateTime
-import java.time.ZoneOffset
 
 class GoalRunnerAcceptanceCoordinator(
   private val manifestStore: GoalRunnerManifestStore,
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
   private val gitOperations: WorkflowGitOperations,
+  private val clock: Clock,
 ) {
   fun accept(request: GoalRunnerAcceptRequest): GoalRunnerAcceptResult {
     val rejection = acceptanceRejection(request)
@@ -40,7 +41,7 @@ class GoalRunnerAcceptanceCoordinator(
         subtaskId = request.subtaskId,
         commitSha = resolvedSha,
         reason = request.reason,
-        acceptedAt = OffsetDateTime.now(ZoneOffset.UTC).toString(),
+        acceptedAt = OffsetDateTime.now(clock).toString(),
       )
     manifestStore.persistOutOfBandAcceptance(loaded.parentWorkflowId, acceptance)
     val refreshed = manifestStore.loadDurableByIssueKey(request.issueKey) ?: loaded

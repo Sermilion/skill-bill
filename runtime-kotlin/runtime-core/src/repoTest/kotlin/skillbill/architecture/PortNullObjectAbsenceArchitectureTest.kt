@@ -10,8 +10,46 @@ object PortNullObjectCensus {
     Regex(
       """(?<!(?:data|enum|sealed|value) )\b(?:object|class)\s+((?:Unavailable|Noop|Empty|Unconfigured)\w*)""",
     )
+  private val interfaceDeclaration = Regex("""^(?:public\s+|internal\s+)?(?:fun\s+)?interface\s+(\w+)""")
+  private val companionNullObjectVal = Regex("""^\s*val\s+(NONE|IDLE|NOOP|DISABLED)\s*:""")
+
+  const val COMPANION_VAL_MODULE: String = "runtime-kotlin/runtime-engine"
 
   fun namesIn(source: String): Set<String> = declaration.findAll(source).map { it.groupValues[1] }.toSet()
+
+  fun companionNullObjectsIn(source: String): Set<String> {
+    var enclosingInterface: String? = null
+    var inCompanion = false
+    val found = mutableSetOf<String>()
+    source.lines().forEach { line ->
+      interfaceDeclaration.find(line)?.let { match ->
+        enclosingInterface = match.groupValues[1]
+        inCompanion = false
+      }
+      if (enclosingInterface == null) return@forEach
+      if ("companion object" in line) inCompanion = true
+      if (inCompanion) {
+        companionNullObjectVal.find(line)?.let { match ->
+          found += "$enclosingInterface.${match.groupValues[1]}"
+        }
+      }
+      if (line == "}") {
+        enclosingInterface = null
+        inCompanion = false
+      }
+    }
+    return found
+  }
+
+  fun testOnlyCompanionNullObjectsIn(
+    declaringSources: Map<String, String>,
+    mainSources: Collection<String>,
+  ): List<String> =
+    declaringSources
+      .flatMap { (label, source) -> companionNullObjectsIn(source).map { qualifiedName -> qualifiedName to label } }
+      .filterNot { (qualifiedName, _) -> mainSources.any { source -> qualifiedName in source } }
+      .map { (qualifiedName, label) -> "$qualifiedName ($label)" }
+      .sorted()
 }
 
 class PortNullObjectAbsenceArchitectureTest {
@@ -69,6 +107,57 @@ class PortNullObjectAbsenceArchitectureTest {
       PortNullObjectCensus.namesIn("  enum class Unavailable : ReviewCheckpointFileIdentity"),
     )
   }
+
+  @Test
+  fun `no scanned module keeps a test-only companion null object in main source`() {
+    assertEquals(emptyList(), testOnlyCompanionNullObjects())
+  }
+
+  @Test
+  fun `the companion census flags a test-only null object and accepts a main-referenced one`() {
+    val testOnly =
+      """
+      fun interface GoalPlanningSweep {
+        fun prepare(): Int
+
+        companion object {
+          val NONE: GoalPlanningSweep = GoalPlanningSweep { 0 }
+        }
+      }
+      """.trimIndent()
+    val mainReferenced =
+      """
+      fun interface GoalRunnerEventSink {
+        fun emit(event: String)
+
+        companion object {
+          val NONE: GoalRunnerEventSink = GoalRunnerEventSink {}
+        }
+      }
+      """.trimIndent()
+    val emptyDataValue =
+      "data class Findings(val entries: List<String>) { companion object { val EMPTY = Findings(emptyList()) } }"
+    val declaringSources =
+      mapOf("Sweep.kt" to testOnly, "Sink.kt" to mainReferenced, "Findings.kt" to emptyDataValue)
+    val mainSources =
+      declaringSources.values + "class Runner(private val sink: GoalRunnerEventSink = GoalRunnerEventSink.NONE)"
+
+    assertEquals(
+      listOf("GoalPlanningSweep.NONE (Sweep.kt)"),
+      PortNullObjectCensus.testOnlyCompanionNullObjectsIn(declaringSources, mainSources),
+    )
+  }
+
+  private fun testOnlyCompanionNullObjects(): List<String> =
+    PortNullObjectCensus.testOnlyCompanionNullObjectsIn(
+      declaringSources =
+        kotlinFiles(runtimeRoot.resolve("${PortNullObjectCensus.COMPANION_VAL_MODULE}/src/main"))
+          .associate { path -> "${runtimeRoot.relativize(path)}" to Files.readString(path) },
+      mainSources =
+        kotlinFiles(runtimeRoot.resolve("runtime-kotlin"))
+          .filter { path -> "${Path.of("src", "main")}" in path.toString() }
+          .map(Files::readString),
+    )
 
   @Test
   fun `every runtime-ports test fixture object has an outside test or fixture reference`() {

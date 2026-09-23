@@ -2,7 +2,6 @@ package skillbill.infrastructure.launcher.agentrun
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessEnvironmentFields
-import skillbill.infrastructure.launcher.process.launch.AgentRunProcessExperimentCapabilityFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessLaunchFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessProbeFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRequest
@@ -159,12 +158,6 @@ internal class ProcessAgentRunAdapter(
         reviewEvidenceBroker = request.reviewEvidenceBroker,
         reviewEvidenceEndpoint = request.reviewEvidenceEndpoint,
         spawnAuthorization = request.spawnAuthorization,
-      ),
-    experimentCapabilities =
-      AgentRunProcessExperimentCapabilityFields(
-        treatmentCapabilitiesEnabled = request.treatmentCapabilitiesEnabled,
-        treatmentCapabilitiesDenied = request.treatmentCapabilitiesDenied,
-        denyRemotePublication = request.denyRemotePublication,
       ),
   )
 

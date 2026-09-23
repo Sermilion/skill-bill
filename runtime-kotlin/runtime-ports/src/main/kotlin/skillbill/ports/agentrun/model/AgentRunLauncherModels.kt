@@ -3,7 +3,6 @@ package skillbill.ports.agentrun.model
 
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.config.model.PhaseCompactionDirective
-import skillbill.experiment.model.ExperimentArmId
 import skillbill.goalrunner.model.GoalRunnerLivenessState
 import skillbill.goalrunner.model.GoalRunnerProcessState
 import skillbill.install.model.SupportedAgent
@@ -35,9 +34,6 @@ data class SkillRunRequest(
   val streamProviderOutput: Boolean = false,
   val streamOutputForLiveness: Boolean = false,
   val readOnlyPhase: Boolean = false,
-  val treatmentCapabilitiesEnabled: Set<String> = emptySet(),
-  val treatmentCapabilitiesDenied: Set<String> = emptySet(),
-  val denyRemotePublication: Boolean = false,
   val modelOverride: String? = null,
   val effortOverride: String? = null,
   val compaction: PhaseCompactionDirective? = null,
@@ -88,9 +84,6 @@ data class SkillRunGoalContinuationContext(
   val lastResumableStep: String? = null,
   val childWorkflowId: String? = null,
   val assignedWorkflowId: String? = null,
-  val experimentArmId: ExperimentArmId? = null,
-  val experimentTreatmentCapabilities: Set<String> = emptySet(),
-  val deferRemotePublication: Boolean = false,
   val codeReviewMode: CodeReviewExecutionMode = CodeReviewExecutionMode.DEFAULT,
   val validationDepth: ValidationDepth = ValidationDepth.DEFAULT,
   val qualityGateSelection: FeatureTaskRuntimeQualityGateSelection =

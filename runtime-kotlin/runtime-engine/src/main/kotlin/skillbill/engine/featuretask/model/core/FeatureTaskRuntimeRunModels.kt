@@ -35,7 +35,6 @@ data class FeatureTaskRuntimeRunRequest(
   val agentAddonSelection: HydratedAgentAddonSelection = HydratedAgentAddonSelection(),
   val eventSink: FeatureTaskRuntimeRunEventSink = FeatureTaskRuntimeRunEventSink.NONE,
   val transitionsOverride: FeatureTaskRuntimeTransitionDeclaration? = null,
-  val deferRemotePublication: Boolean = false,
 ) {
   init {
     require(issueKey.isNotBlank()) { "FeatureTaskRuntimeRunRequest.issueKey is required." }

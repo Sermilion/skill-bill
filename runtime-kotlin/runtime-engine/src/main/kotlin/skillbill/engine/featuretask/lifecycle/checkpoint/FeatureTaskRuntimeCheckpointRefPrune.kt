@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.checkpoint
 
-import skillbill.engine.experiment.isolation.ExperimentCheckpointNamespace
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointRefPruneRequest
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
@@ -76,7 +75,6 @@ internal fun WorkflowGitOperations.pruneSubtaskCheckpointRefs(
     repoRoot,
     issueKey,
     subtaskId,
-    ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot),
     record,
   )
 }
@@ -125,7 +123,6 @@ private fun WorkflowGitOperations.pruneListedCheckpointRefs(
   repoRoot: Path,
   issueKey: String,
   subtaskId: String,
-  namespace: String,
   record: (String) -> Unit,
 ): FeatureTaskRuntimeCheckpointRefPruneResult {
   val prefix = "$namespace/${issueKey.trim()}/$subtaskId/"
@@ -164,7 +161,7 @@ private fun WorkflowGitOperations.deleteListedCheckpointRefs(
     val removed =
       deleteCheckpointRef(
         repoRoot,
-        ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot),
+        FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE,
         refName,
       )
     if (removed !is WorkflowGitOperationResult.Ok) {
@@ -197,7 +194,7 @@ fun pruneGoalPurgeCheckpointRefs(
 ): Int {
   val trimmedIssueKey = issueKey.trim()
   if (trimmedIssueKey.isBlank()) return 0
-  val namespace = ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot)
+  val namespace = FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE
   val issuePrefix = "$namespace/$trimmedIssueKey/"
   val names =
     when (val listed = gitOperations.listCheckpointRefs(repoRoot, issuePrefix)) {
@@ -230,7 +227,7 @@ private fun WorkflowGitOperations.deleteListedCheckpointRefsForPurge(
     val removed =
       deleteCheckpointRef(
         repoRoot,
-        ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot),
+        FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE,
         refName,
       )
     if (removed !is WorkflowGitOperationResult.Ok) {

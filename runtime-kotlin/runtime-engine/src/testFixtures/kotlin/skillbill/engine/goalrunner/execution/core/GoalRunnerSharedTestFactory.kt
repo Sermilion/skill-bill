@@ -22,7 +22,7 @@ import skillbill.engine.goalrunner.persist.engineWorkflowGoalRunnerChildRepairSt
 import skillbill.engine.goalrunner.persist.engineWorkflowGoalRunnerManifestStore
 import skillbill.engine.goalrunner.persist.engineWorkflowGoalRunnerOutcomeStore
 import skillbill.engine.goalrunner.planning.hydration.GoalChildPlanningHydratorPortAdapter
-import skillbill.engine.goalrunner.planning.recovery.GoalPlanningStatusReasonCoherence
+import skillbill.engine.goalrunner.planning.recovery.NO_GOAL_PLANNING_STATUS_REASON_COHERENCE
 import skillbill.engine.goalrunner.repair.GoalRunnerChildRepairOperations
 import skillbill.engine.goalrunner.repair.NoopGoalRunnerChildRepairStore
 import skillbill.engine.goalrunner.reset.GoalRunnerPurgeCoordinator
@@ -98,7 +98,7 @@ fun testGoalRunnerStatusService(
       gitOperations = ports.gitOperations,
       clock = clock,
       workerSupervisor = ports.workerSupervisor,
-      planningStatusReasonCoherence = GoalPlanningStatusReasonCoherence.NONE,
+      planningStatusReasonCoherence = NO_GOAL_PLANNING_STATUS_REASON_COHERENCE,
       diagnostics = ports.diagnostics,
       runtimeStatusService = ports.runtimeStatusService,
       repositoryRoot = testRepositoryRoot,
@@ -154,13 +154,14 @@ private val testGoalChildPlanningHydratorPort =
 fun testGoalRunnerChildRepairExecutor(
   database: DatabaseSessionFactory = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
   gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
+  clock: Clock = testHarnessClock,
 ): GoalRunnerChildRepairOperations =
   GoalRunnerChildRepairOperations(
     database,
     testWorkflowSnapshotValidator,
     gitOperations,
     testDecompositionManifestValidator,
-    testHarnessClock,
+    clock,
   )
 
 fun testWorkflowGoalRunnerManifestStore(
@@ -186,12 +187,13 @@ fun testWorkflowGoalRunnerOutcomeStore(
   gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
   workerSupervisor: FeatureTaskRuntimeWorkerSupervisor = NoopFeatureTaskRuntimeWorkerSupervisor,
   artifactPorts: OutcomeStoreTestArtifactPorts = OutcomeStoreTestArtifactPorts(),
+  clock: Clock = testHarnessClock,
 ) = engineWorkflowGoalRunnerOutcomeStore(
   database = database,
   workflowSnapshotValidator = workflowSnapshotValidator,
   gitOperations = gitOperations,
   workerSupervisor = workerSupervisor,
-  clock = testHarnessClock,
+  clock = clock,
   artifactPorts = artifactPorts,
 )
 
@@ -199,9 +201,10 @@ fun testWorkflowGoalRunnerChildRepairStore(
   database: DatabaseSessionFactory,
   gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
   artifactPorts: OutcomeStoreTestArtifactPorts = OutcomeStoreTestArtifactPorts(),
+  clock: Clock = testHarnessClock,
 ) = engineWorkflowGoalRunnerChildRepairStore(
   database = database,
-  childRepairExecutor = testGoalRunnerChildRepairExecutor(database, gitOperations),
+  childRepairExecutor = testGoalRunnerChildRepairExecutor(database, gitOperations, clock),
   decompositionManifestValidator = testDecompositionManifestValidator,
   decompositionManifestWriter = testDecompositionManifestWriter,
   decompositionManifestStore = artifactPorts.decompositionManifestStore,

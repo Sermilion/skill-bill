@@ -4,8 +4,6 @@ import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
 import skillbill.ports.diagnostics.UnavailableRejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.UnavailableRejectedOutputDiagnosticRepository
-import skillbill.ports.experiment.pair.ExperimentPairRepository
-import skillbill.ports.experiment.pair.UnavailableExperimentPairRepository
 import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.featuretask.UnavailableFeatureTaskPhaseSettlementRepository
 import skillbill.ports.goalrunner.UnaddressedFindingsRepository
@@ -25,7 +23,6 @@ abstract class UnitOfWorkDefaults : UnitOfWork {
     UnavailableRejectedOutputDiagnosticPermissions
   open override val featureTaskPhaseSettlements: FeatureTaskPhaseSettlementRepository =
     UnavailableFeatureTaskPhaseSettlementRepository
-  open override val experimentPairs: ExperimentPairRepository = UnavailableExperimentPairRepository
 
   override fun purgeDecomposedGoal(parentWorkflowId: String) = Unit
 }

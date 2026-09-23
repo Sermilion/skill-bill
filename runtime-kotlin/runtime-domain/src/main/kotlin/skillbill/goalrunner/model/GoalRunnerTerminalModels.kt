@@ -103,7 +103,6 @@ data class GoalRunnerStopReport(
 enum class GoalPullRequestStatus(val wireValue: String) {
   OPENED("opened"),
   EXISTING("existing"),
-  DEFERRED("deferred"),
   ;
 
   companion object {

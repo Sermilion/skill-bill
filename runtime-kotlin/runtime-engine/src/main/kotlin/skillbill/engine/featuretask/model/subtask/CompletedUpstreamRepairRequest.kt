@@ -4,6 +4,7 @@ import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSe
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
+import java.time.Clock
 
 data class CompletedUpstreamRepairRequest(
   val phaseRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
@@ -11,6 +12,7 @@ data class CompletedUpstreamRepairRequest(
   val featureSize: FeatureTaskRuntimeFeatureSize,
   val resumePhaseId: String,
   val reason: String,
+  val clock: Clock,
   val qualityGateSelection: FeatureTaskRuntimeQualityGateSelection =
     FeatureTaskRuntimeQualityGateSelection.VALIDATE,
 )

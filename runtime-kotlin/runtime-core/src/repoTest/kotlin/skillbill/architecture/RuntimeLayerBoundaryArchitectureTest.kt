@@ -5,6 +5,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFails
 import kotlin.test.assertTrue
 
 class RuntimeLayerBoundaryArchitectureTest {
@@ -170,14 +171,37 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `application domain and ports avoid direct file IO`() {
-    val boundaryFiles =
-      sourceFiles()
-        .filter { file ->
-          file.relativePath.startsWith("runtime-kotlin/runtime-application/src/main/kotlin/") ||
-            file.relativePath.startsWith("runtime-kotlin/runtime-domain/src/main/kotlin/") ||
-            file.relativePath.startsWith("runtime-kotlin/runtime-ports/src/main/kotlin/")
-        }
+    assertNoDirectFileIo(sourceFiles())
+  }
 
+  @Test
+  fun `file IO guard reports a runtime-engine main violation`() {
+    val enginePath = "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/Synthetic.kt"
+    val explicitImport =
+      SourceFile(
+        relativePath = enginePath,
+        packageName = "skillbill.engine",
+        imports = listOf("java.nio.file.Files"),
+        source = "package skillbill.engine\n\nfun read(path: Path): String = Files.readString(path)\n",
+      )
+    val wildcardImport =
+      explicitImport.copy(
+        imports = listOf("java.nio.file.*"),
+        source =
+          "package skillbill.engine\n\nimport java.nio.file.*\n\n" +
+            "fun read(path: Path) = Files.readString(path)\n",
+      )
+
+    val importFailure = assertFails { assertNoDirectFileIo(listOf(explicitImport)) }
+    val referenceFailure = assertFails { assertNoDirectFileIo(listOf(wildcardImport)) }
+
+    assertContains(importFailure.message.orEmpty(), "$enginePath imports java.nio.file.Files")
+    assertContains(referenceFailure.message.orEmpty(), "$enginePath:5 contains direct file IO dependency Files.")
+  }
+
+  private fun assertNoDirectFileIo(files: List<SourceFile>) {
+    val boundaryFiles =
+      files.filter { file -> directFileIoGuardedSourceRoots.any(file.relativePath::startsWith) }
     assertNoBannedImports(
       files = boundaryFiles,
       bannedImports = RuntimeArchitectureScanConstants.directFileIoImports,
@@ -473,3 +497,11 @@ class RuntimeLayerBoundaryArchitectureTest {
     assertTrue(!source.contains("releaseEntryMalformed"), "Malformed entry flags must stay invocation-local.")
   }
 }
+
+private val directFileIoGuardedSourceRoots: List<String> =
+  listOf(
+    "runtime-kotlin/runtime-application/src/main/kotlin/",
+    "runtime-kotlin/runtime-domain/src/main/kotlin/",
+    "runtime-kotlin/runtime-ports/src/main/kotlin/",
+    "runtime-kotlin/runtime-engine/src/main/kotlin/",
+  )

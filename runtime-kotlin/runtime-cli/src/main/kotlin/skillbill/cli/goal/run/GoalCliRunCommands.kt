@@ -18,7 +18,6 @@ import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.experiment.ExperimentPreflightPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
@@ -65,10 +64,6 @@ class GoalPreflightCommand(
     help = "Raw agent add-on slug. Repeat to preserve caller order.",
   ).multiple()
   private val format by formatOption()
-  private val experiments by option(
-    "--experiments",
-    help = "Experiment selection for this goal run. Use none to disable or a comma-separated kebab-case list.",
-  )
 
   override fun run() {
     val root = resolveCliRepositoryRoot(repoRoot, inputs)
@@ -85,7 +80,6 @@ class GoalPreflightCommand(
           requestedAgentAddonSlugs = agentAddonSlugs,
           userHome = inputs.userHome,
           environment = inputs.environment,
-          experimentsParameter = experiments,
         ),
       )
     val payload = result.toGoalPreflightCliMap()
@@ -165,17 +159,6 @@ private fun GoalPreflightGateBlock.toGoalPreflightGateBlockMap(): Map<String, An
     "agent_addons" to
       agentAddons.map { addon ->
         linkedMapOf("slug" to addon.slug, "description" to addon.description)
-      },
-    "experiment_selection_summary" to experimentSelectionSummary,
-    ExperimentPreflightPayloadKeys.EXPERIMENT to
-      experiment?.let {
-        linkedMapOf(
-          ExperimentPreflightPayloadKeys.SELECTED_NAMES to it.selectedNames,
-          ExperimentPreflightPayloadKeys.ARMS to it.arms,
-          ExperimentPreflightPayloadKeys.DELIVERY_ARM to it.deliveryArm,
-          ExperimentPreflightPayloadKeys.DECLARED_SETUP to it.declaredSetup,
-          ExperimentPreflightPayloadKeys.ADDITIONAL_TIME_AND_SPEND to it.additionalTimeAndSpend,
-        )
       },
   )
 

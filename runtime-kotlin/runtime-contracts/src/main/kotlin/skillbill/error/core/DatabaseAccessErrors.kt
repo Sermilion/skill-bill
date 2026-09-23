@@ -18,6 +18,8 @@ class DatabaseAccessError(
   val condition: String = boundedCondition(condition)
 }
 
+class DatabaseBusyError(cause: Throwable) : RuntimeException(cause.message, cause)
+
 private val STACK_FRAME_LINE = Regex("^\\s*(at\\s+\\S|Caused by:|\\.{3}\\s+\\d+\\s+more)")
 private val QUALIFIED_SQLITE_TYPE = Regex("\\borg\\.sqlite\\.[A-Za-z0-9_.$]+")
 

@@ -187,26 +187,6 @@ governedResources {
     "SKILL-140: canonical quarantine schema",
   )
   copy(
-    "copyExperimentDescriptorSchema",
-    "experiment-descriptor-schema.yaml",
-    "SKILL-366: canonical experiment descriptor schema",
-  )
-  copy(
-    "copyExperimentPairSchema",
-    "experiment-pair-schema.yaml",
-    "SKILL-366: canonical experiment pair schema",
-  )
-  copy(
-    "copyExperimentObservationSchema",
-    "experiment-observation-schema.yaml",
-    "SKILL-366: canonical experiment observation schema",
-  )
-  copy(
-    "copyExperimentReportSchema",
-    "experiment-report-schema.yaml",
-    "SKILL-366: canonical experiment report schema",
-  )
-  copy(
     "copyIssueKeySchema",
     "issue-key-schema.yaml",
     "canonical issue-key schema",

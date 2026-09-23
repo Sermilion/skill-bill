@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask.lifecycle.remediation
 
-import skillbill.engine.experiment.isolation.ExperimentCheckpointNamespace
+import java.nio.file.Path
 import skillbill.engine.featuretask.lifecycle.continuation.GoalReviewBaseField
 import skillbill.engine.featuretask.model.subtask.RemediationReconcileSnapshot
 import skillbill.engine.featuretask.model.subtask.RemediationReconciliationBlocked
@@ -10,9 +10,9 @@ import skillbill.engine.featuretask.model.subtask.RemediationReconciliationHeal
 import skillbill.engine.featuretask.model.subtask.ResolvedReviewFixCheckpoint
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import java.nio.file.Path
 
 internal fun latestResolvedReviewFixCheckpointCommit(
   checkpoints: List<FeatureTaskRuntimeCheckpointIdentity>,
@@ -46,7 +46,7 @@ fun resolveCheckpointRefCommit(
   val resolved =
     gitOperations.resolveCheckpointRef(
       repoRoot,
-      ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot),
+      FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE,
       checkpointRef,
     )
   if (resolved !is WorkflowGitOperationResult.Ok) return null

@@ -157,7 +157,7 @@ object FeatureTaskRuntimeRunLoopCommitPush {
             commitSha = args.outcome.commitSha,
             branch = args.branch,
             baseBranch = args.baseBranch,
-            pushed = !context.request.deferRemotePublication,
+            pushed = true,
           ),
         ),
       )
@@ -201,7 +201,6 @@ object FeatureTaskRuntimeRunLoopCommitPush {
           branch = args.branch,
           intent = FeatureTaskRuntimeCheckpointMessage.INTENT_FINALISED_SUBTASK,
         ),
-      deferRemotePublication = context.request.deferRemotePublication,
     ),
   )
 

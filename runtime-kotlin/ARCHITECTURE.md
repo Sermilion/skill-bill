@@ -584,8 +584,6 @@ and `:runtime-infra:sqlite`.
   and stamp types for IDE status presentation owned by `runtime-domain`.
 - `skillbill.engine`: feature-task run loop, goal runner, goal planning, and
   planning projection use cases owned by `runtime-engine`.
-- `skillbill.experiment`: experiment selection policy owned by `runtime-domain`.
-- `skillbill.experiment.model`: experiment domain models owned by `runtime-domain`.
 
 Package-cycle enforcement uses exact declared-package strongly connected
 components for `runtime-domain`, including nested model packages. Other module
@@ -944,8 +942,6 @@ skillbill.di
 skillbill.skillremove
 skillbill.engine
 skillbill.error
-skillbill.experiment
-skillbill.experiment.model
 skillbill.featurespec
 skillbill.goalrunner
 skillbill.idestatus

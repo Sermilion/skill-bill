@@ -44,6 +44,7 @@ import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.featuretask.runner.missingUpstream
 import skillbill.engine.goalrunner.status.completed
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.error.core.DatabaseBusyError
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
@@ -433,7 +434,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
   }
 
   fun goalReviewPreparationDisposition(error: Throwable): FeatureTaskRuntimeFailureDisposition =
-    if ("[SQLITE_BUSY]" in error.message.orEmpty()) {
+    if (generateSequence(error, Throwable::cause).any { it is DatabaseBusyError }) {
       FeatureTaskRuntimeFailureDisposition.RETRYABLE
     } else {
       FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION

@@ -74,6 +74,8 @@ import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.artifact.operatorBlockRetryFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.artifact.phaseLedgerFromWorkflowArtifacts
 import skillbill.workflow.taskruntime.artifact.phaseRecordsFromWorkflowArtifacts
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
@@ -81,8 +83,10 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.Featur
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import java.nio.file.Path
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneOffset
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -731,7 +735,12 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
       ).toRecord(),
       RUNTIME,
     )
-    val store = repairStore(workflows, git = ReachableGit())
+    val store =
+      repairStore(
+        workflows,
+        git = ReachableGit(),
+        clock = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC),
+      )
 
     val applied =
       store.applyChildWedgeRepairs(
@@ -749,9 +758,12 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     val updated = requireNotNull(workflows.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME))
     assertEquals("running", updated.workflowStatus)
     assertEquals("verify_findings", updated.currentStepId)
-    val records = phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifactsForTest(updated.artifactsJson))
+    val updatedArtifacts = decodeWorkflowArtifactsForTest(updated.artifactsJson)
+    val records = phaseRecordsFromWorkflowArtifacts(updatedArtifacts)
     assertEquals("pending", records.getValue("verify_findings").status.wireValue)
     assertEquals("pending", records.getValue("implement_fix").status.wireValue)
+    assertEquals("2026-07-27T12:00Z", operatorBlockRetryFromWorkflowArtifacts(updatedArtifacts)?.retriedAt)
+    assertEquals("2026-07-27T12:00Z", phaseLedgerFromWorkflowArtifacts(updatedArtifacts).last().timestamp)
     val evidence =
       (decodeWorkflowArtifactsForTest(updated.artifactsJson)[GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY] as List<*>)
         .single() as Map<*, *>
@@ -1650,6 +1662,7 @@ internal abstract class GoalRunnerRepairFixtures {
     workflows: InMemoryWorkflowStates,
     git: WorkflowGitOperations = NoopWorkflowGitOperations,
     manifestStore: DecompositionManifestStore = InMemoryRepairManifestFileStore(),
+    clock: Clock = testHarnessClock,
   ): RepairTestStore {
     val database = FakeDatabaseSessionFactory(workflows)
     val artifactPorts = OutcomeStoreTestArtifactPorts(decompositionManifestStore = manifestStore)
@@ -1660,12 +1673,14 @@ internal abstract class GoalRunnerRepairFixtures {
           testWorkflowSnapshotValidator,
           gitOperations = git,
           artifactPorts = artifactPorts,
+          clock = clock,
         ),
       childRepairStore =
         testWorkflowGoalRunnerChildRepairStore(
           database,
           gitOperations = git,
           artifactPorts = artifactPorts,
+          clock = clock,
         ),
     )
   }

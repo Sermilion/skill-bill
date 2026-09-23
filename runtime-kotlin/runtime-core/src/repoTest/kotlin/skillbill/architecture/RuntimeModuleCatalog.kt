@@ -201,8 +201,6 @@ object RuntimeModuleCatalog {
       "skillbill.skillremove",
       "skillbill.engine",
       "skillbill.error",
-      "skillbill.experiment",
-      "skillbill.experiment.model",
       "skillbill.featurespec",
       "skillbill.goalrunner",
       "skillbill.idestatus",
