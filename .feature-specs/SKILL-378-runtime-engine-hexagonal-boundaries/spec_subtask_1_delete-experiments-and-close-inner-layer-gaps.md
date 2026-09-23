@@ -105,6 +105,8 @@ This subtask owns all experiment code. Delete whatever exists at start, wherever
 SKILL-377 subtask 3 also edits `PortNullObjectAbsenceArchitectureTest`, so
 whichever lands second rebases.
 
+SKILL-380 requires this subtask (through SKILL-378 subtask 2).
+
 ## Validation strategy
 
 The regressions to catch are a goal run that breaks without experiments, an old

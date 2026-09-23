@@ -125,6 +125,9 @@ should rebase onto settled contracts once:
 SKILL-370 retries busy self-managed writes in the adapter without a new
 exception type, so the typed busy exception here is new.
 
+SKILL-380 subtask 1 depends on this subtask; see the SKILL-380 coordination
+section of spec.md for slot grouping.
+
 ## Validation strategy
 
 The regressions to catch are a step that drops a collaborator's side effect

@@ -151,6 +151,24 @@ fixture that must fail. Changed tests go through `bill-unit-test-value-check`,
 and the validate phase runs the pack-declared gate. No tests ran during
 preparation.
 
+## SKILL-380 coordination
+
+- SKILL-380 requires subtasks 1 and 2: its slot strategies are subtask 2's step
+  classes regrouped by slot.
+- In subtask 2, where step-class grouping is otherwise free, group
+  phase-specific behaviour by SKILL-380 slot: preplan, plan, implementation,
+  audit, code_review (review, verify_findings, implement_fix), quality_gate
+  (build, validate), write_history, commit_push, pull_request. SKILL-380 then
+  wraps classes instead of re-cutting them.
+- Subtask 2's non-goal "Interfaces for step classes, a step framework" stays true
+  for subtask 2. SKILL-380 later adds exactly one slot-strategy interface and
+  records a decision that builds on the step-class rule.
+- Subtask 2's guards bind SKILL-380: no top-level function objects in
+  `featuretask/runloop`, no collaborator-carrying `*Args`/`*Inputs`/`*Context`,
+  at most six parameters, private inject properties.
+- SKILL-380 does not need subtask 3, which may land before or after it. If after,
+  its visibility pass covers the new `skillbill.engine.featuretask.slot` packages.
+
 ## Next path
 
 ```bash

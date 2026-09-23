@@ -45,6 +45,8 @@ Git defaults (F-004): make `resetSoftToCommit`, `resetHardToCommit`, `isCommitAn
 
 Runs first. Requires SKILL-370 and SKILL-378 subtask 1, which deletes the experiment git consumers and linked-worktree operations. Also requires SKILL-376 subtask 1, which reworks the git process code in `runtime-infra/workflow` and declares git result semantics a non-goal. Subtasks 2 and 3 run after this one.
 
+Recommended before SKILL-380 subtask 1.
+
 ## Validation Strategy
 
 Run the runtime-ports, runtime-infra workflow, runtime-engine, runtime-application, and runtime-cli test suites and the architecture suite. The regression each new adapter test catches: a malformed or empty git listing no longer reaches the engine as text, and an empty commit is no longer inferred from English stderr. Changed tests go through `bill-unit-test-value-check`. The validate phase runs the routed pack quality gate.

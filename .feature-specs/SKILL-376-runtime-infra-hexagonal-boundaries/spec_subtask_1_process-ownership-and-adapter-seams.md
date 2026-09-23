@@ -149,6 +149,7 @@ execution.
   do before and after it lands. SKILL-371 subtask 3 edits host and launcher for
   repo identity and goal-child tokens; no shared files.
 - SKILL-378 subtask 1 may already have deleted `SqliteExperimentPairStore`.
+- On SKILL-380's recommended path because SKILL-377 subtask 1 requires it.
 
 ## Validation strategy
 

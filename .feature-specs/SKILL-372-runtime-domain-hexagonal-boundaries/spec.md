@@ -59,6 +59,8 @@ Each commit builds and stands alone.
 13. SKILL-378.2–3
 14. SKILL-373.3
 
+SKILL-380 follows 378.2 and does not need 373.x, 374.x, 375, 376.2–3, 377.2–3, or 378.3.
+
 Prepared in local mode on 2026-09-22. The key was rechecked after `git fetch` against `.feature-specs/`, `.feature-specs/done/`, `git branch -a`, and `git log --all`; SKILL-372 is held only by this bundle. Baseline HEAD `dbf9f4830a019441f94eb7d04f7fbb6402aa5f8b`, runtime-domain digest `b7799fd116e4ffd9a8533d85861d8a3df44564d1188c10de04cb2f4107c727dd`, 844 domain tests passing. This bundle prepares work only; all subtasks start pending.
 
 ## Acceptance Criteria
@@ -115,6 +117,12 @@ Prepared in local mode on 2026-09-22. The key was rechecked after `git fetch` ag
 - Run the corrected cycle scanner on the real tree and on a synthetic three-package cycle.
 - Run the runtime-domain, runtime-ports, runtime-application, runtime-engine, infra suites, runtime-cli, runtime-mcp, and runtime-core architecture suites.
 - Use the pack-declared quality gate during implementation and `bill-unit-test-value-check` on changed tests.
+
+## SKILL-380 coordination
+
+- Run subtasks 1 and 2 before SKILL-380: they type the snapshot and artifact reads across the feature-task call sites SKILL-380 regroups into slot strategies.
+- SKILL-380 subtask 3 reads its frozen `workflow_profile` run-invariants field through subtask 2's typed accessor if that accessor exists.
+- SKILL-380 does not need subtask 3.
 
 ## Next path
 

@@ -146,6 +146,8 @@ Cross-bundle order (full table in the investigation, "Coordination with concurre
   before changing Kotlin. No `//` comments, KDoc only on interfaces, 500-line production
   ceiling, no inline FQNs, and package sibling limits.
 
+SKILL-380 follows SKILL-378 subtask 2 and does not wait for this bundle.
+
 ## Non-goals
 
 - `@Serializable` DTOs or any change to the `Map<String, Any?>` wire representation.
@@ -177,6 +179,16 @@ Cross-bundle order (full table in the investigation, "Coordination with concurre
 - `orchestration/contracts/{goal-verification-boundary-caps,goal-planning-discovery-exclusions,issue-key-schema}*.yaml`
 - `runtime-kotlin/agent/decisions.md`, `runtime-kotlin/agent/history.md`, `AGENTS.md`,
   `runtime-kotlin/ARCHITECTURE.md`
+
+## SKILL-380 coordination
+
+No subtask of this bundle is a SKILL-380 prerequisite, and this bundle may land before
+or after SKILL-380. SKILL-380 adds `WorkflowProfilePayloadKeys` and
+`FeatureTaskRuntimeRunInvariantsPayloadKeys` to runtime-contracts. Two or more
+production modules read each, so both satisfy this bundle's placement rule, and subtask
+2's census keeps them. SKILL-380 also adds a runtime contract,
+`workflow-profile-schema.yaml`, whose locator follows this bundle's rule if subtask 2
+lands first.
 
 ## Next path
 

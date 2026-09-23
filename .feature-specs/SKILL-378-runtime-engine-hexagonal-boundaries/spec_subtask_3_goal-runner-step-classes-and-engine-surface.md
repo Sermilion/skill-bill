@@ -123,6 +123,9 @@ Depends on subtask 2 (facade shape and guard). Start after these siblings land:
 - SKILL-372 subtask 3 and SKILL-377 subtask 3: alias deletions and renames in
   domain and ports.
 
+Not a SKILL-380 prerequisite; if SKILL-380 lands first, include its `slot`
+packages in the visibility pass.
+
 ## Validation strategy
 
 The regressions to catch are a status projection that changes when read through

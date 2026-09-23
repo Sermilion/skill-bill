@@ -119,6 +119,8 @@ Three subtasks, one commit each. Split conditions:
   sibling ceiling.
 - Cross-bundle order stated by all nine bundles (SKILL-372's verified order):
   374.1, 376.1, 378.1 → 370 → 371 → 372.1 → 373.1 → 376.2 → 372.2, 372.3 → 375 → 376.3 → 374.2 → 373.2 → 377 → 378.2–3 → 373.3.
+- SKILL-380 follows 378.2 and does not need 373.x, 374.x, 375, 376.2–3,
+  377.2–3, or 378.3.
 - The investigation's Coordination table states each sibling overlap and its
   owner. Recheck every file anchor against the tree at start; sibling bundles
   may have moved or deleted a cited file.
@@ -174,6 +176,12 @@ Three subtasks, one commit each. Split conditions:
 - `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt`
 - `.feature-specs/done/SKILL-353-*`, `SKILL-354-*`, `SKILL-356-*`, `SKILL-361-*`
 - `.feature-specs/SKILL-370-*` … `SKILL-378-*`
+
+## SKILL-380 coordination
+
+- Subtask 1 is on SKILL-380's recommended path only because SKILL-377 subtask 1
+  requires it.
+- SKILL-380 does not need subtasks 2 and 3.
 
 ## Next path
 

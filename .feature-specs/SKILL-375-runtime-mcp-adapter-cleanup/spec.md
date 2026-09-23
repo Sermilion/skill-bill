@@ -72,6 +72,10 @@ Next command: `skill-bill goal SKILL-375`.
 - Renaming or splitting `telemetry-event-schema.yaml`, or moving `TelemetryEventSchemaValidator`.
 - Moving runtime-mcp tests off SQLite internals (SKILL-356).
 
+## SKILL-380 coordination
+
+No part of this bundle is a SKILL-380 prerequisite, and this bundle may land before or after SKILL-380. SKILL-380 changes no MCP tool, including the settlement tools `feature_task_phase_complete` and `feature_task_phase_block`. The two bundles overlap only in imports.
+
 ## Validation Strategy
 
 Implementation runs `:runtime-mcp:test` and `:runtime-mcp:repoTest`, plus the runtime-core architecture tests for wire vocabulary, layer boundaries, inject-constructor rules, ambient environment, and documentation. The golden fixtures and stdio tests are the behavior baseline. After building the distribution, run it once over stdio with `initialize`, `ping`, `tools/list`, one call with an unknown argument, and one well-formed `feature_verify_workflow_open`. The validate phase runs the routed pack quality gate. Preparation ran no tests. The bundle was checked with `skill-bill goal preflight SKILL-375`.

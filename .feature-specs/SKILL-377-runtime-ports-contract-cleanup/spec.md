@@ -74,6 +74,13 @@ Next command: `skill-bill goal SKILL-377`.
 - Anything under experiment support (SKILL-378 deletes it).
 - Typed results for single-scalar git operations.
 
+## SKILL-380 coordination
+
+- Run subtask 1 before SKILL-380: it types the git results inside the commit_push and checkpoint code that SKILL-380 moves into slot strategies.
+- Subtask 2 is independent of SKILL-380 subtasks 1–3. If it lands before SKILL-380 subtask 4, the specialist review strategy uses its review-preparation facts value and closed termination type.
+- Known conflict: subtask 2 was written before SKILL-379. SKILL-379 subtask 1 replaced the learnings stub behind `ReviewFactPorts` with a DI-injected resolver. Subtask 2 keeps that resolver and takes its byte baseline after SKILL-379's review-context contract bump.
+- SKILL-380 does not need subtask 3.
+
 ## Validation Strategy
 
 Implementation runs the runtime-ports, runtime-engine, runtime-application, runtime-cli, runtime-mcp, runtime-infra workflow, sqlite, launcher, and skills test suites, plus the architecture suite. Existing git adapter, goal-runner finalization, workflow CLI and MCP, review preparation, and launcher tests are the behavior baseline. Wire and row fixtures are compared before and after. The validate phase runs the routed pack quality gate. Preparation ran only the four ports-related architecture tests, to confirm F-001.

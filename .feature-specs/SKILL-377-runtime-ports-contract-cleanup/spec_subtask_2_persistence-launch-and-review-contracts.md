@@ -61,6 +61,8 @@ Decision record: add a `runtime-kotlin/agent/decisions.md` entry that supersedes
 
 Depends on subtask 1 for branch order and the shared testFixtures doubles. Requires SKILL-378 subtask 1, which removes the experiment fields from `AgentRunLauncherModels.kt`, the file F-009 edits. Requires SKILL-372 subtask 1, which moves the strict step and artifact decoders into `WorkflowRecordMapping.kt`; keep them when you delete the `toContract` mappers. Also requires SKILL-370, which reworks the application review wiring near `ParallelReviewPreparationCompiler` and renames the package that holds `ParallelCodeReviewInlineCoverageContinuation`.
 
+If this subtask lands before SKILL-380 subtask 4, SKILL-380's specialist review strategy uses its review-preparation facts value and closed termination type. SKILL-379 subtask 1 replaced the learnings stub behind `ReviewFactPorts` with a DI-injected resolver; keep that resolver, and take the byte baseline after SKILL-379's review-context contract bump.
+
 ## Validation Strategy
 
 Run the runtime-ports, runtime-application, runtime-engine, runtime-cli, runtime-mcp, runtime-infra sqlite and launcher test suites and the architecture suite. Capture CLI and MCP workflow JSON and review-preparation fixtures before the change and diff them after. Regressions the tests catch: a batch read losing rows after the batching move, a termination mapping to the wrong review outcome, and a worker-lease release racing a heartbeat. Changed tests go through `bill-unit-test-value-check`. The validate phase runs the routed pack quality gate.

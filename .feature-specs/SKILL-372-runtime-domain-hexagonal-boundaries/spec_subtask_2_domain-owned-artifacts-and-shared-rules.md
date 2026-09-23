@@ -61,6 +61,8 @@ No aggregate shape change (subtask 1). No package moves, aliases other than the 
 
 Depends on subtask 1: accessors extend the typed `artifacts` field, and validator moves build on the write-seam validation from subtask 1. Prefer starting after SKILL-376 subtask 2; the fallback is stated in scope. Recheck SKILL-374's install-plan moves if that bundle has landed.
 
+Recommended before SKILL-380 subtask 1 (same feature-task call sites).
+
 ## Validation strategy
 
 Name the regression before each test: a malformed goal-continuation artifact that engine read as "not a goal child" must now quarantine; a `2.7` count that decoded as `2` must now fail typed; a goal-parent rewrite must write the same artifacts from every caller.

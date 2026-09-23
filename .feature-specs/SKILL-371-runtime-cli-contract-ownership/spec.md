@@ -65,6 +65,10 @@ Prepared on 2026-09-22 in local spec mode (resolved through `skill-bill config r
 - Rewriting persisted repository identities or adding a migration for rows written from a subdirectory root.
 - Removing `CliRuntimeContext` or `OptionalCallbacks` test seams.
 
+## SKILL-380 coordination
+
+No subtask of this bundle is a SKILL-380 prerequisite, and this bundle may land before or after SKILL-380. SKILL-380 subtask 3 makes `--quality-gate-selection` a closed choice that fails with a usage error. If subtask 2 has landed, that error goes through its stderr channel; if subtask 2 lands later, it includes that command in its stdout/stderr migration. Subtask 3 touches SKILL-380 files only for imports.
+
 ## Validation Strategy
 
 Each subtask runs the runtime-cli test suite and the runtime-core architecture tests. Subtask 1 also runs runtime-application and runtime-domain. Subtask 3 also runs runtime-engine, runtime-mcp, runtime-infra launcher, host, and sqlite. New tests reproduce P1–P6 from evidence/validation.md through `CliRuntime.run` and assert the corrected channel, text, and exit code. Each restored scanner gets a synthetic violation fixture that must fail. The validate phase runs the routed pack quality gate. Changed tests go through `bill-unit-test-value-check`. Preparation ran no quality gate.

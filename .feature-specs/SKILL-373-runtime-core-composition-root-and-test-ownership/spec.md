@@ -165,6 +165,17 @@ Split conditions:
 - `runtime-kotlin/build-logic/convention/src/main/kotlin/dev/skillbill/runtime/buildlogic/RepoTestConventionPlugin.kt`
 - `runtime-kotlin/ARCHITECTURE.md`, `runtime-kotlin/agent/decisions.md`, `AGENTS.md`, `docs/code-principles.md`
 
+## SKILL-380 coordination
+
+No subtask of this bundle is a SKILL-380 prerequisite, and this bundle may land
+before or after SKILL-380. SKILL-380 adds one explicit `@Provides` phase-strategy
+registry in `runtime-core/.../di/featuretask` and one rule in
+`RuntimeEngineBoundaryArchitectureTest`. Whichever lands second applies the
+current provider style (subtask 1: no `@JvmSynthetic`, no bags) and moves the rule
+with the suite (subtask 3: `repoTest`). Subtask 2's survival rule keeps
+SKILL-380's no-phase-id rule, because it enforces an invariant the compiler does
+not.
+
 ## Next path
 
 Run `skill-bill goal SKILL-373`.
