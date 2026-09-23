@@ -13,7 +13,7 @@
   `skill-bill learnings add`: the source finding exists, and its latest
   outcome is a rejection. Register it in `McpToolRegistry` and the tool-schema
   parity coverage, and declare its wire keys in `LearningPayloadKeys`.
-- Update the triage guidance in `orchestration/telemetry-contract/PLAYBOOK.md`
+- Update the triage guidance in `../../../orchestration/telemetry-contract/PLAYBOOK.md`
   ("Triage Ownership"). When `triage_findings` returns candidates, the parent
   review shows them and asks the user once, as a batch, which to promote and
   with which scope. It calls the add-learning tool only for confirmed
@@ -31,7 +31,7 @@
    A later `resolve_learnings` call for the same repo and skill returns it.
 5. The add-learning MCP tool rejects a finding whose latest outcome is not a
    rejection, and rejects unknown top-level arguments, with typed errors.
-6. `orchestration/telemetry-contract/PLAYBOOK.md` tells the parent review to
+6. `../../../orchestration/telemetry-contract/PLAYBOOK.md` tells the parent review to
    offer candidates to the user and to create learnings only on confirmation.
 
 ## Non-goals

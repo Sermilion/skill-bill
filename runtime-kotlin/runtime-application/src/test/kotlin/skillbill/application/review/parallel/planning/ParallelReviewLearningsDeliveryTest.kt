@@ -52,10 +52,10 @@ class ParallelReviewLearningsDeliveryTest {
     val recorder = ReviewRecorder()
     val result = review(recorder, allLearnings, harnessOrigin(ORIGIN_SCOPE_KEY))
 
-    assertEquals(listOf(ORIGIN_SCOPE_KEY to ROUTED_SKILL), recorder.learningResolutions)
+    assertEquals(listOf<Pair<String?, String?>>(ORIGIN_SCOPE_KEY to ROUTED_SKILL), recorder.learningResolutions)
     assertEquals("L-001, L-002, L-003", result.appliedLearnings)
-    val launches = recorder.launchEnvelopes()
-    assertTrue(launches.isNotEmpty(), "The delegated run must launch at least one worker.")
+    val launches = recorder.parentPrompts
+    assertTrue(launches.isNotEmpty(), "The delegated run must launch the parent review.")
     launches.forEach { prompt ->
       assertTrue(REPO_RULE in prompt, "Every launch must carry the repo-scoped rule text.")
       assertTrue("Name strategies" in prompt, "Every launch must carry the learning title.")
@@ -96,9 +96,9 @@ class ParallelReviewLearningsDeliveryTest {
     val recorder = ReviewRecorder()
     val result = review(recorder, allLearnings, null)
 
-    assertEquals(listOf(null to ROUTED_SKILL), recorder.learningResolutions)
+    assertEquals(listOf<Pair<String?, String?>>(null to ROUTED_SKILL), recorder.learningResolutions)
     assertEquals("L-002, L-003", result.appliedLearnings)
-    recorder.launchEnvelopes().forEach { prompt ->
+    recorder.parentPrompts.forEach { prompt ->
       assertTrue(SKILL_RULE in prompt && GLOBAL_RULE in prompt)
     }
     recorder.parentPrompts.forEach { prompt ->

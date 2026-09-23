@@ -88,6 +88,7 @@ discriminator:
 #   `contract_version`, and the quality-check runtime-owned keys).
 #   Open-object tools use `additionalProperties: true` on the branch.
 oneOf:
+  - $ref: "#/$defs/addLearningEvent"
   - $ref: "#/$defs/doctorEvent"
   - $ref: "#/$defs/featureTaskPhaseBlockEvent"
   - $ref: "#/$defs/featureTaskPhaseCompleteEvent"
@@ -413,6 +414,44 @@ $defs:
         $ref: "#/$defs/workflowStepStatusEnum"
       attempt_count:
         type: integer
+  addLearningEvent:
+    type: object
+    additionalProperties: false
+    required:
+      - event_name
+      - contract_version
+      - scope
+      - title
+      - rule_text
+      - source_review_run_id
+      - source_finding_id
+    properties:
+      event_name:
+        const: add_learning
+      contract_version:
+        const: "1.12.0"
+      scope:
+        type: string
+        enum:
+          - global
+          - repo
+          - skill
+      scope_key:
+        type: string
+      title:
+        type: string
+        minLength: 1
+      rule_text:
+        type: string
+        minLength: 1
+      reason:
+        type: string
+      source_review_run_id:
+        type: string
+        minLength: 1
+      source_finding_id:
+        type: string
+        minLength: 1
   doctorEvent:
     type: object
     additionalProperties: true

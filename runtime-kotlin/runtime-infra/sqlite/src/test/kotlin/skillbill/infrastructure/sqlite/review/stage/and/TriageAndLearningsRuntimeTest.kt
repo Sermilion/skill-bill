@@ -4,6 +4,7 @@ import skillbill.application.learning.learningAppliedSessionWire
 import skillbill.application.learning.learningEntryDto
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.learning.LearningEntryDto
+import skillbill.error.learning.InvalidLearningSourceError
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
 import skillbill.infrastructure.sqlite.review.accounting.toPayload
@@ -135,7 +136,7 @@ class LearningPromotionTest {
       rejectFinding(connection, review.reviewRunId, "F-002", "Keep the current prompt wording.")
 
       val failure =
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<InvalidLearningSourceError> {
           LearningsRuntime.validateLearningSource(
             sourceReviewRunId = review.reviewRunId,
             sourceFindingId = "F-does-not-exist",

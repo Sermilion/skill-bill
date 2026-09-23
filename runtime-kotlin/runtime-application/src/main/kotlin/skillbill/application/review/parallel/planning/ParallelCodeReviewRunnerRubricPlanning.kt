@@ -23,6 +23,8 @@ class ParallelCodeReviewRunnerRubricPlanning(
   private val reviewRubricResolver: ReviewRubricResolver,
   private val installedPackCatalog: InstalledPlatformPackCatalogPort,
 ) {
+  internal fun installedManifests(): List<PlatformManifest> = installedPackCatalog.manifests()
+
   internal fun resolvePlannedRubrics(
     evidence: ReviewDiffEvidence,
     routedManifests: List<PlatformManifest>,

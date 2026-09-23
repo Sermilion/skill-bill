@@ -16,7 +16,7 @@
   `bill-kotlin-code-review`.
 - Add scope, title, and bounded rule text to `ReviewLearningsReference`.
   Project the learnings into the assignment and launch envelopes next to
-  `matched_rules`. Update `orchestration/contracts/review-context-schema.yaml`
+  `matched_rules`. Update `../../../orchestration/contracts/review-context-schema.yaml`
   (`learnings_reference`, assignment, launch), bump
   `REVIEW_CONTEXT_CONTRACT_VERSION` from 2.3, and update the parity test.
 - Tell workers how to use learnings in the consumer contract: as explicit

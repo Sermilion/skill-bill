@@ -56,6 +56,7 @@ internal object ParallelCodeReviewRunnerParentPrompt {
           "annotation from the routed rubric catalog. Imperfect lines remain part of the prose result " +
           "and never block settlement; parsed lines are optional verification enrichment.",
       )
+      appendReviewLearnings(selected, inline)
       appendLine()
       selected.forEach { launch ->
         val decision = launch.assignment.laneDecision
@@ -63,6 +64,26 @@ internal object ParallelCodeReviewRunnerParentPrompt {
         appendLine("Owned paths: ${launch.assignment.assignedPaths.joinToString(",") { structuredString(it) }}")
         appendAssignedBundleEvidence(launch)
       }
+    }
+  }
+
+  private fun StringBuilder.appendReviewLearnings(
+    selected: List<ReviewSpecialistLaunchRequest>,
+    inline: Boolean,
+  ) {
+    val learnings =
+      selected
+        .flatMap { it.assignment.learnings }
+        .distinctBy { it.learningId }
+        .sortedBy { it.learningId }
+    if (learnings.isEmpty()) return
+    appendLine()
+    appendLine("## Review learnings")
+    appendLine(PARALLEL_REVIEW_LEARNINGS_DIRECTIVE)
+    if (!inline) appendLine(PARALLEL_REVIEW_DELEGATED_LEARNINGS_DIRECTIVE)
+    learnings.forEach { learning ->
+      appendLine("- ${learning.learningId} (${learning.source}): ${structuredString(learning.title)}")
+      learning.ruleText.replace("\r\n", "\n").lineSequence().forEach { appendLine("  $it") }
     }
   }
 

@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonObject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys
+import skillbill.error.learning.InvalidLearningSourceError
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.McpProtocolFramer
@@ -129,7 +130,11 @@ private fun dispatchMcpToolCall(
     onSuccess = { it },
     onFailure = { error ->
       when (error) {
-        is ShellContentContractException, is IllegalArgumentException, is IllegalStateException ->
+        is ShellContentContractException,
+        is InvalidLearningSourceError,
+        is IllegalArgumentException,
+        is IllegalStateException,
+        ->
           mcpToolErrorResult(toolName, error)
         is Exception -> {
           McpRuntimeLifecycle.captureException(workflowPhase = toolName, error = error, component = component)

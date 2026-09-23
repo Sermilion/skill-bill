@@ -1,5 +1,7 @@
 package skillbill.learnings
 
+import skillbill.error.learning.InvalidLearningSourceError
+import skillbill.error.learning.InvalidLearningSourceReason
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.LearningSourceReference
 import skillbill.learnings.model.LearningSourceValidation
@@ -48,14 +50,19 @@ object LearningsRuntime {
     sourceFindingExists: Boolean,
     latestRejectedOutcome: RejectedLearningSourceOutcome?,
   ): LearningSourceValidation {
-    require(sourceFindingExists) {
-      "Unknown learning source '${sourceReference.reviewRunId}:${sourceReference.findingId}'. " +
-        "Import the review and finding first."
+    if (!sourceFindingExists) {
+      throw InvalidLearningSourceError(
+        reason = InvalidLearningSourceReason.UNKNOWN_FINDING,
+        reviewRunId = sourceReference.reviewRunId,
+        findingId = sourceReference.findingId,
+      )
     }
-    require(latestRejectedOutcome != null) {
-      "Finding '${sourceReference.findingId}' in run '${sourceReference.reviewRunId}' has no rejected outcome. " +
-        "Learnings can only be created from findings the user rejected " +
-        "(fix_rejected or false_positive)."
+    if (latestRejectedOutcome == null) {
+      throw InvalidLearningSourceError(
+        reason = InvalidLearningSourceReason.NOT_REJECTED,
+        reviewRunId = sourceReference.reviewRunId,
+        findingId = sourceReference.findingId,
+      )
     }
     return LearningSourceValidation(
       reviewRunId = sourceReference.reviewRunId,

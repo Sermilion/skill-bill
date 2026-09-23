@@ -249,3 +249,10 @@ internal const val PARALLEL_REVIEW_DELEGATED_DEPTH_DIRECTIVE: String =
   "Assign each routed rubric above to its own specialist worker over that rubric's owned paths. " +
     "Accept each specialist's raw return as-is with no shape check. Synthesize the final review " +
     "prose and verdict yourself from those returns."
+
+internal const val PARALLEL_REVIEW_LEARNINGS_DIRECTIVE: String =
+  "The driver resolved these learnings for this repository and review skill. Apply them as explicit " +
+    "review context. A learning never suppresses an evidence-based correctness, security, or contract finding."
+
+internal const val PARALLEL_REVIEW_DELEGATED_LEARNINGS_DIRECTIVE: String =
+  "Pass this learnings section unchanged to every specialist worker you launch."

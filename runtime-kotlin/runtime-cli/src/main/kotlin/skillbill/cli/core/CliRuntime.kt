@@ -14,6 +14,7 @@ import skillbill.cli.model.CliStdoutCompletion
 import skillbill.di.core.RuntimeComponent
 import skillbill.di.core.create
 import skillbill.error.core.DatabaseAccessError
+import skillbill.error.learning.InvalidLearningSourceError
 import java.nio.file.Path
 
 object CliRuntime {
@@ -58,6 +59,11 @@ object CliRuntime {
         stdout = rootCommand.getFormattedHelp(error).orEmpty(),
       )
     } catch (error: IllegalArgumentException) {
+      CliExecutionResult(
+        exitCode = 1,
+        stdout = error.message.orEmpty(),
+      )
+    } catch (error: InvalidLearningSourceError) {
       CliExecutionResult(
         exitCode = 1,
         stdout = error.message.orEmpty(),

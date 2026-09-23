@@ -14,6 +14,7 @@
       "number": 2
     }
   ],
+  "learning_candidates": [],
   "db_path": "<DB_PATH>",
   "mode": "orchestrated",
   "telemetry_payload": {

@@ -127,6 +127,8 @@ skill-bill learnings delete --id 1
 
 Both `--from-run` and `--from-finding` are required — learnings must trace back to a rejected finding. When `--reason` is omitted, the rationale is auto-populated from the rejection note.
 
+The `add_learning` MCP tool creates the same learning from a running review and applies the same rejected-source validation: the source finding must exist and its latest outcome must be a rejection, or the call fails with a typed error. Triage only suggests: `triage_findings` returns `learning_candidates` for noted rejections, and the parent review calls `add_learning` after the user confirms which candidates to promote.
+
 Raw finding-outcome history and learnings are stored separately. That means you can wipe or disable reusable learnings without losing the original review-feedback history.
 
 Reviews apply those learnings automatically. The review driver resolves them inside the run: it derives the repo scope key from the reviewed repository's `origin` remote normalized to its full repository path (nested groups keep every segment), derives the skill scope key from the routed review skill, persists the resolved set as the run's `session_learnings` row, and delivers each learning's title and rule text inside every worker launch envelope. No agent calls a learnings tool. With no `origin` remote the driver resolves global and skill learnings only and records a diagnostic.

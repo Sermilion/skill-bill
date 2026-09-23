@@ -23,6 +23,7 @@ internal typealias McpToolSpec = McpTool
 internal object McpToolRegistry {
   private val orderedToolNames: List<String> =
     listOf(
+      McpToolPayloadKeys.ADD_LEARNING,
       "doctor",
       "feature_task_phase_block",
       "feature_task_phase_complete",
@@ -52,6 +53,8 @@ internal object McpToolRegistry {
 
   private val toolDescriptions: Map<String, String> =
     mapOf(
+      McpToolPayloadKeys.ADD_LEARNING to
+        "Create a learning from a rejected review finding after user confirmation.",
       "doctor" to "Check skill-bill installation health.",
       "feature_task_phase_block" to
         "Durable-block a prose feature-task phase (preplan|plan|implement|simplify|audit).",

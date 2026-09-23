@@ -148,8 +148,6 @@ class ReviewRecorder {
 
   val parentPrompts: List<String>
     get() = parentLaunches.mapNotNull { it.skillRunRequest.promptOverride }
-
-  fun launchEnvelopes(): List<String> = parentPrompts.filter { "kind: launch" in it }
 }
 
 data class RecordedWorkerResponse(
@@ -271,7 +269,6 @@ fun parallelCodeReviewRunnerOf(
       repoLocalConfig = repoLocalConfig,
       reviewContextEnvelopeValidator = reviewContextEnvelopeValidator,
       reviewSpecialistContractProvider = reviewSpecialistContractProvider,
-      installedPackCatalog = installedPackCatalog,
       sharedEvidenceResolver = sharedEvidenceResolver,
       sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
       specIntentProjectionResolver = specIntentProjectionResolver,

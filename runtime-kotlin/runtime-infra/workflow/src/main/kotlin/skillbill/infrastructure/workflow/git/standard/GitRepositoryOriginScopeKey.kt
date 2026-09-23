@@ -2,8 +2,8 @@ package skillbill.infrastructure.workflow.git.standard
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.learnings.normalizeRepoScopeKey
-import skillbill.ports.repository.OriginScopeKey
 import skillbill.ports.repository.RepositoryOriginScopeKeyPort
+import skillbill.ports.repository.model.OriginScopeKey
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 

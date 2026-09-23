@@ -15,10 +15,14 @@ import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
 import skillbill.di.core.SkillBillVersion
+import skillbill.error.learning.InvalidLearningSourceError
+import skillbill.error.learning.InvalidLearningSourceReason
+import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
 import skillbill.mcp.core.McpRuntime
+import skillbill.mcp.core.McpToolDispatcher
 import skillbill.mcp.core.importReview
 import skillbill.mcp.core.newSkillScaffold
 import skillbill.mcp.core.resolveLearnings
@@ -43,6 +47,7 @@ import java.nio.file.Path
 import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -461,6 +466,49 @@ class McpRuntimeTest {
     assertEquals("L-001", firstEntry["reference"])
     assertEquals("skill", firstEntry["scope"])
     assertEquals("Keep wording aligned", firstEntry["title"])
+  }
+
+  @Test
+  fun `add learning promotes a rejected finding and resolve learnings returns it`() {
+    val tempDir = Files.createTempDirectory("skillbill-mcp-add-learning")
+    val env = enabledTelemetryEnvironment(tempDir)
+    val context = McpRuntimeContext(environment = env, userHome = tempDir)
+    McpRuntime.importReview(SAMPLE_REVIEW.trimIndent(), context = context)
+    McpRuntime.triageFindings(
+      reviewRunId = "rvw-20260402-001",
+      decisions = listOf("1 fix", "2 false-positive - Prompt wording is intentional."),
+      context = context,
+    )
+
+    val added =
+      McpToolDispatcher.call("add_learning", addLearningArguments(findingId = "F-002"), context)
+    val resolved =
+      McpRuntime.resolveLearnings(
+        repo = "acme/repo",
+        skill = "bill-kotlin-code-review",
+        context = context,
+      )
+
+    assertEquals("repo", added["scope"])
+    assertEquals("active", added["status"])
+    val resolvedEntries = resolved["learnings"] as List<*>
+    assertEquals(
+      listOf(added["reference"]),
+      resolvedEntries.map { entry -> requireNotNull(JsonCodec.anyToStringAnyMap(entry))["reference"] },
+    )
+
+    val notRejected =
+      assertFailsWith<InvalidLearningSourceError> {
+        McpToolDispatcher.call("add_learning", addLearningArguments(findingId = "F-001"), context)
+      }
+    assertEquals(InvalidLearningSourceReason.NOT_REJECTED, notRejected.reason)
+    assertFailsWith<InvalidTelemetryEventSchemaError> {
+      McpToolDispatcher.call(
+        "add_learning",
+        addLearningArguments(findingId = "F-002") + ("unexpected" to true),
+        context,
+      )
+    }
   }
 
   @Test
@@ -889,6 +937,16 @@ private fun evaluatorReceipt(): Map<String, Any?> =
     "contract_version" to "0.1",
     "verdict" to "approved",
     "findings" to emptyList<Map<String, Any?>>(),
+  )
+
+private fun addLearningArguments(findingId: String): Map<String, Any?> =
+  mapOf(
+    "scope" to "repo",
+    "scope_key" to "acme/repo",
+    "title" to "Keep the installer prompt wording",
+    "rule_text" to "Do not flag the installer prompt wording as inconsistent.",
+    "source_review_run_id" to "rvw-20260402-001",
+    "source_finding_id" to findingId,
   )
 
 private fun enabledTelemetryEnvironment(tempDir: Path): Map<String, String> {

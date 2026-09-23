@@ -28,7 +28,7 @@ Today the loop is broken at both ends:
   records `fix_rejected` and `false_positive` outcomes but never offers to
   promote them, and there is no MCP tool for adding a learning.
 - The prose describes a flow that no longer exists.
-  `orchestration/skill-classes/code-review-shell.yaml` ("Local Review
+  `../../../orchestration/skill-classes/code-review-shell.yaml` ("Local Review
   Learnings") and `orchestration/review-orchestrator/PLAYBOOK.md` ("Shared
   Learnings Context") say the driver calls the `resolve_learnings` MCP tool.
 
@@ -69,7 +69,7 @@ Local evidence from `~/.skill-bill/review-metrics.db` (2026-08-24 to
   the Kotlin `REVIEW_CONTEXT_CONTRACT_VERSION` bump, the parity test, and a
   typed loud-fail at parse seams. Legacy packet records follow the existing
   quarantine behavior.
-- Every fallback emits a record (`docs/observability-policy.md`). This covers
+- Every fallback emits a record (`../../../docs/observability-policy.md`). This covers
   a missing `origin` remote when deriving the repo scope key, and a failed
   learnings read.
 - Wire keys are declared once in `LearningPayloadKeys` or the owning
@@ -77,14 +77,14 @@ Local evidence from `~/.skill-bill/review-metrics.db` (2026-08-24 to
 - Worker learnings text is bounded. The per-learning cap matches
   `REVIEW_RULE_EXCERPT_MAX_CHARS`, and the whole learnings block counts
   against the existing `ReviewContextBudgetPolicy`.
-- Follow `runtime-kotlin/ARCHITECTURE.md` Design Principles and
+- Follow `../../../runtime-kotlin/ARCHITECTURE.md` Design Principles and
   `docs/code-principles.md`. Kotlin gets no `//` comments.
 
 ## Non-goals
 
 - Promoting learnings automatically without user confirmation.
 - Changing `bill-pr-review-fix`, which records durable guidance in
-  `agent/history.md` through `bill-boundary-history`.
+  `../../../agent/history.md` through `bill-boundary-history`.
 - Resolving the `ReviewGuidancePort` and `ReviewBuildTestFactsPort` stubs in
   the same compiler. They are separate gaps.
 - Changing learnings storage, schema, or scope precedence.

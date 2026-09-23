@@ -2,9 +2,8 @@ package skillbill.cli.kernel.cli
 import skillbill.application.learning.model.LearningListResult
 import skillbill.application.learning.model.LearningResolveResult
 import skillbill.application.review.model.TriageResult
+import skillbill.contracts.learning.summarizeAppliedLearnings
 import skillbill.learnings.model.LearningEntry
-import skillbill.learnings.scopedLearningLabel
-import skillbill.learnings.summarizeAppliedLearningEntries
 
 internal data class CliLearningListPresentation(
   val entries: List<CliLearningLine>,
@@ -69,7 +68,7 @@ internal fun LearningResolveResult.toCliPresentation(): CliResolvedLearningsPres
     scopePrecedence = scopePrecedence.joinToString(" > ") { scope -> scope.wireName },
     repoScopeKey = repoScopeKey,
     skillName = skillName,
-    appliedLearnings = summarizeAppliedLearningEntries(learnings),
+    appliedLearnings = summarizeAppliedLearnings(learnings.map(LearningEntry::reference)),
     entries = learnings.map(LearningEntry::toCliResolvedLearningLine),
   )
 
@@ -113,14 +112,14 @@ private fun LearningEntry.toCliLearningLine(): CliLearningLine =
   CliLearningLine(
     reference = reference,
     status = status,
-    scopeLabel = scopedLearningLabel(this),
+    scopeLabel = scopeLabel,
     title = title,
   )
 
 private fun LearningEntry.toCliResolvedLearningLine(): CliResolvedLearningLine =
   CliResolvedLearningLine(
     reference = reference,
-    scopeLabel = scopedLearningLabel(this),
+    scopeLabel = scopeLabel,
     title = title,
     ruleText = ruleText,
   )

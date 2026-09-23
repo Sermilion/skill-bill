@@ -23,7 +23,6 @@ import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import skillbill.ports.review.repository.ReviewSpecialistContractProvider
-import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.review.context.ReviewContextEnvelopeValidator
@@ -43,7 +42,6 @@ class ParallelCodeReviewRunnerPlanning(
   private val repoLocalConfig: RepoLocalConfigPort,
   private val reviewContextEnvelopeValidator: ReviewContextEnvelopeValidator,
   private val reviewSpecialistContractProvider: ReviewSpecialistContractProvider,
-  private val installedPackCatalog: InstalledPlatformPackCatalogPort,
   private val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort,
   private val sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
   private val specIntentProjectionResolver: SpecIntentProjectionResolver,
@@ -241,5 +239,5 @@ class ParallelCodeReviewRunnerPlanning(
     paths: List<String>,
   ): Map<String, ReviewCheckpointFileIdentity> = diffResolver.reviewWorktreeFileIdentities(root, paths)
 
-  internal fun installedManifests(): List<PlatformManifest> = installedPackCatalog.manifests()
+  internal fun installedManifests(): List<PlatformManifest> = rubricPlanning.installedManifests()
 }

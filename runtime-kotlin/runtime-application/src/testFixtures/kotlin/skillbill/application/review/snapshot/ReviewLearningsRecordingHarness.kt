@@ -8,8 +8,8 @@ import skillbill.learnings.model.UpdateLearningRequest
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.learning.model.LearningResolution
-import skillbill.ports.repository.OriginScopeKey
 import skillbill.ports.repository.RepositoryOriginScopeKeyPort
+import skillbill.ports.repository.model.OriginScopeKey
 
 const val ACTIVE_LEARNING_STATUS: String = "active"
 

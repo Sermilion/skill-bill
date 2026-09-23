@@ -11,4 +11,7 @@ data class LearningEntry(
   val rationale: String,
   val sourceReviewRunId: String?,
   val sourceFindingId: String?,
-)
+) {
+  val scopeLabel: String
+    get() = if (scopeKey.isBlank()) scope.wireName else "${scope.wireName}:$scopeKey"
+}

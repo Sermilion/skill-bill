@@ -1,6 +1,7 @@
 package skillbill.contracts.review
 
 import skillbill.contracts.JsonPayloadContract
+import skillbill.contracts.learning.LearningPayloadKeys
 
 data class ReviewPreviewContract(
   val reviewRunId: String,
@@ -104,15 +105,36 @@ data class TriageListContract(
     )
 }
 
+data class LearningCandidateContract(
+  val reviewRunId: String,
+  val findingId: String,
+  val suggestedTitle: String,
+  val suggestedRuleText: String,
+  val suggestedScope: String,
+  val suggestedScopeKey: String?,
+) : JsonPayloadContract {
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf(
+      ReviewVerificationSignalKeys.REVIEW_RUN_ID to reviewRunId,
+      ReviewFindingPayloadKeys.FINDING_ID to findingId,
+      LearningPayloadKeys.SUGGESTED_TITLE to suggestedTitle,
+      LearningPayloadKeys.SUGGESTED_RULE_TEXT to suggestedRuleText,
+      LearningPayloadKeys.SUGGESTED_SCOPE to suggestedScope,
+      LearningPayloadKeys.SUGGESTED_SCOPE_KEY to suggestedScopeKey,
+    )
+}
+
 data class TriageRecordedContract(
   val dbPath: String,
   val reviewRunId: String,
   val recorded: List<TriageDecisionContract>,
+  val learningCandidates: List<LearningCandidateContract>,
 ) : JsonPayloadContract {
   override fun toPayload(): Map<String, Any?> =
     linkedMapOf(
       "db_path" to dbPath,
       ReviewVerificationSignalKeys.REVIEW_RUN_ID to reviewRunId,
       "recorded" to recorded.map(TriageDecisionContract::toPayload),
+      LearningPayloadKeys.LEARNING_CANDIDATES to learningCandidates.map(LearningCandidateContract::toPayload),
     )
 }

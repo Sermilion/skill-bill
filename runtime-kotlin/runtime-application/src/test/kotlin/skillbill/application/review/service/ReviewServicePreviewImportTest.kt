@@ -1,4 +1,5 @@
 package skillbill.application.review.service
+import skillbill.application.review.snapshot.HARNESS_ORIGIN_UNAVAILABLE
 import skillbill.model.EnvironmentContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -48,6 +49,7 @@ class ReviewServicePreviewImportTest {
         reviewInputSource = inputSource,
         reviewAttributionPort = PreviewImportReviewAttribution,
         diagnostics = PreviewImportDiagnostics,
+        originScopeKeyPort = HARNESS_ORIGIN_UNAVAILABLE,
       )
 
     val preview = service.previewImport("-", stdinText = argumentStdin)

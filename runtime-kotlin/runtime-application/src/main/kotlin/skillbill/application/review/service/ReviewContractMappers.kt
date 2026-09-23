@@ -1,11 +1,13 @@
 package skillbill.application.review.service
 import skillbill.application.review.model.ImportedReviewResult
+import skillbill.application.review.model.LearningCandidate
 import skillbill.application.review.model.ReviewFeedbackResult
 import skillbill.application.review.model.ReviewPreviewResult
 import skillbill.application.review.model.TriageResult
 import skillbill.application.review.model.TriageResultKind
 import skillbill.contracts.JsonPayloadContract
 import skillbill.contracts.review.ImportedReviewContract
+import skillbill.contracts.review.LearningCandidateContract
 import skillbill.contracts.review.NumberedFindingContract
 import skillbill.contracts.review.ReviewFeedbackContract
 import skillbill.contracts.review.ReviewPreviewContract
@@ -126,8 +128,19 @@ fun TriageResult.toTriagePayload(): JsonPayloadContract =
         dbPath = dbPath,
         reviewRunId = reviewRunId,
         recorded = recorded.map { decision -> decision.toTriageDecisionContract() },
+        learningCandidates = learningCandidates.map { candidate -> candidate.toLearningCandidateContract() },
       )
   }
+
+private fun LearningCandidate.toLearningCandidateContract(): LearningCandidateContract =
+  LearningCandidateContract(
+    reviewRunId = reviewRunId,
+    findingId = findingId,
+    suggestedTitle = suggestedTitle,
+    suggestedRuleText = suggestedRuleText,
+    suggestedScope = suggestedScope.wireName,
+    suggestedScopeKey = suggestedScopeKey,
+  )
 
 fun ReviewFinishedTelemetry.toReviewFinishedTelemetryPayload(): JsonPayloadContract =
   this.toPortReviewFinishedTelemetryPayload()

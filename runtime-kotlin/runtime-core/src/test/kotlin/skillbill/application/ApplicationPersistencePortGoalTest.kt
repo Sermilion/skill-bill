@@ -2,6 +2,7 @@ package skillbill.application
 
 import skillbill.application.review.model.GoalStatsResult
 import skillbill.application.review.service.ReviewService
+import skillbill.application.review.snapshot.HARNESS_ORIGIN_UNAVAILABLE
 import skillbill.application.telemetry.lifecycle.toRecord
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.model.EnvironmentContext
@@ -134,6 +135,7 @@ class ApplicationPersistencePortGoalTest {
         FakeReviewInputSource,
         EmptyReviewAttributionPort,
         NoopRuntimeDiagnostics,
+        HARNESS_ORIGIN_UNAVAILABLE,
       )
 
     val result: GoalStatsResult = service.goalStats()

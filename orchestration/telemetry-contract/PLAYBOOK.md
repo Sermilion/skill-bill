@@ -159,6 +159,14 @@ Each finding gets one decision using its position number from the risk register:
 
 Skip triage recording when the final parent-owned review produced no findings.
 
+### Learning candidates
+
+`triage_findings` returns `learning_candidates` — one entry for each recorded `false_positive` or `fix_rejected` decision that carried a note. Each candidate has `suggested_title`, `suggested_rule_text`, `suggested_scope`, and `suggested_scope_key`. Triage itself never creates a learning.
+
+- If this review owns triage, show every candidate to the user once, as a single batch listing title, suggested rule, and suggested scope with its scope key. Ask which to promote and with which scope.
+- Call the `add_learning` MCP tool only for the candidates the user confirmed, passing `scope`, `scope_key`, `title`, `rule_text`, `source_review_run_id`, and `source_finding_id`. Never promote a candidate without confirmation.
+- If this review is delegated or layered under another review, neither offer candidates nor call `add_learning`.
+
 ## Graceful degradation
 
 If a parent skill forgets to pass `orchestrated=true` to a child, the child emits its own standalone event. The workflow produces extra events but nothing is lost. Always pass the flag from the orchestrator's skill instructions.
