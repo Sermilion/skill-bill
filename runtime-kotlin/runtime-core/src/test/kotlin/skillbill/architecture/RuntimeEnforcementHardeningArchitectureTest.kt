@@ -2,33 +2,20 @@ package skillbill.architecture
 
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.extension
-import kotlin.io.path.isRegularFile
 import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class RuntimeEnforcementHardeningArchitectureTest {
-  private val runtimeRoot: Path =
-    Path.of("").toAbsolutePath().normalize().let { workingDir ->
-      if (workingDir.fileName.toString().startsWith("runtime-")) {
-        workingDir.parent
-      } else {
-        workingDir
-      }
-    }
+  private val runtimeRoot: Path = ArchitectureScanSupport.runtimeRoot
 
   @Test
   fun `application domain and ports do not embed inline fully-qualified adapter or infrastructure references`() {
     val violations =
       SOURCE_TEXT_LAYER_RULES.flatMap { (sourceRoot, forbiddenPrefixes) ->
-        val sourceFiles = kotlinFilesUnder(runtimeRoot.resolve(sourceRoot))
-        assertTrue(
-          sourceFiles.isNotEmpty(),
-          "Guarded source root '$sourceRoot' must resolve to at least one .kt file; a renamed or absent " +
-            "root would silently make this AC1 inline-FQN guard vacuous (kotlinFilesUnder returns empty).",
-        )
+        val root = runtimeRoot.resolve(sourceRoot)
+        val sourceFiles = kotlinFilesUnderWithArchitectureAsserts(root)
         sourceFiles.flatMap { sourceFile ->
           bannedInlineReferences(sourceFile.readText(), forbiddenPrefixes).map { reference ->
             "${runtimeRoot.relativize(sourceFile)} contains inline reference $reference"
@@ -96,14 +83,14 @@ class RuntimeEnforcementHardeningArchitectureTest {
   fun `pure layers must not import concrete schema or coherence validators`() {
     val guardedSourceRoots =
       listOf(
-        "runtime-domain/src/main/kotlin/skillbill/install",
-        "runtime-domain/src/main/kotlin/skillbill/workflow",
-        "runtime-application/src/main/kotlin",
+        "${moduleMainKotlinRootRelative("runtime-domain")}/skillbill/install",
+        "${moduleMainKotlinRootRelative("runtime-domain")}/skillbill/workflow",
+        moduleMainKotlinRootRelative("runtime-application"),
       )
     val scannedFiles =
       guardedSourceRoots
         .map { sourceRoot -> runtimeRoot.resolve(sourceRoot) }
-        .flatMap(::kotlinFilesUnder)
+        .flatMap { root -> kotlinFilesUnderWithArchitectureAsserts(root) }
     assertTrue(
       scannedFiles.size >= guardedSourceRoots.size,
       "Each guarded source root must resolve to at least one .kt file; a renamed or absent root would " +
@@ -150,13 +137,8 @@ class RuntimeEnforcementHardeningArchitectureTest {
 
   @Test
   fun `runtime-contracts main source does not declare concrete schema or coherence validators`() {
-    val contractsMainRoot = runtimeRoot.resolve("runtime-contracts/src/main/kotlin")
-    val sourceFiles = kotlinFilesUnder(contractsMainRoot)
-    assertTrue(
-      sourceFiles.isNotEmpty(),
-      "runtime-contracts main source must resolve to at least one .kt file; a renamed or absent root would " +
-        "silently make this concrete-validator placement guard vacuous.",
-    )
+    val contractsMainRoot = moduleMainKotlinRoot("runtime-contracts")
+    val sourceFiles = kotlinFilesUnderWithArchitectureAsserts(contractsMainRoot)
     val violations =
       sourceFiles
         .flatMap { sourceFile ->
@@ -291,15 +273,6 @@ class RuntimeEnforcementHardeningArchitectureTest {
       ?.toKotlinDeclaration()
       ?.takeIf(KotlinDeclaration::isConcrete)
 
-  private fun kotlinFilesUnder(root: Path): List<Path> {
-    if (!Files.exists(root)) return emptyList()
-    return Files.walk(root).use { paths ->
-      paths
-        .filter { path -> path.isRegularFile() && path.extension == "kt" }
-        .toList()
-    }
-  }
-
   private data class SourceLine(val text: String, val inBlockComment: Boolean)
 
   private data class KotlinDeclaration(val modifiers: Set<String>, val kind: String, val name: String) {
@@ -326,7 +299,7 @@ class RuntimeEnforcementHardeningArchitectureTest {
 
     val SOURCE_TEXT_LAYER_RULES: Map<String, List<String>> =
       mapOf(
-        "runtime-application/src/main/kotlin" to
+        moduleMainKotlinRootRelative("runtime-application") to
           listOf(
             "skillbill.cli",
             "skillbill.mcp",
@@ -334,7 +307,7 @@ class RuntimeEnforcementHardeningArchitectureTest {
             "skillbill.di",
             "skillbill.infrastructure",
           ),
-        "runtime-domain/src/main/kotlin" to
+        moduleMainKotlinRootRelative("runtime-domain") to
           listOf(
             "skillbill.cli",
             "skillbill.mcp",
@@ -342,7 +315,7 @@ class RuntimeEnforcementHardeningArchitectureTest {
             "skillbill.di",
             "skillbill.infrastructure",
           ),
-        "runtime-ports/src/main/kotlin" to
+        moduleMainKotlinRootRelative("runtime-ports") to
           listOf(
             "skillbill.cli",
             "skillbill.mcp",

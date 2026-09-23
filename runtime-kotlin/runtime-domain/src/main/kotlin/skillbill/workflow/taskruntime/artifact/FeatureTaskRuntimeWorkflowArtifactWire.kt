@@ -58,8 +58,16 @@ class FeatureTaskRuntimeWorkflowArtifactMap private constructor(
   }
 }
 
-fun phaseRecordsFromWorkflowArtifacts(artifacts: Any?): Map<String, FeatureTaskRuntimePhaseRecord> =
-  phaseRecordsFrom(artifactsMap(artifacts))
+class FeatureTaskRuntimePhaseRecords(
+  private val delegate: Map<String, FeatureTaskRuntimePhaseRecord>,
+) : Map<String, FeatureTaskRuntimePhaseRecord> by delegate {
+  override val values: Collection<FeatureTaskRuntimePhaseRecord> get() = delegate.values
+
+  override operator fun get(key: String): FeatureTaskRuntimePhaseRecord? = delegate[key]
+}
+
+fun phaseRecordsFromWorkflowArtifacts(artifacts: Any?): FeatureTaskRuntimePhaseRecords =
+  FeatureTaskRuntimePhaseRecords(phaseRecordsFrom(artifactsMap(artifacts)))
 
 fun resolvedBranchFromWorkflowArtifacts(artifacts: Any?): FeatureTaskRuntimeResolvedBranch? =
   resolvedBranchFrom(artifactsMap(artifacts))

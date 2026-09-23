@@ -20,6 +20,7 @@ import skillbill.ports.experiment.measurement.ExperimentArmMeasurementPort
 import skillbill.ports.experiment.measurement.ExperimentMeasuredValue
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
 import skillbill.ports.experiment.pair.ExperimentPairPersistedState
+import skillbill.ports.experiment.pair.ExperimentPairPayload
 import skillbill.ports.experiment.publication.ExperimentParentDeliveryPort
 import skillbill.ports.experiment.publication.ExperimentPublicationResult
 import skillbill.ports.experiment.selection.ExperimentLaunchSelection
@@ -117,7 +118,8 @@ class ExperimentPairCoordinatorTest {
           armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
           randomSeed = "seed",
           pairPayload =
-            mapOf(
+            ExperimentPairPayload(
+              mapOf(
               ExperimentPairPayloadKeys.PAIR_ID to "pair-resume",
               ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal"),
               ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
@@ -140,6 +142,7 @@ class ExperimentPairCoordinatorTest {
                     ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
                   ),
                 ),
+              ),
             ),
         )
     }
@@ -469,7 +472,7 @@ class ExperimentPairCoordinatorTest {
 
   private class InMemoryOwner : ExperimentPairOwnerPort {
     var lastState: ExperimentPairPersistedState? = null
-    var lastReport: Map<String, Any?>? = null
+    var lastReport: ExperimentPairPayload? = null
 
     override fun load(pairId: String): ExperimentPairPersistedState? = lastState?.takeIf { it.pairId == pairId }
 
@@ -479,12 +482,12 @@ class ExperimentPairCoordinatorTest {
 
     override fun saveReport(
       pairId: String,
-      reportPayload: Map<String, Any?>,
+      reportPayload: ExperimentPairPayload,
     ) {
       lastReport = reportPayload
     }
 
-    override fun importObservation(payload: Map<String, Any?>): Boolean = true
+    override fun importObservation(payload: ExperimentPairPayload): Boolean = true
   }
 
   private fun measured(quantity: Double) =

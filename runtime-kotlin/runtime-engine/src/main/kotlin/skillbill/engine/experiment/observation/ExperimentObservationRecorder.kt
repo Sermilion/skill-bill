@@ -3,6 +3,7 @@ package skillbill.engine.experiment.observation
 import skillbill.contracts.experiment.EXPERIMENT_OBSERVATION_CONTRACT_VERSION
 import skillbill.contracts.experiment.ExperimentObservationPayloadKeys
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
+import skillbill.ports.experiment.pair.ExperimentPairPayload
 import java.security.MessageDigest
 
 data class ExperimentObservationMeasurement(
@@ -45,7 +46,8 @@ class ExperimentObservationRecorder(
         "$pairId|$armId|$workflowId|$phaseId|$attempt|phase_measurement".encodeToByteArray(),
       )
     return pairOwner.importObservation(
-      mapOf(
+      ExperimentPairPayload(
+        mapOf(
         ExperimentObservationPayloadKeys.CONTRACT_VERSION to EXPERIMENT_OBSERVATION_CONTRACT_VERSION,
         ExperimentObservationPayloadKeys.OBSERVATION_ID to observationId,
         ExperimentObservationPayloadKeys.PAIR_ID to pairId,
@@ -61,6 +63,7 @@ class ExperimentObservationRecorder(
               ExperimentObservationPayloadKeys.REASON to measurement.reason,
             ).filterValues { it != null }
           },
+        ),
       ),
     )
   }

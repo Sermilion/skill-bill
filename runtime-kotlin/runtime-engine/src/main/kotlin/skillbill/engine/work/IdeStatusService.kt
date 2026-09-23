@@ -86,7 +86,8 @@ class IdeStatusService(
     }
   }
 
-  fun toWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> = ideStatusValidator.toWireMap(snapshot)
+  fun toWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> =
+    ideStatusValidator.toWirePayload(snapshot).toPayload()
 
   private fun scopeToBranch(
     candidates: List<IdeStatusCandidate>,

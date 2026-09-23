@@ -6,7 +6,6 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
-import skillbill.infrastructure.sqlite.review.accounting.toPayload
 import skillbill.infrastructure.sqlite.review.stage.and.addLearning
 import skillbill.infrastructure.sqlite.review.stage.runtime.TriageRuntime
 import skillbill.infrastructure.sqlite.review.stats.workflow.phaseOutcomeCounts

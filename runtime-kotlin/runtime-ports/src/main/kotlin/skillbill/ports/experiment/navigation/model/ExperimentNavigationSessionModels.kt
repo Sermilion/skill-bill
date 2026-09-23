@@ -39,6 +39,21 @@ data class ExperimentNavigationSessionResult(
   val restrictedBaseline: Boolean = false,
 )
 
+data class ExperimentNavigationRunRequest(
+  val name: String,
+  val repoRoot: Path,
+  val revision: String,
+  val specBytes: ByteArray,
+  val acceptanceCriteria: List<String>,
+) {
+  init {
+    require(name.isNotBlank()) { "name is required." }
+    require(revision.isNotBlank()) { "revision is required." }
+    require(specBytes.isNotEmpty()) { "specBytes must not be empty." }
+    require(acceptanceCriteria.isNotEmpty()) { "acceptanceCriteria must not be empty." }
+  }
+}
+
 data class ExperimentNavigationReadReceipt(
   val path: String,
   val purpose: String,

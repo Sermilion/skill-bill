@@ -7,7 +7,6 @@ import skillbill.contracts.learning.LearningEntryDto
 import skillbill.error.learning.InvalidLearningSourceError
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
-import skillbill.infrastructure.sqlite.review.accounting.toPayload
 import skillbill.infrastructure.sqlite.review.stage.finished.fetchSessionLearnings
 import skillbill.infrastructure.sqlite.review.stage.runtime.ReviewRuntime
 import skillbill.infrastructure.sqlite.review.stage.runtime.TriageRuntime

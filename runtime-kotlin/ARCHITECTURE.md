@@ -1497,6 +1497,19 @@ The architecture tests enforce the following rules:
   shapes in inner layers` with zero-tolerance: no allow-list and no annotation
   grandfather path.
 
+Architecture scanners use `ArchitectureScanSupport.runtimeRoot` as the
+repository root that contains `runtime-kotlin`. A named module source root is
+resolved with `RuntimeModuleCatalog.runtimeKotlinModuleDirectory` and the
+`src/main/kotlin` suffix. Missing named roots fail the scan; they do not
+produce an empty passing result. This applies to
+`engineInboundApiViolations`, `mainPackageRootsForModule`,
+`ArchitectureScanSupport.kotlinFilesUnder`,
+`ArchitectureScanSupport.authoredKotlinSourcesUnder`, and the ownership,
+install-policy, enforcement-hardening, ports-declaration, port-null-object,
+contract-import, and skills-import walkers. `RuntimeRawMapArchitectureTest`
+and `RuntimeArchitectureTest` match
+`runtime-kotlin/<module>/src/main/kotlin/`.
+
 ### SKILL-227 runtime-application guardrails
 
 `ProductionLogicalTypeLineCeilingArchitectureTest` attributes each production

@@ -68,7 +68,7 @@ class RuntimeCompositionGuardArchitectureTest {
         scanRoots =
           listOf(
             "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
-              "skillbill/infrastructure/skills/scaffold/runtime/ScaffoldStandaloneEntrypoint.kt",
+              "skillbill/infrastructure/skills/scaffold/runtime/service/standalone",
           ),
         compositionDiRoot = diRoot,
         sanctionedEntrypoints = PrincipleEnforcementInventory.sanctionedCompositionEntrypoints,

@@ -1,12 +1,14 @@
 package skillbill.ports.idestatus.model
 
-class IdeStatusProblemDetails private constructor(
-  private val entries: Map<String, Any?>,
+import skillbill.contracts.JsonPayloadContract
+
+data class IdeStatusProblemDetails private constructor(
+  private val entries: JsonPayloadContract,
 ) {
-  fun asWireEntries(): Map<String, Any?> = entries
+  fun asWirePayload(): JsonPayloadContract = entries
 
   companion object {
-    fun from(map: Map<String, Any?>?): IdeStatusProblemDetails? =
-      map?.takeIf { it.isNotEmpty() }?.let { IdeStatusProblemDetails(it.toMap()) }
+    fun from(payload: JsonPayloadContract?): IdeStatusProblemDetails? =
+      payload?.takeIf { it.toPayload().isNotEmpty() }?.let(::IdeStatusProblemDetails)
   }
 }

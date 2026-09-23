@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.experiment
 import me.tatarka.inject.annotations.Inject
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.experiment.EXPERIMENT_PAIR_CONTRACT_VERSION
 import skillbill.contracts.experiment.ExperimentPairPayloadKeys
 import skillbill.contracts.experiment.ExperimentTelemetryPayloadKeys
@@ -20,10 +21,13 @@ import skillbill.ports.experiment.measurement.ExperimentArmMeasurementPort
 import skillbill.ports.experiment.measurement.ExperimentMeasuredValue
 import skillbill.ports.experiment.navigation.ExperimentNavigationSessionRequest
 import skillbill.ports.experiment.navigation.ExperimentNavigationSessionResult
+import skillbill.ports.experiment.navigation.ExperimentNavigationRunPort
 import skillbill.ports.experiment.navigation.ExperimentNavigationSessionRunnerPort
 import skillbill.ports.experiment.navigation.ExperimentNavigationTerminalOutcome
+import skillbill.ports.experiment.navigation.model.ExperimentNavigationRunRequest
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
 import skillbill.ports.experiment.pair.ExperimentPairPersistedState
+import skillbill.ports.experiment.pair.ExperimentPairPayload
 import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -78,7 +82,24 @@ class ExperimentNavigationPairCoordinator(
   private val measurementPort: ExperimentArmMeasurementPort? = null,
   private val telemetryRecorder: ExperimentTelemetryRecorder? = null,
   private val clock: Clock = Clock.systemUTC(),
-) {
+) : ExperimentNavigationRunPort {
+  override fun acceptanceCriteria(specText: String): List<String> =
+    parseNavigationAcceptanceCriteria(specText)
+
+  override fun run(request: ExperimentNavigationRunRequest): String =
+    run(
+      ExperimentNavigationPairRequest(
+        source =
+          ExperimentNavigationPairSource(
+            name = request.name,
+            repoRoot = request.repoRoot,
+            revision = request.revision,
+            specBytes = request.specBytes,
+            criteria = request.acceptanceCriteria,
+          ),
+      ),
+    )
+
   fun run(request: ExperimentNavigationPairRequest): String {
     val resolvedPairId = request.pairId ?: UUID.randomUUID().toString()
     validateBeforeLease(
@@ -214,12 +235,14 @@ class ExperimentNavigationPairCoordinator(
         armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
         randomSeed = pairId,
         pairPayload =
-          navigationPairPayload(
-            pairId,
-            request.source.name,
-            repositoryIdentity,
-            revision,
-            request.source.specBytes,
+          ExperimentPairPayload(
+            navigationPairPayload(
+              pairId,
+              request.source.name,
+              repositoryIdentity,
+              revision,
+              request.source.specBytes,
+            ),
           ),
       ),
     )
@@ -227,7 +250,7 @@ class ExperimentNavigationPairCoordinator(
 
   private fun recordCompletedArmObservations(prepared: PreparedNavigationPair) {
     completedArms(prepared.persisted).forEach { arm ->
-      val outcome = armOutcome(pairOwner.load(prepared.pairId)?.pairPayload, arm) ?: return@forEach
+      val outcome = armOutcome(pairOwner.load(prepared.pairId)?.pairPayload?.toMap(), arm) ?: return@forEach
       recordArmObservation(
         pairId = prepared.pairId,
         arm = arm,
@@ -263,7 +286,7 @@ class ExperimentNavigationPairCoordinator(
     verifyCurrentInputs(prepared.request.source.repoRoot, prepared.resolvedRevision, prepared.repositoryIdentity)
     pairOwner.save(
       updateNavigationLifecycle(
-        payload = pairOwner.load(prepared.pairId)?.pairPayload.orEmpty(),
+        payload = pairOwner.load(prepared.pairId)?.pairPayload?.toMap().orEmpty(),
         pairId = prepared.pairId,
         arm = arm,
         terminalStatus = "running",
@@ -272,7 +295,7 @@ class ExperimentNavigationPairCoordinator(
     val result = executeArm(prepared, arm)
     pairOwner.save(
       updateOutcome(
-        pairOwner.load(prepared.pairId)?.pairPayload.orEmpty(),
+        pairOwner.load(prepared.pairId)?.pairPayload?.toMap().orEmpty(),
         prepared.pairId,
         arm,
         result,
@@ -331,7 +354,7 @@ class ExperimentNavigationPairCoordinator(
       cleanupFailure?.let(primaryFailure::addSuppressed)
       pairOwner.save(
         updateNavigationLifecycle(
-          payload = pairOwner.load(prepared.pairId)?.pairPayload.orEmpty(),
+          payload = pairOwner.load(prepared.pairId)?.pairPayload?.toMap().orEmpty(),
           pairId = prepared.pairId,
           arm = arm,
           terminalStatus = "failed",
@@ -495,7 +518,7 @@ class ExperimentNavigationPairCoordinator(
         ExperimentPairPayloadKeys.RELEVANT_READS to hiddenScore.relevantReads,
         ExperimentPairPayloadKeys.PRECISION to hiddenScore.precision,
       ).filterValues { it != null }
-    val updated = payload.toMutableMap()
+    val updated = payload.toMap().toMutableMap()
     updated[ExperimentPairPayloadKeys.ARM_OUTCOMES] = outcomes
     updated[ExperimentPairPayloadKeys.PAIR_STATUS] =
       when {
@@ -512,7 +535,7 @@ class ExperimentNavigationPairCoordinator(
           ?.map { it.toString() }.orEmpty(),
       armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
       randomSeed = updated[ExperimentPairPayloadKeys.RANDOM_SEED].toString(),
-      pairPayload = updated,
+      pairPayload = ExperimentPairPayload(updated),
     )
   }
 
@@ -669,12 +692,17 @@ class ExperimentNavigationPairCoordinator(
           ?.map { it.toString() }.orEmpty(),
       armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
       randomSeed = updated[ExperimentPairPayloadKeys.RANDOM_SEED]?.toString().orEmpty(),
-      pairPayload = updated,
+      pairPayload = ExperimentPairPayload(updated),
     )
   }
 
   private fun safePath(value: String): String = value.replace(Regex("[^A-Za-z0-9._-]"), "-")
 }
+
+private fun ExperimentPairPayload.toMap(): Map<String, Any?> =
+  JsonCodec.anyToStringAnyMap(
+    JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(toJson()))),
+  ) ?: error("Experiment pair payload must decode to an object.")
 
 fun parseNavigationAcceptanceCriteria(specText: String): List<String> =
   GovernedSpecSectionParser.parseListSection(specText) {

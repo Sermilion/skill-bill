@@ -1,3 +1,12 @@
+## [2026-09-23] SKILL-371 — restore architecture guard enforcement (subtask 1)
+Areas: runtime-cli, runtime-core/architecture, runtime-application, runtime-domain, runtime-engine, runtime-infra, runtime-ports, runtime-kotlin/ARCHITECTURE.md
+- Restored module-root scanning with missing-root failures and non-empty visit assertions; refreshed the pinned engine inbound surface to `goalrunner.status` and `goalrunner.preflight`.
+- Removed public raw-map exposure from accounting and IDE-status boundaries while preserving rendered and persisted wire bytes; kept serialization at its owning adapter boundaries.
+- Documented the scan-root convention and verified scanner coverage through architecture tests.
+- reusable PATTERN: resolve module source roots through the runtime-kotlin module directory, assert read coverage in each guard, and keep raw-map serialization private at adapter boundaries.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-16] SKILL-348 — authoritative CLI invocation inputs and output (subtask 2)
 Areas: runtime-cli/{core,kernel,model,featuretask,workflow,codereview,scaffold,config,install,review}, runtime-application/diagnostics
 - `CliRunState` now marks explicit text, raw-byte, and empty completions; `Main` and `CliRuntime` no longer append root help or a synthetic newline after settled raw or empty results.

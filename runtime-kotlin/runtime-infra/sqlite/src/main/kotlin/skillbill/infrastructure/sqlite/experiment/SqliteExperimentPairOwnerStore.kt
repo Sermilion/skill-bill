@@ -8,6 +8,7 @@ import skillbill.experiment.model.ExperimentExecutionMode
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
 import skillbill.ports.experiment.pair.ExperimentPairPersistedState
+import skillbill.ports.experiment.pair.ExperimentPairPayload
 import skillbill.ports.experiment.pair.model.ExperimentObservationImport
 import skillbill.ports.experiment.validation.ExperimentPayloadValidationPort
 
@@ -43,9 +44,9 @@ class SqliteExperimentPairOwnerStore(
     }
   }
 
-  override fun importObservation(payload: Map<String, Any?>): Boolean {
+  override fun importObservation(payload: ExperimentPairPayload): Boolean {
     payloadValidation?.validateObservation(payload, "experiment-observation-import")
-    val observation = observationImport(payload) ?: return false
+    val observation = observationImport(payload.toMap()) ?: return false
     return database.transaction { session ->
       session.experimentPairs.insertObservationIfAbsent(observation)
     }
@@ -84,7 +85,7 @@ class SqliteExperimentPairOwnerStore(
 
   override fun saveReport(
     pairId: String,
-    reportPayload: Map<String, Any?>,
+    reportPayload: ExperimentPairPayload,
   ) {
     payloadValidation?.validateReport(reportPayload, "experiment-report:$pairId")
     database.transaction { session ->
@@ -92,10 +93,10 @@ class SqliteExperimentPairOwnerStore(
     }
   }
 
-  override fun loadReport(pairId: String): Map<String, Any?>? =
+  override fun loadReport(pairId: String): ExperimentPairPayload? =
     database.read { session -> session.experimentPairs.loadReport(pairId) }
 
-  override fun listReports(): List<Map<String, Any?>> =
+  override fun listReports(): List<ExperimentPairPayload> =
     database.read { session -> session.experimentPairs.listReports() }
 
   override fun acquireLease(
@@ -117,3 +118,8 @@ class SqliteExperimentPairOwnerStore(
     }
   }
 }
+
+private fun ExperimentPairPayload.toMap(): Map<String, Any?> =
+  JsonCodec.anyToStringAnyMap(
+    JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(toJson()))),
+  ) ?: error("Experiment pair payload must decode to an object.")

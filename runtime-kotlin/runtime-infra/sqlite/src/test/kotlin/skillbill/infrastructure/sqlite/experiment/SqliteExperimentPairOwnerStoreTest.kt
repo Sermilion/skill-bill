@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.experiment
 import org.junit.jupiter.api.Test
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.experiment.EXPERIMENT_OBSERVATION_CONTRACT_VERSION
 import skillbill.contracts.experiment.EXPERIMENT_PAIR_CONTRACT_VERSION
 import skillbill.contracts.experiment.ExperimentObservationPayloadKeys
@@ -10,6 +11,7 @@ import skillbill.experiment.model.ExperimentExecutionMode
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.ports.experiment.pair.ExperimentPairPersistedState
+import skillbill.ports.experiment.pair.ExperimentPairPayload
 import java.nio.file.Files
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -27,8 +29,8 @@ class SqliteExperimentPairOwnerStoreTest {
     val store = SqliteExperimentPairOwnerStore(factory, null)
     store.save(pairState("pair-1"))
     val payload = observationPayload("obs-1")
-    assertTrue(store.importObservation(payload))
-    assertFalse(store.importObservation(payload))
+    assertTrue(store.importObservation(ExperimentPairPayload(payload)))
+    assertFalse(store.importObservation(ExperimentPairPayload(payload)))
   }
 
   @Test
@@ -54,8 +56,8 @@ class SqliteExperimentPairOwnerStoreTest {
             )
         )
 
-    assertTrue(store.importObservation(first))
-    assertFalse(store.importObservation(retry))
+    assertTrue(store.importObservation(ExperimentPairPayload(first)))
+    assertFalse(store.importObservation(ExperimentPairPayload(retry)))
   }
 
   @Test
@@ -142,8 +144,9 @@ class SqliteExperimentPairOwnerStoreTest {
         armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
         randomSeed = "seed",
         pairPayload =
-          pairPayload("pair-report").plus(
-            ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal"),
+          ExperimentPairPayload(
+            pairPayload("pair-report").toMap() +
+              (ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal")),
           ),
       ),
     )
@@ -157,9 +160,9 @@ class SqliteExperimentPairOwnerStoreTest {
         ExperimentReportPayloadKeys.DELIVERY_ARM to "control",
       )
 
-    store.saveReport("pair-report", report)
+    store.saveReport("pair-report", ExperimentPairPayload(report))
 
-    assertEquals(report, store.loadReport("pair-report"))
+    assertEquals(report, store.loadReport("pair-report")?.toMap())
   }
 
   @Test
@@ -187,8 +190,9 @@ class SqliteExperimentPairOwnerStoreTest {
         armOrder = listOf(ExperimentArmId.CONTROL, ExperimentArmId.TREATMENT),
         randomSeed = "seed",
         pairPayload =
-          pairPayload("pair-recovery") +
-            mapOf(
+          ExperimentPairPayload(
+            pairPayload("pair-recovery").toMap() +
+              mapOf(
               ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal"),
               ExperimentPairPayloadKeys.ARM_OUTCOMES to
                 listOf(
@@ -205,13 +209,15 @@ class SqliteExperimentPairOwnerStoreTest {
                     ExperimentPairPayloadKeys.DEFERRED_PUBLICATION to true,
                   ),
                 ),
-            ),
+              ),
+          ),
       ),
     )
     assertTrue(
       store.importObservation(
-        observationPayload("recovery-observation").plus(
-          mapOf(
+        ExperimentPairPayload(
+          observationPayload("recovery-observation").plus(
+            mapOf(
             ExperimentObservationPayloadKeys.PAIR_ID to "pair-recovery",
             ExperimentObservationPayloadKeys.MEASUREMENTS to
               listOf(
@@ -221,6 +227,7 @@ class SqliteExperimentPairOwnerStoreTest {
                   ExperimentObservationPayloadKeys.QUANTITY to 12.0,
                 ),
               ),
+            ),
           ),
         ),
       ),
@@ -254,8 +261,9 @@ class SqliteExperimentPairOwnerStoreTest {
       pairPayload = pairPayload(pairId),
     )
 
-  private fun pairPayload(pairId: String): Map<String, Any?> =
-    mapOf(
+  private fun pairPayload(pairId: String): ExperimentPairPayload =
+    ExperimentPairPayload(
+      mapOf(
       ExperimentPairPayloadKeys.CONTRACT_VERSION to EXPERIMENT_PAIR_CONTRACT_VERSION,
       ExperimentPairPayloadKeys.PAIR_ID to pairId,
       ExperimentPairPayloadKeys.EXECUTION_MODE to "goal_pair",
@@ -283,5 +291,11 @@ class SqliteExperimentPairOwnerStoreTest {
           ),
         ),
       ExperimentPairPayloadKeys.DELIVERY_STATUS to "deferred",
+      ),
     )
 }
+
+private fun ExperimentPairPayload.toMap(): Map<String, Any?> =
+  JsonCodec.anyToStringAnyMap(
+    JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(toJson()))),
+  ) ?: error("Experiment pair payload must decode to an object.")

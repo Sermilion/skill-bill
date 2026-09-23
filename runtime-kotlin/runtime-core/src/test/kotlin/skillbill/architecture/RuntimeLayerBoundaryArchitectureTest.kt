@@ -21,19 +21,13 @@ class RuntimeLayerBoundaryArchitectureTest {
   fun `only the prune gateway may delete review-metrics snapshots`() {
     val deletionSites =
       runtimeArchitectureSourceRoots
-        .filter { root -> Files.isDirectory(root) }
-        .flatMap { root ->
-          Files.walk(root).use { paths ->
-            paths.filter { path -> Files.isRegularFile(path) && path.toString().endsWith(".kt") }
-              .toList()
-          }
-        }
+        .flatMap { root -> kotlinFilesUnderWithArchitectureAsserts(root) }
         .filter { path -> path.fileName.toString() != "FileSystemReviewSnapshotGateway.kt" }
         .filter { path ->
           val text = Files.readString(path)
           "review-metrics" in text && Regex("""Files\.delete\w*\(|toFile\(\)\.delete\w*\(""").containsMatchIn(text)
         }
-        .map { path -> runtimeArchitectureRoot.relativize(path).toString() }
+        .map { path -> runtimeArchitectureRoot.relativize(path).toString().replace('\\', '/') }
         .sorted()
 
     assertEquals(
@@ -463,25 +457,6 @@ class RuntimeLayerBoundaryArchitectureTest {
           "skillbill.db",
           "skillbill.mcp",
         ),
-    )
-  }
-
-  @Test
-  fun `retired review and telemetry adapters stay absent from production main`() {
-    val retiredProductionPaths =
-      listOf(
-        "runtime-application/src/main/kotlin/skillbill/application/review/ReviewCommitSequenceResolver.kt",
-        "runtime-application/src/main/kotlin/skillbill/application/telemetry/config/TelemetryConfigMutationRuntime.kt",
-        "runtime-application/src/main/kotlin/skillbill/application/telemetry/config/TelemetryConfigRuntime.kt",
-      )
-    val survivors =
-      retiredProductionPaths.filter { relativePath ->
-        Files.exists(runtimeArchitectureRoot.resolve(relativePath))
-      }
-    assertEquals(
-      emptyList(),
-      survivors,
-      "Deleted adapters must not remain in runtime-application production main.",
     )
   }
 

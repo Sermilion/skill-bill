@@ -1,5 +1,6 @@
 package skillbill.ports.idestatus
 
+import skillbill.contracts.JsonPayloadContract
 import skillbill.ports.idestatus.model.IdeStatusSnapshot
 
 interface IdeStatusValidator {
@@ -8,5 +9,5 @@ interface IdeStatusValidator {
     sourceLabel: String,
   )
 
-  fun toWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?>
+  fun toWirePayload(snapshot: IdeStatusSnapshot): JsonPayloadContract
 }

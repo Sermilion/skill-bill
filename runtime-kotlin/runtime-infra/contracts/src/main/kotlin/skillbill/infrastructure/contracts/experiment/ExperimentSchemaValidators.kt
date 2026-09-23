@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.experiment
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.experiment.EXPERIMENT_DESCRIPTOR_CONTRACT_VERSION
 import skillbill.contracts.experiment.EXPERIMENT_OBSERVATION_CONTRACT_VERSION
 import skillbill.contracts.experiment.EXPERIMENT_PAIR_CONTRACT_VERSION
@@ -15,6 +16,7 @@ import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
 import skillbill.ports.experiment.validation.ExperimentPayloadValidationPort
+import skillbill.ports.experiment.pair.model.ExperimentPairPayload
 
 private const val MAX_REPORTED_SCHEMA_FAILURES = 3
 
@@ -88,20 +90,25 @@ object ExperimentReportSchemaValidator {
 
 class ExperimentPayloadSchemaValidator : ExperimentPayloadValidationPort {
   override fun validatePair(
-    payload: Map<String, Any?>,
+    payload: ExperimentPairPayload,
     sourceLabel: String,
-  ) = ExperimentPairSchemaValidator.validate(payload, sourceLabel)
+  ) = ExperimentPairSchemaValidator.validate(payload.toMap(), sourceLabel)
 
   override fun validateObservation(
-    payload: Map<String, Any?>,
+    payload: ExperimentPairPayload,
     sourceLabel: String,
-  ) = ExperimentObservationSchemaValidator.validate(payload, sourceLabel)
+  ) = ExperimentObservationSchemaValidator.validate(payload.toMap(), sourceLabel)
 
   override fun validateReport(
-    payload: Map<String, Any?>,
+    payload: ExperimentPairPayload,
     sourceLabel: String,
-  ) = ExperimentReportSchemaValidator.validate(payload, sourceLabel)
+  ) = ExperimentReportSchemaValidator.validate(payload.toMap(), sourceLabel)
 }
+
+private fun ExperimentPairPayload.toMap(): Map<String, Any?> =
+  JsonCodec.anyToStringAnyMap(
+    JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(toJson()))),
+  ) ?: error("Experiment pair payload must decode to an object.")
 
 private fun validateAgainst(request: ExperimentSchemaValidationRequest) {
   val schema =

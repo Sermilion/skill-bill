@@ -19,8 +19,12 @@ class RuntimeArchitectureTest {
     assertNoBannedImports(
       files =
         sourceFiles().filter { file ->
-          file.relativePath.startsWith("runtime-domain/src/main/kotlin/skillbill/workflow/") ||
-            file.relativePath.startsWith("runtime-domain/src/main/kotlin/skillbill/install/model/")
+          file.relativePath.startsWith(
+            "${moduleMainKotlinRootRelative("runtime-domain")}/skillbill/workflow/",
+          ) ||
+            file.relativePath.startsWith(
+              "${moduleMainKotlinRootRelative("runtime-domain")}/skillbill/install/model/",
+            )
         },
       bannedImports =
         listOf(
@@ -253,8 +257,12 @@ class RuntimeArchitectureTest {
   fun `runtime domain workflow source must not import contract schema validators or contract mappers`() {
     val guardedDomainFiles =
       sourceFiles().filter { file ->
-        file.relativePath.startsWith("runtime-domain/src/main/kotlin/skillbill/workflow/") ||
-          file.relativePath.startsWith("runtime-domain/src/main/kotlin/skillbill/install/")
+        file.relativePath.startsWith(
+          "${moduleMainKotlinRootRelative("runtime-domain")}/skillbill/workflow/",
+        ) ||
+          file.relativePath.startsWith(
+            "${moduleMainKotlinRootRelative("runtime-domain")}/skillbill/install/",
+          )
       }
     val violations =
       guardedDomainFiles.flatMap { file ->
@@ -327,8 +335,12 @@ class RuntimeArchitectureTest {
     val violations =
       sourceFiles()
         .filter { file ->
-          file.relativePath.startsWith("runtime-domain/src/main/kotlin/skillbill/review/") ||
-            file.relativePath.startsWith("runtime-domain/src/main/kotlin/skillbill/telemetry/")
+          file.relativePath.startsWith(
+            "${moduleMainKotlinRootRelative("runtime-domain")}/skillbill/review/",
+          ) ||
+            file.relativePath.startsWith(
+              "${moduleMainKotlinRootRelative("runtime-domain")}/skillbill/telemetry/",
+            )
         }
         .filter { file ->
           "JsonPayloadContract" in file.source ||

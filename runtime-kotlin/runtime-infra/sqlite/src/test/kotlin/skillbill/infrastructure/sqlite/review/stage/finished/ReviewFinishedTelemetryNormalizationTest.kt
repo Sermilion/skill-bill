@@ -1,7 +1,6 @@
 package skillbill.infrastructure.sqlite.review.stage.finished
 import skillbill.SAMPLE_REVIEW
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
-import skillbill.infrastructure.sqlite.review.accounting.toPayload
 import skillbill.infrastructure.sqlite.review.stats.ReviewFinishedPayloadBuildRequest
 import skillbill.infrastructure.sqlite.review.stats.ReviewStatsRuntime
 import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload

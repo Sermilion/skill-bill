@@ -2,7 +2,6 @@ package skillbill.architecture
 
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.isRegularFile
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -14,15 +13,11 @@ class InfrastructureSkillsImportDirectionArchitectureTest {
   }
 
   private fun skillsImportDirectionViolations(): List<String> {
-    val skillsRoot =
-      ArchitectureScanSupport.runtimeRoot.resolve(
-        "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath("runtime-infra:skills")}/src/main/kotlin",
-      )
-    if (!Files.isDirectory(skillsRoot)) return emptyList()
+    val skillsRoot = moduleMainKotlinRoot("runtime-infra:skills")
+    val sourceFiles = kotlinFilesUnderWithArchitectureAsserts(skillsRoot)
 
     val violations = mutableListOf<String>()
-    Files.walk(skillsRoot).use { paths ->
-      paths.filter { it.isRegularFile() && it.toString().endsWith(".kt") }.forEach { file ->
+    sourceFiles.forEach { file ->
         val text = Files.readString(file)
         val sourcePackage = readPackageName(text, file)
         val sourceLayer = skillsLayerIndex(sourcePackage)
@@ -34,7 +29,6 @@ class InfrastructureSkillsImportDirectionArchitectureTest {
               "(layer $targetLayer) from layer $sourceLayer"
           }
         }
-      }
     }
     return violations.sorted()
   }

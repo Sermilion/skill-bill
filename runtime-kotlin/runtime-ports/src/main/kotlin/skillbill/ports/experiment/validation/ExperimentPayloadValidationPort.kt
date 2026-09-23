@@ -1,18 +1,20 @@
 package skillbill.ports.experiment.validation
 
+import skillbill.ports.experiment.pair.model.ExperimentPairPayload
+
 interface ExperimentPayloadValidationPort {
   fun validatePair(
-    payload: Map<String, Any?>,
+    payload: ExperimentPairPayload,
     sourceLabel: String,
   )
 
   fun validateObservation(
-    payload: Map<String, Any?>,
+    payload: ExperimentPairPayload,
     sourceLabel: String,
   )
 
   fun validateReport(
-    payload: Map<String, Any?>,
+    payload: ExperimentPairPayload,
     sourceLabel: String,
   )
 }

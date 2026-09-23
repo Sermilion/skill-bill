@@ -5,7 +5,7 @@ import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.ports.workflow.gitops.model.ReadinessTreeIdentity
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
-import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityPayloadCodec
+import skillbill.ports.workflow.gitops.readiness.encodeReadinessTreeIdentityPayload
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
@@ -37,7 +37,7 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
     if (tree !is WorkflowGitOperationResult.Ok) return tree
     return WorkflowGitOperationResult.Ok(
       value =
-        ReadinessTreeIdentityPayloadCodec.encode(
+        encodeReadinessTreeIdentityPayload(
           ReadinessTreeIdentity(
             sourceTreeSha = tree.value.orEmpty(),
             baseRefSha = baseRef.value.orEmpty(),

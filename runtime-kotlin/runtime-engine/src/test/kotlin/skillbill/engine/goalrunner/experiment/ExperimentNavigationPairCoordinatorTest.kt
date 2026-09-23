@@ -12,6 +12,7 @@ import skillbill.ports.experiment.navigation.ExperimentNavigationSessionRunnerPo
 import skillbill.ports.experiment.navigation.ExperimentNavigationTerminalOutcome
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
 import skillbill.ports.experiment.pair.ExperimentPairPersistedState
+import skillbill.ports.experiment.pair.ExperimentPairPayload
 import skillbill.ports.experiment.selection.ExperimentLaunchSelection
 import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -93,7 +94,8 @@ class ExperimentNavigationPairCoordinatorTest {
           ),
         randomSeed = "pair-resume",
         pairPayload =
-          mapOf(
+          ExperimentPairPayload(
+            mapOf(
             ExperimentPairPayloadKeys.PAIR_ID to "pair-resume",
             ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-navigation"),
             ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
@@ -111,6 +113,7 @@ class ExperimentNavigationPairCoordinatorTest {
                   ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
                 ),
               ),
+            ),
           ),
       ),
     )
@@ -255,7 +258,7 @@ class ExperimentNavigationPairCoordinatorTest {
       states[state.pairId] = state
     }
 
-    override fun importObservation(payload: Map<String, Any?>): Boolean = true
+    override fun importObservation(payload: ExperimentPairPayload): Boolean = true
 
     override fun acquireLease(
       pairId: String,

@@ -65,16 +65,9 @@ class RuntimeRawMapArchitectureTest {
 
   @Test
   fun `runtime architecture forbids public raw map shapes in inner layers`() {
-    val boundaryFiles =
-      sourceFiles().filter { file ->
-        file.relativePath.startsWith("runtime-application/src/main/kotlin/") ||
-          file.relativePath.startsWith("runtime-domain/src/main/kotlin/") ||
-          file.relativePath.startsWith("runtime-ports/src/main/kotlin/")
-      }
     val violations =
-      boundaryFiles.flatMap { file ->
-        findRawMapViolations(file)
-      }
+      listOf("runtime-application", "runtime-domain", "runtime-ports")
+        .flatMap { moduleName -> rawMapViolationsUnder(moduleMainKotlinRoot(moduleName)) }
     assertTrue(
       violations.isEmpty(),
       "Public application/domain/port declarations must not use raw Map<String, Any?> " +
@@ -84,10 +77,37 @@ class RuntimeRawMapArchitectureTest {
   }
 
   @Test
+  fun `inner-layer raw-map scanner rejects synthetic public map in application main source`() {
+    val root = Files.createTempDirectory("raw-map-fixture")
+    val sourceRoot = root.resolve("runtime-application/src/main/kotlin")
+    Files.createDirectories(sourceRoot.resolve("skillbill/application/fixture"))
+    val sourceFile = sourceRoot.resolve("skillbill/application/fixture/SyntheticLeak.kt")
+    Files.writeString(
+      sourceFile,
+      """
+      package skillbill.application.fixture
+
+      class SyntheticLeak {
+        fun payload(): Map<String, Any?> = emptyMap()
+      }
+      """.trimIndent(),
+    )
+    val violations = rawMapViolationsUnder(sourceRoot)
+    assertEquals(1, violations.size)
+    assertTrue(
+      violations.single().contains("SyntheticLeak.kt") &&
+        violations.single().contains("payload") &&
+        violations.single().contains(sourceRoot.toString()),
+      "The inner-layer scanner must report the public raw-map declaration it read from the fixture root.",
+    )
+  }
+
+  @Test
   fun `ports main path disables suffix boundary-carrier exemption for FooMap`() {
     val fixture =
       SourceFile(
-        relativePath = "runtime-ports/src/main/kotlin/skillbill/ports/fixture/FooMap.kt",
+        relativePath =
+          "${moduleMainKotlinRootRelative("runtime-ports")}/skillbill/ports/fixture/FooMap.kt",
         packageName = "skillbill.ports.fixture",
         imports = emptyList(),
         source =
@@ -100,7 +120,7 @@ class RuntimeRawMapArchitectureTest {
     val violations = findRawMapViolations(fixture)
     assertEquals(
       listOf(
-        "runtime-ports/src/main/kotlin/skillbill/ports/fixture/FooMap.kt:3: " +
+        "${moduleMainKotlinRootRelative("runtime-ports")}/skillbill/ports/fixture/FooMap.kt:3: " +
           "public `FooMap` exposes raw map shape",
       ),
       violations,

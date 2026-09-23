@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.experiment
 import me.tatarka.inject.annotations.Inject
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.experiment.EXPERIMENT_PAIR_CONTRACT_VERSION
 import skillbill.contracts.experiment.ExperimentPairPayloadKeys
 import skillbill.contracts.experiment.ExperimentReportPayloadKeys
@@ -31,6 +32,7 @@ import skillbill.ports.experiment.measurement.ExperimentArmMeasurementPort
 import skillbill.ports.experiment.measurement.ExperimentMeasuredValue
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
 import skillbill.ports.experiment.pair.ExperimentPairPersistedState
+import skillbill.ports.experiment.pair.ExperimentPairPayload
 import skillbill.ports.experiment.publication.ExperimentParentDeliveryPort
 import skillbill.ports.experiment.publication.ExperimentParentDeliveryRequest
 import skillbill.ports.experiment.publication.ExperimentPublicationResult
@@ -174,12 +176,14 @@ class ExperimentPairCoordinator(
           armOrder = armSelection.order,
           randomSeed = armSelection.seed,
           pairPayload =
-            frozenPairPayload(
-              request = request,
-              pairId = pairId,
-              selection = selection,
-              armOrder = armSelection.order,
-              randomSeed = armSelection.seed,
+            ExperimentPairPayload(
+              frozenPairPayload(
+                request = request,
+                pairId = pairId,
+                selection = selection,
+                armOrder = armSelection.order,
+                randomSeed = armSelection.seed,
+              ),
             ),
         ),
       )
@@ -227,7 +231,7 @@ class ExperimentPairCoordinator(
     completedArms: Set<ExperimentArmId>,
   ) {
     completedArms.forEach { arm ->
-      val outcome = armOutcome(pairOwner.load(execution.pairId)?.pairPayload, arm) ?: return@forEach
+      val outcome = armOutcome(pairOwner.load(execution.pairId)?.pairPayload?.toMap(), arm) ?: return@forEach
       recordArmObservation(
         pairId = execution.pairId,
         arm = arm,
@@ -247,7 +251,7 @@ class ExperimentPairCoordinator(
       request.repoRoot,
       execution.pairId,
       request.issueKey,
-      pairOwner.load(execution.pairId)?.pairPayload,
+      pairOwner.load(execution.pairId)?.pairPayload?.toMap(),
     )
     val armWorktree = armWorktreePath(request.repoRoot, execution.pairId, arm)
     ensureArmWorktree(request.repoRoot, armWorktree, execution.pairId, arm)
@@ -319,7 +323,7 @@ class ExperimentPairCoordinator(
   ) {
     pairOwner.save(
       updateArmOutcome(
-        pairOwner.load(execution.pairId)?.pairPayload.orEmpty(),
+        pairOwner.load(execution.pairId)?.pairPayload?.toMap().orEmpty(),
         execution.pairId,
         arm,
         report,
@@ -341,7 +345,7 @@ class ExperimentPairCoordinator(
     pairOwner.save(
       updateArmLifecycle(
         ArmLifecycleUpdate(
-          payload = pairOwner.load(pairId)?.pairPayload.orEmpty(),
+          payload = pairOwner.load(pairId)?.pairPayload?.toMap().orEmpty(),
           pairId = pairId,
           arm = arm,
           terminalStatus = "running",
@@ -360,7 +364,7 @@ class ExperimentPairCoordinator(
     pairOwner.save(
       updateArmLifecycle(
         ArmLifecycleUpdate(
-          payload = pairOwner.load(pairId)?.pairPayload.orEmpty(),
+          payload = pairOwner.load(pairId)?.pairPayload?.toMap().orEmpty(),
           pairId = pairId,
           arm = arm,
           terminalStatus = "failed",
@@ -379,7 +383,9 @@ class ExperimentPairCoordinator(
     pairOwner.load(pairId)?.pairPayload?.let { payload ->
       pairOwner.saveReport(
         pairId,
-        ExperimentReportProjector.project(payload, ExperimentExecutionMode.GOAL_PAIR.wireValue),
+        ExperimentPairPayload(
+        ExperimentReportProjector.project(payload.toMap(), ExperimentExecutionMode.GOAL_PAIR.wireValue),
+        ),
       )
     }
     val controlOutcome =
@@ -429,7 +435,7 @@ class ExperimentPairCoordinator(
     publication: ExperimentPublicationResult,
   ) {
     pairOwner.load(pairId)?.let { state ->
-      val payload = state.pairPayload.toMutableMap()
+      val payload = state.pairPayload.toMap().toMutableMap()
       payload[ExperimentPairPayloadKeys.DELIVERY_STATUS] =
         when {
           publication.published -> "published"
@@ -443,7 +449,7 @@ class ExperimentPairCoordinator(
             .map { it.toString() }
         payload[ExperimentReportPayloadKeys.EXCLUSION_REASONS] = (existing + reason).distinct()
       }
-      pairOwner.save(state.copy(pairPayload = payload))
+      pairOwner.save(state.copy(pairPayload = ExperimentPairPayload(payload)))
     }
   }
 
@@ -656,7 +662,7 @@ class ExperimentPairCoordinator(
           ?.mapNotNull { ExperimentArmId.fromWire(it.toString()) }
           .orEmpty(),
       randomSeed = updated[ExperimentPairPayloadKeys.RANDOM_SEED]?.toString().orEmpty(),
-      pairPayload = updated,
+      pairPayload = ExperimentPairPayload(updated),
     )
   }
 
@@ -909,6 +915,11 @@ class ExperimentPairCoordinator(
       ?.map { outcome -> outcome.entries.associate { entry -> entry.key.toString() to entry.value } }
       ?.firstOrNull { outcome -> outcome[ExperimentPairPayloadKeys.ARM_ID] == arm.wireValue }
 }
+
+private fun ExperimentPairPayload.toMap(): Map<String, Any?> =
+  JsonCodec.anyToStringAnyMap(
+    JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(toJson()))),
+  ) ?: error("Experiment pair payload must decode to an object.")
 
 internal fun GoalRunnerRunReport.shouldPausePair(): Boolean =
   this is GoalRunnerRunReport.Stopped &&

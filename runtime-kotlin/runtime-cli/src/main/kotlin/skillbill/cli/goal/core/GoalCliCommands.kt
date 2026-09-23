@@ -46,7 +46,6 @@ import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.model.DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES
 import skillbill.engine.goalrunner.GoalRunner
-import skillbill.engine.goalrunner.experiment.ExperimentPairCoordinator
 import skillbill.engine.goalrunner.model.DEFAULT_GOAL_PLANNING_BUDGET
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
@@ -93,10 +92,8 @@ class GoalRunSubcommands(
 @Inject
 class GoalRunExecution(
   private val goalRunner: GoalRunner,
-  private val experimentPairCoordinator: ExperimentPairCoordinator,
 ) {
-  fun run(request: GoalRunnerRunRequest) =
-    if (request.experimentsParameter == null) goalRunner.run(request) else experimentPairCoordinator.run(request)
+  fun run(request: GoalRunnerRunRequest) = goalRunner.run(request)
 }
 
 @Inject

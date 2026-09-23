@@ -5,7 +5,6 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.infrastructure.sqlite.SQLiteReviewRunCompletenessRepository
 import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
-import skillbill.infrastructure.sqlite.review.accounting.toPayload
 import skillbill.infrastructure.sqlite.review.stage.runtime.TriageRuntime
 import skillbill.infrastructure.sqlite.review.stats.ReviewFinishedPayloadBuildRequest
 import skillbill.infrastructure.sqlite.review.stats.ReviewStatsRuntime

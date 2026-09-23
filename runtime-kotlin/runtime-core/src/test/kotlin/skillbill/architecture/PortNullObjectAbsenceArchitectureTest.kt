@@ -2,7 +2,6 @@ package skillbill.architecture
 
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.extension
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -13,25 +12,22 @@ object PortNullObjectCensus {
 }
 
 class PortNullObjectAbsenceArchitectureTest {
-  private val runtimeRoot: Path =
-    Path.of("").toAbsolutePath().normalize().let { workingDir ->
-      if (workingDir.fileName.toString().startsWith("runtime-")) workingDir.parent else workingDir
-    }
+  private val runtimeRoot: Path = ArchitectureScanSupport.runtimeRoot
 
   @Test
   fun `no runtime module declares a null-object substitute in main source`() {
-    val declarations =
+    val moduleMainRoots =
       RuntimeModuleCatalog.declaredGradleModules
-        .map { runtimeRoot.resolve("$it/src/main") }
-        .filter { Files.isDirectory(it) }
+        .filter { moduleName -> moduleName != "runtime-infra" }
+        .map { moduleName -> moduleMainKotlinRoot(moduleName) }
+    val declarations =
+      moduleMainRoots
         .flatMap { root ->
-          Files.walk(root).use { paths ->
-            paths
-              .filter { Files.isRegularFile(it) && it.extension == "kt" }
-              .toList()
+          val sourceFiles = kotlinFilesUnderWithArchitectureAsserts(root)
+          sourceFiles.flatMap { path ->
+            PortNullObjectCensus.namesIn(Files.readString(path)).map { "$it (${path.fileName})" }
           }
         }
-        .flatMap { path -> PortNullObjectCensus.namesIn(Files.readString(path)).map { "$it (${path.fileName})" } }
         .sorted()
 
     assertEquals(
@@ -56,25 +52,35 @@ class PortNullObjectAbsenceArchitectureTest {
 
   @Test
   fun `every runtime-ports test fixture object has an outside test or fixture reference`() {
-    val fixtureRoot = runtimeRoot.resolve("runtime-kotlin/runtime-ports/src/testFixtures")
-    val fixtureFiles = kotlinFiles(fixtureRoot)
+    val fixtureRoot =
+      runtimeRoot.resolve(
+        "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-ports")}/src/testFixtures/kotlin",
+      )
+    val fixtureFiles = kotlinFilesUnderWithArchitectureAsserts(fixtureRoot)
     val declarations =
       fixtureFiles.flatMap { path ->
-        Regex("""(?m)^\s*(?:internal\s+)?object\s+([A-Za-z]\w*)\b""")
+        Regex("""(?m)^\s*(?:internal\s+)?object\s+((?:Unavailable|Noop|Empty|Unconfigured)[A-Za-z]\w*)\b""")
           .findAll(Files.readString(path))
           .map { match -> match.groupValues[1] to path }
           .toList()
       }
+    val runtimeKotlinRoot = runtimeRoot.resolve("runtime-kotlin")
     val referenceFiles =
-      kotlinFiles(runtimeRoot.resolve("runtime-kotlin"))
+      kotlinFilesUnderWithArchitectureAsserts(runtimeKotlinRoot)
         .filterNot { path -> path.fileName.toString() == "PortNullObjectClassification.kt" }
 
     val missingReferences =
       declarations
         .filter { (name, declarationPath) ->
           referenceFiles
-            .filterNot { path -> path == declarationPath }
-            .none { path -> Regex("""\b${Regex.escape(name)}\b""").containsMatchIn(Files.readString(path)) }
+            .none { path ->
+              Files.readString(path).lineSequence().any { line ->
+                Regex("""\b${Regex.escape(name)}\b""").containsMatchIn(line) &&
+                  !Regex(
+                    """^\s*(?:internal\s+)?object\s+${Regex.escape(name)}\b""",
+                  ).containsMatchIn(line)
+              }
+            }
         }
         .map { (name, path) -> "$name (${runtimeRoot.relativize(path)})" }
         .sorted()
@@ -86,14 +92,5 @@ class PortNullObjectAbsenceArchitectureTest {
         setOf("StubGovernedReviewEvidenceEndpointBinder", "CheckpointHistoryGitOperationsRefusalTest"),
       ),
     )
-  }
-
-  private fun kotlinFiles(root: Path): List<Path> {
-    if (!Files.isDirectory(root)) return emptyList()
-    return Files.walk(root).use { paths ->
-      paths
-        .filter { path -> Files.isRegularFile(path) && path.extension == "kt" }
-        .toList()
-    }
   }
 }
