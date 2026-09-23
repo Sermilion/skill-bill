@@ -30,16 +30,16 @@ Why three subtasks:
 2. **Subtask 2 ships a coherent change to the CLI process contract** (stdout, stderr, exit codes, presenters) that users can observe. It stays inside runtime-cli, plus one typed reason kind on the engine goal result if needed.
 3. **Subtask 3 changes contracts across modules** (ports, infra/host, infra/launcher, engine, sqlite, application, MCP). Its review needs the cross-module reader, and it can land independently of subtask 2.
 
-Sequencing: implement after SKILL-370 lands. SKILL-370 renames the rejected-output use case and moves packages in application and engine that this bundle's subtask 1 pin and subtask 3 edits reference. Subtask 1 also starts after SKILL-378 subtask 1, which deletes experiment support. That removes the unpinned experiment imports and makes F-003 moot. SKILL-373 subtask 2 runs after this bundle's subtask 1 and deletes two vacuous tests that subtask 1 therefore does not repair. SKILL-373 moves `RuntimeContext` and `OptionalCallbacks` into runtime-core, so expect an import change in `CliRuntimeContext`. SKILL-378 subtask 3 restructures the engine and runs after this bundle's subtasks 1 and 3. That includes the goal-planning files that subtask 3 edits for repository identity, so keep those edits to call-site replacements. Recheck every anchor in investigation.md against the tree at start.
+Sequencing: this bundle runs on the current tree. It does not wait for a subtask of another issue. Subtask 1 turns the guards on and fixes every violation they report, including experiment imports and public raw maps that are still present. Subtask 2 applies the output contract to the commands that exist, including `experiments` when that command is still there. Subtask 3 gives each shared contract one owner at the path that exists now. Recheck every anchor in investigation.md against the tree at start. Inside this bundle, subtask 1 runs first, then subtasks 2 and 3.
 
-Prepared on 2026-09-22 in local spec mode (resolved through `skill-bill config resolve-spec-type`). SKILL-371 follows SKILL-370, which another session claimed while this bundle was being prepared. Census baseline: `11d8615ba`, with 113 production files and 11,705 lines in runtime-cli. All subtasks start pending. This bundle does not authorize implementation by itself.
+Prepared on 2026-09-22 in local spec mode (resolved through `skill-bill config resolve-spec-type`). Census baseline: `11d8615ba`, with 113 production files and 11,705 lines in runtime-cli. All subtasks start pending. This bundle does not authorize implementation by itself.
 
 ## Acceptance Criteria
 
 1. Every runtime-core architecture test that names a module source root reads files from that root. A named root that does not exist fails the test, and each affected scanner asserts that it visited at least one file per named root.
 2. With the restored guards, runtime-application and runtime-domain declare no public raw-map function, and runtime-cli, runtime-mcp, and runtime-application reference only pinned engine inbound types. The pinned list matches the current inbound surface and no exemption or baseline grows.
 3. `CliExecutionResult` carries a stderr channel, and `Main` writes it to the process stderr. Usage errors, typed runtime errors, and command failures print their diagnostic on stderr. stdout carries only the command's requested result.
-4. A `SkillBillRuntimeException`, an I/O error on a user-supplied path, and an absent experiment pair each produce a one-line diagnostic and a non-zero exit, with no stack trace. An unexpected non-typed throwable exits non-zero with a one-line diagnostic and a `RuntimeDiagnostics` record.
+4. A `SkillBillRuntimeException` and an I/O error on a user-supplied path each produce a one-line diagnostic and a non-zero exit, with no stack trace. When the `experiments` command exists, an absent pair does the same. An unexpected non-typed throwable exits non-zero with a one-line diagnostic and a `RuntimeDiagnostics` record.
 5. No production command writes output through Clikt `echo` or directly to process streams. If experiment support still exists, every `experiments` subcommand completes through `CliRunState`, uses `formatOption()`, and never prints root help after its own output.
 6. Goal and featuretask exit codes derive from typed result values, not from map lookups or free-text substring matches. Their text renderers take typed presentation models. JSON field names and exit-code numbers are unchanged.
 7. The F-008 and F-009 items listed in investigation.md are resolved or deleted as described there, and command names, aliases, and help order stay stable.
@@ -67,7 +67,7 @@ Prepared on 2026-09-22 in local spec mode (resolved through `skill-bill config r
 
 ## SKILL-380 coordination
 
-No subtask of this bundle is a SKILL-380 prerequisite, and this bundle may land before or after SKILL-380. SKILL-380 subtask 3 makes `--quality-gate-selection` a closed choice that fails with a usage error. If subtask 2 has landed, that error goes through its stderr channel; if subtask 2 lands later, it includes that command in its stdout/stderr migration. Subtask 3 touches SKILL-380 files only for imports.
+This bundle does not wait for SKILL-380. If `--quality-gate-selection` still prints a usage error on stdout when subtask 2 runs, subtask 2 moves that diagnostic to stderr with the other commands.
 
 ## Validation Strategy
 

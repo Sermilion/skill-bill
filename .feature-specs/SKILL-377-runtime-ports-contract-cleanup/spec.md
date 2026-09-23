@@ -23,7 +23,7 @@ runtime-ports keeps its module position, its `UnitOfWork` and repository shape, 
 | F-007 | 7 unconsumed ports, 6 dead adapters, unused legacy planning members, single-adapter helpers in ports, dead declarations, and an unused dependency. | Subtask 3 |
 | F-008 | Nullable `UnitOfWork` repositories hide an unrecorded degradation. | Subtask 2 |
 | F-009 | `AgentRunLaunchFacts` models exclusive terminations as flags, with `ByteArray` in data-class equality. | Subtask 2 |
-| F-010 | 21 pass-through typealiases (3 remain after SKILL-378) and 5 `Any`-typed port members. | Subtask 3 |
+| F-010 | Pass-through typealiases and `Any`-typed port members still on the tree. | Subtask 3 |
 | F-011 | ARCHITECTURE.md misdescribes path types and the ports module surface. | Subtask 3 |
 | F-012 | A throwing `NONE` used as an identity sentinel in production, and test-only `NONE` substitutes in ports main. | Subtask 2 (sentinel), subtask 3 (rest) |
 | F-013 | `GoalPlanningPreparationState.fromWireValue` throws `IllegalArgumentException`. | Subtask 2 |
@@ -58,12 +58,15 @@ Next command: `skill-bill goal SKILL-377`.
 
 ## Constraints
 
-- Subtask 1 starts after SKILL-370, SKILL-376 subtask 1, and SKILL-378 subtask 1 land. Subtasks 2 and 3 also need SKILL-371 subtask 1, SKILL-372 subtask 1, and SKILL-373 subtask 2. This matches the cross-bundle order in the SKILL-373 investigation. If SKILL-373 subtask 3 has not yet moved the suite to `src/repoTest`, edit the guards in place; 373 subtask 3 moves them. SKILL-378 deletes experiment support; any experiment item this bundle names is gone by then and needs no work. The coordination table in the investigation lists each shared seam. If one of them has not landed, stop and report rather than duplicating its change.
+- This bundle runs on the current tree. It does not wait for a subtask of another issue. Do the work in the acceptance criteria here.
+- Edit guards where they live. If the suite is still in `src/test`, edit it there.
+- If an experiment field, alias, or linked-worktree operation still blocks a criterion, remove it in this bundle.
+- If a scanner this bundle's criteria rely on still reads zero files, repair that scanner here.
+- Fix every violation this bundle's guards report, including public raw maps when those guards report them.
 - Follow `runtime-kotlin/ARCHITECTURE.md` Design Principles and `docs/code-principles.md`: no `//` comments in Kotlin, KDoc only on interfaces, wire keys through `*Keys` owners, and package sibling limits.
 - CLI and MCP wire output, persisted bytes, schemas, and contract versions stay unchanged.
 - Keep every port that a consumer injects, the `UnitOfWork` shape, the goal-runner store role splits, and every SKILL-358 retention decision except 2026-09-06 (c).
-- Don't fix ports raw-map violations that SKILL-371's restored raw-map guard reports; SKILL-371 owns them.
-- Add no module, framework, dependency bag, parameter object beyond the one review-preparation value in AC 5, or architecture-test class. The only scanner changes are extending the existing interface-default rule and adding `class` detection to the null-object census. SKILL-378 adds companion-`val` detection. Don't expand any baseline.
+- Add no module, framework, dependency bag, parameter object beyond the one review-preparation value in AC 5, or architecture-test class. The scanner changes are extending the existing interface-default rule, adding `class` detection to the null-object census, and repairing a scanner that this bundle's criteria show is not reading files. Don't expand any baseline.
 - Test doubles live in testFixtures and compose with `by` delegation. Name the regression each new or changed test catches.
 
 ## Non-Goals
@@ -71,15 +74,12 @@ Next command: `skill-bill goal SKILL-377`.
 - Moving goal-runner store implementations, or collapsing their role interfaces (SKILL-376).
 - Moving `RuntimeContext` override slots (SKILL-373) or `ReviewMetricsDatabasePolicy` (SKILL-370).
 - Replacing `java.nio.file.Path` in port signatures, repackaging ports for granularity, or enabling `explicitApi()`.
-- Anything under experiment support (SKILL-378 deletes it).
+- Anything under experiment support that this bundle's criteria do not trip over. If a criterion fails because experiment code is still present, remove that code here.
 - Typed results for single-scalar git operations.
 
 ## SKILL-380 coordination
 
-- Run subtask 1 before SKILL-380: it types the git results inside the commit_push and checkpoint code that SKILL-380 moves into slot strategies.
-- Subtask 2 is independent of SKILL-380 subtasks 1–3. If it lands before SKILL-380 subtask 4, the specialist review strategy uses its review-preparation facts value and closed termination type.
-- Known conflict: subtask 2 was written before SKILL-379. SKILL-379 subtask 1 replaced the learnings stub behind `ReviewFactPorts` with a DI-injected resolver. Subtask 2 keeps that resolver and takes its byte baseline after SKILL-379's review-context contract bump.
-- SKILL-380 does not need subtask 3.
+This bundle does not wait for SKILL-380. Type the git results in the commit_push and checkpoint code where it lives. Keep the learnings resolver that is on the tree.
 
 ## Validation Strategy
 

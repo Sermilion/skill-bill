@@ -1,5 +1,9 @@
 # runtime-mcp architecture investigation (SKILL-375)
 
+## Execution rule
+
+This bundle runs on the current tree. It does not wait for a subtask of another issue. Ordering notes later in this file are overlap context. If a change this bundle's acceptance criteria need is missing, make it here. If it is already present, keep it.
+
 ## Judgment
 
 `runtime-mcp` points the right way. Main code imports application services, one engine inbound service (`FeatureTaskPhaseSettlementService`), domain and contract types, and the `runtime-core` composition root. It has no infrastructure imports, its four architecture baselines are empty, and `Main.kt` is the only place it reads the environment. I would keep the module, its dependency edges, the hand-written JSON-RPC framer, and the YAML contract as the single tool-schema source.

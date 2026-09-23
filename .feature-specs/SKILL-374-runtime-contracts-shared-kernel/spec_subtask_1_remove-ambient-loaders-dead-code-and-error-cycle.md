@@ -141,18 +141,11 @@ Parent: `spec.md`. Evidence: `investigation.md` F-001, F-004, F-005, F-006.
 
 ## Dependency notes
 
-- Base on `main` after SKILL-368 merges.
-- SKILL-373 F-012 also removes the discarded statement in `RuntimeGoalPlanningProvides.kt`
-  L45; if it has already landed, skip that line.
-- `ExcludedRootAgentTreeAbsenceTest` lives in `runtime-contracts/src/repoTest`, which cannot
-  see runtime-domain. Move it to `runtime-infra/contracts/src/repoTest`, which depends on
-  runtime-domain and already runs repository-tree repoTests. Put it, and the new issue-key
-  repoTest, in a package that exists in runtime-infra/contracts main: SKILL-376 subtask 3
-  requires every infra test package to have a production counterpart.
-- Leave the kotlinx declaration in runtime-ports to SKILL-377 subtask 3. SKILL-378
-  subtask 1 assigns the runtime-engine one to this subtask.
-- Run before SKILL-373 subtasks 2 and 3, which restructure the architecture suite this
-  subtask edits.
+- Run on the current tree. It does not wait for another issue.
+- If the discarded statement in `RuntimeGoalPlanningProvides.kt` is already gone, skip that line. If it is still there, delete it here.
+- `ExcludedRootAgentTreeAbsenceTest` lives in `runtime-contracts/src/repoTest`, which cannot see runtime-domain. Move it to `runtime-infra/contracts/src/repoTest`, which depends on runtime-domain and already runs repository-tree repoTests. Put it, and the new issue-key repoTest, in a package that exists in runtime-infra/contracts main.
+- Remove the unused kotlinx declaration from runtime-ports and from runtime-engine in this subtask when those declarations are still unused.
+- Edit the architecture suite where it lives.
 
 ## Validation strategy
 

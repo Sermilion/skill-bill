@@ -89,12 +89,9 @@ under `skillbill.engine.featuretask.slot`:
 
 ## Dependency notes
 
-- Depends on subtask 1.
-- If SKILL-378 subtask 3 has landed, its engine visibility rule applies to the new
-  packages: strategies are `internal` except what the runtime-core registry provider
-  needs.
-- If SKILL-373 subtask 3 has moved the architecture suite to `repoTest`, add the rule
-  there.
+- Depends on subtask 1. It does not wait for another issue.
+- Apply the engine visibility rule that is in force: strategies are `internal` except what the runtime-core registry provider needs.
+- Add the no-phase-id rule to `RuntimeEngineBoundaryArchitectureTest` where that class lives.
 
 ## Validation strategy
 

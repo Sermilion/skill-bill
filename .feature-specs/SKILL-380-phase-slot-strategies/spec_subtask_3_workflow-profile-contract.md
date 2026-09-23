@@ -106,12 +106,10 @@ configurable, durable run state.
 
 ## Dependency notes
 
-- Depends on subtask 2: the profile covers every slot's strategy ids.
-- If SKILL-372 subtask 2 has landed, read and write the frozen field through its
-  typed run-invariants accessor.
-- If SKILL-374 subtask 2 has landed, follow its placement rule. The profile keys
-  qualify for runtime-contracts because infra host and the engine both read them.
-- If SKILL-371 subtask 2 has landed, emit the usage error through its stderr channel.
+- Depends on subtask 2: the profile covers every slot's strategy ids. It does not wait for another issue.
+- Read and write the frozen field through a typed run-invariants accessor when that accessor exists. Otherwise read and write it through the artifact API that exists now, and keep the bytes this subtask defines.
+- Put profile keys in runtime-contracts when infra host and the engine both read them. Follow a stricter placement rule when one is already in force.
+- Emit the usage error on stderr when the CLI already has a stderr channel. Otherwise emit it on the diagnostic channel the CLI uses now, and do not wait for another bundle to add stderr.
 
 ## Validation strategy
 

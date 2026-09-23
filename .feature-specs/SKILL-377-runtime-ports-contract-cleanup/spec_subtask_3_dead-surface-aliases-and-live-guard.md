@@ -21,17 +21,17 @@ Delete dead surface (F-007):
 
 Aliases and untyped members (F-010):
 
-- Delete the typealiases that remain after SKILL-378 (expected: only `DecompositionManifestWriteResult`; SKILL-378 deletes the 19 experiment aliases and the two linked-worktree aliases). Rename each target type to the alias name if the target exists only to be aliased.
-- Replace `Any` in `recoverMissingResultPrefixOutput(output)`, `HistoryArtifactAppend.entryMap`, the goal-runner reconcile-request `artifacts`, and `GoalChildPlanningHydrationResult.stepUpdates`/`artifacts` with the concrete types their producers pass. After SKILL-372 subtask 1, artifacts are `DurableWorkflowArtifacts` and steps are `WorkflowStepState`. Check whether `stepUpdates` carries states or update maps before choosing.
+- Delete every typealias still in runtime-ports, including experiment and linked-worktree aliases if they are still present. Rename each target type to the alias name if the target exists only to be aliased.
+- Replace `Any` in `recoverMissingResultPrefixOutput(output)`, `HistoryArtifactAppend.entryMap`, the goal-runner reconcile-request `artifacts`, and `GoalChildPlanningHydrationResult.stepUpdates`/`artifacts` with the concrete types their producers pass. Use `DurableWorkflowArtifacts` and `WorkflowStepState` when those types exist. Otherwise use the concrete types the producers pass today. Check whether `stepUpdates` carries states or update maps before choosing.
 
 Live guard (F-001, F-004):
 
-- Resolve the scan roots in `PortsDeclarationArchitectureTest` and in the testFixtures case of `PortNullObjectAbsenceArchitectureTest` through the scan-root convention SKILL-371 subtask 1 established. Edit the tests wherever SKILL-373 placed them.
+- Resolve the scan roots in `PortsDeclarationArchitectureTest` and in the testFixtures case of `PortNullObjectAbsenceArchitectureTest` so a named root that does not exist fails and each named root contributes at least one file. Edit the tests where they live.
 - Both tests fail when a root is missing and assert that they read at least one Kotlin file.
 - The first case of `PortNullObjectAbsenceArchitectureTest` maps `runtime-infra:<name>` module ids to their directories, so each infrastructure module's main source is scanned.
-- Extend `PortNullObjectCensus` to flag `class` declarations with the same name prefixes (SKILL-378 subtask 1 adds companion-`val` detection).
+- Extend `PortNullObjectCensus` to flag `class` declarations with the same name prefixes, and companion `val` declarations when those are the form that still passes the census.
 - Extend the existing interface-default check so that, outside `fun interface` declarations, a default body that is a bare constant result fails. Constant results are `true`, `false`, `null`, `Unit`, empty collection constructors, and `WorkflowGitOperationResult.Ok`/`Failed`. The baseline stays empty.
-- Fix every violation the live guard reports. Expected: `IdeStatusProblemDetails` becomes a `@JvmInline value class` that keeps its private constructor, which avoids exposing a public raw map. Subtask 2 has already deleted `unbindListener`. `ReviewMetricsDatabasePolicy` should already be gone (SKILL-370); if it is not, stop and report.
+- Fix every violation the live guard reports. Expected: `IdeStatusProblemDetails` becomes a `@JvmInline value class` that keeps its private constructor, which avoids exposing a public raw map. Subtask 2 has already deleted `unbindListener`. If `ReviewMetricsDatabasePolicy` is still present and the guard reports it, delete it here.
 
 Documentation (F-011): update the `runtime-ports` Gradle Modules entry and the `FileLocation` sentence in `runtime-kotlin/ARCHITECTURE.md` to the landed state (`Path` is the port path type; `FileLocation` is a domain value with two bridges). Record the default-body rule and the flat git aggregate in `runtime-kotlin/agent/decisions.md`.
 
@@ -55,7 +55,7 @@ Documentation (F-011): update the `runtime-ports` Gradle Modules entry and the `
 
 ## Dependency Notes
 
-Depends on subtask 2. The live guard must find the defaults and codec that subtasks 1 and 2 remove already gone. Requires SKILL-371 subtask 1 (scan-root convention), SKILL-373 subtask 2 (guard coverage and pruning; if the suite has not yet moved to `src/repoTest`, SKILL-373 subtask 3 moves these edits), and SKILL-378 subtask 1 (experiment deletion and census widening, which also edits `PortNullObjectAbsenceArchitectureTest`).
+Depends on subtask 2. The live guard must find the defaults and codec that subtasks 1 and 2 remove already gone. It does not wait for another issue. Apply the scan-root convention in this subtask if the ports walkers still scan nothing. Edit the tests where they live. Delete experiment aliases that are still present. If `ReviewMetricsDatabasePolicy` is still present and the guard reports it, delete it here. Do not stop for another issue.
 
 ## Validation Strategy
 

@@ -59,9 +59,7 @@ Decision record: add a `runtime-kotlin/agent/decisions.md` entry that supersedes
 
 ## Dependency Notes
 
-Depends on subtask 1 for branch order and the shared testFixtures doubles. Requires SKILL-378 subtask 1, which removes the experiment fields from `AgentRunLauncherModels.kt`, the file F-009 edits. Requires SKILL-372 subtask 1, which moves the strict step and artifact decoders into `WorkflowRecordMapping.kt`; keep them when you delete the `toContract` mappers. Also requires SKILL-370, which reworks the application review wiring near `ParallelReviewPreparationCompiler` and renames the package that holds `ParallelCodeReviewInlineCoverageContinuation`.
-
-If this subtask lands before SKILL-380 subtask 4, SKILL-380's specialist review strategy uses its review-preparation facts value and closed termination type. SKILL-379 subtask 1 replaced the learnings stub behind `ReviewFactPorts` with a DI-injected resolver; keep that resolver, and take the byte baseline after SKILL-379's review-context contract bump.
+Depends on subtask 1 for branch order and the shared testFixtures doubles. It does not wait for another issue. Remove experiment fields from `AgentRunLauncherModels.kt` in this subtask if they are still there. Keep the strict step and artifact decoders that exist, and move them into `WorkflowRecordMapping.kt` here if they are not already there. Keep the learnings resolver that is on the tree. Take the byte baseline from the current review-context contract.
 
 ## Validation Strategy
 

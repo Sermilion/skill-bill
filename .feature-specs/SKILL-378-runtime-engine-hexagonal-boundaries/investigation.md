@@ -1,5 +1,9 @@
 # Runtime-engine hexagonal boundary investigation
 
+## Execution rule
+
+This bundle runs on the current tree. It does not wait for a subtask of another issue. Ordering notes later in this file are overlap context. If a change this bundle's acceptance criteria need is missing, make it here. If it is already present, keep it.
+
 ## Judgment
 
 `runtime-engine` has the right position in the graph and the wrong internal

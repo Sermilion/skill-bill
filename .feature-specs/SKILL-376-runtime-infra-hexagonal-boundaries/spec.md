@@ -97,7 +97,7 @@ Three subtasks, one commit each. Split conditions:
 
 - **Subtask 2** moves 20 files and about 5,200 test lines across a module
   boundary into runtime-engine. Its review needs the engine, SQLite, and DI
-  readers, and it should follow SKILL-372 subtask 1.
+  readers. It follows subtask 1 inside this bundle.
 - **Subtask 3** is a large mechanical move. Separating it from behavior
   changes keeps both reviewable. The guard prefix fix lands with it because
   the SQLite cycles close only after subtask 2's move and subtask 3's migration
@@ -117,13 +117,9 @@ Three subtasks, one commit each. Split conditions:
   first. Infra Kotlin is subject to `CommentAndInterfaceKdocArchitectureTest`,
   `InlineFqnArchitectureTest`, the production line ceiling, and the package
   sibling ceiling.
-- Cross-bundle order stated by all nine bundles (SKILL-372's verified order):
-  374.1, 376.1, 378.1 → 370 → 371 → 372.1 → 373.1 → 376.2 → 372.2, 372.3 → 375 → 376.3 → 374.2 → 373.2 → 377 → 378.2–3 → 373.3.
-- SKILL-380 follows 378.2 and does not need 373.x, 374.x, 375, 376.2–3,
-  377.2–3, or 378.3.
-- The investigation's Coordination table states each sibling overlap and its
-  owner. Recheck every file anchor against the tree at start; sibling bundles
-  may have moved or deleted a cited file.
+- This bundle runs on the current tree. It does not wait for a subtask of another issue.
+  Do the work in the acceptance criteria here. If another bundle already moved or
+  deleted a cited file, use the path that exists.
 - Record decisions in `runtime-kotlin/agent/decisions.md`: adapters hold no
   port-only coordination; one-shot process ownership; the infra package-cycle
   prefix and the recorded `nativeagent ↔ scaffold` cycle; package layout rule.
@@ -179,9 +175,7 @@ Three subtasks, one commit each. Split conditions:
 
 ## SKILL-380 coordination
 
-- Subtask 1 is on SKILL-380's recommended path only because SKILL-377 subtask 1
-  requires it.
-- SKILL-380 does not need subtasks 2 and 3.
+This bundle does not wait for SKILL-380.
 
 ## Next path
 

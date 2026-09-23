@@ -37,12 +37,13 @@ Single owners (F-004, F-005):
 - Delete `sqlite/review/accounting/ReviewAccountingBoundedSerialization.kt`'s
   `encodeReviewAccountingBoundedPayload` and
   `ReviewAccountingWireExtensions.kt`. SQLite persists through the one
-  serializer SKILL-371 subtask 1 keeps for this shape. Until that lands, use the
-  domain `ReviewAccountingSummary.toBoundedPayload`. Point the runtime-core test
-  that imports the SQLite extension at the kept serializer. Keep any
+  serializer this subtask keeps for this shape. If that serializer does not
+  exist yet, keep one non-public serializer in this commit and point SQLite and
+  the runtime-core test at it. Keep any
   node-level helpers the SQLite decoder still needs.
 - `SqliteExperimentPairStore.kt:245`: compare lease expiry with the unit of
-  work's injected `Clock`. Skip if SKILL-378 subtask 1 has deleted the store.
+  work's injected `Clock`. If the store is already gone, skip this line. If it
+  is still there, fix it here.
 - `JvmAgentRunProcessOutputDrain.kt:228`: replace the `currentTimeMillis()`
   change token with a counter. Readers compare it for inequality only.
 - Add `System.currentTimeMillis()` to `AMBIENT_CLOCK_FORMS`
@@ -144,12 +145,11 @@ execution.
 
 ## Dependency notes
 
-- First subtask. SKILL-377 subtask 1 waits for it.
-- SKILL-371 subtask 1 chooses the accounting serializer; the scope says what to
-  do before and after it lands. SKILL-371 subtask 3 edits host and launcher for
-  repo identity and goal-child tokens; no shared files.
-- SKILL-378 subtask 1 may already have deleted `SqliteExperimentPairStore`.
-- On SKILL-380's recommended path because SKILL-377 subtask 1 requires it.
+- First subtask inside this bundle. It does not wait for another issue.
+- Choose the accounting serializer in this subtask when the tree does not
+  already have one non-public owner. Edit host and launcher files this
+  subtask's criteria touch, at the paths that exist now.
+- Fix `SqliteExperimentPairStore` when that file still exists.
 
 ## Validation strategy
 

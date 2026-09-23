@@ -1,5 +1,9 @@
 # runtime-cli architectural investigation (post SKILL-348)
 
+## Execution rule
+
+This bundle runs on the current tree. It does not wait for a subtask of another issue. Ordering notes later in this file are overlap context. If a change this bundle's acceptance criteria need is missing, make it here. If it is already present, keep it.
+
 ## Assessment
 
 Keep the module graph, Clikt, Kotlin-Inject, the `CliRunState` completion model, and command-area isolation. SKILL-229 and SKILL-348 fixed the invocation inputs, the command-area cycles, and update/uninstall ownership. That work landed and holds.
@@ -12,7 +16,7 @@ Three kinds of problem remain:
 
 None of this needs a new layer, module, or framework. Every fix below either deletes a copy, moves a decision to the owner that already exists, or makes an existing check actually run.
 
-Recommendation: implement SKILL-371 after SKILL-370 lands. Five findings are Major because they affect correctness, durable identity, or a guard that is supposed to fail builds. Four are Minor.
+Recommendation: implement SKILL-371 on the current tree. Do not wait for another issue. Five findings are Major because they affect correctness, durable identity, or a guard that is supposed to fail builds. Four are Minor.
 
 ## Scope and evidence
 
@@ -98,8 +102,8 @@ Affected tests:
 | `RuntimeApplicationSharedEngineEdgeArchitectureTest` | Same scanner, application root only. |
 | `RuntimeRawMapArchitectureTest` "forbids public raw map shapes in inner layers" | The `startsWith` filter never matches, so zero files are checked. |
 | `RuntimeArchitectureTest` "touched domain contract foundation…", "runtime domain workflow source must not import…", "review and telemetry domain models do not own json payload contracts" | The same filter matches nothing. |
-| `ImplementationOwnershipArchitectureTest` `forbiddenSourcePackages` (core/cli/mcp entries) | Those three roots contribute no packages. SKILL-373 subtask 2 deletes these checks because the Gradle module graph already enforces them. Not repaired here. |
-| `RuntimeLayerBoundaryArchitectureTest` "retired review and telemetry adapters stay absent" | `Files.exists` on a path that can never exist, so the test always passes. SKILL-373 subtask 2 deletes this migration-history guard. Not repaired here. |
+| `ImplementationOwnershipArchitectureTest` `forbiddenSourcePackages` (core/cli/mcp entries) | Those three roots contribute no packages. If they still pass without reading files, delete them in this bundle. |
+| `RuntimeLayerBoundaryArchitectureTest` "retired review and telemetry adapters stay absent" | `Files.exists` on a path that can never exist, so the test always passes. If it still passes without reading files, delete it in this bundle. |
 
 Violations that landed behind these guards:
 
@@ -109,11 +113,11 @@ Violations that landed behind these guards:
 
 This is the most consequential finding for runtime-cli's architecture, because SKILL-229 and SKILL-348 both cite these guards as proof of the CLI boundary. Other guards do their own root resolution and work: `RuntimeCliAreaIsolationArchitectureTest`, `RuntimeAdapterDependencyAllowlistTest`, and `RuntimeCoreCompositionOnlyTest`, which resolves `runtime-kotlin` explicitly.
 
-- runtime-ports has public raw-map signatures in seven files. The four experiment files go away with SKILL-378. The rest are `IdeStatusValidator.toWireMap`, `IdeStatusProblemDetails.from` / `asWireEntries`, and `ReviewFinishedTelemetryPayload` (reported by the SKILL-377 investigation, confirmed here).
+- runtime-ports has public raw-map signatures in seven files, including four experiment files if they are still present, plus `IdeStatusValidator.toWireMap`, `IdeStatusProblemDetails.from` / `asWireEntries`, and `ReviewFinishedTelemetryPayload`. This bundle fixes every signature the restored filter reports.
 
-`PortsDeclarationArchitectureTest` and `PortNullObjectAbsenceArchitectureTest` are vacuous for a different reason: their own walker doubles `runtime-kotlin/` and drops `runtime-infra:<name>` ids. SKILL-377 subtask 3 owns them.
+`PortsDeclarationArchitectureTest` and `PortNullObjectAbsenceArchitectureTest` are vacuous for a different reason: their own walker doubles `runtime-kotlin/` and drops `runtime-infra:<name>` ids. This bundle applies the same scan-root convention to them.
 
-SKILL-378 subtask 1 deletes experiment support across seven modules. After it lands, the seven SKILL-366 imports are gone and only the two SKILL-361 FQN moves remain for the pin.
+Experiment imports are still in the tree until this bundle removes the ones that fail the pin. Do not wait for another issue to delete them, and do not pin them.
 
 Fix: resolve every module-relative scan path through `RuntimeModuleCatalog.runtimeKotlinModuleDirectory`, or through one root that *is* `runtime-kotlin/`. Make every scan root that does not exist fail the test instead of returning empty. Add one assertion per affected scanner that it visited at least one file of each root it names. Then fix what the restored guards report instead of baselining it. That means refreshing the engine pin to the real inbound surface, choosing ownership for the two raw-map functions, and deciding whether `experiments` stays on engine types. Do not widen any exemption.
 
@@ -146,7 +150,7 @@ The area also:
 - throws `error("unknown pair …")`, an `IllegalStateException`, for an expected absent id;
 - reads and validates the navigation spec, which is use-case preparation, in the command before calling the engine coordinator.
 
-SKILL-378 subtask 1 deletes experiment support, including this command area, because no experiment exists. If that lands first, F-003 is resolved by deletion and nothing below applies. The fix below applies only if experiment support still exists when SKILL-371 subtask 2 starts.
+If the `experiments` command is already gone, F-003 is met by that deletion. If the command is still there, apply the fix below in this bundle. Do not wait for another issue to delete it.
 
 Fix: complete through `CliRunState` with `formatOption()`, and make an absent pair a typed error handled by F-002. Move spec reading and acceptance-criteria validation into the engine coordinator request, so the command passes the path and the coordinator owns the read. `ExperimentNavigationSpecError` is already a typed runtime error. Pin, or stop importing, the engine projectors under F-001.
 

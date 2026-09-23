@@ -1,5 +1,9 @@
 # SKILL-373 investigation - runtime-core and its place in the hexagonal graph
 
+## Execution rule
+
+This bundle runs on the current tree. It does not wait for a subtask of another issue. Ordering notes later in this file are overlap context. If a change this bundle's acceptance criteria need is missing, make it here. If it is already present, keep it.
+
 ## Judgment
 
 runtime-core is a sound composition root with a small amount of misplaced work,

@@ -23,8 +23,8 @@ Resolve F-005, F-006, F-007, and F-008 in [investigation.md](investigation.md). 
   - the projection-failure artifact entry shape
 - Collapse the duplicate shells: `GoalParentProjectionWriter`, `GoalContinuationArtifactCodec`, `DecompositionWorkflowRuntimeLookup(+ParentDiscovery)`, `DecompositionManifestProjectionFailurePersistence`, and the review-policy/out-of-band decode. Keep one owner per shell in engine or application; engine may call application.
 - Reconcile the 14 diverged twins SKILL-376 subtask 2 carries into engine as private functions (listed in its commit body): `clearDecompositionManifestProjectionFailure`, `decompositionRuntime`, `findDecomposedParentOrCorruptFallback`, `findMatchingDecompositionManifests`, `goalContinuation`, `goalRepositoryIdentity`, `goalReviewArtifacts`, `goalReviewEmissionEnvelope`, `hasDecompositionPlan`, `isGoalContinuationChildWorkflow`, `loadDecompositionManifest`, `missingResultPrefixTerminalOutcomeArtifact`, `persistDecompositionManifestProjectionFailure`, `validatedGoalReviewPasses`. Each ends with one definition, and each semantic difference is kept or removed deliberately with a test. `reviewPolicyFromLegacyArtifacts` and `outOfBandAcceptancesFromLegacyArtifacts` stay in SQLite with their ledger migration.
-- If SKILL-376 subtask 2 has not landed, the SQLite copies call the domain rules and keep their shells, and the collapse is recorded as remaining work for SKILL-376.
-- Leave `GoalRepositoryIdentity` to SKILL-371.
+- Reconcile those twins wherever they live. If the SQLite copies have not moved into the engine, collapse them in place so each rule has one definition.
+- If `GoalRepositoryIdentity` is one of the duplicated rules, give it one definition in this commit.
 
 **Validation (F-007).**
 
@@ -59,9 +59,7 @@ No aggregate shape change (subtask 1). No package moves, aliases other than the 
 
 ## Dependency notes
 
-Depends on subtask 1: accessors extend the typed `artifacts` field, and validator moves build on the write-seam validation from subtask 1. Prefer starting after SKILL-376 subtask 2; the fallback is stated in scope. Recheck SKILL-374's install-plan moves if that bundle has landed.
-
-Recommended before SKILL-380 subtask 1 (same feature-task call sites).
+Depends on subtask 1: accessors extend the typed `artifacts` field, and validator moves build on the write-seam validation from subtask 1. Do the collapse on the current tree. It does not wait for another issue.
 
 ## Validation strategy
 

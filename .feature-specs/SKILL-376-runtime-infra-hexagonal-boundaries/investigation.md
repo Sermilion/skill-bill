@@ -1,5 +1,9 @@
 # Runtime-infra hexagonal boundary investigation
 
+## Execution rule
+
+This bundle runs on the current tree. It does not wait for a subtask of another issue. Ordering notes later in this file are overlap context. If a change this bundle's acceptance criteria need is missing, make it here. If it is already present, keep it.
+
 ## Judgment
 
 Keep the seven `runtime-infra` Gradle modules, their names, and the production

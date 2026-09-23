@@ -72,13 +72,9 @@ add the strategy, what it does differently, and how to select it.
 ## Dependency notes
 
 - Depends on subtask 3: profile selection, resume pinning, and the telemetry field.
-- **SKILL-379** must be merged, so learnings reach the runner's workers.
-- **SKILL-377 subtask 2** deletes `ReviewFactPorts` and replaces the review-preparation
-  interfaces with one preparation-facts value. It also changes `AgentRunLaunchFacts`
-  termination to a closed type. If it lands first, this strategy uses those shapes. If
-  it lands later, it migrates this strategy with the other callers.
-- Skippable: subtasks 1–3 are complete without it. The manifest marks its dependency
-  on subtask 3 as non-optional, but the subtask itself can be marked skipped.
+- Use the learnings delivery that is on the tree.
+- Use the review-preparation type and `AgentRunLaunchFacts` termination that exist now. If this strategy introduces a caller, update that caller when those types change inside this commit only as far as this subtask's criteria require.
+- Skippable: subtasks 1–3 are complete without it. The manifest marks its dependency on subtask 3 as non-optional, but the subtask itself can be marked skipped.
 
 ## Validation strategy
 

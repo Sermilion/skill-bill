@@ -28,16 +28,10 @@ have diverged (investigation F-001). `GoalContinuationArtifactCodec.kt`,
 `GoalParentProjectionWriter.kt`, and `GoalRepositoryIdentity.kt` already exist
 in engine.
 
-- For an identical twin, delete the SQLite copy and call the existing function:
-  engine, application, or the domain one after SKILL-370 subtask 2 (for
-  example `withParentStatus`).
-- For a diverged twin, keep the SQLite body as a `private` function of the
-  moved file under its current name. Do not reconcile it here. List every kept
-  twin in the commit body for SKILL-372 subtask 2.
-- If SKILL-372 subtask 2 has already moved a rule into domain, call it and
-  delete both copies.
-- If SKILL-371 subtask 3 has landed, SQLite `goalRepositoryIdentity` is already
-  replaced by the repository identity port.
+- For an identical twin, delete the SQLite copy and call the existing function in engine, application, or domain.
+- For a diverged twin, keep the SQLite body as a `private` function of the moved file under its current name. This subtask's criteria do not require reconciling it.
+- If a rule already has one domain definition, call it and delete the extra copies.
+- If `goalRepositoryIdentity` already calls the repository identity port, keep that call.
 - Do not create a second file with the same name in one engine package. Merge
   identical declarations into the existing file; diverged ones stay private in
   the moved class's file.
@@ -121,13 +115,9 @@ runtime-infra/sqlite, and the SQLite public-surface list.
 
 ## Dependency notes
 
-- After subtask 1, SKILL-370 (domain `withParentStatus`), and preferably SKILL-372
-  subtask 1. SKILL-372 subtask 2 follows and reconciles the kept diverged twins.
-- SKILL-373 subtask 1 and this subtask both edit `RuntimeGoalRunnerStoreProvides`.
-  Whichever lands second applies the rule "each port bound once to an `@Inject`
-  implementation, no bag" to the classes present.
-- SKILL-378 subtask 3 includes the moved classes in its step-class rule if this
-  lands first.
+- After subtask 1. Delete identical twins in this commit. Keep diverged twins as private functions in the moved file so this commit stands alone.
+- Apply the store-provider rule to `RuntimeGoalRunnerStoreProvides` as it exists: each port bound once to an `@Inject` implementation, no bag.
+- Do not wait for a later engine restructuring. Move the classes from the paths they have now.
 
 ## Validation strategy
 

@@ -45,9 +45,7 @@ No artifact accessors, key visibility changes, rule moves, or removal of the oth
 
 ## Dependency notes
 
-Depends on: none within this bundle. Start after SKILL-370 lands and recheck anchors. SKILL-376 subtask 2 prefers to run after this subtask. The commit carries every consumer and test change the new aggregate needs, so it ships alone.
-
-Recommended before SKILL-380 subtask 1 (same feature-task call sites).
+Depends on: none within this bundle. Recheck anchors on the current tree. The commit carries every consumer and test change the new aggregate needs, so it ships alone. It does not wait for another issue.
 
 ## Validation strategy
 
@@ -59,7 +57,7 @@ Name the regression before each test: a corrupt artifacts column that resume rea
 
 ## Next path
 
-Continue to `spec_subtask_2_domain-owned-artifacts-and-shared-rules.md` after this subtask settles and SKILL-376 subtask 2 has landed (or with its fallback, below).
+Continue to `spec_subtask_2_domain-owned-artifacts-and-shared-rules.md` after this subtask settles.
 
 ## Spec Path
 

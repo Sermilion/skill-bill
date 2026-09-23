@@ -9,7 +9,7 @@ Three contracts that runtime-cli shares with other modules each get one owner. T
 - **Repository identity (F-004).** `RepositoryEnclosingRootPort.repositoryIdentity` becomes the only producer of `repo-root-realpath-v1` values. It resolves the enclosing Git top level, matching `FeatureTaskExecutionIdentityPolicy`'s definition, and builds the value from `REPOSITORY_IDENTITY_PREFIX`. Replace these sites with calls to the port, or with the identity the caller already resolved:
   - `cli/featuretask/FeatureTaskRuntimeCliFormatting.kt` `repositoryIdentity` / `canonicalGitRoot`;
   - the four engine sites (`GoalPlanningSweep.kt`, `GoalPlanningSharedPreplanProduction.kt` ×2, `GoalPlanningStatusReasonCoherence.kt`);
-  - `runtime-infra/sqlite/.../goalrunner/control/GoalRepositoryIdentity.kt`. SKILL-376 subtask 2 moves that package into runtime-engine. If it has landed, the SQLite derivation survives as a private function in the moved engine file, so replace it there.
+  - `GoalRepositoryIdentity` wherever it lives, in sqlite or in the engine. Replace the derivation there. Do not wait for another issue to move the file.
   - `runtime-engine/.../goalrunner/GoalRepositoryIdentity.kt` already forwards to the port. Collapse it into direct port calls, or keep it as the single engine entry point, but do not leave both.
 
   Governed spec path normalization (inside-root check, `.feature-specs/…md` rule) moves beside the domain policy that validates it, and the CLI translates its failure to `UsageError`. Persisted rows are not rewritten.

@@ -35,7 +35,7 @@ selection rewrites transitions. Review is a DI-global driver.
 - per-phase launch shapes
 - the existing switches
 - the 2026-09-11 review replacement
-- which prepared bundles must land first
+- the census of phase-id references, launch shapes, and the 2026-09-11 review replacement
 
 After this bundle:
 
@@ -114,36 +114,15 @@ Four subtasks, one commit each.
      reproduce and fix the 2026-09-11 findings-only hang. Subtasks 1–3 are complete
      without it.
 
-## Prerequisites in other bundles
+## Self-sufficient execution
 
-From [investigation.md](investigation.md), "Which prepared bundles to implement before
-SKILL-380":
+This bundle runs on the current tree. It does not wait for a subtask of another issue.
 
-- **Required:**
-  - SKILL-378 subtask 1 (experiment removal)
-  - then SKILL-378 subtask 2 (feature-task step classes). The strategies are 378.2's
-    step classes, grouped by slot.
-- **Recommended first, because they rewrite the same feature-task call sites:**
-  - SKILL-376 subtask 1 (required by 377.1)
-  - SKILL-372 subtasks 1 and 2
-  - SKILL-377 subtask 1
-- **In flight:** SKILL-379 subtask 2 finishes and merges first.
-- **Not needed:** every other subtask of SKILL-371 to SKILL-378. Each bundle's
-  "SKILL-380 coordination" section states its rebase note.
+Build the slot strategies from the feature-task run loop that exists. If that loop is already step classes, group those classes by slot. If it is still objects and bags, turn the cited behaviour into strategy classes in this bundle.
 
-Order:
+Do the same for git results, typed artifacts, and the profile field: use the typed API when it exists, and the current API when it does not. Learnings delivery uses whatever resolver is on the tree. SKILL-379 is already complete and is not a start gate.
 
-1. SKILL-379.2
-2. SKILL-378.1
-3. SKILL-376.1
-4. SKILL-372.1
-5. SKILL-372.2
-6. SKILL-377.1
-7. SKILL-378.2
-8. SKILL-380.1
-9. SKILL-380.2
-10. SKILL-380.3
-11. SKILL-380.4
+Inside this bundle the order stays: subtask 1, then 2, then 3, then 4.
 
 ## Constraints
 
@@ -179,8 +158,7 @@ Order:
   Every fallback emits a record.
 - **No speculation.** No speculative strategies, config knobs, or extension points
   beyond this spec.
-- **Anchors.** Recheck every file anchor at the start of each subtask. SKILL-378.2
-  moves most of the cited engine files.
+- **Anchors.** Recheck every file anchor at the start of each subtask against the current tree.
 - Use a local clone, not a linked worktree, for Spotless.
 
 ## Non-goals

@@ -109,24 +109,7 @@ form and the 2026-09-17 bag census. `LongParameterList.functionThreshold` stays 
 
 ## Dependency notes
 
-Depends on subtask 1. Start after these siblings land, because each rewrites
-`featuretask` call sites that this subtask restructures, and a restructuring
-should rebase onto settled contracts once:
-
-- SKILL-370: moves `topLevelJsonObjectCandidates`, `stderrExcerpt`, and
-  `WorktreeEditJournalWriter` into the engine, and adds the inject-property rule
-  extended here.
-- SKILL-372 subtasks 1 and 2: typed `WorkflowStateSnapshot`, 108 artifact call
-  sites including engine `artifactsFrom`, and engine raw artifact reads.
-- SKILL-377 subtask 1: typed git results replace the engine's NUL decoding.
-- SKILL-373 subtask 2: prunes and collapses the architecture tests this subtask
-  edits.
-
-SKILL-370 retries busy self-managed writes in the adapter without a new
-exception type, so the typed busy exception here is new.
-
-SKILL-380 subtask 1 depends on this subtask; see the SKILL-380 coordination
-section of spec.md for slot grouping.
+Depends on subtask 1. It does not wait for another issue. Restructure the feature-task call sites that exist now. Use typed snapshots, artifact accessors, and git results when they are already on the tree. When they are not, keep the current call shape inside the new step classes. Edit architecture tests where they live. The typed busy exception in this subtask is new. This subtask does not wait for SKILL-380, and SKILL-380 does not have to wait for it.
 
 ## Validation strategy
 

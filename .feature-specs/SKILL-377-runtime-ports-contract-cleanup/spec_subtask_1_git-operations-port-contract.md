@@ -6,7 +6,7 @@ Parent: [spec.md](spec.md). Findings: F-002, F-003, and the git rows of F-004 in
 
 Flatten the aggregate (F-002):
 
-- `WorkflowGitOperations` inherits every capability interface in `runtime-ports/.../ports/workflow/gitops/` that remains after SKILL-378 subtask 1 (which deletes linked-worktree operations): branch, remote, commit history, worktree, suppression evidence, checkpoint history, goal-subtask review, repository fingerprint, readiness tree identity, repository-owned paths, runtime-phase file manifest, and scoped staging.
+- `WorkflowGitOperations` inherits every capability interface in `runtime-ports/.../ports/workflow/gitops/` that this subtask keeps: branch, remote, commit history, worktree, suppression evidence, checkpoint history, goal-subtask review, repository fingerprint, readiness tree identity, repository-owned paths, runtime-phase file manifest, and scoped staging. Delete linked-worktree operations in this subtask if they are still on the port.
 - Rename capability members to the names today's forwarders expose (`updateRef` → `updateCheckpointRef`, `captureBaseline` → `captureGoalSubtaskReviewBaseline`, `changedPathsAgainstBase` → `readinessChangedPathsAgainstBase`, and so on), so each existing call site keeps its name and changes only imports.
 - Delete the remaining getters (8 at baseline; SKILL-378 removes `linkedWorktreeOperations`) and the 23 top-level forwarding extensions, including the dead `resolveReadinessTreeIdentityPayload`.
 - The `runtime-infra/workflow` adapter implements the aggregate with Kotlin interface delegation (`by`) over its existing capability objects. Test doubles in `runtime-ports` testFixtures do the same.
@@ -43,9 +43,7 @@ Git defaults (F-004): make `resetSoftToCommit`, `resetHardToCommit`, `isCommitAn
 
 ## Dependency Notes
 
-Runs first. Requires SKILL-370 and SKILL-378 subtask 1, which deletes the experiment git consumers and linked-worktree operations. Also requires SKILL-376 subtask 1, which reworks the git process code in `runtime-infra/workflow` and declares git result semantics a non-goal. Subtasks 2 and 3 run after this one.
-
-Recommended before SKILL-380 subtask 1.
+Runs first inside this bundle. It does not wait for another issue. Delete experiment git consumers and linked-worktree operations that are still on the port. Update the git process implementation that exists now. Subtasks 2 and 3 run after this one.
 
 ## Validation Strategy
 

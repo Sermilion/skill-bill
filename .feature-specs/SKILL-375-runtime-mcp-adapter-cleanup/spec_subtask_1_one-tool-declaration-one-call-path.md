@@ -59,8 +59,7 @@ Docs. Update `runtime-mcp/agent/history.md` and the runtime-mcp paragraphs in `r
 
 ## Dependency Notes
 
-Depends on: none within this bundle.
-External sequencing: land after SKILL-368 (governed-resources `copy` DSL), SKILL-370, SKILL-371, and SKILL-372, and rebase onto them before starting.
+Depends on: none within this bundle. Run on the current tree. Do not wait for another issue. Keep changes that are already present, and do the remaining acceptance criteria here.
 
 ## Validation Strategy
 

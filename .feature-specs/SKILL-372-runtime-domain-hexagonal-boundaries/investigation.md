@@ -1,5 +1,9 @@
 # Runtime-domain hexagonal boundary investigation
 
+## Execution rule
+
+This bundle runs on the current tree. It does not wait for a subtask of another issue. Ordering notes later in this file are overlap context. If a change this bundle's acceptance criteria need is missing, make it here. If it is already present, keep it.
+
 ## Judgment
 
 Keep the module, its dependency direction, and its `runtime-domain` → `runtime-contracts` edge. Domain production code imports only `java.time`, `java.security`, `java.math`, and Kotlin stdlib. It has no ambient clock, randomness, environment, IO, threads, coroutines, `@Inject`, or DI. Its tests import nothing above domain. SKILL-351 fixed most of the module's internal problems.

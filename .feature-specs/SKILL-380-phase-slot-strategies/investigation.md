@@ -1,5 +1,9 @@
 # Phase slot strategies investigation
 
+## Execution rule
+
+This bundle runs on the current tree. It does not wait for a subtask of another issue. Ordering notes later in this file are overlap context. If a change this bundle's acceptance criteria need is missing, make it here. If it is already present, keep it.
+
 ## Judgment
 
 The feature-task runtime already has a data skeleton: a workflow graph with step ids,
@@ -212,39 +216,16 @@ review.
   projection contracts through the normal contract path. That limit is deliberate:
   durable bytes stay governed.
 
-## Which prepared bundles to implement before SKILL-380
+## Overlap with other bundles
 
-Classification of every sibling subtask against the SKILL-380 surface: domain phase
-graph, engine feature-task run loop, run invariants, telemetry, review driver, and DI.
-The per-subtask evidence is in the sibling-overlap census the investigation agents
-produced. The conclusions:
+The notes below describe files other bundles also touch. They are not a start gate. SKILL-380 does the strategy split on the run loop that exists. It does not wait for SKILL-378, SKILL-376, SKILL-372, SKILL-377, or SKILL-379.
 
-| Class | Subtasks | Why |
-| --- | --- | --- |
-| Required | SKILL-378.1 → SKILL-378.2 | 378.2 turns run-loop objects and bags into classes with constructor-injected collaborators. The strategy classes are those classes, regrouped by slot. Without it, SKILL-380 would do the object-to-class restructuring and the strategy split in one pass. 378.2's manifest makes 378.1 a hard dependency |
-| Recommended before (same files; each has its own value) | SKILL-376.1 → SKILL-372.1 → SKILL-372.2 → SKILL-377.1 | 372.1 types `WorkflowStateSnapshot` and phase-record timestamps across 108 artifact call sites. 372.2 adds typed artifact accessors, which the frozen profile field uses. 377.1 types git results inside commit_push and checkpoint code. 377.1 requires 376.1 ("Requires SKILL-376 subtask 1"). 378.2 already asks to start after these; if they land after SKILL-380, each rewrites call sites inside the new strategy classes |
-| In flight | SKILL-379.2 | Touches the review driver files the code_review slot wraps; finish and merge first |
-| Defer or skip | 371.1–3, 372.3, 373.1–3, 374.1–2, 375, 376.2, 376.3, 377.2, 377.3, 378.3 | No functional overlap. Their overlap is at most an import, package, or guard-location rebase. Rebase notes are in each bundle's SKILL-380 coordination section |
-
-Recommended order:
-
-1. SKILL-379.2 finishes and merges
-2. SKILL-378.1
-3. SKILL-376.1
-4. SKILL-372.1
-5. SKILL-372.2
-6. SKILL-377.1
-7. SKILL-378.2
-8. SKILL-380.1 through SKILL-380.4
-
-This order agrees with the verified global order in SKILL-372 and SKILL-376 for every
-pair it contains. It departs from that order in two ways:
-
-- **Skipping the deferred subtasks.** 373.2 sits before 378.2 in the global order, but
-  as a rebase preference. 378.2 places its rule "wherever SKILL-373 has placed the
-  suite" and deletes two tests "if SKILL-373 subtask 2 has not already".
-- **Running 372.2 before 376.2.** This uses 372.2's stated fallback: "the SQLite
-  copies call the domain rules and keep their shells".
+| Overlap | What SKILL-380 does on the current tree |
+| --- | --- |
+| Feature-task run loop still uses objects and bags | This bundle turns the cited behaviour into strategy classes. |
+| Run loop is already step classes | This bundle groups those classes by slot. |
+| Typed artifacts, git results, or a stderr channel already exist | This bundle uses them. |
+| Those typed APIs are absent | This bundle uses the current call shape and diagnostic channel. |
 
 ## Coordination with prepared bundles
 
@@ -252,8 +233,8 @@ pair it contains. It departs from that order in two ways:
 | --- | --- | --- |
 | SKILL-378.2 | Its non-goal "Interfaces for step classes, a step framework, or per-run DI subcomponents"; its step classes are regrouped here | 378.2 stays as written. It should group phase-specific behaviour by the SKILL-380 slot where grouping is otherwise free. SKILL-380 records a decision that adds the one slot-strategy contract on top of the step-class rule. Its guards bind SKILL-380: no top-level function objects in `featuretask/runloop`, no collaborator-carrying `*Args`/`*Inputs`/`*Context`, at most six parameters, private inject properties |
 | SKILL-378.3 | Goal-runner step classes and the engine visibility pass | Independent. If it lands after SKILL-380, the `slot` packages follow its visibility rule: strategies are internal to runtime-engine except the contract the runtime-core registry needs |
-| SKILL-372.1 / 372.2 | Always-on update validation; typed artifact accessors; validators move to ports | SKILL-380 runs after them. The frozen profile is read through a typed accessor, and strategies declare only steps the workflow definition knows |
-| SKILL-377.1 | Typed git results in commit_push and checkpoint code | SKILL-380 runs after it |
+| SKILL-372.1 / 372.2 | Always-on update validation; typed artifact accessors; validators move to ports | SKILL-380 reads the frozen profile through a typed accessor when one exists, and through the current artifact API when it does not. |
+| SKILL-377.1 | Typed git results in commit_push and checkpoint code | SKILL-380 uses typed git results when they exist, and the current decode when they do not. |
 | SKILL-377.2 | Deletes `ReviewFactPorts` and the review-preparation interfaces, and changes `AgentRunLaunchFacts` termination | Independent of SKILL-380.1–3. If it lands before SKILL-380.4, the specialist strategy uses its preparation-facts value. It also conflicts with SKILL-379.1, which injected a real learnings resolver where 377.2 assumes a stub; 377.2 must keep that resolver |
 | SKILL-373.1–3 | DI provider style (`@JvmSynthetic` removal); architecture suite moves to `repoTest` | Independent. The new registry provider follows whatever provider style is current. The new guard rule moves with its host test |
 | SKILL-374.2 | Placement rule may move single-owner keys | `WorkflowProfilePayloadKeys` is read by infra host and engine, so it satisfies the rule in runtime-contracts |

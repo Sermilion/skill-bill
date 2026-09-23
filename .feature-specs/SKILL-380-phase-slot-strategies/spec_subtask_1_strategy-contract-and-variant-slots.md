@@ -8,9 +8,7 @@ Issue key: SKILL-380
 Resolves investigation F-001 (dispatch), F-002 (launch policy), F-003 (quality-gate
 mechanics), and the structural half of F-004 and F-005 for code review.
 
-Start on a tree where SKILL-378 subtask 2 has landed. Re-read the investigation's
-anchors against that tree first. 378.2 converts the run-loop objects into classes and
-moves most cited files.
+Build the slot strategies from the feature-task run loop that exists. If that loop is already step classes, group those classes. If it is still objects and bags, turn the cited behaviour into strategy classes here. Do not wait for another issue.
 
 Before changing code, capture byte fixtures for a standalone run and for a goal
 child: workflow snapshot, phase records, ledger, handoff projections, and
@@ -148,13 +146,9 @@ run-loop harness. Every later subtask diffs against these fixtures.
 
 ## Dependency notes
 
-- **Required, in other bundles:** SKILL-378 subtask 1, then SKILL-378 subtask 2. The
-  strategies are 378.2's step classes grouped by slot.
-- **Recommended first:** SKILL-376.1, SKILL-372.1, SKILL-372.2, and SKILL-377.1. If
-  they land after this subtask, they rewrite call sites inside the new slot packages.
-- **In flight:** SKILL-379 subtask 2 must be merged. It edits the review-preparation
-  files next to the review driver.
-- No dependency inside this bundle. Subtasks 2, 3, and 4 depend on it.
+- No dependency inside this bundle, and none on another issue. Subtasks 2, 3, and 4 depend on this subtask.
+- Use typed git results, typed artifacts, and the current call shape, whichever is on the tree.
+- Use the learnings delivery that is already on the tree.
 
 ## Validation strategy
 

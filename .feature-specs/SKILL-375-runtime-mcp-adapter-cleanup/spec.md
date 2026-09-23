@@ -29,9 +29,7 @@ Guard validity: the wire-vocabulary, layer-boundary, and four baseline guards re
 
 Why one subtask: every finding touches the same handler, registry, and test files. Deleting the shim forces tests onto the real seam, and that seam is the one the tool table and family handlers define. Splitting would leave a commit that either keeps the shim alive or rewrites the same tests twice. The change preserves behavior throughout, so one reviewer reads it against the goldens.
 
-Sequencing: run after SKILL-368 (governed-resources `copy` DSL), SKILL-370 (workflow goal-observability result and application renames), SKILL-371 (scaffold decoder and operation, restored engine-inbound guard), and SKILL-372 (domain artifact accessors). SKILL-373, SKILL-374, SKILL-377, and SKILL-378 can land in either order. The investigation's coordination table lists what the second of each pair rebases. Each of those edits files this bundle rewrites. Rebase onto them, and don't redo their scope.
-
-Refresh before implementing: this spec was written against `dbf9f4830`, before those bundles landed. Before `skill-bill goal SKILL-375`, re-run the investigation's census on the new main (tool table, `context: Any` overloads, `TASK_RUNTIME` sites, `McpComponent` member reads, literal keys, `WorkflowContinueResult` variants, the scaffold handler after SKILL-371, and sibling bundles such as SKILL-377). Update the file-level instructions in the subtask spec wherever they no longer match. Findings those bundles already resolved drop out. The acceptance criteria stay unless a finding is gone.
+This bundle runs on the current tree. It does not wait for a subtask of another issue. Recheck the census against the tree at start. If a finding is already gone, drop that finding. Do the remaining work here, including the scaffold handler and the engine-inbound guard if they still fail. Edit the architecture suite where it lives. If "cli and mcp learning payloads use contract DTO mappers" still exists, delete it here.
 
 Baseline: commit `dbf9f4830a019441f94eb7d04f7fbb6402aa5f8b`, 30 production files and 2,994 lines. Local spec mode was resolved through the runtime.
 

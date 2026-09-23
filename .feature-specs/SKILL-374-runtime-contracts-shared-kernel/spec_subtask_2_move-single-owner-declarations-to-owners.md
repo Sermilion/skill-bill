@@ -128,16 +128,10 @@ move only items that still have one owner.
 ## Dependency notes
 
 - Requires subtask 1, which deletes the loaders, their errors, and the dead key members.
-- Run after SKILL-370, SKILL-371 subtask 1 (guards live), and SKILL-378 subtask 1
-  (experiments deleted). Run before SKILL-373 subtasks 2 and 3, which restructure and move
-  the architecture suite edited here. The global order also puts it after SKILL-376
-  subtask 3; use 376.3's collapsed infra:contracts paths where this subtask names them.
-- SKILL-373 subtask 2 and SKILL-375 delete "cli and mcp learning payloads use contract DTO
-  mappers"; if it is gone when this subtask runs, skip that step.
-- `RuntimeModuleCatalog` edges must not change. If a move needs a new module edge, the
-  item stays, and the subtask report names it and the reason.
-- SKILL-375 subtask 1 may have added MCP-only keys to runtime-contracts owners; the
-  census in the scope preamble catches them, and they move to runtime-mcp.
+- Run on the current tree. Delete experiment declarations that are still in runtime-contracts. Edit the architecture suite where it lives. Use the infra contract paths that exist now.
+- If "cli and mcp learning payloads use contract DTO mappers" is already gone, skip that step. If it still pins a file this subtask deletes, delete the pin here.
+- `RuntimeModuleCatalog` edges must not change. If a move needs a new module edge, the item stays, and the subtask report names it and the reason.
+- Move MCP-only keys that are in runtime-contracts owners to runtime-mcp.
 
 ## Validation strategy
 

@@ -36,30 +36,13 @@ The module graph, dependency direction, stored bytes, and successful behaviour s
 
 **Why three subtasks:**
 
-- Subtask 1 changes the aggregate shape that subtask 2's accessors and validation moves build on. SKILL-376 subtask 2 also waits on it.
-- Subtask 2 collapses duplicate shells most simply after SKILL-376 subtask 2 has moved the SQLite goal-runner files into engine, which is a cross-bundle ordering constraint.
+- Subtask 1 changes the aggregate shape that subtask 2's accessors and validation moves build on.
+- Subtask 2 collapses duplicate shells wherever they live on the current tree.
 - Subtask 3 is mostly mechanical package moves and renames across many files. Keeping it separate keeps the semantic diffs of subtasks 1 and 2 reviewable.
 
 Each commit builds and stands alone.
 
-**Sequencing with concurrent bundles** (details in the investigation, "Coordination with concurrent bundles"). Verified acyclic across all nine bundles:
-
-1. SKILL-374.1, 376.1, 378.1
-2. SKILL-370
-3. SKILL-371
-4. SKILL-372.1
-5. SKILL-373.1
-6. SKILL-376.2
-7. SKILL-372.2, 372.3
-8. SKILL-375
-9. SKILL-376.3
-10. SKILL-374.2
-11. SKILL-373.2
-12. SKILL-377
-13. SKILL-378.2–3
-14. SKILL-373.3
-
-SKILL-380 follows 378.2 and does not need 373.x, 374.x, 375, 376.2–3, 377.2–3, or 378.3.
+This bundle runs on the current tree. It does not wait for a subtask of another issue. Do the work in the acceptance criteria here. If another bundle already changed a name or moved a file, use what is there.
 
 Prepared in local mode on 2026-09-22. The key was rechecked after `git fetch` against `.feature-specs/`, `.feature-specs/done/`, `git branch -a`, and `git log --all`; SKILL-372 is held only by this bundle. Baseline HEAD `dbf9f4830a019441f94eb7d04f7fbb6402aa5f8b`, runtime-domain digest `b7799fd116e4ffd9a8533d85861d8a3df44564d1188c10de04cb2f4107c727dd`, 844 domain tests passing. This bundle prepares work only; all subtasks start pending.
 
@@ -93,7 +76,7 @@ Prepared in local mode on 2026-09-22. The key was rechecked after `git fetch` ag
 - Keep today's validation rules. Do not invent transition rules or add named transition methods.
 - Transaction ownership stays where it is; only pure rules move.
 - Deletion authority is compilation plus the full runtime-kotlin suite, not the recorded census.
-- Before each subtask, re-read owning documents and recheck anchors against the post-SKILL-370/376 tree. Do not edit sibling bundles.
+- Before each subtask, re-read owning documents and recheck anchors against the current tree. Edit the files this bundle's criteria require, including files another spec also mentions.
 
 ## Non-goals
 
@@ -120,10 +103,8 @@ Prepared in local mode on 2026-09-22. The key was rechecked after `git fetch` ag
 
 ## SKILL-380 coordination
 
-- Run subtasks 1 and 2 before SKILL-380: they type the snapshot and artifact reads across the feature-task call sites SKILL-380 regroups into slot strategies.
-- SKILL-380 subtask 3 reads its frozen `workflow_profile` run-invariants field through subtask 2's typed accessor if that accessor exists.
-- SKILL-380 does not need subtask 3.
+This bundle does not wait for SKILL-380. SKILL-380 reads the frozen profile field through the accessor this bundle adds when that accessor exists, and through the current artifact API when it does not.
 
 ## Next path
 
-Run `skill-bill goal SKILL-372` when implementation is intended, after SKILL-370 has landed.
+Run `skill-bill goal SKILL-372` when implementation is intended.

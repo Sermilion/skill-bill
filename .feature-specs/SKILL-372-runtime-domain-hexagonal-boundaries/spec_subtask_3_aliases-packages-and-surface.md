@@ -13,7 +13,7 @@ Resolve F-004, F-010, F-011, F-012, F-013, and F-014 in [investigation.md](inves
 - Merge `review.finding` into `review.parsing`.
 - Resolve the `review.attribution`/`review.model`/`review.context.model.*` and `experiment` cycles the same way.
 - Remove the 24 model → logic edges.
-- Add an opt-in exact-package mode with strongly-connected-component detection to `ArchitectureScanSupport.packageImportEdges`/`packageCycles`, and use it for runtime-domain against the existing empty baseline. The mode is selected per scan case. The default stays first-segment and mutual-pair, because SKILL-376's infra baselines and SKILL-374's runtime-contracts scans (including its `skillbill.error.` scan) rely on it. Add it in the current `ApplicationPackageAcyclicityArchitectureTest`; SKILL-373 does not restructure that class, and its subtask 3 moves the suite to `src/repoTest` with whatever this adds. The `experiment` cycle is gone if SKILL-378 subtask 1 has landed.
+- Add an opt-in exact-package mode with strongly-connected-component detection to `ArchitectureScanSupport.packageImportEdges`/`packageCycles`, and use it for runtime-domain against the existing empty baseline. The mode is selected per scan case. The default stays first-segment and mutual-pair, so other modules' scans keep their current granularity. Add the mode in `ApplicationPackageAcyclicityArchitectureTest` wherever that class lives. If the `experiment` cycle is still present, break it in this commit so the empty baseline holds.
 
 **Skill kind (F-010).**
 
@@ -63,7 +63,7 @@ No behaviour change beyond compile-time typing of skill kind. No alias removal f
 
 ## Dependency notes
 
-Depends on subtasks 1 and 2, which edit the same files and packages. Rebase on the branch head, and on SKILL-373 if it has landed.
+Depends on subtasks 1 and 2, which edit the same files and packages. Rebase on this bundle's branch head. Use the acyclicity test class where it lives. Do not wait for another issue.
 
 ## Validation strategy
 

@@ -127,26 +127,19 @@ needs subtask 1's deletions first, or it would move code that is about to be del
 
 ## Dependency notes
 
-Cross-bundle order (full table in the investigation, "Coordination with concurrent bundles"):
+This bundle runs on the current tree. It does not wait for a subtask of another issue.
 
-- Follows the global order verified across all nine bundles (see investigation):
-  374.1 can run right after SKILL-368. 374.2 runs after SKILL-370, SKILL-371 subtask 1
-  (guards live), and SKILL-378 subtask 1 (experiments deleted; this spec excludes every
-  experiment item).
-- Both subtasks land before SKILL-373 subtasks 2 and 3, which restructure the
-  architecture suite; SKILL-377 follows those.
-- The cycle-guard fix uses SKILL-372's exact-package granularity if present, and a
-  second prefix scan otherwise.
-- `UpdateCheckContract` stays because SKILL-371 subtask 2 makes CLI a consumer.
-- SKILL-373 F-012 and subtask 1 here both delete the discarded statement at
-  `RuntimeGoalPlanningProvides.kt` L45; the second to land skips it.
-- SKILL-375 puts MCP-only output keys in an MCP-owned object under the placement rule;
-  subtask 2's census moves any that landed in runtime-contracts.
+- Do the work in these acceptance criteria here. If experiment declarations are still in runtime-contracts, delete them in this bundle.
+- Edit the architecture suite where it lives. If a scanner this bundle relies on still reads zero files, repair that scanner here.
+- The cycle-guard fix uses exact-package granularity when that mode exists, and a second prefix scan when it does not. Add the mode here if the criterion requires it and it is missing.
+- Keep `UpdateCheckContract` in runtime-contracts. CLI and MCP both consume it from there if they do not already.
+- If the discarded statement at `RuntimeGoalPlanningProvides.kt` is already gone, skip it. If it is still there, delete it here.
+- Place MCP-only output keys with the placement rule in force. If they sit in runtime-contracts and belong in runtime-mcp, move them here.
 - Read `runtime-kotlin/ARCHITECTURE.md` Design Principles and `docs/code-principles.md`
   before changing Kotlin. No `//` comments, KDoc only on interfaces, 500-line production
   ceiling, no inline FQNs, and package sibling limits.
 
-SKILL-380 follows SKILL-378 subtask 2 and does not wait for this bundle.
+This bundle does not wait for SKILL-380. If SKILL-380 has added `WorkflowProfilePayloadKeys`, subtask 2's census keeps them.
 
 ## Non-goals
 
@@ -154,7 +147,7 @@ SKILL-380 follows SKILL-378 subtask 2 and does not wait for this bundle.
 - Moving, renaming, or regrouping error classes beyond the three moves in F-005.
 - Consolidating map-reader helpers, including `DecompositionPlanningResult`'s decoder.
 - Changing any wire value, contract version, or remaining schema file.
-- Repairing vacuous guards outside runtime-contracts (SKILL-371 owns that).
+- Repairing vacuous guards that this bundle's criteria do not depend on.
 - Adding fallback records at the 59 `parseObjectOrNull` call sites.
 - Typing the `IllegalArgumentException` that `normalizeIssueKey` throws.
 

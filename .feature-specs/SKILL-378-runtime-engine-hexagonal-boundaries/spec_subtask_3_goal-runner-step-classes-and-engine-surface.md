@@ -30,8 +30,8 @@ max + 1 in the same statement or transaction. The engine write calls that method
 and does not compute max + 1 itself. Callers stop supplying sequence numbers. Delete the counters in `GoalRunnerProgressEventEmitter`,
 `GoalRunnerObservabilityEmitter`, and `GoalRunnerLedgerRecorder`, and the
 per-workflow map in `DurableGoalPlanningAttemptRecorder`. Apply this wherever the
-outcome store implementation lives: runtime-infra/sqlite, or the engine after
-SKILL-376 subtask 2 (it must land first; see Dependency notes). Row shape and
+outcome store implementation lives, in runtime-infra/sqlite or in the engine if
+the store has already moved. Do not wait for that move. Row shape and
 column meaning stay the same.
 
 **Read query.** Add a concrete read-only query over the existing recorder parts
@@ -103,28 +103,7 @@ to the path filter of `RuntimeRawMapArchitectureTest`.
 
 ## Dependency notes
 
-Depends on subtask 2 (facade shape and guard). Start after these siblings land:
-
-- SKILL-376 subtask 2: moves SQLite goal-runner coordination (including the
-  progress recording write) into `skillbill.engine.goalrunner`, and requires
-  unchanged port signatures in its own criteria. This subtask changes the
-  progress-write signature afterward and restructures the moved classes once.
-  The moved files arrive with 16 private copies of engine/application functions
-  that have diverged (for example `goalContinuation`, `goalReviewArtifacts`,
-  `validatedGoalReviewPasses`, `goalRepositoryIdentity`). SKILL-372 subtask 2
-  reconciles them. If any remain when this subtask starts, leave them to
-  SKILL-372 and do not restructure them here.
-- SKILL-371 subtask 1: repairs the raw-map and inbound-API scanners that
-  criteria 7 and 9 rely on. SKILL-371 subtask 3 edits `GoalPlanningSweep.kt`,
-  `GoalPlanningSharedPreplanProduction.kt`, and `GoalPlanningStatusReasonCoherence.kt`,
-  and subtask 2 may add a typed reason kind to the goal-runner result.
-- SKILL-372 subtask 2: collapses goal-parent and continuation shells that the
-  goal runner calls.
-- SKILL-372 subtask 3 and SKILL-377 subtask 3: alias deletions and renames in
-  domain and ports.
-
-Not a SKILL-380 prerequisite; if SKILL-380 lands first, include its `slot`
-packages in the visibility pass.
+Depends on subtask 2. It does not wait for another issue. Restructure the goal-runner classes where they live, including coordination classes that are still in sqlite only when this subtask's criteria require editing them in place. If raw-map or inbound-API scanners still skip files, repair those scanners here so criteria 7 and 9 observe real source. Reconcile diverged private copies that this subtask restructures when a criterion requires one definition. Delete aliases and rename ports types that this subtask's surface criteria still trip over. If slot packages already exist, include them in the visibility pass.
 
 ## Validation strategy
 
@@ -138,9 +117,7 @@ MCP, core, and infra-sqlite suites, and `bill-unit-test-value-check`.
 
 ## Next path
 
-Goal complete. Follow-up after SKILL-376 subtask 2: collapse the child-repair
-and planning-hydrator ports into direct engine calls under one engine-owned
-transaction.
+Goal complete. If the child-repair or planning-hydrator ports still block this subtask's surface criteria, collapse them in this commit.
 
 ## Spec Path
 

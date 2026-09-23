@@ -93,19 +93,7 @@ Append a named migration after the SKILL-366 entries that drops
 
 ## Dependency notes
 
-Depends on SKILL-368 merging, because SKILL-368 rewrites the governed-resource
-entries in `runtime-infra/contracts/build.gradle.kts` that copy the experiment
-schemas. It does not wait for SKILL-370. Land it before SKILL-371, SKILL-373,
-SKILL-374 subtask 2, SKILL-376 subtask 1, and SKILL-377 subtask 2. Each of those
-carries experiment items that this subtask makes moot: 371 pins experiment types
-and reworks the `experiments` command, and 376 fixes the pair store's clock.
-SKILL-373, SKILL-374, and SKILL-377 have already dropped their experiment items
-and defer them to this subtask. SKILL-376 may move the SQLite experiment store.
-This subtask owns all experiment code. Delete whatever exists at start, wherever it lives.
-SKILL-377 subtask 3 also edits `PortNullObjectAbsenceArchitectureTest`, so
-whichever lands second rebases.
-
-SKILL-380 requires this subtask (through SKILL-378 subtask 2).
+Depends on nothing outside this bundle. It runs first inside this bundle. Delete whatever experiment code exists at start, wherever it lives. Edit `PortNullObjectAbsenceArchitectureTest` where it lives. Do not wait for another issue, and do not require another issue to wait for this one.
 
 ## Validation strategy
 

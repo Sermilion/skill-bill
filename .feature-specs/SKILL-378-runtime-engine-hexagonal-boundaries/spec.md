@@ -89,8 +89,8 @@ Three subtasks.
 1. Delete experiment support and close engine guard gaps
    (`spec_subtask_1_delete-experiments-and-close-inner-layer-gaps.md`).
    It is a feature removal with its own review questions (migration, CLI,
-   config, docs), and it runs before most siblings: SKILL-371, 373, 374, 376, and
-   377 each carry experiment items that become moot once it lands.
+   config, docs). It runs first inside this bundle. It does not wait for
+   another issue, and other bundles do not have to wait for it.
 2. Feature-task step classes
    (`spec_subtask_2_feature-task-run-loop-step-classes.md`). `featuretask` holds
    about 26,000 lines, and the run loop alone is 14,532. That is one implement
@@ -98,14 +98,12 @@ Three subtasks.
    lands with the phase runner it edits.
 3. Goal-runner step classes, sequences, reads, and engine surface
    (`spec_subtask_3_goal-runner-step-classes-and-engine-surface.md`). It covers a
-   second area of about 8,000 lines, plus the 3,877 lines SKILL-376 moves in. It
-   needs subtask 2's facade shape for the read query. The alias, visibility, and
-   raw-map work closes the public surface after both restructurings.
+   second area of about 8,000 lines, plus goal-runner coordination files if they
+   have already moved into the engine. It needs subtask 2's facade shape for
+   the read query. The alias, visibility, and raw-map work closes the public
+   surface after both restructurings.
 
-Global order across the sibling bundles (investigation, "Coordination with
-concurrent bundles"): SKILL-368 → subtask 1 → SKILL-370 → (371.1, 372.1, 373.1,
-374, 376.1) → 376.2 → 372.2 → 377.1 → 371.2/371.3, 373.2 → subtask 2 → subtask 3.
-The two restructurings land last, so they rebase once onto settled contracts.
+This bundle runs on the current tree. It does not wait for a subtask of another issue.
 
 ## Constraints
 
@@ -123,9 +121,9 @@ The two restructurings land last, so they rebase once onto settled contracts.
 - Deletion follows a fresh reference census, compilation of all modules, and
   `./gradlew check`.
 - Use a local clone, not a linked worktree, for Spotless.
-- Recheck every anchor at the start of each subtask. SKILL-370 through SKILL-377
-  edit overlapping files. Where a sibling already removed a named symbol, record
-  that the criterion is met for it.
+- Recheck every anchor at the start of each subtask. Where a symbol this
+  bundle names is already gone, that part of the criterion is met. Where it is
+  still present, change it here.
 
 ## Non-goals
 
@@ -133,9 +131,11 @@ The two restructurings land last, so they rebase once onto settled contracts.
   their edge (SKILL-370).
 - Domain-rule copies, `WorkflowEngine` construction, and stored-time typing
   (SKILL-372).
-- Moving SQLite goal-runner coordination (SKILL-376), and collapsing the
-  child-repair and planning-hydrator ports before that lands.
-- Git result typing (SKILL-377) and architecture-suite relocation (SKILL-373).
+- Moving SQLite goal-runner coordination when it is still in sqlite. If those
+  classes are already in the engine, subtask 3 restructures them. This bundle
+  does not wait for the move, and it does not perform the move.
+- Git result typing and architecture-suite relocation, except where this
+  bundle's own criteria fail without a local fix.
 - Deleting engine `fun interface` seams that have test substitutes. Typing
   `DecompositionSubtask.status`. `explicitApi()`. Renaming `FeatureTaskRuntime*`.
 
@@ -153,21 +153,7 @@ preparation.
 
 ## SKILL-380 coordination
 
-- SKILL-380 requires subtasks 1 and 2: its slot strategies are subtask 2's step
-  classes regrouped by slot.
-- In subtask 2, where step-class grouping is otherwise free, group
-  phase-specific behaviour by SKILL-380 slot: preplan, plan, implementation,
-  audit, code_review (review, verify_findings, implement_fix), quality_gate
-  (build, validate), write_history, commit_push, pull_request. SKILL-380 then
-  wraps classes instead of re-cutting them.
-- Subtask 2's non-goal "Interfaces for step classes, a step framework" stays true
-  for subtask 2. SKILL-380 later adds exactly one slot-strategy interface and
-  records a decision that builds on the step-class rule.
-- Subtask 2's guards bind SKILL-380: no top-level function objects in
-  `featuretask/runloop`, no collaborator-carrying `*Args`/`*Inputs`/`*Context`,
-  at most six parameters, private inject properties.
-- SKILL-380 does not need subtask 3, which may land before or after it. If after,
-  its visibility pass covers the new `skillbill.engine.featuretask.slot` packages.
+This bundle does not wait for SKILL-380. In subtask 2, where step-class grouping is otherwise free, group phase-specific behaviour by slot: preplan, plan, implementation, audit, code_review (review, verify_findings, implement_fix), quality_gate (build, validate), write_history, commit_push, pull_request. Subtask 2 does not add a slot-strategy interface. Subtask 3 may run before or after SKILL-380. If slot packages already exist, its visibility pass covers them.
 
 ## Next path
 

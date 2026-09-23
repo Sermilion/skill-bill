@@ -18,13 +18,8 @@ Coverage (F-001):
   `PrincipleEnforcementInventory.moduleArchitectureScanCases` and reports every
   module's drift in one failure message. Keep each rule's existing rejection
   fixtures. Keep SKILL-370's inject-property extension.
-- SKILL-378 subtask 1 deletes the experiment coordinators and injects `Clock` at the
-  three remaining engine clock sites, but adds no guard. Engine coverage for all
-  three rules is new here. Fix any site the restored rules still report beyond the
-  committed baselines by injecting the dependency, rather than recording it.
-- Keep SKILL-370's inject-property rule scoped to runtime-application. Only the
-  inject-default check iterates every module; SKILL-378 subtasks 2 and 3 extend the
-  property rule to engine.
+- Engine coverage for the ambient-clock, ambient-environment, and inject-default rules is in this subtask. If experiment coordinators or direct clock calls are still in the engine and the restored rules report them, inject the dependency here. Do not record the site, and do not wait for another issue to delete it.
+- Keep the inject-property rule that exists. If this subtask's criteria require it on engine types, extend it here. Only the inject-default check needs to iterate every module.
 - Drop any baseline row whose call site no longer exists.
 - Carry forward rows other bundles committed before this subtask unchanged, for
   example SKILL-376 subtask 3's single skills `nativeagent|scaffold` package-cycle
@@ -62,21 +57,18 @@ Prose, history, and count pins (F-007):
 - Delete tests whose subject is a retired, moved, legacy, flat, or superseded
   shape. The investigation lists known cases; apply the rule to every class.
 - Delete source-text pins that assert named files exist or contain import
-  substrings, for example `RuntimeArchitectureTest.cli and mcp learning payloads
-  use contract DTO mappers` (reads `McpRuntime.kt`, which SKILL-375 deletes; if
-  SKILL-375 has already removed or retargeted it, nothing remains to do).
+  substrings, for example `RuntimeArchitectureTest` "cli and mcp learning payloads
+  use contract DTO mappers". If that test is already gone, skip it.
 - Delete `FeatureTaskRuntimeParameterBagArchitectureTest` and
-  `FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest` if SKILL-378 has
-  not already; both pin the run loop's current procedural form.
+  `FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest` if they still
+  pin the run loop's current procedural form.
 - Delete count pins such as `inventory lists nineteen enforceable rules`.
 - Delete support code no surviving test calls. Update
   `PrincipleEnforcementInventory.enforceableRules` and its test to the surviving
   rules.
-- Keep `PortsDeclarationArchitectureTest` and `PortNullObjectAbsenceArchitectureTest`
-  even though both scan nothing today. The first resolves
-  `runtime-kotlin/runtime-kotlin/runtime-ports`; the second drops the seven
-  `runtime-infra:<name>` modules in one case and doubles the prefix in its
-  testFixtures case. SKILL-377 subtask 3 repairs both after this subtask.
+- Repair `PortsDeclarationArchitectureTest` and `PortNullObjectAbsenceArchitectureTest`
+  in this subtask if they still scan nothing. Do not leave a vacuous guard for
+  another issue.
 - Survival rule for anything not named: a test stays if it asserts an invariant
   that neither the compiler nor the `RuntimeModuleCatalog` topology enforces, and
   it is not prose, history, a count, or a restatement of source.
@@ -117,11 +109,7 @@ format in `runtime-kotlin/agent/decisions.md`.
 
 ## Dependency notes
 
-Depends on SKILL-378 subtask 1 and on subtask 1, which deletes the `@JvmSynthetic`
-rule and the composition guard exemption. Run after SKILL-371 subtask 1 has repaired scan roots, so
-survival decisions are made on scanners that read files, and after SKILL-374 and
-SKILL-376 subtask 3 have edited the inventories they own. Apply the survival rule
-to any test those bundles added.
+Depends on subtask 1, which deletes the `@JvmSynthetic` rule and the composition guard exemption. Judge scanners on the current tree. If a scanner this subtask keeps or deletes still reads zero files, repair that scanner here before the survival decision. Do not wait for another issue.
 
 ## Validation strategy
 

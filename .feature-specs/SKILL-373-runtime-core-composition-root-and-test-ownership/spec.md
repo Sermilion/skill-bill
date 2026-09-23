@@ -31,7 +31,7 @@ Evidence, census, and feasibility are in [investigation.md](investigation.md).
 | F-006 | Medium | `ScaffoldStandaloneEntrypoint` is a second composition root in infrastructure main | 1 |
 | F-007 | Medium | Prose pins, migration guards, and count pins | 2 |
 | F-008 | Medium | Baselines keyed by line number churn on every reformat | 2 |
-| F-009 | Medium | Experiment wiring: engine-declared factory, duplicate component, two owners of one path | SKILL-378 subtask 1 (deletes experiment support) |
+| F-009 | Medium | Experiment wiring: engine-declared factory, duplicate component, two owners of one path | 1, when those bindings are still in runtime-core |
 | F-010 | Low | Nine test files whose subject another module owns; seven orphan test packages | 3 |
 | F-011 | Low | Composition inputs and test hooks declared in runtime-ports; one unused hook | 1 |
 | F-012 | Low | Bare `String` binding, function binding without substitute, discarded statement, `di` package cycle, three unread accessors | 1 |
@@ -78,7 +78,7 @@ Three subtasks, each one commit that stands alone.
    runtime-application, runtime-cli, runtime-mcp, and runtime-infra/skills.
 2. Guard coverage and pruning (`spec_subtask_2_guard-coverage-and-pruning.md`):
    F-001, F-003, F-007, F-008, in place. Includes any engine fix the restored
-   coverage still requires after SKILL-378 subtask 1.
+   coverage still requires on the current tree.
 3. Test ownership and declared inputs
    (`spec_subtask_3_test-ownership-and-declared-inputs.md`): F-002, F-010. A
    mechanical move of the pruned suite into `src/repoTest` plus relocations.
@@ -108,32 +108,31 @@ Split conditions:
 ## Non-goals
 
 - Moving runtime-cli's use of driven ports behind application services (F-013).
-- Experiment support and every experiment binding (SKILL-378 subtask 1).
+- Experiment product behavior outside the runtime-core bindings this bundle removes to meet its criteria.
 - Renaming runtime-core, replacing `EnvironmentContext` sentinels, adopting
   Konsist or ArchUnit, or narrowing the ambient rules to inner layers.
 - Trimming `ARCHITECTURE.md` outside the sections this bundle touches.
 
 ## Dependency notes
 
-- Start after SKILL-368 merges, SKILL-378 subtask 1 lands (it runs before
-  SKILL-370), and SKILL-370 lands.
-  SKILL-378 subtask 1 deletes experiment support, including runtime-core
-  `di/experiment/**` and `experimentGoalRunnerFactory` (F-009 here) and the engine
-  clock and inject-default sites F-001 found; it also removes the engine's only
-  `RuntimeContext` reader, which F-011 needs.
-- SKILL-372 subtask 3 passes the version into `SQLiteDatabaseSessionFactory`; the
-  typed version value from subtask 1 lives in runtime-ports so that adapter can
-  take it. The full cross-bundle order is in the investigation's coordination
-  section.
-- SKILL-377 subtask 3 deletes `InstalledWorkspaceBaselineStatusPort` with its
-  accessor, and several never-injected scaffold and review port bindings in
-  runtime-core. Delete only what remains.
-- Subtasks 2 and 3 rewrite and move the suite that SKILL-371, SKILL-374,
-  SKILL-375, and SKILL-376 edit. Run them after SKILL-371 subtask 1, SKILL-374,
-  and SKILL-376 subtask 3 land, and recheck every anchor at start.
-- SKILL-376 subtask 2 and this bundle's subtask 1 both edit
-  `RuntimeGoalRunnerStoreProvides`; see the coordination table in the
-  investigation.
+- This bundle runs on the current tree. It does not wait for a subtask of another issue.
+  If experiment bindings are still in runtime-core, subtask 1 removes them so the
+  composition root meets its criteria. If a `RuntimeContext` reader in the engine
+  still blocks F-011, remove or replace that reader here.
+- SKILL-372 may pass a version into `SQLiteDatabaseSessionFactory`. Subtask 1
+  puts the typed version value in runtime-ports so that adapter can take it.
+  If the call site still passes `String`, accept `String` and convert it here
+  when the criterion requires the typed value.
+- Delete `InstalledWorkspaceBaselineStatusPort`, its accessor, and the
+  never-injected scaffold and review port bindings that are still in
+  runtime-core when this bundle's criteria require them gone.
+- Subtasks 2 and 3 edit the architecture suite where it lives. Recheck every
+  anchor at start. Do not wait for another bundle to repair scanners or move
+  the suite first. If a scanner this bundle judges still reads zero files,
+  repair that scanner here before deciding whether the test survives.
+- This bundle's subtask 1 and any other edit of `RuntimeGoalRunnerStoreProvides`
+  follow one rule: one `@Inject` binding per port, an accessor when a child
+  needs it, no bag. Apply that rule to the providers present.
 - Record decisions in `runtime-kotlin/agent/decisions.md`: accessors as the
   child-component export list, no `@JvmSynthetic`, one composition root, rules
   iterate the module list, baseline keys, suite location and inputs, test
@@ -167,14 +166,9 @@ Split conditions:
 
 ## SKILL-380 coordination
 
-No subtask of this bundle is a SKILL-380 prerequisite, and this bundle may land
-before or after SKILL-380. SKILL-380 adds one explicit `@Provides` phase-strategy
-registry in `runtime-core/.../di/featuretask` and one rule in
-`RuntimeEngineBoundaryArchitectureTest`. Whichever lands second applies the
-current provider style (subtask 1: no `@JvmSynthetic`, no bags) and moves the rule
-with the suite (subtask 3: `repoTest`). Subtask 2's survival rule keeps
-SKILL-380's no-phase-id rule, because it enforces an invariant the compiler does
-not.
+No subtask of this bundle waits for SKILL-380. Whichever edit of the phase-strategy
+provider is on the tree follows subtask 1's provider style. Subtask 3 moves the
+architecture rule with the suite.
 
 ## Next path
 

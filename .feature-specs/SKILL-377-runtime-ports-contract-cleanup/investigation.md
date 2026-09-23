@@ -1,5 +1,9 @@
 # runtime-ports architecture investigation (SKILL-377)
 
+## Execution rule
+
+This bundle runs on the current tree. It does not wait for a subtask of another issue. Ordering notes later in this file are overlap context. If a change this bundle's acceptance criteria need is missing, make it here. If it is already present, keep it.
+
 ## Judgment
 
 `runtime-ports` sits in the right place in the graph. It depends only on `runtime-contracts` and `runtime-domain`, nothing inward depends on an adapter through it, and 148 of its 198 interfaces have an infrastructure or composition-root implementation. That is a working hexagonal boundary. Keep the module, its position, and the `UnitOfWork` plus repository shape.

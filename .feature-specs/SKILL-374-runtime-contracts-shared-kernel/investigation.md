@@ -1,5 +1,9 @@
 # SKILL-374 - runtime-contracts architectural investigation
 
+## Execution rule
+
+This bundle runs on the current tree. It does not wait for a subtask of another issue. Ordering notes later in this file are overlap context. If a change this bundle's acceptance criteria need is missing, make it here. If it is already present, keep it.
+
 ## Judgment
 
 Keep the module and its place in the graph. `runtime-contracts` is a true leaf: it

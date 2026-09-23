@@ -89,10 +89,7 @@ Documentation:
 
 ## Dependency notes
 
-Depends on subtask 2. Runs last because SKILL-371, SKILL-374, SKILL-375,
-SKILL-376, SKILL-377, and SKILL-378 anchor on the suite's current path; each says
-it edits the tests wherever they live. SKILL-377 waits only for subtask 2, so its
-guard edits may land in `src/test` before this move; move them with the rest.
+Depends on subtask 2. Move the suite from the path it has now, including guard edits that are already in `src/test`. Do not wait for another issue to finish editing those tests.
 
 ## Validation strategy
 

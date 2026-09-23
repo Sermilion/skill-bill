@@ -110,16 +110,16 @@ the subtask's decisions to `runtime-kotlin/agent/decisions.md`.
   deletions touch (subtasks 2 and 3).
 - Any CLI or MCP output, schema, or wire-contract change.
 - Converting hand-constructed adapters in providers to `@Inject`.
-- Experiment support (SKILL-378), `EnvironmentContext` sentinels, the
-  remote-transport typed error.
+- Experiment product behavior outside the runtime-core bindings removed above.
+- `EnvironmentContext` sentinels and the remote-transport typed error.
 
 ## Dependency notes
 
-Depends on SKILL-368 merging, SKILL-370 landing, and SKILL-378 subtask 1 landing.
-No dependency inside this bundle. Subtask 2 depends on this subtask.
-SKILL-376 subtask 2 edits the same store providers; whichever lands second applies one rule: one `@Inject` binding
-per port, an accessor when a child needs it, no bag. This subtask does not touch
-`McpProtocolFramer` or runtime-mcp's bridge path.
+Depends on nothing outside this bundle. No dependency inside this bundle. Subtask 2 depends on this subtask.
+If experiment bindings are still in runtime-core, remove them here. Apply one rule to
+`RuntimeGoalRunnerStoreProvides` as it exists: one `@Inject` binding per port, an
+accessor when a child needs it, no bag. This subtask does not touch `McpProtocolFramer`
+or runtime-mcp's bridge path.
 
 ## Validation strategy
 

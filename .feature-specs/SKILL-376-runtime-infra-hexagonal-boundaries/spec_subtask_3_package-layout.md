@@ -102,24 +102,11 @@ Packages (F-009):
 
 ## Dependency notes
 
-- After subtask 2, so the goal-runner edges are gone and this commit rebases on
-  both earlier commits.
-- Before SKILL-374 subtask 2, which lands after this subtask and uses the
-  collapsed infra/contracts paths. It adds `skillbill.infrastructure.contracts.schema`,
-  which is outside this subtask's collapse list. SKILL-374 subtask 1 edits the
-  cycle test only for the runtime-contracts case.
-- SKILL-372 subtask 3 edits SQLite `SQLiteRepositories.kt`, `TelemetryOutboxStore`,
-  `ReviewTelemetryState.kt`, and `LifecycleTelemetryEmit.kt` (runtime version
-  injection). The last two move here, so the later commit rebases on the paths
-  present.
-- Before SKILL-373 subtasks 2 and 3, which rewrite and move the suite this
-  subtask edits.
-- SKILL-372 subtask 3 also edits `ArchitectureScanSupport.packageImportEdges`,
-  for domain granularity only. The second to land rebases, and infra keeps area
-  granularity with the corrected prefix.
-- SKILL-373 may have moved the architecture suite and collapsed per-module
-  baselines into one file per rule. Apply the prefix change and the cycle row
-  there.
+- After subtask 2, so the goal-runner edges are gone and this commit rebases on both earlier commits inside this bundle.
+- Use the infra/contracts paths that exist now. Edit the architecture suite where it lives.
+- Edit `SQLiteRepositories.kt`, `TelemetryOutboxStore`, `ReviewTelemetryState.kt`, and `LifecycleTelemetryEmit.kt` at the paths they have now.
+- If `ArchitectureScanSupport.packageImportEdges` already has an exact-package mode, keep infra on area granularity with the corrected prefix.
+- Edit the architecture suite where it lives. Apply the prefix change and the cycle row there.
 
 ## Validation strategy
 
