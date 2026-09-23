@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.planning
+import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.application.review.model.ParallelReviewLaneStatus
@@ -19,6 +20,7 @@ import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import skillbill.ports.review.repository.ReviewSpecialistContractProvider
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
@@ -31,14 +33,16 @@ import skillbill.review.context.model.execution.toCodeReviewExecutionMode
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.model.ParallelReviewMergeResult
+import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path
 
-internal class ParallelCodeReviewRunnerPlanning(
-  val diffResolver: DiffResolverPort,
-  val repoLocalConfig: RepoLocalConfigPort,
+@Inject
+class ParallelCodeReviewRunnerPlanning(
+  private val diffResolver: DiffResolverPort,
+  private val repoLocalConfig: RepoLocalConfigPort,
   private val reviewContextEnvelopeValidator: ReviewContextEnvelopeValidator,
   private val reviewSpecialistContractProvider: ReviewSpecialistContractProvider,
-  val installedPackCatalog: InstalledPlatformPackCatalogPort,
+  private val installedPackCatalog: InstalledPlatformPackCatalogPort,
   private val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort,
   private val sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
   private val specIntentProjectionResolver: SpecIntentProjectionResolver,
@@ -208,4 +212,21 @@ internal class ParallelCodeReviewRunnerPlanning(
       listOf("git", "rev-parse", "--abbrev-ref", "HEAD"),
       repoRoot,
     )?.trim().orEmpty()
+
+  internal fun runProcess(
+    args: List<String>,
+    workDir: Path,
+  ): String? = diffResolver.runProcess(args, workDir)
+
+  internal fun readDiff(
+    path: Path,
+    maxBytes: Long,
+  ): String? = diffResolver.readDiff(path, maxBytes)
+
+  internal fun reviewWorktreeFileIdentities(
+    root: Path,
+    paths: List<String>,
+  ): Map<String, ReviewCheckpointFileIdentity> = diffResolver.reviewWorktreeFileIdentities(root, paths)
+
+  internal fun installedManifests(): List<PlatformManifest> = installedPackCatalog.manifests()
 }

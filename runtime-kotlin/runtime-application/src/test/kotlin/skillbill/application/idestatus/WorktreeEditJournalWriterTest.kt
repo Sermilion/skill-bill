@@ -146,7 +146,7 @@ class WorktreeEditJournalWriterTest {
   }
 
   @Test
-  fun `sqlite busy beyond retry bound records failure without publishing a tick`() {
+  fun `sqlite busy write failure records failure without publishing a tick`() {
     val repository = InMemoryWorktreeEditJournalRepository()
     val diagnostics = RecordingJournalDiagnostics()
     val database = JournalDatabaseSessionFactory(repository, busyWrites = 3)
@@ -165,7 +165,7 @@ class WorktreeEditJournalWriterTest {
       git,
     ).observer(Path.of("/tmp/worktree-edit-journal-busy"), { "wfl-busy" }, { "implement" }).observe()
 
-    assertEquals(3, database.writeAttempts)
+    assertEquals(1, database.writeAttempts)
     assertEquals(1, diagnostics.warnings.size)
     assertTrue(diagnostics.warnings.single().contains("seam=worktree_edit_journal_persist"))
     assertTrue(repository.appends.isEmpty())
@@ -218,7 +218,7 @@ private class JournalDatabaseSessionFactory(
   override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
     val write = writes.incrementAndGet()
     if (write <= busyWrites) {
-      error("SQLITE_BUSY: database is locked")
+      error("self-managed write lock contended")
     }
     return block(unit())
   }

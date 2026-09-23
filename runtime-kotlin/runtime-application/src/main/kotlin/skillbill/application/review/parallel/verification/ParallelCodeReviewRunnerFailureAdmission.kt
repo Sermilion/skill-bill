@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.verification
+import me.tatarka.inject.annotations.Inject
 import skillbill.application.agentoutput.agentFailureExcerpt
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
 import skillbill.application.review.parallel.core.code.review.runner.INLINE_FINDING_PARSE_SEAM
@@ -20,6 +21,7 @@ import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.parallel.ParallelReviewFindingParser
 import kotlin.coroutines.cancellation.CancellationException
 
+@Inject
 class ParallelCodeReviewRunnerFailureAdmission(
   private val registerParse: (String) -> ParallelReviewParseResult,
 ) {

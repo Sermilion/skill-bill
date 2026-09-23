@@ -4,11 +4,17 @@ import skillbill.application.review.governed.stubGovernedReviewEvidenceEndpointB
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunner
-import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunnerComposition
-import skillbill.application.review.parallel.core.code.review.runner.model.ParallelCodeReviewRunnerBoundaries
+import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunnerLaneLaunch
+import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunnerResultAssembly
+import skillbill.application.review.parallel.planning.ParallelCodeReviewRunnerPlanning
+import skillbill.application.review.parallel.planning.ParallelCodeReviewRunnerRubricPlanning
+import skillbill.application.review.parallel.verification.ParallelCodeReviewRunnerFailureAdmission
+import skillbill.application.review.parallel.verification.ParallelCodeReviewRunnerLanePlanRecording
+import skillbill.application.review.parallel.verification.ParallelCodeReviewRunnerVerificationStages
 import skillbill.application.review.spec.SpecIntentProjectionExtractor
 import skillbill.application.review.spec.SpecIntentProjectionResolver
 import skillbill.application.reviewevidence.model.ParallelReviewScope
+import skillbill.application.runtimepersistence.RuntimeOwnedPersistenceBoundary
 import skillbill.config.model.RepoLocalConfig
 import skillbill.infrastructure.contracts.workflow.decomposition.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.host.CanonicalRepositoryRoot
@@ -30,6 +36,7 @@ import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.evidence.ReviewEvidenceBroker
@@ -46,6 +53,7 @@ import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.ports.review.model.ReviewOwnedFileEvidence
 import skillbill.ports.review.preparation.ReviewRubricResolver
 import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.review.repository.ReviewSpecialistContractProvider
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.scaffold.model.PilotedPlatformPackProjection
@@ -57,6 +65,7 @@ import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.review.context.model.packet.LANE_EVIDENCE_BYTES_DIMENSION
 import skillbill.review.model.ParallelReviewMergedFinding
+import skillbill.review.model.ParallelReviewParseResult
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.review.model.ReviewPassClaimSnapshot
 import skillbill.review.model.ReviewRunLane
@@ -95,6 +104,7 @@ import java.nio.file.Path
 import java.time.Clock
 import java.util.Collections
 import kotlin.time.Duration
+import kotlin.time.TimeSource
 
 class ReviewRecorder {
   val parentLaunches: MutableList<GoalRunnerSubtaskLaunchRequest> =
@@ -186,98 +196,147 @@ fun reviewHarness(
         mcpStartupObserved = response.mcpStartupObserved,
       ) as AgentRunLaunchOutcome
     }
-  val sharedEvidenceLocatorReader = FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE
-  val boundaries =
-    ParallelCodeReviewRunnerBoundaries(
-      diffResolver =
-        object : DiffResolverPort {
-          override fun reviewWorktreeFileIdentities(
-            root: Path,
-            paths: List<String>,
-          ): Map<String, ReviewCheckpointFileIdentity> = emptyMap()
-
-          override fun readDiff(
-            path: Path,
-            maxBytes: Long,
-          ): String? = null
-
-          override fun runProcess(
-            args: List<String>,
-            workDir: Path,
-          ): String? {
-            recorder.diffCommands += args
-            return when (args.getOrNull(1)) {
-              "rev-parse" -> args.last().removeSuffix("^{commit}")
-              "rev-list" -> config.commits.joinToString("\n") { it.sha }
-              "show" ->
-                config.commits.single { it.sha == args.last() }.let { commit ->
-                  "${parentOf(config.commits, commit)}\n${commit.subject}"
-                }
-              else ->
-                config.commits.firstOrNull {
-                  it.sha == args.getOrNull(3) && parentOf(config.commits, it) == args.getOrNull(2)
-                }?.diff ?: config.diff
-            }
-          }
-        },
-      repoLocalConfig =
-        object : RepoLocalConfigPort {
-          override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
-            ReadRepoLocalConfigResult(RepoLocalConfig.defaults().copy(reviewContextBudget = config.budget))
-        },
-      reviewContextEnvelopeValidator =
-        object : ReviewContextEnvelopeValidator {
-          override fun validate(
-            envelope: ReviewContextWireMap,
-            sourceLabel: String,
-          ) = Unit
-
-          override fun validateSpecIntentProjection(
-            envelope: ReviewContextWireMap,
-            sourceLabel: String,
-          ) = Unit
-        },
-      reviewRubricResolver = recordingRubricResolver(recorder, config.rubricBody),
-      reviewSpecialistContractProvider = ClasspathReviewSpecialistContractProvider(),
-      database = database,
-      installedPackCatalog = InstalledPlatformPackCatalogPort { config.manifests },
-      sharedEvidenceResolver = FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
-      sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
-      specIntentProjectionResolver =
-        SpecIntentProjectionResolver(
+  return parallelCodeReviewRunnerOf(
+    diffResolver = recordingDiffResolver(config, recorder),
+    repoLocalConfig =
+      object : RepoLocalConfigPort {
+        override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
+          ReadRepoLocalConfigResult(RepoLocalConfig.defaults().copy(reviewContextBudget = config.budget))
+      },
+    reviewContextEnvelopeValidator = AcceptingReviewContextEnvelopeValidator,
+    reviewRubricResolver = recordingRubricResolver(recorder, config.rubricBody),
+    reviewSpecialistContractProvider = ClasspathReviewSpecialistContractProvider(),
+    database = database,
+    installedPackCatalog = InstalledPlatformPackCatalogPort { config.manifests },
+    specIntentProjectionResolver =
+      SpecIntentProjectionResolver(
+        FileSystemDecompositionManifestFileStore(),
+        DecompositionManifestSchemaValidator(),
+        SpecIntentProjectionExtractor(
+          AcceptingReviewContextEnvelopeValidator,
           FileSystemDecompositionManifestFileStore(),
-          DecompositionManifestSchemaValidator(),
-          SpecIntentProjectionExtractor(
-            object : ReviewContextEnvelopeValidator {
-              override fun validate(
-                envelope: ReviewContextWireMap,
-                sourceLabel: String,
-              ) = Unit
-
-              override fun validateSpecIntentProjection(
-                envelope: ReviewContextWireMap,
-                sourceLabel: String,
-              ) = Unit
-            },
-            FileSystemDecompositionManifestFileStore(),
-          ),
         ),
-      parentReviewLauncher = launcher,
-      nativeAgentPreflight = ReviewNativeAgentPreflightPort.NONE,
-      registerParse = ParallelReviewFindingParser::parse,
-      diagnostics = NoopRuntimeDiagnostics,
-      clock = Clock.systemUTC(),
-      repositoryEnclosingRootPort = CanonicalRepositoryRoot,
-      reviewEvidenceBrokerFactory = config.evidenceBrokerFactory,
-      governedEvidenceEndpointBinder = config.evidenceEndpointBinder,
-      reviewLaunchAgentStaging = ReviewLaunchAgentStagingPort.NONE,
+      ),
+    parentReviewLauncher = launcher,
+    reviewEvidenceBrokerFactory = config.evidenceBrokerFactory,
+    governedEvidenceEndpointBinder = config.evidenceEndpointBinder,
+  )
+}
+
+fun parallelCodeReviewRunnerOf(
+  diffResolver: DiffResolverPort,
+  repoLocalConfig: RepoLocalConfigPort,
+  reviewContextEnvelopeValidator: ReviewContextEnvelopeValidator,
+  reviewRubricResolver: ReviewRubricResolver,
+  reviewSpecialistContractProvider: ReviewSpecialistContractProvider,
+  database: DatabaseSessionFactory,
+  installedPackCatalog: InstalledPlatformPackCatalogPort,
+  specIntentProjectionResolver: SpecIntentProjectionResolver,
+  parentReviewLauncher: GoalRunnerSubtaskLauncher,
+  reviewEvidenceBrokerFactory: ReviewEvidenceBrokerFactory,
+  governedEvidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder,
+  sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
+    FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
+  sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort =
+    FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE,
+  nativeAgentPreflight: ReviewNativeAgentPreflightPort = ReviewNativeAgentPreflightPort.NONE,
+  reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort = ReviewLaunchAgentStagingPort.NONE,
+  registerParse: (String) -> ParallelReviewParseResult = ParallelReviewFindingParser::parse,
+  repositoryEnclosingRootPort: RepositoryEnclosingRootPort = CanonicalRepositoryRoot,
+  clock: Clock = Clock.systemUTC(),
+): ParallelCodeReviewRunner {
+  val persistence = RuntimeOwnedPersistenceBoundary(database, NoopRuntimeDiagnostics)
+  val planning =
+    ParallelCodeReviewRunnerPlanning(
+      diffResolver = diffResolver,
+      repoLocalConfig = repoLocalConfig,
+      reviewContextEnvelopeValidator = reviewContextEnvelopeValidator,
+      reviewSpecialistContractProvider = reviewSpecialistContractProvider,
+      installedPackCatalog = installedPackCatalog,
+      sharedEvidenceResolver = sharedEvidenceResolver,
+      sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
+      specIntentProjectionResolver = specIntentProjectionResolver,
+      rubricPlanning = ParallelCodeReviewRunnerRubricPlanning(reviewRubricResolver, installedPackCatalog),
+      lanePlanRecording = ParallelCodeReviewRunnerLanePlanRecording(persistence, clock),
+      repositoryEnclosingRootPort = repositoryEnclosingRootPort,
+    )
+  val laneLaunch =
+    ParallelCodeReviewRunnerLaneLaunch(
+      parentReviewLauncher = parentReviewLauncher,
+      reviewEvidenceBrokerFactory = reviewEvidenceBrokerFactory,
+      governedEvidenceEndpointBinder = governedEvidenceEndpointBinder,
+      reviewLaunchAgentStaging = reviewLaunchAgentStaging,
+      sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
+      failureAdmission = ParallelCodeReviewRunnerFailureAdmission(registerParse),
+      activityStampWriter =
+        AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics, TimeSource.Monotonic),
     )
   return ParallelCodeReviewRunner(
-    ParallelCodeReviewRunnerComposition(
-      boundaries,
-      AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics),
-    ),
+    planning = planning,
+    laneLaunch = laneLaunch,
+    resultAssembly =
+      ParallelCodeReviewRunnerResultAssembly(
+        parentReviewLauncher,
+        reviewContextEnvelopeValidator,
+        persistence,
+        clock,
+      ),
+    verificationStages =
+      ParallelCodeReviewRunnerVerificationStages(
+        parentReviewLauncher,
+        reviewContextEnvelopeValidator,
+        persistence,
+        clock,
+      ),
+    runtimeOwnedPersistence = persistence,
+    nativeAgentPreflight = nativeAgentPreflight,
   )
+}
+
+private object AcceptingReviewContextEnvelopeValidator : ReviewContextEnvelopeValidator {
+  override fun validate(
+    envelope: ReviewContextWireMap,
+    sourceLabel: String,
+  ) = Unit
+
+  override fun validateSpecIntentProjection(
+    envelope: ReviewContextWireMap,
+    sourceLabel: String,
+  ) = Unit
+}
+
+private fun recordingDiffResolver(
+  config: ReviewHarnessConfig,
+  recorder: ReviewRecorder,
+) = object : DiffResolverPort {
+  override fun reviewWorktreeFileIdentities(
+    root: Path,
+    paths: List<String>,
+  ): Map<String, ReviewCheckpointFileIdentity> = emptyMap()
+
+  override fun readDiff(
+    path: Path,
+    maxBytes: Long,
+  ): String? = null
+
+  override fun runProcess(
+    args: List<String>,
+    workDir: Path,
+  ): String? {
+    recorder.diffCommands += args
+    return when (args.getOrNull(1)) {
+      "rev-parse" -> args.last().removeSuffix("^{commit}")
+      "rev-list" -> config.commits.joinToString("\n") { it.sha }
+      "show" ->
+        config.commits.single { it.sha == args.last() }.let { commit ->
+          "${parentOf(config.commits, commit)}\n${commit.subject}"
+        }
+      else ->
+        config.commits.firstOrNull {
+          it.sha == args.getOrNull(3) && parentOf(config.commits, it) == args.getOrNull(2)
+        }?.diff ?: config.diff
+    }
+  }
 }
 
 const val HARNESS_BASE_REVISION: String = "base-revision"

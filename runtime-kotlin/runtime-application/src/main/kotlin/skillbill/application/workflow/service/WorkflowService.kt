@@ -55,9 +55,12 @@ import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
+import skillbill.workflow.goal.model.GoalObservabilityEvent
+import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.time.Clock
 import kotlin.random.Random
@@ -71,7 +74,7 @@ class WorkflowService(
   private val decompositionManifestValidator: DecompositionManifestValidator,
   private val decompositionManifestWriter: DecompositionManifestWriter,
   private val repositoryRoot: RepositoryRoot,
-  val goalObservabilityEventValidator: GoalObservabilityEventValidator,
+  private val goalObservabilityEventValidator: GoalObservabilityEventValidator,
   private val runtimeDiagnostics: RuntimeDiagnostics,
   private val clock: Clock,
 ) {
@@ -134,8 +137,17 @@ class WorkflowService(
         engine = engine,
         database = database,
       ),
-    )
+    ).withGoalObservability()
   }
+
+  private fun WorkflowOpenResult.withGoalObservability(): WorkflowOpenResult =
+    when (this) {
+      is WorkflowOpenResult.Ok -> copy(goalObservability = goalObservabilityOf(snapshot))
+      is WorkflowOpenResult.Error -> this
+    }
+
+  private fun goalObservabilityOf(snapshot: WorkflowSnapshotView): GoalObservabilityEvent? =
+    goalObservabilityLatestEventFromArtifacts(snapshot.artifacts, goalObservabilityEventValidator)
 
   fun update(
     kind: WorkflowFamilyKind,
@@ -328,10 +340,12 @@ class WorkflowService(
             "Unknown workflow_id '$workflowId'.",
             unitOfWork.dbPath.toString(),
           )
+      val snapshot = engine.snapshotView(family.definition, record)
       WorkflowGetResult.Ok(
         workflowId = record.workflowId,
         dbPath = unitOfWork.dbPath.toString(),
-        snapshot = engine.snapshotView(family.definition, record),
+        snapshot = snapshot,
+        goalObservability = goalObservabilityOf(snapshot),
       )
     }
 

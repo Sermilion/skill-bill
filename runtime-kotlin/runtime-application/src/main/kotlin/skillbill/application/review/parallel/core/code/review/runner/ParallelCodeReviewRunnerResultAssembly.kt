@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.core.code.review.runner
+import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.application.review.model.ReviewIntegrationPassRunRequest
@@ -47,10 +48,11 @@ import skillbill.review.stage.ReviewStageDegradationSelection
 import skillbill.text.sha256HexUtf8
 import java.time.Clock
 
+@Inject
 class ParallelCodeReviewRunnerResultAssembly(
-  val parentReviewLauncher: GoalRunnerSubtaskLauncher,
-  val reviewContextEnvelopeValidator: ReviewContextEnvelopeValidator,
-  val runtimeOwnedPersistence: RuntimeOwnedPersistenceBoundary,
+  private val parentReviewLauncher: GoalRunnerSubtaskLauncher,
+  private val reviewContextEnvelopeValidator: ReviewContextEnvelopeValidator,
+  private val runtimeOwnedPersistence: RuntimeOwnedPersistenceBoundary,
   private val clock: Clock,
 ) {
   internal fun runIntegrationPass(
@@ -69,7 +71,8 @@ class ParallelCodeReviewRunnerResultAssembly(
         "this review ran inline, so commit-focused delegated sequencing does not apply",
       )
     }
-    durableIntegrationOutcome(initial.request.reviewRunId, packet.commitSequenceDigest)?.let { return it }
+    runtimeOwnedPersistence.durableIntegrationOutcome(initial.request.reviewRunId, packet.commitSequenceDigest)
+      ?.let { return it }
     val findingsByLane =
       outcomes.lane1.findings
         .groupingBy { it.specialistSkillName.orEmpty() }.eachCount()
@@ -89,7 +92,7 @@ class ParallelCodeReviewRunnerResultAssembly(
           launch = initial.delegatedStageLaunch(),
         ),
       )
-    recordIntegrationBoundary(initial.request.reviewRunId, outcome)
+    runtimeOwnedPersistence.recordIntegrationBoundary(initial.request.reviewRunId, outcome)
     return outcome
   }
 
@@ -109,7 +112,7 @@ class ParallelCodeReviewRunnerResultAssembly(
           unreviewedUnits = completion.unreviewedUnits,
         )
       }
-    val results = ranThisPass + durablyCompleteLanes(initial, packet, ranThisPass)
+    val results = ranThisPass + runtimeOwnedPersistence.durablyCompleteLanes(initial, packet, ranThisPass)
     val bothAgentsSucceeded = outcomes.lane1.success
     return ReviewLaneAggregation.requireCompleteLaneResults(
       expectedLanes = packet.selectedLanes,
@@ -350,13 +353,13 @@ private fun ParallelReviewLaneOutcome.reviewPassDisposition(): ReviewLaneReviewD
     ReviewLaneReviewDisposition.INCOMPLETE
   }
 
-internal fun ParallelCodeReviewRunnerResultAssembly.durableIntegrationOutcome(
+private fun RuntimeOwnedPersistenceBoundary.durableIntegrationOutcome(
   reviewRunId: String?,
   commitSequenceDigest: String,
 ): ReviewIntegrationPassOutcome? {
   if (reviewRunId == null) return null
   val record =
-    runtimeOwnedPersistence.optionalRead(
+    optionalRead(
       seam = "ParallelCodeReviewRunner.durableIntegrationOutcome",
       expected = "optional durable review integration result",
       fallback = null,
@@ -375,12 +378,12 @@ internal fun ParallelCodeReviewRunnerResultAssembly.durableIntegrationOutcome(
   }
 }
 
-internal fun ParallelCodeReviewRunnerResultAssembly.recordIntegrationBoundary(
+private fun RuntimeOwnedPersistenceBoundary.recordIntegrationBoundary(
   reviewRunId: String?,
   outcome: ReviewIntegrationPassOutcome,
 ) {
   if (reviewRunId == null) return
-  runtimeOwnedPersistence.requiredWrite(
+  requiredWrite(
     seam = "ParallelCodeReviewRunner.recordIntegrationBoundary",
     expected = "runtime-owned review integration result",
   ) { unitOfWork ->
@@ -391,7 +394,7 @@ internal fun ParallelCodeReviewRunnerResultAssembly.recordIntegrationBoundary(
   }
 }
 
-internal fun ParallelCodeReviewRunnerResultAssembly.durablyCompleteLanes(
+private fun RuntimeOwnedPersistenceBoundary.durablyCompleteLanes(
   initial: ParallelCodeReviewInitialRun,
   packet: ReviewContextPacket,
   ranThisPass: List<ReviewLaneAggregationInput>,
@@ -401,7 +404,7 @@ internal fun ParallelCodeReviewRunnerResultAssembly.durablyCompleteLanes(
   val notRun = packet.selectedLanes.filterNot { it in alreadyRan }
   if (notRun.isEmpty()) return emptyList()
   val completeSkills =
-    runtimeOwnedPersistence.requiredRead(
+    requiredRead(
       seam = "ParallelCodeReviewRunner.durablyCompleteLanes",
       expected = "runtime-owned review lane dispositions",
     ) { unitOfWork -> unitOfWork.reviews.fetchReviewRunLanes(reviewRunId) }
@@ -417,11 +420,11 @@ internal fun ParallelCodeReviewRunnerResultAssembly.durablyCompleteLanes(
   }
 }
 
-internal fun ParallelCodeReviewRunnerResultAssembly.evidenceBoundaryAccountings(
+private fun evidenceBoundaryAccountings(
   outcomes: ParallelReviewLaneRunResult,
 ): List<ReviewEvidenceBoundaryAccounting> = listOfNotNull(laneEvidenceBoundary(outcomes.lane1))
 
-internal fun ParallelCodeReviewRunnerResultAssembly.laneEvidenceBoundary(
+private fun laneEvidenceBoundary(
   outcome: ParallelReviewLaneOutcome,
 ): ReviewEvidenceBoundaryAccounting? {
   if (outcome.accounting?.terminalStatus == UNSUPPORTED_PROVIDER_TERMINAL_STATUS.wireValue) return null

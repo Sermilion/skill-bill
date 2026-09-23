@@ -5,15 +5,18 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.diagnostics.RejectedOutputDiagnosticCliSession
-import skillbill.application.diagnostics.model.RejectedOutputDiagnosticCliResult
+import skillbill.application.diagnostics.RejectedOutputDiagnosticInspection
+import skillbill.application.diagnostics.model.RejectedOutputDiagnosticAmbiguousSelectorError
+import skillbill.application.diagnostics.model.RejectedOutputDiagnosticInspectionResult
+import skillbill.application.diagnostics.model.RejectedOutputDiagnosticMetadata
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 
 @Inject
 class RejectedOutputInspectCliCommand(
-  private val session: RejectedOutputDiagnosticCliSession,
+  private val inspection: RejectedOutputDiagnosticInspection,
   private val state: CliRunState,
 ) : DocumentedCliCommand(
     "rejected-output",
@@ -33,20 +36,28 @@ class RejectedOutputInspectCliCommand(
 
   override fun run() {
     val selector = RejectedOutputDiagnosticSelector(workflowId, phaseId, attempt, repairTurn)
-    when (val result = session.inspect(selector, rawOutput)) {
-      is RejectedOutputDiagnosticCliResult.RawBytes ->
+    when (val result = inspect(selector)) {
+      is RejectedOutputDiagnosticInspectionResult.RawBytes ->
         state.completeRaw(result.bytes)
-      is RejectedOutputDiagnosticCliResult.MetadataLines -> {
-        val text = result.lines.joinToString("\n", postfix = if (result.lines.isEmpty()) "" else "\n")
+      is RejectedOutputDiagnosticInspectionResult.Metadata -> {
+        val lines = result.records.map { it.safeLine() }
+        val text = lines.joinToString("\n", postfix = if (lines.isEmpty()) "" else "\n")
         state.completeText(text, emptyMap())
       }
     }
   }
+
+  private fun inspect(selector: RejectedOutputDiagnosticSelector): RejectedOutputDiagnosticInspectionResult =
+    try {
+      inspection.inspect(selector, rawOutput)
+    } catch (error: RejectedOutputDiagnosticAmbiguousSelectorError) {
+      throw RejectedOutputDiagnosticError.Retrieval(AMBIGUOUS_RAW_SELECTOR_REASON, error)
+    }
 }
 
 @Inject
 class RejectedOutputCleanupCliCommand(
-  private val session: RejectedOutputDiagnosticCliSession,
+  private val inspection: RejectedOutputDiagnosticInspection,
   private val state: CliRunState,
 ) : DocumentedCliCommand(
     "rejected-output-cleanup",
@@ -62,9 +73,59 @@ class RejectedOutputCleanupCliCommand(
 
   override fun run() {
     val deleted =
-      session.cleanup(
+      inspection.cleanup(
         RejectedOutputDiagnosticSelector(workflowId, phaseId, attempt, repairTurn),
       )
     state.completeText("deleted=$deleted\n", mapOf("deleted" to deleted))
   }
 }
+
+private const val AMBIGUOUS_RAW_SELECTOR_REASON: String =
+  "raw output requires a selector resolving to exactly one diagnostic; " +
+    "an attempt that ran a validation-gate repair cycle holds one per repair turn, " +
+    "so add --repair-turn (the metadata listing prints each turn)"
+
+private fun RejectedOutputDiagnosticMetadata.safeLine(): String =
+  listOf(
+    "identity=${identity.safeField()}",
+    "workflow=${workflowId.safeField()}",
+    "phase=${phaseId.safeField()}",
+    "attempt=$attempt",
+    "repair_turn=$repairTurn",
+    "rule=${rule.safeField()}",
+    "path=${path.safeField()}",
+    "reason=${reason.safeField()}",
+    "agent=${agentId.safeField()}",
+    "model=${model.safeField()}",
+    "recorded_at=$recordedAt",
+    "byte_size=$byteSize",
+    "sha256=$sha256",
+    "lifecycle=${lifecycle.name.lowercase()}",
+  ).joinToString(" ")
+
+private const val CONTROL_CHARACTER_LIMIT: Int = 0x20
+private const val DELETE_CHARACTER_CODE: Int = 0x7f
+private const val HEX_RADIX: Int = 16
+private const val UNICODE_ESCAPE_WIDTH: Int = 4
+
+private fun String.safeField(): String =
+  buildString {
+    append('"')
+    this@safeField.forEach { character ->
+      when (character) {
+        '\\' -> append("\\\\")
+        '"' -> append("\\\"")
+        '\n' -> append("\\n")
+        '\r' -> append("\\r")
+        '\t' -> append("\\t")
+        else ->
+          if (character.code < CONTROL_CHARACTER_LIMIT || character.code == DELETE_CHARACTER_CODE) {
+            append("\\u")
+            append(character.code.toString(HEX_RADIX).padStart(UNICODE_ESCAPE_WIDTH, '0'))
+          } else {
+            append(character)
+          }
+      }
+    }
+    append('"')
+  }

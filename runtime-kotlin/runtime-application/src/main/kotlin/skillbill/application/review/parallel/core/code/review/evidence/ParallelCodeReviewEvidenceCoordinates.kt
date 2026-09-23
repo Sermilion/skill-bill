@@ -15,7 +15,7 @@ internal fun ParallelCodeReviewRunnerPlanning.evidenceCoordinates(
     return ReviewEvidenceCoordinates.Committed(head)
   }
   val index =
-    diffResolver.runProcess(listOf("git", "ls-files", "--stage", "-z"), request.repoRoot)
+    runProcess(listOf("git", "ls-files", "--stage", "-z"), request.repoRoot)
       ?: throw DiffResolutionException("Cannot capture the reviewed index.")
   val entries =
     index.split('\u0000').filter(String::isNotEmpty).associate { row ->
@@ -28,7 +28,7 @@ internal fun ParallelCodeReviewRunnerPlanning.evidenceCoordinates(
   if (request.scope == ParallelReviewScope.STAGED) {
     return ReviewEvidenceCoordinates.Checkpoint(ReviewEvidenceCoordinates.Checkpoint.Kind.INDEX, entries)
   }
-  val files = diffResolver.reviewWorktreeFileIdentities(request.repoRoot, entries.keys.toList())
+  val files = reviewWorktreeFileIdentities(request.repoRoot, entries.keys.toList())
   return ReviewEvidenceCoordinates.Checkpoint(ReviewEvidenceCoordinates.Checkpoint.Kind.WORKTREE, files)
 }
 

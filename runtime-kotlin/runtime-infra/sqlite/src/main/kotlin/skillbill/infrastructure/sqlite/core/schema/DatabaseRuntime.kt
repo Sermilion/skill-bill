@@ -4,7 +4,6 @@ import skillbill.error.core.DatabaseAccessError
 import skillbill.error.core.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.ops.InternalSqliteDiagnostics
-import skillbill.ports.db.ReviewMetricsDatabasePolicy
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.nio.file.Files
 import java.nio.file.Path
@@ -22,6 +21,9 @@ internal data class OpenDatabase(
 }
 
 internal object DatabaseRuntime {
+  const val BUSY_TIMEOUT_MILLIS: Int = 5000
+  const val SELF_MANAGED_WRITE_BUSY_ATTEMPTS: Int = 3
+
   private var writeReadinessGate = DatabaseWriteReadinessGate()
 
   fun ensureWriteReady(
@@ -174,7 +176,7 @@ internal object DatabaseRuntime {
   ) {
     connection.createStatement().use { statement ->
 
-      statement.execute("PRAGMA busy_timeout = ${ReviewMetricsDatabasePolicy.BUSY_TIMEOUT_MILLIS}")
+      statement.execute("PRAGMA busy_timeout = $BUSY_TIMEOUT_MILLIS")
       if (enableWal) statement.execute("PRAGMA journal_mode = WAL")
       statement.execute("PRAGMA foreign_keys = ON")
     }

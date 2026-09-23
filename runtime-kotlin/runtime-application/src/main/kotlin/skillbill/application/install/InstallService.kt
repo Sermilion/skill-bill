@@ -18,13 +18,19 @@ import skillbill.install.policy.InstallPlanPolicy
 import skillbill.model.toPath
 import skillbill.ports.install.apply.InstallApplyExecutionPort
 import skillbill.ports.install.apply.model.InstallApplyExecutionRequest
+import skillbill.ports.install.baseline.BaselineManifestPersistencePort
 import skillbill.ports.install.baseline.model.ReadBaselineManifestRequest
 import skillbill.ports.install.baseline.model.WriteBaselineManifestRequest
 import skillbill.ports.install.link.InstallSkillLinkPort
 import skillbill.ports.install.link.model.InstallSkillLinkRequest
+import skillbill.ports.install.plan.InstallPlanningFactsPort
+import skillbill.ports.install.plan.InstallPlatformSkillMaterializationPort
+import skillbill.ports.install.plan.InstallStagingIntentPort
 import skillbill.ports.install.plan.model.InstallPlanningFactsRequest
 import skillbill.ports.install.plan.model.InstallPlatformSkillMaterializationPortRequest
 import skillbill.ports.install.plan.model.InstallStagingIntentRequest
+import skillbill.ports.install.reconcile.InstallReconcileApplyPort
+import skillbill.ports.install.reconcile.InstallReconcilePort
 import skillbill.ports.install.reconcile.model.InstallReconcileApplyRequest
 import skillbill.ports.install.reconcile.model.InstallReconcileRequest
 import skillbill.ports.install.selection.InstallSelectionPersistencePort
@@ -35,15 +41,19 @@ import java.nio.file.Path
 
 @Inject
 class InstallService(
-  private val planningPorts: InstallPlanningPorts,
-  private val reconcilePorts: InstallReconcilePorts,
+  private val planningFactsPort: InstallPlanningFactsPort,
+  private val platformSkillMaterializationPort: InstallPlatformSkillMaterializationPort,
+  private val stagingIntentPort: InstallStagingIntentPort,
+  private val reconcilePort: InstallReconcilePort,
+  private val reconcileApplyPort: InstallReconcileApplyPort,
+  private val baselineManifestPersistencePort: BaselineManifestPersistencePort,
   private val applyExecutionPort: InstallApplyExecutionPort,
   private val skillLinkPort: InstallSkillLinkPort,
   private val installSelectionPersistencePort: InstallSelectionPersistencePort,
   private val installPlanWireValidator: InstallPlanWireValidator,
 ) {
   fun planInstall(request: InstallPlanRequest): InstallPlan {
-    val facts = planningPorts.planningFactsPort.collectPlanningFacts(InstallPlanningFactsRequest(request)).facts
+    val facts = planningFactsPort.collectPlanningFacts(InstallPlanningFactsRequest(request)).facts
     val resolvedReviewFallback =
       facts.baseSkills
         .takeIf { skills -> skills.any { it.name == "bill-code-review" } }
@@ -63,7 +73,7 @@ class InstallService(
         ),
       )
     val platformPacks =
-      planningPorts.platformSkillMaterializationPort.materializePlatformSkills(
+      platformSkillMaterializationPort.materializePlatformSkills(
         InstallPlatformSkillMaterializationPortRequest(
           installRequest = request,
           platformManifests = facts.platformManifests,
@@ -79,7 +89,7 @@ class InstallService(
         facts.toPolicyInput(request, platformPacks, resolvedReviewFallback?.slug),
       )
     val staging =
-      planningPorts.stagingIntentPort.buildStagingIntent(
+      stagingIntentPort.buildStagingIntent(
         InstallStagingIntentRequest(
           installRequest = request,
           draft = draft,
@@ -90,12 +100,12 @@ class InstallService(
   }
 
   fun reconcile(request: InstallReconcileRequest): ReconciliationPlan =
-    reconcilePorts.reconcilePort.reconcile(request).plan
+    reconcilePort.reconcile(request).plan
 
   fun applyReconcile(request: InstallReconcileApplyRequest): InstallReconcileApplyOutcome {
-    val applied = reconcilePorts.reconcileApplyPort.apply(request)
+    val applied = reconcileApplyPort.apply(request)
     val before =
-      reconcilePorts.baselineManifestPersistencePort
+      baselineManifestPersistencePort
         .readBaseline(ReadBaselineManifestRequest(installHome = request.home))
         .manifest
     val updated = refreshBaselineFromPlan(request.home, applied.plan)
@@ -112,12 +122,12 @@ class InstallService(
     plan: ReconciliationPlan,
   ): BaselineManifest {
     val current =
-      reconcilePorts.baselineManifestPersistencePort
+      baselineManifestPersistencePort
         .readBaseline(ReadBaselineManifestRequest(installHome = home))
         .manifest
     val updated = current.withEntries(plan.baselineOverlay).withoutEntries(plan.prunedPaths)
     if (updated != current) {
-      reconcilePorts.baselineManifestPersistencePort.writeBaseline(
+      baselineManifestPersistencePort.writeBaseline(
         WriteBaselineManifestRequest(installHome = home, manifest = updated),
       )
     }
@@ -144,7 +154,7 @@ class InstallService(
   }
 
   fun discoverPlatformPackSlugs(request: InstallPlanRequest): Set<String> =
-    planningPorts.planningFactsPort
+    planningFactsPort
       .collectPlanningFacts(InstallPlanningFactsRequest(request))
       .facts
       .platformManifests

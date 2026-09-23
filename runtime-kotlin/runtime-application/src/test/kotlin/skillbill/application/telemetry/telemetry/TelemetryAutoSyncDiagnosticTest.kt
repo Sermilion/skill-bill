@@ -112,7 +112,7 @@ class TelemetryAutoSyncDiagnosticTest {
     return TelemetryService(
       database = database,
       settingsProvider = settingsProvider,
-      telemetryClient = FailingTelemetryClient(),
+      telemetryClient = FailingTelemetryRelay(),
       clock = Clock.fixed(Instant.parse("2026-09-15T10:00:00Z"), ZoneOffset.UTC),
       levelMutationService =
         TelemetryLevelMutationService(
@@ -142,7 +142,7 @@ private class RecordingDiagnostics : RuntimeDiagnostics {
   ) = Unit
 }
 
-private class FailingTelemetryClient : TelemetryClient {
+private class FailingTelemetryRelay : TelemetryClient {
   override fun sendBatch(
     settings: TelemetrySettings,
     rows: List<TelemetryOutboxRecord>,

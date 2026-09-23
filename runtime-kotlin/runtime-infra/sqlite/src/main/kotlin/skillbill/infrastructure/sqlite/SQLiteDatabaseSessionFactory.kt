@@ -19,6 +19,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.SQLException
 import java.time.Clock
+import kotlin.coroutines.cancellation.CancellationException
 
 @Inject
 class SQLiteDatabaseSessionFactory(
@@ -81,10 +82,15 @@ class SQLiteDatabaseSessionFactory(
       }
     }
 
-  override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T =
-    withWriteDatabase { openDb ->
-      block(unitOfWork(openDb))
+  override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
+    repeat(DatabaseRuntime.SELF_MANAGED_WRITE_BUSY_ATTEMPTS - 1) {
+      val outcome = runCatching { withWriteDatabase { openDb -> block(unitOfWork(openDb)) } }
+      val error = outcome.exceptionOrNull() ?: return outcome.getOrThrow()
+      error.rethrowIfCooperativeCancellationOrInterruption()
+      if (!error.isSqliteBusy()) throw error
     }
+    return withWriteDatabase { openDb -> block(unitOfWork(openDb)) }
+  }
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T =
     withWriteDatabase { openDb ->
@@ -116,6 +122,19 @@ class SQLiteDatabaseSessionFactory(
     }
   }
 }
+
+private fun Throwable.rethrowIfCooperativeCancellationOrInterruption() {
+  when (this) {
+    is CancellationException -> throw this
+    is InterruptedException -> throw this
+  }
+}
+
+private fun Throwable.isSqliteBusy(): Boolean =
+  generateSequence(this) { it.cause }.any { error ->
+    val message = error.message.orEmpty()
+    message.contains("SQLITE_BUSY", ignoreCase = true) || message.contains("database is locked", ignoreCase = true)
+  }
 
 private fun throwReadFailure(
   dbPath: Path,

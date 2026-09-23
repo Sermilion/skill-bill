@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.core.code.review.runner
+import me.tatarka.inject.annotations.Inject
 import skillbill.application.getOrElseUnlessCooperative
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.review.model.ParallelCodeReviewRequest
@@ -39,12 +40,13 @@ import skillbill.review.context.model.packet.asFailedLaneRun
 import skillbill.review.model.ReviewEvidenceBoundaryAccounting
 import java.nio.file.Path
 
-internal class ParallelCodeReviewRunnerLaneLaunch(
+@Inject
+class ParallelCodeReviewRunnerLaneLaunch(
   private val parentReviewLauncher: GoalRunnerSubtaskLauncher,
   private val reviewEvidenceBrokerFactory: ReviewEvidenceBrokerFactory,
   private val governedEvidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder,
   private val reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort,
-  val sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
+  private val sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
   private val failureAdmission: ParallelCodeReviewRunnerFailureAdmission,
   private val activityStampWriter: AgentActivityStampWriter,
 ) {
@@ -263,10 +265,11 @@ internal class ParallelCodeReviewRunnerLaneLaunch(
     )
   }
 
-  fun parentEvidenceBroker(
+  private fun parentEvidenceBroker(
     selected: List<ReviewSpecialistLaunchRequest>,
     repoRoot: Path,
-  ): ReviewEvidenceBroker = reviewEvidenceBrokerFactory.brokerFor(parentBrokerBinding(selected, repoRoot))
+  ): ReviewEvidenceBroker =
+    reviewEvidenceBrokerFactory.brokerFor(parentBrokerBinding(selected, repoRoot, sharedEvidenceLocatorReader))
 }
 
 internal fun unsupportedParentOutcome(
@@ -318,7 +321,7 @@ internal fun inlineParentAccounting(
   unreviewedUnits = completionState.unreviewedUnits,
 )
 
-internal fun ParallelCodeReviewRunnerLaneLaunch.mergedBudget(
+private fun mergedBudget(
   selected: List<ReviewSpecialistLaunchRequest>,
 ): ReviewContextBudgetPolicy {
   val primary = selected.minByOrNull { it.assignment.laneDecision.orderIndex } ?: selected.first()
@@ -329,7 +332,7 @@ internal fun ParallelCodeReviewRunnerLaneLaunch.mergedBudget(
   )
 }
 
-internal fun ParallelCodeReviewRunnerLaneLaunch.mergedBundle(
+private fun mergedBundle(
   packet: ReviewContextPacket,
   assignedHunks: Set<String>,
 ): ReviewLaneBundle =
@@ -341,12 +344,13 @@ internal fun ParallelCodeReviewRunnerLaneLaunch.mergedBundle(
     },
   )
 
-internal fun ParallelCodeReviewRunnerLaneLaunch.parentBrokerBinding(
+private fun parentBrokerBinding(
   selected: List<ReviewSpecialistLaunchRequest>,
   repoRoot: Path,
+  locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
 ): ReviewEvidenceBrokerBinding {
   val primary = selected.minByOrNull { it.assignment.laneDecision.orderIndex } ?: selected.first()
-  if (selected.size == 1) return brokerBinding(primary, repoRoot)
+  if (selected.size == 1) return brokerBinding(primary, repoRoot, locatorReader)
   val assignedPaths = selected.flatMap { it.assignment.assignedPaths }.distinct()
   val assignedHunks = selected.flatMap { it.assignment.assignedHunks }.distinct()
   val expansions = selected.flatMap { it.assignment.expansions }.distinctBy { it.expansionId }
@@ -374,14 +378,15 @@ internal fun ParallelCodeReviewRunnerLaneLaunch.parentBrokerBinding(
     namedDependencies = selected.flatMap { it.namedDependencies }.toSet(),
     trustedExpansionLedger = expansions,
     projectedHunks = primary.packet.changedHunks.filter { it.hunkId in assigned },
-    locatorReader = sharedEvidenceLocatorReader,
+    locatorReader = locatorReader,
     bodyExtractor = ReviewLocatorHunkBodyExtractor,
   )
 }
 
-internal fun ParallelCodeReviewRunnerLaneLaunch.brokerBinding(
+private fun brokerBinding(
   launch: ReviewSpecialistLaunchRequest,
   repoRoot: Path,
+  locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
 ): ReviewEvidenceBrokerBinding {
   val assigned = launch.assignment.assignedHunks.toSet()
   return ReviewEvidenceBrokerBinding(
@@ -392,7 +397,7 @@ internal fun ParallelCodeReviewRunnerLaneLaunch.brokerBinding(
     namedDependencies = launch.namedDependencies,
     trustedExpansionLedger = launch.assignment.expansions,
     projectedHunks = launch.packet.changedHunks.filter { it.hunkId in assigned },
-    locatorReader = sharedEvidenceLocatorReader,
+    locatorReader = locatorReader,
     bodyExtractor = ReviewLocatorHunkBodyExtractor,
   )
 }

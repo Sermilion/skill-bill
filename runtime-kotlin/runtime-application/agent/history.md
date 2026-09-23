@@ -1,3 +1,14 @@
+## [2026-09-23] SKILL-370 subtask 1 — Container wiring and adapter boundaries
+Areas: runtime-application/{review/parallel,install,workflow,idestatus,updatecheck,diagnostics}, runtime-cli/workflow, runtime-mcp/workflow, runtime-infra/{sqlite,http}, runtime-ports, runtime-core/di
+- Parameter-bag wiring removed: `ParallelCodeReviewRunnerBoundaries`, `ParallelCodeReviewRunnerComposition`, `InstallPlanningPorts`, and `InstallReconcilePorts` are deleted; review collaborators and `InstallService` are `@Inject` classes whose constructors list only what they read.
+- Pattern: prefer direct `@Inject` constructor dependencies over bag or composition types; `InjectConstructorDefaultsArchitectureTest` now also fails any runtime-application `@Inject` class with a non-private constructor property (baseline empty), and the composition-root source-shape test is gone. reusable
+- Adapter concerns left the application layer: SQLite busy-write retry lives in `SQLiteDatabaseSessionFactory` (3 attempts, `SelfManagedWriteBusyRetry` deleted), GitHub release fetching moved behind `ReleaseCatalogPort` with `GitHubReleaseCatalogAdapter` in runtime-infra/http, and `AgentActivityStampWriter` takes an injected `TimeSource` instead of `System.nanoTime()`.
+- Namespace hygiene: no runtime-application type or file name contains `Cli`; rejected-output diagnostics moved to `RejectedOutputDiagnosticInspection` with CLI formatting owned by runtime-cli. `WorkflowService` exposes no public dependency property, and CLI/MCP adapters no longer call `goalObservabilityLatestEventFromArtifacts`.
+- Tests: `ReviewRecordingHarness` builds collaborators through a public `parallelCodeReviewRunnerOf` testFixtures function shared with `ParallelCodeReviewRunnerTest`; GitHub mapping cases moved to `GitHubReleaseCatalogAdapterTest`; new sqlite busy-retry case and an update-check malformed-entry case via a substituted port.
+- Limitation: application test fakes now raise "self-managed write lock contended" so runtime-application source is free of `SQLITE_BUSY` / `database is locked`; engine reason-text checks are untouched.
+Feature flag: N/A
+Acceptance criteria: 11/11 implemented (validate phase owns pack gate and targeted module test runs)
+
 ## [2026-09-16] SKILL-347 subtask 3 — Review composition and stateless use cases
 Areas: runtime-application/{review,telemetry/config,featurespec,updatecheck}, runtime-core/architecture
 - Before: runner unwrapped dual boundary bags and rebuilt planning, lane launch, result assembly, and verification; duplicate launcher and evidence-locator bindings; mutable update-check parser flags; unused `TelemetryConfigMutationRuntime`, `ReviewCommitSequenceResolver`, and `TelemetryConfigRuntime` forwarding; test-only feature-preparation aliases.

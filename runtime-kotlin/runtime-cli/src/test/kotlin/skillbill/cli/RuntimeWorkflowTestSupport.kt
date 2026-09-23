@@ -41,8 +41,7 @@ internal object RuntimeWorkflowTestSupport {
           kind = WorkflowFamilyKind.TASK_RUNTIME,
         ),
       )
-    return assertIs<WorkflowOpenResult.Ok>(result)
-      .toCliMap(service.goalObservabilityEventValidator)
+    return assertIs<WorkflowOpenResult.Ok>(result).toCliMap()
   }
 
   data class UpdateArgs(
@@ -82,7 +81,7 @@ internal object RuntimeWorkflowTestSupport {
   ): Map<String, Any?> {
     val service = component(context, dbPath).workflowService
     val result = service.get(WorkflowFamilyKind.TASK_RUNTIME, workflowId)
-    return assertIs<WorkflowGetResult.Ok>(result).toCliMap(service.goalObservabilityEventValidator)
+    return assertIs<WorkflowGetResult.Ok>(result).toCliMap()
   }
 
   fun continueByIssueKey(

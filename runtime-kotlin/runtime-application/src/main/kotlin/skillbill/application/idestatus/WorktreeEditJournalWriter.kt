@@ -86,7 +86,7 @@ class WorktreeEditJournalWriter(
         entries = persistEntries,
       )
     val droppedRows =
-      database.selfManagedWriteWithBusyRetry { unitOfWork ->
+      database.selfManagedWrite { unitOfWork ->
         unitOfWork.worktreeEditJournal.append(workflowId, tick)
         unitOfWork.worktreeEditJournal.trimToCap(workflowId, maxRows)
       } + truncatedRows

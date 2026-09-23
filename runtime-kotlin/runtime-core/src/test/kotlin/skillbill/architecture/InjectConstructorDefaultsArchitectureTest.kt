@@ -20,6 +20,40 @@ class InjectConstructorDefaultsArchitectureTest {
   }
 
   @Test
+  fun `runtime-application inject classes expose no constructor property`() {
+    val violations =
+      ArchitectureScanSupport.injectConstructorPropertyViolations(
+        baseline = emptySet(),
+        scanRoot = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
+      )
+    assertEquals(emptyList(), violations, violations.joinToString("\n"))
+  }
+
+  @Test
+  fun `inject constructor property scanner reports only non-private properties`() {
+    val source =
+      """
+      package skillbill.example
+
+      import me.tatarka.inject.annotations.Inject
+
+      @Inject
+      class SyntheticExposedService(
+        private val hidden: Clock,
+        plain: RuntimeDiagnostics,
+        val exposed: DatabaseSessionFactory,
+        internal val shared: (String) -> ParallelReviewParseResult,
+      )
+      """.trimIndent()
+    val sites =
+      ArchitectureScanSupport.injectConstructorPropertySitesInSource(
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/SyntheticExposedService.kt",
+        source = source,
+      ).map { site -> "${site.symbol}::${site.parameter}" }
+    assertEquals(listOf("SyntheticExposedService::exposed", "SyntheticExposedService::shared"), sites)
+  }
+
+  @Test
   fun `runtime-cli inject defaults equal the recorded census`() {
     val current =
       ArchitectureScanSupport.injectConstructorDefaultSites(

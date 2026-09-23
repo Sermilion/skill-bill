@@ -3,23 +3,19 @@ package skillbill.cli.workflow
 import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.contracts.JsonCodec
 import skillbill.workflow.engine.model.WorkflowSnapshotView
-import skillbill.workflow.goal.GoalObservabilityEventValidator
-import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
+import skillbill.workflow.goal.model.GoalObservabilityEvent
 
 internal fun workflowSnapshotCliMap(
   snapshot: WorkflowSnapshotView,
-  goalObservabilityEventValidator: GoalObservabilityEventValidator,
+  goalObservability: GoalObservabilityEvent?,
 ): LinkedHashMap<String, Any?> =
   LinkedHashMap(WorkflowWireProjections.snapshotMap(snapshot).toPayload()).apply {
-    goalObservabilitySummaryFromArtifacts(snapshot.artifacts, goalObservabilityEventValidator)?.let { summary ->
+    goalObservabilitySummary(goalObservability)?.let { summary ->
       put("goal_observability", summary)
     }
   }
 
-private fun goalObservabilitySummaryFromArtifacts(
-  artifacts: Map<String, Any?>,
-  goalObservabilityEventValidator: GoalObservabilityEventValidator,
-): Map<String, Any?>? =
-  goalObservabilityLatestEventFromArtifacts(artifacts, goalObservabilityEventValidator)
+private fun goalObservabilitySummary(goalObservability: GoalObservabilityEvent?): Map<String, Any?>? =
+  goalObservability
     ?.toCompactSummaryWire()
     ?.let(JsonCodec::anyToStringAnyMap)

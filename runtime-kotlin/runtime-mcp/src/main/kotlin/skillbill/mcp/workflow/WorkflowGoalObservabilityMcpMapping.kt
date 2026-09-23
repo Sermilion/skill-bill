@@ -5,16 +5,15 @@ import skillbill.contracts.JsonCodec
 import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.workflow.engine.model.WorkflowSnapshotView
-import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
-import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
+import skillbill.workflow.goal.model.GoalObservabilityEvent
 
 internal fun workflowSnapshotMcpMap(
   snapshot: WorkflowSnapshotView,
-  goalObservabilityEventValidator: GoalObservabilityEventValidator,
+  goalObservability: GoalObservabilityEvent?,
 ): LinkedHashMap<String, Any?> =
   LinkedHashMap(WorkflowWireProjections.snapshotMap(snapshot).toPayload()).apply {
-    goalObservabilitySummaryFromArtifacts(snapshot.artifacts, goalObservabilityEventValidator)?.let { summary ->
+    goalObservabilitySummary(goalObservability)?.let { summary ->
       put("goal_observability", summary)
     }
     (snapshot.artifacts[GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY] as? Map<*, *>)?.let { event ->
@@ -36,10 +35,7 @@ internal fun GoalPlanningStatusSnapshot.toMcpMap(): Map<String, Any?> =
     "reason" to reason,
   )
 
-private fun goalObservabilitySummaryFromArtifacts(
-  artifacts: Map<String, Any?>,
-  goalObservabilityEventValidator: GoalObservabilityEventValidator,
-): Map<String, Any?>? =
-  goalObservabilityLatestEventFromArtifacts(artifacts, goalObservabilityEventValidator)
+private fun goalObservabilitySummary(goalObservability: GoalObservabilityEvent?): Map<String, Any?>? =
+  goalObservability
     ?.toCompactSummaryWire()
     ?.let(JsonCodec::anyToStringAnyMap)

@@ -40,7 +40,7 @@ class TelemetryOutboxDrainClaimClockTest {
     syncTelemetry(
       settings,
       repository,
-      AcceptingTelemetryClient(),
+      AcceptingTelemetryRelay(),
       nowSupplier = {
         val current = now
         now = now.plusSeconds(120)
@@ -131,7 +131,7 @@ private object NoopInterruptSignalPort : InterruptSignalPort {
   override fun restore() = Unit
 }
 
-private class AcceptingTelemetryClient : TelemetryClient {
+private class AcceptingTelemetryRelay : TelemetryClient {
   override fun sendBatch(
     settings: TelemetrySettings,
     rows: List<TelemetryOutboxRecord>,

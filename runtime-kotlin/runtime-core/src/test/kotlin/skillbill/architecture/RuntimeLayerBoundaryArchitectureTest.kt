@@ -467,45 +467,6 @@ class RuntimeLayerBoundaryArchitectureTest {
   }
 
   @Test
-  fun `parallel review composition root owns collaborator wiring`() {
-    val runnerSource =
-      Files.readString(
-        sourcePath("skillbill/application/review/parallel/core/code/review/runner/ParallelCodeReviewRunner.kt"),
-      )
-    val compositionSource =
-      Files.readString(
-        sourcePath(
-          "skillbill/application/review/parallel/core/code/review/runner/ParallelCodeReviewRunnerComposition.kt",
-        ),
-      )
-    val boundariesSource =
-      Files.readString(
-        sourcePath(
-          "skillbill/application/review/parallel/core/code/review/runner/model/" +
-            "ParallelCodeReviewRunnerBoundaries.kt",
-        ),
-      )
-    assertTrue(
-      !runnerSource.contains("ParallelCodeReviewRunnerBoundaries"),
-      "ParallelCodeReviewRunner must not unwrap boundary bags or rebuild the collaborator graph.",
-    )
-    assertTrue(
-      "ParallelCodeReviewRunnerPlanningBoundaries" !in boundariesSource &&
-        "ParallelCodeReviewRunnerLaneLaunchBoundaries" !in boundariesSource,
-      "The review composition must not retain the two copied boundary groups.",
-    )
-    assertTrue(
-      "interface " !in compositionSource && "data class " !in compositionSource,
-      "The composition root must not become a replacement role interface or dependency bag.",
-    )
-    assertContains(compositionSource, "private val failureAdmission")
-    assertContains(compositionSource, "internal val planning")
-    assertContains(compositionSource, "ParallelCodeReviewRunnerLaneLaunch(")
-    assertContains(compositionSource, "parentReviewLauncher = boundaries.parentReviewLauncher")
-    assertContains(compositionSource, "sharedEvidenceLocatorReader = boundaries.sharedEvidenceLocatorReader")
-  }
-
-  @Test
   fun `retired review and telemetry adapters stay absent from production main`() {
     val retiredProductionPaths =
       listOf(

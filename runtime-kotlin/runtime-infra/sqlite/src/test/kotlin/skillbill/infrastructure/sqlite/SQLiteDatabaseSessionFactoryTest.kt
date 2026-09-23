@@ -45,6 +45,33 @@ class SQLiteDatabaseSessionFactoryTest {
   }
 
   @Test
+  fun `self-managed write retries a busy failure and does not retry other failures`() {
+    val tempDir = Files.createTempDirectory("skillbill-self-managed-busy")
+    val database = boundDatabase(tempDir, tempDir.resolve("metrics.db"))
+    var busyCalls = 0
+
+    val result =
+      database.selfManagedWrite {
+        busyCalls += 1
+        if (busyCalls == 1) throw SQLException("[SQLITE_BUSY] The database file is locked (database is locked)")
+        "written"
+      }
+
+    var otherCalls = 0
+    val error =
+      assertFailsWith<IllegalStateException> {
+        database.selfManagedWrite {
+          otherCalls += 1
+          error("constraint violated")
+        }
+      }
+    assertEquals("written", result)
+    assertEquals(2, busyCalls)
+    assertEquals(1, otherCalls)
+    assertEquals("constraint violated", error.message)
+  }
+
+  @Test
   fun `repository SQLException inside transaction is typed and rolls back prior repository writes`() {
     val tempDir = Files.createTempDirectory("skillbill-repository-write-sql")
     val dbPath = tempDir.resolve("metrics.db")

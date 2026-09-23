@@ -52,10 +52,12 @@ import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactV
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.nio.file.Path
 import java.time.Clock
+import kotlin.time.TimeSource
 
 internal fun testActivityStampWriter(
   database: DatabaseSessionFactory = TestGoalActivityStampDatabase,
-): AgentActivityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics)
+): AgentActivityStampWriter =
+  AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics, TimeSource.Monotonic)
 
 internal fun testWorktreeEditJournalWriter(
   database: DatabaseSessionFactory = TestGoalActivityStampDatabase,

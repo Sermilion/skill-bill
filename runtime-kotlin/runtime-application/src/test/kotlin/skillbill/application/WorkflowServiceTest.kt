@@ -684,6 +684,7 @@ class WorkflowServiceTest {
         clock = Clock.systemUTC(),
       )
     val opened = assertIs<WorkflowOpenResult.Ok>(service.openTestRuntime("ftr-001"))
+    assertNull(opened.goalObservability)
 
     val updated =
       service.update(
@@ -730,6 +731,10 @@ class WorkflowServiceTest {
         service.get(WorkflowFamilyKind.TASK_RUNTIME, opened.workflowId),
       )
     assertPersistedProgressEventArtifacts(persisted, opened.workflowId)
+    val decoded = assertNotNull(persisted.goalObservability)
+    assertEquals("implement", decoded.workflowPhase)
+    assertEquals(7, decoded.sequenceNumber)
+    assertEquals(opened.workflowId, decoded.workflowId)
   }
 
   private fun newService(): WorkflowService {

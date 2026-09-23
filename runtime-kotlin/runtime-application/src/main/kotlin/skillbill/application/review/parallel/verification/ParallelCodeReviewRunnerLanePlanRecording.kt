@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.verification
+import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
 import skillbill.application.review.parallel.core.code.review.runner.parallelCodeReviewGovernedLaunchFor
 import skillbill.application.review.parallel.planning.PlannedReviewRubric
@@ -15,11 +16,12 @@ import skillbill.review.model.ReviewStageBoundary
 import skillbill.review.model.ReviewStageReached
 import java.time.Clock
 
-internal class ParallelCodeReviewRunnerLanePlanRecording(
+@Inject
+class ParallelCodeReviewRunnerLanePlanRecording(
   private val runtimeOwnedPersistence: RuntimeOwnedPersistenceBoundary,
   private val clock: Clock,
 ) {
-  fun recordSpecIntent(
+  internal fun recordSpecIntent(
     reviewRunId: String?,
     resolution: SpecIntentResolution,
   ) {
@@ -52,7 +54,7 @@ internal class ParallelCodeReviewRunnerLanePlanRecording(
     }
   }
 
-  fun selectLaunchesForResume(
+  internal fun selectLaunchesForResume(
     reviewRunId: String?,
     launches: List<ReviewSpecialistLaunchRequest>,
   ): List<ReviewSpecialistLaunchRequest> {
@@ -73,7 +75,7 @@ internal class ParallelCodeReviewRunnerLanePlanRecording(
     }
   }
 
-  fun recordPlannedLanes(
+  internal fun recordPlannedLanes(
     reviewRunId: String?,
     plannedRubrics: List<PlannedReviewRubric>,
     launches: List<ReviewSpecialistLaunchRequest>,

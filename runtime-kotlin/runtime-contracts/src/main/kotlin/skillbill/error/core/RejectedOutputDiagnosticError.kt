@@ -23,7 +23,8 @@ sealed class RejectedOutputDiagnosticError(
 
   class Retrieval(
     reason: String,
-  ) : RejectedOutputDiagnosticError("Rejected output diagnostic retrieval failed: $reason")
+    cause: Throwable? = null,
+  ) : RejectedOutputDiagnosticError("Rejected output diagnostic retrieval failed: $reason", cause)
 
   class InvalidRequest(reason: String) :
     RejectedOutputDiagnosticError("Rejected output diagnostic request is invalid: $reason")

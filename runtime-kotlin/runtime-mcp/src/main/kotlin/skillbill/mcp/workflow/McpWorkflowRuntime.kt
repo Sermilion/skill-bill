@@ -90,7 +90,7 @@ internal object McpWorkflowRuntime {
           ),
         )
       }
-    return open.toMcpMap(runtimeServices.workflowService.goalObservabilityEventValidator)
+    return open.toMcpMap()
   }
 
   fun update(
@@ -111,8 +111,7 @@ internal object McpWorkflowRuntime {
     component: McpComponent,
   ): Map<String, Any?> {
     val runtimeServices = component
-    return runtimeServices.workflowService.get(kind, workflowId)
-      .toMcpMap(runtimeServices.workflowService.goalObservabilityEventValidator)
+    return runtimeServices.workflowService.get(kind, workflowId).toMcpMap()
   }
 
   fun list(

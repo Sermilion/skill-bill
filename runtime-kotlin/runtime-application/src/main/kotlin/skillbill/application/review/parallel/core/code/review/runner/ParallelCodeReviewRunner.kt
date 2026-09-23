@@ -3,10 +3,14 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.application.review.model.ReviewWorkerKind
+import skillbill.application.review.parallel.planning.ParallelCodeReviewRunnerPlanning
 import skillbill.application.review.parallel.planning.hasSuppliedDiff
 import skillbill.application.review.parallel.planning.resolveDiff
 import skillbill.application.review.parallel.planning.resolveReviewRevisions
+import skillbill.application.review.parallel.verification.ParallelCodeReviewRunnerVerificationStages
 import skillbill.application.reviewevidence.model.ParallelReviewScope
+import skillbill.application.runtimepersistence.RuntimeOwnedPersistenceBoundary
+import skillbill.ports.review.launch.ReviewNativeAgentPreflightPort
 import skillbill.ports.review.model.ReviewAccountingRecord
 import skillbill.ports.review.model.ReviewNativeAgentPreflightRequest
 import skillbill.review.context.model.execution.ResolvedReviewExecutionMode
@@ -14,15 +18,13 @@ import skillbill.review.parallel.ParallelReviewMerger
 
 @Inject
 class ParallelCodeReviewRunner(
-  composition: ParallelCodeReviewRunnerComposition,
+  private val planning: ParallelCodeReviewRunnerPlanning,
+  private val laneLaunch: ParallelCodeReviewRunnerLaneLaunch,
+  private val resultAssembly: ParallelCodeReviewRunnerResultAssembly,
+  private val verificationStages: ParallelCodeReviewRunnerVerificationStages,
+  private val runtimeOwnedPersistence: RuntimeOwnedPersistenceBoundary,
+  private val nativeAgentPreflight: ReviewNativeAgentPreflightPort,
 ) {
-  private val planning = composition.planning
-  private val laneLaunch = composition.laneLaunch
-  private val resultAssembly = composition.resultAssembly
-  private val verificationStages = composition.verificationStages
-  private val runtimeOwnedPersistence = composition.runtimeOwnedPersistence
-  private val nativeAgentPreflight = composition.nativeAgentPreflight
-
   fun run(originalRequest: ParallelCodeReviewRequest): ParallelCodeReviewResult {
     earlyEmptyDelta(originalRequest)?.let { return it }
     val initial = planning.prepareInitialRun(originalRequest)

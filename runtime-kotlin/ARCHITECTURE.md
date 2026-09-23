@@ -1563,7 +1563,7 @@ closure assertion is the guard that any command area builds and tests alone.
 `RuntimeCliAreaIsolationArchitectureTest` also rejects `featuretask` production
 sources that construct `RejectedOutputDiagnosticService` or call
 `unitOfWork.diagnosticService`; rejected-output CLI routes through
-`RejectedOutputDiagnosticCliSession` in `runtime-application` instead. The
+`RejectedOutputDiagnosticInspection` in `runtime-application` instead. The
 scanner does not treat Clikt `.default(".")` on `--repo-root` as equivalent to
 `Path.of("")`; omitted roots resolve through `resolveCliRepositoryRoot` and
 `CliRunInputs.repositoryRoot`.

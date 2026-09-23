@@ -4,12 +4,17 @@ import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
+import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
+import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 import java.nio.file.Files
+import java.nio.file.Path
 import java.time.Clock
+import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 
 class RejectedOutputCliRuntimeTest {
@@ -84,5 +89,97 @@ class RejectedOutputCliRuntimeTest {
     assertContentEquals(raw, requireNotNull(result.rawStdout))
     assertEquals("", result.stdout)
     assertFalse(result.stdout.contains("Usage"))
+  }
+
+  @Test
+  fun `rejected-output metadata listing prints one escaped safe line per diagnostic`() {
+    val home = Files.createTempDirectory("skillbill-rejected-metadata")
+    val db = home.resolve("metrics.db")
+    val recorded =
+      recordDiagnostics(home, db, "wf-meta", reason = "bad \"status\"\nnext", repairTurns = listOf(0)).single()
+
+    val result =
+      CliRuntime.run(
+        listOf("--db", db.toString(), "feature-task", "rejected-output", "--workflow", "wf-meta"),
+        CliRuntimeContext(userHome = home, environment = emptyMap()),
+      )
+
+    assertEquals(0, result.exitCode)
+    assertEquals(
+      "identity=\"${recorded.identity}\" workflow=\"wf-meta\" phase=\"implement\" attempt=1 repair_turn=0 " +
+        "rule=\"schema\" path=\"\$.status\" reason=\"bad \\\"status\\\"\\nnext\" agent=\"codex\" model=\"gpt\" " +
+        "recorded_at=${recorded.recordedAt} byte_size=5 sha256=${recorded.sha256} lifecycle=stored\n",
+      result.stdout,
+    )
+  }
+
+  @Test
+  fun `rejected-output raw retrieval across repair turns names the repair-turn selector`() {
+    val home = Files.createTempDirectory("skillbill-rejected-ambiguous")
+    val db = home.resolve("metrics.db")
+    recordDiagnostics(home, db, "wf-turns", reason = "invalid", repairTurns = listOf(1, 2))
+
+    val error =
+      assertFailsWith<RejectedOutputDiagnosticError.Retrieval> {
+        CliRuntime.run(
+          listOf(
+            "--db",
+            db.toString(),
+            "feature-task",
+            "rejected-output",
+            "--workflow",
+            "wf-turns",
+            "--phase",
+            "implement",
+            "--attempt",
+            "1",
+            "--raw-output",
+          ),
+          CliRuntimeContext(userHome = home, environment = emptyMap()),
+        )
+      }
+
+    assertEquals(
+      "Rejected output diagnostic retrieval failed: raw output requires a selector resolving to exactly one " +
+        "diagnostic; an attempt that ran a validation-gate repair cycle holds one per repair turn, " +
+        "so add --repair-turn (the metadata listing prints each turn)",
+      error.message,
+    )
+  }
+
+  private fun recordDiagnostics(
+    home: Path,
+    db: Path,
+    workflowId: String,
+    reason: String,
+    repairTurns: List<Int>,
+  ): List<RejectedOutputDiagnostic> {
+    val database =
+      sqliteDatabaseSessionFactory(userHome = home, dbPathOverride = db.toString(), environment = emptyMap())
+    return database.transaction { unitOfWork ->
+      val service =
+        RejectedOutputDiagnosticService(
+          repository = requireNotNull(unitOfWork.rejectedOutputDiagnostics),
+          permissions = requireNotNull(unitOfWork.rejectedOutputDiagnosticPermissions),
+          metadataValidator = { },
+          clock = Clock.tick(Clock.systemUTC(), Duration.ofSeconds(1)),
+        )
+      repairTurns.map { repairTurn ->
+        service.record(
+          RejectedOutputDiagnosticRequest(
+            workflowId = workflowId,
+            phaseId = "implement",
+            attempt = 1,
+            rule = "schema",
+            path = "$.status",
+            reason = reason,
+            agentId = "codex",
+            model = "gpt",
+            rawResponse = byteArrayOf(1, 2, 3, 4, 5),
+            repairTurn = repairTurn,
+          ),
+        )
+      }
+    }
   }
 }
