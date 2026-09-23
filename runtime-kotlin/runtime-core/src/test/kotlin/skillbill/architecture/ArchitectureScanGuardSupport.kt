@@ -15,6 +15,12 @@ private val NON_PRIVATE_PROPERTY_DEFAULT_PATTERN =
     """^\s*(?:@\w+\s+)*(?:(?:$NON_PRIVATE_PROPERTY_MODIFIERS)\s+)*(?:val|var)\s+""" +
       """([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^=]*)?=""",
   )
+private const val CONSTRUCTOR_PROPERTY_MODIFIERS = "public|internal|protected|private|open|override|final"
+private val CONSTRUCTOR_PROPERTY_PATTERN =
+  Regex(
+    """^(?:@[\w.]+(?:\([^)]*\))?\s+)*((?:(?:$CONSTRUCTOR_PROPERTY_MODIFIERS)\s+)*)(?:val|var)\s+""" +
+      """([A-Za-z_][A-Za-z0-9_]*)""",
+  )
 private val CLASS_HEADER_TERMINATOR = Regex("""\n\s*\n|\}|\b(?:class|object|interface|fun|typealias)\b""")
 
 private val AMBIENT_CLOCK_FORMS: List<Pair<Regex, String>> =
@@ -324,6 +330,56 @@ fun ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
     }
   }
   return sites
+}
+
+fun ArchitectureScanSupport.injectConstructorPropertySites(
+  scanRoot: String = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
+): List<ArchitectureScanSupport.InjectConstructorDefaultSite> =
+  kotlinFilesUnder(runtimeRoot.resolve(scanRoot))
+    .flatMap { sourceFile ->
+      val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+      injectConstructorPropertySitesInSource(relativePath, sourceFile.readText())
+    }
+    .sortedWith(compareBy({ it.relativePath }, { it.symbol }, { it.parameter }))
+
+fun ArchitectureScanSupport.injectConstructorPropertyViolations(
+  baseline: Set<String>,
+  scanRoot: String = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
+): List<String> {
+  val current =
+    injectConstructorPropertySites(scanRoot)
+      .map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
+      .toSet()
+  return (current - baseline).sorted().map { site ->
+    "$site is a non-private constructor property on an @Inject class."
+  }
+}
+
+fun ArchitectureScanSupport.injectConstructorPropertySitesInSource(
+  relativePath: String,
+  source: String,
+): List<ArchitectureScanSupport.InjectConstructorDefaultSite> {
+  if (!INJECT_ANNOTATION_PATTERN.containsMatchIn(source)) return emptyList()
+  val scannable = sourceWithoutCommentsOrLiterals(source)
+  return INJECT_TYPE_PATTERN.findAll(scannable).flatMap { match ->
+    val headerEnd = afterClassTypeParameters(scannable, match.range.last + 1)
+    val constructor =
+      if (scannable.getOrNull(headerEnd) == '(') extractBalanced(scannable, headerEnd, '(', ')') else null
+    nonPrivateConstructorProperties(constructor.orEmpty()).map { parameter ->
+      ArchitectureScanSupport.InjectConstructorDefaultSite(relativePath, match.groupValues[1], parameter)
+    }
+  }.toList()
+}
+
+private fun nonPrivateConstructorProperties(constructorBody: String): List<String> {
+  val inner = constructorBody.trim().removePrefix("(").removeSuffix(")").replace("->", "~~")
+  if (inner.isBlank()) return emptyList()
+  return splitTopLevelParameters(inner).mapNotNull { parameter ->
+    CONSTRUCTOR_PROPERTY_PATTERN.find(parameter)
+      ?.takeUnless { match -> "private" in match.groupValues[1].split(Regex("""\s+""")) }
+      ?.groupValues
+      ?.get(2)
+  }
 }
 
 private fun afterClassTypeParameters(

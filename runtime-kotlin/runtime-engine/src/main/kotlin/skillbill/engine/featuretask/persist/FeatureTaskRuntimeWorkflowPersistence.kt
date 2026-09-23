@@ -1,7 +1,6 @@
 package skillbill.engine.featuretask.persist
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStepWireUpdate
@@ -12,6 +11,7 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord

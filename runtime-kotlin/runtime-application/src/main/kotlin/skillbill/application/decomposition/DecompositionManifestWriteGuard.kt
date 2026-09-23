@@ -6,7 +6,7 @@ import skillbill.workflow.decomposition.runtime.DECOMPOSITION_MANIFEST_PROJECTIO
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
 
-object DecompositionManifestWriteGuard {
+internal object DecompositionManifestWriteGuard {
   fun requireWritten(
     outcome: DecompositionManifestProjectionOutcome,
     failureDetail: String,

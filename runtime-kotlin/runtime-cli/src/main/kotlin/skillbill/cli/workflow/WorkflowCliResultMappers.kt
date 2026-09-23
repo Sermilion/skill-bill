@@ -7,14 +7,11 @@ import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowResumeResult
 import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.workflow.goal.GoalObservabilityEventValidator
 
-internal fun WorkflowOpenResult.toCliMap(
-  goalObservabilityEventValidator: GoalObservabilityEventValidator,
-): Map<String, Any?> =
+internal fun WorkflowOpenResult.toCliMap(): Map<String, Any?> =
   when (this) {
     is WorkflowOpenResult.Ok ->
-      workflowSnapshotCliMap(snapshot, goalObservabilityEventValidator).apply {
+      workflowSnapshotCliMap(snapshot, goalObservability).apply {
         launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload()) }
         put(SharedPayloadKeys.STATUS, "ok")
         put("db_path", dbPath)
@@ -27,12 +24,10 @@ internal fun WorkflowOpenResult.toCliMap(
       )
   }
 
-internal fun WorkflowGetResult.toCliMap(
-  goalObservabilityEventValidator: GoalObservabilityEventValidator,
-): Map<String, Any?> =
+internal fun WorkflowGetResult.toCliMap(): Map<String, Any?> =
   when (this) {
     is WorkflowGetResult.Ok ->
-      workflowSnapshotCliMap(snapshot, goalObservabilityEventValidator).apply {
+      workflowSnapshotCliMap(snapshot, goalObservability).apply {
         put(SharedPayloadKeys.STATUS, "ok")
         put("db_path", dbPath)
       }

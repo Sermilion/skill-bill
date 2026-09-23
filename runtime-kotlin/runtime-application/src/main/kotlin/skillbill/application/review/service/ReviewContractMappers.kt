@@ -49,7 +49,7 @@ internal fun classifyReviewOutput(
   )
 }
 
-fun ImportedReview.toReviewPreviewResult(): ReviewPreviewResult =
+internal fun ImportedReview.toReviewPreviewResult(): ReviewPreviewResult =
   ReviewPreviewResult(
     reviewRunId = reviewRunId,
     reviewSessionId = reviewSessionId,
@@ -60,7 +60,7 @@ fun ImportedReview.toReviewPreviewResult(): ReviewPreviewResult =
     executionMode = executionMode,
   )
 
-fun ImportedReview.toImportedReviewResult(dbPath: String): ImportedReviewResult =
+internal fun ImportedReview.toImportedReviewResult(dbPath: String): ImportedReviewResult =
   ImportedReviewResult(dbPath = dbPath, preview = toReviewPreviewResult())
 
 fun ReviewPreviewResult.toReviewPreviewContract(): ReviewPreviewContract =
@@ -77,7 +77,7 @@ fun ReviewPreviewResult.toReviewPreviewContract(): ReviewPreviewContract =
 fun ImportedReviewResult.toImportedReviewContract(): ImportedReviewContract =
   ImportedReviewContract(dbPath = dbPath, review = preview.toReviewPreviewContract())
 
-fun NumberedFinding.toNumberedFindingContract(): NumberedFindingContract =
+internal fun NumberedFinding.toNumberedFindingContract(): NumberedFindingContract =
   NumberedFindingContract(
     number = number,
     findingId = findingId,
@@ -97,7 +97,7 @@ fun NumberedFinding.toNumberedFindingContract(): NumberedFindingContract =
       },
   )
 
-fun TriageDecision.toTriageDecisionContract(): TriageDecisionContract =
+internal fun TriageDecision.toTriageDecisionContract(): TriageDecisionContract =
   TriageDecisionContract(
     number = number,
     findingId = findingId,

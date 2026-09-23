@@ -1,5 +1,6 @@
 package skillbill.application.runtimepersistence
 
+import me.tatarka.inject.annotations.Inject
 import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
 import skillbill.error.core.SkillBillRuntimeException
 import skillbill.ports.db.DatabaseSessionFactory
@@ -11,6 +12,7 @@ class RuntimeOwnedFactUnavailable(
   cause: Throwable? = null,
 ) : SkillBillRuntimeException(message, cause)
 
+@Inject
 class RuntimeOwnedPersistenceBoundary(
   private val database: DatabaseSessionFactory,
   private val diagnostics: RuntimeDiagnostics,

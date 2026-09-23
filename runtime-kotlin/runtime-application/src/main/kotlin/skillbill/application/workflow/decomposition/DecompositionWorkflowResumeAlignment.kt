@@ -202,7 +202,7 @@ fun WorkflowEngine.persistParentDecompositionRuntime(
   )
 }
 
-fun DecompositionManifest.withStartedSubtask(
+internal fun DecompositionManifest.withStartedSubtask(
   subtaskId: Int,
   workflowId: String,
   branch: String,
@@ -225,20 +225,20 @@ fun DecompositionManifest.withStartedSubtask(
       },
   )
 
-fun DecompositionManifest.withCommittedSubtask(
+internal fun DecompositionManifest.withCommittedSubtask(
   subtaskId: Int,
   commitSha: String,
 ): DecompositionManifest =
   copy(subtasks = subtasks.map { if (it.id == subtaskId) it.copy(commitSha = commitSha) else it })
 
-fun DecompositionManifest.branchForSubtask(subtaskId: Int): String =
+internal fun DecompositionManifest.branchForSubtask(subtaskId: Int): String =
   when (executionModel) {
     DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK -> featureBranch.orEmpty()
     DecompositionExecutionModel.STACKED_BRANCHES ->
       stackBranches.firstOrNull { it.subtaskId == subtaskId }?.branch.orEmpty()
   }
 
-fun DecompositionManifest.baseForSubtask(subtaskId: Int): String? =
+internal fun DecompositionManifest.baseForSubtask(subtaskId: Int): String? =
   when (executionModel) {
     DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK -> baseBranch
     DecompositionExecutionModel.STACKED_BRANCHES ->

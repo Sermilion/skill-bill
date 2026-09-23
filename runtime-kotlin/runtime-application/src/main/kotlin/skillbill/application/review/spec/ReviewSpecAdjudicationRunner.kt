@@ -38,7 +38,7 @@ class ReviewSpecAdjudicationRunner(
   private val envelopeValidator: ReviewContextEnvelopeValidator,
   private val clock: Clock,
 ) {
-  fun run(request: ReviewSpecAdjudicationRunRequest): ReviewSpecAdjudicationOutcome {
+  internal fun run(request: ReviewSpecAdjudicationRunRequest): ReviewSpecAdjudicationOutcome {
     if (request.projection == null || request.packet == null) {
       return ReviewSpecAdjudicationOutcome(verdicts = emptyList(), skipReason = SPEC_CONTEXT_NONE)
     }

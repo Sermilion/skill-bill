@@ -40,7 +40,7 @@ import skillbill.review.plan.model.ReviewRoutedLane
 import java.nio.file.Path
 import java.security.MessageDigest
 
-object ParallelReviewPreparationCompiler {
+internal object ParallelReviewPreparationCompiler {
   internal fun compile(
     input: ParallelReviewPreparationInput,
     budget: ReviewContextBudgetPolicy,

@@ -6,7 +6,6 @@ import skillbill.application.telemetry.model.GoalStartedRequest
 import skillbill.application.telemetry.model.GoalSubtaskFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
-import skillbill.application.telemetry.service.normalizedBlockedReason
 import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.contracts.JsonPayloadContract
 import skillbill.ports.db.DatabaseSessionFactory
@@ -14,6 +13,7 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.review.attribution.normalizeStackLabel
 import skillbill.telemetry.model.TelemetrySettings
+import skillbill.workflow.decomposition.runtime.normalizedBlockedReason
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStatus

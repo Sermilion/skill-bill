@@ -1,14 +1,13 @@
 package skillbill.application.decomposition
 
-import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
-import skillbill.application.telemetry.service.normalizedBlockedReason
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.decomposition.runtime.normalizedBlockedReason
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
@@ -22,7 +21,7 @@ private val statusTrackedSteps =
 private val completionSteps = setOf("pr", "pr_description", "finish")
 private val terminalSkippedSteps = setOf("pr", "pr_description", "finish")
 
-fun DecompositionSubtask.withRuntimeFields(
+internal fun DecompositionSubtask.withRuntimeFields(
   manifest: DecompositionManifest,
   update: DecompositionManifestRuntimeUpdate,
   status: String?,
@@ -63,7 +62,7 @@ fun DecompositionSubtask.withRuntimeFields(
   )
 }
 
-fun DecompositionManifest.currentSubtaskIdForUpdate(
+internal fun DecompositionManifest.currentSubtaskIdForUpdate(
   repoRoot: Path,
   update: DecompositionManifestRuntimeUpdate,
 ): Int? {
@@ -77,7 +76,7 @@ fun DecompositionManifest.currentSubtaskIdForUpdate(
   }
 }
 
-fun statusFromUpdate(update: DecompositionManifestRuntimeUpdate): String? {
+internal fun statusFromUpdate(update: DecompositionManifestRuntimeUpdate): String? {
   val stepUpdates = update.stepUpdates?.asEntries().orEmpty()
   val workflowStatus = update.workflowStatus.workflowStatus()
   return when {
@@ -100,39 +99,6 @@ fun statusFromUpdate(update: DecompositionManifestRuntimeUpdate): String? {
       DecompositionStatus.IN_PROGRESS.wireValue
     else -> null
   }
-}
-
-fun intentFor(
-  subtaskId: Int,
-  status: String?,
-): CurrentSubtaskIntent =
-  when (status.decompositionStatus()) {
-    DecompositionStatus.BLOCKED -> CurrentSubtaskIntent(subtaskId = subtaskId, action = "blocked")
-    DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED ->
-      CurrentSubtaskIntent(subtaskId = 0, action = "complete")
-    DecompositionStatus.IN_PROGRESS -> CurrentSubtaskIntent(subtaskId = subtaskId, action = "resume")
-    else -> CurrentSubtaskIntent(subtaskId = subtaskId, action = "start")
-  }
-
-fun DecompositionManifest.withParentStatus(): DecompositionManifest {
-  val parentStatus =
-    when {
-      subtasks.all {
-        it.status.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED)
-      } -> DecompositionStatus.COMPLETE.wireValue
-      subtasks.any { it.status.decompositionStatus() == DecompositionStatus.BLOCKED } ->
-        DecompositionStatus.BLOCKED.wireValue
-      subtasks.any {
-        it.status.decompositionStatus() in
-          setOf(
-            DecompositionStatus.IN_PROGRESS,
-            DecompositionStatus.COMPLETE,
-            DecompositionStatus.SKIPPED,
-          ) || it.hasStarted()
-      } -> DecompositionStatus.IN_PROGRESS.wireValue
-      else -> DecompositionStatus.PENDING.wireValue
-    }
-  return copy(status = parentStatus)
 }
 
 private fun DecompositionManifest.matchingSubtaskId(

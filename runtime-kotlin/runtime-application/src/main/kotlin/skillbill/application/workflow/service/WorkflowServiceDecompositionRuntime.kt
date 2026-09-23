@@ -1,12 +1,12 @@
 package skillbill.application.workflow.service
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
-import skillbill.application.decomposition.model.DecompositionManifestWorkflowProjectionInput
 import skillbill.application.workflow.decomposition.decompositionRuntime
 import skillbill.application.workflow.decomposition.findDecomposedParentWorkflowForRuntime
 import skillbill.application.workflow.decomposition.persistParentDecompositionRuntime
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWorkflowProjectionInput
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.decomposition.DecompositionManifestValidator
@@ -60,7 +60,7 @@ internal data class DecompositionRuntimeInput(
   val updated: Boolean,
 )
 
-fun WorkflowEngine.syncDecompositionParentRuntime(
+internal fun WorkflowEngine.syncDecompositionParentRuntime(
   family: WorkflowFamily,
   updated: WorkflowStateSnapshot,
   workflowId: String,

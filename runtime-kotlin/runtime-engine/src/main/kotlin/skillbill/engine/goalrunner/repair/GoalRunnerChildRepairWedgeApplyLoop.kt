@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.repair
 import skillbill.application.workflow.decomposition.updateGoalParentForBlockedPhaseRetry
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.lifecycle.remediation.buildCompletedUpstreamMissingOutputRepair
@@ -29,6 +28,7 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRe
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputFailureReason
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.recoverGoalSubtaskReviewBaseline
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine

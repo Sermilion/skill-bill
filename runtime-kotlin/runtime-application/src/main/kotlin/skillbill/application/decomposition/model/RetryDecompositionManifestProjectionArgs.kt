@@ -7,7 +7,7 @@ import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import java.nio.file.Path
 
-data class RetryDecompositionManifestProjectionArgs(
+internal data class RetryDecompositionManifestProjectionArgs(
   val database: DatabaseSessionFactory,
   val engine: WorkflowEngine,
   val decompositionManifestWriter: DecompositionManifestWriter,

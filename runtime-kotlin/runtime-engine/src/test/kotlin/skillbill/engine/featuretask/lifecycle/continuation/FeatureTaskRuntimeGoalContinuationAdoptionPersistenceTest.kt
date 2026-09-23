@@ -2,7 +2,6 @@ package skillbill.engine.featuretask.lifecycle.continuation
 
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
@@ -18,6 +17,7 @@ import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunPreparati
 import skillbill.engine.featuretask.runner.reviewBaseline
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.engine.WorkflowEngine

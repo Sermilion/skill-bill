@@ -15,7 +15,7 @@ import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
-import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunner
+import skillbill.application.review.parallel.runner.ParallelCodeReviewRunner
 import skillbill.application.review.service.RequestedReviewMode
 import skillbill.application.review.stats.toReviewAccountingPayload
 import skillbill.application.reviewevidence.model.DiffResolutionException

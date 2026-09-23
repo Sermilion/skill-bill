@@ -8,14 +8,14 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import java.nio.file.Path
 
-data class ContinueExistingWorkflowArgs(
+internal data class ContinueExistingWorkflowArgs(
   val validator: DecompositionManifestValidator? = null,
   val fileStore: DecompositionManifestStore? = null,
   val repoRoot: Path? = null,
   val manifestWriter: DecompositionManifestWriter? = null,
 )
 
-data class DecompositionRuntimeWriteArgs(
+internal data class DecompositionRuntimeWriteArgs(
   val existing: WorkflowStateSnapshot,
   val input: WorkflowUpdateInput,
   val planningResult: DecompositionPlanningResult?,

@@ -16,7 +16,7 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 const val GOAL_REVIEW_POLICY_ARTIFACT_KEY = "goal_review_policy"
 const val GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY = "goal_out_of_band_acceptances"
 
-fun migrateLegacyGoalRunnerControls(
+internal fun migrateLegacyGoalRunnerControls(
   unitOfWork: GoalRunnerPersistenceSession,
   existing: WorkflowStateSnapshot,
 ) {

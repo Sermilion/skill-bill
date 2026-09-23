@@ -11,12 +11,16 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.idestatus.AgentActivityStampRepository
 import java.time.Clock
 import java.time.Instant
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 @Inject
 class AgentActivityStampWriter(
   private val database: DatabaseSessionFactory,
   private val clock: Clock,
   private val diagnostics: RuntimeDiagnostics,
+  private val timeSource: TimeSource,
 ) {
   fun lazySink(
     resolveWorkflowId: () -> String?,
@@ -74,7 +78,7 @@ class AgentActivityStampWriter(
         val lastPersisted = latest.lastPersistedStamp
         if (lastPersisted == null || stampToPersist.recordedAt.isAfter(lastPersisted.recordedAt)) {
           latest.lastPersistedStamp = stampToPersist
-          latest.lastPersistNanos = System.nanoTime()
+          latest.lastPersistMark = timeSource.markNow()
         }
       }
     }
@@ -88,15 +92,14 @@ class AgentActivityStampWriter(
     synchronized(throttleState) {
       val latest = throttleState.getOrPut(workflowId) { LatestStamp() }
       val lastPersisted = latest.lastPersistedStamp
-      val lastPersistNanos = latest.lastPersistNanos
-      val nowNanos = System.nanoTime()
+      val lastPersistMark = latest.lastPersistMark
       when {
         lastPersisted != null && !now.isAfter(lastPersisted.recordedAt) -> null
         lastPersisted?.label == label &&
           now.toEpochMilli() - lastPersisted.recordedAt.toEpochMilli() < DEBOUNCE_WINDOW_MILLIS -> null
         label != AgentActivityLabel.EVIDENCE_READ &&
-          lastPersistNanos != 0L &&
-          nowNanos - lastPersistNanos < DEBOUNCE_WINDOW_NANOS -> null
+          lastPersistMark != null &&
+          lastPersistMark.elapsedNow() < DEBOUNCE_WINDOW_MILLIS.milliseconds -> null
         else -> AgentActivityStamp(recordedAt = now, label = label)
       }
     }
@@ -107,7 +110,7 @@ class AgentActivityStampWriter(
   ): Boolean {
     val outcome =
       runCatching {
-        database.selfManagedWriteWithBusyRetry { unitOfWork ->
+        database.selfManagedWrite { unitOfWork ->
           writeStamp(unitOfWork.agentActivityStamps, context.workflowId, stamp)
           context.parentWorkflowId?.let { parentId ->
             writeStamp(unitOfWork.agentActivityStamps, parentId, stamp)
@@ -146,7 +149,7 @@ class AgentActivityStampWriter(
 
   private class LatestStamp {
     var lastPersistedStamp: AgentActivityStamp? = null
-    var lastPersistNanos: Long = 0L
+    var lastPersistMark: TimeMark? = null
   }
 
   private val throttleState =
@@ -161,7 +164,6 @@ class AgentActivityStampWriter(
 
   private companion object {
     const val DEBOUNCE_WINDOW_MILLIS: Long = 250L
-    const val DEBOUNCE_WINDOW_NANOS: Long = DEBOUNCE_WINDOW_MILLIS * 1_000_000L
     const val MAX_TRACKED_WORKFLOWS: Int = 512
     const val MAX_DIAGNOSTIC_CAUSE_LENGTH: Int = 256
     const val INITIAL_TRACKED_WORKFLOWS: Int = 16

@@ -2,7 +2,7 @@ package skillbill.application.uninstall
 
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 
-class UninstallMutationRecorder(
+internal class UninstallMutationRecorder(
   private val diagnostics: RuntimeDiagnostics,
 ) {
   private val failures = mutableListOf<String>()

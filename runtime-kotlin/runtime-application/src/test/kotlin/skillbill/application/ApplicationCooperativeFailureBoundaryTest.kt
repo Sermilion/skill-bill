@@ -13,8 +13,8 @@ import skillbill.idestatus.model.AgentActivityLabel
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.telemetry.model.RemoteTransportResponse
-import skillbill.ports.telemetry.transport.RemoteTransportPort
+import skillbill.ports.process.ReleaseCatalogPort
+import skillbill.ports.process.model.ReleaseCatalogResult
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.review.context.ReviewContextEnvelopeValidator
@@ -32,6 +32,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import kotlin.time.TimeSource
 
 class ApplicationCooperativeFailureBoundaryTest {
   @Test
@@ -102,6 +103,7 @@ class ApplicationCooperativeFailureBoundaryTest {
         database,
         Clock.systemUTC(),
         NoopRuntimeDiagnostics,
+        TimeSource.Monotonic,
       ).recordEvidenceRead(UUID.randomUUID().toString(), null)
     }
     assertEquals(1, database.calls)
@@ -115,6 +117,7 @@ class ApplicationCooperativeFailureBoundaryTest {
         database,
         Clock.systemUTC(),
         NoopRuntimeDiagnostics,
+        TimeSource.Monotonic,
       ).recordEvidenceRead(UUID.randomUUID().toString(), null)
     }
     assertEquals(1, database.calls)
@@ -127,6 +130,7 @@ class ApplicationCooperativeFailureBoundaryTest {
         FailingDatabase(CancellationException("cancelled")),
         Clock.systemUTC(),
         NoopRuntimeDiagnostics,
+        TimeSource.Monotonic,
       )
     assertFailsWith<CancellationException> {
       writer.lazySink({ throw CancellationException("cancelled") }, null).stamp(
@@ -213,14 +217,9 @@ class ApplicationCooperativeFailureBoundaryTest {
     val service =
       UpdateCheckService(
         systemService = versionedSystemService("1.0.0"),
-        requester =
-          object : RemoteTransportPort {
-            override fun execute(
-              method: String,
-              url: String,
-              bodyJson: String?,
-              headers: Map<String, String>,
-            ): RemoteTransportResponse = throw InterruptedException("cancelled")
+        releaseCatalog =
+          object : ReleaseCatalogPort {
+            override fun listReleases(): ReleaseCatalogResult = throw InterruptedException("cancelled")
           },
       )
     assertFailsWith<InterruptedException> { service.check(includePrereleases = false) }
@@ -231,14 +230,9 @@ class ApplicationCooperativeFailureBoundaryTest {
     val service =
       UpdateCheckService(
         systemService = versionedSystemService("1.0.0"),
-        requester =
-          object : RemoteTransportPort {
-            override fun execute(
-              method: String,
-              url: String,
-              bodyJson: String?,
-              headers: Map<String, String>,
-            ): RemoteTransportResponse = throw CancellationException("cancelled")
+        releaseCatalog =
+          object : ReleaseCatalogPort {
+            override fun listReleases(): ReleaseCatalogResult = throw CancellationException("cancelled")
           },
       )
     assertFailsWith<CancellationException> { service.check(includePrereleases = false) }
@@ -249,14 +243,10 @@ class ApplicationCooperativeFailureBoundaryTest {
     val service =
       UpdateCheckService(
         systemService = versionedSystemService("1.0.0"),
-        requester =
-          object : RemoteTransportPort {
-            override fun execute(
-              method: String,
-              url: String,
-              bodyJson: String?,
-              headers: Map<String, String>,
-            ): RemoteTransportResponse = RemoteTransportResponse(200, "not-json")
+        releaseCatalog =
+          object : ReleaseCatalogPort {
+            override fun listReleases(): ReleaseCatalogResult =
+              ReleaseCatalogResult.Failure("malformed GitHub Releases payload")
           },
       )
     val result = service.check(includePrereleases = false)

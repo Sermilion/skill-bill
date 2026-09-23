@@ -44,7 +44,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import java.time.Clock
 import java.time.ZoneOffset
 
-class WorkflowServiceBlockedPhaseRetry(
+internal class WorkflowServiceBlockedPhaseRetry(
   private val engine: WorkflowEngine,
   private val decompositionManifestValidator: DecompositionManifestValidator,
   private val decompositionManifestStore: DecompositionManifestStore,

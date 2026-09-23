@@ -1,10 +1,10 @@
 package skillbill.engine.work
 
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.workflow.get
+import skillbill.ports.workflow.model.WorkflowFamily
 import java.time.Instant
 
 class IdeStatusLivenessAnchors(

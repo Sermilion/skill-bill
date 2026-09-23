@@ -30,6 +30,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.TimeSource
 
 class AgentActivityStampWriterOwnershipTest {
   @Test
@@ -39,8 +40,8 @@ class AgentActivityStampWriterOwnershipTest {
     val workflowId = "wfl-shared"
     val firstDb = memoryFactory("activity-owner-a")
     val secondDb = memoryFactory("activity-owner-b")
-    val firstWriter = AgentActivityStampWriter(firstDb, clock, NoopDiagnostics)
-    val secondWriter = AgentActivityStampWriter(secondDb, clock, NoopDiagnostics)
+    val firstWriter = AgentActivityStampWriter(firstDb, clock, NoopDiagnostics, TimeSource.Monotonic)
+    val secondWriter = AgentActivityStampWriter(secondDb, clock, NoopDiagnostics, TimeSource.Monotonic)
     firstWriter.sink(workflowId, null).stamp(AgentActivityLabel.STDOUT)
     secondWriter.sink(workflowId, null).stamp(AgentActivityLabel.STDOUT)
     firstDb.read { unitOfWork ->
@@ -87,7 +88,7 @@ class AgentActivityStampWriterOwnershipTest {
         }
       }
     val diagnostics = RecordingDiagnostics()
-    val writer = AgentActivityStampWriter(database, clock, diagnostics)
+    val writer = AgentActivityStampWriter(database, clock, diagnostics, TimeSource.Monotonic)
     val workflowId = "wfl-retry"
     writer.sink(workflowId, null).stamp(AgentActivityLabel.STDOUT)
     base.read { unitOfWork ->
@@ -103,42 +104,14 @@ class AgentActivityStampWriterOwnershipTest {
   }
 
   @Test
-  fun `sqlite busy on stamp persist retries in process before recording bounded failure`() {
-    val base = memoryFactory("activity-busy-retry")
-    val attempts = AtomicInteger(0)
-    val database =
-      object : DatabaseSessionFactory by base {
-        override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
-          if (attempts.getAndIncrement() < 2) {
-            error("database is locked")
-          }
-          return base.selfManagedWrite(block)
-        }
-      }
-    val diagnostics = RecordingDiagnostics()
-    val writer =
-      AgentActivityStampWriter(
-        database,
-        Clock.fixed(Instant.parse("2026-09-16T10:00:00Z"), ZoneOffset.UTC),
-        diagnostics,
-      )
-    writer.sink("wfl-busy-retry", null).stamp(AgentActivityLabel.STDOUT)
-    assertEquals(3, attempts.get())
-    assertEquals(0, diagnostics.warnings.size)
-    base.read { unitOfWork ->
-      assertEquals(AgentActivityLabel.STDOUT, unitOfWork.agentActivityStamps.read("wfl-busy-retry")?.label)
-    }
-  }
-
-  @Test
-  fun `sqlite busy beyond retry bound records failure without publishing a stamp`() {
+  fun `sqlite busy write failure records failure without publishing a stamp`() {
     val base = memoryFactory("activity-busy-failure")
     val attempts = AtomicInteger(0)
     val database =
       object : DatabaseSessionFactory by base {
         override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {
           attempts.incrementAndGet()
-          error("SQLITE_BUSY: database is locked")
+          error("self-managed write lock contended")
         }
       }
     val diagnostics = RecordingDiagnostics()
@@ -147,11 +120,12 @@ class AgentActivityStampWriterOwnershipTest {
         database,
         Clock.fixed(Instant.parse("2026-09-16T10:00:00Z"), ZoneOffset.UTC),
         diagnostics,
+        TimeSource.Monotonic,
       )
 
     writer.sink("wfl-busy-failure", null).stamp(AgentActivityLabel.STDOUT)
 
-    assertEquals(3, attempts.get())
+    assertEquals(1, attempts.get())
     assertEquals(1, diagnostics.warnings.size)
     base.read { unitOfWork ->
       assertEquals(null, unitOfWork.agentActivityStamps.read("wfl-busy-failure"))
@@ -166,6 +140,7 @@ class AgentActivityStampWriterOwnershipTest {
         database,
         StepClock(Instant.parse("2026-09-16T10:00:00Z"), stepMillis = 1),
         NoopDiagnostics,
+        TimeSource.Monotonic,
       )
     val sink = writer.sink("wfl-debounce", null)
 
@@ -188,7 +163,7 @@ class AgentActivityStampWriterOwnershipTest {
     val clock = StepClock(instant)
     val database = ControlledDatabase(memoryFactory("activity-concurrency"))
     database.failFirstWrite = true
-    val writer = AgentActivityStampWriter(database, clock, NoopDiagnostics)
+    val writer = AgentActivityStampWriter(database, clock, NoopDiagnostics, TimeSource.Monotonic)
     val workflowId = "wfl-child"
     val parentWorkflowId = "wfl-parent"
     val pool = Executors.newFixedThreadPool(2)

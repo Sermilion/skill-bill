@@ -18,7 +18,7 @@ import skillbill.workflow.model.workflowStatus
 import java.time.Clock
 import java.time.ZoneOffset
 
-class WorkflowServiceFeatureTaskAbandon(
+internal class WorkflowServiceFeatureTaskAbandon(
   private val engine: WorkflowEngine,
   private val clock: Clock,
 ) {

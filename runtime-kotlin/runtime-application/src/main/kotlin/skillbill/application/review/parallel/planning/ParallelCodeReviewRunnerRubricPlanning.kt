@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.planning
+import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.model.ReviewRubricProjection
 import skillbill.application.review.model.ReviewWorkerKind.GENERIC
 import skillbill.application.reviewevidence.model.ReviewChangedFileEvidence
@@ -17,6 +18,7 @@ import skillbill.review.plan.model.ReviewRootLanes
 import skillbill.review.plan.model.ReviewRoutingChangedFile
 import skillbill.scaffold.model.PlatformManifest
 
+@Inject
 class ParallelCodeReviewRunnerRubricPlanning(
   private val reviewRubricResolver: ReviewRubricResolver,
   private val installedPackCatalog: InstalledPlatformPackCatalogPort,

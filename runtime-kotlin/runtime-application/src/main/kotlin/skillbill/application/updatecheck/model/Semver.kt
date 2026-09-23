@@ -1,6 +1,6 @@
 package skillbill.application.updatecheck.model
 
-data class Semver(
+internal data class Semver(
   val major: Int,
   val minor: Int,
   val patch: Int,

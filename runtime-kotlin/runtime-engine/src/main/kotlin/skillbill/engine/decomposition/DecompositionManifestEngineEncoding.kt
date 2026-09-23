@@ -1,8 +1,8 @@
 package skillbill.engine.decomposition
 
 import skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml
-import skillbill.application.decomposition.model.DecompositionManifestFileCandidate
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestFileCandidate
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import java.nio.file.Path

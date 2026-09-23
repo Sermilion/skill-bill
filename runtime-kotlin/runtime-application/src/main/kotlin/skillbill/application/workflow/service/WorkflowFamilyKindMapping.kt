@@ -1,8 +1,7 @@
 package skillbill.application.workflow.service
-import skillbill.application.workflow.model.WorkflowFamilyKind
-import skillbill.ports.workflow.model.WorkflowFamily as WorkflowFamilyModel
 
-typealias WorkflowFamily = WorkflowFamilyModel
+import skillbill.application.workflow.model.WorkflowFamilyKind
+import skillbill.ports.workflow.model.WorkflowFamily
 
 fun WorkflowFamilyKind.workflowFamily(): WorkflowFamily =
   when (this) {

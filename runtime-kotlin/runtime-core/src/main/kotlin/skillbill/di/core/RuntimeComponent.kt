@@ -7,9 +7,9 @@ import skillbill.application.install.ExternalAddonOverlayService
 import skillbill.application.install.ExternalPlatformPackResolutionService
 import skillbill.application.install.InstallService
 import skillbill.application.learning.LearningService
-import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunner
-import skillbill.application.review.review.ReviewSnapshotPruneService
+import skillbill.application.review.parallel.runner.ParallelCodeReviewRunner
 import skillbill.application.review.service.ReviewService
+import skillbill.application.review.snapshot.ReviewSnapshotPruneService
 import skillbill.application.runtime.RuntimeSingleton
 import skillbill.application.scaffold.InstallAgentService
 import skillbill.application.scaffold.SkillRemove
@@ -18,6 +18,7 @@ import skillbill.application.telemetry.lifecycle.LifecycleTelemetryService
 import skillbill.application.telemetry.service.TelemetryService
 import skillbill.application.uninstall.SkillBillUninstallService
 import skillbill.application.updatecheck.SkillBillUpdateService
+import skillbill.application.updatecheck.UpdateCheckService
 import skillbill.application.work.WorkListService
 import skillbill.application.workflow.service.WorkflowService
 import skillbill.di.experiment.RuntimeExperimentProvides
@@ -198,6 +199,7 @@ abstract class RuntimeComponent(
   abstract val skillRemove: SkillRemove
   abstract val systemService: SystemService
   abstract val skillBillUpdateService: SkillBillUpdateService
+  abstract val updateCheckService: UpdateCheckService
   abstract val skillBillUninstallService: SkillBillUninstallService
   abstract val telemetryConfigStorePort: TelemetryConfigStore
   abstract val telemetryLevelMutator: TelemetryLevelMutator

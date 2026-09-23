@@ -19,7 +19,7 @@ internal data class IndexedReviewHunks(
   val commitUnits: List<ReviewCommitUnit>,
 )
 
-object ReviewHunkStoreIndexing {
+internal object ReviewHunkStoreIndexing {
   internal fun index(
     hunks: List<ReviewChangedHunk>,
     commitUnits: List<ReviewCommitUnit>,

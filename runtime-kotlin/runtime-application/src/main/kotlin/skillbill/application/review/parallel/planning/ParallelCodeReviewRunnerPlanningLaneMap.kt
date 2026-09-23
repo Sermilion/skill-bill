@@ -2,8 +2,8 @@ package skillbill.application.review.parallel.planning
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
-import skillbill.application.review.parallel.core.code.review.runner.PARALLEL_REVIEW_MAX_SUPPLIED_DIFF_BYTES
-import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewStackDetection
+import skillbill.application.review.parallel.runner.PARALLEL_REVIEW_MAX_SUPPLIED_DIFF_BYTES
+import skillbill.application.review.parallel.runner.ParallelCodeReviewStackDetection
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
@@ -39,7 +39,7 @@ internal fun ParallelCodeReviewRunnerPlanning.resolveDiff(
   val (base, head) = revisions
   val diffText =
     request.suppliedDiffPath?.let { path ->
-      diffResolver.readDiff(path, PARALLEL_REVIEW_MAX_SUPPLIED_DIFF_BYTES)
+      readDiff(path, PARALLEL_REVIEW_MAX_SUPPLIED_DIFF_BYTES)
         ?: throw DiffResolutionException(
           "--diff-file must name a readable, non-empty regular file no larger than " +
             "$PARALLEL_REVIEW_MAX_SUPPLIED_DIFF_BYTES bytes.",
@@ -52,7 +52,7 @@ internal fun ParallelCodeReviewRunnerPlanning.resolveDiff(
       -> resolveWorktreeFromBaseDiff(request, base)
       ParallelReviewScope.BRANCH -> runDiff(listOf("git", "diff", base, head), request.repoRoot)
       ParallelReviewScope.PR ->
-        diffResolver.runProcess(listOf("git", "diff", base, head), request.repoRoot)
+        runProcess(listOf("git", "diff", base, head), request.repoRoot)
           ?: runDiff(listOf("gh", "pr", "diff"), request.repoRoot)
     }
   if (diffText.isBlank() && request.scope != ParallelReviewScope.WORKTREE_FROM_BASE) {
@@ -73,10 +73,10 @@ internal fun ParallelCodeReviewRunnerPlanning.resolveWorktreeFromBaseDiff(
         addAll(request.ownedPathspec)
       }
     }
-  val tracked = diffResolver.runProcess(args, request.repoRoot).orEmpty()
+  val tracked = runProcess(args, request.repoRoot).orEmpty()
   val excluded = request.baselineUntrackedPolicy.excludedPaths.toSet()
   val untracked =
-    diffResolver.runProcess(
+    runProcess(
       listOf("git", "ls-files", "-o", "--exclude-standard", "-z"),
       request.repoRoot,
     ).orEmpty()
@@ -93,7 +93,7 @@ internal fun ParallelCodeReviewRunnerPlanning.resolveWorktreeFromBaseDiff(
   val patches = StringBuilder()
   untracked.forEach { path ->
     val patch =
-      diffResolver.runProcess(
+      runProcess(
         listOf("git", "diff", "--binary", "--no-index", "/dev/null", path),
         request.repoRoot,
       ).orEmpty()
@@ -115,7 +115,7 @@ internal fun ParallelCodeReviewRunnerPlanning.runDiff(
   args: List<String>,
   workDir: Path,
 ): String =
-  diffResolver.runProcess(args, workDir)
+  runProcess(args, workDir)
     ?: throw DiffResolutionException(
       "Command failed: ${args.joinToString(" ")}",
     )
@@ -124,7 +124,7 @@ internal fun ParallelCodeReviewRunnerPlanning.detectStack(
   evidence: ReviewDiffEvidence,
 ): ParallelCodeReviewStackDetection {
   val manifests =
-    runCatching { installedPackCatalog.manifests() }
+    runCatching { installedManifests() }
       .getOrElse { e ->
         throw StackDetectionException(
           "Installed platform pack discovery failed: ${e.message ?: e.javaClass.simpleName}. " +

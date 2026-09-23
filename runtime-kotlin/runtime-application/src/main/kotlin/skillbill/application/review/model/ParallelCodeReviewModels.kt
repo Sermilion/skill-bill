@@ -125,7 +125,7 @@ class UsageValidationException(message: String) : RuntimeException(message)
 
 class StackDetectionException(message: String, cause: Throwable) : RuntimeException(message, cause)
 
-data class ReviewLaneIntegrationInput(
+internal data class ReviewLaneIntegrationInput(
   val launch: ReviewSpecialistLaunchRequest,
   val completion: ReviewLaneCompletionState,
   val findingCount: Int,

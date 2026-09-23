@@ -4,23 +4,21 @@ import skillbill.agentaddon.model.AgentAddonPromptFormatter
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.review.governed.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
-import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunner
-import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewRunnerComposition
-import skillbill.application.review.parallel.core.code.review.runner.model.ParallelCodeReviewRunnerBoundaries
-import skillbill.application.review.review.RecordedWorkerResponse
-import skillbill.application.review.review.ReviewHarnessConfig
-import skillbill.application.review.review.ReviewRecorder
-import skillbill.application.review.review.diffForChanges
-import skillbill.application.review.review.diffForPaths
-import skillbill.application.review.review.harnessRequest
-import skillbill.application.review.review.reviewHarness
-import skillbill.application.review.review.simulateGovernedEvidenceReads
-import skillbill.application.review.review.sparseReviewPack
+import skillbill.application.review.parallel.runner.ParallelCodeReviewRunner
+import skillbill.application.review.snapshot.RecordedWorkerResponse
+import skillbill.application.review.snapshot.ReviewHarnessConfig
+import skillbill.application.review.snapshot.ReviewRecorder
+import skillbill.application.review.snapshot.diffForChanges
+import skillbill.application.review.snapshot.diffForPaths
+import skillbill.application.review.snapshot.harnessRequest
+import skillbill.application.review.snapshot.parallelCodeReviewRunnerOf
+import skillbill.application.review.snapshot.reviewHarness
+import skillbill.application.review.snapshot.simulateGovernedEvidenceReads
+import skillbill.application.review.snapshot.sparseReviewPack
 import skillbill.application.review.spec.SpecIntentProjectionExtractor
 import skillbill.application.review.spec.SpecIntentProjectionResolver
 import skillbill.application.review.verification.ReviewClaimVerificationRunner
@@ -36,7 +34,6 @@ import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.config.model.ReadRepoLocalConfigResult
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
@@ -62,8 +59,6 @@ import skillbill.ports.review.repository.ReviewSpecialistContractProvider
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.scaffold.model.PilotedPlatformPackProjection
-import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
-import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
@@ -103,7 +98,6 @@ import java.io.IOException
 import java.lang.reflect.Proxy
 import java.nio.file.Files
 import java.nio.file.Path
-import java.time.Clock
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
@@ -1528,9 +1522,8 @@ internal fun createRunner(
   config: RunnerFixtureConfig,
 ): ParallelCodeReviewRunner {
   val endpointRoot = config.evidenceEndpointRoot ?: Files.createTempDirectory("endpoint")
-  val sharedEvidenceLocatorReader = FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE
-  val boundaries =
-    ParallelCodeReviewRunnerBoundaries(
+  val runner =
+    parallelCodeReviewRunnerOf(
       diffResolver = config.diffResolver,
       repoLocalConfig =
         object : RepoLocalConfigPort {
@@ -1548,8 +1541,6 @@ internal fun createRunner(
       reviewSpecialistContractProvider = ReviewSpecialistContractProvider { TEST_SPECIALIST_CONTRACT },
       database = config.database,
       installedPackCatalog = config.installedPackCatalog,
-      sharedEvidenceResolver = FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
-      sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
       specIntentProjectionResolver =
         SpecIntentProjectionResolver(
           TestDecompositionManifestStore,
@@ -1567,7 +1558,6 @@ internal fun createRunner(
       parentReviewLauncher = launcher,
       nativeAgentPreflight = config.nativeAgentPreflight,
       registerParse = config.registerParse,
-      diagnostics = NoopRuntimeDiagnostics,
       clock = testHarnessClock,
       repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
       reviewEvidenceBrokerFactory =
@@ -1622,12 +1612,7 @@ internal fun createRunner(
         config.evidenceEndpointBinder ?: stubGovernedReviewEvidenceEndpointBinder(endpointRoot),
       reviewLaunchAgentStaging = config.reviewLaunchAgentStaging,
     )
-  return ParallelCodeReviewRunner(
-    ParallelCodeReviewRunnerComposition(
-      boundaries,
-      AgentActivityStampWriter(config.database, Clock.systemUTC(), NoopRuntimeDiagnostics),
-    ),
-  )
+  return runner
 }
 
 internal class RecordingReviewDatabase : DatabaseSessionFactory {

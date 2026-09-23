@@ -134,7 +134,8 @@ object PrincipleEnforcementInventory {
         "that module baseline across all declared runtime Gradle modules.",
       "Ambient clock ban: Instant.now, LocalDateTime.now, LocalDate.now, and Clock.systemUTC require baseline " +
         "in every module main source root.",
-      "No @Inject constructor defaults: dependency bags and @Inject constructors must not carry default arguments.",
+      "No @Inject constructor defaults: dependency bags and @Inject constructors must not carry default arguments, " +
+        "and runtime-application @Inject constructors must not expose non-private properties.",
       "Failure wire codes: in-scope FailureWireCode hierarchies must map cases to codes totally and injectively.",
       "Typed parse boundaries: named untrusted-input decode sites must not report malformation via error, require, or" +
         "bare throw.",
@@ -510,6 +511,7 @@ object PrincipleEnforcementInventory {
       "systemService",
       "skillBillUpdateService",
       "skillBillUninstallService",
+      "updateCheckService",
       "telemetryConfigStorePort",
       "telemetryLevelMutator",
       "telemetryService",

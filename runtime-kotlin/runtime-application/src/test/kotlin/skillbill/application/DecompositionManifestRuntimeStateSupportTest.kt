@@ -1,8 +1,8 @@
 package skillbill.application
-import skillbill.application.decomposition.intentFor
-import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.decomposition.statusFromUpdate
 import skillbill.application.decomposition.withRuntimeFields
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
+import skillbill.workflow.decomposition.intentFor
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask

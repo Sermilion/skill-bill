@@ -1,10 +1,6 @@
 package skillbill.application.decomposition
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
-import skillbill.application.decomposition.model.DecompositionManifestWorkflowProjectionInput
-import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
-import skillbill.application.decomposition.model.DecompositionPlanManifestInput
 import skillbill.application.decomposition.model.PreparedDecompositionManifestWrite
 import skillbill.contracts.decomposition.DecompositionManifestProjectionOperations
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
@@ -14,7 +10,11 @@ import skillbill.model.toPath
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWorkflowProjectionInput
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionPlanManifestInput
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent

@@ -11,6 +11,7 @@ import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.goal.GoalObservabilityEventValidator
+import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
@@ -60,7 +61,7 @@ class WorkflowMcpResultMappersTest {
         workflowId = "wfl-1",
         dbPath = "/tmp/metrics.db",
         snapshot = snapshotWithObservability(),
-      ).toMcpMap(testGoalObservabilityEventValidator)
+      ).withDecodedGoalObservability().toMcpMap()
 
     val observability = mapped["goal_observability"] as Map<*, *>
     assertEquals("implement", observability["workflow_phase"])
@@ -84,7 +85,7 @@ class WorkflowMcpResultMappersTest {
                 ),
               ),
           ),
-      ).toMcpMap(testGoalObservabilityEventValidator)
+      ).withDecodedGoalObservability().toMcpMap()
 
     assertFalse(mapped.containsKey("goal_session_accounting_latest"))
   }
@@ -110,7 +111,7 @@ class WorkflowMcpResultMappersTest {
                   "timestamp" to "2026-06-01T00:00:00Z",
                 ),
             ),
-        ).toMcpMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toMcpMap()
       }
 
     assertEquals("contract_version", error.fieldPath)
@@ -124,7 +125,7 @@ class WorkflowMcpResultMappersTest {
           workflowId = "wfl-1",
           dbPath = "/tmp/metrics.db",
           snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("unknown" to true)),
-        ).toMcpMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toMcpMap()
       }
 
     assertEquals("", error.fieldPath)
@@ -141,7 +142,7 @@ class WorkflowMcpResultMappersTest {
             snapshotWithObservability(
               event = snapshotWithObservabilityEvent() + ("changed_file_summary" to "not-an-object"),
             ),
-        ).toMcpMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toMcpMap()
       }
 
     assertEquals("changed_file_summary", error.fieldPath)
@@ -158,7 +159,7 @@ class WorkflowMcpResultMappersTest {
             snapshotWithObservability(
               event = snapshotWithObservabilityEvent() + ("changed_files" to listOf(123)),
             ),
-        ).toMcpMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toMcpMap()
       }
     assertEquals("changed_files[0]", changedFilesError.fieldPath)
 
@@ -183,7 +184,7 @@ class WorkflowMcpResultMappersTest {
                     )
                 ),
             ),
-        ).toMcpMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toMcpMap()
       }
     assertEquals("changed_file_summary.sample_paths", samplePathsError.fieldPath)
   }
@@ -196,7 +197,7 @@ class WorkflowMcpResultMappersTest {
           workflowId = "wfl-1",
           dbPath = "/tmp/metrics.db",
           snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("issue_key" to 61)),
-        ).toMcpMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toMcpMap()
       }
     assertEquals("issue_key", issueKeyError.fieldPath)
 
@@ -206,7 +207,7 @@ class WorkflowMcpResultMappersTest {
           workflowId = "wfl-1",
           dbPath = "/tmp/metrics.db",
           snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("subtask_id" to "1")),
-        ).toMcpMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toMcpMap()
       }
     assertEquals("subtask_id", subtaskIdError.fieldPath)
 
@@ -216,7 +217,7 @@ class WorkflowMcpResultMappersTest {
           workflowId = "wfl-1",
           dbPath = "/tmp/metrics.db",
           snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("timestamp" to 20260601)),
-        ).toMcpMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toMcpMap()
       }
     assertEquals("timestamp", timestampError.fieldPath)
   }
@@ -232,7 +233,7 @@ class WorkflowMcpResultMappersTest {
             snapshotWithObservability(
               event = snapshotWithObservabilityEvent() + ("changed_files" to List(501) { "file-$it.kt" }),
             ),
-        ).toMcpMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toMcpMap()
       }
 
     assertEquals("changed_files", error.fieldPath)
@@ -272,6 +273,12 @@ class WorkflowMcpResultMappersTest {
       "sequence_number" to 1,
       "timestamp" to "2026-06-01T00:00:00Z",
       "changed_files" to listOf("heavy.kt"),
+    )
+
+  private fun WorkflowGetResult.Ok.withDecodedGoalObservability(): WorkflowGetResult.Ok =
+    copy(
+      goalObservability =
+        goalObservabilityLatestEventFromArtifacts(snapshot.artifacts, testGoalObservabilityEventValidator),
     )
 
   private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =

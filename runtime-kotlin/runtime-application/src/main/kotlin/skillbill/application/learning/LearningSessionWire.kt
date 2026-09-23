@@ -48,7 +48,7 @@ fun learningAppliedSessionWire(
     scopeCounts = scopeCountsFromDtos(payloadEntries),
   )
 
-fun learningEntrySessionJson(
+internal fun learningEntrySessionJson(
   skillName: String?,
   entries: List<LearningEntry>,
 ): String =

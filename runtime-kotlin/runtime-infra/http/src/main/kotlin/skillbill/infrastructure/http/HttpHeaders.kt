@@ -1,6 +1,7 @@
 package skillbill.infrastructure.http
 
 internal object HttpHeaders {
+  const val ACCEPT: String = "Accept"
   const val AUTHORIZATION: String = "Authorization"
   const val CONTENT_TYPE: String = "Content-Type"
   const val USER_AGENT: String = "User-Agent"

@@ -81,7 +81,7 @@ internal fun clearDecompositionManifestProjectionFailure(
   return DecompositionManifestProjectionFailurePersistence.PERSISTED
 }
 
-fun retryDecompositionManifestProjectionFromAuthoritativeState(
+internal fun retryDecompositionManifestProjectionFromAuthoritativeState(
   args: RetryDecompositionManifestProjectionArgs,
 ): DecompositionManifestProjectionOutcome {
   val database = args.database

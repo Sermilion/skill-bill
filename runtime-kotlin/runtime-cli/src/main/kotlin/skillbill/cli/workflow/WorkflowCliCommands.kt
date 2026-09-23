@@ -90,7 +90,7 @@ class VerifyWorkflowOpenCommand(
           routeScope = FeatureTaskRouteScope.STANDALONE,
         ),
       )
-    val payload = opened.toCliMap(service.goalObservabilityEventValidator)
+    val payload = opened.toCliMap()
     state.complete(payload, format, exitCode = payload.exitCode())
   }
 }
@@ -156,8 +156,7 @@ open class WorkflowGetCommand(
       if (resolution.errorPayload != null) {
         resolution.errorPayload
       } else {
-        service.get(kind, requireNotNull(resolution.workflowId))
-          .toCliMap(service.goalObservabilityEventValidator)
+        service.get(kind, requireNotNull(resolution.workflowId)).toCliMap()
       }
     state.complete(payload, format, exitCode = payload.exitCode())
   }

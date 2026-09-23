@@ -306,7 +306,8 @@ runtime-cli / runtime-mcp data gateways
       -> runtime-contracts helpers for port-owned boundary payload contracts
 
 runtime-engine
-  -> runtime-application + runtime-ports + runtime-domain + runtime-contracts
+  -> runtime-ports + runtime-domain + runtime-contracts (api)
+  -> runtime-application (implementation)
 
 runtime-infra/host / runtime-infra/contracts / runtime-infra/skills /
   runtime-infra/launcher / runtime-infra/workflow / runtime-infra/http /
@@ -349,9 +350,11 @@ runtime-core
   workflow orchestration, telemetry lifecycle orchestration,
   presenter-to-contract mapping, and validated decomposition-manifest file/artifact projection through workflow ports.
 - `runtime-engine`: feature-task run loop, goal runner, goal planning, and
-  planning projection use cases. It depends on `runtime-application` for the
-  shared services those loops call today and exposes a pinned inbound API
-  through `RuntimeComponent`.
+  planning projection use cases. It also owns the agent-output helpers
+  (`skillbill.engine.agentoutput`) and the worktree edit journal writer
+  (`skillbill.engine.worktreeedit`). It depends on `runtime-application` through
+  `implementation` for the shared services those loops call today and exposes a
+  pinned inbound API through `RuntimeComponent`.
 - `runtime-infra/sqlite` (`:runtime-infra:sqlite`): SQLite schema, migrations, connection/session
   behavior, SQL-backed repositories, review persistence, review stats, and
   telemetry outbox persistence.
@@ -1563,7 +1566,7 @@ closure assertion is the guard that any command area builds and tests alone.
 `RuntimeCliAreaIsolationArchitectureTest` also rejects `featuretask` production
 sources that construct `RejectedOutputDiagnosticService` or call
 `unitOfWork.diagnosticService`; rejected-output CLI routes through
-`RejectedOutputDiagnosticCliSession` in `runtime-application` instead. The
+`RejectedOutputDiagnosticInspection` in `runtime-application` instead. The
 scanner does not treat Clikt `.default(".")` on `--repo-root` as equivalent to
 `Path.of("")`; omitted roots resolve through `resolveCliRepositoryRoot` and
 `CliRunInputs.repositoryRoot`.

@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.phase.record
 
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
@@ -19,6 +18,7 @@ import skillbill.engine.featuretask.phase.core.operatorBlockRetryFromWorkflowArt
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeOutputVerification
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus

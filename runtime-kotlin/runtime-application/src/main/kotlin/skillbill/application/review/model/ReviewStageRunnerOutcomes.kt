@@ -5,7 +5,7 @@ import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.review.model.ReviewVerificationNonSuccess
 
-data class ReviewClaimVerificationOutcome(
+internal data class ReviewClaimVerificationOutcome(
   val verdicts: List<ReviewFindingVerdict>,
   val output: AgentPhaseOutput? = null,
   val skipReason: String? = null,
@@ -13,7 +13,7 @@ data class ReviewClaimVerificationOutcome(
   val nonSuccess: ReviewVerificationNonSuccess? = null,
 )
 
-data class ReviewSpecAdjudicationOutcome(
+internal data class ReviewSpecAdjudicationOutcome(
   val verdicts: List<ReviewFindingVerdict>,
   val skipReason: String? = null,
   val citationDiagnostics: List<ReviewFindingCitationDiagnosticWithFinding> = emptyList(),

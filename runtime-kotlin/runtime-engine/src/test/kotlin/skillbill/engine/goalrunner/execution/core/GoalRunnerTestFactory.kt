@@ -1,9 +1,9 @@
 package skillbill.engine.goalrunner.execution.core
 import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.idestatus.AgentActivityStampWriter
-import skillbill.application.idestatus.WorktreeEditJournalWriter
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
+import skillbill.application.telemetry.lifecycle.noopGoalLifecycleTelemetryEmitter
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.GoalRunner
@@ -19,6 +19,7 @@ import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweep
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepCheckpointBoundaries
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepLaunchBoundaries
+import skillbill.engine.worktreeedit.WorktreeEditJournalWriter
 import skillbill.ports.concurrency.BoundedWorkFanOutPort
 import skillbill.ports.concurrency.SequentialBoundedWorkFanOutPort
 import skillbill.ports.db.DatabaseSessionFactory
@@ -52,10 +53,12 @@ import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactV
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.nio.file.Path
 import java.time.Clock
+import kotlin.time.TimeSource
 
 internal fun testActivityStampWriter(
   database: DatabaseSessionFactory = TestGoalActivityStampDatabase,
-): AgentActivityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics)
+): AgentActivityStampWriter =
+  AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics, TimeSource.Monotonic)
 
 internal fun testWorktreeEditJournalWriter(
   database: DatabaseSessionFactory = TestGoalActivityStampDatabase,
@@ -90,7 +93,7 @@ internal fun testGoalRunnerWiring(params: GoalRunnerTestWiringParams): GoalRunne
       manifestStore = params.manifestStore,
       outcomeStore = params.outcomeStore,
       goalPlanningSweep = GoalPlanningSweep.NONE,
-      telemetry = GoalLifecycleTelemetryEmitter.NONE,
+      telemetry = noopGoalLifecycleTelemetryEmitter,
       clock = clock,
       diagnostics = diagnostics,
       executionCoordinator = GoalRunnerExecutionCoordinator.NONE,
@@ -125,7 +128,7 @@ internal data class GoalRunnerTestInputs(
   val goalPlanningSweep: GoalPlanningSweep = GoalPlanningSweep.NONE,
   val specScratchStore: SpecScratchStore = UnavailableSpecScratchStore,
   val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
-  val telemetry: GoalLifecycleTelemetryEmitter = GoalLifecycleTelemetryEmitter.NONE,
+  val telemetry: GoalLifecycleTelemetryEmitter = noopGoalLifecycleTelemetryEmitter,
   val clock: Clock = Clock.systemUTC(),
   val unaddressedFindingsLedgerService: UnaddressedFindingsLedgerService? = null,
   val executionCoordinator: GoalRunnerExecutionCoordinator = GoalRunnerExecutionCoordinator.NONE,

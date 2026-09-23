@@ -2019,7 +2019,7 @@ Machine-parseable rows: `path | symbol | rule | why`. Complexity rule names neve
 |------|--------|------|-----|
 | runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/externaladdon/FileSystemExternalAddonOverlayApply.kt | asMutableMap | UNCHECKED_CAST | SnakeYAML returns an erased mutable map; ClassCastException guard keeps string-key overlay writes honest |
 | runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/externaladdon/FileSystemExternalAddonOverlayApply.kt | asMutableList | UNCHECKED_CAST | SnakeYAML returns an erased mutable list; ClassCastException guard keeps manifest list overlay writes honest |
-| runtime-application/src/testFixtures/kotlin/skillbill/application/review/review/ReviewRecordingHarness.kt | recordingDatabase | UNCHECKED_CAST | Dynamic ReviewRepository proxy passes typed args through erased invoke; casts mirror the repository contract |
+| runtime-application/src/testFixtures/kotlin/skillbill/application/review/snapshot/ReviewRecordingHarness.kt | recordingDatabase | UNCHECKED_CAST | Dynamic ReviewRepository proxy passes typed args through erased invoke; casts mirror the repository contract |
 | runtime-core/src/test/kotlin/skillbill/application/ApplicationPersistencePortTestSupport.kt | noopPort | UNCHECKED_CAST | Dynamic port proxy returns typed facade from erased invoke |
 | runtime-engine/src/test/kotlin/skillbill/engine/FeatureTaskRuntimeRunnerTestSupport.kt | noopPort | UNCHECKED_CAST | Dynamic port proxy returns typed facade from erased invoke |
 | runtime-engine/src/test/kotlin/skillbill/engine/FeatureTaskRuntimeRunnerTestSupport.kt | recordHarnessFindingVerdicts | UNCHECKED_CAST | Dynamic ReviewRepository proxy passes typed verdict list through erased invoke |

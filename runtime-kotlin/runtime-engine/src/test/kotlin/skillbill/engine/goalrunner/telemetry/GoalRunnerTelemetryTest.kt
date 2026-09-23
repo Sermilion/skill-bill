@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.telemetry
 import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
+import skillbill.application.telemetry.lifecycle.noopGoalLifecycleTelemetryEmitter
 import skillbill.application.telemetry.model.GoalFinishedRequest
 import skillbill.application.telemetry.model.GoalIssueFinishedRequest
 import skillbill.application.telemetry.model.GoalStartedRequest
@@ -361,7 +362,7 @@ class GoalRunnerTelemetryTest {
       Triple(result, store.manifest.status, events)
     }
 
-    val none = report(GoalLifecycleTelemetryEmitter.NONE)
+    val none = report(noopGoalLifecycleTelemetryEmitter)
     val recording = report(RecordingGoalLifecycleTelemetryEmitter())
 
     assertEquals(none.second, recording.second)

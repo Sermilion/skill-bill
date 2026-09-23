@@ -1,5 +1,4 @@
 package skillbill.engine.goalrunner.repair
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.featuretask.lifecycle.remediation.diagnoseUnsettledCompletedUpstreamPhaseId
@@ -16,6 +15,7 @@ import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.taskruntime.artifact.decodeGoalContinuationArtifactFromArtifact
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection

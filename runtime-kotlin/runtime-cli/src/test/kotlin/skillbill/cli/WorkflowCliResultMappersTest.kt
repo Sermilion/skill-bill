@@ -23,6 +23,7 @@ import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
+import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
@@ -190,7 +191,7 @@ class WorkflowCliResultMappersTest {
         workflowId = "wfl-1",
         dbPath = "/tmp/metrics.db",
         snapshot = snapshotWithObservability(),
-      ).toCliMap(testGoalObservabilityEventValidator)
+      ).withDecodedGoalObservability().toCliMap()
 
     val observability = mapped["goal_observability"] as Map<*, *>
     assertEquals("implement", observability["workflow_phase"])
@@ -220,7 +221,7 @@ class WorkflowCliResultMappersTest {
                   "timestamp" to "2026-06-01T00:00:00Z",
                 ),
             ),
-        ).toCliMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toCliMap()
       }
 
     assertEquals("", error.fieldPath)
@@ -234,7 +235,7 @@ class WorkflowCliResultMappersTest {
           workflowId = "wfl-1",
           dbPath = "/tmp/metrics.db",
           snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("unknown" to true)),
-        ).toCliMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toCliMap()
       }
 
     assertEquals("", error.fieldPath)
@@ -251,7 +252,7 @@ class WorkflowCliResultMappersTest {
             snapshotWithObservability(
               event = snapshotWithObservabilityEvent() + ("changed_file_summary" to "not-an-object"),
             ),
-        ).toCliMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toCliMap()
       }
 
     assertEquals("changed_file_summary", error.fieldPath)
@@ -268,7 +269,7 @@ class WorkflowCliResultMappersTest {
             snapshotWithObservability(
               event = snapshotWithObservabilityEvent() + ("changed_files" to listOf(123)),
             ),
-        ).toCliMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toCliMap()
       }
     assertEquals("changed_files[0]", changedFilesError.fieldPath)
 
@@ -293,7 +294,7 @@ class WorkflowCliResultMappersTest {
                     )
                 ),
             ),
-        ).toCliMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toCliMap()
       }
     assertEquals("changed_file_summary.sample_paths", samplePathsError.fieldPath)
   }
@@ -306,7 +307,7 @@ class WorkflowCliResultMappersTest {
           workflowId = "wfl-1",
           dbPath = "/tmp/metrics.db",
           snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("issue_key" to 61)),
-        ).toCliMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toCliMap()
       }
     assertEquals("issue_key", issueKeyError.fieldPath)
 
@@ -316,7 +317,7 @@ class WorkflowCliResultMappersTest {
           workflowId = "wfl-1",
           dbPath = "/tmp/metrics.db",
           snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("subtask_id" to "1")),
-        ).toCliMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toCliMap()
       }
     assertEquals("subtask_id", subtaskIdError.fieldPath)
 
@@ -326,7 +327,7 @@ class WorkflowCliResultMappersTest {
           workflowId = "wfl-1",
           dbPath = "/tmp/metrics.db",
           snapshot = snapshotWithObservability(event = snapshotWithObservabilityEvent() + ("timestamp" to 20260601)),
-        ).toCliMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toCliMap()
       }
     assertEquals("timestamp", timestampError.fieldPath)
   }
@@ -342,7 +343,7 @@ class WorkflowCliResultMappersTest {
             snapshotWithObservability(
               event = snapshotWithObservabilityEvent() + ("changed_files" to List(501) { "file-$it.kt" }),
             ),
-        ).toCliMap(testGoalObservabilityEventValidator)
+        ).withDecodedGoalObservability().toCliMap()
       }
 
     assertEquals("changed_files", error.fieldPath)
@@ -382,6 +383,12 @@ class WorkflowCliResultMappersTest {
       "sequence_number" to 1,
       "timestamp" to "2026-06-01T00:00:00Z",
       "changed_files" to listOf("heavy.kt"),
+    )
+
+  private fun WorkflowGetResult.Ok.withDecodedGoalObservability(): WorkflowGetResult.Ok =
+    copy(
+      goalObservability =
+        goalObservabilityLatestEventFromArtifacts(snapshot.artifacts, testGoalObservabilityEventValidator),
     )
 
   private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =

@@ -56,7 +56,7 @@ class GoalRunnerAgentOutputScannerArchitectureTest {
         }.map { path -> root.relativize(path).toString() }
       }
     assertEquals(
-      listOf("skillbill/application/agentoutput/AgentOutputJsonScan.kt"),
+      listOf("skillbill/engine/agentoutput/AgentOutputJsonScan.kt"),
       matches.sorted(),
     )
   }

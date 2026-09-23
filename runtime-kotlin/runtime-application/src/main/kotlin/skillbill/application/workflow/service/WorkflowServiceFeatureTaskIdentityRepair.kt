@@ -20,7 +20,7 @@ import skillbill.workflow.model.workflowStatus
 import java.time.Clock
 import java.time.ZoneOffset
 
-class WorkflowServiceFeatureTaskIdentityRepair(
+internal class WorkflowServiceFeatureTaskIdentityRepair(
   private val engine: WorkflowEngine,
   private val clock: Clock,
 ) {

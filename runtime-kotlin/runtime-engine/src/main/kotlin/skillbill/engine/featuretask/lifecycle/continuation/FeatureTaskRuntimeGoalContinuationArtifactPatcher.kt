@@ -1,12 +1,12 @@
 package skillbill.engine.featuretask.lifecycle.continuation
 
 import skillbill.agentaddon.model.AgentAddonSelection
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.runloop.observability.continuation
 import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch

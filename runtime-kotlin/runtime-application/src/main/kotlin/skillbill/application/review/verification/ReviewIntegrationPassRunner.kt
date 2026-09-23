@@ -20,7 +20,7 @@ import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
 import skillbill.review.parallel.ParallelReviewFindingParser
 
-class ReviewIntegrationPassRunner(
+internal class ReviewIntegrationPassRunner(
   private val launcher: GoalRunnerSubtaskLauncher,
   private val envelopeValidator: ReviewContextEnvelopeValidator,
 ) {

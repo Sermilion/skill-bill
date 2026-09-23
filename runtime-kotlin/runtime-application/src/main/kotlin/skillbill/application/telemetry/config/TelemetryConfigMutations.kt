@@ -44,7 +44,7 @@ object TelemetryConfigMutations {
     )
 }
 
-fun clearsPendingOutbox(
+internal fun clearsPendingOutbox(
   currentLevel: String,
   newLevel: String,
 ): Boolean {

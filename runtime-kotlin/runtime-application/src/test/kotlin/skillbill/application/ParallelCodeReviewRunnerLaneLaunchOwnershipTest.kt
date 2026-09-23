@@ -1,7 +1,7 @@
 package skillbill.application
 
 import skillbill.application.review.governed.stubGovernedReviewEvidenceEndpointBinder
-import skillbill.application.review.review.simulateGovernedEvidenceReads
+import skillbill.application.review.snapshot.simulateGovernedEvidenceReads
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts

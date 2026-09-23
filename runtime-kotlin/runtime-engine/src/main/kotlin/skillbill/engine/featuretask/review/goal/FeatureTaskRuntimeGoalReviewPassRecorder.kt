@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.review.goal
 
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationArtifactPatcher
 import skillbill.engine.featuretask.lifecycle.continuation.GoalReviewPassCompletionRequest
 import skillbill.engine.featuretask.lifecycle.continuation.continuationFromArtifacts
@@ -20,6 +19,7 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY

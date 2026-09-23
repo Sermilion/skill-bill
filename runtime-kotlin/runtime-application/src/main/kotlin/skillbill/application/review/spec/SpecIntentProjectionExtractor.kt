@@ -133,7 +133,7 @@ class SpecIntentProjectionExtractor(
   }
 }
 
-class SpecIntentSourceUnavailable(
+internal class SpecIntentSourceUnavailable(
   val specPath: String,
   val reason: String,
   cause: Throwable? = null,

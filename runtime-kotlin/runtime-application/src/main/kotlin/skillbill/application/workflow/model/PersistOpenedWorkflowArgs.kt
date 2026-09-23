@@ -5,7 +5,7 @@ import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 
-data class PersistOpenedWorkflowArgs(
+internal data class PersistOpenedWorkflowArgs(
   val family: WorkflowFamily,
   val workflowId: String,
   val effectiveSessionId: String,

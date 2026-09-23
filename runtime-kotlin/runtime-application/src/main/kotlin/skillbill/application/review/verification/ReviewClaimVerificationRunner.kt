@@ -39,7 +39,7 @@ class ReviewClaimVerificationRunner(
   private val envelopeValidator: ReviewContextEnvelopeValidator,
   private val clock: Clock,
 ) {
-  fun run(request: ReviewClaimVerificationRunRequest): ReviewClaimVerificationOutcome {
+  internal fun run(request: ReviewClaimVerificationRunRequest): ReviewClaimVerificationOutcome {
     if (request.packet == null) {
       return ReviewClaimVerificationOutcome(
         verdicts = emptyList(),

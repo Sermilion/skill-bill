@@ -5,7 +5,6 @@ import skillbill.application.RecordingSpecScratchStore
 import skillbill.application.RecordingSpecStatusWriter
 import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.idestatus.AgentActivityStampWriter
-import skillbill.application.idestatus.WorktreeEditJournalWriter
 import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.application.review.spec.SpecIntentProjectionExtractor
 import skillbill.application.review.spec.SpecIntentProjectionResolver
@@ -59,6 +58,7 @@ import skillbill.engine.featuretask.validation.FeatureTaskRuntimeReadinessGateCo
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateCoordinator
 import skillbill.engine.featuretask.validation.ReadinessCheckSelection
 import skillbill.engine.featuretask.validation.ValidationGateResolver
+import skillbill.engine.worktreeedit.WorktreeEditJournalWriter
 import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.error.core.RejectedOutputDiagnosticError.Absent
 import skillbill.error.core.RejectedOutputDiagnosticError.Conflict
@@ -195,6 +195,7 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.time.TimeSource
 import java.lang.Double.TYPE as DoubleTYPE
 import java.lang.Long.TYPE as LongTYPE
 
@@ -1008,7 +1009,8 @@ private fun harnessRunner(deps: HarnessRunnerDeps): FeatureTaskRuntimeRunner {
     clock = testHarnessClock,
     probeWriters =
       FeatureTaskRuntimeProbeWriters(
-        activityStampWriter = AgentActivityStampWriter(deps.database, Clock.systemUTC(), deps.diagnostics),
+        activityStampWriter =
+          AgentActivityStampWriter(deps.database, Clock.systemUTC(), deps.diagnostics, TimeSource.Monotonic),
         worktreeEditJournalWriter =
           WorktreeEditJournalWriter(
             deps.database,
@@ -1173,7 +1175,8 @@ private fun telemetryRunnerPhaseGates(
 
 private fun telemetryRunnerProbeWriters(database: RuntimeFakeDatabaseSessionFactory): FeatureTaskRuntimeProbeWriters =
   FeatureTaskRuntimeProbeWriters(
-    activityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics),
+    activityStampWriter =
+      AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics, TimeSource.Monotonic),
     worktreeEditJournalWriter =
       WorktreeEditJournalWriter(
         database,

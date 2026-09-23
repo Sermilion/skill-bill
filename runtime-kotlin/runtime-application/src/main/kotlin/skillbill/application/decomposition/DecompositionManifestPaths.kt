@@ -12,7 +12,7 @@ fun decompositionManifestPath(
   decompositionManifestDirectory(repoRoot, parentSpecPath, subtaskSpecPaths)
     .resolve(DECOMPOSITION_MANIFEST_FILENAME)
 
-fun decompositionManifestDirectory(
+internal fun decompositionManifestDirectory(
   repoRoot: Path,
   parentSpecPath: Path,
   subtaskSpecPaths: List<String>,

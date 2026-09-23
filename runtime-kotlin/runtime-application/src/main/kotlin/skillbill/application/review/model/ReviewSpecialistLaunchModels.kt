@@ -6,12 +6,12 @@ import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.packet.ReviewContextPacket
 import java.nio.file.Path
 
-enum class ReviewWorkerKind {
+internal enum class ReviewWorkerKind {
   PROVIDER_NATIVE,
   GENERIC,
 }
 
-data class ReviewRubricProjection(val rubricId: String, val body: String, val area: String? = null) {
+internal data class ReviewRubricProjection(val rubricId: String, val body: String, val area: String? = null) {
   init {
     require(rubricId.isNotBlank()) { "A projected rubric must carry an id." }
     require(body.isNotBlank()) { "A projected rubric must carry a body." }
@@ -19,7 +19,7 @@ data class ReviewRubricProjection(val rubricId: String, val body: String, val ar
   }
 }
 
-data class ReviewSpecialistLaunchRequest(
+internal data class ReviewSpecialistLaunchRequest(
   val packet: ReviewContextPacket,
   val assignment: ReviewAssignment,
   val specialistContract: String,

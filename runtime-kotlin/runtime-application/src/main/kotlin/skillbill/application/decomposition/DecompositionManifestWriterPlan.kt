@@ -13,7 +13,7 @@ import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.decomposition.runtime.invalidManifest
 import java.nio.file.Path
 
-fun parseSubtasks(
+internal fun parseSubtasks(
   planningResult: DecompositionPlanningResult,
   sourceLabel: String,
   specSource: SpecSource = specSource(planningResult, sourceLabel),
@@ -119,9 +119,9 @@ fun parseStackBranches(plan: DecompositionPlanningResult): List<DecompositionSta
     )
   }
 
-fun DecompositionPlanningResult.currentSubtaskIdOrNull(): Int? = currentSubtaskId ?: recommendedFirstSubtaskId
+internal fun DecompositionPlanningResult.currentSubtaskIdOrNull(): Int? = currentSubtaskId ?: recommendedFirstSubtaskId
 
-fun DecompositionPlanningResult.withSubtasks(
+internal fun DecompositionPlanningResult.withSubtasks(
   subtasks: List<DecompositionPlanningSubtaskWire>,
 ): DecompositionPlanningResult = copy(subtasks = subtasks)
 

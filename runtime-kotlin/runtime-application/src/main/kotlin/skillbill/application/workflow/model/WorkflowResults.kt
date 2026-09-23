@@ -6,6 +6,7 @@ import skillbill.workflow.engine.model.WorkflowResumeView
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowSummaryView
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
+import skillbill.workflow.goal.model.GoalObservabilityEvent
 
 sealed interface WorkflowOpenResult {
   data class Ok(
@@ -13,6 +14,7 @@ sealed interface WorkflowOpenResult {
     val dbPath: String,
     val snapshot: WorkflowSnapshotView,
     val launchProjection: WorkflowInputProjection? = null,
+    val goalObservability: GoalObservabilityEvent? = null,
   ) : WorkflowOpenResult
 
   data class Error(val workflowId: String, val error: String) : WorkflowOpenResult
@@ -34,6 +36,7 @@ sealed interface WorkflowGetResult {
     val workflowId: String,
     val dbPath: String,
     val snapshot: WorkflowSnapshotView,
+    val goalObservability: GoalObservabilityEvent? = null,
   ) : WorkflowGetResult
 
   data class Error(val workflowId: String, val error: String, val dbPath: String) : WorkflowGetResult

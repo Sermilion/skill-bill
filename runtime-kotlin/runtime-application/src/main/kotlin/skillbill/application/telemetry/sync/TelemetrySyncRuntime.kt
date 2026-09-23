@@ -76,7 +76,7 @@ object TelemetrySyncRuntime {
       }
 }
 
-fun telemetrySyncTarget(settings: TelemetrySettings): String =
+internal fun telemetrySyncTarget(settings: TelemetrySettings): String =
   when {
     !settings.enabled -> "disabled"
     settings.customProxyUrl != null -> "custom_proxy"

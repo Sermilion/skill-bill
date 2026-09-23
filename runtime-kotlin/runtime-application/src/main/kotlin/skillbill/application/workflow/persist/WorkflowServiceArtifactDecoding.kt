@@ -12,7 +12,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 fun decodeWorkflowArtifacts(artifactsJson: String): DurableWorkflowArtifacts =
   DurableWorkflowArtifacts.fromJson(artifactsJson)
 
-fun decodeFeatureTaskRuntimePhaseRecords(
+internal fun decodeFeatureTaskRuntimePhaseRecords(
   artifacts: DurableWorkflowArtifacts,
 ): Map<String, FeatureTaskRuntimePhaseRecord> {
   val raw =
@@ -28,7 +28,7 @@ fun decodeFeatureTaskRuntimePhaseRecords(
   }
 }
 
-object FeatureTaskRuntimePhaseLedgerDecoder {
+internal object FeatureTaskRuntimePhaseLedgerDecoder {
   fun decode(artifacts: DurableWorkflowArtifacts): List<FeatureTaskRuntimePhaseLedgerEntry> {
     if (FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY !in artifacts) return emptyList()
     val raw =

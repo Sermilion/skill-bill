@@ -1,13 +1,14 @@
 package skillbill.application.review.parallel.verification
+import me.tatarka.inject.annotations.Inject
 import skillbill.application.agentoutput.agentFailureExcerpt
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
-import skillbill.application.review.parallel.core.code.review.runner.INLINE_FINDING_PARSE_SEAM
-import skillbill.application.review.parallel.core.code.review.runner.NO_OP_RESUME_TERMINAL_STATUS
-import skillbill.application.review.parallel.core.code.review.runner.PARALLEL_REVIEW_FIRST_SOURCE_LINE
-import skillbill.application.review.parallel.core.code.review.runner.PARALLEL_REVIEW_REGISTER_ABSENCE_EXCERPT_MAX_LENGTH
-import skillbill.application.review.parallel.core.code.review.runner.PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH
-import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewInlineParentLaunch
-import skillbill.application.review.parallel.core.code.review.runner.ParallelCodeReviewSoftRegisterAdmission
+import skillbill.application.review.parallel.runner.INLINE_FINDING_PARSE_SEAM
+import skillbill.application.review.parallel.runner.NO_OP_RESUME_TERMINAL_STATUS
+import skillbill.application.review.parallel.runner.PARALLEL_REVIEW_FIRST_SOURCE_LINE
+import skillbill.application.review.parallel.runner.PARALLEL_REVIEW_REGISTER_ABSENCE_EXCERPT_MAX_LENGTH
+import skillbill.application.review.parallel.runner.PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH
+import skillbill.application.review.parallel.runner.ParallelCodeReviewInlineParentLaunch
+import skillbill.application.review.parallel.runner.ParallelCodeReviewSoftRegisterAdmission
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.review.model.ParallelReviewLaneOutcome
 import skillbill.ports.review.model.ReviewLaneAccounting
@@ -20,6 +21,7 @@ import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.parallel.ParallelReviewFindingParser
 import kotlin.coroutines.cancellation.CancellationException
 
+@Inject
 class ParallelCodeReviewRunnerFailureAdmission(
   private val registerParse: (String) -> ParallelReviewParseResult,
 ) {

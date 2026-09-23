@@ -9,7 +9,6 @@ import skillbill.application.workflow.model.WorkflowResumeResult
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.workflow.goal.GoalObservabilityEventValidator
 
 internal fun WorkflowContinueResult.toMcpMap(): Map<String, Any?> =
   when (this) {
@@ -25,12 +24,10 @@ internal fun WorkflowContinueResult.toMcpMap(): Map<String, Any?> =
     is WorkflowContinueResult.Error -> toErrorMcpMap()
   }
 
-internal fun WorkflowOpenResult.toMcpMap(
-  goalObservabilityEventValidator: GoalObservabilityEventValidator,
-): Map<String, Any?> =
+internal fun WorkflowOpenResult.toMcpMap(): Map<String, Any?> =
   when (this) {
     is WorkflowOpenResult.Ok ->
-      workflowSnapshotMcpMap(snapshot, goalObservabilityEventValidator).apply {
+      workflowSnapshotMcpMap(snapshot, goalObservability).apply {
         launchProjection?.let {
           put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload())
         }
@@ -70,12 +67,10 @@ internal fun WorkflowUpdateResult.toMcpMap(): Map<String, Any?> =
       ).apply { dbPath?.let { put("db_path", it) } }
   }
 
-internal fun WorkflowGetResult.toMcpMap(
-  goalObservabilityEventValidator: GoalObservabilityEventValidator,
-): Map<String, Any?> =
+internal fun WorkflowGetResult.toMcpMap(): Map<String, Any?> =
   when (this) {
     is WorkflowGetResult.Ok ->
-      workflowSnapshotMcpMap(snapshot, goalObservabilityEventValidator).apply {
+      workflowSnapshotMcpMap(snapshot, goalObservability).apply {
         put(SharedPayloadKeys.STATUS, "ok")
         put("db_path", dbPath)
       }

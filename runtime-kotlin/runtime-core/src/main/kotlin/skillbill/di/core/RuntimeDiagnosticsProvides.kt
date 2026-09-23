@@ -17,6 +17,7 @@ import skillbill.ports.process.ShutdownHookPort
 import skillbill.ports.system.HostPlatformPort
 import skillbill.ports.time.RuntimeTimingPort
 import java.time.Clock
+import kotlin.time.TimeSource
 
 internal interface RuntimeDiagnosticsProvides {
   @Provides @JvmSynthetic
@@ -46,4 +47,7 @@ internal interface RuntimeDiagnosticsProvides {
 
   @Provides @JvmSynthetic
   fun runtimeClock(): Clock = JvmSystemClock
+
+  @Provides @JvmSynthetic
+  fun runtimeTimeSource(): TimeSource = TimeSource.Monotonic
 }

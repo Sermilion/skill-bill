@@ -1,7 +1,5 @@
 package skillbill.application
 
-import skillbill.application.install.InstallPlanningPorts
-import skillbill.application.install.InstallReconcilePorts
 import skillbill.application.install.InstallService
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentDefaultTarget
@@ -90,13 +88,12 @@ class InstallServiceTest {
     val planningFactsPort = FakePlanningFactsPort(repoRoot, home, platformManifests)
     val service =
       InstallService(
-        planningPorts =
-          InstallPlanningPorts(
-            planningFactsPort = planningFactsPort,
-            platformSkillMaterializationPort = SnapshotAssertingMaterializationPort(platformManifests),
-            stagingIntentPort = SnapshotAssertingStagingIntentPort(home, platformManifests),
-          ),
-        reconcilePorts = unsupportedReconcilePorts,
+        planningFactsPort = planningFactsPort,
+        platformSkillMaterializationPort = SnapshotAssertingMaterializationPort(platformManifests),
+        stagingIntentPort = SnapshotAssertingStagingIntentPort(home, platformManifests),
+        reconcilePort = UnsupportedInstallReconcilePort,
+        reconcileApplyPort = UnsupportedInstallReconcileApplyPort,
+        baselineManifestPersistencePort = UnsupportedBaselineManifestPersistencePort,
         applyExecutionPort = UnsupportedApplyExecutionPort,
         skillLinkPort = UnsupportedSkillLinkPort,
         installSelectionPersistencePort = NoopInstallSelectionPersistencePort,
@@ -363,13 +360,12 @@ class InstallServiceTest {
     selectionPort: InstallSelectionPersistencePort,
   ): InstallService =
     InstallService(
-      planningPorts =
-        InstallPlanningPorts(
-          planningFactsPort = UnsupportedPlanningFactsPort,
-          platformSkillMaterializationPort = UnsupportedPlatformSkillMaterializationPort,
-          stagingIntentPort = UnsupportedStagingIntentPort,
-        ),
-      reconcilePorts = unsupportedReconcilePorts,
+      planningFactsPort = UnsupportedPlanningFactsPort,
+      platformSkillMaterializationPort = UnsupportedPlatformSkillMaterializationPort,
+      stagingIntentPort = UnsupportedStagingIntentPort,
+      reconcilePort = UnsupportedInstallReconcilePort,
+      reconcileApplyPort = UnsupportedInstallReconcileApplyPort,
+      baselineManifestPersistencePort = UnsupportedBaselineManifestPersistencePort,
       applyExecutionPort = StaticApplyExecutionPort(result),
       skillLinkPort = UnsupportedSkillLinkPort,
       installSelectionPersistencePort = selectionPort,
@@ -614,14 +610,5 @@ class InstallServiceTest {
 
     override fun writeBaseline(request: WriteBaselineManifestRequest): WriteBaselineManifestResult =
       error("writeBaseline is not part of this test")
-  }
-
-  private companion object {
-    val unsupportedReconcilePorts =
-      InstallReconcilePorts(
-        reconcilePort = UnsupportedInstallReconcilePort,
-        reconcileApplyPort = UnsupportedInstallReconcileApplyPort,
-        baselineManifestPersistencePort = UnsupportedBaselineManifestPersistencePort,
-      )
   }
 }

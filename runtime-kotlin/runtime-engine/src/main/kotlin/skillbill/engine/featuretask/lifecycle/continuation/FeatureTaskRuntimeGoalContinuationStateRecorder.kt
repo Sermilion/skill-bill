@@ -1,10 +1,10 @@
 package skillbill.engine.featuretask.lifecycle.continuation
 
-import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.runloop.observability.continuation
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch

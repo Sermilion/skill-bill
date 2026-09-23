@@ -6,7 +6,7 @@ import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 
-fun hasIncompleteFeatureTaskIdentity(
+internal fun hasIncompleteFeatureTaskIdentity(
   kind: WorkflowFamilyKind,
   hasIdentityCoordinates: Boolean,
   issueKey: String?,
@@ -17,7 +17,9 @@ fun hasIncompleteFeatureTaskIdentity(
     hasIdentityCoordinates &&
     listOf(issueKey, repositoryIdentity, governedSpecPath).any { it == null }
 
-fun buildFeatureTaskExecutionIdentity(args: BuildFeatureTaskExecutionIdentityArgs): FeatureTaskExecutionIdentity? {
+internal fun buildFeatureTaskExecutionIdentity(
+  args: BuildFeatureTaskExecutionIdentityArgs,
+): FeatureTaskExecutionIdentity? {
   val kind = args.kind
   val hasIdentityCoordinates = args.hasIdentityCoordinates
   if (kind !in FEATURE_TASK_FAMILY_KINDS || !hasIdentityCoordinates) return null

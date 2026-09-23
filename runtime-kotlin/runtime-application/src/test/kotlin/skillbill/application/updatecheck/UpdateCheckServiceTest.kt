@@ -6,8 +6,9 @@ import skillbill.application.updatecheck.model.UpdateCheckStatus
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.telemetry.model.RemoteTransportResponse
-import skillbill.ports.telemetry.transport.RemoteTransportPort
+import skillbill.ports.process.ReleaseCatalogPort
+import skillbill.ports.process.model.ReleaseCatalogEntry
+import skillbill.ports.process.model.ReleaseCatalogResult
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.telemetry.model.TelemetrySettings
 import java.nio.file.Files
@@ -23,23 +24,23 @@ class UpdateCheckServiceTest {
 
   @Test
   fun `maps update available up to date and ahead of release`() {
-    val update = service(responseBody = releases("v0.4.0")).check(includePrereleases = false)
+    val update = service(releases("v0.4.0")).check(includePrereleases = false)
     assertEquals(UpdateCheckStatus.UPDATE_AVAILABLE, update.status)
     assertEquals(installedVersion, update.installedVersion)
     assertEquals("v0.4.0", update.latestVersion)
     assertEquals(RECOMMENDED_INSTALL_COMMAND, update.recommendedInstallCommand)
 
-    val upToDate = service(responseBody = releases("v0.3.0-SNAPSHOT")).check(includePrereleases = true)
+    val upToDate = service(releases("v0.3.0-SNAPSHOT")).check(includePrereleases = true)
     assertEquals(UpdateCheckStatus.UP_TO_DATE, upToDate.status)
     assertNull(upToDate.recommendedInstallCommand)
 
-    val ahead = service(responseBody = releases("v0.2.0")).check(includePrereleases = false)
+    val ahead = service(releases("v0.2.0")).check(includePrereleases = false)
     assertEquals(UpdateCheckStatus.AHEAD_OF_RELEASE, ahead.status)
   }
 
   @Test
   fun `same-base snapshot is behind the matching release`() {
-    val update = service(responseBody = releases("v0.3.0")).check(includePrereleases = false)
+    val update = service(releases("v0.3.0")).check(includePrereleases = false)
     assertEquals(UpdateCheckStatus.UPDATE_AVAILABLE, update.status)
     assertEquals("v0.3.0", update.latestVersion)
     assertEquals(RECOMMENDED_INSTALL_COMMAND, update.recommendedInstallCommand)
@@ -47,22 +48,25 @@ class UpdateCheckServiceTest {
 
   @Test
   fun `selects stable releases by default and prereleases when requested`() {
-    val body = releases("v0.4.0-rc.1", "v0.2.0")
+    val catalog = releases("v0.4.0-rc.1", "v0.2.0")
 
-    val stable = service(responseBody = body).check(includePrereleases = false)
+    val stable = service(catalog).check(includePrereleases = false)
     assertEquals(UpdateCheckStatus.AHEAD_OF_RELEASE, stable.status)
     assertEquals("v0.2.0", stable.latestVersion)
 
-    val prerelease = service(responseBody = body).check(includePrereleases = true)
+    val prerelease = service(catalog).check(includePrereleases = true)
     assertEquals(UpdateCheckStatus.UPDATE_AVAILABLE, prerelease.status)
     assertEquals("v0.4.0-rc.1", prerelease.latestVersion)
   }
 
   @Test
   fun `ignores a newer plugin release and selects the newest runtime semver`() {
-    val body = "[${releaseEntry("plugin-v9.9.9", prerelease = false)},${releaseEntry("v0.4.0")}]"
+    val catalog =
+      ReleaseCatalogResult.Releases(
+        listOf(releaseEntry("plugin-v9.9.9", prerelease = false), releaseEntry("v0.4.0")),
+      )
 
-    val result = service(responseBody = body).check(includePrereleases = false)
+    val result = service(catalog).check(includePrereleases = false)
 
     assertEquals("v0.4.0", result.latestVersion)
     assertEquals(UpdateCheckStatus.UPDATE_AVAILABLE, result.status)
@@ -73,14 +77,8 @@ class UpdateCheckServiceTest {
   fun `an unversioned build is never told to update`() {
     val result =
       UpdateCheckService(
-        systemService =
-          SystemService(
-            TestDatabaseSessionFactory(),
-            TestTelemetrySettingsProvider,
-            NoopRuntimeDiagnostics,
-            versionValue = "0.0.0-SNAPSHOT",
-          ),
-        requester = RemoteTransportPort { _, _, _, _ -> error("release list must not be consulted") },
+        systemService = systemService("0.0.0-SNAPSHOT"),
+        releaseCatalog = FakeReleaseCatalog { error("release list must not be consulted") },
       ).check(includePrereleases = false)
 
     assertEquals(UpdateCheckStatus.UNKNOWN, result.status)
@@ -90,57 +88,73 @@ class UpdateCheckServiceTest {
 
   @Test
   fun `missing and malformed installed versions stay unknown without release lookup`() {
-    val missing = service(versionValue = "", responseBody = releases("v9.9.9")).check(false)
+    val missing = service(releases("v9.9.9"), versionValue = "").check(false)
     assertEquals(UpdateCheckStatus.UNKNOWN, missing.status)
     assertEquals("missing local version metadata", missing.reason)
 
-    val malformed = service(versionValue = "not-semver", responseBody = releases("v9.9.9")).check(false)
+    val malformed = service(releases("v9.9.9"), versionValue = "not-semver").check(false)
     assertEquals(UpdateCheckStatus.UNKNOWN, malformed.status)
     assertEquals("local version is not semver", malformed.reason)
   }
 
   @Test
-  fun `whitespace formatted empty release arrays are not treated as malformed`() {
-    val result = service(responseBody = "[ ]").check(includePrereleases = false)
+  fun `an empty release catalog stays unknown`() {
+    val result = service(ReleaseCatalogResult.Releases(emptyList())).check(includePrereleases = false)
     assertEquals(UpdateCheckStatus.UNKNOWN, result.status)
     assertEquals("no GitHub releases returned", result.reason)
   }
 
   @Test
   fun `maps soft failures to unknown`() {
-    assertEquals(UpdateCheckStatus.UNKNOWN, service(responseBody = "not-json").check(false).status)
-    assertEquals(UpdateCheckStatus.UNKNOWN, service(responseBody = "[]").check(false).status)
-    assertEquals(UpdateCheckStatus.UNKNOWN, service(statusCode = 429, responseBody = "").check(false).status)
-    assertEquals(UpdateCheckStatus.UNKNOWN, service(responseBody = releases("nonsense")).check(false).status)
+    val catalogFailure =
+      service(ReleaseCatalogResult.Failure("GitHub API rate limit or access limit")).check(false)
+    assertEquals(UpdateCheckStatus.UNKNOWN, catalogFailure.status)
+    assertEquals("GitHub API rate limit or access limit", catalogFailure.reason)
+
+    val noSemver = service(releases("nonsense")).check(false)
+    assertEquals(UpdateCheckStatus.UNKNOWN, noSemver.status)
+    assertEquals("no usable semver GitHub release found", noSemver.reason)
+  }
+
+  @Test
+  fun `a malformed entry among valid releases stays unknown`() {
+    val catalog =
+      ReleaseCatalogResult.Releases(
+        listOf(
+          releaseEntry("v0.4.0"),
+          ReleaseCatalogEntry.Malformed(prerelease = false, draft = false),
+          releaseEntry("v0.2.0"),
+        ),
+      )
+
+    val result = service(catalog).check(includePrereleases = false)
+
+    assertEquals(UpdateCheckStatus.UNKNOWN, result.status)
+    assertEquals("malformed release entry", result.reason)
   }
 
   @Test
   fun `overlapping checks keep independent failure reasons and valid results`() {
-    val validBody = releases("v0.4.0")
-    val malformedBody = "[{\"tag_name\":\"v0.4.0\"}]"
+    val validCatalog = releases("v0.4.0")
+    val malformedCatalog =
+      ReleaseCatalogResult.Releases(listOf(ReleaseCatalogEntry.Malformed(prerelease = false, draft = false)))
     val callCount = AtomicInteger(0)
     val firstEntered = CountDownLatch(1)
     val releaseFirst = CountDownLatch(1)
     val shared =
       UpdateCheckService(
-        systemService =
-          SystemService(
-            TestDatabaseSessionFactory(),
-            TestTelemetrySettingsProvider,
-            NoopRuntimeDiagnostics,
-            versionValue = installedVersion,
-          ),
-        requester =
-          RemoteTransportPort { _, _, _, _ ->
+        systemService = systemService(installedVersion),
+        releaseCatalog =
+          FakeReleaseCatalog {
             when (callCount.incrementAndGet()) {
               1 -> {
                 firstEntered.countDown()
                 releaseFirst.await()
-                RemoteTransportResponse(statusCode = 200, body = malformedBody)
+                malformedCatalog
               }
               else -> {
                 releaseFirst.countDown()
-                RemoteTransportResponse(statusCode = 200, body = validBody)
+                validCatalog
               }
             }
           },
@@ -165,43 +179,43 @@ class UpdateCheckServiceTest {
   }
 
   private fun service(
-    statusCode: Int = 200,
-    responseBody: String,
+    catalog: ReleaseCatalogResult,
     versionValue: String = installedVersion,
   ): UpdateCheckService =
     UpdateCheckService(
-      systemService =
-        SystemService(
-          TestDatabaseSessionFactory(),
-          TestTelemetrySettingsProvider,
-          NoopRuntimeDiagnostics,
-          versionValue = versionValue,
-        ),
-      requester =
-        RemoteTransportPort { method, url, _, headers ->
-          assertEquals("GET", method)
-          assertEquals("https://api.github.com/repos/Sermilion/skill-bill/releases", url)
-          assertEquals("skill-bill-update-check", headers["User-Agent"])
-          RemoteTransportResponse(statusCode = statusCode, body = responseBody)
-        },
+      systemService = systemService(versionValue),
+      releaseCatalog = FakeReleaseCatalog { catalog },
     )
 }
 
-private fun releases(vararg tags: String): String =
-  tags.joinToString(prefix = "[", postfix = "]") { tag -> releaseEntry(tag) }
+private fun systemService(versionValue: String): SystemService =
+  SystemService(
+    TestDatabaseSessionFactory(),
+    TestTelemetrySettingsProvider,
+    NoopRuntimeDiagnostics,
+    versionValue = versionValue,
+  )
+
+private class FakeReleaseCatalog(
+  private val response: () -> ReleaseCatalogResult,
+) : ReleaseCatalogPort {
+  override fun listReleases(): ReleaseCatalogResult = response()
+}
+
+private fun releases(vararg tags: String): ReleaseCatalogResult =
+  ReleaseCatalogResult.Releases(tags.map { tag -> releaseEntry(tag) })
 
 private fun releaseEntry(
   tag: String,
   prerelease: Boolean = tag.contains("-"),
-): String =
-  """
-  {
-    "tag_name":"$tag",
-    "prerelease":$prerelease,
-    "draft":false,
-    "html_url":"https://github.com/oila-gmbh/skill-bill/releases/tag/$tag"
-  }
-  """.trimIndent()
+): ReleaseCatalogEntry =
+  ReleaseCatalogEntry.Release(
+    tagName = tag,
+    url = "https://github.com/oila-gmbh/skill-bill/releases/tag/$tag",
+    notes = null,
+    prerelease = prerelease,
+    draft = false,
+  )
 
 private class TestDatabaseSessionFactory : DatabaseSessionFactory {
   private val dbPath = Files.createTempDirectory("skillbill-update-check-db").resolve("metrics.db")

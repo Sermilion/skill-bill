@@ -1,6 +1,6 @@
 package skillbill.application.telemetry.service
 
-fun prDescriptionWasEditedByUser(
+internal fun prDescriptionWasEditedByUser(
   generatedDescription: String?,
   finalPrBody: String?,
 ): Boolean {
