@@ -1,3 +1,13 @@
+## [2026-09-23] SKILL-371 — one CLI process output contract (subtask 2)
+Areas: runtime-kotlin/runtime-cli/{core,experiment,featuretask,goal,kernel,workflow}, runtime-contracts/shellcontent, runtime-engine/{experiment/report,goalrunner/experiment}, runtime-ports/{experiment/navigation,experiment/pair}
+- Centralized CLI completion and failure mapping through `CliRunState`, `CliExecutionResult`, and `Main`; typed failures now settle stderr and exit status without command-level duplication.
+- Typed goal/feature-task presenters and exit-code models preserve text/JSON parity; experiment navigation/reporting now owns spec validation and typed absent-pair failures.
+- reusable PATTERN: keep command output as settled payloads and route cross-command failure/format policy through one runtime boundary.
+- Removed redundant command groups and continuation mappings while retaining the deprecated feature-task alias with its stderr notice.
+- Known limitation: remaining task-1 cleanup for path exception mapping, diagnostics, and all echo removal is outside this subtask.
+Feature flag: N/A
+Acceptance criteria: 10/10 implemented
+
 ## [2026-09-23] SKILL-371 — restore architecture guard enforcement (subtask 1)
 Areas: runtime-cli, runtime-core/architecture, runtime-application, runtime-domain, runtime-engine, runtime-infra, runtime-ports, runtime-kotlin/ARCHITECTURE.md
 - Restored module-root scanning with missing-root failures and non-empty visit assertions; refreshed the pinned engine inbound surface to `goalrunner.status` and `goalrunner.preflight`.

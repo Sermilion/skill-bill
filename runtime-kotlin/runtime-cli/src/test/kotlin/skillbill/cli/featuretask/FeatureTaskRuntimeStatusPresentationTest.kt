@@ -64,7 +64,7 @@ class FeatureTaskRuntimeStatusPresentationTest {
       ValidationGateRunOutcome.PASSED.wireValue,
       run[ValidationEvidencePayloadKeys.OUTCOME],
     )
-    val text = runtimeStatusText(status)
+    val text = runtimeStatusText(projection, "workflow-1")
     assertTrue(text.contains("validation_gate_checks: runtime-engine|compileKotlin,runtime-engine|test"))
     assertTrue(text.contains("executed_work_units=2"))
     assertTrue(text.contains("checks=runtime-engine|compileKotlin,runtime-engine|test"))

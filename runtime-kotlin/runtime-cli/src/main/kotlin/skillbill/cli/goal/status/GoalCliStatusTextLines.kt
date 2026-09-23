@@ -1,5 +1,64 @@
 package skillbill.cli.goal.status
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.goalrunner.model.GoalRunnerStatusProjection
+
+internal fun StringBuilder.appendOperatorSurfaceLines(projection: GoalRunnerStatusProjection) {
+  if (projection.blockedAttemptCount > 0 || projection.supervisorKillCount > 0) {
+    appendLine(
+      "blocked_attempts: ${projection.blockedAttemptCount} supervisor_kills=${projection.supervisorKillCount}",
+    )
+  }
+  projection.phaseAttemptCounts.takeIf { it.isNotEmpty() }?.let { counts ->
+    appendLine("phase_attempts: ${counts.entries.joinToString(" ") { (key, value) -> "$key=$value" }}")
+  }
+  projection.cumulativeFixIterations.takeIf { it.isNotEmpty() }?.let { iterations ->
+    appendLine("fix_iterations: ${iterations.entries.joinToString(" ") { (key, value) -> "$key=$value" }}")
+  }
+  projection.reAttemptCauseCounts.takeIf { it.isNotEmpty() }?.let { causes ->
+    appendLine("re_attempt_causes: ${causes.entries.joinToString(" ") { (key, value) -> "$key=$value" }}")
+  }
+  projection.findingsInScope?.let { appendLine("findings_in_scope: $it") }
+  projection.outOfBandAcceptances.takeIf(List<*>::isNotEmpty)?.forEach { acceptance ->
+    appendLine(
+      "accepted_out_of_band: subtask=${acceptance.subtaskId} commit=${acceptance.commitSha} " +
+        "at=${acceptance.acceptedAt} reason=${acceptance.reason}",
+    )
+  }
+}
+
+internal fun StringBuilder.appendDiffStatusLines(
+  projection: GoalRunnerStatusProjection,
+  watchIndex: String? = null,
+) {
+  val stat = projection.requestedDiffStat
+  val indexPrefix = watchIndex?.let { " index=$it" }.orEmpty()
+  stat?.let {
+    appendLine(
+      "${if (watchIndex == null) "diff_stat" else "watch_diff_stat"}:$indexPrefix " +
+        "files_changed=${it.filesChanged} insertions=${it.insertions} deletions=${it.deletions}",
+    )
+  }
+  val selected = projection.selectedDiffHunks ?: return
+  appendLine(
+    "${if (watchIndex == null) "selected_diff_hunks" else "watch_selected_diff_hunks"}:$indexPrefix " +
+      "count=${selected.hunks.size} truncated=${selected.truncated}",
+  )
+  selected.hunks.forEachIndexed { hunkIndex, hunk ->
+    val path = hunk.path.goalCliToken()
+    appendLine(
+      "${if (watchIndex == null) "selected_diff_hunk" else "watch_selected_diff_hunk"}:$indexPrefix " +
+        "hunk_index=${hunkIndex + 1} path=$path staged=${hunk.staged} " +
+        "header=${hunk.header.goalCliToken()} line_count=${hunk.lines.size} truncated=${hunk.truncated}",
+    )
+    hunk.lines.forEachIndexed { lineIndex, line ->
+      appendLine(
+        "${if (watchIndex == null) "selected_diff_line" else "watch_selected_diff_line"}:$indexPrefix " +
+          "hunk_index=${hunkIndex + 1} line_index=${lineIndex + 1} path=$path staged=${hunk.staged} " +
+          "text=${line.goalCliToken()}",
+      )
+    }
+  }
+}
 
 internal fun StringBuilder.appendOperatorSurfaceLines(payload: Map<*, *>) {
   val blockedAttemptCount = (payload["blocked_attempt_count"] as? Number)?.toInt() ?: 0

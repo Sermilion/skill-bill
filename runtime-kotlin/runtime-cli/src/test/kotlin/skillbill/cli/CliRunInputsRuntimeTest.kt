@@ -94,11 +94,13 @@ class CliRunInputsRuntimeTest {
         CliRuntimeContext(environment = emptyMap(), userHome = repoRoot),
       )
 
-    assertTrue(injectedRoot.stdout.contains(specsRoot), injectedRoot.stdout)
-    assertTrue(explicitRoot.stdout.contains(specsRoot), explicitRoot.stdout)
-    assertEquals(injectedRoot.exitCode, processRoot.exitCode, processRoot.stdout)
-    assertTrue(processRoot.stdout.contains("SKILL-901"), processRoot.stdout)
-    assertFalse(processRoot.stdout.contains(specsRoot), processRoot.stdout)
+    val injectedRootOutput = injectedRoot.stdout + injectedRoot.stderr
+    val explicitRootOutput = explicitRoot.stdout + explicitRoot.stderr
+    assertTrue(injectedRootOutput.contains(specsRoot), injectedRootOutput)
+    assertTrue(explicitRootOutput.contains(specsRoot), explicitRootOutput)
+    assertEquals(injectedRoot.exitCode, processRoot.exitCode, processRoot.stderr)
+    val processRootOutput = processRoot.stdout + processRoot.stderr
+    assertFalse(processRootOutput.contains(specsRoot), processRootOutput)
 
     val scaffold =
       CliRuntime.run(

@@ -252,7 +252,7 @@ class GoalRunCommand(
     val request = runRequest(runIssueKey, invokedAgentId, hydratedSelection, presenter, effectiveRepoRoot)
     val report = execution.run(request)
     val payload = report.toGoalRunCliMap()
-    state.completeText(goalRunText(payload), payload, exitCode = payload.goalExitCode())
+    state.completeText(goalRunText(report), payload, exitCode = report.goalRunExitCode())
     drainTelemetryOnCompletion(telemetryService, diagnostics)
   }
 

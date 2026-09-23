@@ -128,21 +128,28 @@ internal fun GoalRunnerAcceptResult.toGoalAcceptCliMap(): Map<String, Any?> =
       )
   }
 
-internal fun goalAcceptText(payload: Map<String, Any?>): String =
+internal fun goalAcceptText(result: GoalRunnerAcceptResult): String =
   buildString {
-    appendLine("goal: ${payload[SharedPayloadKeys.ISSUE_KEY]}")
-    appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
-    appendLine("reason: ${payload["reason"]}")
-    payload[SharedPayloadKeys.SUBTASK_ID]?.let { appendLine("accepted_subtask: $it") }
-    payload["commit_sha"]?.let { appendLine("commit_sha: $it") }
-    payload["parent_workflow_id"]?.let { appendLine("parent_workflow_id: $it") }
-    (payload["after"] as? Map<*, *>)?.let { after ->
-      appendLine(
-        "after: status=${after[SharedPayloadKeys.STATUS]}; " +
-          "current_subtask=${after["current_subtask"] ?: "none"}",
-      )
-      appendLine("after_subtasks:")
-      appendGoalResetSubtaskLines(this, after["subtasks"] as? List<*>)
+    when (result) {
+      is GoalRunnerAcceptResult.Accepted -> {
+        appendLine("goal: ${result.issueKey}")
+        appendLine("status: ok")
+        appendLine("reason: ${result.reason}")
+        appendLine("accepted_subtask: ${result.subtaskId}")
+        appendLine("commit_sha: ${result.commitSha}")
+        appendLine("parent_workflow_id: ${result.parentWorkflowId}")
+        appendLine(
+          "after: status=${result.after.status}; " +
+            "current_subtask=${result.after.currentSubtaskId ?: "none"}",
+        )
+        appendLine("after_subtasks:")
+        appendGoalResetSubtaskLines(this, result.after.subtasks)
+      }
+      is GoalRunnerAcceptResult.Rejected -> {
+        appendLine("goal: ${result.issueKey}")
+        appendLine("status: rejected")
+        appendLine("reason: ${result.reason}")
+      }
     }
   }
 
@@ -181,83 +188,92 @@ internal fun String.shellWord(): String =
     "'${replace("'", "'\"'\"'")}'"
   }
 
-internal fun goalResetText(payload: Map<String, Any?>): String =
+internal fun goalResetText(
+  result: GoalRunnerResetResult?,
+  issueKey: String,
+  hard: Boolean,
+): String =
   buildString {
-    appendLine("goal: ${payload[SharedPayloadKeys.ISSUE_KEY]}")
-    appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
-    appendLine("mode: ${payload["mode"]}")
-    payload["parent_workflow_id"]?.let { appendLine("parent_workflow_id: $it") }
-    val before = payload["before"] as? Map<*, *>
-    val after = payload["after"] as? Map<*, *>
-    if (before != null && after != null) {
+    appendLine("goal: ${result?.issueKey ?: issueKey}")
+    appendLine(
+      "status: ${
+        when {
+          result == null -> "not_found"
+          result.refusalReason != null -> "refused"
+          result.recovery?.recoveryCommand != null -> "recovery_required"
+          else -> "ok"
+        }
+      }",
+    )
+    appendLine("mode: ${result?.mode ?: if (hard) "hard" else "soft"}")
+    result?.parentWorkflowId?.let { appendLine("parent_workflow_id: $it") }
+    if (result != null) {
       appendLine(
-        "before: status=${before[SharedPayloadKeys.STATUS]}; " +
-          "current_subtask=${before["current_subtask"] ?: "none"}",
+        "before: status=${result.before.status}; " +
+          "current_subtask=${result.before.currentSubtaskId ?: "none"}",
       )
       appendLine(
-        "after: status=${after[SharedPayloadKeys.STATUS]}; " +
-          "current_subtask=${after["current_subtask"] ?: "none"}",
+        "after: status=${result.after.status}; " +
+          "current_subtask=${result.after.currentSubtaskId ?: "none"}",
       )
       appendLine("before_subtasks:")
-      appendGoalResetSubtaskLines(this, before["subtasks"] as? List<*>)
+      appendGoalResetSubtaskLines(this, result.before.subtasks)
       appendLine("after_subtasks:")
-      appendGoalResetSubtaskLines(this, after["subtasks"] as? List<*>)
+      appendGoalResetSubtaskLines(this, result.after.subtasks)
     }
-    (payload["recovery"] as? Map<*, *>)?.let { recovery ->
+    result?.recovery?.let { recovery ->
       appendLine(
-        "recovery: subtask=${recovery[SharedPayloadKeys.SUBTASK_ID]}; " +
-          "workflow_id=${recovery[SharedPayloadKeys.WORKFLOW_ID]}; " +
-          "classification=${recovery["classification"]}",
+        "recovery: subtask=${recovery.subtaskId}; " +
+          "workflow_id=${recovery.workflowId}; " +
+          "classification=${recovery.classification}",
       )
-      recovery["command"]?.let { appendLine("recovery_command: $it") }
+      recovery.recoveryCommand?.let { appendLine("recovery_command: $it") }
     }
-    payload[GoalRunnerResetPayloadKeys.BRANCH_ACTION_TAKEN]?.let {
+    result?.branchActionTaken?.let {
       appendLine("branch_action_taken: $it")
     }
-    payload[GoalRunnerResetPayloadKeys.REFUSAL_REASON]?.let {
+    result?.refusalReason?.let {
       appendLine("refusal_reason: $it")
     }
-    payload[GoalRunnerResetPayloadKeys.REMEDY_COMMAND]?.let {
+    result?.remedyCommand?.let {
       appendLine("remedy_command: $it")
     }
   }
 
-internal fun goalReplanText(payload: Map<String, Any?>): String =
+internal fun goalReplanText(result: GoalRunnerReplanResult?, issueKey: String): String =
   buildString {
-    appendLine("goal: ${payload[SharedPayloadKeys.ISSUE_KEY]}")
-    appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
-    appendLine("mode: ${payload["mode"]}")
-    payload["parent_workflow_id"]?.let { appendLine("parent_workflow_id: $it") }
-    payload[SharedPayloadKeys.SUBTASK_ID]?.let {
-      appendLine("discarded_plan: subtask=$it; existed=${payload["discarded_plan"]}")
+    appendLine("goal: ${result?.issueKey ?: issueKey}")
+    appendLine("status: ${if (result == null) "not_found" else "ok"}")
+    appendLine("mode: scoped_replan")
+    result?.parentWorkflowId?.let { appendLine("parent_workflow_id: $it") }
+    result?.let {
+      appendLine("discarded_plan: subtask=${it.subtaskId}; existed=${it.discardedPlan}")
     }
-    val discardedShared = payload["discarded_shared_preplan"] as? Boolean == true
-    val cascaded = (payload["cascaded_plan_subtask_ids"] as? List<*>).orEmpty().filterNotNull()
+    val discardedShared = result?.discardedSharedPreplan == true
+    val cascaded = result?.cascadedPlanSubtaskIds.orEmpty()
     if (discardedShared || cascaded.isNotEmpty()) {
       appendLine(
         "discarded_shared_preplan: $discardedShared; " +
           "cascaded_plans=${cascaded.joinToString(",").ifEmpty { "none" }}",
       )
     }
-    val before = payload["before"] as? Map<*, *>
-    val after = payload["after"] as? Map<*, *>
-    if (before != null && after != null) {
+    result?.let {
       appendLine(
-        "preserved: shared_preplan=${after["shared_preplan_prepared"]}; " +
-          "planned_before=${(before["planned_subtask_ids"] as? List<*>)?.joinToString(",") ?: "none"}; " +
-          "planned_after=${(after["planned_subtask_ids"] as? List<*>)?.joinToString(",") ?: "none"}",
+        "preserved: shared_preplan=${it.after.sharedPreplanPrepared}; " +
+          "planned_before=${it.before.plannedSubtaskIds.joinToString(",").ifEmpty { "none" }}; " +
+          "planned_after=${it.after.plannedSubtaskIds.joinToString(",").ifEmpty { "none" }}",
       )
       appendLine(
-        "before: status=${before[SharedPayloadKeys.STATUS]}; " +
-          "current_subtask=${before["current_subtask"] ?: "none"}",
+        "before: status=${it.before.status}; " +
+          "current_subtask=${it.before.currentSubtaskId ?: "none"}",
       )
       appendLine(
-        "after: status=${after[SharedPayloadKeys.STATUS]}; " +
-          "current_subtask=${after["current_subtask"] ?: "none"}",
+        "after: status=${it.after.status}; " +
+          "current_subtask=${it.after.currentSubtaskId ?: "none"}",
       )
       appendLine("before_subtasks:")
-      appendGoalResetSubtaskLines(this, before["subtasks"] as? List<*>)
+      appendGoalResetSubtaskLines(this, it.before.subtasks)
       appendLine("after_subtasks:")
-      appendGoalResetSubtaskLines(this, after["subtasks"] as? List<*>)
+      appendGoalResetSubtaskLines(this, it.after.subtasks)
     }
   }

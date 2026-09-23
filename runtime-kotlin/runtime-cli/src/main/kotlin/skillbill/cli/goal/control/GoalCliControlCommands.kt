@@ -11,7 +11,10 @@ import skillbill.cli.goal.core.goalOperatorDecisionText
 import skillbill.cli.goal.core.goalPauseExitCode
 import skillbill.cli.goal.core.goalRepairExitCode
 import skillbill.cli.goal.core.goalRepairText
+import skillbill.cli.goal.core.goalAcceptExitCode
+import skillbill.cli.goal.core.goalReplanExitCode
 import skillbill.cli.goal.core.goalResetExitCode
+import skillbill.cli.goal.core.goalResumeExitCode
 import skillbill.cli.goal.core.goalStopExitCode
 import skillbill.cli.goal.core.toGoalOperatorDecisionCliMap
 import skillbill.cli.goal.core.toGoalRepairCliMap
@@ -50,7 +53,7 @@ class GoalPauseCommand(
         resolveCliRepositoryRoot(repoRoot, inputs),
       )
     val payload = result.toGoalPauseCliMap()
-    state.completeText(goalPauseText(payload), payload, exitCode = payload.goalPauseExitCode())
+    state.completeText(goalPauseText(result), payload, exitCode = goalPauseExitCode(result))
   }
 }
 
@@ -70,7 +73,7 @@ class GoalStopCommand(
         resolveCliRepositoryRoot(repoRoot, inputs),
       )
     val payload = result.toGoalStopCliMap()
-    state.completeText(goalStopText(payload), payload, exitCode = payload.goalStopExitCode())
+    state.completeText(goalStopText(result), payload, exitCode = goalStopExitCode(result))
   }
 }
 
@@ -90,7 +93,7 @@ class GoalResumeCommand(
         resolveCliRepositoryRoot(repoRoot, inputs),
       )
     val payload = result.toGoalResumeCliMap()
-    state.completeText(goalResumeText(payload), payload, exitCode = payload.goalPauseExitCode())
+    state.completeText(goalResumeText(result), payload, exitCode = goalResumeExitCode(result.status))
   }
 }
 
@@ -159,7 +162,7 @@ class GoalResetCommand(
         ),
       )
     val payload = result.toGoalResetCliMap(issueKey, hard)
-    state.completeText(goalResetText(payload), payload, exitCode = payload.goalResetExitCode())
+    state.completeText(goalResetText(result, issueKey, hard), payload, exitCode = goalResetExitCode(result))
   }
 
   private fun emitHardResetAcceptanceWarning() {
@@ -208,7 +211,7 @@ class GoalReplanCommand(
         ),
       )
     val payload = result.toGoalReplanCliMap(issueKey)
-    state.completeText(goalReplanText(payload), payload, exitCode = payload.goalResetExitCode())
+    state.completeText(goalReplanText(result, issueKey), payload, exitCode = goalReplanExitCode(result))
   }
 }
 
@@ -247,7 +250,7 @@ class GoalAcceptCommand(
         ),
       )
     val payload = result.toGoalAcceptCliMap()
-    state.completeText(goalAcceptText(payload), payload, exitCode = payload.goalResetExitCode())
+    state.completeText(goalAcceptText(result), payload, exitCode = goalAcceptExitCode(result))
   }
 }
 
@@ -293,7 +296,7 @@ class GoalRepairCommand(
         ),
       )
     val payload = result.toGoalRepairCliMap()
-    state.completeText(goalRepairText(payload), payload, exitCode = payload.goalRepairExitCode())
+    state.completeText(goalRepairText(result), payload, exitCode = goalRepairExitCode(result))
   }
 }
 
@@ -337,6 +340,6 @@ class GoalOperatorDecisionCommand(
         ),
       )
     val payload = result.toGoalOperatorDecisionCliMap()
-    state.completeText(goalOperatorDecisionText(payload), payload, exitCode = payload.goalOperatorDecisionExitCode())
+    state.completeText(goalOperatorDecisionText(result), payload, exitCode = goalOperatorDecisionExitCode(result))
   }
 }

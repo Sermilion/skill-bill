@@ -125,12 +125,57 @@ class CliRuntimeShellCommandsTest {
     assertEquals(0, workflowHelp.exitCode)
     assertContains(workflowHelp.stdout, "Usage: skill-bill")
     assertEquals(1, workflowContinue.exitCode)
-    assertContains(workflowContinue.stdout, "Error:")
+    assertContains(workflowContinue.stderr, "Error:")
     assertEquals(0, verifyWorkflowHelp.exitCode)
     assertContains(verifyWorkflowHelp.stdout, "show")
+    assertFalse(verifyWorkflowHelp.stdout.contains("--subtask-id"))
     assertEquals(0, telemetryHelp.exitCode)
     assertContains(telemetryHelp.stdout, "capabilities")
     assertContains(telemetryHelp.stdout, "set-level")
+  }
+
+  @Test
+  fun `root help preserves the ordered command groups`() {
+    val help = CliRuntime.run(listOf("--help")).stdout
+    val commandNames =
+      listOf(
+        "import-review",
+        "new-skill",
+        "install",
+        "verify-workflow",
+        "goal",
+        "version",
+        "code-review",
+        "experiments",
+      )
+    val positions = commandNames.map { command ->
+      Regex("""(?m)^\s+$command\s""").find(help)?.range?.first ?: -1
+    }
+    assertTrue(positions.all { it >= 0 }, "root help is missing an expected command: $positions")
+    assertEquals(positions.sorted(), positions)
+  }
+
+  @Test
+  fun `deprecated feature-task-runtime alias keeps the note on the result stderr channel`() {
+    val tempDir = Files.createTempDirectory("skillbill-cli-deprecated-runtime-alias")
+    val context = CliRuntimeContext(userHome = tempDir)
+    val note = "feature-task-runtime is a deprecated alias for feature-task"
+
+    val run = CliRuntime.run(listOf("--home", tempDir.toString(), "feature-task-runtime", "run"), context)
+    val status =
+      CliRuntime.run(
+        listOf("--db", tempDir.resolve("runtime.db").toString(), "feature-task-runtime", "status", "missing-workflow"),
+        context,
+      )
+    val resume =
+      CliRuntime.run(
+        listOf("feature-task-runtime", "resume", "missing-workflow", "SKILL-371", "missing-spec.md"),
+        context,
+      )
+
+    assertContains(run.stderr, note)
+    assertContains(status.stderr, note)
+    assertContains(resume.stderr, note)
   }
 
   @Test
@@ -294,11 +339,11 @@ class CliRuntimeShellCommandsTest {
     val implementStats = CliRuntime.run(listOf("implement-stats", "--format", "json"), context)
 
     assertEquals(1, workflow.exitCode)
-    assertContains(workflow.stdout, "no such")
+    assertContains(workflow.stderr, "no such")
     assertEquals(1, workflowContinue.exitCode)
-    assertContains(workflowContinue.stdout, "no such")
+    assertContains(workflowContinue.stderr, "no such")
     assertEquals(1, implementStats.exitCode)
-    assertContains(implementStats.stdout, "no such")
+    assertContains(implementStats.stderr, "no such")
   }
 
   @Test
@@ -367,15 +412,15 @@ class CliRuntimeShellCommandsTest {
   fun `clikt validation reports command usage errors`() {
     val missingRequiredOption = CliRuntime.run(listOf("record-feedback", "--run-id", "rvw-1"))
     assertEquals(1, missingRequiredOption.exitCode)
-    assertContains(missingRequiredOption.stdout, "Error:")
-    assertContains(missingRequiredOption.stdout, "--event")
+    assertContains(missingRequiredOption.stderr, "Error:")
+    assertContains(missingRequiredOption.stderr, "--event")
 
     val invalidFormat = CliRuntime.run(listOf("version", "--format", "yaml"))
     assertEquals(1, invalidFormat.exitCode)
-    assertContains(invalidFormat.stdout, "invalid choice")
+    assertContains(invalidFormat.stderr, "invalid choice")
 
     val unknownCommand = CliRuntime.run(listOf("unknown"))
     assertEquals(1, unknownCommand.exitCode)
-    assertContains(unknownCommand.stdout, "no such subcommand")
+    assertContains(unknownCommand.stderr, "no such subcommand")
   }
 }

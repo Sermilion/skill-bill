@@ -36,7 +36,7 @@ class GoalCliStatusPlanningWaveTest {
     assertEquals(listOf(2, 3, 4, 5, 6), planning["planning_wave_subtasks"])
     assertEquals(2, planning["current_planning_subtask"])
 
-    val text = goalStatusText(payload)
+    val text = goalStatusText("SKILL-230", projection)
     assertTrue(text.contains("wave=5 subtasks"), text)
   }
 
@@ -67,6 +67,6 @@ class GoalCliStatusPlanningWaveTest {
     val payload = projection.toGoalStatusCliMap("SKILL-230")
     val event = payload["latest_observability_event"] as Map<*, *>
     assertEquals("implement", event["workflow_phase"])
-    assertTrue(goalStatusText(payload).contains("latest_observability: phase=implement"))
+    assertTrue(goalStatusText("SKILL-230", projection).contains("latest_observability: phase=implement"))
   }
 }

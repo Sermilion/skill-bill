@@ -21,7 +21,7 @@ internal fun ParameterHolder.userHomeOverrideOption() =
 
 @Inject
 class SkillBillCommand(
-  commands: TopLevelCliCommands,
+  commands: CliCommandProvider,
 ) : DocumentedCliCommand(
     "skill-bill",
     "Import Skill Bill review output, triage findings, manage learnings, " +
@@ -31,7 +31,7 @@ class SkillBillCommand(
     registerOption(databasePathOption())
     registerOption(userHomeOverrideOption())
     completionOption()
-    subcommands(commands.rootCommands)
+    subcommands(commands.commands)
   }
 
   override fun aliases(): Map<String, List<String>> =

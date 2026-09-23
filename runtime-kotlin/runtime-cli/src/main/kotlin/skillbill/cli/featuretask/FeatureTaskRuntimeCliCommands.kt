@@ -172,7 +172,7 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
         )
       }
     val payload = report.toRuntimeRunCliMap()
-    state.completeText(runtimeRunText(payload), payload, exitCode = payload.runtimeRunExitCode())
+    state.completeText(runtimeRunText(report), payload, exitCode = report.runtimeRunExitCode())
     drainTelemetryOnCompletion(deps.telemetryService, deps.diagnostics)
   }
 
@@ -277,3 +277,4 @@ class FeatureTaskRuntimeExplicitRunCommand(
     )
   }
 }
+

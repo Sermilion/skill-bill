@@ -6,15 +6,9 @@ import skillbill.contracts.SharedPayloadKeys
 internal fun WorkflowContinueResult.toCliMap(): Map<String, Any?> =
   when (this) {
     is WorkflowContinueResult.Standard -> toStandardCliMap()
-    is WorkflowContinueResult.DecompositionStandard -> toDecompositionStandardCliMap()
     is WorkflowContinueResult.UnknownWorkflow -> toUnknownWorkflowCliMap()
-    is WorkflowContinueResult.DecompositionMissingSubtaskWorkflow -> toDecompositionMissingSubtaskWorkflowCliMap()
-    is WorkflowContinueResult.DecompositionBlockedSubtask -> toDecompositionBlockedSubtaskCliMap()
-    is WorkflowContinueResult.DecompositionBlockedBranchStart -> toDecompositionBlockedBranchStartCliMap()
-    is WorkflowContinueResult.DecompositionDone -> toDecompositionDoneCliMap()
-    is WorkflowContinueResult.DecompositionSubtaskOutcome -> toDecompositionSubtaskOutcomeCliMap()
-    is WorkflowContinueResult.DecompositionBlockedGit -> toDecompositionBlockedGitCliMap()
     is WorkflowContinueResult.Error -> toErrorCliMap()
+    else -> throw IllegalStateException("Workflow continuation result is not supported by this CLI.")
   }
 
 internal fun WorkflowContinueResult.Standard.toStandardCliMap(): Map<String, Any?> =

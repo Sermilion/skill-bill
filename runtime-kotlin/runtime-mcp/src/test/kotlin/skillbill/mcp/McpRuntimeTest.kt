@@ -38,6 +38,8 @@ import skillbill.mcp.shared.services
 import skillbill.mcp.workflow.McpWorkflowOpenArgs
 import skillbill.mcp.workflow.McpWorkflowRuntime
 import skillbill.ports.workflow.gitops.repositoryFingerprint
+import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
@@ -122,6 +124,48 @@ class McpRuntimeTest {
     assertEquals(
       decodeJsonObject(cliResult.stdout),
       McpRuntime.doctor(McpRuntimeContext(environment = env, userHome = tempDir)),
+    )
+  }
+
+  @Test
+  fun `update check cli and mcp expose the same contract fields`() {
+    val tempDir = Files.createTempDirectory("skillbill-mcp-update-check")
+    val environment = disabledTelemetryEnvironment(tempDir)
+    val requester =
+      RemoteTransportPort { _, _, _, _ ->
+        RemoteTransportResponse(
+          200,
+          """[{"tag_name":"v99.0.0","prerelease":false,"draft":false,"html_url":"https://example.test/v99.0.0"}]""",
+        )
+      }
+    val cli =
+      CliRuntime.run(
+        listOf("update-check", "--format", "json"),
+        CliRuntimeContext(environment = environment, userHome = tempDir, requester = requester),
+      )
+    val mcp =
+      McpRuntime.updateCheck(
+        McpRuntimeContext(
+          environment = environment,
+          userHome = tempDir,
+          requester = requester,
+        ),
+      )
+
+    assertEquals(0, cli.exitCode, cli.stdout)
+    assertEquals(cli.payload, mcp)
+    assertEquals("https://example.test/v99.0.0", mcp["release_url"])
+    assertEquals(
+      setOf(
+        "status",
+        "installed_version",
+        "latest_version",
+        "release_url",
+        "recommended_install_command",
+        "reason",
+        "release_notes",
+      ),
+      mcp.keys,
     )
   }
 

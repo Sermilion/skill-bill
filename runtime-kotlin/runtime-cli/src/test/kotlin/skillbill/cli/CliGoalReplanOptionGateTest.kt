@@ -17,8 +17,8 @@ class CliGoalReplanOptionGateTest {
         fixture.context(launcher = launcher),
       )
 
-    assertEquals(1, rejected.exitCode, rejected.stdout)
-    assertContains(rejected.stdout, "--subtask")
+    assertEquals(1, rejected.exitCode, rejected.stderr)
+    assertContains(rejected.stderr, "--subtask")
   }
 
   @Test
@@ -40,8 +40,8 @@ class CliGoalReplanOptionGateTest {
         fixture.context(launcher = launcher),
       )
 
-    assertEquals(1, rejected.exitCode, rejected.stdout)
-    assertContains(rejected.stdout, "--subtask must be a positive integer")
+    assertEquals(1, rejected.exitCode, rejected.stderr)
+    assertContains(rejected.stderr, "--subtask must be a positive integer")
   }
 
   @Test

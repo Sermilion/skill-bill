@@ -6,14 +6,14 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.path
 import me.tatarka.inject.annotations.Inject
+import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.DocumentedNoOpCliCommand
-import skillbill.error.shellcontent.ExperimentNavigationSpecError
+import skillbill.cli.kernel.cli.formatOption
+import skillbill.cli.model.CliFormat
 import skillbill.ports.experiment.navigation.ExperimentNavigationRunPort
 import skillbill.ports.experiment.navigation.model.ExperimentNavigationRunRequest
 import skillbill.ports.experiment.pair.ExperimentPairReportPort
-import kotlin.io.path.readBytes
-import kotlin.io.path.readText
 
 @Inject
 class ExperimentsCommand(
@@ -28,6 +28,7 @@ class ExperimentsCommand(
 
 @Inject
 class ExperimentsRunCommand(
+  private val state: CliRunState,
   private val navigationRunPort: ExperimentNavigationRunPort,
 ) : DocumentedCliCommand("run", "Run a navigation experiment pair.") {
   private val name by argument()
@@ -37,46 +38,41 @@ class ExperimentsRunCommand(
     .default("HEAD")
 
   override fun run() {
-    val specPath = spec
-    val specText = specPath.readText()
-    val criteria = navigationRunPort.acceptanceCriteria(specText)
-    if (criteria.isEmpty()) {
-      throw ExperimentNavigationSpecError(
-        path = specPath.toString(),
-        reason = "the governed acceptance criteria section is missing or empty",
-      )
-    }
     val pairId =
       navigationRunPort.run(
         ExperimentNavigationRunRequest(
           name = name,
           repoRoot = repo,
           revision = revision,
-          specBytes = specPath.readBytes(),
-          acceptanceCriteria = criteria,
+          specPath = spec,
         ),
       )
-    echo("navigation pair started: $pairId revision=$revision")
+    state.completeText("navigation pair started: $pairId revision=$revision\n", emptyMap())
   }
 }
 
 @Inject
 class ExperimentsReportCommand(
+  private val state: CliRunState,
   private val pairReportPort: ExperimentPairReportPort,
 ) : DocumentedCliCommand("report", "Render an experiment report.") {
   private val pairId by argument()
-  private val format by option("--format").default("text")
+  private val format by formatOption()
 
   override fun run() {
-    echo(pairReportPort.renderReport(pairId, format))
+    state.completeText(
+      pairReportPort.renderReport(pairId, format.wireName),
+      emptyMap(),
+    )
   }
 }
 
 @Inject
 class ExperimentsStatsCommand(
+  private val state: CliRunState,
   private val pairReportPort: ExperimentPairReportPort,
 ) : DocumentedCliCommand("stats", "Experiment cohort statistics.") {
   override fun run() {
-    echo(pairReportPort.renderStatsLine())
+    state.complete(pairReportPort.statsPayload(), CliFormat.TEXT)
   }
 }

@@ -91,10 +91,10 @@ internal fun GoalRunnerPauseResult.toGoalPauseCliMap(): Map<String, Any?> =
     "pause_reason" to pauseReason,
   )
 
-internal fun goalPauseText(payload: Map<String, Any?>): String =
+internal fun goalPauseText(result: GoalRunnerPauseResult): String =
   buildString {
-    appendLine("goal ${payload[SharedPayloadKeys.ISSUE_KEY]}: ${payload[SharedPayloadKeys.STATUS]}")
-    payload["pause_reason"]?.let { appendLine("reason: $it") }
+    appendLine("goal ${result.issueKey}: ${result.status}")
+    result.pauseReason?.let { appendLine("reason: $it") }
   }
 
 internal fun GoalRunnerStopVerbResult.toGoalStopCliMap(): Map<String, Any?> =
@@ -107,11 +107,11 @@ internal fun GoalRunnerStopVerbResult.toGoalStopCliMap(): Map<String, Any?> =
     "termination_attempted" to terminationAttempted,
   )
 
-internal fun goalStopText(payload: Map<String, Any?>): String =
+internal fun goalStopText(result: GoalRunnerStopVerbResult): String =
   buildString {
-    appendLine("goal ${payload[SharedPayloadKeys.ISSUE_KEY]}: ${payload[SharedPayloadKeys.STATUS]}")
-    payload["pause_reason"]?.let { appendLine("reason: $it") }
-    payload["paused_at"]?.let { appendLine("paused at: $it") }
+    appendLine("goal ${result.issueKey}: ${result.status.wireValue}")
+    result.pauseReason?.let { appendLine("reason: $it") }
+    result.pausedAt?.let { appendLine("paused at: $it") }
   }
 
 internal fun GoalRunnerResumeResult.toGoalResumeCliMap(): Map<String, Any?> =
@@ -124,23 +124,23 @@ internal fun GoalRunnerResumeResult.toGoalResumeCliMap(): Map<String, Any?> =
     "cleared_pause_reason" to clearedPauseReason,
   )
 
-internal fun goalResumeText(payload: Map<String, Any?>): String =
+internal fun goalResumeText(result: GoalRunnerResumeResult): String =
   buildString {
-    appendLine("goal ${payload[SharedPayloadKeys.ISSUE_KEY]}: ${payload[SharedPayloadKeys.STATUS]}")
-    payload["cleared_pause_reason"]?.let { appendLine("cleared reason: $it") }
+    appendLine("goal ${result.issueKey}: ${result.status}")
+    result.clearedPauseReason?.let { appendLine("cleared reason: $it") }
   }
 
-internal fun goalRunText(payload: Map<String, Any?>): String =
-  when (payload[SharedPayloadKeys.STATUS]) {
-    "complete" ->
+internal fun goalRunText(report: GoalRunnerRunReport): String =
+  when (report) {
+    is GoalRunnerRunReport.Completed ->
       buildString {
-        appendLine("goal ${payload[SharedPayloadKeys.ISSUE_KEY]}: finished")
+        appendLine("goal ${report.issueKey}: finished")
         append("summary: ")
-        append(singleLineBounded(payload["feature_name"]?.toString().orEmpty().ifBlank { "goal" }))
+        append(singleLineBounded(report.featureName.orEmpty().ifBlank { "goal" }))
         append(" — ")
-        val completedCount = (payload["subtasks_completed"] as? Number)?.toInt() ?: 0
-        val pendingCount = (payload["subtasks_pending"] as? Number)?.toInt() ?: 0
-        val blockedCount = (payload["subtasks_blocked"] as? Number)?.toInt() ?: 0
+        val completedCount = report.subtasksCompleted
+        val pendingCount = report.subtasksPending
+        val blockedCount = report.subtasksBlocked
         val totalCount = completedCount + pendingCount + blockedCount
         append(completedCount)
         append("/")
@@ -149,25 +149,30 @@ internal fun goalRunText(payload: Map<String, Any?>): String =
         append(pendingCount)
         append("; blocked=")
         append(blockedCount)
-        payload["pull_request_url"]?.toString()?.takeIf(String::isNotBlank)?.let { url ->
+        report.pullRequestUrl?.takeIf(String::isNotBlank)?.let { url ->
           append("; PR ")
           append(singleLineBounded(url))
         }
         appendLine()
       }
-    else ->
+    is GoalRunnerRunReport.Stopped ->
       buildString {
-        val reason = payload["reason"]?.toString()?.lowercase().orEmpty()
+        val reason = report.stop.reason.name.lowercase()
         val verb =
           when {
-            reason == "paused" -> "paused"
-            reason.contains("failed") || reason.contains("timeout") -> "failed"
+            report.stop.reason == skillbill.goalrunner.model.GoalRunnerStopReason.PAUSED -> "paused"
+            report.stop.reason in
+              setOf(
+                skillbill.goalrunner.model.GoalRunnerStopReason.FAILED,
+                skillbill.goalrunner.model.GoalRunnerStopReason.TIMEOUT,
+                skillbill.goalrunner.model.GoalRunnerStopReason.PULL_REQUEST_FAILED,
+              ) -> "failed"
             else -> "blocked"
           }
-        append("goal ${payload[SharedPayloadKeys.ISSUE_KEY]}: $verb")
-        payload[SharedPayloadKeys.SUBTASK_ID]?.let { append(" at subtask $it") }
+        append("goal ${report.issueKey}: $verb")
+        append(" at subtask ${report.stop.subtaskId}")
         append(" — ")
-        append(singleLineBounded(payload["blocked_reason"]?.toString() ?: reason.ifBlank { "terminal outcome" }))
+        append(singleLineBounded(report.stop.blockedReason.ifBlank { reason }))
         appendLine()
       }
   }

@@ -43,13 +43,13 @@ class GoalCliStatusWorktreeEditsTest {
     assertEquals("a.kt,b.kt,c.kt", boundedEdits[WorktreeEditJournalPayloadKeys.PATH_SAMPLE])
     assertEquals(1, bounded[WorktreeEditJournalPayloadKeys.AUDIT_AC_RETRY_COUNT])
 
-    val statusText = goalStatusText(full)
+    val statusText = goalStatusText("SKILL-355", measured)
     assertTrue(
       statusText.contains("worktree_edits: at=2026-09-18T12:00:00Z phase=implement +4 -1 paths=a.kt,b.kt,c.kt"),
     )
     assertTrue(statusText.contains("audit_ac_retry_count: 1"))
 
-    val monitorText = goalMonitorStatusText(bounded)
+    val monitorText = goalMonitorStatusText("SKILL-355", measured)
     assertTrue(
       monitorText.contains("worktree_edits: at=2026-09-18T12:00:00Z phase=implement +4 -1 paths=a.kt,b.kt,c.kt"),
     )
@@ -72,9 +72,9 @@ class GoalCliStatusWorktreeEditsTest {
     assertNull(absentFull[WorktreeEditJournalPayloadKeys.AUDIT_AC_RETRY_COUNT])
     assertNull(absentBounded[WorktreeEditJournalPayloadKeys.WORKTREE_EDITS])
     assertNull(absentBounded[WorktreeEditJournalPayloadKeys.AUDIT_AC_RETRY_COUNT])
-    assertFalse(goalStatusText(absentFull).contains("worktree_edits"))
-    assertFalse(goalStatusText(absentFull).contains("audit_ac_retry_count"))
-    assertFalse(goalMonitorStatusText(absentBounded).contains("worktree_edits"))
-    assertFalse(goalMonitorStatusText(absentBounded).contains("audit_ac_retry_count"))
+    assertFalse(goalStatusText("SKILL-355", absent).contains("worktree_edits"))
+    assertFalse(goalStatusText("SKILL-355", absent).contains("audit_ac_retry_count"))
+    assertFalse(goalMonitorStatusText("SKILL-355", absent).contains("worktree_edits"))
+    assertFalse(goalMonitorStatusText("SKILL-355", absent).contains("audit_ac_retry_count"))
   }
 }

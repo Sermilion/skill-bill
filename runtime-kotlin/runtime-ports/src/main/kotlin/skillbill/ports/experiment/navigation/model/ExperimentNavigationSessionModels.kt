@@ -43,14 +43,11 @@ data class ExperimentNavigationRunRequest(
   val name: String,
   val repoRoot: Path,
   val revision: String,
-  val specBytes: ByteArray,
-  val acceptanceCriteria: List<String>,
+  val specPath: Path,
 ) {
   init {
     require(name.isNotBlank()) { "name is required." }
     require(revision.isNotBlank()) { "revision is required." }
-    require(specBytes.isNotEmpty()) { "specBytes must not be empty." }
-    require(acceptanceCriteria.isNotEmpty()) { "acceptanceCriteria must not be empty." }
   }
 }
 

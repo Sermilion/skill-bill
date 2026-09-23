@@ -2,32 +2,32 @@ package skillbill.cli.goal.core
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerOperatorDecisionResult
 import skillbill.engine.goalrunner.model.GoalRunnerRepairResult
-import skillbill.engine.goalrunner.model.GoalRunnerRepairStatus
+import skillbill.engine.goalrunner.model.GoalRunnerResetSubtaskSnapshot
+import skillbill.ports.goalrunner.persistence.model.GoalRunnerAppliedRepair
+import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildWedgeDiagnosis
+import skillbill.ports.goalrunner.persistence.model.GoalRunnerWedgeFinding
 
 internal fun appendGoalResetSubtaskLines(
   builder: StringBuilder,
-  subtasks: List<*>?,
+  subtasks: List<GoalRunnerResetSubtaskSnapshot>,
 ) {
-  subtasks.orEmpty().forEach { raw ->
-    val subtask = raw as? Map<*, *> ?: return@forEach
+  subtasks.forEach { subtask ->
     builder.append("  - ")
     builder.append("id=")
-    builder.append(subtask["id"])
+    builder.append(subtask.id)
     builder.append("; status=")
-    builder.append(subtask[SharedPayloadKeys.STATUS])
+    builder.append(subtask.status)
     builder.append("; workflow_id=")
-    builder.append(subtask[SharedPayloadKeys.WORKFLOW_ID] ?: "none")
+    builder.append(subtask.workflowId ?: "none")
     builder.append("; commit_sha=")
-    builder.append(subtask["commit_sha"] ?: "none")
+    builder.append(subtask.commitSha ?: "none")
     builder.append("; blocked_reason=")
-    builder.append(subtask["blocked_reason"] ?: "none")
+    builder.append(subtask.blockedReason ?: "none")
     builder.append("; last_resumable_step=")
-    builder.append(subtask["last_resumable_step"] ?: "none")
+    builder.append(subtask.lastResumableStep ?: "none")
     builder.append('\n')
   }
 }
-
-internal fun Map<String, Any?>.goalResetExitCode(): Int = if (this[SharedPayloadKeys.STATUS] == "ok") 0 else 1
 
 internal fun GoalRunnerRepairResult.toGoalRepairCliMap(): Map<String, Any?> =
   linkedMapOf(
@@ -75,65 +75,51 @@ internal fun GoalRunnerRepairResult.toGoalRepairCliMap(): Map<String, Any?> =
       },
   )
 
-internal fun Map<String, Any?>.goalRepairExitCode(): Int =
-  when (this[SharedPayloadKeys.STATUS]) {
-    GoalRunnerRepairStatus.HEALTHY.wireValue,
-    GoalRunnerRepairStatus.REPAIRED.wireValue,
-    -> 0
-    GoalRunnerRepairStatus.INSPECTED.wireValue,
-    GoalRunnerRepairStatus.OPERATOR_REQUIRED.wireValue,
-    -> 2
-    else -> 1
-  }
-
-internal fun goalRepairText(payload: Map<String, Any?>): String =
+internal fun goalRepairText(result: GoalRunnerRepairResult): String =
   buildString {
-    appendLine("goal: ${payload[SharedPayloadKeys.ISSUE_KEY]}")
-    appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
-    payload["parent_workflow_id"]?.let { appendLine("parent_workflow_id: $it") }
-    payload["refusal_reason"]?.let { appendLine("refusal_reason: $it") }
-    payload["live_lease_workflow_id"]?.let { appendLine("live_lease_workflow_id: $it") }
-    appendGoalRepairParentWedges(this, payload["parent_wedges"] as? List<*>)
-    (payload["parent_passed_checks"] as? List<*>).orEmpty().takeIf { it.isNotEmpty() }?.let { checks ->
+    appendLine("goal: ${result.issueKey}")
+    appendLine("status: ${result.status.wireValue}")
+    result.parentWorkflowId?.let { appendLine("parent_workflow_id: $it") }
+    result.refusalReason?.let { appendLine("refusal_reason: $it") }
+    result.liveLeaseWorkflowId?.let { appendLine("live_lease_workflow_id: $it") }
+    appendGoalRepairParentWedges(this, result.parentWedges)
+    result.parentPassedChecks.takeIf { it.isNotEmpty() }?.let { checks ->
       appendLine("parent_passed_checks: ${checks.joinToString(",")}")
     }
     appendLine("diagnoses:")
-    appendGoalRepairDiagnoses(this, payload["diagnoses"] as? List<*>)
-    appendGoalRepairAppliedRepairs(this, payload["applied_repairs"] as? List<*>)
+    appendGoalRepairDiagnoses(this, result.diagnoses)
+    appendGoalRepairAppliedRepairs(this, result.appliedRepairs)
   }
 
 private fun appendGoalRepairParentWedges(
   builder: StringBuilder,
-  wedges: List<*>?,
+  wedges: List<GoalRunnerWedgeFinding>,
 ) {
-  wedges.orEmpty().forEach { raw ->
-    val wedge = raw as? Map<*, *> ?: return@forEach
+  wedges.forEach { wedge ->
     builder.appendLine(
-      "parent_wedge: class=${wedge["wedge_class"]}; field=${wedge["field"]}; " +
-        "current_value=${wedge["current_value"] ?: "absent"}",
+      "parent_wedge: class=${wedge.wedgeClass.wireValue}; field=${wedge.field}; " +
+        "current_value=${wedge.currentValue ?: "absent"}",
     )
   }
 }
 
 private fun appendGoalRepairDiagnoses(
   builder: StringBuilder,
-  diagnoses: List<*>?,
+  diagnoses: List<GoalRunnerChildWedgeDiagnosis>,
 ) {
-  diagnoses.orEmpty().forEach { raw ->
-    val diagnosis = raw as? Map<*, *> ?: return@forEach
+  diagnoses.forEach { diagnosis ->
     builder.appendLine(
-      "  - subtask=${diagnosis[SharedPayloadKeys.SUBTASK_ID]}; " +
-        "workflow_id=${diagnosis[SharedPayloadKeys.WORKFLOW_ID] ?: "none"}; " +
-        "healthy=${diagnosis["healthy"]}",
+      "  - subtask=${diagnosis.subtaskId}; " +
+        "workflow_id=${diagnosis.workflowId ?: "none"}; " +
+        "healthy=${diagnosis.isHealthy}",
     )
-    (diagnosis["passed_checks"] as? List<*>).orEmpty().takeIf { it.isNotEmpty() }?.let { checks ->
+    diagnosis.passedChecks.takeIf { it.isNotEmpty() }?.let { checks ->
       builder.appendLine("    passed_checks: ${checks.joinToString(",")}")
     }
-    (diagnosis["wedges"] as? List<*>).orEmpty().forEach { wedgeRaw ->
-      val wedge = wedgeRaw as? Map<*, *> ?: return@forEach
+    diagnosis.wedges.forEach { wedge ->
       builder.appendLine(
-        "    wedge: class=${wedge["wedge_class"]}; field=${wedge["field"]}; " +
-          "current_value=${wedge["current_value"] ?: "absent"}",
+        "    wedge: class=${wedge.wedgeClass.wireValue}; field=${wedge.field}; " +
+          "current_value=${wedge.currentValue ?: "absent"}",
       )
     }
   }
@@ -141,17 +127,15 @@ private fun appendGoalRepairDiagnoses(
 
 private fun appendGoalRepairAppliedRepairs(
   builder: StringBuilder,
-  repairs: List<*>?,
+  repairs: List<GoalRunnerAppliedRepair>,
 ) {
-  val appliedRepairs = repairs.orEmpty()
-  if (appliedRepairs.isEmpty()) return
+  if (repairs.isEmpty()) return
   builder.appendLine("applied_repairs:")
-  appliedRepairs.forEach { raw ->
-    val repair = raw as? Map<*, *> ?: return@forEach
+  repairs.forEach { repair ->
     builder.appendLine(
-      "  - subtask=${repair[SharedPayloadKeys.SUBTASK_ID]}; field=${repair["field"]}; " +
-        "wedge_class=${repair["wedge_class"]}; prior=${repair["prior_value"] ?: "absent"}; " +
-        "new=${repair["new_value"] ?: "absent"}",
+      "  - subtask=${repair.subtaskId}; field=${repair.field}; " +
+        "wedge_class=${repair.wedgeClass.wireValue}; prior=${repair.priorValue ?: "absent"}; " +
+        "new=${repair.newValue ?: "absent"}",
     )
   }
 }
@@ -175,21 +159,26 @@ internal fun GoalRunnerOperatorDecisionResult.toGoalOperatorDecisionCliMap(): Ma
       )
   }
 
-internal fun Map<String, Any?>.goalOperatorDecisionExitCode(): Int =
-  if (this[SharedPayloadKeys.STATUS] == "ok") 0 else 1
-
-internal fun goalOperatorDecisionText(payload: Map<String, Any?>): String =
+internal fun goalOperatorDecisionText(result: GoalRunnerOperatorDecisionResult): String =
   buildString {
-    appendLine("goal: ${payload[SharedPayloadKeys.ISSUE_KEY]}")
-    appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
-    payload["parent_workflow_id"]?.let { appendLine("parent_workflow_id: $it") }
-    payload[SharedPayloadKeys.SUBTASK_ID]?.let { appendLine("subtask_id: $it") }
-    payload[SharedPayloadKeys.WORKFLOW_ID]?.let { appendLine("workflow_id: $it") }
-    payload["decision"]?.let { appendLine("decision: $it") }
-    payload["reason"]?.let { appendLine("reason: $it") }
-    if (payload[SharedPayloadKeys.STATUS] == "ok") {
+    when (result) {
+      is GoalRunnerOperatorDecisionResult.Recorded -> {
+        appendLine("goal: ${result.issueKey}")
+        appendLine("status: ok")
+        appendLine("parent_workflow_id: ${result.parentWorkflowId}")
+        appendLine("subtask_id: ${result.subtaskId}")
+        appendLine("workflow_id: ${result.workflowId}")
+        appendLine("decision: ${result.decision}")
+      }
+      is GoalRunnerOperatorDecisionResult.Rejected -> {
+        appendLine("goal: ${result.issueKey}")
+        appendLine("status: rejected")
+        appendLine("reason: ${result.reason}")
+      }
+    }
+    if (result is GoalRunnerOperatorDecisionResult.Recorded) {
       appendLine(
-        "next: skill-bill goal resume ${payload[SharedPayloadKeys.ISSUE_KEY]} (consumes the recorded decision)",
+        "next: skill-bill goal resume ${result.issueKey} (consumes the recorded decision)",
       )
     }
   }

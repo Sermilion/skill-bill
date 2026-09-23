@@ -5,6 +5,7 @@ import skillbill.cli.model.CliStdoutCompletion
 
 class CliRunState(private val stdinText: String?) {
   var result: CliExecutionResult? = null
+  private var stderrText: String = ""
   private var stdinLineIterator: Iterator<String>? = null
   private var wholeStdinCached: String? = null
 
@@ -17,6 +18,7 @@ class CliRunState(private val stdinText: String?) {
       CliExecutionResult(
         exitCode = exitCode,
         stdout = CliOutput.emit(payload, format),
+        stderr = stderrText,
         payload = payload,
         stdoutCompletion = CliStdoutCompletion.TEXT,
       )
@@ -31,6 +33,7 @@ class CliRunState(private val stdinText: String?) {
       CliExecutionResult(
         exitCode = exitCode,
         stdout = stdout,
+        stderr = stderrText,
         payload = payload,
         stdoutCompletion = CliStdoutCompletion.TEXT,
       )
@@ -44,6 +47,7 @@ class CliRunState(private val stdinText: String?) {
       CliExecutionResult(
         exitCode = exitCode,
         stdout = "",
+        stderr = stderrText,
         rawStdout = rawStdout,
         stdoutCompletion = CliStdoutCompletion.RAW,
       )
@@ -54,9 +58,16 @@ class CliRunState(private val stdinText: String?) {
       CliExecutionResult(
         exitCode = exitCode,
         stdout = "",
+        stderr = stderrText,
         stdoutCompletion = CliStdoutCompletion.EMPTY,
       )
   }
+
+  fun appendStderr(text: String) {
+    stderrText += text
+  }
+
+  fun currentStderr(): String = stderrText
 
   fun wholeStdinText(): String =
     wholeStdinCached ?: run {

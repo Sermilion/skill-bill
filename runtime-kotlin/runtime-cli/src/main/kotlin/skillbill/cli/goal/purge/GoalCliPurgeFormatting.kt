@@ -15,14 +15,13 @@ internal fun GoalRunnerPurgeResult.toGoalPurgeCliMap(): Map<String, Any?> {
   )
 }
 
-internal fun goalPurgeText(payload: Map<String, Any?>): String {
-  val status = payload[SharedPayloadKeys.STATUS]?.toString() ?: "unknown"
-  val issueKey = payload[SharedPayloadKeys.ISSUE_KEY]?.toString() ?: ""
+internal fun goalPurgeText(result: GoalRunnerPurgeResult): String {
+  val status = if (result.refusalReason == null) "ok" else "refused"
   return when (status) {
-    "ok" -> "Purged goal runtime state for $issueKey."
-    "refused" -> "Purge refused for $issueKey: ${payload[GoalRunnerPurgePayloadKeys.REFUSAL_REASON]}"
-    else -> "Goal purge for $issueKey: $status."
+    "ok" -> "Purged goal runtime state for ${result.issueKey}."
+    "refused" -> "Purge refused for ${result.issueKey}: ${result.refusalReason}"
+    else -> "Goal purge for ${result.issueKey}: $status."
   }
 }
 
-internal fun Map<String, Any?>.goalPurgeExitCode(): Int = if (this[SharedPayloadKeys.STATUS] == "ok") 0 else 1
+internal fun goalPurgeExitCode(result: GoalRunnerPurgeResult): Int = if (result.refusalReason == null) 0 else 1

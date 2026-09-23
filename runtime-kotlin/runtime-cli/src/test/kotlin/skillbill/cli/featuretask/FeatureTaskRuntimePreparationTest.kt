@@ -39,8 +39,8 @@ class FeatureTaskRuntimePreparationTest {
     invocations.forEach { arguments ->
       val result = CliRuntime.run(arguments, context)
 
-      assertEquals(1, result.exitCode, result.stdout)
-      assertContains(result.stdout, "Error:")
+      assertEquals(1, result.exitCode, result.stderr)
+      assertContains(result.stderr, "Error:")
     }
 
     val database =

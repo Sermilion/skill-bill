@@ -164,7 +164,7 @@ internal fun assertFeatureStatsAliases(
       context,
     )
   assertEquals(1, implementStats.exitCode)
-  assertContains(implementStats.stdout, "no such")
+  assertContains(implementStats.stderr, "no such")
 
   val verifyAliasPayload =
     runJson("--db", dbPath.toString(), "feature-verify-stats", "--format", "json", context = context)

@@ -24,8 +24,8 @@ class CliGoalResetOptionGateTest {
         fixture.context(launcher = launcher),
       )
 
-    assertEquals(1, rejected.exitCode, rejected.stdout)
-    assertContains(rejected.stdout, "--preserve-planning only applies to a hard reset")
+    assertEquals(1, rejected.exitCode, rejected.stderr)
+    assertContains(rejected.stderr, "--preserve-planning only applies to a hard reset")
   }
 
   @Test
@@ -96,10 +96,10 @@ class CliGoalResetOptionGateTest {
         fixture.context(launcher = launcher),
       )
 
-    assertEquals(1, missingDelete.exitCode, missingDelete.stdout)
-    assertContains(missingDelete.stdout, "--subtask ID and --delete-child-workflow")
-    assertEquals(1, missingSubtask.exitCode, missingSubtask.stdout)
-    assertContains(missingSubtask.stdout, "--subtask ID and --delete-child-workflow")
+    assertEquals(1, missingDelete.exitCode, missingDelete.stderr)
+    assertContains(missingDelete.stderr, "--subtask ID and --delete-child-workflow")
+    assertEquals(1, missingSubtask.exitCode, missingSubtask.stderr)
+    assertContains(missingSubtask.stderr, "--subtask ID and --delete-child-workflow")
   }
 
   @Test
@@ -111,7 +111,7 @@ class CliGoalResetOptionGateTest {
         currentAction = "start",
         subtasks = emptyList(),
       )
-    val payload =
+    val payloadResult =
       GoalRunnerResetResult(
         issueKey = "SKILL-346",
         mode = "hard",
@@ -119,12 +119,13 @@ class CliGoalResetOptionGateTest {
         before = snapshot,
         after = snapshot,
         branchActionTaken = "reset_feature_branch_tip_to_parent",
-      ).toGoalResetCliMap("SKILL-346", hard = true)
+      )
+    val payload = payloadResult.toGoalResetCliMap("SKILL-346", hard = true)
 
     assertEquals("ok", payload[SharedPayloadKeys.STATUS])
-    assertEquals(0, payload.goalResetExitCode())
+    assertEquals(0, goalResetExitCode(result = payloadResult))
     assertContains(
-      goalResetText(payload),
+      goalResetText(payloadResult, "SKILL-346", hard = true),
       "${GoalRunnerResetPayloadKeys.BRANCH_ACTION_TAKEN}: reset_feature_branch_tip_to_parent",
     )
   }
@@ -151,7 +152,7 @@ class CliGoalResetOptionGateTest {
         fixture.context(launcher = launcher),
       )
 
-    assertEquals(1, rejected.exitCode, rejected.stdout)
-    assertContains(rejected.stdout, "incompatible with --hard")
+    assertEquals(1, rejected.exitCode, rejected.stderr)
+    assertContains(rejected.stderr, "incompatible with --hard")
   }
 }

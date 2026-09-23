@@ -2,6 +2,7 @@ package skillbill.model
 
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
 import skillbill.ports.process.InstallerProcessPort
 import skillbill.ports.process.InstallerScriptFetchPort
@@ -40,6 +41,7 @@ data class WorkflowOpsContext(val workflowGitOperations: WorkflowGitOperations? 
 
 data class OptionalCallbacks(
   val agentRunLauncher: AgentRunLauncher? = null,
+  val runtimeDiagnostics: RuntimeDiagnostics? = null,
   val goalPullRequestPort: GoalPullRequestPort? = null,
   val executableLookup: ExecutableLookup? = null,
   val reviewNativeAgentPreflight: ReviewNativeAgentPreflightPort? = null,

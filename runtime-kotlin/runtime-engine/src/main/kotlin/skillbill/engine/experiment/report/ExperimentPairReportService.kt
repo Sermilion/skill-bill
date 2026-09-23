@@ -2,7 +2,7 @@ package skillbill.engine.experiment.report
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.experiment.ExperimentStatsPayloadKeys
+import skillbill.error.shellcontent.ExperimentNavigationPairUnavailableError
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
 import skillbill.ports.experiment.pair.ExperimentPairPayload
 import skillbill.ports.experiment.pair.ExperimentPairReportPort
@@ -12,7 +12,7 @@ class ExperimentPairReportService(
   private val pairOwner: ExperimentPairOwnerPort,
 ) : ExperimentPairReportPort {
   override fun renderReport(pairId: String, format: String): String {
-    val state = pairOwner.load(pairId) ?: error("unknown pair $pairId")
+    val state = pairOwner.load(pairId) ?: throw ExperimentNavigationPairUnavailableError(pairId)
     val projection =
       ExperimentReportProjector.project(
         state.pairPayload.toMap(),
@@ -25,12 +25,9 @@ class ExperimentPairReportService(
     }
   }
 
-  override fun renderStatsLine(): String {
+  override fun statsPayload(): Map<String, Any?> {
     val reports = pairOwner.listReports().map { it.toMap() }
-    val stats = ExperimentStatsProjector.project(reports)
-    val goal = stats[ExperimentStatsPayloadKeys.GOAL]
-    val navigation = stats[ExperimentStatsPayloadKeys.NAVIGATION]
-    return "experiment stats: goal=$goal navigation=$navigation"
+    return ExperimentStatsProjector.project(reports)
   }
 }
 

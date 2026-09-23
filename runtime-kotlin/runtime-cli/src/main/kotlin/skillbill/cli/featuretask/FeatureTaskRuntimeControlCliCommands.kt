@@ -113,7 +113,11 @@ class FeatureTaskRuntimeStatusCommand(
         FeatureTaskRuntimeStatusRequest(workflowId = workflowId),
       )
     val payload = projection.toRuntimeStatusCliMap(workflowId)
-    state.completeText(runtimeStatusText(payload), payload, exitCode = payload.runtimeStatusExitCode())
+    state.completeText(
+      runtimeStatusText(projection, workflowId),
+      payload,
+      exitCode = runtimeStatusExitCode(projection),
+    )
   }
 }
 

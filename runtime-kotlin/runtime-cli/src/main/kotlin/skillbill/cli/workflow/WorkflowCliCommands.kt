@@ -219,10 +219,6 @@ class VerifyWorkflowContinueCommand(
   private val workflowId by argument(
     help = "Workflow id to continue, or an issue key for a decomposed feature parent.",
   ).optional()
-  private val subtaskId by option(
-    "--subtask-id",
-    help = "Optional decomposed parent subtask id constraint for issue-key continuation.",
-  ).int()
   private val latest by option("--latest", help = "Resolve the most recently updated workflow.").flag(default = false)
   private val format by formatOption()
 
@@ -235,7 +231,6 @@ class VerifyWorkflowContinueCommand(
         service.continueWorkflow(
           VERIFY_KIND,
           requireNotNull(resolution.workflowId),
-          subtaskId = subtaskId,
         ).toCliMap()
       }
     state.complete(payload, format, exitCode = payload.exitCode())

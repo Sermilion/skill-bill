@@ -38,6 +38,7 @@ import skillbill.review.spec.GovernedSpecSectionParser
 import skillbill.review.spec.GovernedSpecSectionParser.ACCEPTANCE_CRITERIA_PREFIX
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.readBytes
 import java.security.MessageDigest
 import java.time.Clock
 import java.time.Instant
@@ -86,19 +87,32 @@ class ExperimentNavigationPairCoordinator(
   override fun acceptanceCriteria(specText: String): List<String> =
     parseNavigationAcceptanceCriteria(specText)
 
-  override fun run(request: ExperimentNavigationRunRequest): String =
-    run(
+  override fun run(request: ExperimentNavigationRunRequest): String {
+    val specPath = request.specPath
+    val specBytes = specPath.readBytes()
+    if (specBytes.isEmpty()) {
+      throw ExperimentNavigationSpecError(specPath.toString(), "spec file is empty")
+    }
+    val criteria = acceptanceCriteria(specBytes.decodeToString())
+    if (criteria.isEmpty() || criteria.any(String::isBlank)) {
+      throw ExperimentNavigationSpecError(
+        specPath.toString(),
+        "the governed acceptance criteria section is missing or empty",
+      )
+    }
+    return run(
       ExperimentNavigationPairRequest(
         source =
           ExperimentNavigationPairSource(
             name = request.name,
             repoRoot = request.repoRoot,
             revision = request.revision,
-            specBytes = request.specBytes,
-            criteria = request.acceptanceCriteria,
+            specBytes = specBytes,
+            criteria = criteria,
           ),
       ),
     )
+  }
 
   fun run(request: ExperimentNavigationPairRequest): String {
     val resolvedPairId = request.pairId ?: UUID.randomUUID().toString()

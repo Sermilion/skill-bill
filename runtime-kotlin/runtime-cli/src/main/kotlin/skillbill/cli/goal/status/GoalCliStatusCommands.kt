@@ -8,6 +8,8 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
 import skillbill.cli.goal.core.goalStatusExitCode
+import skillbill.cli.goal.core.GoalWatchPresentation
+import skillbill.cli.goal.core.GoalWatchRefreshPresentation
 import skillbill.cli.goal.core.goalWatchRefreshText
 import skillbill.cli.goal.core.goalWatchStopReason
 import skillbill.cli.goal.core.goalWatchText
@@ -25,6 +27,7 @@ import skillbill.contracts.issuekey.isWellFormedIssueKey
 import skillbill.engine.goalrunner.status.GoalRunnerStatusService
 import skillbill.error.core.DatabaseAccessError
 import skillbill.goalrunner.model.ExecutionLiveness
+import skillbill.goalrunner.model.GoalRunnerStatusProjection
 import skillbill.ports.workflow.gitops.model.DEFAULT_SELECTED_DIFF_MAX_BYTES
 import skillbill.ports.workflow.gitops.model.DEFAULT_SELECTED_DIFF_MAX_HUNKS
 import skillbill.ports.workflow.gitops.model.DEFAULT_SELECTED_DIFF_MAX_LINES
@@ -90,7 +93,11 @@ class GoalStatusCommand(
       } catch (error: DatabaseAccessError) {
         if (!options.monitorOnly) throw error
         val payload = databaseUnavailableGoalStatusCliMap(issueKey, error)
-        state.completeText(goalMonitorStatusText(payload), payload, exitCode = payload.goalStatusExitCode())
+        state.completeText(
+          goalMonitorStatusText(issueKey, projection = null, databaseUnavailableReason = error.condition),
+          payload,
+          exitCode = goalStatusExitCode(projection = null, databaseUnavailable = true),
+        )
         return
       }
     val payload =
@@ -99,8 +106,13 @@ class GoalStatusCommand(
       } else {
         projection.toGoalStatusCliMap(issueKey)
       }
-    val text = if (options.monitorOnly) goalMonitorStatusText(payload) else goalStatusText(payload)
-    state.completeText(text, payload, exitCode = payload.goalStatusExitCode())
+    val text =
+      if (options.monitorOnly) {
+        goalMonitorStatusText(issueKey, projection)
+      } else {
+        goalStatusText(issueKey, projection)
+      }
+    state.completeText(text, payload, exitCode = goalStatusExitCode(projection))
   }
 
   private fun statusCliRequestOptions(): GoalStatusCliRequestOptions =
@@ -185,6 +197,7 @@ class GoalWatchCommand(
     require(intervalSeconds >= 0) { "--interval-seconds must be non-negative." }
     require(maxRefreshes >= 0) { "--max-refreshes must be non-negative." }
     var latestRefresh: Map<String, Any?>? = null
+    var latestProjection: GoalRunnerStatusProjection? = null
     var refreshCount = 0
     var stopReason = ""
     var lastPrintedRefresh: String? = null
@@ -197,22 +210,21 @@ class GoalWatchCommand(
         )
       val refresh = projection.toGoalStatusCliMap(issueKey).withWatchRefresh(refreshCount)
       latestRefresh = refresh
+      latestProjection = projection
       consecutiveIdleRefreshes =
         if (projection?.executionLiveness == ExecutionLiveness.IDLE) {
           consecutiveIdleRefreshes + 1
         } else {
           0
         }
-      stopReason = refresh.goalWatchStopReason(
+      stopReason = goalWatchStopReason(
+        projection = projection,
         refreshCount = refreshCount,
         maxRefreshes = maxRefreshes,
         idleStop = consecutiveIdleRefreshes >= IDLE_STOP_CONSECUTIVE_REFRESHES,
       ) ?: ""
-      val renderedRefresh = goalWatchRefreshText(refresh)
-      val normalizedRefresh =
-        goalWatchRefreshText(
-          refresh.toMutableMap().apply { this["refresh_index"] = "<refresh_index>" },
-        )
+      val renderedRefresh = goalWatchRefreshText(GoalWatchRefreshPresentation(refreshCount, projection))
+      val normalizedRefresh = goalWatchRefreshText(GoalWatchRefreshPresentation(0, projection))
       val endsLoop = stopReason.isNotEmpty()
       val refreshChanged = lastPrintedRefresh == null || normalizedRefresh != lastPrintedRefresh
       val shouldPrintRefresh = endsLoop || showUnchanged || !suppressUnchanged || refreshChanged
@@ -236,7 +248,19 @@ class GoalWatchCommand(
         "latest_refresh" to latestRefresh,
         "stop_reason" to stopReason,
       )
-    state.completeText(goalWatchText(payload), payload, exitCode = payload.goalStatusExitCode())
+    state.completeText(
+      goalWatchText(
+        GoalWatchPresentation(
+          issueKey = issueKey,
+          refreshCount = refreshCount,
+          intervalSeconds = intervalSeconds,
+          latestRefresh = latestProjection?.let { GoalWatchRefreshPresentation(refreshCount, it) },
+          stopReason = stopReason,
+        ),
+      ),
+      payload,
+      exitCode = goalStatusExitCode(latestProjection),
+    )
   }
 
   private fun statusCliRequestOptions(): GoalStatusCliRequestOptions =

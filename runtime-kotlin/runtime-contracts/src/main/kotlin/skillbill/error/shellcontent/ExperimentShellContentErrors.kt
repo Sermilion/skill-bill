@@ -107,3 +107,11 @@ class ExperimentNavigationSpecError(
     "Navigation experiment spec '$path' is invalid: $reason",
     cause,
   )
+
+class ExperimentNavigationPairUnavailableError(
+  val pairId: String,
+  cause: Throwable? = null,
+) : ShellContentContractException(
+    "Experiment navigation pair '$pairId' is not available.",
+    cause,
+  )

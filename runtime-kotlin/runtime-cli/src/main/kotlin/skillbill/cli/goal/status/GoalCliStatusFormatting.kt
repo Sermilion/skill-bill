@@ -222,70 +222,73 @@ internal fun List<GoalRunnerAcceptedSubtask>.toGoalAcceptanceCliList(): List<Map
     )
   }
 
-internal fun goalStatusText(payload: Map<String, Any?>): String =
+internal fun goalStatusText(
+  issueKey: String,
+  projection: GoalRunnerStatusProjection?,
+): String =
   buildString {
-    appendGoalStatusSummary(payload)
-    appendPlanningStatusLines(payload)
-    appendObservabilityStatusLines(payload)
-    appendWorktreeEditLines(payload)
-    appendOperatorSurfaceLines(payload)
-    appendValidationStatusLines(payload)
-    appendDiffStatusLines(payload)
+    appendGoalStatusSummary(issueKey, projection)
+    projection?.let {
+      appendPlanningStatusLines(it)
+      appendObservabilityStatusLines(it)
+      appendWorktreeEditLines(it)
+      appendOperatorSurfaceLines(it)
+      appendValidationStatusLines(it)
+      appendDiffStatusLines(it)
+    }
   }
 
-private fun StringBuilder.appendGoalStatusSummary(payload: Map<String, Any?>) {
-  appendLine("goal: ${payload[SharedPayloadKeys.ISSUE_KEY]}")
-  appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
-  appendLine("complete: ${payload["complete_count"]}")
-  appendLine("pending: ${payload["pending_count"]}")
-  appendLine("blocked: ${payload["blocked_count"]}")
-  appendLine("current_subtask: ${payload["current_subtask"] ?: "none"}")
-  appendLine("current_step: ${payload["current_step"] ?: "none"}")
-  appendLine("active_agent: ${payload["active_agent"] ?: "none"}")
-  appendLine("execution_liveness: ${payload["execution_liveness"]}")
-  appendLine("latest_liveness_signal: ${payload["latest_liveness_signal"] ?: "none"}")
-  appendLine("paused: ${payload["paused"]}")
-  appendLine("pause_requested: ${payload["pause_requested"]}")
-  appendLine("pause_reason: ${payload["pause_reason"] ?: "none"}")
-  appendLine("stop_after_subtask: ${payload["stop_after_subtask"] ?: "none"}")
+private fun StringBuilder.appendGoalStatusSummary(
+  issueKey: String,
+  projection: GoalRunnerStatusProjection?,
+) {
+  appendLine("goal: ${projection?.issueKey ?: issueKey}")
+  appendLine("status: ${if (projection == null) "not_found" else "ok"}")
+  appendLine("complete: ${projection?.completeCount ?: 0}")
+  appendLine("pending: ${projection?.pendingCount ?: 0}")
+  appendLine("blocked: ${projection?.blockedCount ?: 0}")
+  appendLine("current_subtask: ${projection?.currentSubtaskId ?: "none"}")
+  appendLine("current_step: ${projection?.currentStep ?: "none"}")
+  appendLine("active_agent: ${projection?.activeAgent ?: "none"}")
+  appendLine("execution_liveness: ${projection?.executionLiveness?.wireValue ?: "unknown"}")
+  appendLine("latest_liveness_signal: ${projection?.latestLivenessSignal ?: "none"}")
+  appendLine("paused: ${projection?.paused ?: false}")
+  appendLine("pause_requested: ${projection?.pauseRequested ?: false}")
+  appendLine("pause_reason: ${projection?.pauseReason ?: "none"}")
+  appendLine("stop_after_subtask: ${projection?.stopAfterSubtaskId ?: "none"}")
 }
 
-private fun StringBuilder.appendPlanningStatusLines(payload: Map<String, Any?>) {
-  (payload["planning"] as? Map<*, *>)?.let { planning ->
+private fun StringBuilder.appendPlanningStatusLines(projection: GoalRunnerStatusProjection) {
+  projection.planning?.let { planning ->
     appendLine(
-      "planning: state=${planning["state"]} shared_preplan=${planning["shared_preplan_prepared"]} " +
-        "planned=${planning["planned_subtask_count"]}/${planning["total_subtask_count"]} " +
-        "current=${planning["current_planning_subtask"] ?: "none"}" +
-        planningWaveText((planning["planning_wave_subtasks"] as? List<*>).orEmpty().size),
+      "planning: state=${planning.state.wireValue} shared_preplan=${planning.sharedPreplanPrepared} " +
+        "planned=${planning.plannedSubtaskCount}/${planning.totalSubtaskCount} " +
+        "current=${planning.currentPlanningSubtaskId ?: "none"}" +
+        planningWaveText(planning.planningWaveSubtaskIds.size),
     )
-    planning["reason"]?.let { appendLine("planning_reason: $it") }
+    planning.reason?.let { appendLine("planning_reason: $it") }
   }
 }
 
-private fun StringBuilder.appendObservabilityStatusLines(payload: Map<String, Any?>) {
-  (payload["latest_observability_event"] as? Map<*, *>)?.let { event ->
+private fun StringBuilder.appendObservabilityStatusLines(projection: GoalRunnerStatusProjection) {
+  projection.latestObservabilityEvent?.let { event ->
     appendLine(
-      "latest_observability: phase=${event["workflow_phase"]} role=${event["worker_role"]} " +
-        "liveness=${event["liveness_class"]} sequence=${event["sequence_number"]}",
+      "latest_observability: phase=${event.workflowPhase} role=${event.workerRole} " +
+        "liveness=${event.livenessClass} sequence=${event.sequenceNumber}",
     )
   }
 }
 
-private fun StringBuilder.appendValidationStatusLines(payload: Map<String, Any?>) {
-  (payload[ValidationEvidencePayloadKeys.COMPLETED_SUBTASK_VALIDATION] as? List<*>)?.forEach { raw ->
-    val evidence = raw as? Map<*, *> ?: return@forEach
-    val subtaskId = evidence[SharedPayloadKeys.SUBTASK_ID]
-    val validation = evidence[ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE] as? Map<*, *>
-    val results = validation?.get(ValidationEvidencePayloadKeys.RESULTS) as? List<*>
-    val integrity = evidence[ValidationEvidencePayloadKeys.INTEGRITY_PROBLEM]
+private fun StringBuilder.appendValidationStatusLines(projection: GoalRunnerStatusProjection) {
+  projection.completedSubtaskValidation.forEach { evidence ->
     when {
-      integrity != null -> appendLine("validation_integrity: subtask=$subtaskId problem=$integrity")
-      results != null ->
-        results.forEach { rawResult ->
-          val result = rawResult as? Map<*, *> ?: return@forEach
+      evidence.integrityProblem != null ->
+        appendLine("validation_integrity: subtask=${evidence.subtaskId} problem=${evidence.integrityProblem}")
+      else ->
+        evidence.evidence?.results.orEmpty().forEach { result ->
           appendLine(
-            "validation: subtask=$subtaskId command=${result[ValidationEvidencePayloadKeys.COMMAND]} " +
-              "exit_code=${result[ValidationEvidencePayloadKeys.EXIT_CODE]}",
+            "validation: subtask=${evidence.subtaskId} command=${result.command} " +
+              "exit_code=${result.exitCode}",
           )
         }
     }
@@ -299,48 +302,43 @@ private fun planningWaveText(waveSize: Int): String =
     else -> " wave=$waveSize subtasks"
   }
 
-internal fun goalMonitorStatusText(payload: Map<String, Any?>): String =
-  if (payload[SharedPayloadKeys.STATUS] == "not_found") {
+internal fun goalMonitorStatusText(
+  issueKey: String,
+  projection: GoalRunnerStatusProjection?,
+  databaseUnavailableReason: String? = null,
+): String =
+  if (databaseUnavailableReason != null) {
     buildString {
-      appendLine("goal: ${payload[SharedPayloadKeys.ISSUE_KEY]}")
+      appendLine("goal: $issueKey")
+      appendLine("status: $GOAL_STATUS_DATABASE_UNAVAILABLE")
+      appendLine("resumable_state: $GOAL_STATUS_DATABASE_UNAVAILABLE")
+      appendLine("reason: $databaseUnavailableReason")
+    }
+  } else if (projection == null) {
+    buildString {
+      appendLine("goal: $issueKey")
       appendLine("status: not_found")
       appendLine("resumable_state: not_found")
     }
-  } else if (payload[SharedPayloadKeys.STATUS] == GOAL_STATUS_DATABASE_UNAVAILABLE) {
-    buildString {
-      appendLine("goal: ${payload[SharedPayloadKeys.ISSUE_KEY]}")
-      appendLine("status: $GOAL_STATUS_DATABASE_UNAVAILABLE")
-      appendLine("resumable_state: $GOAL_STATUS_DATABASE_UNAVAILABLE")
-      appendLine("reason: ${payload["reason"]}")
-    }
   } else {
     buildString {
-      appendLine("complete: ${payload["complete_count"]}")
-      appendLine("pending: ${payload["pending_count"]}")
-      appendLine("blocked: ${payload["blocked_count"]}")
-      appendLine("current_subtask: ${payload["current_subtask"] ?: "none"}")
-      appendLine("current_step: ${payload["current_step"] ?: "none"}")
-      appendLine("execution_liveness: ${payload["execution_liveness"]}")
-      appendLine("resumable_state: ${payload["resumable_state"]}")
-      appendWorktreeEditLines(payload)
+      appendLine("complete: ${projection.completeCount}")
+      appendLine("pending: ${projection.pendingCount}")
+      appendLine("blocked: ${projection.blockedCount}")
+      appendLine("current_subtask: ${projection.currentSubtaskId ?: "none"}")
+      appendLine("current_step: ${projection.currentStep ?: "none"}")
+      appendLine("execution_liveness: ${projection.executionLiveness.wireValue}")
+      appendLine("resumable_state: ${projection.monitorResumableState()}")
+      appendWorktreeEditLines(projection)
     }
   }
 
-private fun StringBuilder.appendWorktreeEditLines(payload: Map<String, Any?>) {
-  (payload[WorktreeEditJournalPayloadKeys.WORKTREE_EDITS] as? Map<*, *>)?.let { edits ->
-    val phase = edits[WorktreeEditJournalPayloadKeys.PHASE_ID] ?: "none"
-    val paths =
-      when (val sample = edits[WorktreeEditJournalPayloadKeys.PATH_SAMPLE]) {
-        is List<*> -> sample.joinToString(",")
-        else -> sample?.toString().orEmpty()
-      }
+private fun StringBuilder.appendWorktreeEditLines(projection: GoalRunnerStatusProjection) {
+  projection.latestWorktreeEdit?.let { edit ->
     appendLine(
-      "worktree_edits: at=${edits[WorktreeEditJournalPayloadKeys.RECORDED_AT]} phase=$phase " +
-        "+${edits[WorktreeEditJournalPayloadKeys.NET_INSERTIONS]} " +
-        "-${edits[WorktreeEditJournalPayloadKeys.NET_DELETIONS]} paths=$paths",
+      "worktree_edits: at=${edit.recordedAt} phase=${edit.phaseId} " +
+        "+${edit.netInsertions} -${edit.netDeletions} paths=${edit.pathSample.joinToString(",")}",
     )
   }
-  payload[WorktreeEditJournalPayloadKeys.AUDIT_AC_RETRY_COUNT]?.let { count ->
-    appendLine("audit_ac_retry_count: $count")
-  }
+  projection.auditAcRetryCount?.let { count -> appendLine("audit_ac_retry_count: $count") }
 }

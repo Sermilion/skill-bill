@@ -1,6 +1,7 @@
 package skillbill.cli
 
 import skillbill.application.workflow.model.WorkflowFamilyKind
+import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowGetResult
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenArgs
@@ -91,11 +92,28 @@ internal object RuntimeWorkflowTestSupport {
     context: CliRuntimeContext,
   ): Map<String, Any?> {
     val service = component(context, dbPath).workflowService
-    return service.continueWorkflow(
+    val result =
+      service.continueWorkflow(
       kind = WorkflowFamilyKind.TASK_RUNTIME,
       workflowId = issueKey,
       subtaskId = subtaskId,
-    ).toCliMap()
+      )
+    val workflowId =
+      when (result) {
+        is WorkflowContinueResult.Standard -> result.view.resume.snapshot.workflowId
+        is WorkflowContinueResult.DecompositionBlockedSubtask -> result.workflowId
+        is WorkflowContinueResult.DecompositionBlockedBranchStart -> result.workflowId
+        is WorkflowContinueResult.DecompositionDone -> result.workflowId
+        is WorkflowContinueResult.DecompositionSubtaskOutcome -> result.workflowId
+        is WorkflowContinueResult.DecompositionBlockedGit -> result.workflowId
+        is WorkflowContinueResult.DecompositionStandard -> result.view.resume.snapshot.workflowId
+        is WorkflowContinueResult.DecompositionMissingSubtaskWorkflow ->
+          error("Missing decomposition workflow for subtask ${result.subtaskId}.")
+        is WorkflowContinueResult.UnknownWorkflow ->
+          error("Unknown workflow_id '${result.workflowId}'.")
+        is WorkflowContinueResult.Error -> error(result.error)
+      }
+    return mapOf("workflow_id" to workflowId)
   }
 
   fun parseStepUpdates(rawJson: String): List<Map<String, Any?>> =

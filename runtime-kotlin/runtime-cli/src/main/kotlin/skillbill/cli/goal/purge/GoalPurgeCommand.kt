@@ -43,6 +43,6 @@ class GoalPurgeCommand(
         ),
       )
     val payload = result.toGoalPurgeCliMap()
-    state.completeText(goalPurgeText(payload), payload, exitCode = payload.goalPurgeExitCode())
+    state.completeText(goalPurgeText(result), payload, exitCode = goalPurgeExitCode(result))
   }
 }

@@ -13,5 +13,8 @@ fun main(args: Array<String>) {
       ),
     )
   emitCliProcessStdout(result, System.out)
+  if (result.stderr.isNotEmpty()) {
+    System.err.print(result.stderr)
+  }
   exitProcess(result.exitCode)
 }

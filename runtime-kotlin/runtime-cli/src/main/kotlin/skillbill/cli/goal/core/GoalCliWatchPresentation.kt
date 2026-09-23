@@ -1,51 +1,64 @@
 package skillbill.cli.goal.core
 import skillbill.cli.goal.status.appendDiffStatusLines
-import skillbill.contracts.SharedPayloadKeys
+import skillbill.goalrunner.model.GoalRunnerStatusProjection
+
+internal data class GoalWatchRefreshPresentation(
+  val refreshIndex: Int,
+  val projection: GoalRunnerStatusProjection?,
+)
+
+internal data class GoalWatchPresentation(
+  val issueKey: String,
+  val refreshCount: Int,
+  val intervalSeconds: Int,
+  val latestRefresh: GoalWatchRefreshPresentation?,
+  val stopReason: String,
+)
 
 internal fun Map<String, Any?>.withWatchRefresh(refreshIndex: Int): Map<String, Any?> =
   linkedMapOf<String, Any?>("refresh_index" to refreshIndex).apply { putAll(this@withWatchRefresh) }
 
-internal fun Map<String, Any?>.goalWatchStopReason(
+internal fun goalWatchStopReason(
+  projection: GoalRunnerStatusProjection?,
   refreshCount: Int,
   maxRefreshes: Int,
   idleStop: Boolean,
 ): String? =
   when {
-    this[SharedPayloadKeys.STATUS] == "not_found" -> "not_found"
-
-    this["paused"] == true -> "goal_paused"
-    (this["pending_count"] as? Number)?.toInt() == 0 -> "goal_terminal"
+    projection == null -> "not_found"
+    projection.paused -> "goal_paused"
+    projection.pendingCount == 0 -> "goal_terminal"
     idleStop -> "goal_idle"
     maxRefreshes > 0 && refreshCount >= maxRefreshes -> "max_refreshes"
     else -> null
   }
 
-internal fun goalWatchText(payload: Map<String, Any?>): String =
+internal fun goalWatchText(presentation: GoalWatchPresentation): String =
   buildString {
-    appendLine("goal: ${payload[SharedPayloadKeys.ISSUE_KEY]}")
-    appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
-    appendLine("refresh_count: ${payload["refresh_count"]}")
-    appendLine("interval_seconds: ${payload["interval_seconds"]}")
-    appendLine("stop_reason: ${payload["stop_reason"]}")
-    val latestRefresh = payload["latest_refresh"] as? Map<*, *> ?: return@buildString
-    append(goalWatchRefreshText(latestRefresh))
+    appendLine("goal: ${presentation.issueKey}")
+    appendLine("status: ${if (presentation.latestRefresh?.projection == null) "not_found" else "ok"}")
+    appendLine("refresh_count: ${presentation.refreshCount}")
+    appendLine("interval_seconds: ${presentation.intervalSeconds}")
+    appendLine("stop_reason: ${presentation.stopReason}")
+    presentation.latestRefresh?.let { append(goalWatchRefreshText(it)) }
   }
 
-internal fun goalWatchRefreshText(refresh: Map<*, *>): String =
+internal fun goalWatchRefreshText(refresh: GoalWatchRefreshPresentation): String =
   buildString {
+    val projection = refresh.projection
     appendLine(
-      "watch_refresh: index=${refresh["refresh_index"]} status=${refresh[SharedPayloadKeys.STATUS]} " +
-        "current_subtask=${refresh["current_subtask"] ?: "none"} " +
-        "current_step=${refresh["current_step"] ?: "none"} " +
-        "execution_liveness=${refresh["execution_liveness"] ?: "unknown"} " +
-        "liveness=${refresh["latest_liveness_signal"] ?: "none"}",
+      "watch_refresh: index=${refresh.refreshIndex} status=${if (projection == null) "not_found" else "ok"} " +
+        "current_subtask=${projection?.currentSubtaskId ?: "none"} " +
+        "current_step=${projection?.currentStep ?: "none"} " +
+        "execution_liveness=${projection?.executionLiveness?.wireValue ?: "unknown"} " +
+        "liveness=${projection?.latestLivenessSignal ?: "none"}",
     )
-    (refresh["latest_observability_event"] as? Map<*, *>)?.let { event ->
+    projection?.latestObservabilityEvent?.let { event ->
       appendLine(
-        "watch_observability: index=${refresh["refresh_index"]} phase=${event["workflow_phase"]} " +
-          "role=${event["worker_role"]} liveness=${event["liveness_class"]} " +
-          "sequence=${event["sequence_number"]}",
+        "watch_observability: index=${refresh.refreshIndex} phase=${event.workflowPhase} " +
+          "role=${event.workerRole} liveness=${event.livenessClass} " +
+          "sequence=${event.sequenceNumber}",
       )
     }
-    appendDiffStatusLines(refresh, watchIndex = refresh["refresh_index"]?.toString())
+    projection?.let { appendDiffStatusLines(it, watchIndex = refresh.refreshIndex.toString()) }
   }

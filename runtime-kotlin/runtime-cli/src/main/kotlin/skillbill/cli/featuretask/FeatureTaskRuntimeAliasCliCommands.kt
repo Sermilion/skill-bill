@@ -20,6 +20,7 @@ private const val FEATURE_TASK_RUNTIME_DEPRECATION_NOTE: String =
 class FeatureTaskRuntimeDeprecatedRunCommand(
   private val deps: FeatureTaskRuntimeRunDependencies,
   private val workflowService: WorkflowService,
+  private val state: CliRunState,
   featureTaskRuntimeDeprecatedExplicitRunCommand: FeatureTaskRuntimeDeprecatedExplicitRunCommand,
   featureTaskRuntimeDeprecatedStatusCommand: FeatureTaskRuntimeDeprecatedStatusCommand,
   featureTaskRuntimeDeprecatedResumeCommand: FeatureTaskRuntimeDeprecatedResumeCommand,
@@ -43,7 +44,7 @@ class FeatureTaskRuntimeDeprecatedRunCommand(
   }
 
   override fun run() {
-    deps.inputs.liveStderr(FEATURE_TASK_RUNTIME_DEPRECATION_NOTE)
+    state.appendStderr(FEATURE_TASK_RUNTIME_DEPRECATION_NOTE)
     if (currentContext.invokedSubcommand != null) {
       return
     }
@@ -108,12 +109,13 @@ class FeatureTaskRuntimeDeprecatedStatusCommand(
   private val workflowId by argument(help = "Runtime workflow id whose phase status to show.")
 
   override fun run() {
-    val projection =
-      statusService.status(
-        FeatureTaskRuntimeStatusRequest(workflowId = workflowId),
-      )
+    val projection = statusService.status(FeatureTaskRuntimeStatusRequest(workflowId = workflowId))
     val payload = projection.toRuntimeStatusCliMap(workflowId)
-    state.completeText(runtimeStatusText(payload), payload, exitCode = payload.runtimeStatusExitCode())
+    state.completeText(
+      runtimeStatusText(projection, workflowId),
+      payload,
+      exitCode = runtimeStatusExitCode(projection),
+    )
   }
 }
 
@@ -127,7 +129,7 @@ class FeatureTaskRuntimeDeprecatedResumeCommand(
   ) {
   private val workflowId by argument(help = "Existing runtime workflow id to resume.")
   private val issueKey by argument(help = "Issue key the resumed run implements.")
-  private val specPath by argument(help = "Path to the governed spec the run implements.")
+  private val specPath by argument(help = "Path to the governed spec the resumed run implements.")
 
   override fun run() {
     val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, deps.inputs)
