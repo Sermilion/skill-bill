@@ -69,4 +69,5 @@ object McpToolPayloadKeys {
   const val GENERATED_DESCRIPTION: String = "generated_description"
   const val FINAL_PR_BODY: String = "final_pr_body"
   const val QUALITY_CHECK_FINISHED: String = "quality_check_finished"
+  const val ADD_LEARNING: String = "add_learning"
 }

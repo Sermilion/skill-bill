@@ -102,14 +102,13 @@ Accounting preserves direct and inclusive ownership. Direct usage belongs to one
 
 ## Shared Learnings Context
 
-- The top-level review caller owns learnings resolution for the current review context
-- When applied learnings are already passed in by the caller, reuse them instead of re-resolving them independently in nested review layers
-- For a top-level or standalone review, when the `skill-bill` MCP server is registered, call its `resolve_learnings` tool to resolve active learnings for the current repo and routed review skill before running the review. Do not improvise alternate launch paths or a globally installed `skill-bill` binary; the MCP tool is the only supported path.
-- Apply only active learnings; do not use disabled learnings as review context
-- Prefer more specific scopes in this order: `skill`, `repo`, `global`
-- Treat learnings as explicit context, not as hidden suppression rules; do not let them override evidence-based correctness, security, or contract findings
-- If no learnings were passed in and the `resolve_learnings` MCP tool is not registered, report `Applied learnings: none` instead of inventing hidden context
-- Pass the applied learnings forward to delegated or layered review passes when the current review routes additional workers
+- The review driver resolves learnings itself, inside the review run. No agent — parent, layer, or specialist — calls a learnings tool.
+- The driver derives the repo scope key from the reviewed repository's `origin` remote, normalized to its full repository path (nested groups keep every segment), and the skill scope key from the routed review skill. With no `origin` remote it resolves global and skill learnings only.
+- The driver resolves only active learnings, in scope order `skill`, `repo`, `global`; disabled learnings and learnings scoped to another repo or skill never reach a worker.
+- The driver persists the resolved set as the `session_learnings` row for the run's review session id, including an empty set, and delivers each learning's title and rule text inside every worker launch envelope.
+- The driver prints `Review session ID: <id>` and `Applied learnings: none | <learning references>`. Copy both lines verbatim into the summary and the review import; do not invent either value.
+- Pass `--review-session-id` when the parent already holds a review session id; otherwise the driver mints one.
+- Learnings are explicit context, never hidden suppression rules. A learning never suppresses an evidence-based correctness, security, or contract finding.
 
 ## Shared Delegation Contract
 
@@ -133,7 +132,7 @@ Section 1 summary must include `Detected review scope: <staged changes / unstage
 Section 1 summary must include `Execution mode: inline | delegated`.
 Section 1 summary must include `Applied learnings: none | <learning references>`.
 
-Generate one review session id per top-level review using the format `rvs-<uuid4>` (e.g. `rvs-550e8400-e29b-41d4-a716-446655440000`). If a parent reviewer already passed a `review_session_id` into a delegated or layered review, reuse it instead of generating a new one. Reuse that same session id across the summary, parent-review handoff, and any learnings-resolution workflow for the current review lifecycle.
+The review session id is driver-owned and uses the format `rvs-<uuid4>` (e.g. `rvs-550e8400-e29b-41d4-a716-446655440000`). If a parent reviewer already holds a `review_session_id`, forward it with `--review-session-id`; otherwise the driver mints one. Take the value from the driver's `Review session ID:` line and reuse that same id across the summary, the parent-review handoff, and the review import for the current review lifecycle.
 
 Generate one review run id per concrete review output using the format `rvw-YYYYMMDD-HHMMSS-XXXX` where `XXXX` is a random 4-character alphanumeric suffix for uniqueness (e.g. `rvw-20260405-143022-b2e1`). If a parent reviewer already passed a `review_run_id` into a delegated or layered review, reuse it instead of generating a new one. Reuse that same run id across the summary, the risk register, and any parent-review handoff or follow-up feedback workflow for the current review output.
 

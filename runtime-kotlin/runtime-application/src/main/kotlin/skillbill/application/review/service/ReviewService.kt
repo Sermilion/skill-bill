@@ -1,5 +1,6 @@
 package skillbill.application.review.service
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.review.learnings.repoScopeKeyOrNull
 import skillbill.application.review.model.FeatureTaskRuntimeStatsResult
 import skillbill.application.review.model.FeatureVerifyStatsResult
 import skillbill.application.review.model.GoalStatsResult
@@ -13,6 +14,7 @@ import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.model.EnvironmentContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.repository.RepositoryOriginScopeKeyPort
 import skillbill.ports.review.preparation.ReviewAttributionPort
 import skillbill.ports.review.preparation.ReviewInputSource
 import skillbill.ports.review.repository.ReviewRepository
@@ -30,6 +32,7 @@ class ReviewService(
   private val reviewInputSource: ReviewInputSource,
   private val reviewAttributionPort: ReviewAttributionPort,
   private val diagnostics: RuntimeDiagnostics,
+  private val originScopeKeyPort: RepositoryOriginScopeKeyPort,
 ) {
   fun previewImport(
     input: String,
@@ -122,8 +125,15 @@ class ReviewService(
         listOnly = listOnly,
         listWhenNoDecisions = listWhenNoDecisions,
         routedSkillPlatformSlugs = reviewAttributionPort.routedSkillPlatformSlugs(),
+        resolveRepoScopeKey = ::triageRepoScopeKey,
       ),
     )
+
+  private fun triageRepoScopeKey(): String? =
+    originScopeKeyPort.repoScopeKeyOrNull(context.repositoryRoot, diagnostics) { reason ->
+      "Triage suggested learning candidates without a repo scope for '${context.repositoryRoot}': $reason. " +
+        "Candidates fall back to global scope."
+    }
 
   fun reviewStats(runId: String?): ReviewStatsResult =
     reviewStatsResult(database) { reviewRepository -> reviewRepository.reviewStats(runId) }

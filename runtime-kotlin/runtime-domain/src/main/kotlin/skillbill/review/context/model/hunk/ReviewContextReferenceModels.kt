@@ -1,4 +1,6 @@
 package skillbill.review.context.model.hunk
+import skillbill.error.shellcontent.ReviewLearningRuleTextTooLongError
+import skillbill.error.shellcontent.ReviewLearningTitleTooLongError
 import skillbill.review.context.model.execution.SHA256_HEX
 import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.canonicalFields
@@ -6,6 +8,8 @@ import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.execution.sha256
 
 const val REVIEW_RULE_EXCERPT_MAX_CHARS: Int = 2_000
+
+const val REVIEW_LEARNING_TITLE_MAX_CHARS: Int = 2_000
 
 data class ReviewRevision(val sessionId: String, val runRevision: Int) {
   init {
@@ -45,13 +49,39 @@ data class ReviewRuleReference(
         .let { canonicalFieldList(it) }
 }
 
-data class ReviewLearningsReference(val learningId: String, val source: String, val digest: String) {
+data class ReviewLearningsReference(
+  val learningId: String,
+  val source: String,
+  val scope: String,
+  val title: String,
+  val ruleText: String,
+  val digest: String,
+) {
   init {
     require(learningId.isNotBlank() && source.isNotBlank()) { "Learnings reference identity must not be blank." }
+    require(scope.isNotBlank()) { "Learnings reference scope must not be blank." }
+    require(title.isNotBlank()) { "Learnings reference title must not be blank." }
+    if (title.length > REVIEW_LEARNING_TITLE_MAX_CHARS) {
+      throw ReviewLearningTitleTooLongError(learningId, title.length, REVIEW_LEARNING_TITLE_MAX_CHARS)
+    }
+    require(ruleText.isNotBlank()) { "Learnings reference rule text must not be blank." }
+    if (ruleText.length > REVIEW_RULE_EXCERPT_MAX_CHARS) {
+      throw ReviewLearningRuleTextTooLongError(learningId, ruleText.length, REVIEW_RULE_EXCERPT_MAX_CHARS)
+    }
     require(digest.matches(SHA256_HEX)) { "Learnings reference digest must be lowercase SHA-256." }
+    require(digest == digestOf(ruleText)) {
+      "Learnings reference '$learningId' digest does not cover its rule text; the rule text is not attested."
+    }
   }
 
-  val canonical: String get() = canonicalFields(learningId, source, digest)
+  companion object {
+    fun digestOf(ruleText: String): String = sha256(ruleText.replace("\r\n", "\n"))
+  }
+
+  val canonical: String
+    get() =
+      listOf(learningId, source, scope, title, ruleText.replace("\r\n", "\n"), digest)
+        .let { canonicalFieldList(it) }
 }
 
 data class ReviewBuildTestFact(val kind: String, val command: String, val outcome: String) {

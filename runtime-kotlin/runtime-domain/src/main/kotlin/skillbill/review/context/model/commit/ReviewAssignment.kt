@@ -8,6 +8,7 @@ import skillbill.review.context.model.execution.sha256
 import skillbill.review.context.model.hunk.ReviewBaselineUntrackedPolicy
 import skillbill.review.context.model.hunk.ReviewDependencyAllowlist
 import skillbill.review.context.model.hunk.ReviewEvidenceTarget
+import skillbill.review.context.model.hunk.ReviewLearningsReference
 import skillbill.review.context.model.hunk.ReviewRevision
 import skillbill.review.context.model.hunk.ReviewRuleReference
 import skillbill.review.context.model.packet.ReviewExpansionRecord
@@ -24,6 +25,7 @@ data class ReviewAssignment(
   val laneRouting: List<ReviewCommitLaneDecision> = emptyList(),
   val criteriaReferences: List<String> = emptyList(),
   val matchedRules: List<ReviewRuleReference> = emptyList(),
+  val learnings: List<ReviewLearningsReference> = emptyList(),
   val evidenceTargets: List<ReviewEvidenceTarget> = emptyList(),
   val reviewRevision: ReviewRevision,
   val laneDecision: ReviewLaneDecision,
@@ -57,6 +59,7 @@ data class ReviewAssignment(
     require(laneDecision.lane == lane) { "Lane decision '${laneDecision.lane}' does not describe lane '$lane'." }
     require(laneDecision.included) { "Assignments exist only for included lanes; '$lane' is excluded." }
     require(matchedRules.map { it.ruleId }.distinct().size == matchedRules.size) { "Matched rules must be unique." }
+    require(learnings.map { it.learningId }.distinct().size == learnings.size) { "Learnings must be unique." }
     require(evidenceTargets.map { it.targetId }.distinct().size == evidenceTargets.size) {
       "Evidence target ids must be unique."
     }
@@ -102,6 +105,7 @@ data class ReviewAssignment(
           canonicalFieldList(laneRouting.sortedBy { it.orderIndex }.map { it.canonical }),
           canonicalFieldList(criteriaReferences.sorted()),
           canonicalFieldList(matchedRules.map { it.canonical }.sorted()),
+          canonicalFieldList(learnings.map { it.canonical }.sorted()),
           canonicalFieldList(evidenceTargets.map { it.canonical }.sorted()),
           dependencyAllowlist.canonical,
           baselineUntrackedPolicy.canonical,

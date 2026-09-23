@@ -43,7 +43,7 @@ Consumers must not rediscover any of the following:
 - `dominant_stack_routing` — the dominant stack is already resolved
 - `platform_pack_and_addon_resolution` — pack and add-on composition is already resolved
 - `project_guidance_traversal` — do not walk AGENTS/project-guidance files; use the matched rules
-- `learnings_resolution` — do not resolve learnings, including through MCP
+- `learnings_resolution` — do not resolve learnings, including through MCP; the launch already carries every applicable learning with its title and rule text. Treat them as explicit context only: a learning never suppresses an evidence-based correctness, security, or contract finding.
 - `build_test_fact_discovery` — build and test facts are supplied as packet facts
 - `telemetry_ownership_determination` — telemetry ownership is decided by the orchestrator
 - `broad_repository_search` — searches must stay within assigned paths or named dependencies
@@ -85,7 +85,7 @@ Section 1 summary must include `Detected review scope: <staged changes / unstage
 Section 1 summary must include `Execution mode: inline | delegated`.
 Section 1 summary must include `Applied learnings: none | <learning references>`.
 
-Generate one review session id per top-level review using the format `rvs-<uuid4>` (e.g. `rvs-550e8400-e29b-41d4-a716-446655440000`). If a parent reviewer already passed a `review_session_id` into a delegated or layered review, reuse it instead of generating a new one. Reuse that same session id across the summary, parent-review handoff, and any learnings-resolution workflow for the current review lifecycle.
+The review session id is driver-owned and uses the format `rvs-<uuid4>` (e.g. `rvs-550e8400-e29b-41d4-a716-446655440000`). If a parent reviewer already holds a `review_session_id`, forward it with `--review-session-id`; otherwise the driver mints one. Take the value from the driver's `Review session ID:` line and reuse that same id across the summary, the parent-review handoff, and the review import for the current review lifecycle.
 
 Generate one review run id per concrete review output using the format `rvw-YYYYMMDD-HHMMSS-XXXX` where `XXXX` is a random 4-character alphanumeric suffix for uniqueness (e.g. `rvw-20260405-143022-b2e1`). If a parent reviewer already passed a `review_run_id` into a delegated or layered review, reuse it instead of generating a new one. Reuse that same run id across the summary, the risk register, and any parent-review handoff or follow-up feedback workflow for the current review output.
 

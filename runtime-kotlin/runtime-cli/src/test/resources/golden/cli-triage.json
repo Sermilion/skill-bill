@@ -1,5 +1,6 @@
 {
   "db_path": "<DB_PATH>",
+  "learning_candidates": [],
   "recorded": [
     {
       "finding_id": "F-001",

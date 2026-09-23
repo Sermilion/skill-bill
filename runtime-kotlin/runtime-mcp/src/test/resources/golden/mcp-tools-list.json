@@ -1,6 +1,53 @@
 {
   "tools": [
     {
+      "name": "add_learning",
+      "description": "Create a learning from a rejected review finding after user confirmation.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scope",
+          "title",
+          "rule_text",
+          "source_review_run_id",
+          "source_finding_id"
+        ],
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "global",
+              "repo",
+              "skill"
+            ]
+          },
+          "scope_key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rule_text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source_review_run_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_finding_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
       "name": "doctor",
       "description": "Check skill-bill installation health.",
       "inputSchema": {

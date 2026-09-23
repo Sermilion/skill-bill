@@ -57,7 +57,16 @@ class ReviewPacketProjectionTest {
       "Prefer named strategies.",
       ReviewRuleReference.digestOf("Prefer named strategies."),
     )
-  private val learning = ReviewLearningsReference("learn-1", "telemetry", "c".repeat(64))
+  private val learningRule = "Prefer named strategies over identity branching."
+  private val learning =
+    ReviewLearningsReference(
+      learningId = "L-001",
+      source = "repo:acme/repo",
+      scope = "repo",
+      title = "Name strategies",
+      ruleText = learningRule,
+      digest = ReviewLearningsReference.digestOf(learningRule),
+    )
   private val revision = ReviewRevision("rvs-1", 3)
 
   private fun packet(

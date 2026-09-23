@@ -339,7 +339,7 @@ class ReviewContextModelsTest {
         "head_revision", "broker_id", "specialist_contract", "rubric", "consumer_contract",
         "assigned_paths", "assigned_hunks", "coverage_fact", "assigned_commit_units", "lane_routing",
         "bundle",
-        "criteria_references", "matched_rules", "evidence_targets", "dependency_allowlist",
+        "criteria_references", "matched_rules", "learnings", "evidence_targets", "dependency_allowlist",
         "baseline_untracked_policy",
         "forbidden_rediscovery", "evidence_surface_rules", "report_structure", "budgets",
       ),

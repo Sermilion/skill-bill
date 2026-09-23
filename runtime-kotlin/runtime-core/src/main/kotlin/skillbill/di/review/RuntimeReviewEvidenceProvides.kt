@@ -4,10 +4,12 @@ import skillbill.infrastructure.contracts.review.ReviewContextSchemaValidator
 import skillbill.infrastructure.launcher.review.UnixSocketGovernedReviewEvidenceEndpointBinder
 import skillbill.infrastructure.workflow.featuretask.FileSystemFeatureTaskRuntimeSharedEvidenceStore
 import skillbill.infrastructure.workflow.filesystem.FileSystemDiffResolver
+import skillbill.infrastructure.workflow.git.standard.GitRepositoryOriginScopeKey
 import skillbill.infrastructure.workflow.review.broker.FileSystemReviewEvidenceBroker
 import skillbill.infrastructure.workflow.review.specialists.system.FileSystemReviewInputSource
 import skillbill.infrastructure.workflow.review.specialists.system.FileSystemReviewSnapshotGateway
 import skillbill.ports.diff.DiffResolverPort
+import skillbill.ports.repository.RepositoryOriginScopeKeyPort
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.evidence.ReviewEvidenceBrokerFactory
 import skillbill.ports.review.evidence.ReviewSnapshotGateway
@@ -50,6 +52,9 @@ internal interface RuntimeReviewEvidenceProvides {
 
   @Provides @JvmSynthetic
   fun diffResolverPort(adapter: FileSystemDiffResolver): DiffResolverPort = adapter
+
+  @Provides @JvmSynthetic
+  fun repositoryOriginScopeKeyPort(adapter: GitRepositoryOriginScopeKey): RepositoryOriginScopeKeyPort = adapter
 
   @Provides @JvmSynthetic
   fun parallelReviewParseRegister(): (String) -> ParallelReviewParseResult = ParallelReviewFindingParser::parse

@@ -96,6 +96,12 @@ class CodeReviewCommand(
       "Review run id (rvw-YYYYMMDD-HHMMSS-XXXX) this review will report. Pass the same id used " +
         "in the review output and import so review accounting is reachable from review_finished telemetry.",
   )
+  private val reviewSessionId by option(
+    "--review-session-id",
+    help =
+      "Review session id keying session_learnings and the printed 'Review session ID:' line. " +
+        "Omit it and the driver mints one for this run.",
+  )
 
   override fun run() {
     val resolvedAgent1 = resolveAgent1()
@@ -130,6 +136,7 @@ class CodeReviewCommand(
       codeReviewMode = parseExecutionMode(codeReviewMode),
       suppliedDiffPath = suppliedDiffPath(),
       reviewRunId = reviewRunId?.takeIf(String::isNotBlank),
+      reviewSessionId = reviewSessionId?.takeIf(String::isNotBlank),
       baseRevision = resolvedBase,
       headRevision = resolvedHead,
       prelaunchExpansions = expandFiles.map(::parseExpansion),
@@ -239,6 +246,11 @@ private fun writeParallelReviewResult(
   val output =
     buildString {
       append(laneStatusOutput(listOf(parent), result.output))
+      result.reviewSessionId?.let { sessionId ->
+        appendLine()
+        appendLine("Review session ID: $sessionId")
+        append("Applied learnings: ${result.appliedLearnings.orEmpty()}")
+      }
       laneDiagnosticsOutput(listOf(parent))?.let { diagnostics ->
         appendLine()
         append(diagnostics)

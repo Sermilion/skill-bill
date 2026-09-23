@@ -15,6 +15,7 @@ import skillbill.review.context.model.commit.ReviewAssignment
 import skillbill.review.context.model.execution.ResolvedReviewExecutionMode
 import skillbill.review.context.model.execution.SpecIntentResolution
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
+import skillbill.review.context.model.hunk.ReviewLearningsReference
 import skillbill.review.context.model.launch.GovernedReviewLaunch
 import skillbill.review.context.model.packet.LANE_EVIDENCE_BYTES_DIMENSION
 import skillbill.review.context.model.packet.ReviewContextPacket
@@ -70,6 +71,7 @@ internal data class PlanningPrepareArgs(
   val agentIds: List<String>,
   val budget: ReviewContextBudgetPolicy,
   val evidenceStorePath: String?,
+  val learningsReferences: List<ReviewLearningsReference>,
 )
 
 internal data class ParallelCodeReviewInitialRun(
@@ -81,6 +83,8 @@ internal data class ParallelCodeReviewInitialRun(
   val compiledLaunchRequests: List<ReviewSpecialistLaunchRequest>,
   val budget: ReviewContextBudgetPolicy,
   val specIntentResolution: SpecIntentResolution,
+  val reviewSessionId: String,
+  val appliedLearnings: String,
 )
 
 internal fun ParallelCodeReviewInitialRun.delegatedStageLaunch(): ReviewDelegatedStageLaunch =
@@ -245,3 +249,10 @@ internal const val PARALLEL_REVIEW_DELEGATED_DEPTH_DIRECTIVE: String =
   "Assign each routed rubric above to its own specialist worker over that rubric's owned paths. " +
     "Accept each specialist's raw return as-is with no shape check. Synthesize the final review " +
     "prose and verdict yourself from those returns."
+
+internal const val PARALLEL_REVIEW_LEARNINGS_DIRECTIVE: String =
+  "The driver resolved these learnings for this repository and review skill. Apply them as explicit " +
+    "review context. A learning never suppresses an evidence-based correctness, security, or contract finding."
+
+internal const val PARALLEL_REVIEW_DELEGATED_LEARNINGS_DIRECTIVE: String =
+  "Pass this learnings section unchanged to every specialist worker you launch."

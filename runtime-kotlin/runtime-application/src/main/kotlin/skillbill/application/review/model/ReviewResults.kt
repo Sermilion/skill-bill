@@ -1,5 +1,6 @@
 package skillbill.application.review.model
 
+import skillbill.learnings.model.LearningScope
 import skillbill.review.model.FeatureTaskRuntimeWorkflowStats
 import skillbill.review.model.FeatureVerifyWorkflowStats
 import skillbill.review.model.GoalWorkflowStats
@@ -38,12 +39,22 @@ enum class TriageResultKind {
   RECORDED,
 }
 
+data class LearningCandidate(
+  val reviewRunId: String,
+  val findingId: String,
+  val suggestedTitle: String,
+  val suggestedRuleText: String,
+  val suggestedScope: LearningScope,
+  val suggestedScopeKey: String?,
+)
+
 data class TriageResult(
   val kind: TriageResultKind,
   val dbPath: String,
   val reviewRunId: String,
   val findings: List<NumberedFinding> = emptyList(),
   val recorded: List<TriageDecision> = emptyList(),
+  val learningCandidates: List<LearningCandidate> = emptyList(),
   val telemetry: ReviewFinishedTelemetry? = null,
 )
 

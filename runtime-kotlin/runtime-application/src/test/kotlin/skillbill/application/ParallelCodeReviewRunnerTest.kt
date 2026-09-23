@@ -16,6 +16,7 @@ import skillbill.application.review.snapshot.diffForChanges
 import skillbill.application.review.snapshot.diffForPaths
 import skillbill.application.review.snapshot.harnessRequest
 import skillbill.application.review.snapshot.parallelCodeReviewRunnerOf
+import skillbill.application.review.snapshot.recordingLearnings
 import skillbill.application.review.snapshot.reviewHarness
 import skillbill.application.review.snapshot.simulateGovernedEvidenceReads
 import skillbill.application.review.snapshot.sparseReviewPack
@@ -1660,6 +1661,7 @@ internal class RecordingReviewDatabase : DatabaseSessionFactory {
     ) { _, method, _ ->
       when (method.name) {
         "getReviews" -> reviews
+        "getLearnings" -> recordingLearnings()
         "getLifecycleTelemetry" -> NoopReviewLifecycleTelemetry
         "getDbPath" -> Path.of("/tmp/noop-review.db")
         else -> error("Unexpected unit-of-work call: ${method.name}")

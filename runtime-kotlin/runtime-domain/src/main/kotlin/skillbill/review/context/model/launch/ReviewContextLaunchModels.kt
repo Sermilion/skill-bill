@@ -292,6 +292,16 @@ data class GovernedReviewLaunch(
       rule.excerpt.replace("\r\n", "\n").lineSequence().forEach { appendLine("      $it") }
       appendLine("    digest: ${rule.digest}")
     }
+    appendLine("learnings:")
+    assignment.learnings.sortedBy { it.learningId }.forEach { learning ->
+      appendLine("  - learning_id: ${structuredString(learning.learningId)}")
+      appendLine("    source: ${structuredString(learning.source)}")
+      appendLine("    scope: ${structuredString(learning.scope)}")
+      appendLine("    title: ${structuredString(learning.title.replace("\r\n", "\n"))}")
+      appendLine("    rule_text: |")
+      learning.ruleText.replace("\r\n", "\n").lineSequence().forEach { appendLine("      $it") }
+      appendLine("    digest: ${learning.digest}")
+    }
     appendLine("evidence_targets:")
     assignment.evidenceTargets.map { it.targetId }.sorted().forEach { appendLine("  - $it") }
     appendLine("dependency_allowlist:")

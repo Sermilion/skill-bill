@@ -127,9 +127,13 @@ skill-bill learnings delete --id 1
 
 Both `--from-run` and `--from-finding` are required — learnings must trace back to a rejected finding. When `--reason` is omitted, the rationale is auto-populated from the rejection note.
 
+The `add_learning` MCP tool creates the same learning from a running review and applies the same rejected-source validation: the source finding must exist and its latest outcome must be a rejection, or the call fails with a typed error. Triage only suggests: `triage_findings` returns `learning_candidates` for noted rejections, and the parent review calls `add_learning` after the user confirms which candidates to promote.
+
 Raw finding-outcome history and learnings are stored separately. That means you can wipe or disable reusable learnings without losing the original review-feedback history.
 
-When you want future reviews to use those learnings explicitly, resolve the active learnings for the current review context:
+Reviews apply those learnings automatically. The review driver resolves them inside the run: it derives the repo scope key from the reviewed repository's `origin` remote normalized to its full repository path (nested groups keep every segment), derives the skill scope key from the routed review skill, persists the resolved set as the run's `session_learnings` row, and delivers each learning's title and rule text inside every worker launch envelope. No agent calls a learnings tool. With no `origin` remote the driver resolves global and skill learnings only and records a diagnostic.
+
+Inspect the same resolution by hand with:
 
 ```bash
 skill-bill learnings resolve --repo oila-gmbh/skill-bill --skill bill-kotlin-code-review --review-session-id rvs-20260402-001 --format json
@@ -139,10 +143,9 @@ Resolution stays local-first and explicit:
 
 - only `active` learnings apply
 - precedence is `skill > repo > global`
-- the helper returns stable learning references such as `L-003`
-- `--review-session-id` is required when telemetry is enabled so the resolved-learning event can be grouped with the matching review session
-- the top-level code-review caller owns learnings resolution and passes the applied references through routed/delegated reviews
-- review output should surface `Applied learnings: ...` so the behavior is auditable
+- resolution yields stable learning references such as `L-003`
+- a review session id keys the resolved set so the resolved-learning event groups with the matching review session; pass `--review-session-id` to `skill-bill code-review` when a parent workflow already holds one, otherwise the driver mints one
+- review output surfaces `Applied learnings: none | <learning references>` so the behavior is auditable
 
 This is intentionally not hidden auto-learning. The learnings layer remains inspectable, editable, disable-able, and deletable by the user.
 

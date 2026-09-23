@@ -1,5 +1,30 @@
 # Review Boundary History
 
+## [2026-09-23] SKILL-379 subtask 2 — triage promotes rejections to learnings
+Areas: application/review/service, application/review/learnings, application/review/model, contracts/learning, contracts/mcp, contracts/review, error/learning, domain/learnings, runtime-mcp/core, runtime-cli/kernel, orchestration/contracts, orchestration/telemetry-contract, docs
+- Triage suggests, it never writes: `TriageLearningCandidates` returns one candidate per rejected finding that carries a non-blank note, and the `learnings` table is untouched by triage. Promotion happens only through the new `add_learning` MCP tool after the user confirms.
+- The repo scope key reaches triage as a `() -> String?` on `TriageReviewRequest`, evaluated before `database.transaction` opens, so the git subprocess never runs inside a write transaction and the list-only path pays nothing. reusable
+- `RepositoryOriginScopeKeyPort.repoScopeKeyOrNull` is the one resolution-and-diagnostic path shared by `ReviewService` and `ReviewLearningsResolver`; each keeps its own degradation message.
+- Unknown or non-rejected learning sources fail with the typed `InvalidLearningSourceError` (now in `skillbill.error.learning`), not `require()`. A blank finding description falls back to the finding id, since `add_learning` requires a non-empty title.
+- Wire vocabulary: candidate keys reuse `McpToolPayloadKeys.REASON` and `ReviewFindingPayloadKeys.FINDING_ID` rather than duplicating them in `LearningPayloadKeys`; candidate filtering reads `LearningsRuntime.rejectedFindingOutcomeTypes` instead of a local `setOf` of wire strings.
+- Delivery bug found in validate, not review: subtask 1 resolved learnings but nothing rendered them into the agent prompt. `ParallelCodeReviewRunnerParentPrompt` now emits a `## Review learnings` section (reference, source, title, rule text, no-suppression rule, plus a pass-to-every-specialist line in delegated mode), and the delivery test asserts on the parent prompt rather than launch envelopes. Assert on the text the agent actually receives, not on the envelope that carries it. reusable
+- Traps hit while landing this: `skillbill.error.core` was at its 12-file ceiling; `ParallelCodeReviewRunnerPlanning` hit `LongParameterList` at 12 constructor params and dropped its duplicate `InstalledPlatformPackCatalogPort`; `OriginScopeKey` had to move to `skillbill.ports.repository.model` for the layer-boundary guard; `CliPresenters` may not import `skillbill.learnings`, so the scope label is now `LearningEntry.scopeLabel` and the CLI calls contracts `summarizeAppliedLearnings`.
+- Known limit: no automatic promotion and no heuristic without a note; existing rejections are not backfilled.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-09-23] SKILL-379 subtask 1 — driver resolves learnings
+Areas: application/review/learnings, application/review/parallel/planning, application/review/packet, domain/learnings, domain/review/context/model, contracts/learning, contracts/review, runtime-cli/codereview, runtime-ports/repository, orchestration/review-orchestrator, orchestration/skill-classes, docs
+- Learnings are resolved once by the driver (`ReviewLearningsResolver`) and delivered inside the assignment and launch envelopes; specialists no longer call the `resolve_learnings` MCP tool, and that instruction is gone from the shell class, PLAYBOOK, specialist contract, and telemetry doc.
+- Review context schema moves to `contract_version` 2.4 with a `learnings` envelope entry carrying a six-field `ReviewLearningsReference` (digest computed by `digestOf`). reusable
+- Repo scope keys come from `RepositoryOriginScopeKeyPort` / `GitRepositoryOriginScopeKey`; an unavailable origin remote degrades to a `diagnostics.warning` and still resolves global and skill learnings rather than failing the run.
+- Applied-learnings summary has a single owner in `skillbill.contracts.learning.summarizeAppliedLearnings`; `skillbill.learnings` and `CliPresenters` delegate to it, so printed and telemetry values cannot drift. reusable
+- No broad catch around the learnings read: `ReviewLearningRuleTextTooLongError` and peers stay loud per repo policy.
+- Known limit: SQL-layer scope precedence and status filtering stay covered by the pre-existing `TriageAndLearningsRuntimeTest`; this change asserts scope/status at the driver seam only.
+- Both UnitOfWork test proxies must answer `getLearnings`; the fixture lives in the new sibling `ReviewLearningsRecordingHarness` so `ReviewRecordingHarness` does not grow. reusable
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-11] SKILL-233 — uncommitted standalone packet
 Areas: application/review, runtime-cli/codereview
 - `UNCOMMITTED` is a working-tree packet: tracked dirty files plus untracked patches against HEAD, not a commit range and not the durable implement base.

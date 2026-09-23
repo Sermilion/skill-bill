@@ -3,6 +3,7 @@ package skillbill.application
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.review.service.ReviewService
+import skillbill.application.review.snapshot.HARNESS_ORIGIN_UNAVAILABLE
 import skillbill.application.telemetry.model.GoalFinishedRequest
 import skillbill.application.telemetry.model.GoalStartedRequest
 import skillbill.application.telemetry.model.GoalSubtaskFinishedRequest
@@ -187,6 +188,7 @@ internal fun laneReviewService(
     FakeReviewInputSource,
     FakePlanReviewAttributionPort,
     NoopRuntimeDiagnostics,
+    HARNESS_ORIGIN_UNAVAILABLE,
   )
 
 internal fun reviewText(findings: Boolean): String {

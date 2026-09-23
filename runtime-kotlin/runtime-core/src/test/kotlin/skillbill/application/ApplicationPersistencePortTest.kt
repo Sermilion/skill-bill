@@ -3,9 +3,12 @@ package skillbill.application
 import skillbill.application.learning.LearningService
 import skillbill.application.learning.model.AddLearningInput
 import skillbill.application.review.service.ReviewService
+import skillbill.application.review.snapshot.HARNESS_ORIGIN_UNAVAILABLE
+import skillbill.application.review.snapshot.harnessOrigin
 import skillbill.application.telemetry.service.RUNTIME_EXCEPTION_EVENT
 import skillbill.application.telemetry.service.TelemetryLevelMutationService
 import skillbill.application.telemetry.service.TelemetryService
+import skillbill.error.learning.InvalidLearningSourceError
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.RejectedLearningSourceOutcome
@@ -75,7 +78,7 @@ class ApplicationPersistencePortTest {
     val database = FakeDatabaseSessionFactory(reviews = FakeReviewRepository(sourceFindingExists = true))
     val service = LearningService(database)
 
-    assertFailsWith<IllegalArgumentException> {
+    assertFailsWith<InvalidLearningSourceError> {
       service.add(
         AddLearningInput(
           scope = LearningScope.SKILL,
@@ -109,6 +112,7 @@ class ApplicationPersistencePortTest {
         FakeReviewInputSource,
         EmptyReviewAttributionPort,
         NoopRuntimeDiagnostics,
+        HARNESS_ORIGIN_UNAVAILABLE,
       )
 
     val result =
@@ -121,6 +125,62 @@ class ApplicationPersistencePortTest {
     assertEquals(listOf("transaction"), database.calls)
     assertEquals(listOf("F-001", "F-002"), reviewRepository.feedbackRequests.map { it.findingIds.single() })
     assertEquals(listOf("fix_applied", "fix_applied"), result.recorded.map { it.outcomeType })
+  }
+
+  @Test
+  fun `triage suggests learning candidates only for noted rejections and writes no learning`() {
+    val learningRepository = FakeLearningRepository()
+    val reviewRepository =
+      FakeReviewRepository(
+        numberedFindings =
+          listOf(
+            numberedFinding(1, "F-001").copy(description = "Fixed finding"),
+            numberedFinding(2, "F-002").copy(description = "Accepted finding"),
+            numberedFinding(3, "F-003").copy(description = "Wording is deliberate"),
+            numberedFinding(4, "F-004").copy(description = "Helper stays inline"),
+            numberedFinding(5, "F-005").copy(description = "Rejected without a note"),
+          ),
+      )
+    val database = FakeDatabaseSessionFactory(reviews = reviewRepository, learnings = learningRepository)
+    val service =
+      ReviewService(
+        EnvironmentContext(environment = emptyMap(), userHome = Files.createTempDirectory("skillbill-app-cand")),
+        database,
+        FakeTelemetrySettingsProvider(enabled = false),
+        FakeReviewInputSource,
+        EmptyReviewAttributionPort,
+        NoopRuntimeDiagnostics,
+        harnessOrigin("acme/repo"),
+      )
+
+    val result =
+      service.triage(
+        runId = "rvw-1",
+        decisions =
+          listOf(
+            "1 fix",
+            "2 accept",
+            "3 false-positive - Prompt wording is intentional.",
+            "4 reject - Keep the helper inline.",
+            "5 reject",
+          ),
+        listOnly = false,
+      )
+
+    assertEquals(listOf("F-003", "F-004"), result.learningCandidates.map { it.findingId })
+    assertEquals(
+      listOf("Prompt wording is intentional.", "Keep the helper inline."),
+      result.learningCandidates.map { it.suggestedRuleText },
+    )
+    assertEquals(
+      listOf("Wording is deliberate", "Helper stays inline"),
+      result.learningCandidates.map { it.suggestedTitle },
+    )
+    assertEquals(
+      listOf(LearningScope.REPO to "acme/repo", LearningScope.REPO to "acme/repo"),
+      result.learningCandidates.map { it.suggestedScope to it.suggestedScopeKey },
+    )
+    assertTrue(learningRepository.addedRequests.isEmpty(), "Triage must never write a learnings row.")
   }
 
   @Test
@@ -173,6 +233,7 @@ class ApplicationPersistencePortTest {
         FakeReviewInputSource,
         EmptyReviewAttributionPort,
         NoopRuntimeDiagnostics,
+        HARNESS_ORIGIN_UNAVAILABLE,
       )
 
     service.importReview(input = "-")
@@ -202,6 +263,7 @@ class ApplicationPersistencePortTest {
         FakeReviewInputSource,
         ThrowingPlanReviewAttributionPort,
         NoopRuntimeDiagnostics,
+        HARNESS_ORIGIN_UNAVAILABLE,
       )
 
     service.importReview(input = "-")

@@ -2,6 +2,7 @@ package skillbill.cli.kernel.cli
 import skillbill.application.learning.model.LearningListResult
 import skillbill.application.learning.model.LearningResolveResult
 import skillbill.application.review.model.TriageResult
+import skillbill.contracts.learning.summarizeAppliedLearnings
 import skillbill.learnings.model.LearningEntry
 
 internal data class CliLearningListPresentation(
@@ -67,7 +68,7 @@ internal fun LearningResolveResult.toCliPresentation(): CliResolvedLearningsPres
     scopePrecedence = scopePrecedence.joinToString(" > ") { scope -> scope.wireName },
     repoScopeKey = repoScopeKey,
     skillName = skillName,
-    appliedLearnings = summarizeAppliedLearnings(learnings),
+    appliedLearnings = summarizeAppliedLearnings(learnings.map(LearningEntry::reference)),
     entries = learnings.map(LearningEntry::toCliResolvedLearningLine),
   )
 
@@ -111,20 +112,14 @@ private fun LearningEntry.toCliLearningLine(): CliLearningLine =
   CliLearningLine(
     reference = reference,
     status = status,
-    scopeLabel = scopedLabel(),
+    scopeLabel = scopeLabel,
     title = title,
   )
 
 private fun LearningEntry.toCliResolvedLearningLine(): CliResolvedLearningLine =
   CliResolvedLearningLine(
     reference = reference,
-    scopeLabel = scopedLabel(),
+    scopeLabel = scopeLabel,
     title = title,
     ruleText = ruleText,
   )
-
-private fun LearningEntry.scopedLabel(): String =
-  if (scopeKey.isNotEmpty()) "${scope.wireName}:$scopeKey" else scope.wireName
-
-private fun summarizeAppliedLearnings(entries: List<LearningEntry>): String =
-  if (entries.isEmpty()) "none" else entries.joinToString(", ") { entry -> entry.reference }

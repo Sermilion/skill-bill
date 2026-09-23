@@ -1,5 +1,7 @@
 package skillbill.mcp.core
 
+import skillbill.application.learning.model.AddLearningInput
+import skillbill.application.learning.toLearningRecordContract
 import skillbill.application.learning.toLearningResolveContract
 import skillbill.application.review.service.toReviewFinishedTelemetryPayload
 import skillbill.contracts.mcp.McpLearningsSkippedContract
@@ -138,6 +140,16 @@ internal object McpRuntime {
       return McpLearningsSkippedContract(reason = "telemetry is disabled").toPayload()
     }
     return component.learningService.resolve(repo, skill, reviewSessionId).toLearningResolveContract().toPayload()
+  }
+
+  fun addLearning(
+    request: AddLearningInput,
+    component: McpComponent,
+  ): Map<String, Any?> {
+    if (!component.telemetryService.isEnabled()) {
+      return McpLearningsSkippedContract(reason = "telemetry is disabled").toPayload()
+    }
+    return component.learningService.add(request).toLearningRecordContract().toPayload()
   }
 
   fun reviewStats(

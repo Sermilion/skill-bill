@@ -119,7 +119,7 @@ class ReviewContextSchemaValidatorTest {
           ReviewLaneDecision("ui", false, "no UI files changed"),
         ),
       matchedRules = listOf(rule),
-      learningsReferences = listOf(ReviewLearningsReference("learn-1", "telemetry", "c".repeat(64))),
+      learningsReferences = listOf(FIXTURE_LEARNING),
       buildTestFacts = listOf(ReviewBuildTestFact("test", "gradle test", "passed")),
       dependencyAllowlist = ReviewDependencyAllowlist(listOf("src/Dep.kt")),
       evidenceTargets = listOf(ReviewEvidenceTarget("src/A.kt", "src/A.kt", listOf(hunkA.hunkId))),
@@ -429,13 +429,13 @@ class ReviewContextSchemaValidatorTest {
     }
   }
 
-  @Test fun `projected envelopes carry contract version 2_3`() {
+  @Test fun `projected envelopes carry contract version 2_4`() {
     val launch =
       GovernedReviewLaunch(assignment, packet, "contract", "rubric", "broker", ReviewContextBudgetPolicy.DEFAULT)
     assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, packet.toParentPacketEnvelope().asWireMap()["contract_version"])
     assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, assignment.toAssignmentEnvelope().asWireMap()["contract_version"])
     assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, launch.toLaunchEnvelope().asWireMap()["contract_version"])
-    assertEquals("2.3", REVIEW_CONTEXT_CONTRACT_VERSION)
+    assertEquals("2.4", REVIEW_CONTEXT_CONTRACT_VERSION)
   }
 
   @Test fun `a 1_0 envelope fails with a typed version mismatch naming both versions`() {
@@ -446,7 +446,7 @@ class ReviewContextSchemaValidatorTest {
         ReviewContextSchemaValidator.validateParentPacket(envelope, "packet")
       }
     assertTrue("1.0" in failure.reason)
-    assertTrue("2.3" in failure.reason)
+    assertTrue("2.4" in failure.reason)
   }
 
   @Test fun `incomplete launch bundle without budget dimension is rejected`() {
@@ -632,7 +632,7 @@ class ReviewContextSchemaValidatorTest {
       override fun resolveLearnings(
         scope: ReviewScopeFacts,
         routing: ReviewStackRoutingFacts,
-      ) = listOf(ReviewLearningsReference("learn-1", "telemetry", "c".repeat(64)))
+      ) = listOf(FIXTURE_LEARNING)
 
       override fun resolveBuildTestFacts(scope: ReviewScopeFacts) =
         listOf(ReviewBuildTestFact("test", "gradle test", "passed"))
@@ -735,3 +735,15 @@ class ReviewContextSchemaValidatorTest {
       )
   }
 }
+
+private const val FIXTURE_LEARNING_RULE = "Prefer named strategies over identity branching."
+
+private val FIXTURE_LEARNING =
+  ReviewLearningsReference(
+    learningId = "L-001",
+    source = "repo:acme/repo",
+    scope = "repo",
+    title = "Name strategies",
+    ruleText = FIXTURE_LEARNING_RULE,
+    digest = ReviewLearningsReference.digestOf(FIXTURE_LEARNING_RULE),
+  )

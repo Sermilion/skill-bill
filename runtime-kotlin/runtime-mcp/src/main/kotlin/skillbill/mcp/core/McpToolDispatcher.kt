@@ -1,10 +1,13 @@
 package skillbill.mcp.core
 
+import skillbill.application.learning.model.AddLearningInput
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.learning.LearningPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.error.core.InvalidMcpToolArgumentError
+import skillbill.learnings.model.LearningScope
 import skillbill.mcp.featuretask.featureTaskPhaseBlock
 import skillbill.mcp.featuretask.featureTaskPhaseComplete
 import skillbill.mcp.lifecycle.featureVerifyFinished
@@ -124,6 +127,7 @@ internal object McpToolDispatcher {
 
 private val TOOL_HANDLERS: Map<String, McpToolHandler> =
   mapOf(
+    McpToolPayloadKeys.ADD_LEARNING to ::addLearning,
     "doctor" to { _, context -> McpRuntime.doctor(context) },
     "feature_task_phase_block" to ::featureTaskPhaseBlock,
     "feature_task_phase_complete" to ::featureTaskPhaseComplete,
@@ -214,6 +218,23 @@ internal fun resolveLearnings(
     skill = arguments.optionalString(McpToolPayloadKeys.SKILL),
     reviewSessionId = arguments.optionalString(McpToolPayloadKeys.REVIEW_SESSION_ID),
     component = component,
+  )
+
+internal fun addLearning(
+  arguments: Map<String, Any?>,
+  component: McpComponent,
+): Map<String, Any?> =
+  McpRuntime.addLearning(
+    AddLearningInput(
+      scope = LearningScope.fromWireName(arguments.string(LearningPayloadKeys.SCOPE)),
+      scopeKey = arguments.optionalString(LearningPayloadKeys.SCOPE_KEY).orEmpty(),
+      title = arguments.string(LearningPayloadKeys.TITLE),
+      rule = arguments.string(LearningPayloadKeys.RULE_TEXT),
+      reason = arguments.optionalString(McpToolPayloadKeys.REASON).orEmpty(),
+      fromRun = arguments.string(LearningPayloadKeys.SOURCE_REVIEW_RUN_ID),
+      fromFinding = arguments.string(LearningPayloadKeys.SOURCE_FINDING_ID),
+    ),
+    component,
   )
 
 internal fun telemetryRemoteStats(

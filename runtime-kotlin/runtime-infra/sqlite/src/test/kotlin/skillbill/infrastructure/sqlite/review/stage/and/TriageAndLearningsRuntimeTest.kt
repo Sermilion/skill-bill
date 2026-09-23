@@ -4,6 +4,7 @@ import skillbill.application.learning.learningAppliedSessionWire
 import skillbill.application.learning.learningEntryDto
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.learning.LearningEntryDto
+import skillbill.error.learning.InvalidLearningSourceError
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
 import skillbill.infrastructure.sqlite.review.accounting.toPayload
@@ -85,6 +86,29 @@ class TriageAndLearningsRuntimeTest {
       assertEquals(3, (cached["applied_learning_count"] as Number).toInt())
     }
   }
+
+  @Test
+  fun `learnings resolve excludes disabled learnings and learnings scoped to another repo or skill`() {
+    val (_, connection) = tempDbConnection("learnings-exclusion")
+    connection.use {
+      val review = importSampleReview(connection)
+      rejectFinding(connection, review.reviewRunId, "F-002", "Keep the current prompt wording.")
+      val repoId = addLearning(connection, review.reviewRunId, LearningScope.REPO, "acme/repo", "Repo phrasing")
+      val disabledId = addLearning(connection, review.reviewRunId, LearningScope.REPO, "acme/repo", "Disabled")
+      SQLiteLearningStore.setLearningStatus(connection, disabledId, "disabled")
+      addLearning(connection, review.reviewRunId, LearningScope.REPO, "other/repo", "Foreign repo")
+      addLearning(connection, review.reviewRunId, LearningScope.SKILL, "bill-swift-code-review", "Foreign skill")
+
+      val (_, _, resolved) =
+        SQLiteLearningStore.resolveLearnings(
+          connection = connection,
+          repoScopeKey = "acme/repo",
+          skillName = "bill-kotlin-code-review",
+        )
+
+      assertEquals(listOf(repoId), resolved.map { it.id })
+    }
+  }
 }
 
 class LearningPromotionTest {
@@ -112,7 +136,7 @@ class LearningPromotionTest {
       rejectFinding(connection, review.reviewRunId, "F-002", "Keep the current prompt wording.")
 
       val failure =
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<InvalidLearningSourceError> {
           LearningsRuntime.validateLearningSource(
             sourceReviewRunId = review.reviewRunId,
             sourceFindingId = "F-does-not-exist",

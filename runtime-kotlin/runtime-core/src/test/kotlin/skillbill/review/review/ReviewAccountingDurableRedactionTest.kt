@@ -209,7 +209,7 @@ class ReviewAccountingDurableRedactionTest {
       accounting.upsert(ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, summary))
       val regenerated = assertNotNull(accounting.load(REVIEW_RUN_ID))
       assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, regenerated.summary.toBoundedPayload()["contract_version"])
-      assertEquals("2.3", regenerated.summary.toBoundedPayload()["contract_version"])
+      assertEquals("2.4", regenerated.summary.toBoundedPayload()["contract_version"])
     }
   }
 
@@ -360,7 +360,7 @@ class ReviewAccountingDurableRedactionTest {
     const val REVIEW_RUN_ID = "rvw-20260722-101500-ab12"
     val PRE_CHANGE_ACCOUNTING_JSON =
       """
-      {"contract_version":"2.3","kind":"accounting_summary","review_id":"fixture-review",
+      {"contract_version":"2.4","kind":"accounting_summary","review_id":"fixture-review",
       "packet_digest":"fixture-packet","parent":{"lane":"parent","assignment_digest":"fixture-assignment",
       "launch_bytes":1,"evidence_bytes":2,"result_bytes":3,"expansions":4,"tool_calls":5,"model_turns":6,
       "inclusive_counters":{"launch_bytes":1,"evidence_bytes":2,"result_bytes":3,"expansions":4,

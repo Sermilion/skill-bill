@@ -122,5 +122,10 @@ data class LearningDeleteContract(
     )
 }
 
+const val NO_APPLIED_LEARNINGS: String = "none"
+
+fun summarizeAppliedLearnings(references: List<String>): String =
+  if (references.isEmpty()) NO_APPLIED_LEARNINGS else references.joinToString(", ")
+
 private fun summarizeLearningReferences(entries: List<LearningEntryDto>): String =
-  if (entries.isEmpty()) "none" else entries.joinToString(", ") { it.reference }
+  summarizeAppliedLearnings(entries.map(LearningEntryDto::reference))

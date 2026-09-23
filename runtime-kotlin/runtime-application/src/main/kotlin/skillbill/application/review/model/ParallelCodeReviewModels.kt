@@ -26,6 +26,7 @@ data class ParallelCodeReviewRequest(
   val suppliedDiff: String? = null,
   val suppliedDiffPath: Path? = null,
   val reviewRunId: String? = null,
+  val reviewSessionId: String? = null,
   val activityWorkflowId: String? = null,
   val activityParentWorkflowId: String? = null,
   val baseRevision: String? = null,
@@ -38,6 +39,7 @@ data class ParallelCodeReviewRequest(
 ) {
   init {
     reviewRunId?.let { require(it.isNotBlank()) { "reviewRunId must be non-blank when provided." } }
+    reviewSessionId?.let { require(it.isNotBlank()) { "reviewSessionId must be non-blank when provided." } }
     activityWorkflowId?.let {
       require(it.isNotBlank()) { "activityWorkflowId must be non-blank when provided." }
     }
@@ -105,6 +107,8 @@ data class ParallelCodeReviewResult(
   val coverage: ReviewCoverageReport? = null,
   val stageResume: ReviewStageResumeReport? = null,
   val citationDiagnostics: List<ReviewFindingCitationDiagnosticWithFinding> = emptyList(),
+  val reviewSessionId: String? = null,
+  val appliedLearnings: String? = null,
 ) {
   val output: String
     get() = mergeResult.output
