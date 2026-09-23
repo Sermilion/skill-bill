@@ -192,6 +192,7 @@ class ReviewPreparationService(
         assignedHunks = laneHunkIds,
         criteriaReferences = request.criteriaReferences[lane].orEmpty(),
         matchedRules = packet.matchedRules,
+        learnings = packet.learningsReferences,
         evidenceTargets = packet.evidenceTargets.filter { it.path in lanePaths },
         reviewRevision = packet.reviewRevision,
         laneDecision = decision,
@@ -328,6 +329,9 @@ class ReviewPreparationService(
     }
     if (assignment.matchedRules.toSet() != packet.matchedRules.toSet()) {
       reject(label, "Assignment matched rules differ from the packet rules for '${assignment.lane}'.")
+    }
+    if (assignment.learnings.toSet() != packet.learningsReferences.toSet()) {
+      reject(label, "Assignment learnings differ from the packet learnings for '${assignment.lane}'.")
     }
     val unknownTargets = assignment.evidenceTargets.filterNot { it in packet.evidenceTargets }
     if (unknownTargets.isNotEmpty()) {

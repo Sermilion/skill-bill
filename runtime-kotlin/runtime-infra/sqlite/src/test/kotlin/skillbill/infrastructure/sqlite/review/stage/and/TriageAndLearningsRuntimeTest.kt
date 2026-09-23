@@ -85,6 +85,29 @@ class TriageAndLearningsRuntimeTest {
       assertEquals(3, (cached["applied_learning_count"] as Number).toInt())
     }
   }
+
+  @Test
+  fun `learnings resolve excludes disabled learnings and learnings scoped to another repo or skill`() {
+    val (_, connection) = tempDbConnection("learnings-exclusion")
+    connection.use {
+      val review = importSampleReview(connection)
+      rejectFinding(connection, review.reviewRunId, "F-002", "Keep the current prompt wording.")
+      val repoId = addLearning(connection, review.reviewRunId, LearningScope.REPO, "acme/repo", "Repo phrasing")
+      val disabledId = addLearning(connection, review.reviewRunId, LearningScope.REPO, "acme/repo", "Disabled")
+      SQLiteLearningStore.setLearningStatus(connection, disabledId, "disabled")
+      addLearning(connection, review.reviewRunId, LearningScope.REPO, "other/repo", "Foreign repo")
+      addLearning(connection, review.reviewRunId, LearningScope.SKILL, "bill-swift-code-review", "Foreign skill")
+
+      val (_, _, resolved) =
+        SQLiteLearningStore.resolveLearnings(
+          connection = connection,
+          repoScopeKey = "acme/repo",
+          skillName = "bill-kotlin-code-review",
+        )
+
+      assertEquals(listOf(repoId), resolved.map { it.id })
+    }
+  }
 }
 
 class LearningPromotionTest {

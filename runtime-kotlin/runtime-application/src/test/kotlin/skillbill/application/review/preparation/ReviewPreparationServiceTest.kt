@@ -190,7 +190,7 @@ class ReviewPreparationServiceTest {
           ReviewRuleReference.digestOf("Prefer named strategies."),
         ),
       ),
-    learnings = listOf(ReviewLearningsReference("learn-1", "telemetry", "c".repeat(64))),
+    learnings = listOf(FIXTURE_LEARNING),
     facts = listOf(ReviewBuildTestFact("test", "gradle test", "passed")),
     decisions = decisions,
   )
@@ -866,3 +866,15 @@ class ReviewPreparationServiceBudgetTest {
     assertTrue(testingBudget > securityBudget)
   }
 }
+
+private const val FIXTURE_LEARNING_RULE = "Prefer named strategies over identity branching."
+
+private val FIXTURE_LEARNING =
+  ReviewLearningsReference(
+    learningId = "L-001",
+    source = "repo:acme/repo",
+    scope = "repo",
+    title = "Name strategies",
+    ruleText = FIXTURE_LEARNING_RULE,
+    digest = ReviewLearningsReference.digestOf(FIXTURE_LEARNING_RULE),
+  )

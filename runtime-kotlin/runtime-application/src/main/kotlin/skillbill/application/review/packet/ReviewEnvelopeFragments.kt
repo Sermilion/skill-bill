@@ -62,6 +62,9 @@ internal fun ReviewLearningsReference.toEnvelope(): Map<String, Any?> =
   linkedMapOf(
     "learning_id" to learningId,
     "source" to source,
+    "scope" to scope,
+    "title" to title.normalizeLineEndings(),
+    "rule_text" to ruleText.normalizeLineEndings(),
     "digest" to digest,
   )
 

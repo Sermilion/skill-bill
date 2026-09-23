@@ -1,5 +1,17 @@
 # Review Boundary History
 
+## [2026-09-23] SKILL-379 subtask 1 — driver resolves learnings
+Areas: application/review/learnings, application/review/parallel/planning, application/review/packet, domain/learnings, domain/review/context/model, contracts/learning, contracts/review, runtime-cli/codereview, runtime-ports/repository, orchestration/review-orchestrator, orchestration/skill-classes, docs
+- Learnings are resolved once by the driver (`ReviewLearningsResolver`) and delivered inside the assignment and launch envelopes; specialists no longer call the `resolve_learnings` MCP tool, and that instruction is gone from the shell class, PLAYBOOK, specialist contract, and telemetry doc.
+- Review context schema moves to `contract_version` 2.4 with a `learnings` envelope entry carrying a six-field `ReviewLearningsReference` (digest computed by `digestOf`). reusable
+- Repo scope keys come from `RepositoryOriginScopeKeyPort` / `GitRepositoryOriginScopeKey`; an unavailable origin remote degrades to a `diagnostics.warning` and still resolves global and skill learnings rather than failing the run.
+- Applied-learnings summary has a single owner in `skillbill.contracts.learning.summarizeAppliedLearnings`; `skillbill.learnings` and `CliPresenters` delegate to it, so printed and telemetry values cannot drift. reusable
+- No broad catch around the learnings read: `ReviewLearningRuleTextTooLongError` and peers stay loud per repo policy.
+- Known limit: SQL-layer scope precedence and status filtering stay covered by the pre-existing `TriageAndLearningsRuntimeTest`; this change asserts scope/status at the driver seam only.
+- Both UnitOfWork test proxies must answer `getLearnings`; the fixture lives in the new sibling `ReviewLearningsRecordingHarness` so `ReviewRecordingHarness` does not grow. reusable
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-11] SKILL-233 — uncommitted standalone packet
 Areas: application/review, runtime-cli/codereview
 - `UNCOMMITTED` is a working-tree packet: tracked dirty files plus untracked patches against HEAD, not a commit range and not the durable implement base.

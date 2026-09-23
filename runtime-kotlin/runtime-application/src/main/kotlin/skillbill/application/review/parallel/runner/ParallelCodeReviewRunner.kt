@@ -76,6 +76,8 @@ class ParallelCodeReviewRunner(
     persistAccounting(result)
     return result.copy(
       mergeResult = assembled,
+      reviewSessionId = initial.reviewSessionId,
+      appliedLearnings = initial.appliedLearnings,
       stageResume = resultAssembly.stageResumeReport(initial.request.reviewRunId),
       citationDiagnostics =
         result.citationDiagnostics +

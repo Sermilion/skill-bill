@@ -1,5 +1,6 @@
 package skillbill.application.review.parallel.planning
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.review.learnings.ReviewLearningsResolver
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.application.review.model.ParallelReviewLaneStatus
@@ -49,6 +50,7 @@ class ParallelCodeReviewRunnerPlanning(
   private val rubricPlanning: ParallelCodeReviewRunnerRubricPlanning,
   private val lanePlanRecording: ParallelCodeReviewRunnerLanePlanRecording,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
+  private val reviewLearningsResolver: ReviewLearningsResolver,
 ) {
   internal fun prepareInitialRun(originalRequest: ParallelCodeReviewRequest): ParallelCodeReviewInitialRun {
     val agent1 = resolveAgent(originalRequest.agent1Id, "--agent1")
@@ -72,6 +74,13 @@ class ParallelCodeReviewRunnerPlanning(
     val lane1ResolvedMode = resolvedMode(originalRequest)
     val request = originalRequest.withResolvedTier(lane1ResolvedMode.toCodeReviewExecutionMode())
     val resolvedMode = ReviewExecutionModePolicy.resolve(request.resolvedTier ?: request.codeReviewMode)
+    val reviewSessionId = request.reviewSessionId ?: mintReviewSessionId()
+    val learnings =
+      reviewLearningsResolver.resolve(
+        repoRoot = request.repoRoot,
+        routedSkill = routedReviewSkillName(detection.routed),
+        reviewSessionId = reviewSessionId,
+      )
     val compiled =
       prepare(
         PlanningPrepareArgs(
@@ -86,6 +95,7 @@ class ParallelCodeReviewRunnerPlanning(
           agentIds = listOf(agent1.id),
           budget = budget,
           evidenceStorePath = sharedEvidence.storePath,
+          learningsReferences = learnings.references,
         ),
       )
     return ParallelCodeReviewInitialRun(
@@ -97,6 +107,8 @@ class ParallelCodeReviewRunnerPlanning(
       compiledLaunchRequests = compiled.all,
       budget = budget,
       specIntentResolution = compiled.specIntentResolution,
+      reviewSessionId = reviewSessionId,
+      appliedLearnings = learnings.appliedSummary,
     )
   }
 
@@ -176,6 +188,7 @@ class ParallelCodeReviewRunnerPlanning(
             baselineUntrackedPolicy = args.request.baselineUntrackedPolicy,
             specIntentResolution = specIntentResolution,
             evidenceStorePath = args.evidenceStorePath,
+            learningsReferences = args.learningsReferences,
           ),
         budget = args.budget,
         envelopeValidator = reviewContextEnvelopeValidator,

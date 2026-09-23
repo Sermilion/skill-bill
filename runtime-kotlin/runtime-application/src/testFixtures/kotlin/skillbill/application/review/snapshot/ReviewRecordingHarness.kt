@@ -2,6 +2,7 @@ package skillbill.application.review.snapshot
 
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.review.governed.stubGovernedReviewEvidenceEndpointBinder
+import skillbill.application.review.learnings.ReviewLearningsResolver
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.application.review.parallel.planning.ParallelCodeReviewRunnerPlanning
@@ -24,6 +25,7 @@ import skillbill.infrastructure.workflow.filesystem.FileSystemDiffResolver
 import skillbill.infrastructure.workflow.review.broker.FileSystemReviewEvidenceBroker
 import skillbill.infrastructure.workflow.review.specialists.review.ClasspathReviewSpecialistContractProvider
 import skillbill.install.model.InstallAgent
+import skillbill.learnings.model.LearningRecord
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunLivenessSnapshot
@@ -33,11 +35,13 @@ import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.config.model.ReadRepoLocalConfigResult
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.repository.RepositoryEnclosingRootPort
+import skillbill.ports.repository.RepositoryOriginScopeKeyPort
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.evidence.ReviewEvidenceBroker
@@ -136,8 +140,16 @@ class ReviewRecorder {
 
   @Volatile var failStageDegradationWrite: Boolean = false
 
+  val learningResolutions: MutableList<Pair<String?, String?>> =
+    Collections.synchronizedList(mutableListOf())
+  val savedSessionLearnings: MutableList<Pair<String, String>> =
+    Collections.synchronizedList(mutableListOf())
+  val diagnosticWarnings: MutableList<String> = Collections.synchronizedList(mutableListOf())
+
   val parentPrompts: List<String>
     get() = parentLaunches.mapNotNull { it.skillRunRequest.promptOverride }
+
+  fun launchEnvelopes(): List<String> = parentPrompts.filter { "kind: launch" in it }
 }
 
 data class RecordedWorkerResponse(
@@ -166,13 +178,15 @@ data class ReviewHarnessConfig(
   val evidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder =
     stubGovernedReviewEvidenceEndpointBinder(Files.createTempDirectory("review-endpoint")),
   val commits: List<RecordedCommit> = emptyList(),
+  val learnings: List<LearningRecord> = emptyList(),
+  val originScopeKeyPort: RepositoryOriginScopeKeyPort = HARNESS_ORIGIN_UNAVAILABLE,
 )
 
 fun reviewHarness(
   config: ReviewHarnessConfig,
   recorder: ReviewRecorder,
 ): ParallelCodeReviewRunner {
-  val database = recordingDatabase(recorder)
+  val database = recordingDatabase(recorder, config.learnings)
   val launcher =
     GoalRunnerSubtaskLauncher { request ->
       recorder.parentLaunches += request
@@ -221,6 +235,8 @@ fun reviewHarness(
     parentReviewLauncher = launcher,
     reviewEvidenceBrokerFactory = config.evidenceBrokerFactory,
     governedEvidenceEndpointBinder = config.evidenceEndpointBinder,
+    originScopeKeyPort = config.originScopeKeyPort,
+    learningsDiagnostics = recordingDiagnostics(recorder),
   )
 }
 
@@ -244,6 +260,8 @@ fun parallelCodeReviewRunnerOf(
   reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort = ReviewLaunchAgentStagingPort.NONE,
   registerParse: (String) -> ParallelReviewParseResult = ParallelReviewFindingParser::parse,
   repositoryEnclosingRootPort: RepositoryEnclosingRootPort = CanonicalRepositoryRoot,
+  originScopeKeyPort: RepositoryOriginScopeKeyPort = HARNESS_ORIGIN_UNAVAILABLE,
+  learningsDiagnostics: RuntimeDiagnostics = NoopRuntimeDiagnostics,
   clock: Clock = Clock.systemUTC(),
 ): ParallelCodeReviewRunner {
   val persistence = RuntimeOwnedPersistenceBoundary(database, NoopRuntimeDiagnostics)
@@ -260,6 +278,8 @@ fun parallelCodeReviewRunnerOf(
       rubricPlanning = ParallelCodeReviewRunnerRubricPlanning(reviewRubricResolver, installedPackCatalog),
       lanePlanRecording = ParallelCodeReviewRunnerLanePlanRecording(persistence, clock),
       repositoryEnclosingRootPort = repositoryEnclosingRootPort,
+      reviewLearningsResolver =
+        ReviewLearningsResolver(database, originScopeKeyPort, learningsDiagnostics),
     )
   val laneLaunch =
     ParallelCodeReviewRunnerLaneLaunch(
@@ -372,7 +392,11 @@ private fun recordingRubricResolver(
   }
 }
 
-private fun recordingDatabase(recorder: ReviewRecorder): DatabaseSessionFactory {
+private fun recordingDatabase(
+  recorder: ReviewRecorder,
+  seededLearnings: List<LearningRecord>,
+): DatabaseSessionFactory {
+  val learnings = recordingLearnings(recorder, seededLearnings)
   val reviews =
     Proxy.newProxyInstance(
       ReviewRepository::class.java.classLoader,
@@ -439,6 +463,7 @@ private fun recordingDatabase(recorder: ReviewRecorder): DatabaseSessionFactory 
     ) { _, method, _ ->
       when (method.name) {
         "getReviews" -> reviews
+        "getLearnings" -> learnings
         "getLifecycleTelemetry" -> recordingLifecycleTelemetry(recorder)
         "getDbPath" -> Path.of("/tmp/recording-review.db")
         else -> error("Unexpected unit-of-work call: ${method.name}")

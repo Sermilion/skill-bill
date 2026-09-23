@@ -35,6 +35,28 @@ const val REVIEW_HUNK_EVIDENCE_LOCATOR_UNREADABLE: String = "review_hunk_evidenc
 
 const val REVIEW_HUNK_EVIDENCE_INTEGRITY: String = "review_hunk_evidence_integrity"
 
+const val REVIEW_LEARNING_RULE_TEXT_TOO_LONG: String = "review_learning_rule_text_too_long"
+
+class ReviewLearningRuleTextTooLongError(
+  val learningId: String,
+  val ruleTextLength: Int,
+  val maxChars: Int,
+) : ShellContentContractException(
+    "$REVIEW_LEARNING_RULE_TEXT_TOO_LONG: learning '$learningId' rule text is $ruleTextLength characters, " +
+      "over the bounded projection limit of $maxChars; refusing to truncate.",
+  )
+
+const val REVIEW_LEARNING_TITLE_TOO_LONG: String = "review_learning_title_too_long"
+
+class ReviewLearningTitleTooLongError(
+  val learningId: String,
+  val titleLength: Int,
+  val maxChars: Int,
+) : ShellContentContractException(
+    "$REVIEW_LEARNING_TITLE_TOO_LONG: learning '$learningId' title is $titleLength characters, " +
+      "over the bounded projection limit of $maxChars; refusing to truncate.",
+  )
+
 class ReviewHunkEvidenceLocatorMissingError(
   val storePath: String,
 ) : ShellContentContractException(

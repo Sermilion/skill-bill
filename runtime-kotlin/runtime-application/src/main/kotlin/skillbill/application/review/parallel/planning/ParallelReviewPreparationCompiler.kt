@@ -201,7 +201,7 @@ internal object ParallelReviewPreparationCompiler {
           override fun resolveLearnings(
             scope: ReviewScopeFacts,
             routing: ReviewStackRoutingFacts,
-          ) = emptyList<ReviewLearningsReference>()
+          ) = input.learningsReferences
         },
       buildTestFacts =
         object : ReviewBuildTestFactsPort {
@@ -351,4 +351,5 @@ internal data class ParallelReviewPreparationInput(
       SpecIntentAbsenceReason.NOT_APPLICABLE_SCOPE,
     ),
   val evidenceStorePath: String? = null,
+  val learningsReferences: List<ReviewLearningsReference> = emptyList(),
 )

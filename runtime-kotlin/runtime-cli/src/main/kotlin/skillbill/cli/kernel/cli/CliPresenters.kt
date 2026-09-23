@@ -3,6 +3,8 @@ import skillbill.application.learning.model.LearningListResult
 import skillbill.application.learning.model.LearningResolveResult
 import skillbill.application.review.model.TriageResult
 import skillbill.learnings.model.LearningEntry
+import skillbill.learnings.scopedLearningLabel
+import skillbill.learnings.summarizeAppliedLearningEntries
 
 internal data class CliLearningListPresentation(
   val entries: List<CliLearningLine>,
@@ -67,7 +69,7 @@ internal fun LearningResolveResult.toCliPresentation(): CliResolvedLearningsPres
     scopePrecedence = scopePrecedence.joinToString(" > ") { scope -> scope.wireName },
     repoScopeKey = repoScopeKey,
     skillName = skillName,
-    appliedLearnings = summarizeAppliedLearnings(learnings),
+    appliedLearnings = summarizeAppliedLearningEntries(learnings),
     entries = learnings.map(LearningEntry::toCliResolvedLearningLine),
   )
 
@@ -111,20 +113,14 @@ private fun LearningEntry.toCliLearningLine(): CliLearningLine =
   CliLearningLine(
     reference = reference,
     status = status,
-    scopeLabel = scopedLabel(),
+    scopeLabel = scopedLearningLabel(this),
     title = title,
   )
 
 private fun LearningEntry.toCliResolvedLearningLine(): CliResolvedLearningLine =
   CliResolvedLearningLine(
     reference = reference,
-    scopeLabel = scopedLabel(),
+    scopeLabel = scopedLearningLabel(this),
     title = title,
     ruleText = ruleText,
   )
-
-private fun LearningEntry.scopedLabel(): String =
-  if (scopeKey.isNotEmpty()) "${scope.wireName}:$scopeKey" else scope.wireName
-
-private fun summarizeAppliedLearnings(entries: List<LearningEntry>): String =
-  if (entries.isEmpty()) "none" else entries.joinToString(", ") { entry -> entry.reference }

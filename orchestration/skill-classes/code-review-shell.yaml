@@ -37,12 +37,13 @@ sections:
 
   - heading: Local Review Learnings
     body: |
-      The driver owns learnings resolution for the current review context.
+      The driver resolves learnings itself, inside the review run. No agent calls a learnings tool.
 
-      - When the `skill-bill` MCP server is registered, the driver calls `resolve_learnings` for the current repo and routed review skill. Do not improvise alternate launch paths or a globally installed `skill-bill` binary.
-      - If the `resolve_learnings` MCP tool is not registered in the current runtime, the driver reports `Applied learnings: none` instead of improvising another resolver path.
-      - Apply only active learnings.
-      - Prefer more specific scopes in this order: `skill`, `repo`, `global`.
+      - The driver derives the repo scope key from the reviewed repository's `origin` remote, normalized to its full repository path (nested groups keep every segment), and the skill scope key from the routed review skill. With no `origin` remote it resolves global and skill learnings only.
+      - The driver persists the resolved set as the `session_learnings` row for the run's review session id, including an empty set, and delivers the learnings inside every worker launch envelope.
+      - The driver prints `Review session ID: <id>` and `Applied learnings: none | <learning references>`. Copy both lines verbatim into your summary and into the review import.
+      - Pass `--review-session-id` when a parent workflow already handed you a review session id; otherwise the driver mints one.
+      - Only active learnings are resolved, in scope order `skill`, `repo`, `global`.
       - Treat learnings as explicit context, not as hidden suppression rules.
 
   - heading: Routing Rules
@@ -85,7 +86,7 @@ sections:
 
       Execution mode must be reported explicitly (`inline` or `delegated`) so downstream tooling can audit how the review was produced.
 
-      Generate one review session id per top-level review using the format `rvs-<uuid4>` (e.g. `rvs-550e8400-e29b-41d4-a716-446655440000`). If a parent workflow already passed a `review_session_id`, reuse it instead of generating a new one.
+      The review session id is driver-owned. If a parent workflow already passed a `review_session_id`, forward it with `--review-session-id`; otherwise the driver mints one in the format `rvs-<uuid4>` (e.g. `rvs-550e8400-e29b-41d4-a716-446655440000`). Either way, copy the driver's `Review session ID:` and `Applied learnings:` lines verbatim; do not invent either value.
 
       Generate one review run id per routed review using the format `rvw-YYYYMMDD-HHMMSS-XXXX` where `XXXX` is a random 4-character alphanumeric suffix (e.g. `rvw-20260405-143022-b2e1`). If a parent workflow already passed a `review_run_id`, reuse it instead of generating a new one.
 

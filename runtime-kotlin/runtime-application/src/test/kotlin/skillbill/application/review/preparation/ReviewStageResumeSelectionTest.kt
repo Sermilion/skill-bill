@@ -41,7 +41,7 @@ class ReviewStageResumeSelectionTest {
   }
 
   @Test
-  fun `a superseded contract version verdict is not durable and records degradation`() {
+  fun `a previous contract version verdict is not durable and records degradation`() {
     val report =
       ReviewStageResumeSelection.select(
         boundaries = emptyList(),
@@ -52,7 +52,7 @@ class ReviewStageResumeSelectionTest {
               findingRef = "F-001",
               claimVerdict = ReviewClaimVerdict.CONFIRMED,
               recordedAt = "2026-08-14T08:00:00Z",
-              contractVersion = "0.9",
+              contractVersion = "2.3",
             ),
           ),
       )
@@ -61,7 +61,7 @@ class ReviewStageResumeSelectionTest {
     assertEquals(1, report.degradations.size)
     val degradation = report.degradations.single()
     assertEquals(ReviewStageResumeSelection.SEAM, degradation.seam)
-    assertEquals("0.9", degradation.used)
+    assertEquals("2.3", degradation.used)
     assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, degradation.expected)
   }
 

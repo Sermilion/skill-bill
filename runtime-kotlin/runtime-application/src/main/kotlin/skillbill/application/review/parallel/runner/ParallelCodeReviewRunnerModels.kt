@@ -15,6 +15,7 @@ import skillbill.review.context.model.commit.ReviewAssignment
 import skillbill.review.context.model.execution.ResolvedReviewExecutionMode
 import skillbill.review.context.model.execution.SpecIntentResolution
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
+import skillbill.review.context.model.hunk.ReviewLearningsReference
 import skillbill.review.context.model.launch.GovernedReviewLaunch
 import skillbill.review.context.model.packet.LANE_EVIDENCE_BYTES_DIMENSION
 import skillbill.review.context.model.packet.ReviewContextPacket
@@ -70,6 +71,7 @@ internal data class PlanningPrepareArgs(
   val agentIds: List<String>,
   val budget: ReviewContextBudgetPolicy,
   val evidenceStorePath: String?,
+  val learningsReferences: List<ReviewLearningsReference>,
 )
 
 internal data class ParallelCodeReviewInitialRun(
@@ -81,6 +83,8 @@ internal data class ParallelCodeReviewInitialRun(
   val compiledLaunchRequests: List<ReviewSpecialistLaunchRequest>,
   val budget: ReviewContextBudgetPolicy,
   val specIntentResolution: SpecIntentResolution,
+  val reviewSessionId: String,
+  val appliedLearnings: String,
 )
 
 internal fun ParallelCodeReviewInitialRun.delegatedStageLaunch(): ReviewDelegatedStageLaunch =
