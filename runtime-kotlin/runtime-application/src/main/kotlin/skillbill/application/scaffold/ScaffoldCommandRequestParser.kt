@@ -1,5 +1,4 @@
-package skillbill.mcp.scaffold
-
+package skillbill.application.scaffold
 import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.contracts.scaffold.wire.requireString
 import skillbill.contracts.scaffold.wire.requireStringOrDefault
@@ -17,27 +16,27 @@ import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import skillbill.scaffold.model.command.isRetiredPartialScaffoldCommandKindAlias
 import skillbill.scaffold.model.command.rejectRetiredPartialScaffoldCommandKind
 
-internal fun parseMcpScaffoldCommandRequest(args: Map<String, Any?>): ScaffoldCommandRequest {
-  val (version, kind) = validateVersionAndKind(args)
-  val repoRoot = requireOptionalNonBlank(args, "repo_root")
+internal fun parseScaffoldCommandRequest(payload: Map<String, Any?>): ScaffoldCommandRequest {
+  val (version, kind) = validateVersionAndKind(payload)
+  val repoRoot = requireOptionalNonBlank(payload, "repo_root")
   return when (kind) {
-    SCAFFOLD_COMMAND_KIND_HORIZONTAL -> parseHorizontal(args, version, repoRoot)
-    SCAFFOLD_COMMAND_KIND_PLATFORM_PACK -> parsePlatformPack(args, version, repoRoot)
-    SCAFFOLD_COMMAND_KIND_ADD_ON -> parseAddOn(args, version, repoRoot)
-    SCAFFOLD_COMMAND_KIND_AGENT_ADDON -> parseAgentAddon(args, version, repoRoot)
+    SCAFFOLD_COMMAND_KIND_HORIZONTAL -> parseHorizontal(payload, version, repoRoot)
+    SCAFFOLD_COMMAND_KIND_PLATFORM_PACK -> parsePlatformPack(payload, version, repoRoot)
+    SCAFFOLD_COMMAND_KIND_ADD_ON -> parseAddOn(payload, version, repoRoot)
+    SCAFFOLD_COMMAND_KIND_AGENT_ADDON -> parseAgentAddon(payload, version, repoRoot)
     else -> throw UnknownSkillKindError("Scaffold payload declares unsupported kind '$kind'.")
   }
 }
 
-private fun validateVersionAndKind(args: Map<String, Any?>): Pair<String, String> {
-  val version = requireString(args, "scaffold_payload_version")
+private fun validateVersionAndKind(payload: Map<String, Any?>): Pair<String, String> {
+  val version = requireString(payload, "scaffold_payload_version")
   if (version != SCAFFOLD_COMMAND_PAYLOAD_VERSION) {
     throw ScaffoldPayloadVersionMismatchError(
       "Scaffold payload declares 'scaffold_payload_version' '$version' " +
         "but the scaffolder expects '$SCAFFOLD_COMMAND_PAYLOAD_VERSION'.",
     )
   }
-  val kind = requireString(args, "kind")
+  val kind = requireString(payload, "kind")
   if (isRetiredPartialScaffoldCommandKindAlias(kind)) {
     rejectRetiredPartialScaffoldCommandKind(kind)
   }
@@ -50,55 +49,55 @@ private fun validateVersionAndKind(args: Map<String, Any?>): Pair<String, String
 }
 
 private fun parseHorizontal(
-  args: Map<String, Any?>,
+  payload: Map<String, Any?>,
   version: String,
   repoRoot: String?,
 ): ScaffoldCommandRequest.HorizontalSkill =
   ScaffoldCommandRequest.HorizontalSkill(
-    name = requireString(args, "name"),
-    description = requireStringOrDefault(args, "description", ""),
-    contentBody = optionalString(args, "content_body"),
-    subagentSpecialists = parseStringListOrEmpty(args, "subagent_specialists"),
-    suppressSubagents = parseBooleanOrFalse(args, "no_subagents"),
+    name = requireString(payload, "name"),
+    description = requireStringOrDefault(payload, "description", ""),
+    contentBody = optionalString(payload, "content_body"),
+    subagentSpecialists = parseStringListOrEmpty(payload, "subagent_specialists"),
+    suppressSubagents = parseBooleanOrFalse(payload, "no_subagents"),
     scaffoldPayloadVersion = version,
     repoRoot = repoRoot,
   )
 
 private fun parsePlatformPack(
-  args: Map<String, Any?>,
+  payload: Map<String, Any?>,
   version: String,
   repoRoot: String?,
 ): ScaffoldCommandRequest.PlatformPack {
-  rejectLegacyPlatformPackSelector(args, "skeleton_mode")
-  rejectLegacyPlatformPackSelector(args, "specialist_areas")
-  val routingInput = parseRoutingSignalsInput(args["routing_signals"])
+  rejectLegacyPlatformPackSelector(payload, "skeleton_mode")
+  rejectLegacyPlatformPackSelector(payload, "specialist_areas")
+  val routingInput = parseRoutingSignalsInput(payload["routing_signals"])
   return ScaffoldCommandRequest.PlatformPack(
-    platform = requireString(args, "platform"),
-    displayName = requireStringOrDefault(args, "display_name", ""),
-    description = requireStringOrDefault(args, "description", ""),
+    platform = requireString(payload, "platform"),
+    displayName = requireStringOrDefault(payload, "display_name", ""),
+    description = requireStringOrDefault(payload, "description", ""),
     routingSignals = routingInput,
-    baselineLayers = parseBaselineLayers(args),
+    baselineLayers = parseBaselineLayers(payload),
     subagentSpecialists =
-      if (args.containsKey("subagent_specialists")) {
-        parseStringList(args, "subagent_specialists")
+      if (payload.containsKey("subagent_specialists")) {
+        parseStringList(payload, "subagent_specialists")
       } else {
         null
       },
-    suppressSubagents = parseBooleanOrFalse(args, "no_subagents"),
-    contentBody = optionalString(args, "content_body"),
-    nameOverride = requireOptionalNonBlank(args, "name"),
-    packLocationPath = requireOptionalNonBlank(args, "pack_location_path"),
-    packRegistration = requireOptionalNonBlank(args, "pack_registration"),
+    suppressSubagents = parseBooleanOrFalse(payload, "no_subagents"),
+    contentBody = optionalString(payload, "content_body"),
+    nameOverride = requireOptionalNonBlank(payload, "name"),
+    packLocationPath = requireOptionalNonBlank(payload, "pack_location_path"),
+    packRegistration = requireOptionalNonBlank(payload, "pack_registration"),
     scaffoldPayloadVersion = version,
     repoRoot = repoRoot,
   )
 }
 
 private fun rejectLegacyPlatformPackSelector(
-  args: Map<String, Any?>,
+  payload: Map<String, Any?>,
   field: String,
 ) {
-  if (!args.containsKey(field)) return
+  if (!payload.containsKey(field)) return
   throw InvalidScaffoldPayloadError(
     "Scaffold payload field '$field' is no longer supported for kind 'platform-pack'. " +
       "Create the full platform pack, then remove unwanted focus areas through governed removal paths.",
@@ -119,19 +118,19 @@ private fun parseRoutingSignalsInput(routing: Any?): RoutingSignalsInput? =
   }
 
 private fun parseAddOn(
-  args: Map<String, Any?>,
+  payload: Map<String, Any?>,
   version: String,
   repoRoot: String?,
 ): ScaffoldCommandRequest.AddOn =
   ScaffoldCommandRequest.AddOn(
-    name = requireString(args, "name"),
-    platform = requireString(args, "platform"),
-    description = requireStringOrDefault(args, "description", ""),
-    body = optionalString(args, "body"),
-    addonLocationPath = requireOptionalNonBlank(args, "addon_location_path"),
+    name = requireString(payload, "name"),
+    platform = requireString(payload, "platform"),
+    description = requireStringOrDefault(payload, "description", ""),
+    body = optionalString(payload, "body"),
+    addonLocationPath = requireOptionalNonBlank(payload, "addon_location_path"),
     consumerSkillDirs =
-      if (args.containsKey("consumer_skill_dirs")) {
-        parseStringList(args, "consumer_skill_dirs")
+      if (payload.containsKey("consumer_skill_dirs")) {
+        parseStringList(payload, "consumer_skill_dirs")
       } else {
         null
       },
@@ -140,16 +139,16 @@ private fun parseAddOn(
   )
 
 private fun parseAgentAddon(
-  args: Map<String, Any?>,
+  payload: Map<String, Any?>,
   version: String,
   repoRoot: String?,
 ): ScaffoldCommandRequest.AgentAddon =
   ScaffoldCommandRequest.AgentAddon(
-    slug = requireString(args, "slug"),
-    description = requireString(args, "description"),
-    agentIds = parseStringList(args, "agent_ids"),
-    consumers = parseStringList(args, "consumers"),
-    contentBody = optionalString(args, "content_body"),
+    slug = requireString(payload, "slug"),
+    description = requireString(payload, "description"),
+    agentIds = parseStringList(payload, "agent_ids"),
+    consumers = parseStringList(payload, "consumers"),
+    contentBody = optionalString(payload, "content_body"),
     scaffoldPayloadVersion = version,
     repoRoot = repoRoot,
   )

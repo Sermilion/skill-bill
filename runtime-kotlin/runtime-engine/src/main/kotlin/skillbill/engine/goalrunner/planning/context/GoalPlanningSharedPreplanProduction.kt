@@ -122,7 +122,7 @@ internal fun gatherSharedContext(
     )
   val parentSpecHash = sha256HexUtf8(parentSpec)
   val decompositionManifestHash = goalPlanningImmutableDecompositionHash(state.manifest)
-  val repositoryIdentity = "repo-root-realpath-v1:$canonicalRepository"
+  val repositoryIdentity = sweep.repositoryEnclosingRootPort.repositoryIdentity(request.repoRoot)
   val planningPacket =
     recoveredPacket?.let(GoalPlanningSharedContextPacket::migrate)
       ?: sweep.createPlanningPacket(
@@ -131,6 +131,7 @@ internal fun gatherSharedContext(
         parentSpecGoverningPath,
         parentSpec,
         decomposition,
+        repositoryIdentity,
       )
   GoalPlanningSharedContextPacket.validate(
     packet = planningPacket,
@@ -164,13 +165,13 @@ private fun DefaultGoalPlanningSweep.createPlanningPacket(
   parentSpecGoverningPath: String,
   parentSpec: String,
   decomposition: String,
+  repositoryIdentity: String,
 ): Map<String, Any?> {
   val discovered = contextDiscovery.loadPlanningContext(canonicalRepository)
   val packet =
     linkedMapOf<String, Any?>(
       GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION to GoalPlanningSharedContextPacket.VERSION,
-      GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY to
-        "repo-root-realpath-v1:$canonicalRepository",
+      GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY to repositoryIdentity,
       GoalPlanningSharedContextPacketPayloadKeys.NORMALIZED_ISSUE_KEY to state.manifest.issueKey.trim().uppercase(),
       DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecGoverningPath,
       GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC to

@@ -26,7 +26,10 @@ fun preSweepStopped(
 fun canonicalRepository(
   repoRoot: Path,
   repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
-): Path = repositoryEnclosingRootPort.canonicalPath(repoRoot)
+): Path =
+  repositoryEnclosingRootPort.canonicalPath(
+    repositoryEnclosingRootPort.enclosingRepositoryRoot(repoRoot),
+  )
 
 fun planningProgressMessage(
   phaseId: String,

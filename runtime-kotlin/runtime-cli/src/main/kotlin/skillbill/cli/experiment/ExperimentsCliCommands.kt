@@ -1,4 +1,7 @@
 package skillbill.cli.experiment
+
+import skillbill.contracts.JsonCodec
+import skillbill.ports.experiment.pair.model.ExperimentStatsPayload
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
@@ -73,6 +76,13 @@ class ExperimentsStatsCommand(
   private val pairReportPort: ExperimentPairReportPort,
 ) : DocumentedCliCommand("stats", "Experiment cohort statistics.") {
   override fun run() {
-    state.complete(pairReportPort.statsPayload(), CliFormat.TEXT)
+    state.complete(pairReportPort.statsPayload().toCliPayload(), CliFormat.TEXT)
   }
 }
+
+private fun ExperimentStatsPayload.toCliPayload(): Map<String, Any?> =
+  JsonCodec.anyToStringAnyMap(
+    JsonCodec.jsonElementToValue(
+      requireNotNull(JsonCodec.parseObjectOrNull(json)),
+    ),
+  ) ?: error("Experiment stats payload must decode to an object.")

@@ -1,7 +1,9 @@
 package skillbill.infrastructure.launcher.agentrun
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.error.shellcontent.GovernedReviewLaunchCapabilityError
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
@@ -77,17 +79,17 @@ internal fun goalContinuationArguments(
       add("--db")
       add(db.toString())
     }
-    add("feature-task")
+    add(FeatureTaskRuntimeGoalContinuationLaunchTokens.FEATURE_TASK_COMMAND)
     if (childWorkflowId != null) {
-      add("resume")
+      add(FeatureTaskRuntimeGoalContinuationLaunchTokens.RESUME_SUBCOMMAND)
       add(childWorkflowId)
     } else {
-      add("run")
+      add(FeatureTaskRuntimeGoalContinuationLaunchTokens.RUN_SUBCOMMAND)
     }
     add(request.issueKey)
     add(context.specPath)
     if (childWorkflowId == null && assignedWorkflowId != null) {
-      add("--workflow-id")
+      add(FeatureTaskRuntimeGoalContinuationLaunchTokens.WORKFLOW_ID_FLAG)
       add(assignedWorkflowId)
     }
     addGoalContinuationArguments(context)
@@ -101,43 +103,59 @@ internal fun goalContinuationArguments(
 }
 
 internal fun MutableList<String>.addGoalContinuationArguments(context: SkillRunGoalContinuationContext) {
-  add("--goal-parent-issue-key")
+  val tokens = FeatureTaskRuntimeGoalContinuationLaunchTokens
+  add(tokens.GOAL_PARENT_ISSUE_KEY_FLAG)
   add(context.parentIssueKey)
-  add("--goal-subtask-id")
+  add(tokens.GOAL_SUBTASK_ID_FLAG)
   add(context.subtaskId.toString())
-  add("--goal-branch")
+  add(tokens.GOAL_BRANCH_FLAG)
   add(context.goalBranch)
-  add("--suppress-pr")
+  add(tokens.SUPPRESS_PR_FLAG)
   context.parentWorkflowId?.takeIf(String::isNotBlank)?.let { parentWorkflowId ->
-    add("--goal-parent-workflow-id")
+    add(tokens.GOAL_PARENT_WORKFLOW_ID_FLAG)
     add(parentWorkflowId)
   }
   context.lastResumableStep?.takeIf(String::isNotBlank)?.let { step ->
-    add("--goal-last-resumable-step")
+    add(tokens.GOAL_LAST_RESUMABLE_STEP_FLAG)
     add(step)
   }
-  add("--code-review-mode")
+  add(tokens.CODE_REVIEW_MODE_FLAG)
   add(context.codeReviewMode.wireValue)
+  add(tokens.QUALITY_GATE_SELECTION_FLAG)
+  add(context.qualityGateSelection.wireValue)
+  context.experimentArmId?.let { arm ->
+    add(tokens.GOAL_EXPERIMENT_ARM_ID_FLAG)
+    add(arm.wireValue)
+  }
+  if (context.experimentTreatmentCapabilities.isNotEmpty()) {
+    context.experimentTreatmentCapabilities.forEach { capability ->
+      add(tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_FLAG)
+      add(capability)
+    }
+  }
+  if (context.deferRemotePublication) {
+    add(tokens.DEFER_REMOTE_PUBLICATION_FLAG)
+  }
   context.reviewBaseline?.let { baseline ->
-    add("--goal-review-base-sha")
+    add(tokens.GOAL_REVIEW_BASE_SHA_FLAG)
     add(baseline.reviewBaseSha)
     baseline.baselineUntrackedPaths.forEach { path ->
-      add("--goal-baseline-untracked-path")
+      add(tokens.GOAL_BASELINE_UNTRACKED_PATH_FLAG)
       add(path)
     }
   }
   if (context.agentAddonSelection.entries.isNotEmpty()) {
-    add("--agent-addon-selection-json")
+    add(tokens.AGENT_ADDON_SELECTION_JSON_FLAG)
     add(
-      ObjectMapper().writeValueAsString(
+      JsonCodec.mapToJsonString(
         linkedMapOf(
           SharedPayloadKeys.CONTRACT_VERSION to "0.1",
-          "entries" to
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ENTRIES to
             context.agentAddonSelection.entries.map { entry ->
               linkedMapOf(
-                "slug" to entry.slug,
-                "source_identity" to entry.sourceIdentity,
-                "content_sha256" to entry.contentSha256,
+                FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG to entry.slug,
+                FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY to entry.sourceIdentity,
+                FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256 to entry.contentSha256,
               )
             },
         ),

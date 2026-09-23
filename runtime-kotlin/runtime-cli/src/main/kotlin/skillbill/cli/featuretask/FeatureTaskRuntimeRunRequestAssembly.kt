@@ -15,6 +15,8 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuatio
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeModelAssignment
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
+import skillbill.experiment.model.ExperimentArmId
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -54,7 +56,7 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.prepareRuntimeRun(
   val receivingAgents =
     buildList {
       addAll(resolvedAgentIds.values)
-      addAll(parsePhaseAgents(phaseAgents).values)
+      addAll(phaseAgentMap.values)
       agentOverride?.takeIf(String::isNotBlank)?.let(::add)
     }.distinct()
   refuseUnavailableAgentLaunchers(receivingAgents, deps.executableLookup)
@@ -95,6 +97,26 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.parseGoalContinuationContext(
   if (missing.isNotEmpty()) {
     throw UsageError("${missing.joinToString()} required with goal-continuation options.")
   }
+  val tokens = FeatureTaskRuntimeGoalContinuationLaunchTokens
+  val experimentArm =
+    (goalExperimentArmId?.takeIf(String::isNotBlank) ?: environment[tokens.GOAL_EXPERIMENT_ARM_ID_ENV])
+      ?.takeIf(String::isNotBlank)
+      ?.let { raw ->
+        ExperimentArmId.entries.firstOrNull { it.wireValue == raw }
+          ?: throw UsageError("Unknown goal experiment arm '$raw'.")
+      }
+  val experimentCapabilities =
+    (goalExperimentTreatmentCapabilities.takeIf { it.isNotEmpty() }
+      ?: environment[tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV]
+        ?.takeIf(String::isNotBlank)
+        ?.split(',')
+        .orEmpty())
+      .map { it.trim() }
+      .filter { it.isNotEmpty() }
+      .toSet()
+  val deferRemote =
+    deferRemotePublication ||
+      environment[tokens.DEFER_REMOTE_PUBLICATION_ENV]?.equals("true", ignoreCase = true) == true
   return FeatureTaskRuntimeGoalContinuationContext(
     parentIssueKey = requireNotNull(goalParentIssueKey),
     subtaskId = requireNotNull(goalSubtaskId),
@@ -103,11 +125,19 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.parseGoalContinuationContext(
     parentWorkflowId = goalParentWorkflowId?.takeIf(String::isNotBlank),
     lastResumableStep = goalLastResumableStep?.takeIf(String::isNotBlank),
     codeReviewMode = requestedReviewMode,
-    validationDepth = ValidationDepth.FULL,
+    validationDepth =
+      environment[tokens.VALIDATION_DEPTH_ENV]
+        ?.takeIf(String::isNotBlank)
+        ?.let(ValidationDepth::fromWire)
+        ?: ValidationDepth.FULL,
     qualityGateSelection = requestedQualityGateSelection(environment),
+    experimentArmId = experimentArm,
+    experimentTreatmentCapabilities = experimentCapabilities,
+    deferRemotePublication = deferRemote,
     reviewBaseline =
       requireNotNull(goalReviewBaseSha?.takeIf(String::isNotBlank)) {
-        "--goal-review-base-sha is required with goal-continuation options."
+        "${FeatureTaskRuntimeGoalContinuationLaunchTokens.GOAL_REVIEW_BASE_SHA_FLAG} is required with " +
+          "goal-continuation options."
       }.let { base ->
         GoalSubtaskReviewBaseline(base, goalBaselineUntrackedPaths.distinct().sorted())
       },
@@ -118,7 +148,7 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.requestedQualityGateSelection(
   environment: Map<String, String>,
 ): FeatureTaskRuntimeQualityGateSelection {
   val fromEnv =
-    environment["SKILL_BILL_QUALITY_GATE_SELECTION"]
+    environment[FeatureTaskRuntimeGoalContinuationLaunchTokens.QUALITY_GATE_SELECTION_ENV]
       ?.takeIf(String::isNotBlank)
       ?.let(FeatureTaskRuntimeQualityGateSelection::fromWire)
   val fromCli =
@@ -128,10 +158,14 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.requestedQualityGateSelection(
       else -> {
         val raw = qualityGateSelections.joinToString(", ")
         if (qualityGateSelections.distinct().size == 1) {
-          throw UsageError("Duplicate --quality-gate-selection '$raw' is not allowed; supply it at most once.")
+          throw UsageError(
+            "Duplicate ${FeatureTaskRuntimeGoalContinuationLaunchTokens.QUALITY_GATE_SELECTION_FLAG} " +
+              "'$raw' is not allowed; supply it at most once.",
+          )
         }
         throw UsageError(
-          "Conflicting --quality-gate-selection values '$raw' are not allowed; supply exactly one selection.",
+          "Conflicting ${FeatureTaskRuntimeGoalContinuationLaunchTokens.QUALITY_GATE_SELECTION_FLAG} values " +
+            "'$raw' are not allowed; supply exactly one selection.",
         )
       }
     }
@@ -164,11 +198,13 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.requestedCodeReviewMode() =
         val rawModes = codeReviewModes.joinToString(", ")
         if (modes.distinct().size == 1) {
           throw UsageError(
-            "Duplicate --code-review-mode '$rawModes' is not allowed; supply it at most once.",
+            "Duplicate ${FeatureTaskRuntimeGoalContinuationLaunchTokens.CODE_REVIEW_MODE_FLAG} '$rawModes' " +
+              "is not allowed; supply it at most once.",
           )
         }
         throw UsageError(
-          "Conflicting --code-review-mode values '$rawModes' are not allowed; supply exactly one mode.",
+          "Conflicting ${FeatureTaskRuntimeGoalContinuationLaunchTokens.CODE_REVIEW_MODE_FLAG} values " +
+            "'$rawModes' are not allowed; supply exactly one mode.",
         )
       }
     }
@@ -185,9 +221,10 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.parseRequestedCodeReviewMode(ra
 
 internal fun FeatureTaskRuntimePhaseAgentCommand.goalContinuationMissingFields(): List<String> =
   buildList {
-    if (goalParentIssueKey.isNullOrBlank()) add("--goal-parent-issue-key is")
-    if (goalSubtaskId == null) add("--goal-subtask-id is")
-    if (goalBranch.isNullOrBlank()) add("--goal-branch is")
-    if (goalReviewBaseSha.isNullOrBlank()) add("--goal-review-base-sha is")
-    if (!suppressPr) add("--suppress-pr is")
+    val tokens = FeatureTaskRuntimeGoalContinuationLaunchTokens
+    if (goalParentIssueKey.isNullOrBlank()) add("${tokens.GOAL_PARENT_ISSUE_KEY_FLAG} is")
+    if (goalSubtaskId == null) add("${tokens.GOAL_SUBTASK_ID_FLAG} is")
+    if (goalBranch.isNullOrBlank()) add("${tokens.GOAL_BRANCH_FLAG} is")
+    if (goalReviewBaseSha.isNullOrBlank()) add("${tokens.GOAL_REVIEW_BASE_SHA_FLAG} is")
+    if (!suppressPr) add("${tokens.SUPPRESS_PR_FLAG} is")
   }

@@ -1,14 +1,10 @@
 package skillbill.mcp.scaffold
 
+import skillbill.application.scaffold.model.ScaffoldInvocationArgs
+import skillbill.application.scaffold.runScaffoldInvocation
+import skillbill.contracts.JsonCodec
 import skillbill.mcp.shared.McpComponent
-import java.time.Clock
-import java.time.LocalDate
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
-
-private const val NEW_SKILL_SESSION_ID_SUFFIX_LENGTH = 4
 
 internal object McpScaffoldRuntime {
   fun newSkillScaffold(
@@ -19,15 +15,26 @@ internal object McpScaffoldRuntime {
   ): Map<String, Any?> {
     val runtimeComponent = component.runtimeComponent
     val resolvedRoot = runtimeComponent.resolvedEnvironmentContext.repositoryRoot
-    val sessionId = generateNewSkillSessionId(component.clock)
     val outcome =
       runCatching {
-        val request = parseMcpScaffoldCommandRequest(payload + ("repo_root" to resolvedRoot.toString()))
-        val result = runtimeComponent.scaffoldGateway.scaffold(request, dryRun)
+        val payloadText = JsonCodec.mapToJsonString(payload)
+        val invocation =
+          runScaffoldInvocation(
+            runtimeComponent.scaffoldGateway,
+            ScaffoldInvocationArgs(
+              payloadText = payloadText,
+              invocationRepositoryRoot = resolvedRoot,
+              dryRun = dryRun,
+              registerExternalSources = false,
+              userHome = runtimeComponent.resolvedEnvironmentContext.userHome,
+              environment = runtimeComponent.resolvedEnvironmentContext.environment,
+              clock = component.clock,
+            ),
+          )
         scaffoldSuccessMap(
-          sessionId = sessionId,
+          sessionId = invocation.sessionId,
           payload = payload,
-          result = result,
+          result = invocation.scaffoldResult,
           dryRun = dryRun,
           orchestrated = orchestrated,
         )
@@ -40,7 +47,7 @@ internal object McpScaffoldRuntime {
         is CancellationException -> throw error
         is Exception ->
           scaffoldFailureMap(
-            sessionId = sessionId,
+            sessionId = "nss-unknown",
             payload = payload,
             orchestrated = orchestrated,
             error = error,
@@ -48,11 +55,5 @@ internal object McpScaffoldRuntime {
         else -> throw error
       }
     }
-  }
-
-  private fun generateNewSkillSessionId(clock: Clock): String {
-    val date = LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC).format(DateTimeFormatter.BASIC_ISO_DATE)
-    val suffix = UUID.randomUUID().toString().take(NEW_SKILL_SESSION_ID_SUFFIX_LENGTH)
-    return "nss-$date-$suffix"
   }
 }

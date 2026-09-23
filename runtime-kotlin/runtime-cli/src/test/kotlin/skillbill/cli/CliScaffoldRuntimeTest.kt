@@ -37,6 +37,43 @@ class CliScaffoldRuntimeTest {
   }
 
   @Test
+  fun `cli scaffold uses explicit repo root and invocation root as the shared defaults`() {
+    val invocationRoot = Files.createTempDirectory("skillbill-cli-scaffold-invocation-root")
+    val explicitRoot = Files.createTempDirectory("skillbill-cli-scaffold-explicit-root")
+    val payload =
+      """
+      {"scaffold_payload_version":"1.0","kind":"horizontal","name":"bill-repo-root-parity"}
+      """.trimIndent()
+
+    val defaultResult =
+      CliRuntime.run(
+        listOf("new-skill", "--payload", "-", "--dry-run", "--format", "json"),
+        CliRuntimeContext(
+          repositoryRoot = invocationRoot,
+          userHome = invocationRoot,
+          stdinText = payload,
+        ),
+      )
+    val explicitResult =
+      CliRuntime.run(
+        listOf("new-skill", "--payload", "-", "--dry-run", "--format", "json"),
+        CliRuntimeContext(
+          repositoryRoot = invocationRoot,
+          userHome = invocationRoot,
+          stdinText = payload.replace(
+            "\"kind\":\"horizontal\"",
+            "\"kind\":\"horizontal\",\"repo_root\":\"$explicitRoot\"",
+          ),
+        ),
+      )
+
+    assertEquals(0, defaultResult.exitCode, defaultResult.stderr)
+    assertEquals(0, explicitResult.exitCode, explicitResult.stderr)
+    assertTrue(parseJsonObject(defaultResult.stdout).stringValue("skill_path").startsWith("$invocationRoot/"))
+    assertTrue(parseJsonObject(explicitResult.stdout).stringValue("skill_path").startsWith("$explicitRoot/"))
+  }
+
+  @Test
   fun `dash body input preserves authored line endings`() {
     val body = "first\r\nsecond\r\n"
 

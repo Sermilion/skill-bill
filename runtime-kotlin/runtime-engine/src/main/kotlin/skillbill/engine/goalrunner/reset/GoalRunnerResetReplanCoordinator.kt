@@ -15,7 +15,6 @@ import skillbill.engine.goalrunner.model.GoalRunnerReplanSnapshot
 import skillbill.engine.goalrunner.model.GoalRunnerResetRequest
 import skillbill.engine.goalrunner.model.GoalRunnerResetResult
 import skillbill.engine.goalrunner.model.GoalRunnerResetSnapshot
-import skillbill.engine.goalrunner.model.GoalRunnerResetSubtaskSnapshot
 import skillbill.engine.goalrunner.persist.DurableChildRecoveryClass
 import skillbill.engine.goalrunner.persist.classifyDurableChild
 import skillbill.engine.goalrunner.persist.recommendedDurableChildRecoveryCommand
@@ -26,6 +25,7 @@ import skillbill.goalrunner.model.GoalRunnerAcceptedSubtask
 import skillbill.model.RepositoryRoot
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
+import skillbill.ports.goalrunner.model.GoalRunnerResetSubtaskSnapshot
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState

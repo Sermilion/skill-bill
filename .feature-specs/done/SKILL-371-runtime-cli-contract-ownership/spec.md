@@ -46,11 +46,11 @@ Prepared on 2026-09-22 in local spec mode (resolved through `skill-bill config r
 8. One production function produces `repo-root-realpath-v1` values. It resolves the enclosing Git top level, and the CLI, engine, and SQLite sites use it. The CLI contains no filesystem walk for repository identity.
 9. One `runtime-contracts` owner declares the goal-child command tokens, flags, and env names. The launcher and the CLI both use it, and a test on each side fails if either drops or renames a field.
 10. One runtime-application decoder parses the scaffold payload for both CLI and MCP, without accepting a raw map. One application operation owns session id, `repo_root` default, and opt-in external-source registration. `findRepoRoot` no longer exists.
-11. `runtime-kotlin/ARCHITECTURE.md` and the runtime-cli area history describe the checks and owners that actually landed.
+11. `../../../runtime-kotlin/ARCHITECTURE.md` and the runtime-cli area history describe the checks and owners that actually landed.
 
 ## Constraints
 
-- Follow `runtime-kotlin/ARCHITECTURE.md` Design Principles and `docs/code-principles.md`. That means no `//` comments in Kotlin, KDoc only on interfaces, wire keys through `*Keys` owners, package sibling limits, and no `relaxed = true` mocks.
+- Follow `../../../runtime-kotlin/ARCHITECTURE.md` Design Principles and `docs/code-principles.md`. That means no `//` comments in Kotlin, KDoc only on interfaces, wire keys through `*Keys` owners, package sibling limits, and no `relaxed = true` mocks.
 - Keep the module graph, `runtime-core` as the only composition root, Clikt, Kotlin-Inject, `CliRunState`, `CliRuntimeContext`, command-area isolation, and every existing port that has test substitutes.
 - Preserve command names, aliases, options, exit-code numbers, JSON field names, dry-run behavior, confirmation gates, and goal-continuation mutation refusal. The only intended user-visible changes are the stdout-to-stderr move for diagnostics, the removal of stack traces for typed errors, the removal of appended root help, `release_url` in MCP update-check, MCP honoring an explicit scaffold `repo_root`, and removal of the no-effect `verify-workflow continue --subtask-id` option.
 - Do not expand any architecture baseline or exemption. Fix what the restored guards report.

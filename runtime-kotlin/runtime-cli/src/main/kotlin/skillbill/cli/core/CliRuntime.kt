@@ -42,6 +42,7 @@ object CliRuntime {
         userHome = resolved.userHome,
         repositoryRoot = resolved.repositoryRoot,
         repositoryEnclosingRootPort = runtimeComponent.repositoryEnclosingRootPort,
+        featureTaskRuntimeRunOverride = context.featureTaskRuntimeRunOverride,
         liveStdout = context.liveStdout,
         liveStderr = context.liveStderr,
       )

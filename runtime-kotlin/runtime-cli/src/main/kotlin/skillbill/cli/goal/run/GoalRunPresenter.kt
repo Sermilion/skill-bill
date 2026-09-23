@@ -7,6 +7,7 @@ import skillbill.engine.goalrunner.model.GoalRunnerPauseResult
 import skillbill.engine.goalrunner.model.GoalRunnerResumeResult
 import skillbill.engine.goalrunner.model.GoalRunnerStopVerbResult
 import skillbill.goalrunner.model.GoalRunnerRunReport
+import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import java.nio.file.Path
@@ -160,12 +161,12 @@ internal fun goalRunText(report: GoalRunnerRunReport): String =
         val reason = report.stop.reason.name.lowercase()
         val verb =
           when {
-            report.stop.reason == skillbill.goalrunner.model.GoalRunnerStopReason.PAUSED -> "paused"
+            report.stop.reason == GoalRunnerStopReason.PAUSED -> "paused"
             report.stop.reason in
               setOf(
-                skillbill.goalrunner.model.GoalRunnerStopReason.FAILED,
-                skillbill.goalrunner.model.GoalRunnerStopReason.TIMEOUT,
-                skillbill.goalrunner.model.GoalRunnerStopReason.PULL_REQUEST_FAILED,
+                GoalRunnerStopReason.FAILED,
+                GoalRunnerStopReason.TIMEOUT,
+                GoalRunnerStopReason.PULL_REQUEST_FAILED,
               ) -> "failed"
             else -> "blocked"
           }

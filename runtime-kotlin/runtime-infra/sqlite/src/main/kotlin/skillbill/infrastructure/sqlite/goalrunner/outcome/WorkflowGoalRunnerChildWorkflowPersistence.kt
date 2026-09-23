@@ -142,7 +142,8 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
     specPath: String,
     repositoryIdentity: String,
   ): String {
-    val repository = Path.of(repositoryIdentity.removePrefix("repo-root-realpath-v1:"))
+    val repository =
+      Path.of(repositoryIdentity.removePrefix(FeatureTaskExecutionIdentityPolicy.REPOSITORY_IDENTITY_PREFIX))
     val lexical =
       Path.of(specPath).let { if (it.isAbsolute) it else repository.resolve(it) }
         .toAbsolutePath().normalize()

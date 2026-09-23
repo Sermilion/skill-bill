@@ -24,6 +24,7 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
+import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
 import skillbill.ports.goalrunner.runner.model.GoalRunnerCompletionPersistenceResult
 import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorization
@@ -56,6 +57,7 @@ class WorkflowGoalRunnerManifestStore
     private val decompositionManifestWriter: DecompositionManifestProjectionWriter,
     private val repositoryRoot: RepositoryRoot,
     private val planningHydrator: GoalChildPlanningHydratorPort,
+    private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
   ) : GoalRunnerManifestStore {
     private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator)
     private val parentProjection = GoalParentProjectionWriter(engine, decompositionManifestValidator)
@@ -88,6 +90,7 @@ class WorkflowGoalRunnerManifestStore
         database,
         decompositionManifestValidator,
         clock,
+        repositoryEnclosingRootPort,
       ) { unitOfWork, state ->
         projectionPersistence.saveInTransaction(unitOfWork, state)
       }

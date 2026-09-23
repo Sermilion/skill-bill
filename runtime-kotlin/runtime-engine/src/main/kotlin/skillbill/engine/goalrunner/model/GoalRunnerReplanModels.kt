@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.model
 
+import skillbill.ports.goalrunner.model.GoalRunnerResetSubtaskSnapshot
 import java.nio.file.Path
 
 data class GoalRunnerReplanRequest(

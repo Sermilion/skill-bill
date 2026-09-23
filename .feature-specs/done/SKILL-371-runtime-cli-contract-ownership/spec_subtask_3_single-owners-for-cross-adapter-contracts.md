@@ -20,7 +20,7 @@ Three contracts that runtime-cli shares with other modules each get one owner. T
   - opt-in external add-on source registration after success, reporting a registration failure as a partial outcome.
 
   The CLI opts into registration, as it does today, and MCP does not. Delete both adapter parser copies and `findRepoRoot`. MCP stops overwriting an explicit `repo_root`.
-- Update `runtime-kotlin/ARCHITECTURE.md` (repository identity owner, launch protocol owner, scaffold decoder owner), `orchestration/shell-content-contract/SCAFFOLD_PAYLOAD.md` if its `repo_root` or registration wording changes, and the runtime-cli area history.
+- Update `../../../runtime-kotlin/ARCHITECTURE.md` (repository identity owner, launch protocol owner, scaffold decoder owner), `orchestration/shell-content-contract/SCAFFOLD_PAYLOAD.md` if its `repo_root` or registration wording changes, and the runtime-cli area history.
 
 ## Acceptance Criteria
 
@@ -50,4 +50,4 @@ Run runtime-cli, runtime-mcp, runtime-application, runtime-engine, and the runti
 
 ## Next Path
 
-Final subtask. After it completes, the goal finishes. Record landed owners in the runtime-cli `agent/history.md`.
+Final subtask. After it completes, the goal finishes. Record landed owners in the runtime-cli `../../../agent/history.md`.

@@ -1,6 +1,7 @@
 package skillbill.infrastructure.launcher.agentrun
 
 import skillbill.contracts.review.GovernedReviewEvidenceContracts
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.infrastructure.launcher.mcp.GovernedReviewMcpConfigWriter
 import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations
@@ -43,7 +44,7 @@ internal interface AgentRunCommandBuilder {
 
 internal val GoalContinuationEnvironment: Map<String, String> =
   mapOf(
-    "SKILL_BILL_GOAL_CONTINUATION" to "1",
+    FeatureTaskRuntimeGoalContinuationLaunchTokens.GOAL_CONTINUATION_ENV to "1",
   )
 
 internal val PROXY_PASSTHROUGH_KEYS: Set<String> =
@@ -96,17 +97,28 @@ internal fun compactionEnvironment(request: SkillRunRequest): Map<String, String
 
 internal fun goalContinuationEnvironment(request: SkillRunRequest): Map<String, String> =
   request.goalContinuation?.let { context ->
+    val tokens = FeatureTaskRuntimeGoalContinuationLaunchTokens
     GoalContinuationEnvironment +
       buildMap {
-        put("SKILL_BILL_GOAL_PARENT_ISSUE_KEY", context.parentIssueKey)
-        put("SKILL_BILL_GOAL_SUBTASK_ID", context.subtaskId.toString())
-        put("SKILL_BILL_GOAL_BRANCH", context.goalBranch)
-        put("SKILL_BILL_SUPPRESS_PR", context.suppressPr.toString())
-        context.parentWorkflowId?.let { put("SKILL_BILL_GOAL_PARENT_WORKFLOW_ID", it) }
-        context.lastResumableStep?.let { put("SKILL_BILL_GOAL_LAST_RESUMABLE_STEP", it) }
-        put("SKILL_BILL_CODE_REVIEW_MODE", context.codeReviewMode.wireValue)
-        put("SKILL_BILL_VALIDATION_DEPTH", context.validationDepth.wireValue)
-        put("SKILL_BILL_QUALITY_GATE_SELECTION", context.qualityGateSelection.wireValue)
+        put(tokens.GOAL_PARENT_ISSUE_KEY_ENV, context.parentIssueKey)
+        put(tokens.GOAL_SUBTASK_ID_ENV, context.subtaskId.toString())
+        put(tokens.GOAL_BRANCH_ENV, context.goalBranch)
+        put(tokens.SUPPRESS_PR_ENV, context.suppressPr.toString())
+        context.parentWorkflowId?.let { put(tokens.GOAL_PARENT_WORKFLOW_ID_ENV, it) }
+        context.lastResumableStep?.let { put(tokens.GOAL_LAST_RESUMABLE_STEP_ENV, it) }
+        put(tokens.CODE_REVIEW_MODE_ENV, context.codeReviewMode.wireValue)
+        put(tokens.VALIDATION_DEPTH_ENV, context.validationDepth.wireValue)
+        put(tokens.QUALITY_GATE_SELECTION_ENV, context.qualityGateSelection.wireValue)
+        context.experimentArmId?.let { put(tokens.GOAL_EXPERIMENT_ARM_ID_ENV, it.wireValue) }
+        if (context.experimentTreatmentCapabilities.isNotEmpty()) {
+          put(
+            tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV,
+            context.experimentTreatmentCapabilities.joinToString(","),
+          )
+        }
+        if (context.deferRemotePublication) {
+          put(tokens.DEFER_REMOTE_PUBLICATION_ENV, "true")
+        }
       }
   }.orEmpty()
 
@@ -125,20 +137,8 @@ internal fun resolveClaudeModelDirective(
 internal fun isOfficialAnthropicEndpoint(baseUrl: String): Boolean = baseUrl.contains("anthropic.com")
 
 internal val ANTHROPIC_MODEL_ALIASES = setOf("opus", "sonnet", "haiku")
-
 internal fun isAnthropicModelReference(model: String): Boolean =
   model.startsWith("claude-") || model in ANTHROPIC_MODEL_ALIASES
-
-internal val GOVERNED_REVIEW_TOOLS: List<String> =
-  GovernedReviewEvidenceContracts.OPERATIONS.map { operation ->
-    "mcp__${GovernedReviewEvidenceContracts.SERVER_NAME}__$operation"
-  }
-
-internal val REVIEW_FAN_OUT_TOOLS = (listOf("Agent", "Task") + GOVERNED_REVIEW_TOOLS).joinToString(",")
-
-internal fun governedReviewToolList(fanOut: Boolean): String =
-  if (fanOut) REVIEW_FAN_OUT_TOOLS else GOVERNED_REVIEW_TOOLS.joinToString(",")
-
 internal class ClaudeAgentRunCommandBuilder(
   internal val providerEnvironment: Map<String, String> = System.getenv(),
   override val governedReviewLaunchCapability: GovernedReviewLaunchCapability =
@@ -283,3 +283,13 @@ internal class CodexAgentRunCommandBuilder(
     )
   }
 }
+
+internal val GOVERNED_REVIEW_TOOLS: List<String> =
+  GovernedReviewEvidenceContracts.OPERATIONS.map { operation ->
+    "mcp__${GovernedReviewEvidenceContracts.SERVER_NAME}__$operation"
+  }
+
+internal val REVIEW_FAN_OUT_TOOLS = (listOf("Agent", "Task") + GOVERNED_REVIEW_TOOLS).joinToString(",")
+
+internal fun governedReviewToolList(fanOut: Boolean): String =
+  if (fanOut) REVIEW_FAN_OUT_TOOLS else GOVERNED_REVIEW_TOOLS.joinToString(",")

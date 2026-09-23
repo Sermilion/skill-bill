@@ -53,12 +53,15 @@ class LaunchAlignedGoalPlanningStatusReasonCoherence(
   }
 
   private fun classifyForStatus(request: GoalPlanningStatusAlignRequest): GoalPlanningProvenanceRecoverability {
-    val canonicalRepository = repositoryEnclosingRootPort.canonicalPath(request.repoRoot)
+    val canonicalRepository =
+      repositoryEnclosingRootPort.canonicalPath(
+        repositoryEnclosingRootPort.enclosingRepositoryRoot(request.repoRoot),
+      )
     val identity =
       GoalPlanningIdentity(
         request.parentWorkflowId,
         request.issueKey.trim().uppercase(),
-        "repo-root-realpath-v1:$canonicalRepository",
+        repositoryEnclosingRootPort.repositoryIdentity(request.repoRoot),
       )
     val existing =
       checkpoint.findSharedPreplan(identity)

@@ -10,7 +10,7 @@ Keep the module graph, Clikt, Kotlin-Inject, the `CliRunState` completion model,
 
 Three kinds of problem remain:
 
-1. **Enforcement claims more than it checks.** Eight architecture tests in six classes resolve module paths against the repository root instead of `runtime-kotlin/`, and skip any missing root without failing. They scan zero files and pass. That includes the zero-tolerance raw-map rule and the engine inbound-API pin that runtime-cli relies on. Two public raw-map functions and at least 13 unpinned engine types have landed behind them.
+1. **Enforcement claims more than it checks.** Eight architecture tests in six classes resolve module paths against the repository root instead of `../../../runtime-kotlin`, and skip any missing root without failing. They scan zero files and pass. That includes the zero-tolerance raw-map rule and the engine inbound-API pin that runtime-cli relies on. Two public raw-map functions and at least 13 unpinned engine types have landed behind them.
 2. **The process boundary has no single output and failure contract.** Typed runtime errors and I/O errors reach the terminal as JVM stack traces. Usage errors and diagnostics print to stdout, including under `--format json`. One command area bypasses `CliRunState` and gets root help appended. Goal exit codes depend on substring matches against free-text reasons.
 3. **Contracts shared with other modules have more than one owner.** The CLI computes durable repository identity with its own filesystem walk, and that walk disagrees with the engine's. The goal launcher and the CLI share a flag-and-env protocol that nothing pins. The CLI and MCP each carry a verbatim copy of the governed scaffold payload parser, and the two copies disagree on `repo_root` precedence.
 
@@ -20,7 +20,7 @@ Recommendation: implement SKILL-371 on the current tree. Do not wait for another
 
 ## Scope and evidence
 
-This is a whole-module architecture investigation of `runtime-kotlin/runtime-cli` and its seams with runtime-application, runtime-engine, runtime-ports, runtime-domain, runtime-contracts, runtime-core (composition and architecture tests), runtime-infra/launcher, runtime-infra/host, and runtime-mcp. It is not a diff review. No review subagents were used. All reading and censuses ran in this session.
+This is a whole-module architecture investigation of `../../../runtime-kotlin/runtime-cli` and its seams with runtime-application, runtime-engine, runtime-ports, runtime-domain, runtime-contracts, runtime-core (composition and architecture tests), runtime-infra/launcher, runtime-infra/host, and runtime-mcp. It is not a diff review. No review subagents were used. All reading and censuses ran in this session.
 
 Census at commit `11d8615ba` (2026-09-22): 113 production Kotlin files, 11,705 lines, 30 packages across 19 areas. Test sources: 61 files. Other work kept committing to the shared checkout during the investigation: SKILL-368 subtasks moved HEAD from `a9c9f4ba0` to `dbf9f4830`. No CLI production file changed between those commits. Recheck the anchors below before implementation.
 
@@ -78,7 +78,7 @@ The dependency direction is correct. `runtime-cli/build.gradle.kts` has no produ
 
 ## Risk register
 
-Paths are relative to `runtime-kotlin/` unless stated otherwise. CLI paths abbreviate `runtime-cli/src/main/kotlin/skillbill/cli` as `cli/`.
+Paths are relative to `../../../runtime-kotlin` unless stated otherwise. CLI paths abbreviate `runtime-cli/src/main/kotlin/skillbill/cli` as `cli/`.
 
 - [F-001] Major | High | `runtime-core/src/test/kotlin/skillbill/architecture/ArchitectureScanSupport.kt:10` and `RuntimeArchitectureTestSupport.kt:8,26` | Eight architecture tests scan zero files, and violations have already landed.
 - [F-002] Major | High | `cli/core/CliRuntime.kt:55-69`, `cli/model/CliExecutionResult.kt` | No process-boundary failure policy. Typed and I/O errors become stack traces, and diagnostics go to stdout.
@@ -92,7 +92,7 @@ Paths are relative to `runtime-kotlin/` unless stated otherwise. CLI paths abbre
 
 ### F-001. Architecture guards scan nothing
 
-`ArchitectureScanSupport.runtimeRoot` walks up from the Gradle working directory to the first directory that *contains* `runtime-kotlin/`, which is the repository root. `RuntimeModuleCatalog.runtimeKotlinModuleDirectory` correctly prefixes `runtime-kotlin/`, but several tests pass bare module paths such as `"runtime-cli/src/main/kotlin"` or filter on `relativePath.startsWith("runtime-application/src/main/kotlin/")`, where `relativePath` is relative to the repository root. The walkers then return empty on a missing root (`if (!Files.isDirectory(root)) return@forEach`, `if (!Files.exists(root)) return emptyList()`), so the tests pass without reading a file.
+`ArchitectureScanSupport.runtimeRoot` walks up from the Gradle working directory to the first directory that *contains* `../../../runtime-kotlin`, which is the repository root. `RuntimeModuleCatalog.runtimeKotlinModuleDirectory` correctly prefixes `runtime-kotlin/`, but several tests pass bare module paths such as `"runtime-cli/src/main/kotlin"` or filter on `relativePath.startsWith("runtime-application/src/main/kotlin/")`, where `relativePath` is relative to the repository root. The walkers then return empty on a missing root (`if (!Files.isDirectory(root)) return@forEach`, `if (!Files.exists(root)) return emptyList()`), so the tests pass without reading a file.
 
 Affected tests:
 
@@ -115,11 +115,11 @@ This is the most consequential finding for runtime-cli's architecture, because S
 
 - runtime-ports has public raw-map signatures in seven files, including four experiment files if they are still present, plus `IdeStatusValidator.toWireMap`, `IdeStatusProblemDetails.from` / `asWireEntries`, and `ReviewFinishedTelemetryPayload`. This bundle fixes every signature the restored filter reports.
 
-`PortsDeclarationArchitectureTest` and `PortNullObjectAbsenceArchitectureTest` are vacuous for a different reason: their own walker doubles `runtime-kotlin/` and drops `runtime-infra:<name>` ids. This bundle applies the same scan-root convention to them.
+`PortsDeclarationArchitectureTest` and `PortNullObjectAbsenceArchitectureTest` are vacuous for a different reason: their own walker doubles `../../../runtime-kotlin` and drops `runtime-infra:<name>` ids. This bundle applies the same scan-root convention to them.
 
 Experiment imports are still in the tree until this bundle removes the ones that fail the pin. Do not wait for another issue to delete them, and do not pin them.
 
-Fix: resolve every module-relative scan path through `RuntimeModuleCatalog.runtimeKotlinModuleDirectory`, or through one root that *is* `runtime-kotlin/`. Make every scan root that does not exist fail the test instead of returning empty. Add one assertion per affected scanner that it visited at least one file of each root it names. Then fix what the restored guards report instead of baselining it. That means refreshing the engine pin to the real inbound surface, choosing ownership for the two raw-map functions, and deciding whether `experiments` stays on engine types. Do not widen any exemption.
+Fix: resolve every module-relative scan path through `RuntimeModuleCatalog.runtimeKotlinModuleDirectory`, or through one root that *is* `../../../runtime-kotlin`. Make every scan root that does not exist fail the test instead of returning empty. Add one assertion per affected scanner that it visited at least one file of each root it names. Then fix what the restored guards report instead of baselining it. That means refreshing the engine pin to the real inbound surface, choosing ownership for the two raw-map functions, and deciding whether `experiments` stays on engine types. Do not widen any exemption.
 
 ### F-002. No process-boundary failure and output policy
 
@@ -167,7 +167,7 @@ Fix: complete through `CliRunState` with `formatOption()`, and make an absent pa
 
 The CLI's `canonicalGitRoot` is a line-for-line copy of `CanonicalRepositoryRoot.enclosingRepositoryRoot`, differing only in the fallback. The port is already injected into every command through `CliRunInputs.repositoryEnclosingRootPort`. It is not used here.
 
-Consequence (source-traced, not run end to end): for an invocation root below the Git top level, feature-task records the top-level identity while goal planning records the subdirectory identity. Lookups keyed on one do not find rows written with the other. Changing the identity format to a `v2` means six edits across four modules. `governedSpecPath`'s `.feature-specs/` and `.md` rule restates `FeatureTaskExecutionIdentityPolicy.validGovernedSpecPath` in the CLI.
+Consequence (source-traced, not run end to end): for an invocation root below the Git top level, feature-task records the top-level identity while goal planning records the subdirectory identity. Lookups keyed on one do not find rows written with the other. Changing the identity format to a `v2` means six edits across four modules. `governedSpecPath`'s `../..` and `.md` rule restates `FeatureTaskExecutionIdentityPolicy.validGovernedSpecPath` in the CLI.
 
 Fix: `RepositoryEnclosingRootPort.repositoryIdentity` becomes the only producer. It resolves the enclosing Git top level, as the domain definition says, and builds the value from `FeatureTaskExecutionIdentityPolicy.REPOSITORY_IDENTITY_PREFIX`. The CLI, engine, and SQLite sites call it or receive its result. Governed spec path normalization moves next to the policy that validates it (an application or port function the CLI calls), and the CLI keeps only the `UsageError` translation. Existing rows keep their stored values. A row written from a subdirectory root stays readable through its original workflow id and gets no silent rewrite.
 
@@ -187,11 +187,11 @@ Fix: in goal and featuretask, compute the exit code from the typed result: statu
 
 ### F-007. The governed scaffold payload is parsed twice, with different semantics
 
-`cli/scaffold/payload/ScaffoldCommandRequestParser.kt`, `…BaselineLayerParser.kt`, and `…Parsing.kt` (335 lines) match `runtime-mcp/.../scaffold/McpScaffoldCommandRequest*.kt` (337 lines) except for the parameter name `args` versus `payload`. Both parse the contract in `orchestration/shell-content-contract/SCAFFOLD_PAYLOAD.md`, pinned by `scaffold_payload_version`. Each adapter also sequences the use case differently:
+`cli/scaffold/payload/ScaffoldCommandRequestParser.kt`, `…BaselineLayerParser.kt`, and `…Parsing.kt` (335 lines) match `runtime-mcp/.../scaffold/McpScaffoldCommandRequest*.kt` (337 lines) except for the parameter name `args` versus `payload`. Both parse the contract in `../../../orchestration/shell-content-contract/SCAFFOLD_PAYLOAD.md`, pinned by `scaffold_payload_version`. Each adapter also sequences the use case differently:
 
 | Behavior | CLI | MCP | Contract |
 | --- | --- | --- | --- |
-| `repo_root` | Payload value wins. Otherwise `findRepoRoot`, which walks up looking for `runtime-kotlin/settings.gradle.kts` and `skills/`, meaning **this** repository's layout. | Always overwritten with the invocation root, so the payload value is ignored. | "absolute path override … Defaults to the current working directory." |
+| `repo_root` | Payload value wins. Otherwise `findRepoRoot`, which walks up looking for `../../../runtime-kotlin/settings.gradle.kts` and `skills/`, meaning **this** repository's layout. | Always overwritten with the invocation root, so the payload value is ignored. | "absolute path override … Defaults to the current working directory." |
 | External add-on source registration | Registered after success when `addon_location_path` is set. | Not registered. | "Desktop callers register … Scripted callers … must register the source themselves." |
 | Session id date | `clock.zone` | `ZoneOffset.UTC` | n/a |
 

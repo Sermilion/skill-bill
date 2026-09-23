@@ -6,7 +6,7 @@ Parent: [spec.md](spec.md). Finding: F-001 in [investigation.md](investigation.m
 
 Make every runtime-core architecture test that names a module source root read files from that root. Then fix, in this commit, the violations those tests report.
 
-- `ArchitectureScanSupport.runtimeRoot` resolves to the repository root. Tests that pass bare module paths (`"runtime-cli/src/main/kotlin"`) or filter `relativePath` on `"runtime-application/src/main/kotlin/"` scan nothing. Resolve module paths through `RuntimeModuleCatalog.runtimeKotlinModuleDirectory`, or through one root that is `runtime-kotlin/`. Pick one convention, apply it everywhere, and delete the other.
+- `ArchitectureScanSupport.runtimeRoot` resolves to the repository root. Tests that pass bare module paths (`"runtime-cli/src/main/kotlin"`) or filter `relativePath` on `"runtime-application/src/main/kotlin/"` scan nothing. Resolve module paths through `RuntimeModuleCatalog.runtimeKotlinModuleDirectory`, or through one root that is `../../../runtime-kotlin`. Pick one convention, apply it everywhere, and delete the other.
 - Walkers that return empty on a missing root must fail instead: `RuntimeArchitectureTestSupport.engineInboundApiViolations`, `mainPackageRootsForModule`, `ArchitectureScanSupport` file walkers, and the private `kotlinFilesUnder` copies in `ImplementationOwnershipArchitectureTest`, `InstallPolicyOwnershipArchitectureTest`, and `RuntimeEnforcementHardeningArchitectureTest`. Path-presence checks such as "retired adapters stay absent" must first assert that their parent source root exists.
 - Known affected tests: `RuntimeEngineInboundApiTest`, `RuntimeApplicationSharedEngineEdgeArchitectureTest` (in `RuntimeEngineBoundaryArchitectureTest.kt`), `RuntimeRawMapArchitectureTest` (inner-layer raw maps), and `RuntimeArchitectureTest` (three domain filters). Recensus after the fix. Any other test that was vacuous for the same reason is in scope. If `ImplementationOwnershipArchitectureTest` `forbiddenSourcePackages` or `RuntimeLayerBoundaryArchitectureTest` "retired review and telemetry adapters stay absent" still pass without reading the files they name, delete them in this commit.
 - Fix reported violations:
@@ -15,7 +15,7 @@ Make every runtime-core architecture test that names a module source root read f
   - Every public raw-map signature the restored filter reports, including experiment port files if they are still present. Known non-experiment signatures: `IdeStatusValidator.toWireMap`, `IdeStatusProblemDetails.from` / `asWireEntries`, and `ReviewFinishedTelemetryPayload`. For each one, move the wire map to the adapter-side serializer or replace it with a typed model. Wire bytes stay identical.
   - Any further violation the restored guards report.
 - Also repair `PortsDeclarationArchitectureTest` and `PortNullObjectAbsenceArchitectureTest` when they name a module source root and scan nothing. Apply the same scan-root convention. Document that convention in `ARCHITECTURE.md`.
-- Update the enforcement-status text in `runtime-kotlin/ARCHITECTURE.md` so it states which scanners are verified to read files.
+- Update the enforcement-status text in `../../../runtime-kotlin/ARCHITECTURE.md` so it states which scanners are verified to read files.
 
 ## Acceptance Criteria
 
@@ -24,13 +24,13 @@ Make every runtime-core architecture test that names a module source root read f
 3. `RuntimeRawMapArchitectureTest` and `RuntimeArchitectureTest` path filters match files under `runtime-kotlin/<module>/src/main/kotlin/`, and the raw-map test reports zero violations on the tree because the two accounting functions no longer expose a public raw map.
 4. `RuntimeEngineInboundApiTest` passes against the current runtime-application, runtime-cli, and runtime-mcp sources with a pinned list whose every entry names an existing engine type.
 5. No architecture baseline file, exemption list, or pinned list gains an entry whose only purpose is to tolerate a violation found by this subtask.
-6. `runtime-kotlin/ARCHITECTURE.md` names the scan-root convention and states that missing roots fail.
+6. `../../../runtime-kotlin/ARCHITECTURE.md` names the scan-root convention and states that missing roots fail.
 
 ## Non-Goals
 
 - Adding new architecture rules or scanner classes.
 - Changing CLI output, exit codes, or command behavior, apart from the experiments rendering change the engine pin requires.
-- Consolidating the `runtimeRoot` walkers that already resolve `runtime-kotlin/` correctly, unless the chosen convention replaces them.
+- Consolidating the `runtimeRoot` walkers that already resolve `../../../runtime-kotlin` correctly, unless the chosen convention replaces them.
 
 ## Dependency Notes
 

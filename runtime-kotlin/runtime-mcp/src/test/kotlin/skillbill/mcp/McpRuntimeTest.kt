@@ -329,6 +329,35 @@ class McpRuntimeTest {
   }
 
   @Test
+  fun `mcp scaffold uses explicit repo root and invocation root as the shared defaults`() {
+    val invocationRoot = Files.createTempDirectory("skillbill-mcp-scaffold-invocation-root")
+    val explicitRoot = Files.createTempDirectory("skillbill-mcp-scaffold-explicit-root")
+    val context =
+      McpRuntimeContext(
+        environment = disabledTelemetryEnvironment(invocationRoot),
+        userHome = invocationRoot,
+        repositoryRoot = invocationRoot,
+      )
+    val basePayload =
+      mapOf(
+        "scaffold_payload_version" to "1.0",
+        "kind" to "horizontal",
+        "name" to "bill-mcp-repo-root-parity",
+      )
+
+    val defaultResult = McpRuntime.newSkillScaffold(basePayload, dryRun = true, context = context)
+    val explicitResult =
+      McpRuntime.newSkillScaffold(
+        basePayload + ("repo_root" to explicitRoot.toString()),
+        dryRun = true,
+        context = context,
+      )
+
+    assertTrue((defaultResult["skill_path"] as String).startsWith("$invocationRoot/"))
+    assertTrue((explicitResult["skill_path"] as String).startsWith("$explicitRoot/"))
+  }
+
+  @Test
   fun `lifecycle telemetry tools persist natively and emit outbox events`() {
     val tempDir = Files.createTempDirectory("skillbill-mcp-lifecycle")
     val env = enabledTelemetryEnvironment(tempDir)

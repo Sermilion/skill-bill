@@ -5,6 +5,8 @@ import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
 import skillbill.model.TransportContext
 import skillbill.model.WorkflowOpsContext
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -35,6 +37,8 @@ data class CliRuntimeContext(
   val installerProcessPort: InstallerProcessPort? = null,
   val installerScriptFetchPort: InstallerScriptFetchPort? = null,
   val repositoryRoot: Path? = null,
+  val featureTaskRuntimeRunOverride:
+    ((FeatureTaskRuntimeRunRequest) -> FeatureTaskRuntimeRunReport)? = null,
   val liveStdout: (String) -> Unit = {},
   val liveStderr: (String) -> Unit = {},
 ) {

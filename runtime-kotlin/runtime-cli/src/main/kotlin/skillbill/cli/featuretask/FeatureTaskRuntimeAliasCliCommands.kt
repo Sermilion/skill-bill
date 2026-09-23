@@ -9,6 +9,7 @@ import skillbill.application.workflow.service.WorkflowService
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
@@ -63,6 +64,7 @@ class FeatureTaskRuntimeDeprecatedRunCommand(
           runIssueKey,
           runSpecPath,
           prepared.repoRoot,
+          deps.inputs.repositoryEnclosingRootPort,
         )
       },
     )
@@ -74,7 +76,7 @@ class FeatureTaskRuntimeDeprecatedExplicitRunCommand(
   private val deps: FeatureTaskRuntimeRunDependencies,
   private val workflowService: WorkflowService,
 ) : FeatureTaskRuntimePhaseAgentCommand(
-    "run",
+    FeatureTaskRuntimeGoalContinuationLaunchTokens.RUN_SUBCOMMAND,
     "Run the feature-task phase loop (explicit form of the parent command's default run).",
   ) {
   private val issueKey by argument(help = "Issue key the run implements.")
@@ -95,6 +97,7 @@ class FeatureTaskRuntimeDeprecatedExplicitRunCommand(
           issueKey,
           runSpecPath,
           prepared.repoRoot,
+          deps.inputs.repositoryEnclosingRootPort,
         )
       },
     )
@@ -124,7 +127,7 @@ class FeatureTaskRuntimeDeprecatedResumeCommand(
   private val deps: FeatureTaskRuntimeRunDependencies,
   private val lookupService: FeatureTaskContinuationLookupService,
 ) : FeatureTaskRuntimePhaseAgentCommand(
-    "resume",
+    FeatureTaskRuntimeGoalContinuationLaunchTokens.RESUME_SUBCOMMAND,
     "Resume a feature-task run against an existing workflow id.",
   ) {
   private val workflowId by argument(help = "Existing runtime workflow id to resume.")
@@ -142,6 +145,7 @@ class FeatureTaskRuntimeDeprecatedResumeCommand(
         specPath = specPath,
         repoRoot = prepared.repoRoot,
         goalChild = goalParentIssueKey != null,
+        repositoryEnclosingRootPort = deps.inputs.repositoryEnclosingRootPort,
       ),
     )
     executeRuntimeRun(

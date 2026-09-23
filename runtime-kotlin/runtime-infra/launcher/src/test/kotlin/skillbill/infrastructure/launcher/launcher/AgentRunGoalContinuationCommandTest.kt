@@ -1,10 +1,17 @@
 package skillbill.infrastructure.launcher.launcher
 
+import skillbill.agentaddon.model.AgentAddonSelection
+import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.infrastructure.launcher.agentrun.headlessAgentRunAdapters
 import skillbill.install.model.InstallAgent
+import skillbill.experiment.model.ExperimentArmId
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
+import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -56,6 +63,8 @@ class AgentRunGoalContinuationCommandTest {
         "implement",
         "--code-review-mode",
         "inline",
+        "--quality-gate-selection",
+        "validate",
         "--agent",
         "claude",
       ),
@@ -101,6 +110,8 @@ class AgentRunGoalContinuationCommandTest {
         "implement",
         "--code-review-mode",
         "inline",
+        "--quality-gate-selection",
+        "validate",
         "--agent",
         "claude",
       ),
@@ -246,6 +257,8 @@ class AgentRunGoalContinuationCommandTest {
         "implement",
         "--code-review-mode",
         "inline",
+        "--quality-gate-selection",
+        "validate",
         "--agent",
         "cursor",
       ),
@@ -289,6 +302,8 @@ class AgentRunGoalContinuationCommandTest {
         "implement",
         "--code-review-mode",
         "inline",
+        "--quality-gate-selection",
+        "validate",
         "--agent",
         "cursor",
       ),
@@ -333,4 +348,85 @@ class AgentRunGoalContinuationCommandTest {
     assertFalse(request.command.contains("--validation-depth"))
     assertEquals("full", request.environment["SKILL_BILL_VALIDATION_DEPTH"])
   }
+
+  @Test
+  fun `goal-continuation launch emits every context field for resume and assigned run`() {
+    listOf(
+      goalContinuationContext(childWorkflowId = "wfl-child-runtime", assignedWorkflowId = null),
+      goalContinuationContext(childWorkflowId = null, assignedWorkflowId = "wfl-assigned"),
+    ).forEach { continuation ->
+      val runner = RecordingAgentRunProcessRunner()
+      requireNotNull(adapters(runner)[InstallAgent.CLAUDE]).launch(
+        skillRunRequest(goalContinuation = fullyPopulated(continuation)),
+      )
+
+      val request = runner.requests.single()
+      val tokens = FeatureTaskRuntimeGoalContinuationLaunchTokens
+      assertContains(request.command, tokens.GOAL_PARENT_ISSUE_KEY_FLAG)
+      assertContains(request.command, "SKILL-56")
+      assertContains(request.command, tokens.GOAL_SUBTASK_ID_FLAG)
+      assertContains(request.command, "2")
+      assertContains(request.command, tokens.GOAL_BRANCH_FLAG)
+      assertContains(request.command, "feat/SKILL-56-goal")
+      assertContains(request.command, tokens.SUPPRESS_PR_FLAG)
+      assertContains(request.command, tokens.GOAL_PARENT_WORKFLOW_ID_FLAG)
+      assertContains(request.command, "wfl-parent")
+      assertContains(request.command, tokens.GOAL_LAST_RESUMABLE_STEP_FLAG)
+      assertContains(request.command, "implement")
+      assertContains(request.command, tokens.CODE_REVIEW_MODE_FLAG)
+      assertContains(request.command, CodeReviewExecutionMode.AUTO.wireValue)
+      assertContains(request.command, tokens.QUALITY_GATE_SELECTION_FLAG)
+      assertContains(request.command, FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue)
+      assertContains(request.command, tokens.GOAL_EXPERIMENT_ARM_ID_FLAG)
+      assertContains(request.command, ExperimentArmId.TREATMENT.wireValue)
+      assertContains(request.command, tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_FLAG)
+      assertContains(request.command, "capability-a")
+      assertContains(request.command, "capability-b")
+      assertContains(request.command, tokens.DEFER_REMOTE_PUBLICATION_FLAG)
+      assertContains(request.command, tokens.GOAL_REVIEW_BASE_SHA_FLAG)
+      assertContains(request.command, "a".repeat(40))
+      assertContains(request.command, tokens.GOAL_BASELINE_UNTRACKED_PATH_FLAG)
+      assertContains(request.command, "existing.txt")
+      assertContains(request.command, tokens.AGENT_ADDON_SELECTION_JSON_FLAG)
+      assertTrue(request.command.any { "review-helper" in it })
+      assertEquals("1", request.environment[tokens.GOAL_CONTINUATION_ENV])
+      assertEquals("SKILL-56", request.environment[tokens.GOAL_PARENT_ISSUE_KEY_ENV])
+      assertEquals("2", request.environment[tokens.GOAL_SUBTASK_ID_ENV])
+      assertEquals("feat/SKILL-56-goal", request.environment[tokens.GOAL_BRANCH_ENV])
+      assertEquals("true", request.environment[tokens.SUPPRESS_PR_ENV])
+      assertEquals("wfl-parent", request.environment[tokens.GOAL_PARENT_WORKFLOW_ID_ENV])
+      assertEquals("implement", request.environment[tokens.GOAL_LAST_RESUMABLE_STEP_ENV])
+      assertEquals(CodeReviewExecutionMode.AUTO.wireValue, request.environment[tokens.CODE_REVIEW_MODE_ENV])
+      assertEquals(ValidationDepth.FULL.wireValue, request.environment[tokens.VALIDATION_DEPTH_ENV])
+      assertEquals(
+        FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue,
+        request.environment[tokens.QUALITY_GATE_SELECTION_ENV],
+      )
+      assertEquals(ExperimentArmId.TREATMENT.wireValue, request.environment[tokens.GOAL_EXPERIMENT_ARM_ID_ENV])
+      assertEquals(
+        "capability-a,capability-b",
+        request.environment[tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV],
+      )
+      assertEquals("true", request.environment[tokens.DEFER_REMOTE_PUBLICATION_ENV])
+    }
+  }
+
+  private fun fullyPopulated(
+    context: SkillRunGoalContinuationContext,
+  ): SkillRunGoalContinuationContext =
+    context.copy(
+      experimentArmId = ExperimentArmId.TREATMENT,
+      experimentTreatmentCapabilities = linkedSetOf("capability-a", "capability-b"),
+      deferRemotePublication = true,
+      codeReviewMode = CodeReviewExecutionMode.AUTO,
+      validationDepth = ValidationDepth.FULL,
+      qualityGateSelection = FeatureTaskRuntimeQualityGateSelection.BUILD,
+      reviewBaseline = GoalSubtaskReviewBaseline("a".repeat(40), listOf("existing.txt")),
+      agentAddonSelection =
+        AgentAddonSelection(
+          listOf(
+            PersistedAgentAddonSelectionEntry("review-helper", "source:review-helper", "b".repeat(64)),
+          ),
+        ),
+    )
 }

@@ -7,6 +7,7 @@ import skillbill.config.model.CompactionSettings
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.experiment.model.ExperimentArmId
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
@@ -58,6 +59,9 @@ data class FeatureTaskRuntimeGoalContinuationContext(
   val reviewBaseline: GoalSubtaskReviewBaseline? = null,
   val agentAddonSelection: AgentAddonSelection =
     AgentAddonSelection(),
+  val experimentArmId: ExperimentArmId? = null,
+  val experimentTreatmentCapabilities: Set<String> = emptySet(),
+  val deferRemotePublication: Boolean = false,
 ) {
   init {
     require(parentIssueKey.isNotBlank()) { "parentIssueKey is required." }

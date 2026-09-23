@@ -7,7 +7,7 @@ import java.nio.file.Path
 
 internal fun verifyRuntimeResume(args: VerifyRuntimeResumeArgs) {
   val effectiveRoot = args.repoRoot
-  val identity = repositoryIdentity(effectiveRoot)
+  val identity = args.repositoryEnclosingRootPort.repositoryIdentity(effectiveRoot)
   val result =
     if (args.goalChild) {
       args.lookupService.lookupGoalChild(args.issueKey, identity, args.workflowId)
@@ -16,7 +16,7 @@ internal fun verifyRuntimeResume(args: VerifyRuntimeResumeArgs) {
     }
   val candidate = resumableRuntimeCandidate(args.workflowId, result)
   requireRuntimeMode(args.workflowId, candidate.mode)
-  requireMatchingGovernedSpec(args.workflowId, candidate.governedSpecPath, effectiveRoot, Path.of(args.specPath))
+  requireMatchingGovernedSpec(args, candidate.governedSpecPath, effectiveRoot, Path.of(args.specPath))
 }
 
 private fun resumableRuntimeCandidate(
@@ -44,12 +44,16 @@ private fun requireRuntimeMode(
 }
 
 private fun requireMatchingGovernedSpec(
-  workflowId: String,
+  args: VerifyRuntimeResumeArgs,
   persistedPath: String,
   effectiveRoot: Path,
   specPath: Path,
 ) {
-  if (persistedPath != governedSpecPath(effectiveRoot, specPath)) {
+  val workflowId = args.workflowId
+  if (
+    persistedPath !=
+      args.repositoryEnclosingRootPort.governedSpecPathForCli(effectiveRoot, specPath)
+  ) {
     throw UsageError("Workflow '$workflowId' was persisted with a different governed spec path.")
   }
 }

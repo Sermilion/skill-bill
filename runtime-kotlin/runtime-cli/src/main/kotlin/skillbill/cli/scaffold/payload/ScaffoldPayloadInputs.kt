@@ -1,36 +1,37 @@
 package skillbill.cli.scaffold.payload
+import skillbill.application.scaffold.decodeScaffoldPayloadObject
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.scaffold.commands.NewAddonPayloadArgs
-import skillbill.contracts.JsonCodec
 import java.nio.file.Path
-import java.time.Clock
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.UUID
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 
 internal fun createAndFillContentPayload(
   body: String?,
   bodyFile: String?,
   state: CliRunState,
-): Map<String, String> {
+): JsonObject {
   val contentBody =
     body ?: bodyFile?.let { path ->
       readCliTextFile(path, state)
     }
-  return if (contentBody == null) emptyMap() else mapOf("content_body" to contentBody)
+  return contentBody?.let { buildJsonObject { put("content_body", it) } } ?: JsonObject(emptyMap())
 }
 
 internal fun createAndFillScaffoldPayload(
-  scaffoldPayload: Map<String, *>,
+  scaffoldPayload: JsonObject,
   body: String?,
   bodyFile: String?,
   state: CliRunState,
-): Map<String, *> {
-  val kind = scaffoldPayload["kind"]?.toString().orEmpty()
+): JsonObject {
+  val kind = scaffoldPayload["kind"]?.jsonPrimitive?.contentOrNull.orEmpty()
   require(kind !in setOf("platform-pack", "add-on")) {
     "create-and-fill can only scaffold one content-managed skill; kind '$kind' is not supported."
   }
-  return scaffoldPayload + createAndFillContentPayload(body, bodyFile, state)
+  return JsonObject(scaffoldPayload + createAndFillContentPayload(body, bodyFile, state))
 }
 
 internal fun newAddonPayload(args: NewAddonPayloadArgs): Map<String, Any> =
@@ -55,12 +56,7 @@ internal fun readCliTextFile(
 internal fun readScaffoldPayload(
   payloadPath: String?,
   state: CliRunState,
-): Map<String, Any?> {
-  val payloadText = readScaffoldPayloadText(payloadPath, state)
-  val payload = parseScaffoldPayloadObject(payloadText).toMutableMap()
-  payload["scaffold_payload_version"] = payload["scaffold_payload_version"]?.toString()
-  return payload
-}
+): JsonObject = decodeScaffoldPayloadObject(readScaffoldPayloadText(payloadPath, state))
 
 internal fun readScaffoldPayloadText(
   payloadPath: String?,
@@ -72,32 +68,4 @@ internal fun readScaffoldPayloadText(
     else -> Path.of(payloadPath).toFile().readText()
   }
 
-internal fun parseScaffoldPayloadObject(payloadText: String): Map<String, Any?> {
-  val parsed =
-    JsonCodec.parseObjectOrNull(payloadText)
-      ?: throw IllegalArgumentException("Invalid JSON payload: expected an object.")
-  return JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(parsed))
-    ?: throw IllegalArgumentException("Invalid JSON payload: expected an object.")
-}
-
-internal fun generateScaffoldSessionId(clock: Clock): String {
-  val date = LocalDate.ofInstant(clock.instant(), clock.zone).format(DateTimeFormatter.BASIC_ISO_DATE)
-  val suffix = UUID.randomUUID().toString().take(SCAFFOLD_SESSION_SUFFIX_LENGTH)
-  return "nss-$date-$suffix"
-}
-
 internal fun Any?.orEmpty(): String = this as? String ?: ""
-
-internal fun findRepoRoot(start: Path): Path {
-  var current = start
-  while (true) {
-    val hasSettings = current.resolve("runtime-kotlin/settings.gradle.kts").toFile().isFile
-    val hasSkills = current.resolve("skills").toFile().isDirectory
-    if (hasSettings && hasSkills) {
-      return current
-    }
-    val parent = current.parent ?: break
-    current = parent
-  }
-  return start
-}

@@ -1346,6 +1346,25 @@ call the shared wire-snapshot validator only at the approved builder and CLI
 emission seams; they must not import the schema validator directly or declare
 install planner/validator policy.
 
+## Cross-Adapter Contract Owners (SKILL-371 subtask 3)
+
+- **Repository identity:** `RepositoryEnclosingRootPort.repositoryIdentity` in
+  `runtime-infra/host` (`CanonicalRepositoryRoot`) is the only production
+  function that joins `FeatureTaskExecutionIdentityPolicy.REPOSITORY_IDENTITY_PREFIX`
+  to a canonical Git top-level path. CLI, engine, and SQLite callers obtain
+  identity through that port (or `goalRepositoryIdentity`, which forwards to it).
+  Governed feature-task spec paths resolve in
+  `skillbill.application.workflow.resolveFeatureTaskGovernedSpecPath`.
+- **Goal-child launch protocol:** flag and environment spellings for
+  `feature-task run` / `resume` live in
+  `skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens`.
+  Launcher argv/env builders and CLI option readers reference those constants only.
+- **Scaffold payload:** `skillbill.application.scaffold.decodeScaffoldCommandRequest`
+  (JSON text or `JsonObject` only; no raw `Map` at the public seam) and
+  `runScaffoldInvocation` own UTC session ids, `repo_root` defaulting, and
+  opt-in external-source registration. `runtime-cli` and `runtime-mcp` call those
+  entry points; adapter-local payload parsers are not duplicated.
+
 ## Scaffold Capability Ports And Pure-Policy Ownership (SKILL-52.1 subtask 2)
 
 `ScaffoldGateway` in `skillbill.ports.scaffold` is the typed port consumed by

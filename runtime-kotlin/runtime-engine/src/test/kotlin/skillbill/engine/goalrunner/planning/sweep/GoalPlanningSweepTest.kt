@@ -29,6 +29,7 @@ import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRecoveryKind
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRefreshLiveness
 import skillbill.engine.goalrunner.planning.recovery.classifyGoalPlanningProvenanceRecoverability
 import skillbill.engine.goalrunner.planning.remedies.GoalPlanningRejectionRecorder
+import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
@@ -932,6 +933,38 @@ class GoalPlanningSweepPromptTest {
 }
 
 class GoalPlanningSweepPrepareAndResumeTest {
+  @Test
+  fun `planning identity names the Git top level when request starts in a child directory`() {
+    val fixtures = sharedSweepFixtures()
+    Files.createDirectories(fixtures.repoRoot.resolve(".git"))
+    val childRoot = Files.createDirectories(fixtures.repoRoot.resolve("nested"))
+    val sweep =
+      testGoalPlanningSweepPorts(
+        GoalPlanningSweepPortsParams(
+          checkpoint = fixtures.checkpoint,
+          outputValidator = fixtures.outputValidator,
+          subtaskLauncher = SweepPlanningLauncher { phase, _, _ -> validPhaseOutcome(phase) },
+          invariantsSource = fixtures.invariantsSource,
+          manifestFileStore = fixtures.manifestFileStore,
+          contextDiscovery = fakeContextDiscovery,
+          repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
+        ),
+      )
+
+    val outcome =
+      assertIs<GoalPlanningSweepOutcome.PreparedAll>(
+        sweep.prepare(
+          fixtures.stateFor(manifest(subtaskCount = 1)),
+          fixtures.request().copy(repoRoot = childRoot),
+        ),
+      )
+
+    assertEquals(
+      "repo-root-realpath-v1:${fixtures.repoRoot.toRealPath()}",
+      requireNotNull(outcome.identity).repositoryIdentity,
+    )
+  }
+
   @Test
   fun `one prepare launches at most one refresh preplan agent even if still stale`() {
     val harness = sweepHarness { phase, _, _ -> validPhaseOutcome(phase) }

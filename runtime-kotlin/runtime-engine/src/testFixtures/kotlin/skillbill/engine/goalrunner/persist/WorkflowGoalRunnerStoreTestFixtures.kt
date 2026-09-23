@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.persist
 
+import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.engine.goalrunner.repair.GoalRunnerChildRepairOperations
 import skillbill.infrastructure.sqlite.goalrunner.manifest.WorkflowGoalRunnerManifestStore
@@ -10,6 +11,7 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
+import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
@@ -39,6 +41,7 @@ fun sqliteWorkflowGoalRunnerManifestStore(
   decompositionManifestWriter: DecompositionManifestProjectionWriter,
   repositoryRoot: RepositoryRoot,
   planningHydrator: GoalChildPlanningHydratorPort,
+  repositoryEnclosingRootPort: RepositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
 ): GoalRunnerManifestStore =
   WorkflowGoalRunnerManifestStore(
     database = database,
@@ -49,6 +52,7 @@ fun sqliteWorkflowGoalRunnerManifestStore(
     decompositionManifestWriter = decompositionManifestWriter,
     repositoryRoot = repositoryRoot,
     planningHydrator = planningHydrator,
+    repositoryEnclosingRootPort = repositoryEnclosingRootPort,
   )
 
 fun sqliteWorkflowGoalRunnerOutcomeStore(

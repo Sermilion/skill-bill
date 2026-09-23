@@ -1,12 +1,12 @@
-package skillbill.mcp.scaffold
+package skillbill.application.scaffold
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 
 internal fun parseStringList(
-  args: Map<String, Any?>,
+  payload: Map<String, Any?>,
   key: String,
 ): List<String> {
   val raw =
-    args[key]
+    payload[key]
       ?: throw InvalidScaffoldPayloadError(
         "Scaffold payload field '$key' must be a list of strings.",
       )
@@ -19,10 +19,10 @@ internal fun parseStringList(
 }
 
 internal fun parseStringListOrEmpty(
-  args: Map<String, Any?>,
+  payload: Map<String, Any?>,
   key: String,
 ): List<String> {
-  val raw = args[key] ?: return emptyList()
+  val raw = payload[key] ?: return emptyList()
   if (raw !is List<*>) {
     throw InvalidScaffoldPayloadError(
       "Scaffold payload field '$key' must be a list of strings.",
@@ -70,23 +70,23 @@ internal fun parseStringListValue(
 }
 
 internal fun parseBooleanOrFalse(
-  args: Map<String, Any?>,
+  payload: Map<String, Any?>,
   key: String,
 ): Boolean {
-  if (!args.containsKey(key)) return false
-  return args[key] as? Boolean
+  if (!payload.containsKey(key)) return false
+  return payload[key] as? Boolean
     ?: throw InvalidScaffoldPayloadError(
       "Scaffold payload field '$key' must be a boolean when provided.",
     )
 }
 
 internal fun requireOptionalNonBlank(
-  args: Map<String, Any?>,
+  payload: Map<String, Any?>,
   key: String,
 ): String? {
-  if (!args.containsKey(key)) return null
+  if (!payload.containsKey(key)) return null
   val value =
-    args[key] as? String
+    payload[key] as? String
       ?: throw InvalidScaffoldPayloadError(
         "Scaffold payload field '$key' must be a non-empty string when provided.",
       )

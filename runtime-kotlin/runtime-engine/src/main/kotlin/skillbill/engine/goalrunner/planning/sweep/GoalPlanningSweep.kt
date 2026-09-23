@@ -64,7 +64,7 @@ class DefaultGoalPlanningSweep(
       GoalPlanningIdentity(
         state.parentWorkflowId,
         state.manifest.issueKey.trim().uppercase(),
-        "repo-root-realpath-v1:${canonicalRepository(request.repoRoot, repositoryEnclosingRootPort)}",
+        repositoryEnclosingRootPort.repositoryIdentity(request.repoRoot),
       )
     val existingShared =
       runCatching { checkpoint.findSharedPreplan(identity) }

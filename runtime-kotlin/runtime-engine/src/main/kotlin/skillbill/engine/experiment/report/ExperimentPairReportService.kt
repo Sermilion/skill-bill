@@ -6,6 +6,7 @@ import skillbill.error.shellcontent.ExperimentNavigationPairUnavailableError
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
 import skillbill.ports.experiment.pair.ExperimentPairPayload
 import skillbill.ports.experiment.pair.ExperimentPairReportPort
+import skillbill.ports.experiment.pair.model.ExperimentStatsPayload
 
 @Inject
 class ExperimentPairReportService(
@@ -25,9 +26,9 @@ class ExperimentPairReportService(
     }
   }
 
-  override fun statsPayload(): Map<String, Any?> {
+  override fun statsPayload(): ExperimentStatsPayload {
     val reports = pairOwner.listReports().map { it.toMap() }
-    return ExperimentStatsProjector.project(reports)
+    return ExperimentStatsPayload(JsonCodec.mapToJsonString(ExperimentStatsProjector.project(reports)))
   }
 }
 
