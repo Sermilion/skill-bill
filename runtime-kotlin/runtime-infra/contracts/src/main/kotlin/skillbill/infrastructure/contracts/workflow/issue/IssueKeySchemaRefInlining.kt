@@ -3,8 +3,9 @@ package skillbill.infrastructure.contracts.workflow.issue
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.contracts.issuekey.ISSUE_KEY_SCHEMA_ID
-import skillbill.contracts.issuekey.ISSUE_KEY_SCHEMA_RESOURCE
+
+internal const val ISSUE_KEY_SCHEMA_ID: String = "https://skill-bill.dev/contracts/issue-key-schema.yaml"
+private const val ISSUE_KEY_SCHEMA_RESOURCE: String = "skillbill/infrastructure/contracts/issue-key-schema.yaml"
 
 internal fun JsonNode.inlineIssueKeySchemaRefs(): JsonNode {
   inlineIssueKeySchemaRefsIn(this, issueKeySchemaBody())

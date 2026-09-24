@@ -2,10 +2,10 @@ package skillbill.ports.workflow.model
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 import skillbill.contracts.workflow.session.FeatureImplementSessionSummaryContract
 import skillbill.contracts.workflow.session.FeatureVerifySessionSummaryContract
 import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.error.core.MalformedJsonTextError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts

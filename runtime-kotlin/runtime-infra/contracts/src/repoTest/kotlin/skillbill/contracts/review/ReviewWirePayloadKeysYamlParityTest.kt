@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+import skillbill.infrastructure.contracts.locator.ReviewContextSchemaPaths
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test
@@ -58,7 +59,7 @@ class ReviewWirePayloadKeysYamlParityTest {
       referencedSchemaProperties(
         schema.path("\$defs").path("skillbillReviewFinishedEvent"),
         schema.path("\$defs"),
-      ) - setOf(SqliteReviewTelemetryPayloadKeys.EVENT_NAME, SharedPayloadKeys.CONTRACT_VERSION)
+      ) - setOf(LifecycleTelemetryPayloadKeys.EVENT_NAME, SharedPayloadKeys.CONTRACT_VERSION)
     val drift = schemaFieldOwnerDrift(yamlKeys, kotlinKeys)
     assertTrue(drift.isEmpty(), "Review-finished schema/key-owner drift: $drift")
   }

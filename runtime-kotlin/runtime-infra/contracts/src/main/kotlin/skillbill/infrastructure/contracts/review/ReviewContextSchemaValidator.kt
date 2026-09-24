@@ -7,13 +7,13 @@ import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
-import skillbill.contracts.review.ReviewContextSchemaPaths
 import skillbill.error.core.ShellContentContractException
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.ValidatedClasspathYamlNodeRequest
+import skillbill.infrastructure.contracts.locator.ReviewContextSchemaPaths
+import skillbill.infrastructure.contracts.locator.logSchemaLoadFailure
 import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.ReviewContextWireMap
 import java.util.logging.Level

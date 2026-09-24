@@ -2,8 +2,8 @@ package skillbill.infrastructure.contracts.workflow.featuretask
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeValidationEvidenceSchemaPaths
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
+import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimeValidationEvidenceSchemaPaths
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test

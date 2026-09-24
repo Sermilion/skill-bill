@@ -6,12 +6,12 @@ import com.networknt.schema.ValidationMessage
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonPayloadContract
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.workflow.identity.status.IDE_STATUS_CONTRACT_VERSION
-import skillbill.contracts.workflow.identity.status.IdeStatusSchemaPaths
 import skillbill.error.shellcontent.InvalidIdeStatusSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
+import skillbill.infrastructure.contracts.locator.IdeStatusSchemaPaths
+import skillbill.infrastructure.contracts.locator.logSchemaLoadFailure
 import skillbill.infrastructure.contracts.review.formatValidationReason
 import skillbill.infrastructure.contracts.review.offendingValue
 import skillbill.infrastructure.contracts.review.violationOrdering

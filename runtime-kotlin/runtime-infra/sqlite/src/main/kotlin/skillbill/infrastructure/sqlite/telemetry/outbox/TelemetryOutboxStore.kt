@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite.telemetry.outbox
 
-import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
@@ -284,7 +284,7 @@ private fun ResultSet.readOutboxRows(): List<TelemetryOutboxRecord> =
       add(
         TelemetryOutboxRecord(
           id = getLong("id"),
-          eventName = getString(SqliteLifecycleTelemetryMaterializationPayloadKeys.EVENT_NAME),
+          eventName = getString(LifecycleTelemetryPayloadKeys.EVENT_NAME),
           payloadJson = getString("payload_json"),
           createdAt = getString("created_at"),
           syncedAt = getString("synced_at"),

@@ -1,6 +1,5 @@
 package skillbill.infrastructure.launcher.review
 
-import skillbill.contracts.review.GovernedReviewEvidencePayloadKeys
 import skillbill.ports.review.model.ReviewEvidenceResult
 import skillbill.review.context.model.execution.ForbiddenReviewOperation
 import skillbill.review.context.model.hunk.ReviewBudgetOutcome

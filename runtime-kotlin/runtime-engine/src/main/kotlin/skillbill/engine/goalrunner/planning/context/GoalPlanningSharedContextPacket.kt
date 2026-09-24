@@ -4,7 +4,6 @@ import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.goalrunner.planning.GoalPlanningExcludedPaths
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext

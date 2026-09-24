@@ -3,8 +3,9 @@ package skillbill.infrastructure.sqlite.telemetry.lifecycle.session
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.contracts.telemetry.TelemetryOutboxEvent
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.SqliteLifecycleTelemetryMaterializationPayloadKeys
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.enqueueTelemetry
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.reviewStageDegradationExists
 import skillbill.ports.telemetry.lifecycle.FeatureTaskRuntimeTelemetryMeasurementRepository
@@ -72,7 +73,7 @@ internal class LifecycleTelemetryMeasurementAdapter(
 
 private fun ReviewStageDegradationMeasurement.toStageDegradationPayload(): Map<String, Any?> =
   linkedMapOf(
-    SqliteLifecycleTelemetryMaterializationPayloadKeys.EVENT_NAME to
+    LifecycleTelemetryPayloadKeys.EVENT_NAME to
       TelemetryOutboxEvent.REVIEW_STAGE_DEGRADATION.wireValue,
     SharedPayloadKeys.CONTRACT_VERSION to REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION,
     ReviewVerificationSignalKeys.REVIEW_RUN_ID to reviewRunId,

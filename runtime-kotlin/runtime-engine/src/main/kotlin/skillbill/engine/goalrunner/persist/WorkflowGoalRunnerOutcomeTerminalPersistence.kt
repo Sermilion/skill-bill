@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.persist
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 import skillbill.engine.goalrunner.execution.support.workflowFamilyFor
 import skillbill.goalrunner.commitShaFrom
 import skillbill.goalrunner.goalContinuationOutcome

@@ -1,8 +1,8 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle
 
-import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.InternalSqliteDiagnostics
 import skillbill.infrastructure.sqlite.core.ops.recordDegradedValue
+import skillbill.infrastructure.sqlite.telemetry.goal.GoalTelemetryPayloadKeys
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.time.LocalDateTime
 import java.time.format.DateTimeParseException

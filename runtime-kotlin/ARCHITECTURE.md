@@ -291,9 +291,15 @@ runtime-core
 
 ## Gradle Modules
 
-- `runtime-contracts`: contract DTOs, JSON/ordered-map helpers, runtime surface
-  contracts, `*SchemaPaths` constants, `*_CONTRACT_VERSION` constants, and the
-  `skillbill.error` runtime exception taxonomy. It no longer owns the JSON-Schema
+- `runtime-contracts`: the shared kernel. It holds only declarations that two or
+  more production modules read or that a `runtime-ports` signature exposes:
+  contract DTOs, JSON/ordered-map helpers, runtime surface contracts,
+  `*_CONTRACT_VERSION` constants (plus the two top-level `*_SCHEMA_ID` constants
+  read by ports, engine, and sqlite), and the `skillbill.error` runtime exception
+  taxonomy. `*SchemaPaths` locators and `logSchemaLoadFailure` are **not** here:
+  they live in `skillbill.infrastructure.contracts.locator` in
+  `runtime-infra/contracts`, the module that stages the canonical YAML. A
+  declaration with a single owner lives in that owner's module (SKILL-374). It no longer owns the JSON-Schema
   validators or their schema-resource copy tasks; those moved to
   `runtime-infra/contracts`, except the platform-pack and native-agent composition
   validators, which moved to `runtime-infra/skills` (see below). It also owns `skillbill.contracts.time.JvmSystemClock`,
@@ -505,8 +511,10 @@ and `:runtime-infra:sqlite`.
   there when both application and infrastructure need the same boundary
   contract.
 - `skillbill.contracts.*`: contract DTOs, JSON helpers, runtime surface
-  contracts, `*SchemaPaths` constants, and `*_CONTRACT_VERSION` constants.
-  This module loads nothing: it declares only `kotlinx-serialization-json`, stages
+  contracts, and `*_CONTRACT_VERSION` / `*_SCHEMA_ID` constants, each read by two
+  or more production modules or exposed by a `runtime-ports` signature. The
+  package compiles only in `runtime-contracts`.
+  That module loads nothing: it declares only `kotlinx-serialization-json`, stages
   no resources, and an architecture guard bans `org.yaml.`, `java.io.`, and
   `getResourceAsStream` from its sources. Values that used to be read out of
   packaged YAML are now compile-time constants owned by their reading layer —
@@ -522,9 +530,13 @@ and `:runtime-infra:sqlite`.
   and value types fail explicitly. Telemetry and update-check callers choose failure
   or bounded degradation when durable JSON arrays are corrupt.
   Mapping from application/domain/port models into contract DTOs belongs in
-  application or adapter-owned packages. This package spans two modules: the
-  DTOs, helpers, and constants compile in `runtime-contracts`, and the schema
-  validator classes compile into `runtime-infra/contracts` under
+  application or adapter-owned packages.
+- `skillbill.infrastructure.contracts.locator`: every `*SchemaPaths` locator and
+  `logSchemaLoadFailure`, owned by `runtime-infra/contracts` because that module
+  stages the canonical schema resources. `RuntimeArchitectureTest` fails any
+  `*SchemaPaths` object declared outside an `skillbill.infrastructure.*` package.
+- `skillbill.infrastructure.contracts.*`: the schema validator classes, compiled
+  into `runtime-infra/contracts` under
   `skillbill.infrastructure.contracts` and its subpackages
   (`SchemaValidatorLocale`, `install.InstallPlanSchemaValidator`,
   `review.ReviewContextSchemaValidator` and `ReviewContextSchemaLocator`, and
@@ -842,6 +854,13 @@ silently bypass the journal boundary.
    `DecompositionManifestValidator`, and `WorkflowSnapshotValidator` — never by
    importing a concrete `*SchemaValidator` / `*CoherenceValidator`.
    The install validator port is `skillbill.ports.install.InstallPlanWireValidator`.
+   `runtime-contracts` is also a *shared* kernel, not a dumping ground: a
+   declaration belongs there only when two or more production modules read it or
+   a `runtime-ports` signature exposes it. Otherwise it belongs to its one owner
+   — adapter-bound DTOs to the adapter module, single-owner `*Keys` objects to
+   the owning module, and every `*SchemaPaths` locator to
+   `skillbill.infrastructure.contracts.locator` in `runtime-infra/contracts`
+   (SKILL-374).
 6. Infrastructure packages implement ports and may depend on domain,
    contracts, ports, and JVM APIs. They must not depend on runtime-core or
    entry adapters.
@@ -859,9 +878,11 @@ silently bypass the journal boundary.
     `TelemetryOutboxRepository`. HTTP request mechanics belong in
     `skillbill.infrastructure.http`; config file IO belongs in
     `skillbill.infrastructure.host`; telemetry ports expose typed domain result
-    models from `skillbill.telemetry.model`; telemetry proxy wire DTOs belong
-    in `skillbill.contracts.telemetry`; telemetry proxy payload mapping belongs
-    with the HTTP adapter.
+    models from `skillbill.telemetry.model`; the telemetry proxy wire DTOs and
+    their payload mapping belong with the HTTP adapter in
+    `skillbill.infrastructure.http`, which is their single owner (SKILL-374).
+    `TelemetryProxyPayloadKeys` stays in `skillbill.contracts.telemetry`, where
+    domain, CLI, MCP, and the adapter all read it.
 11. JSON maps, YAML maps, MCP payloads, CLI JSON payloads, and terminal strings
     are boundary concerns. Internal use cases expose typed models.
 
@@ -954,8 +975,13 @@ skillbill.workflow.verify
 ## Runtime Contract And Schema Seams
 
 - Runtime contract schemas live in `orchestration/contracts/`. The
-  `*SchemaPaths` constants and `*_CONTRACT_VERSION` constants stay in
-  `runtime-contracts`. For MCP tool seams, each `telemetry-event-schema.yaml`
+  `*_CONTRACT_VERSION` constants stay in `runtime-contracts`; the `*SchemaPaths`
+  locators that name the staged copies live in
+  `skillbill.infrastructure.contracts.locator` in `runtime-infra/contracts`
+  (SKILL-374). Where an inner layer only needed a locator's `EXPECTED_SCHEMA_ID`,
+  it reads the top-level `GOAL_PLANNING_PREPARATION_SCHEMA_ID` or
+  `FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID` constant in `runtime-contracts`
+  instead. For MCP tool seams, each `telemetry-event-schema.yaml`
   `$defs` branch is both the validating envelope and the advertised
   `inputSchema` (`McpInputSchemaProjection` strips `event_name`,
   `contract_version`, and runtime-owned quality-check keys). The JVM
@@ -986,7 +1012,7 @@ skillbill.workflow.verify
   helpers only; SKILL-233 narrowed it further to `JsonCodec` — including its
   stdlib-typed `parseValue` / `valueToJsonString` facade that keeps
   `kotlinx.serialization` out of `runtime-domain` — the `*_CONTRACT_VERSION`
-  constants, `InstallPlanSchemaPaths`, and the typed
+  constants and the typed
   `InvalidWorkflowStateSchemaError` / `MalformedJsonTextError`. Workflow wire payloads are
   built once in `skillbill.application.workflow.WorkflowWireProjections` using
   `WorkflowWirePayloadKeys` and `SharedPayloadKeys`; there is no contracts-module
@@ -1353,7 +1379,8 @@ staging hashes, symlink checks, binary discovery, or rollback mechanics.
 
 ### Infrastructure `java.util.logging` owners (SKILL-353)
 
-Contract validators log schema drift at `WARNING` through `logSchemaLoadFailure`
+Contract validators log schema drift at `WARNING` through
+`skillbill.infrastructure.contracts.locator.logSchemaLoadFailure`
 before throwing the family's `Invalid*SchemaError`; that is the operator signal
 for packaged-schema versus runtime-contract version skew, not a silent fallback.
 `FeatureTaskRuntimePhaseOutputSchemaValidatorSupportParsing` logs unparsable
@@ -1824,9 +1851,17 @@ The closed workflow-Git result vocabulary is owned by
 # Wire vocabulary
 
 Runtime-domain wire-token declarations own closed enum tokens and their aliases. Runtime-contracts
-`*Keys` declarations own durable and wire payload keys; `SharedPayloadKeys` is the shared owner for
-the feature-task phase-output envelope; `DecompositionManifestPayloadKeys` and
-`DecompositionPlanningPayloadKeys` own decomposition-manifest and planning-projection keys.
+`*Keys` declarations own durable and wire payload keys that two or more production modules read;
+`SharedPayloadKeys` is the shared owner for the feature-task phase-output envelope;
+`DecompositionManifestPayloadKeys` and `DecompositionPlanningPayloadKeys` own decomposition-manifest
+and planning-projection keys; `LifecycleTelemetryPayloadKeys` owns the telemetry envelope, including
+`event_name`. A `*Keys` object with a single owner lives in that owner's module instead — for
+example `SqliteReviewTelemetryPayloadKeys` and
+`SqliteLifecycleTelemetryMaterializationPayloadKeys` in `runtime-infra/sqlite`,
+`GoalRunnerPurgePayloadKeys` and `GoalRunnerResetPayloadKeys` in `runtime-cli`,
+`GovernedReviewEvidencePayloadKeys` in `runtime-infra/launcher` — and it must not restate a value a
+shared owner already declares. `WireVocabularyArchitectureTest` asserts that zero-overlap for the
+two SQLite adapter key objects (SKILL-374).
 `ProsePhaseOutputParse` delegates status normalization to `SettlementStatus`, while
 `DecompositionStatus` retains its separate `completed` input alias and `complete` output token.
 

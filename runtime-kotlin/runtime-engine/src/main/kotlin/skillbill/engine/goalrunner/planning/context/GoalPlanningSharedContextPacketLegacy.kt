@@ -1,7 +1,5 @@
 package skillbill.engine.goalrunner.planning.context
 
-import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
-
 object GoalPlanningSharedContextPacketLegacy {
   fun migrateFromPacketVersion1(packet: Map<String, Any?>): Map<String, Any?> {
     if (packet.keys != GoalPlanningSharedContextPacket.LEGACY_V01_FIELDS) {

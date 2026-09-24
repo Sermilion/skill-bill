@@ -2,7 +2,7 @@ package skillbill.infrastructure.skills.agentaddon
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.agentaddon.AGENT_ADDON_CONTRACT_VERSION
-import skillbill.contracts.agentaddon.AgentAddonSchemaPaths
+import skillbill.infrastructure.contracts.locator.AgentAddonSchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

@@ -2,7 +2,6 @@ package skillbill.infrastructure.sqlite.telemetry.lifecycle
 
 import kotlinx.serialization.json.JsonElement
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import java.sql.Connection
 import java.sql.ResultSet

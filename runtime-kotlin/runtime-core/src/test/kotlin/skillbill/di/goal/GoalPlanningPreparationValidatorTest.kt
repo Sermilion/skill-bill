@@ -1,7 +1,7 @@
 package skillbill.di.goal
 
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID
 import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
 import skillbill.engine.goalplanning.GoalPlanningPreparationValidator
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
@@ -135,7 +135,7 @@ class GoalPlanningPreparationValidatorTest {
         decompositionManifestHash = "m",
       )
 
-    assertEquals(FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID, provenance.phaseOutputContractId)
+    assertEquals(FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID, provenance.phaseOutputContractId)
     assertEquals(FEATURE_TASK_RUNTIME_CONTRACT_VERSION, provenance.phaseOutputContractVersion)
     assertEquals(GOAL_PLANNING_PREPARATION_CONTRACT_VERSION, GOAL_PLANNING_PREPARATION_CONTRACT_VERSION)
   }

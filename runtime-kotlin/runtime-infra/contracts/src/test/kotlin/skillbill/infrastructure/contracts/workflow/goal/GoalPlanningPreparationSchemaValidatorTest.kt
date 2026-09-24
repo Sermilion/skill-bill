@@ -1,10 +1,10 @@
 package skillbill.infrastructure.contracts.workflow.goal
 
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
-import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
+import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.infrastructure.contracts.locator.GoalPlanningPreparationSchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith

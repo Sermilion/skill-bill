@@ -3,10 +3,10 @@ package skillbill.infrastructure.sqlite.review.stats
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
-import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.core.ops.bindAll
+import skillbill.infrastructure.sqlite.telemetry.SqliteReviewTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.enqueueTelemetry
 import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
 import skillbill.review.model.REVIEW_FINISHED_LEGACY_CONTRACT_VERSION
@@ -77,7 +77,7 @@ private fun migrateLegacyReviewFinishedRow(
     runtimeVersion,
     TelemetryOutboxEvent.REVIEW_FINISHED_LEGACY_REGENERATED,
     linkedMapOf(
-      SqliteLifecycleTelemetryMaterializationPayloadKeys.EVENT_NAME to
+      LifecycleTelemetryPayloadKeys.EVENT_NAME to
         TelemetryOutboxEvent.REVIEW_FINISHED_LEGACY_REGENERATED.wireValue,
       SharedPayloadKeys.CONTRACT_VERSION to REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION,
       ReviewVerificationSignalKeys.REVIEW_RUN_ID to reviewRunId,

@@ -4,9 +4,9 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
-import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
+import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_SCHEMA_ID
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
+import skillbill.engine.goalrunner.planning.context.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.engine.goalrunner.planning.context.goalPlanningImmutableDecompositionHash
 import skillbill.engine.goalrunner.planning.model.GoalPlanningStatusAlignRequest
 import skillbill.engine.goalrunner.planning.outcome.canonicalRepository
@@ -73,7 +73,7 @@ class LaunchAlignedGoalPlanningStatusReasonCoherence(
           GoalPlanningContractProvenance(
             parentSpecHash = "",
             decompositionManifestHash = "",
-            planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+            planningContractId = GOAL_PLANNING_PREPARATION_SCHEMA_ID,
           ),
         )
     val parentSpecPath = lexicalPath(canonicalRepository, request.manifest.parentSpecPath)
@@ -82,7 +82,7 @@ class LaunchAlignedGoalPlanningStatusReasonCoherence(
       GoalPlanningContractProvenance(
         parentSpecHash = sha256HexUtf8(currentParentSpec),
         decompositionManifestHash = goalPlanningImmutableDecompositionHash(request.manifest),
-        planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+        planningContractId = GOAL_PLANNING_PREPARATION_SCHEMA_ID,
       )
     val packetParentSpec = planningPacketParentSpec(existing)
     val savedParentSpec =

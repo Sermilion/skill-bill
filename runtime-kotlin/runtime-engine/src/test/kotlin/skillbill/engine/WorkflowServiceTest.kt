@@ -29,7 +29,7 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.lifecycle.core.AlwaysValidValidator
 import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService

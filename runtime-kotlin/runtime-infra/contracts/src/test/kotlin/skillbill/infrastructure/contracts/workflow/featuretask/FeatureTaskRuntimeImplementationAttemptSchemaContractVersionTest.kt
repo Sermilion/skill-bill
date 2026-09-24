@@ -3,7 +3,7 @@ package skillbill.infrastructure.contracts.workflow.featuretask
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeImplementationAttemptSchemaPaths
+import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimeImplementationAttemptSchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

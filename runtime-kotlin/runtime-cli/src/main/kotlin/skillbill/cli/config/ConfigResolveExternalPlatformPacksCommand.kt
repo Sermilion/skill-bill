@@ -8,7 +8,6 @@ import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.config.ExternalPlatformPackResolutionPayloadKeys
 import skillbill.error.core.ShellContentContractException
 import skillbill.scaffold.policy.platformpack.model.PlatformPackSourceKind
 

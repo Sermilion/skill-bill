@@ -5,11 +5,11 @@ import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
-import skillbill.contracts.install.InstallPlanSchemaPaths
-import skillbill.contracts.logSchemaLoadFailure
 import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
+import skillbill.infrastructure.contracts.locator.InstallPlanSchemaPaths
+import skillbill.infrastructure.contracts.locator.logSchemaLoadFailure
 import skillbill.infrastructure.contracts.review.formatValidationReason
 import skillbill.infrastructure.contracts.review.offendingValue
 import skillbill.infrastructure.contracts.review.violationOrdering

@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite.review.stage
 
 import skillbill.contracts.review.ReviewFindingPayloadKeys
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.review.model.FindingMetadata
 import skillbill.review.model.ImportedFinding
@@ -52,8 +52,8 @@ internal object ReviewRuntime {
         require(resultSet.next()) { "Unknown finding id '$findingId' for review run '$reviewRunId'." }
         FindingMetadata(
           findingId = resultSet.getString(ReviewFindingPayloadKeys.FINDING_ID),
-          severity = resultSet.getString(SqliteReviewTelemetryPayloadKeys.SEVERITY),
-          confidence = resultSet.getString(SqliteReviewTelemetryPayloadKeys.CONFIDENCE),
+          severity = resultSet.getString(ReviewFinishedTelemetryPayloadKeys.SEVERITY),
+          confidence = resultSet.getString(ReviewFinishedTelemetryPayloadKeys.CONFIDENCE),
         )
       }
     }

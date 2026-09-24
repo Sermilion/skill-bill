@@ -6,7 +6,6 @@ object McpToolPayloadKeys {
   const val TEXT: String = "text"
   const val TYPE: String = "type"
   const val IS_ERROR: String = "isError"
-  const val EVENT_NAME: String = "event_name"
   const val ENVELOPE: String = "envelope"
   const val KIND: String = "kind"
   const val PAYLOAD: String = "payload"

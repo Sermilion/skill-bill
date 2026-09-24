@@ -3,7 +3,6 @@ package skillbill.install.model
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.contracts.install.InstallPlanContract
-import skillbill.contracts.install.InstallPlanPayloadKeys
 import skillbill.install.policy.selectedPlatformSlugs
 
 class InstallPlanWireMap private constructor(

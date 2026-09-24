@@ -10,10 +10,10 @@ import com.networknt.schema.ValidationMessage
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.BUNDLE_JOURNAL_CONTRACT_VERSION
-import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
 import skillbill.error.shellcontent.InvalidDecompositionManifestBundleJournalError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
+import skillbill.infrastructure.contracts.locator.DecompositionManifestBundleJournalSchemaPaths
 import java.io.IOException
 import kotlin.coroutines.cancellation.CancellationException
 

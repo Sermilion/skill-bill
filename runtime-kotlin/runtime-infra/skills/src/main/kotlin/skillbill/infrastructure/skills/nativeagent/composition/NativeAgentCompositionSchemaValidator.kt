@@ -5,10 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
-import skillbill.contracts.logSchemaLoadFailure
 import skillbill.error.shellcontent.InvalidNativeAgentCompositionSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
+import skillbill.infrastructure.contracts.locator.logSchemaLoadFailure
 import java.util.logging.Level
 import java.util.logging.Logger
 

@@ -3,6 +3,7 @@ package skillbill.mcp.core
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.error.core.InvalidMcpToolArgumentError
 import skillbill.error.core.ShellContentContractException
 import skillbill.error.learning.InvalidLearningSourceError
@@ -66,11 +67,11 @@ internal object McpToolDispatcher {
     arguments: Map<String, Any?>,
   ): Map<String, Any?> =
     linkedMapOf<String, Any?>(
-      McpToolPayloadKeys.EVENT_NAME to toolName,
+      LifecycleTelemetryPayloadKeys.EVENT_NAME to toolName,
       SharedPayloadKeys.CONTRACT_VERSION to TELEMETRY_EVENT_CONTRACT_VERSION,
     ) +
       arguments.filterKeys {
-        it != McpToolPayloadKeys.EVENT_NAME && it != SharedPayloadKeys.CONTRACT_VERSION
+        it != LifecycleTelemetryPayloadKeys.EVENT_NAME && it != SharedPayloadKeys.CONTRACT_VERSION
       }
 }
 

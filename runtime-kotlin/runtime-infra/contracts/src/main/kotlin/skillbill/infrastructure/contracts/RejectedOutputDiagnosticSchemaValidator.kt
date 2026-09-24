@@ -3,8 +3,8 @@ import com.networknt.schema.JsonSchema
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.output.REJECTED_OUTPUT_DIAGNOSTIC_CONTRACT_VERSION
-import skillbill.contracts.workflow.identity.output.RejectedOutputDiagnosticSchemaPaths
 import skillbill.error.shellcontent.InvalidRejectedOutputDiagnosticSchemaError
+import skillbill.infrastructure.contracts.locator.RejectedOutputDiagnosticSchemaPaths
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 

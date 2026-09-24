@@ -3,7 +3,6 @@ package skillbill.engine.goalrunner.planning.context
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSubtaskPlanningDisposition
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeadingKind
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext

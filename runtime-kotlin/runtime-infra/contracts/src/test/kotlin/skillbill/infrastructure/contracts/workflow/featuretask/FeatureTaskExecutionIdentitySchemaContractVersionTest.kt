@@ -2,7 +2,7 @@ package skillbill.infrastructure.contracts.workflow.featuretask
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.identity.task.FEATURE_TASK_EXECUTION_IDENTITY_CONTRACT_VERSION
-import skillbill.contracts.workflow.identity.task.FeatureTaskExecutionIdentitySchemaPaths
+import skillbill.infrastructure.contracts.locator.FeatureTaskExecutionIdentitySchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

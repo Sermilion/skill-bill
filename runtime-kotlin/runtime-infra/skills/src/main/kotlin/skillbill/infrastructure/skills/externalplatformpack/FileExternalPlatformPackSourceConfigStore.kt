@@ -1,7 +1,6 @@
 package skillbill.infrastructure.skills.externalplatformpack
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.contracts.config.ExternalPlatformPackConfigKeys
 import skillbill.error.core.ExternalPlatformPackConfigError
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.host.readTelemetryConfigFile

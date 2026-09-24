@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.runner
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.workflow.WorkflowTimestampPayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowTimestampPayloadKeys
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.goalrunner.model.parseExecutionLeaseInstant

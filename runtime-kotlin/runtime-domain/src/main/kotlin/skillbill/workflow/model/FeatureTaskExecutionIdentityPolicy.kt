@@ -1,7 +1,7 @@
 package skillbill.workflow.model
 
+import skillbill.contracts.issuekey.MAX_ISSUE_KEY_LENGTH
 import skillbill.contracts.issuekey.isWellFormedIssueKey
-import skillbill.contracts.issuekey.malformedIssueKeyReason
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.contracts.workflow.identity.task.FEATURE_TASK_EXECUTION_IDENTITY_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
@@ -61,7 +61,9 @@ object FeatureTaskExecutionIdentityPolicy {
   private fun issueKeyFailure(
     field: String,
     value: String,
-  ): String = malformedIssueKeyReason(field, echo(value))
+  ): String =
+    "$field is malformed: expected a non-blank issue key of at most $MAX_ISSUE_KEY_LENGTH characters " +
+      "with no control characters, but received ${echo(value)}"
 
   private fun repositoryIdentityFailure(value: String): String =
     "repository_identity is malformed: expected the prefix '$REPOSITORY_IDENTITY_PREFIX' followed by the " +

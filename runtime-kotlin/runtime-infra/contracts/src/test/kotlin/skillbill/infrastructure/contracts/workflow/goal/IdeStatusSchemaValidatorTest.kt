@@ -3,8 +3,8 @@ package skillbill.infrastructure.contracts.workflow.goal
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.identity.status.GOAL_PLANNING_WAVE_CAP
 import skillbill.contracts.workflow.identity.status.IDE_STATUS_CONTRACT_VERSION
-import skillbill.contracts.workflow.identity.status.IdeStatusSchemaPaths
 import skillbill.error.shellcontent.InvalidIdeStatusSchemaError
+import skillbill.infrastructure.contracts.locator.IdeStatusSchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse

@@ -2,7 +2,6 @@ package skillbill.application.decomposition
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.model.PreparedDecompositionManifestWrite
-import skillbill.contracts.decomposition.DecompositionManifestProjectionOperations
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.issuekey.issueAndFeature
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError

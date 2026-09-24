@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.mcp.McpToolPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import skillbill.mcp.shared.McpProtocolFramer
 import skillbill.mcp.telemetry.TelemetryEventSchemaValidator
@@ -40,7 +40,7 @@ internal object McpInputSchemaProjection {
     defs.fields().forEach { (_, defNode) ->
       val eventName =
         defNode.path(McpProtocolFramer.SCHEMA_PROPERTIES_KEY)
-          .path(McpToolPayloadKeys.EVENT_NAME)
+          .path(LifecycleTelemetryPayloadKeys.EVENT_NAME)
           .path(McpProtocolFramer.SCHEMA_CONST_KEY)
           .asText("")
       if (eventName == toolName) {
@@ -48,7 +48,7 @@ internal object McpInputSchemaProjection {
       }
     }
     throw InvalidTelemetryEventSchemaError(
-      fieldPath = McpToolPayloadKeys.EVENT_NAME,
+      fieldPath = LifecycleTelemetryPayloadKeys.EVENT_NAME,
       eventName = toolName,
       reason = "No \$defs branch pins event_name.const to '$toolName'.",
     )
@@ -65,7 +65,7 @@ internal object McpInputSchemaProjection {
     }
     val propertiesCopy = properties.deepCopy() as ObjectNode
     val removedPropertyKeys =
-      linkedSetOf(McpToolPayloadKeys.EVENT_NAME, SharedPayloadKeys.CONTRACT_VERSION) +
+      linkedSetOf(LifecycleTelemetryPayloadKeys.EVENT_NAME, SharedPayloadKeys.CONTRACT_VERSION) +
         tool.runtimeOwnedArgumentKeys
     removedPropertyKeys.forEach(propertiesCopy::remove)
     copy.set<JsonNode>(McpProtocolFramer.SCHEMA_PROPERTIES_KEY, propertiesCopy)

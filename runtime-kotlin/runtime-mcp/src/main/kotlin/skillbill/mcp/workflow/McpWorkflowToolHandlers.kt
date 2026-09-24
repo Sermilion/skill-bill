@@ -8,7 +8,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.workflow.payload.WorkflowArtifactKeys
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.McpToolArguments
 import skillbill.workflow.engine.model.WorkflowArtifactPatch

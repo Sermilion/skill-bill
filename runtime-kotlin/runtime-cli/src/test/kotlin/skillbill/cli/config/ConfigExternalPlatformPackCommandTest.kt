@@ -3,8 +3,8 @@ package skillbill.cli.config
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.config.ExternalPlatformPackConfigKeys
 import skillbill.contracts.config.ExternalPlatformPackTelemetryPayloadKeys
+import skillbill.infrastructure.skills.externalplatformpack.ExternalPlatformPackConfigKeys
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import java.nio.file.Files
 import java.nio.file.Path

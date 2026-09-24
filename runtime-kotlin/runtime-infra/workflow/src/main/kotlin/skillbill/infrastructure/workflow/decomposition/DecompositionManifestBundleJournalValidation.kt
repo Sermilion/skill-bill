@@ -1,6 +1,5 @@
 package skillbill.infrastructure.workflow.decomposition
 
-import skillbill.contracts.decomposition.DecompositionManifestBundleJournalPayloadKeys
 import skillbill.error.shellcontent.InvalidDecompositionManifestBundleJournalError
 import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.infrastructure.contracts.workflow.decomposition.DecompositionManifestBundleJournalSchemaValidator

@@ -2,7 +2,6 @@ package skillbill.infrastructure.sqlite.telemetry.goal
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.error.core.ShellContentContractException
 import skillbill.infrastructure.sqlite.core.ops.InternalSqliteDiagnostics

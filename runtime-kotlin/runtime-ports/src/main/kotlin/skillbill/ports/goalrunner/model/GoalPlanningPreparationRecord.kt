@@ -1,7 +1,7 @@
 package skillbill.ports.goalrunner.model
 
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID
 import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
@@ -17,7 +17,7 @@ data class GoalPlanningContractProvenance(
   val decompositionManifestHash: String,
   val planningContractId: String,
   val planningContractVersion: String = GOAL_PLANNING_PREPARATION_CONTRACT_VERSION,
-  val phaseOutputContractId: String = FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID,
+  val phaseOutputContractId: String = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID,
   val phaseOutputContractVersion: String = FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
 )
 
@@ -86,7 +86,7 @@ data class GoalPlanningPreparationProvenance(
   val parentSpecHash: String,
   val subSpecHash: String,
   val decompositionManifestHash: String,
-  val phaseOutputContractId: String = FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID,
+  val phaseOutputContractId: String = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID,
   val phaseOutputContractVersion: String = FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
 ) {
   fun asRecoveryTuple(): List<String> =

@@ -1,7 +1,6 @@
 package skillbill.infrastructure.http
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.telemetry.RemoteStatsQueryPayload
 import skillbill.error.core.ShellContentContractException
 import skillbill.error.core.TelemetryProxyInvalidResponseError
 import skillbill.error.core.TelemetryProxyRequestFailureError

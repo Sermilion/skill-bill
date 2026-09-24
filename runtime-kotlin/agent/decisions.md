@@ -11,6 +11,72 @@ Reason: The guard stops writers from producing entries the finding-verification 
 Alternatives considered: Raising the cap (moves the cliff, and the 32 KB verification total budget still binds); catching the error in the prompt path only (drops the evidence and keeps the crash risk in other callers).
 Revisit when: verification needs whole entries it cannot fit, or the caps change.
 
+## [2026-09-24] runtime-contracts is a shared kernel: single-owner declarations move to their owner (SKILL-374 subtask 2)
+
+`runtime-contracts` had become the default home for anything more than one file
+touched, so adapter DTOs, module-local `*Keys` objects, and schema locators sat in
+the leaf every module compiles against: an MCP response or SQLite column change
+recompiled the whole runtime.
+
+**Decision.** A declaration stays in `runtime-contracts` only when two or more
+production modules read or write it, or a `runtime-ports` signature exposes it.
+Everything else moves to its one owner: the MCP skipped-result DTOs to
+`runtime-mcp`, the telemetry-proxy request DTOs to `runtime-infra/http`, the
+governed-review wire payloads to `runtime-infra/launcher`, the SQLite
+materialization and review key objects to `runtime-infra/sqlite`, the goal
+purge/reset key objects to `runtime-cli`, and so on. Every `*SchemaPaths`
+locator — plus `logSchemaLoadFailure` — moves to
+`skillbill.infrastructure.contracts.locator` in `runtime-infra/contracts`, the
+module that stages the canonical YAML; `RuntimeArchitectureTest` now fails any
+locator declared outside an `skillbill.infrastructure.*` package. Where an inner
+layer only read a locator's `EXPECTED_SCHEMA_ID`, it reads a top-level
+`*_SCHEMA_ID` constant in `runtime-contracts` instead, so ports, engine, and
+sqlite no longer depend on the locator at all.
+
+The move is package-and-module only: class names, member names, wire values, and
+`toPayload()` output are byte-identical, and no Gradle module edge was added.
+
+**Trade-off.** A declaration that gains a second production reader must move
+back, paid when sharing appears rather than up front. In exchange the kernel's
+contents are evidence of sharing, and adapter vocabulary recompiles only the
+adapter.
+
+**Corollary (F-003).** The two SQLite key objects restated dozens of values that
+`SharedPayloadKeys`, `LifecycleTelemetryPayloadKeys`, `GoalTelemetryPayloadKeys`,
+`ReviewFindingPayloadKeys`, `ReviewFinishedTelemetryPayloadKeys`, and
+`ReviewVerificationSignalKeys` already owned. Those members are gone and the
+adapters reference the shared owner; `WireVocabularyArchitectureTest` asserts the
+zero overlap. `event_name` was restated in three objects with no shared owner at
+all, so it is now `LifecycleTelemetryPayloadKeys.EVENT_NAME` — genuinely shared
+between `runtime-mcp` and `runtime-infra/sqlite`.
+
+**Supersedes.** This entry supersedes the 2026-05-28 clause "The pure
+`*SchemaPaths` and `*_CONTRACT_VERSION` constants stay in `runtime-contracts`"
+for the `*SchemaPaths` locators only. The clause still holds for the
+`*_CONTRACT_VERSION` constants and for the two record-identity schema IDs
+(`GOAL_PLANNING_PREPARATION_SCHEMA_ID`, `FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID`),
+which ports, engine, and sqlite all read.
+
+**What stays, and why.** `JsonPayloadContract` stays in `runtime-contracts`
+unchanged. It is the typed carrier that keeps raw `Map<String, Any?>` out of
+inner-layer signatures. `runtime-ports` signatures expose it
+(`IdeStatusValidator.toWirePayload`, `IdeStatusProblemDetails`,
+`ReviewFinishedTelemetryPayload`), and application mappers, infra:contracts, and
+infra:launcher use it too, so the placement rule keeps it shared. The learning,
+review, lifecycle, doctor, and install-plan DTOs with a public
+`toPayload(): Map<String, Any?>` also stay. Application or domain code builds
+them and CLI or MCP calls `toPayload()`, so each has two production readers.
+They can't move inward either: `RuntimeRawMapArchitectureTest` forbids a public
+raw-map member in application, domain, and ports. `McpToolPayloadKeys` stays
+because `runtime-infra/sqlite` reads `REVIEW_SESSION_ID` from it, which makes
+two production readers.
+
+**Exception under the no-new-edge rule.** `JvmSystemClock` has one production
+reader (`runtime-core`), but tests in four other modules use it; moving it would
+add test edges to the composition root, so it stays as the ambient clock seam.
+
+---
+
 ## [2026-09-24] The architecture suite is a repository-contract suite with declared inputs
 
 The architecture suite reads governed sources across the whole repository, not
@@ -1670,7 +1736,9 @@ and `DecompositionManifestValidator` (runtime-domain `skillbill.workflow`).
 Wire each port to an infra-fs adapter through `RuntimeComponent` with
 `@Provides @JvmSynthetic internal`, exactly like every other infra adapter.
 The pure `*SchemaPaths` and `*_CONTRACT_VERSION` constants stay in
-`runtime-contracts`; the networknt + Jackson dependencies and the three schema
+`runtime-contracts` (**superseded for `*SchemaPaths` by the 2026-09-24 SKILL-374
+entry: the locators now live with the module that stages the resources**); the
+networknt + Jackson dependencies and the three schema
 `Copy` tasks move with the validators to `runtime-infra/fs`. The library choice
 is unchanged.
 

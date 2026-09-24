@@ -1,6 +1,7 @@
 package skillbill.contracts.telemetry
 
 object LifecycleTelemetryPayloadKeys {
+  const val EVENT_NAME: String = "event_name"
   const val SESSION_ID: String = "session_id"
   const val ERROR: String = "error"
   const val MODE: String = "mode"
@@ -54,10 +55,6 @@ object LifecycleTelemetryPayloadKeys {
   const val LAUNCHED_MODEL_AVAILABILITY: String = "launched_model_availability"
   const val AGENT_CONTEXT_MEASUREMENT_GRAIN: String = "agent_context_measurement_grain"
 }
-
-const val AUDIT_GAP_MEASUREMENT_GRAIN_PER_RUN: String = "audit_gap_rounds_per_run"
-
-const val AGENT_CONTEXT_MEASUREMENT_GRAIN_DISTINCT_PER_RUN: String = "distinct_resolved_agents_per_run"
 
 enum class LifecycleSessionCompletion(val wireValue: String) {
   OPERATOR_COMPLETED("operator_completed"),

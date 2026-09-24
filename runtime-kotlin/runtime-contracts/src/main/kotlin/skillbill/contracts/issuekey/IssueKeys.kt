@@ -1,8 +1,5 @@
 package skillbill.contracts.issuekey
 
-const val ISSUE_KEY_SCHEMA_ID: String = "https://skill-bill.dev/contracts/issue-key-schema.yaml"
-const val ISSUE_KEY_SCHEMA_RESOURCE: String = "skillbill/infrastructure/contracts/issue-key-schema.yaml"
-
 const val MAX_ISSUE_KEY_LENGTH: Int = 128
 
 fun isWellFormedIssueKey(issueKey: String): Boolean {
@@ -20,10 +17,3 @@ fun normalizeIssueKey(issueKey: String?): String? =
   }
 
 fun normalizeRequiredIssueKey(issueKey: String): String = requireNotNull(normalizeIssueKey(issueKey))
-
-fun malformedIssueKeyReason(
-  field: String,
-  receivedEcho: String,
-): String =
-  "$field is malformed: expected a non-blank issue key of at most $MAX_ISSUE_KEY_LENGTH characters " +
-    "with no control characters, but received $receivedEcho"

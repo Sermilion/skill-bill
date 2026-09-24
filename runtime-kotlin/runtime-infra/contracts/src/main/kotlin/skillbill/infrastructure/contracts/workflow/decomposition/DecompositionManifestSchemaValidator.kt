@@ -9,13 +9,13 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
 import me.tatarka.inject.annotations.Inject
-import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.workflow.featuretask.DECOMPOSITION_MANIFEST_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.DecompositionManifestSchemaPaths
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
+import skillbill.infrastructure.contracts.locator.DecompositionManifestSchemaPaths
+import skillbill.infrastructure.contracts.locator.logSchemaLoadFailure
 import skillbill.infrastructure.contracts.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepair
 import skillbill.infrastructure.contracts.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepairDecision
 import skillbill.infrastructure.contracts.review.formatValidationReason

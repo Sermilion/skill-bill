@@ -3,7 +3,7 @@ package skillbill.infrastructure.contracts.install
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
-import skillbill.contracts.install.InstallPlanSchemaPaths
+import skillbill.infrastructure.contracts.locator.InstallPlanSchemaPaths
 import skillbill.install.model.SupportedAgent
 import kotlin.test.Test
 import kotlin.test.assertContains
