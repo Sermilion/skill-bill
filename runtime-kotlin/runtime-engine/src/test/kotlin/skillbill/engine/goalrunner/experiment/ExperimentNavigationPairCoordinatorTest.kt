@@ -11,8 +11,8 @@ import skillbill.ports.experiment.navigation.ExperimentNavigationSessionResult
 import skillbill.ports.experiment.navigation.ExperimentNavigationSessionRunnerPort
 import skillbill.ports.experiment.navigation.ExperimentNavigationTerminalOutcome
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
-import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import skillbill.ports.experiment.pair.ExperimentPairPayload
+import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import skillbill.ports.experiment.selection.ExperimentLaunchSelection
 import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -96,23 +96,23 @@ class ExperimentNavigationPairCoordinatorTest {
         pairPayload =
           ExperimentPairPayload(
             mapOf(
-            ExperimentPairPayloadKeys.PAIR_ID to "pair-resume",
-            ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-navigation"),
-            ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
-            ExperimentPairPayloadKeys.RANDOM_SEED to "pair-resume",
-            ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to
-              mapOf(
-                ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to "repo",
-                ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to "resolved-commit",
-                ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to sha256Hex("spec".toByteArray()),
-              ),
-            ExperimentPairPayloadKeys.ARM_OUTCOMES to
-              listOf(
+              ExperimentPairPayloadKeys.PAIR_ID to "pair-resume",
+              ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-navigation"),
+              ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
+              ExperimentPairPayloadKeys.RANDOM_SEED to "pair-resume",
+              ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to
                 mapOf(
-                  ExperimentPairPayloadKeys.ARM_ID to "control",
-                  ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
+                  ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to "repo",
+                  ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to "resolved-commit",
+                  ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to sha256Hex("spec".toByteArray()),
                 ),
-              ),
+              ExperimentPairPayloadKeys.ARM_OUTCOMES to
+                listOf(
+                  mapOf(
+                    ExperimentPairPayloadKeys.ARM_ID to "control",
+                    ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
+                  ),
+                ),
             ),
           ),
       ),

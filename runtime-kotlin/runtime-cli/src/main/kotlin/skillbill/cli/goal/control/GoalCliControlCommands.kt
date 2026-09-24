@@ -6,12 +6,12 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
+import skillbill.cli.goal.core.goalAcceptExitCode
 import skillbill.cli.goal.core.goalOperatorDecisionExitCode
 import skillbill.cli.goal.core.goalOperatorDecisionText
 import skillbill.cli.goal.core.goalPauseExitCode
 import skillbill.cli.goal.core.goalRepairExitCode
 import skillbill.cli.goal.core.goalRepairText
-import skillbill.cli.goal.core.goalAcceptExitCode
 import skillbill.cli.goal.core.goalReplanExitCode
 import skillbill.cli.goal.core.goalResetExitCode
 import skillbill.cli.goal.core.goalResumeExitCode

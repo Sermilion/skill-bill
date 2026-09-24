@@ -73,7 +73,8 @@ internal fun FeatureTaskRuntimePhaseStatus.toRuntimePhaseStatusCliMap(): Map<Str
     "finished" to finished,
   )
 
-internal fun runtimeStatusExitCode(projection: FeatureTaskRuntimeStatusProjection?): Int = if (projection != null) 0 else 1
+internal fun runtimeStatusExitCode(projection: FeatureTaskRuntimeStatusProjection?): Int =
+  if (projection != null) 0 else 1
 
 internal fun runtimeStatusText(
   projection: FeatureTaskRuntimeStatusProjection?,
@@ -81,7 +82,7 @@ internal fun runtimeStatusText(
 ): String =
   buildString {
     appendLine("feature-task-runtime: ${projection?.workflowId ?: workflowId}")
-    appendLine("status: ${if (projection == null) "not_found" else "ok"}")
+    appendLine("status: ${projection.statusText()}")
     appendLine("feature_size: ${projection?.featureSize ?: "unknown"}")
     appendLine("complete: ${projection?.completeCount ?: 0}")
     appendLine("pending: ${projection?.pendingCount ?: 0}")
@@ -89,41 +90,59 @@ internal fun runtimeStatusText(
     appendLine("current_phase: ${projection?.currentPhaseId ?: "none"}")
     appendLine("resolved_branch: ${projection?.resolvedBranch ?: "none"}")
     appendLine("finalizing_agent: ${projection?.finalizingAgentId ?: "none"}")
-    projection?.validationGateExecutionEvidence?.let { evidence ->
-      appendLine("validation_gate_status: ${evidence.validationStatus}")
-      appendLine("validation_gate_checks: ${evidence.checks.joinToString(",")}")
-      appendLine("validation_gate_run_count: ${evidence.gateRunCount}")
-      evidence.gateRuns.forEach { run ->
-        appendLine(
-          "validation_gate_run: cache_mode=${run.cacheMode.wireValue} " +
-            "outcome=${run.outcome.wireValue} " +
-            "executed_work_units=${run.executedWorkUnits} " +
-            "checks=${run.executedChecks.joinToString(",")}",
-        )
-      }
-    }
-    projection?.degradedDiagnostic?.let { degraded ->
-      appendLine("degraded_diagnostic_count: ${degraded.count}")
-      appendLine("degraded_diagnostic_failure_class: ${degraded.failureClass}")
-      appendLine("degraded_diagnostic_phase: ${degraded.phaseId}")
-      appendLine("degraded_diagnostic_attempt: ${degraded.attempt}")
-    }
-    projection?.decomposeTerminal?.let { terminal ->
-      appendLine("decomposition_reason: ${terminal.reason}")
-      appendLine("subtask_count: ${terminal.subtaskCount}")
-      appendLine("parent_spec_path: ${terminal.parentSpecPath}")
-      appendLine("decomposition_manifest_path: ${terminal.decompositionManifestPath}")
-      terminal.subtaskSpecPaths.forEach { appendLine("subtask_spec_path: $it") }
-      appendLine("guidance: $DECOMPOSE_GUIDANCE")
-    }
-    projection?.phases.orEmpty().forEach { phase ->
+    appendValidationGateStatus(projection)
+    appendDegradedDiagnostic(projection)
+    appendDecompositionTerminal(projection)
+    appendPhaseStatuses(projection)
+  }
+
+private fun FeatureTaskRuntimeStatusProjection?.statusText(): String = if (this == null) "not_found" else "ok"
+
+private fun StringBuilder.appendValidationGateStatus(projection: FeatureTaskRuntimeStatusProjection?) {
+  projection?.validationGateExecutionEvidence?.let { evidence ->
+    appendLine("validation_gate_status: ${evidence.validationStatus}")
+    appendLine("validation_gate_checks: ${evidence.checks.joinToString(",")}")
+    appendLine("validation_gate_run_count: ${evidence.gateRunCount}")
+    evidence.gateRuns.forEach { run ->
       appendLine(
-        "phase: id=${phase.phaseId} " +
-          "status=${phase.status} " +
-          "attempt=${phase.attemptCount} " +
-          "agent=${phase.resolvedAgentId ?: "none"} " +
-          "origin=${phase.executionOrigin ?: "none"} " +
-          "finished=${phase.finished}",
+        "validation_gate_run: cache_mode=${run.cacheMode.wireValue} " +
+          "outcome=${run.outcome.wireValue} " +
+          "executed_work_units=${run.executedWorkUnits} " +
+          "checks=${run.executedChecks.joinToString(",")}",
       )
     }
   }
+}
+
+private fun StringBuilder.appendDegradedDiagnostic(projection: FeatureTaskRuntimeStatusProjection?) {
+  projection?.degradedDiagnostic?.let { degraded ->
+    appendLine("degraded_diagnostic_count: ${degraded.count}")
+    appendLine("degraded_diagnostic_failure_class: ${degraded.failureClass}")
+    appendLine("degraded_diagnostic_phase: ${degraded.phaseId}")
+    appendLine("degraded_diagnostic_attempt: ${degraded.attempt}")
+  }
+}
+
+private fun StringBuilder.appendDecompositionTerminal(projection: FeatureTaskRuntimeStatusProjection?) {
+  projection?.decomposeTerminal?.let { terminal ->
+    appendLine("decomposition_reason: ${terminal.reason}")
+    appendLine("subtask_count: ${terminal.subtaskCount}")
+    appendLine("parent_spec_path: ${terminal.parentSpecPath}")
+    appendLine("decomposition_manifest_path: ${terminal.decompositionManifestPath}")
+    terminal.subtaskSpecPaths.forEach { appendLine("subtask_spec_path: $it") }
+    appendLine("guidance: $DECOMPOSE_GUIDANCE")
+  }
+}
+
+private fun StringBuilder.appendPhaseStatuses(projection: FeatureTaskRuntimeStatusProjection?) {
+  projection?.phases.orEmpty().forEach { phase ->
+    appendLine(
+      "phase: id=${phase.phaseId} " +
+        "status=${phase.status} " +
+        "attempt=${phase.attemptCount} " +
+        "agent=${phase.resolvedAgentId ?: "none"} " +
+        "origin=${phase.executionOrigin ?: "none"} " +
+        "finished=${phase.finished}",
+    )
+  }
+}

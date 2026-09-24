@@ -19,15 +19,15 @@ import skillbill.experiment.model.ExperimentExecutionMode
 import skillbill.ports.experiment.measurement.ExperimentArmMeasurement
 import skillbill.ports.experiment.measurement.ExperimentArmMeasurementPort
 import skillbill.ports.experiment.measurement.ExperimentMeasuredValue
+import skillbill.ports.experiment.navigation.ExperimentNavigationRunPort
 import skillbill.ports.experiment.navigation.ExperimentNavigationSessionRequest
 import skillbill.ports.experiment.navigation.ExperimentNavigationSessionResult
-import skillbill.ports.experiment.navigation.ExperimentNavigationRunPort
 import skillbill.ports.experiment.navigation.ExperimentNavigationSessionRunnerPort
 import skillbill.ports.experiment.navigation.ExperimentNavigationTerminalOutcome
 import skillbill.ports.experiment.navigation.model.ExperimentNavigationRunRequest
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
-import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import skillbill.ports.experiment.pair.ExperimentPairPayload
+import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -38,11 +38,11 @@ import skillbill.review.spec.GovernedSpecSectionParser
 import skillbill.review.spec.GovernedSpecSectionParser.ACCEPTANCE_CRITERIA_PREFIX
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.readBytes
 import java.security.MessageDigest
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
+import kotlin.io.path.readBytes
 import kotlin.time.Duration.Companion.minutes
 
 data class ExperimentNavigationPairSource(
@@ -84,8 +84,7 @@ class ExperimentNavigationPairCoordinator(
   private val telemetryRecorder: ExperimentTelemetryRecorder? = null,
   private val clock: Clock = Clock.systemUTC(),
 ) : ExperimentNavigationRunPort {
-  override fun acceptanceCriteria(specText: String): List<String> =
-    parseNavigationAcceptanceCriteria(specText)
+  override fun acceptanceCriteria(specText: String): List<String> = parseNavigationAcceptanceCriteria(specText)
 
   override fun run(request: ExperimentNavigationRunRequest): String {
     val specPath = request.specPath

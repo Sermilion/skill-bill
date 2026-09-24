@@ -3,9 +3,9 @@ package skillbill.infrastructure.launcher.launcher
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
+import skillbill.experiment.model.ExperimentArmId
 import skillbill.infrastructure.launcher.agentrun.headlessAgentRunAdapters
 import skillbill.install.model.InstallAgent
-import skillbill.experiment.model.ExperimentArmId
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
@@ -411,9 +411,7 @@ class AgentRunGoalContinuationCommandTest {
     }
   }
 
-  private fun fullyPopulated(
-    context: SkillRunGoalContinuationContext,
-  ): SkillRunGoalContinuationContext =
+  private fun fullyPopulated(context: SkillRunGoalContinuationContext): SkillRunGoalContinuationContext =
     context.copy(
       experimentArmId = ExperimentArmId.TREATMENT,
       experimentTreatmentCapabilities = linkedSetOf("capability-a", "capability-b"),

@@ -21,10 +21,10 @@ internal fun parseAgentAddonSelection(raw: String?): AgentAddonSelection {
       )
   if (
     map.keys !=
-      setOf(
-        SharedPayloadKeys.CONTRACT_VERSION,
-        FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ENTRIES,
-      ) ||
+    setOf(
+      SharedPayloadKeys.CONTRACT_VERSION,
+      FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ENTRIES,
+    ) ||
     map[SharedPayloadKeys.CONTRACT_VERSION] != "0.1"
   ) {
     invalidAgentAddonSelection("Agent add-on selection must contain only contract_version=0.1 and entries.")

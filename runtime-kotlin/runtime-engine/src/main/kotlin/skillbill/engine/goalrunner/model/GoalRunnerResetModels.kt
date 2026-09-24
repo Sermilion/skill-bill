@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.model
 
-import java.nio.file.Path
 import skillbill.ports.goalrunner.model.GoalRunnerResetSubtaskSnapshot
+import java.nio.file.Path
 
 data class GoalRunnerResetRequest(
   val issueKey: String,
@@ -50,4 +50,3 @@ data class GoalRunnerResetSnapshot(
   val currentAction: String,
   val subtasks: List<GoalRunnerResetSubtaskSnapshot>,
 )
-

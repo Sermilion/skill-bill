@@ -8,15 +8,15 @@ import skillbill.cli.kernel.agent.parseAgentAddonSelection
 import skillbill.cli.kernel.agent.refuseUnavailableAgentLaunchers
 import skillbill.cli.kernel.agent.refuseUnsupportedModelDirectives
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeAgentResolver
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeModelResolver
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeAgentAssignment
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeModelAssignment
+import skillbill.experiment.model.ExperimentArmId
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
-import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
-import skillbill.experiment.model.ExperimentArmId
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -106,11 +106,13 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.parseGoalContinuationContext(
           ?: throw UsageError("Unknown goal experiment arm '$raw'.")
       }
   val experimentCapabilities =
-    (goalExperimentTreatmentCapabilities.takeIf { it.isNotEmpty() }
-      ?: environment[tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV]
-        ?.takeIf(String::isNotBlank)
-        ?.split(',')
-        .orEmpty())
+    (
+      goalExperimentTreatmentCapabilities.takeIf { it.isNotEmpty() }
+        ?: environment[tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV]
+          ?.takeIf(String::isNotBlank)
+          ?.split(',')
+          .orEmpty()
+    )
       .map { it.trim() }
       .filter { it.isNotEmpty() }
       .toSet()

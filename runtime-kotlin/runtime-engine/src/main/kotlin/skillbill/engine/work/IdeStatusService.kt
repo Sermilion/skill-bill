@@ -18,8 +18,8 @@ import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.system.CheckedOutBranchSource
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.work.model.WorkItemKind
-import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
+import skillbill.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
 import java.time.Clock
 
@@ -87,8 +87,7 @@ class IdeStatusService(
     }
   }
 
-  fun toWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> =
-    ideStatusValidator.toWirePayload(snapshot).toPayload()
+  fun toWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> = ideStatusValidator.toWirePayload(snapshot).toPayload()
 
   private fun scopeToBranch(
     candidates: List<IdeStatusCandidate>,

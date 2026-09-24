@@ -12,7 +12,6 @@ import skillbill.engine.goalrunner.planning.context.settleSharedPreplan
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSharedContext
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.engine.goalrunner.planning.model.SharedPreplanSettlementArgs
-import skillbill.engine.goalrunner.planning.outcome.canonicalRepository
 import skillbill.engine.goalrunner.planning.outcome.preSweepStopped
 import skillbill.engine.goalrunner.planning.outcome.preparationStateReadReason
 import skillbill.engine.goalrunner.planning.outcome.produceMissingPlans

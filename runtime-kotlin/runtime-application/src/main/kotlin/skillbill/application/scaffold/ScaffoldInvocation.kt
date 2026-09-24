@@ -1,6 +1,5 @@
 package skillbill.application.scaffold
 
-import kotlinx.serialization.json.JsonObject
 import skillbill.application.install.ExternalAddonOverlayService
 import skillbill.application.scaffold.model.ScaffoldInvocationArgs
 import skillbill.application.scaffold.model.ScaffoldInvocationOutcome

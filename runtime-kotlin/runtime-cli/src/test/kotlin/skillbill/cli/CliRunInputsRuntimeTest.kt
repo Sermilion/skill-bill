@@ -1,10 +1,10 @@
 package skillbill.cli
 
-import skillbill.cli.core.CliRuntime
-import skillbill.cli.model.CliRuntimeContext
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenArgs
+import skillbill.cli.core.CliRuntime
+import skillbill.cli.model.CliRuntimeContext
 import skillbill.di.core.RuntimeComponent
 import skillbill.di.core.create
 import skillbill.infrastructure.host.CanonicalRepositoryRoot
@@ -15,8 +15,8 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class CliRunInputsRuntimeTest {

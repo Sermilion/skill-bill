@@ -10,8 +10,8 @@ import skillbill.experiment.model.ExperimentArmId
 import skillbill.experiment.model.ExperimentExecutionMode
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
-import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import skillbill.ports.experiment.pair.ExperimentPairPayload
+import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import java.nio.file.Files
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -193,22 +193,22 @@ class SqliteExperimentPairOwnerStoreTest {
           ExperimentPairPayload(
             pairPayload("pair-recovery").toMap() +
               mapOf(
-              ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal"),
-              ExperimentPairPayloadKeys.ARM_OUTCOMES to
-                listOf(
-                  mapOf(
-                    ExperimentPairPayloadKeys.ARM_ID to "control",
-                    ExperimentPairPayloadKeys.WORKFLOW_ID to "control-workflow",
-                    ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
-                    ExperimentPairPayloadKeys.DEFERRED_PUBLICATION to true,
+                ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal"),
+                ExperimentPairPayloadKeys.ARM_OUTCOMES to
+                  listOf(
+                    mapOf(
+                      ExperimentPairPayloadKeys.ARM_ID to "control",
+                      ExperimentPairPayloadKeys.WORKFLOW_ID to "control-workflow",
+                      ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
+                      ExperimentPairPayloadKeys.DEFERRED_PUBLICATION to true,
+                    ),
+                    mapOf(
+                      ExperimentPairPayloadKeys.ARM_ID to "treatment",
+                      ExperimentPairPayloadKeys.WORKFLOW_ID to "treatment-workflow",
+                      ExperimentPairPayloadKeys.TERMINAL_STATUS to "running",
+                      ExperimentPairPayloadKeys.DEFERRED_PUBLICATION to true,
+                    ),
                   ),
-                  mapOf(
-                    ExperimentPairPayloadKeys.ARM_ID to "treatment",
-                    ExperimentPairPayloadKeys.WORKFLOW_ID to "treatment-workflow",
-                    ExperimentPairPayloadKeys.TERMINAL_STATUS to "running",
-                    ExperimentPairPayloadKeys.DEFERRED_PUBLICATION to true,
-                  ),
-                ),
               ),
           ),
       ),
@@ -218,15 +218,15 @@ class SqliteExperimentPairOwnerStoreTest {
         ExperimentPairPayload(
           observationPayload("recovery-observation").plus(
             mapOf(
-            ExperimentObservationPayloadKeys.PAIR_ID to "pair-recovery",
-            ExperimentObservationPayloadKeys.MEASUREMENTS to
-              listOf(
-                mapOf(
-                  ExperimentObservationPayloadKeys.METRIC_ID to "cost",
-                  ExperimentObservationPayloadKeys.AVAILABILITY to "measured",
-                  ExperimentObservationPayloadKeys.QUANTITY to 12.0,
+              ExperimentObservationPayloadKeys.PAIR_ID to "pair-recovery",
+              ExperimentObservationPayloadKeys.MEASUREMENTS to
+                listOf(
+                  mapOf(
+                    ExperimentObservationPayloadKeys.METRIC_ID to "cost",
+                    ExperimentObservationPayloadKeys.AVAILABILITY to "measured",
+                    ExperimentObservationPayloadKeys.QUANTITY to 12.0,
+                  ),
                 ),
-              ),
             ),
           ),
         ),
@@ -264,33 +264,33 @@ class SqliteExperimentPairOwnerStoreTest {
   private fun pairPayload(pairId: String): ExperimentPairPayload =
     ExperimentPairPayload(
       mapOf(
-      ExperimentPairPayloadKeys.CONTRACT_VERSION to EXPERIMENT_PAIR_CONTRACT_VERSION,
-      ExperimentPairPayloadKeys.PAIR_ID to pairId,
-      ExperimentPairPayloadKeys.EXECUTION_MODE to "goal_pair",
-      ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to emptyList<String>(),
-      ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
-      ExperimentPairPayloadKeys.RANDOM_SEED to "seed",
-      ExperimentPairPayloadKeys.DELIVERY_ARM to "control",
-      ExperimentPairPayloadKeys.PAIR_STATUS to "failed",
-      ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to
-        mapOf(
-          ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to "repo",
-          ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to "commit",
-          ExperimentPairPayloadKeys.SOURCE_TREE_SHA to "tree",
-          ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to "spec",
-          ExperimentPairPayloadKeys.EFFECTIVE_CONFIG_HASH to "config",
-          ExperimentPairPayloadKeys.SKILL_BILL_VERSION to "version",
-        ),
-      ExperimentPairPayloadKeys.ARM_OUTCOMES to
-        listOf(
+        ExperimentPairPayloadKeys.CONTRACT_VERSION to EXPERIMENT_PAIR_CONTRACT_VERSION,
+        ExperimentPairPayloadKeys.PAIR_ID to pairId,
+        ExperimentPairPayloadKeys.EXECUTION_MODE to "goal_pair",
+        ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to emptyList<String>(),
+        ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
+        ExperimentPairPayloadKeys.RANDOM_SEED to "seed",
+        ExperimentPairPayloadKeys.DELIVERY_ARM to "control",
+        ExperimentPairPayloadKeys.PAIR_STATUS to "failed",
+        ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to
           mapOf(
-            ExperimentPairPayloadKeys.ARM_ID to "control",
-            ExperimentPairPayloadKeys.WORKFLOW_ID to "workflow-1",
-            ExperimentPairPayloadKeys.TERMINAL_STATUS to "failed",
-            ExperimentPairPayloadKeys.DEFERRED_PUBLICATION to true,
+            ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to "repo",
+            ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to "commit",
+            ExperimentPairPayloadKeys.SOURCE_TREE_SHA to "tree",
+            ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to "spec",
+            ExperimentPairPayloadKeys.EFFECTIVE_CONFIG_HASH to "config",
+            ExperimentPairPayloadKeys.SKILL_BILL_VERSION to "version",
           ),
-        ),
-      ExperimentPairPayloadKeys.DELIVERY_STATUS to "deferred",
+        ExperimentPairPayloadKeys.ARM_OUTCOMES to
+          listOf(
+            mapOf(
+              ExperimentPairPayloadKeys.ARM_ID to "control",
+              ExperimentPairPayloadKeys.WORKFLOW_ID to "workflow-1",
+              ExperimentPairPayloadKeys.TERMINAL_STATUS to "failed",
+              ExperimentPairPayloadKeys.DEFERRED_PUBLICATION to true,
+            ),
+          ),
+        ExperimentPairPayloadKeys.DELIVERY_STATUS to "deferred",
       ),
     )
 }

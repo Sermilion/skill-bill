@@ -312,7 +312,7 @@ private fun assertRenderSkillNameOption(
   assertEquals(0, optionForm.exitCode, optionForm.stdout)
   assertEquals(1, duplicateInput.exitCode, duplicateInput.stdout)
   assertEquals(expectedOutput, optionForm.stdout)
-  assertContains(duplicateInput.stdout, "either as an argument or with --skill-name, not both")
+  assertContains(duplicateInput.stderr, "either as an argument or with --skill-name, not both")
 }
 
 private fun assertEditBodyFileUpdatesContent(

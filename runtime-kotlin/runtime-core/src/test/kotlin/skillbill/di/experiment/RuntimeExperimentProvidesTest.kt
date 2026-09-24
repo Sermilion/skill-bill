@@ -10,7 +10,7 @@ import kotlin.test.assertNull
 class RuntimeExperimentProvidesTest {
   @Test
   fun `production measurement binding is absent until a provider is configured`() {
-    assertNull(object : RuntimeExperimentProvides {}.experimentArmMeasurementPort())
+    assertNull(object : RuntimeExperimentGoalProvides {}.experimentArmMeasurementPort())
   }
 
   @Test

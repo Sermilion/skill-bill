@@ -1,9 +1,6 @@
 package skillbill.architecture
 
-import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.extension
-import kotlin.io.path.isRegularFile
 import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertEquals

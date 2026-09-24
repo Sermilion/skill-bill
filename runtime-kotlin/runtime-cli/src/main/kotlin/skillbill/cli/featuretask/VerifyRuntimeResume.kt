@@ -52,7 +52,7 @@ private fun requireMatchingGovernedSpec(
   val workflowId = args.workflowId
   if (
     persistedPath !=
-      args.repositoryEnclosingRootPort.governedSpecPathForCli(effectiveRoot, specPath)
+    args.repositoryEnclosingRootPort.governedSpecPathForCli(effectiveRoot, specPath)
   ) {
     throw UsageError("Workflow '$workflowId' was persisted with a different governed spec path.")
   }

@@ -48,21 +48,21 @@ class ExperimentObservationRecorder(
     return pairOwner.importObservation(
       ExperimentPairPayload(
         mapOf(
-        ExperimentObservationPayloadKeys.CONTRACT_VERSION to EXPERIMENT_OBSERVATION_CONTRACT_VERSION,
-        ExperimentObservationPayloadKeys.OBSERVATION_ID to observationId,
-        ExperimentObservationPayloadKeys.PAIR_ID to pairId,
-        ExperimentObservationPayloadKeys.ARM_ID to armId,
-        ExperimentObservationPayloadKeys.EVENT_IDENTITY to eventIdentity,
-        ExperimentObservationPayloadKeys.RECORDED_AT to recordedAt,
-        ExperimentObservationPayloadKeys.MEASUREMENTS to
-          measurements.map { measurement ->
-            mapOf(
-              ExperimentObservationPayloadKeys.METRIC_ID to measurement.metricId,
-              ExperimentObservationPayloadKeys.AVAILABILITY to measurement.availability,
-              ExperimentObservationPayloadKeys.QUANTITY to measurement.quantity,
-              ExperimentObservationPayloadKeys.REASON to measurement.reason,
-            ).filterValues { it != null }
-          },
+          ExperimentObservationPayloadKeys.CONTRACT_VERSION to EXPERIMENT_OBSERVATION_CONTRACT_VERSION,
+          ExperimentObservationPayloadKeys.OBSERVATION_ID to observationId,
+          ExperimentObservationPayloadKeys.PAIR_ID to pairId,
+          ExperimentObservationPayloadKeys.ARM_ID to armId,
+          ExperimentObservationPayloadKeys.EVENT_IDENTITY to eventIdentity,
+          ExperimentObservationPayloadKeys.RECORDED_AT to recordedAt,
+          ExperimentObservationPayloadKeys.MEASUREMENTS to
+            measurements.map { measurement ->
+              mapOf(
+                ExperimentObservationPayloadKeys.METRIC_ID to measurement.metricId,
+                ExperimentObservationPayloadKeys.AVAILABILITY to measurement.availability,
+                ExperimentObservationPayloadKeys.QUANTITY to measurement.quantity,
+                ExperimentObservationPayloadKeys.REASON to measurement.reason,
+              ).filterValues { it != null }
+            },
         ),
       ),
     )

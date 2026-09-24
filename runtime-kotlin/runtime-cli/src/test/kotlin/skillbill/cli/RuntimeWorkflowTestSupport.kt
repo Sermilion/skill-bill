@@ -1,7 +1,7 @@
 package skillbill.cli
 
-import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowContinueResult
+import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowGetResult
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenArgs
@@ -94,9 +94,9 @@ internal object RuntimeWorkflowTestSupport {
     val service = component(context, dbPath).workflowService
     val result =
       service.continueWorkflow(
-      kind = WorkflowFamilyKind.TASK_RUNTIME,
-      workflowId = issueKey,
-      subtaskId = subtaskId,
+        kind = WorkflowFamilyKind.TASK_RUNTIME,
+        workflowId = issueKey,
+        subtaskId = subtaskId,
       )
     val workflowId =
       when (result) {

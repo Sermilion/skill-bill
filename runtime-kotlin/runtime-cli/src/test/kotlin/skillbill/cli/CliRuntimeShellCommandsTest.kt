@@ -148,9 +148,10 @@ class CliRuntimeShellCommandsTest {
         "code-review",
         "experiments",
       )
-    val positions = commandNames.map { command ->
-      Regex("""(?m)^\s+$command\s""").find(help)?.range?.first ?: -1
-    }
+    val positions =
+      commandNames.map { command ->
+        Regex("""(?m)^\s+$command\s""").find(help)?.range?.first ?: -1
+      }
     assertTrue(positions.all { it >= 0 }, "root help is missing an expected command: $positions")
     assertEquals(positions.sorted(), positions)
   }

@@ -47,8 +47,17 @@ object CliRuntime {
         liveStderr = context.liveStderr,
       )
     val cliComponent = CliComponent::class.create(runtimeComponent, runState, runInputs)
+    return execute(arguments, cliComponent, runState, runtimeComponent)
+  }
+
+  private fun execute(
+    arguments: List<String>,
+    cliComponent: CliComponent,
+    runState: CliRunState,
+    runtimeComponent: RuntimeComponent,
+  ): CliExecutionResult {
     val rootCommand = cliComponent.rootCommand
-    return try {
+    return runCatching {
       CommandLineParser.parseAndRun(rootCommand, arguments) { command -> command.run() }
       cliComponent.runState.result
         ?: CliExecutionResult(
@@ -56,74 +65,90 @@ object CliRuntime {
           stdout = rootCommand.getFormattedHelp().orEmpty(),
           stdoutCompletion = CliStdoutCompletion.IMPLICIT,
         )
-    } catch (error: CliktError) {
-      val usage = rootCommand.getFormattedHelp(error).orEmpty()
-      if (error.statusCode == 0) {
-        CliExecutionResult(
-          exitCode = 0,
-          stdout = usage,
-          stderr = runState.currentStderr(),
-        )
-      } else {
-        CliExecutionResult(
-          exitCode = error.statusCode,
-          stdout = "",
-          stderr =
-            diagnosticWithPrefix(
-              runState.currentStderr(),
-              usage.ifBlank { oneLine(error.message, "Command failed.") },
-            ),
-        )
+    }.getOrElse { error ->
+      when (error) {
+        is CliktError -> cliktErrorResult(rootCommand, runState, error)
+        is IllegalArgumentException -> diagnosticResult(runState, error, "Invalid command argument.")
+        is SkillBillRuntimeException -> diagnosticResult(runState, error, "Command failed.")
+        is NoSuchFileException -> diagnosticResult(runState, error, error.toString())
+        is AccessDeniedException -> diagnosticResult(runState, error, error.toString())
+        is CancellationException -> throw error
+        is InterruptedException -> throw error
+        else -> unexpectedErrorResult(runtimeComponent, runState, error)
       }
-    } catch (error: IllegalArgumentException) {
+    }
+  }
+
+  private fun cliktErrorResult(
+    rootCommand: CliktCommand,
+    runState: CliRunState,
+    error: CliktError,
+  ): CliExecutionResult {
+    val usage = rootCommand.getFormattedHelp(error).orEmpty()
+    return if (error.statusCode == 0) {
       CliExecutionResult(
-        exitCode = 1,
-        stdout = "",
-        stderr = diagnosticWithPrefix(runState.currentStderr(), oneLine(error.message, "Invalid command argument.")),
+        exitCode = 0,
+        stdout = usage,
+        stderr = runState.currentStderr(),
       )
-    } catch (error: SkillBillRuntimeException) {
+    } else {
       CliExecutionResult(
-        exitCode = 1,
+        exitCode = error.statusCode,
         stdout = "",
-        stderr = diagnosticWithPrefix(runState.currentStderr(), oneLine(error.message, "Command failed.")),
-      )
-    } catch (error: NoSuchFileException) {
-      CliExecutionResult(
-        exitCode = 1,
-        stdout = "",
-        stderr = diagnosticWithPrefix(runState.currentStderr(), oneLine(error.message, error.toString())),
-      )
-    } catch (error: AccessDeniedException) {
-      CliExecutionResult(
-        exitCode = 1,
-        stdout = "",
-        stderr = diagnosticWithPrefix(runState.currentStderr(), oneLine(error.message, error.toString())),
-      )
-    } catch (error: CancellationException) {
-      throw error
-    } catch (error: InterruptedException) {
-      throw error
-    } catch (error: Throwable) {
-      val diagnostic = oneLine("${error::class.simpleName}: ${error.message}", error::class.simpleName ?: "Command failed.")
-      runtimeComponent.runtimeDiagnostics.error(diagnostic, error)
-      CliExecutionResult(
-        exitCode = 1,
-        stdout = "",
-        stderr = diagnosticWithPrefix(runState.currentStderr(), diagnostic),
+        stderr =
+          diagnosticWithPrefix(
+            runState.currentStderr(),
+            usage.ifBlank { oneLine(error.message, "Command failed.") },
+          ),
       )
     }
   }
+
+  private fun unexpectedErrorResult(
+    runtimeComponent: RuntimeComponent,
+    runState: CliRunState,
+    error: Throwable,
+  ): CliExecutionResult {
+    val diagnostic =
+      oneLine(
+        "${error::class.simpleName}: ${error.message}",
+        error::class.simpleName ?: "Command failed.",
+      )
+    runtimeComponent.runtimeDiagnostics.error(diagnostic, error)
+    return diagnosticResult(runState, diagnostic)
+  }
+
+  private fun diagnosticResult(
+    runState: CliRunState,
+    error: Throwable,
+    fallback: String,
+  ): CliExecutionResult = diagnosticResult(runState, oneLine(error.message, fallback))
+
+  private fun diagnosticResult(
+    runState: CliRunState,
+    diagnostic: String,
+  ): CliExecutionResult =
+    CliExecutionResult(
+      exitCode = 1,
+      stdout = "",
+      stderr = diagnosticWithPrefix(runState.currentStderr(), diagnostic),
+    )
 }
 
-private fun oneLine(message: String?, fallback: String): String =
+private fun oneLine(
+  message: String?,
+  fallback: String,
+): String =
   message
     ?.replace(Regex("\\s+"), " ")
     ?.trim()
     ?.ifBlank { fallback }
     ?: fallback
 
-private fun diagnosticWithPrefix(prefix: String, diagnostic: String): String =
-  if (prefix.isBlank()) diagnostic else prefix + diagnostic
+private fun diagnosticWithPrefix(
+  prefix: String,
+  diagnostic: String,
+): String = if (prefix.isBlank()) diagnostic else prefix + diagnostic
 
 private class RootFlagProbeCommand : CliktCommand("skill-bill") {
   val dbOverride by databasePathOption()

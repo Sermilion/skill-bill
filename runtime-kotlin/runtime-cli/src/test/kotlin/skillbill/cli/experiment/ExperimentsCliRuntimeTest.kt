@@ -116,13 +116,15 @@ class ExperimentsCliRuntimeTest {
         CliRuntimeContext(
           environment = emptyMap(),
           runtimeDiagnostics = diagnostics,
-          requester = RemoteTransportPort { _, _, _, _ -> throw RuntimeException("transport exploded") },
+          requester = RemoteTransportPort { _, _, _, _ -> throw TransportFailure("transport exploded") },
         ),
       )
 
     assertEquals(1, result.exitCode)
     assertEquals("", result.stdout)
-    assertEquals("RuntimeException: transport exploded", result.stderr)
-    assertEquals(listOf("RuntimeException: transport exploded"), diagnostics.errors)
+    assertEquals("TransportFailure: transport exploded", result.stderr)
+    assertEquals(listOf("TransportFailure: transport exploded"), diagnostics.errors)
   }
 }
+
+private class TransportFailure(message: String) : Exception(message)

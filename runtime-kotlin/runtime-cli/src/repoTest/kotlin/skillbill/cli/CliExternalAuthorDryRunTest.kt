@@ -4,7 +4,6 @@ import skillbill.cli.core.CliRuntime
 import skillbill.cli.kernel.cli.CliOutput
 import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.error.shellcontent.InvalidInternalSkillClassificationError
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
@@ -15,7 +14,6 @@ import java.nio.file.attribute.BasicFileAttributes
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -169,25 +167,24 @@ private fun refuseDirectBaselineSkillLink(
   baselineSkill: Path,
 ): Path {
   val targetDir = fixture.tempRoot.resolve("agent").resolve("skills")
-  val error =
-    assertFailsWith<InvalidInternalSkillClassificationError> {
-      CliRuntime.run(
-        listOf(
-          "install",
-          "link-skill",
-          "--source",
-          baselineSkill.toString(),
-          "--target-dir",
-          targetDir.toString(),
-          "--agent",
-          "codex",
-        ),
-        fixture.context,
-      )
-    }
+  val result =
+    CliRuntime.run(
+      listOf(
+        "install",
+        "link-skill",
+        "--source",
+        baselineSkill.toString(),
+        "--target-dir",
+        targetDir.toString(),
+        "--agent",
+        "codex",
+      ),
+      fixture.context,
+    )
   val installedLink = targetDir.resolve("bill-${fixture.platform}-code-review")
 
-  assertContains(error.message.orEmpty(), "internal skills install as '<skill-name>.md' sidecars")
+  assertEquals(1, result.exitCode)
+  assertContains(result.stderr, "internal skills install as '<skill-name>.md' sidecars")
   assertFalse(Files.exists(installedLink))
   return installedLink
 }

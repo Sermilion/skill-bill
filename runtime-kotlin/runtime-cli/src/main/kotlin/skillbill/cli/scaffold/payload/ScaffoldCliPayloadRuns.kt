@@ -2,21 +2,20 @@ package skillbill.cli.scaffold.payload
 
 import kotlinx.serialization.json.JsonObject
 import skillbill.application.scaffold.decodeScaffoldPayloadObject
-import skillbill.application.scaffold.runScaffoldInvocation
 import skillbill.application.scaffold.model.ScaffoldInvocationArgs
-import skillbill.contracts.JsonCodec
+import skillbill.application.scaffold.runScaffoldInvocation
 import skillbill.cli.kernel.cli.CliOutput
+import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliFormat
-import skillbill.cli.model.CliRunInputs
 import skillbill.cli.scaffold.commands.CreateAndFillArgs
 import skillbill.cli.scaffold.commands.NativeScaffoldPayloadPathArgs
 import skillbill.cli.scaffold.commands.NativeScaffoldRunArgs
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.core.SkillBillRuntimeException
 import skillbill.ports.scaffold.ScaffoldGateway
 import skillbill.ports.scaffold.model.ScaffoldRenderResult
-import skillbill.cli.kernel.cli.CliRunState
 import java.nio.file.Path
 
 internal fun runNativeScaffoldPayload(args: NativeScaffoldPayloadPathArgs): CliExecutionResult {

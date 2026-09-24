@@ -19,8 +19,8 @@ import skillbill.ports.experiment.measurement.ExperimentArmMeasurement
 import skillbill.ports.experiment.measurement.ExperimentArmMeasurementPort
 import skillbill.ports.experiment.measurement.ExperimentMeasuredValue
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
-import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import skillbill.ports.experiment.pair.ExperimentPairPayload
+import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import skillbill.ports.experiment.publication.ExperimentParentDeliveryPort
 import skillbill.ports.experiment.publication.ExperimentPublicationResult
 import skillbill.ports.experiment.selection.ExperimentLaunchSelection
@@ -120,28 +120,28 @@ class ExperimentPairCoordinatorTest {
           pairPayload =
             ExperimentPairPayload(
               mapOf(
-              ExperimentPairPayloadKeys.PAIR_ID to "pair-resume",
-              ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal"),
-              ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
-              ExperimentPairPayloadKeys.RANDOM_SEED to "seed",
-              ExperimentPairPayloadKeys.PAIR_STATUS to "running",
-              ExperimentPairPayloadKeys.DELIVERY_ARM to "control",
-              ExperimentPairPayloadKeys.DELIVERY_STATUS to "deferred",
-              ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to
-                mapOf(
-                  ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to "repository",
-                  ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to sourceSha,
-                  ExperimentPairPayloadKeys.SOURCE_TREE_SHA to sourceSha,
-                  ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to specBundleHash("frozen spec"),
-                ),
-              ExperimentPairPayloadKeys.ARM_OUTCOMES to
-                listOf(
+                ExperimentPairPayloadKeys.PAIR_ID to "pair-resume",
+                ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to listOf("fixture-goal"),
+                ExperimentPairPayloadKeys.ARM_ORDER to listOf("control", "treatment"),
+                ExperimentPairPayloadKeys.RANDOM_SEED to "seed",
+                ExperimentPairPayloadKeys.PAIR_STATUS to "running",
+                ExperimentPairPayloadKeys.DELIVERY_ARM to "control",
+                ExperimentPairPayloadKeys.DELIVERY_STATUS to "deferred",
+                ExperimentPairPayloadKeys.FROZEN_INPUT_IDENTITY to
                   mapOf(
-                    ExperimentPairPayloadKeys.ARM_ID to "control",
-                    ExperimentPairPayloadKeys.WORKFLOW_ID to "control-workflow",
-                    ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
+                    ExperimentPairPayloadKeys.REPOSITORY_IDENTITY to "repository",
+                    ExperimentPairPayloadKeys.SOURCE_COMMIT_SHA to sourceSha,
+                    ExperimentPairPayloadKeys.SOURCE_TREE_SHA to sourceSha,
+                    ExperimentPairPayloadKeys.SPEC_BUNDLE_HASH to specBundleHash("frozen spec"),
                   ),
-                ),
+                ExperimentPairPayloadKeys.ARM_OUTCOMES to
+                  listOf(
+                    mapOf(
+                      ExperimentPairPayloadKeys.ARM_ID to "control",
+                      ExperimentPairPayloadKeys.WORKFLOW_ID to "control-workflow",
+                      ExperimentPairPayloadKeys.TERMINAL_STATUS to "completed",
+                    ),
+                  ),
               ),
             ),
         )

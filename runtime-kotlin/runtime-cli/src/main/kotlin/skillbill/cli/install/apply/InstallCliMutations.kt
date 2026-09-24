@@ -2,8 +2,8 @@ package skillbill.cli.install.apply
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.ports.install.model.NativeAgentLinkOutcome
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
+import skillbill.ports.install.model.NativeAgentLinkOutcome
 import java.nio.file.Path
 
 private const val GOAL_CONTINUATION_INSTALL_REFUSAL_EXIT_CODE = 64

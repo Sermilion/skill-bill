@@ -7,77 +7,42 @@ import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinua
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.experiment.model.ExperimentArmId
-import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import java.nio.file.Files
 
 class FeatureTaskRuntimeGoalContinuationProtocolTest {
   @Test
   fun `CliRuntime parses contract-built continuation argv into the run request`() {
-    val repositoryRoot = Files.createTempDirectory("skillbill-cli-continuation-contract")
-    Files.createDirectories(repositoryRoot.resolve(".git"))
-    val specPath = repositoryRoot.resolve(".feature-specs/SKILL-371/spec.md")
-    Files.createDirectories(specPath.parent)
-    Files.writeString(
-      specPath,
-      """
-      # Runtime spec
-
-      feature_size: SMALL
-
-      ## Acceptance Criteria
-      1. Preserve the runtime continuation contract.
-      """.trimIndent(),
-    )
-    val home = Files.createTempDirectory("skillbill-cli-continuation-home")
+    val fixture = continuationFixture()
     var captured: FeatureTaskRuntimeRunRequest? = null
-    val tokens = FeatureTaskRuntimeGoalContinuationLaunchTokens
     val result =
       CliRuntime.run(
-        listOf(
-          "feature-task",
-          "run",
-          "SKILL-371",
-          specPath.toString(),
-          tokens.GOAL_PARENT_ISSUE_KEY_FLAG,
-          "SKILL-371",
-          tokens.GOAL_SUBTASK_ID_FLAG,
-          "3",
-          tokens.GOAL_BRANCH_FLAG,
-          "feat/SKILL-371",
-          tokens.GOAL_PARENT_WORKFLOW_ID_FLAG,
-          "wfl-parent",
-          tokens.GOAL_LAST_RESUMABLE_STEP_FLAG,
-          "audit",
-          tokens.GOAL_REVIEW_BASE_SHA_FLAG,
-          "a".repeat(40),
-          tokens.GOAL_BASELINE_UNTRACKED_PATH_FLAG,
-          "existing.txt",
-          tokens.CODE_REVIEW_MODE_FLAG,
-          CodeReviewExecutionMode.AUTO.wireValue,
-          tokens.SUPPRESS_PR_FLAG,
-          tokens.QUALITY_GATE_SELECTION_FLAG,
-          FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue,
-          "--agent",
-          "claude",
-        ),
+        continuationArguments(fixture.specPath),
         CliRuntimeContext(
-          dbPathOverride = home.resolve("metrics.db").toString(),
+          dbPathOverride = fixture.home.resolve("metrics.db").toString(),
           environment =
             mapOf(
-              tokens.VALIDATION_DEPTH_ENV to ValidationDepth.FULL.wireValue,
-              tokens.QUALITY_GATE_SELECTION_ENV to FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue,
-              tokens.GOAL_EXPERIMENT_ARM_ID_ENV to ExperimentArmId.TREATMENT.wireValue,
-              tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV to "capability-a,capability-b",
-              tokens.DEFER_REMOTE_PUBLICATION_ENV to "true",
+              FeatureTaskRuntimeGoalContinuationLaunchTokens.VALIDATION_DEPTH_ENV to
+                ValidationDepth.FULL.wireValue,
+              FeatureTaskRuntimeGoalContinuationLaunchTokens.QUALITY_GATE_SELECTION_ENV to
+                FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue,
+              FeatureTaskRuntimeGoalContinuationLaunchTokens.GOAL_EXPERIMENT_ARM_ID_ENV to
+                ExperimentArmId.TREATMENT.wireValue,
+              FeatureTaskRuntimeGoalContinuationLaunchTokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV to
+                "capability-a,capability-b",
+              FeatureTaskRuntimeGoalContinuationLaunchTokens.DEFER_REMOTE_PUBLICATION_ENV to "true",
             ),
-          repositoryRoot = repositoryRoot,
-          userHome = home,
+          repositoryRoot = fixture.repositoryRoot,
+          userHome = fixture.home,
+          executableLookup = ExecutableLookup { true },
           featureTaskRuntimeRunOverride = { request ->
             captured = request
             FeatureTaskRuntimeRunReport.Completed(
@@ -108,7 +73,10 @@ class FeatureTaskRuntimeGoalContinuationProtocolTest {
     )
     assertEquals(true, request.goalContinuation?.deferRemotePublication)
     assertEquals(true, request.deferRemotePublication)
-    assertEquals(GoalSubtaskReviewBaseline("a".repeat(40), listOf("existing.txt")), request.goalContinuation?.reviewBaseline)
+    assertEquals(
+      GoalSubtaskReviewBaseline("a".repeat(40), listOf("existing.txt")),
+      request.goalContinuation?.reviewBaseline,
+    )
   }
 
   @Test
@@ -161,8 +129,71 @@ class FeatureTaskRuntimeGoalContinuationProtocolTest {
     assertEquals(ExperimentArmId.TREATMENT, continuation.experimentArmId)
     assertEquals(setOf("capability-a", "capability-b"), continuation.experimentTreatmentCapabilities)
     assertEquals(true, continuation.deferRemotePublication)
-    assertEquals(GoalSubtaskReviewBaseline("a".repeat(40), listOf("existing.txt")), continuation.reviewBaseline)
+    assertEquals(
+      GoalSubtaskReviewBaseline("a".repeat(40), listOf("existing.txt")),
+      continuation.reviewBaseline,
+    )
   }
+}
+
+private data class ContinuationFixture(
+  val repositoryRoot: Path,
+  val specPath: Path,
+  val home: Path,
+)
+
+private fun continuationFixture(): ContinuationFixture {
+  val repositoryRoot = Files.createTempDirectory("skillbill-cli-continuation-contract")
+  Files.createDirectories(repositoryRoot.resolve(".git"))
+  val specPath = repositoryRoot.resolve(".feature-specs/SKILL-371/spec.md")
+  Files.createDirectories(specPath.parent)
+  Files.writeString(
+    specPath,
+    """
+    # Runtime spec
+
+    feature_size: SMALL
+
+    ## Acceptance Criteria
+    1. Preserve the runtime continuation contract.
+    """.trimIndent(),
+  )
+  return ContinuationFixture(
+    repositoryRoot = repositoryRoot,
+    specPath = specPath,
+    home = Files.createTempDirectory("skillbill-cli-continuation-home"),
+  )
+}
+
+private fun continuationArguments(specPath: Path): List<String> {
+  val tokens = FeatureTaskRuntimeGoalContinuationLaunchTokens
+  return listOf(
+    "feature-task",
+    "run",
+    "SKILL-371",
+    specPath.toString(),
+    tokens.GOAL_PARENT_ISSUE_KEY_FLAG,
+    "SKILL-371",
+    tokens.GOAL_SUBTASK_ID_FLAG,
+    "3",
+    tokens.GOAL_BRANCH_FLAG,
+    "feat/SKILL-371",
+    tokens.GOAL_PARENT_WORKFLOW_ID_FLAG,
+    "wfl-parent",
+    tokens.GOAL_LAST_RESUMABLE_STEP_FLAG,
+    "audit",
+    tokens.GOAL_REVIEW_BASE_SHA_FLAG,
+    "a".repeat(40),
+    tokens.GOAL_BASELINE_UNTRACKED_PATH_FLAG,
+    "existing.txt",
+    tokens.CODE_REVIEW_MODE_FLAG,
+    CodeReviewExecutionMode.AUTO.wireValue,
+    tokens.SUPPRESS_PR_FLAG,
+    tokens.QUALITY_GATE_SELECTION_FLAG,
+    FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue,
+    "--agent",
+    "claude",
+  )
 }
 
 private class ProtocolProbeCommand : FeatureTaskRuntimePhaseAgentCommand("probe", "probe") {

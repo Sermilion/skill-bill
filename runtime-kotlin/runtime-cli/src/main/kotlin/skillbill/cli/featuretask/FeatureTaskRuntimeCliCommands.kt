@@ -16,11 +16,11 @@ import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.drainTelemetryOnCompletion
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.ports.featurespec.model.FeatureSpecPathResolveInput
 import skillbill.ports.featurespec.model.FeatureSpecPathResolveResult
 import skillbill.ports.repository.RepositoryEnclosingRootPort
-import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -310,4 +310,3 @@ class FeatureTaskRuntimeExplicitRunCommand(
     )
   }
 }
-

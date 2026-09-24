@@ -1,13 +1,13 @@
 package skillbill.cli.scaffold.payload
-import skillbill.application.scaffold.decodeScaffoldPayloadObject
-import skillbill.cli.kernel.cli.CliRunState
-import skillbill.cli.scaffold.commands.NewAddonPayloadArgs
-import java.nio.file.Path
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import skillbill.application.scaffold.decodeScaffoldPayloadObject
+import skillbill.cli.kernel.cli.CliRunState
+import skillbill.cli.scaffold.commands.NewAddonPayloadArgs
+import java.nio.file.Path
 
 internal fun createAndFillContentPayload(
   body: String?,

@@ -764,14 +764,14 @@ internal fun mainSourceRoots(moduleName: String): List<Path> {
   }
   val roots =
     Files.list(sourceRoot).use { stream ->
-    stream
-      .filter(Files::isDirectory)
-      .filter { path -> path.fileName.toString() == "main" || path.fileName.toString().endsWith("Main") }
-      .map { path -> path.resolve("kotlin") }
-      .filter(Files::isDirectory)
-      .toList()
-      .sorted()
-  }
+      stream
+        .filter(Files::isDirectory)
+        .filter { path -> path.fileName.toString() == "main" || path.fileName.toString().endsWith("Main") }
+        .map { path -> path.resolve("kotlin") }
+        .filter(Files::isDirectory)
+        .toList()
+        .sorted()
+    }
   if (roots.isEmpty()) {
     error("Missing module main Kotlin source root: ${runtimeArchitectureRoot.relativize(sourceRoot)}")
   }

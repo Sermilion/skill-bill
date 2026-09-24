@@ -37,9 +37,9 @@ import skillbill.mcp.shared.McpRuntimeLifecycle
 import skillbill.mcp.shared.services
 import skillbill.mcp.workflow.McpWorkflowOpenArgs
 import skillbill.mcp.workflow.McpWorkflowRuntime
-import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.transport.RemoteTransportPort
+import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates

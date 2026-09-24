@@ -195,52 +195,56 @@ internal fun goalResetText(
 ): String =
   buildString {
     appendLine("goal: ${result?.issueKey ?: issueKey}")
-    appendLine(
-      "status: ${
-        when {
-          result == null -> "not_found"
-          result.refusalReason != null -> "refused"
-          result.recovery?.recoveryCommand != null -> "recovery_required"
-          else -> "ok"
-        }
-      }",
-    )
+    appendLine("status: ${result.goalResetStatus()}")
     appendLine("mode: ${result?.mode ?: if (hard) "hard" else "soft"}")
     result?.parentWorkflowId?.let { appendLine("parent_workflow_id: $it") }
-    if (result != null) {
-      appendLine(
-        "before: status=${result.before.status}; " +
-          "current_subtask=${result.before.currentSubtaskId ?: "none"}",
-      )
-      appendLine(
-        "after: status=${result.after.status}; " +
-          "current_subtask=${result.after.currentSubtaskId ?: "none"}",
-      )
-      appendLine("before_subtasks:")
-      appendGoalResetSubtaskLines(this, result.before.subtasks)
-      appendLine("after_subtasks:")
-      appendGoalResetSubtaskLines(this, result.after.subtasks)
-    }
-    result?.recovery?.let { recovery ->
-      appendLine(
-        "recovery: subtask=${recovery.subtaskId}; " +
-          "workflow_id=${recovery.workflowId}; " +
-          "classification=${recovery.classification}",
-      )
-      recovery.recoveryCommand?.let { appendLine("recovery_command: $it") }
-    }
-    result?.branchActionTaken?.let {
-      appendLine("branch_action_taken: $it")
-    }
-    result?.refusalReason?.let {
-      appendLine("refusal_reason: $it")
-    }
-    result?.remedyCommand?.let {
-      appendLine("remedy_command: $it")
+    result?.let {
+      appendGoalResetSnapshots(it)
+      appendGoalResetRecovery(it)
+      it.branchActionTaken?.let { action -> appendLine("branch_action_taken: $action") }
+      it.refusalReason?.let { reason -> appendLine("refusal_reason: $reason") }
+      it.remedyCommand?.let { command -> appendLine("remedy_command: $command") }
     }
   }
 
-internal fun goalReplanText(result: GoalRunnerReplanResult?, issueKey: String): String =
+private fun GoalRunnerResetResult?.goalResetStatus(): String =
+  when {
+    this == null -> "not_found"
+    this.refusalReason != null -> "refused"
+    this.recovery?.recoveryCommand != null -> "recovery_required"
+    else -> "ok"
+  }
+
+private fun StringBuilder.appendGoalResetSnapshots(result: GoalRunnerResetResult) {
+  appendLine(
+    "before: status=${result.before.status}; " +
+      "current_subtask=${result.before.currentSubtaskId ?: "none"}",
+  )
+  appendLine(
+    "after: status=${result.after.status}; " +
+      "current_subtask=${result.after.currentSubtaskId ?: "none"}",
+  )
+  appendLine("before_subtasks:")
+  appendGoalResetSubtaskLines(this, result.before.subtasks)
+  appendLine("after_subtasks:")
+  appendGoalResetSubtaskLines(this, result.after.subtasks)
+}
+
+private fun StringBuilder.appendGoalResetRecovery(result: GoalRunnerResetResult) {
+  result.recovery?.let { recovery ->
+    appendLine(
+      "recovery: subtask=${recovery.subtaskId}; " +
+        "workflow_id=${recovery.workflowId}; " +
+        "classification=${recovery.classification}",
+    )
+    recovery.recoveryCommand?.let { appendLine("recovery_command: $it") }
+  }
+}
+
+internal fun goalReplanText(
+  result: GoalRunnerReplanResult?,
+  issueKey: String,
+): String =
   buildString {
     appendLine("goal: ${result?.issueKey ?: issueKey}")
     appendLine("status: ${if (result == null) "not_found" else "ok"}")

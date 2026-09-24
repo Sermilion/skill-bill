@@ -1,16 +1,16 @@
 package skillbill.cli.goal.core
+import skillbill.engine.goalrunner.model.GoalRunnerAcceptResult
+import skillbill.engine.goalrunner.model.GoalRunnerOperatorDecisionResult
 import skillbill.engine.goalrunner.model.GoalRunnerPauseResult
-import skillbill.engine.goalrunner.model.GoalRunnerResetResult
 import skillbill.engine.goalrunner.model.GoalRunnerReplanResult
+import skillbill.engine.goalrunner.model.GoalRunnerResetResult
 import skillbill.engine.goalrunner.model.GoalRunnerStopStatus
 import skillbill.engine.goalrunner.model.GoalRunnerStopVerbResult
 import skillbill.goalrunner.model.GoalRunnerRunReport
-import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
+import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerRepairResult
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerRepairStatus
-import skillbill.engine.goalrunner.model.GoalRunnerAcceptResult
-import skillbill.engine.goalrunner.model.GoalRunnerOperatorDecisionResult
 
 internal const val GOAL_EXIT_COMPLETE: Int = 0
 internal const val GOAL_EXIT_FAILED: Int = 1
@@ -45,8 +45,7 @@ internal fun goalStatusExitCode(
   databaseUnavailable: Boolean = false,
 ): Int = if (projection != null && !databaseUnavailable) 0 else 1
 
-internal fun goalPauseExitCode(result: GoalRunnerPauseResult): Int =
-  if (result.status == "not_found") 1 else 0
+internal fun goalPauseExitCode(result: GoalRunnerPauseResult): Int = if (result.status == "not_found") 1 else 0
 
 internal fun goalResumeExitCode(status: String): Int = if (status == "not_found") 1 else 0
 

@@ -11,8 +11,8 @@ import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
-import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
+import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.gitops.WorkflowGitOperations

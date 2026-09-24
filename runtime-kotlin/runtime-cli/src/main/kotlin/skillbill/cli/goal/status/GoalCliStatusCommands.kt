@@ -7,9 +7,9 @@ import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
-import skillbill.cli.goal.core.goalStatusExitCode
 import skillbill.cli.goal.core.GoalWatchPresentation
 import skillbill.cli.goal.core.GoalWatchRefreshPresentation
+import skillbill.cli.goal.core.goalStatusExitCode
 import skillbill.cli.goal.core.goalWatchRefreshText
 import skillbill.cli.goal.core.goalWatchStopReason
 import skillbill.cli.goal.core.goalWatchText

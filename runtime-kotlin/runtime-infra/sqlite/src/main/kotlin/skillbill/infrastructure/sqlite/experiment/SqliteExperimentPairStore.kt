@@ -7,8 +7,8 @@ import skillbill.contracts.experiment.ExperimentPairPayloadKeys
 import skillbill.error.shellcontent.ExperimentIsolationCapabilityRefusalError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.ports.experiment.pair.ExperimentPairRepository
-import skillbill.ports.experiment.pair.model.ExperimentPairPayload
 import skillbill.ports.experiment.pair.model.ExperimentObservationImport
+import skillbill.ports.experiment.pair.model.ExperimentPairPayload
 import java.sql.Connection
 
 internal class SqliteExperimentPairStore(

@@ -1,8 +1,8 @@
 package skillbill.cli
 
-import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.cli.goal.core.goalRunExitCode
 import skillbill.goalrunner.model.GoalPullRequestStatus
+import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.goalrunner.model.GoalRunnerStopReport
 import kotlin.test.Test
@@ -14,14 +14,14 @@ class GoalRunExitCodeTest {
     assertEquals(
       0,
       GoalRunnerRunReport.Completed(
-          issueKey = "SKILL-371",
-          attemptedSubtasks = emptyList(),
-          pullRequestUrl = null,
-          pullRequestStatus = GoalPullRequestStatus.DEFERRED,
-          subtasksCompleted = 1,
-          subtasksPending = 0,
-          subtasksBlocked = 0,
-        ).goalRunExitCode(),
+        issueKey = "SKILL-371",
+        attemptedSubtasks = emptyList(),
+        pullRequestUrl = null,
+        pullRequestStatus = GoalPullRequestStatus.DEFERRED,
+        subtasksCompleted = 1,
+        subtasksPending = 0,
+        subtasksBlocked = 0,
+      ).goalRunExitCode(),
     )
   }
 
@@ -50,7 +50,10 @@ class GoalRunExitCodeTest {
     assertEquals(3, stopped(GoalRunnerStopReason.POLICY_BLOCKED, "policy denied").goalRunExitCode())
   }
 
-  private fun stopped(reason: GoalRunnerStopReason, blockedReason: String): GoalRunnerRunReport =
+  private fun stopped(
+    reason: GoalRunnerStopReason,
+    blockedReason: String,
+  ): GoalRunnerRunReport =
     GoalRunnerRunReport.Stopped(
       issueKey = "SKILL-371",
       attemptedSubtasks = listOf(1),
@@ -64,4 +67,4 @@ class GoalRunExitCodeTest {
           lastResumableStep = "review",
         ),
     )
-  }
+}

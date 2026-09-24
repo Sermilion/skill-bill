@@ -18,17 +18,17 @@ class InfrastructureSkillsImportDirectionArchitectureTest {
 
     val violations = mutableListOf<String>()
     sourceFiles.forEach { file ->
-        val text = Files.readString(file)
-        val sourcePackage = readPackageName(text, file)
-        val sourceLayer = skillsLayerIndex(sourcePackage)
-        readSkillImports(text).forEach { imported ->
-          val targetLayer = skillsLayerIndex(imported)
-          if (targetLayer > sourceLayer) {
-            violations +=
-              "${ArchitectureScanSupport.runtimeRoot.relativize(file)} imports $imported " +
-              "(layer $targetLayer) from layer $sourceLayer"
-          }
+      val text = Files.readString(file)
+      val sourcePackage = readPackageName(text, file)
+      val sourceLayer = skillsLayerIndex(sourcePackage)
+      readSkillImports(text).forEach { imported ->
+        val targetLayer = skillsLayerIndex(imported)
+        if (targetLayer > sourceLayer) {
+          violations +=
+            "${ArchitectureScanSupport.runtimeRoot.relativize(file)} imports $imported " +
+            "(layer $targetLayer) from layer $sourceLayer"
         }
+      }
     }
     return violations.sorted()
   }

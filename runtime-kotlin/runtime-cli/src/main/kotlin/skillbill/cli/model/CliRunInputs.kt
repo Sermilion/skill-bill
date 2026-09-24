@@ -11,8 +11,7 @@ data class CliRunInputs(
   val userHome: Path,
   val repositoryRoot: Path,
   val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
-  val featureTaskRuntimeRunOverride:
-    ((FeatureTaskRuntimeRunRequest) -> FeatureTaskRuntimeRunReport)? = null,
+  val featureTaskRuntimeRunOverride: ((FeatureTaskRuntimeRunRequest) -> FeatureTaskRuntimeRunReport)? = null,
   val liveStdout: (String) -> Unit,
   val liveStderr: (String) -> Unit,
 )

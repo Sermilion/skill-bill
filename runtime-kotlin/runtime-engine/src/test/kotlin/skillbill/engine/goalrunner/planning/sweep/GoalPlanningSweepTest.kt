@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.planning.sweep
+import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.contracts.JsonCodec
@@ -29,7 +30,6 @@ import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRecoveryKind
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRefreshLiveness
 import skillbill.engine.goalrunner.planning.recovery.classifyGoalPlanningProvenanceRecoverability
 import skillbill.engine.goalrunner.planning.remedies.GoalPlanningRejectionRecorder
-import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError

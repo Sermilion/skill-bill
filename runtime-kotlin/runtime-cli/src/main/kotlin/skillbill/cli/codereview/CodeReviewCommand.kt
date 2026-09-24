@@ -24,7 +24,6 @@ import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
-import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.ReviewAggregationIntegrityError
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.workflow.goal.model.toReviewAccountingBoundedJson

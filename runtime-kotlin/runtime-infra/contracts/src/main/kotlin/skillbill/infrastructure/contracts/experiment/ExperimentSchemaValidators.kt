@@ -15,8 +15,8 @@ import skillbill.error.shellcontent.InvalidExperimentReportSchemaError
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
-import skillbill.ports.experiment.validation.ExperimentPayloadValidationPort
 import skillbill.ports.experiment.pair.model.ExperimentPairPayload
+import skillbill.ports.experiment.validation.ExperimentPayloadValidationPort
 
 private const val MAX_REPORTED_SCHEMA_FAILURES = 3
 

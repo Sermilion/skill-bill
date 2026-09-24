@@ -74,23 +74,57 @@ class CliScaffoldPartialOutcomeTest {
 private class RecordingScaffoldGateway(
   private val repositoryRoot: Path,
 ) : ScaffoldGateway {
-  override fun list(repoRoot: Path, skillNames: List<String>) = error("unused")
+  override fun list(
+    repoRoot: Path,
+    skillNames: List<String>,
+  ) = error("unused")
 
-  override fun show(repoRoot: Path, skillName: String, contentMode: String) = error("unused")
+  override fun show(
+    repoRoot: Path,
+    skillName: String,
+    contentMode: String,
+  ) = error("unused")
 
-  override fun explain(repoRoot: Path, skillName: String?) = error("unused")
+  override fun explain(
+    repoRoot: Path,
+    skillName: String?,
+  ) = error("unused")
 
-  override fun validate(repoRoot: Path, skillNames: List<String>) = error("unused")
+  override fun validate(
+    repoRoot: Path,
+    skillNames: List<String>,
+  ) = error("unused")
 
-  override fun upgrade(repoRoot: Path, skillNames: List<String>, validate: Boolean) = error("unused")
+  override fun upgrade(
+    repoRoot: Path,
+    skillNames: List<String>,
+    validate: Boolean,
+  ) = error("unused")
 
-  override fun fill(repoRoot: Path, skillName: String, body: String, sectionName: String?) = error("unused")
+  override fun fill(
+    repoRoot: Path,
+    skillName: String,
+    body: String,
+    sectionName: String?,
+  ) = error("unused")
 
-  override fun saveExactContent(repoRoot: Path, skillName: String, content: String) = error("unused")
+  override fun saveExactContent(
+    repoRoot: Path,
+    skillName: String,
+    content: String,
+  ) = error("unused")
 
-  override fun editWithBodyFile(repoRoot: Path, skillName: String, body: String, sectionName: String?) = error("unused")
+  override fun editWithBodyFile(
+    repoRoot: Path,
+    skillName: String,
+    body: String,
+    sectionName: String?,
+  ) = error("unused")
 
-  override fun scaffold(request: ScaffoldCommandRequest, dryRun: Boolean): ScaffoldResult =
+  override fun scaffold(
+    request: ScaffoldCommandRequest,
+    dryRun: Boolean,
+  ): ScaffoldResult =
     ScaffoldResult(
       kind = "add-on",
       skillName = "partial-addon",
@@ -98,7 +132,10 @@ private class RecordingScaffoldGateway(
       createdFiles = listOf(FileLocation(repositoryRoot.resolve("skills/partial-addon/content.md").toString())),
     )
 
-  override fun render(repoRoot: Path, skillName: String): ScaffoldRenderResult = error("unused")
+  override fun render(
+    repoRoot: Path,
+    skillName: String,
+  ): ScaffoldRenderResult = error("unused")
 }
 
 private class FailingSourceConfigPort : ExternalAddonSourceConfigPort {

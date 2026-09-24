@@ -1,7 +1,5 @@
 package skillbill.cli.experiment
 
-import skillbill.contracts.JsonCodec
-import skillbill.ports.experiment.pair.model.ExperimentStatsPayload
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
@@ -14,9 +12,11 @@ import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.DocumentedNoOpCliCommand
 import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.model.CliFormat
+import skillbill.contracts.JsonCodec
 import skillbill.ports.experiment.navigation.ExperimentNavigationRunPort
 import skillbill.ports.experiment.navigation.model.ExperimentNavigationRunRequest
 import skillbill.ports.experiment.pair.ExperimentPairReportPort
+import skillbill.ports.experiment.pair.model.ExperimentStatsPayload
 
 @Inject
 class ExperimentsCommand(

@@ -8,7 +8,7 @@ internal fun WorkflowContinueResult.toCliMap(): Map<String, Any?> =
     is WorkflowContinueResult.Standard -> toStandardCliMap()
     is WorkflowContinueResult.UnknownWorkflow -> toUnknownWorkflowCliMap()
     is WorkflowContinueResult.Error -> toErrorCliMap()
-    else -> throw IllegalStateException("Workflow continuation result is not supported by this CLI.")
+    else -> error("Workflow continuation result is not supported by this CLI.")
   }
 
 internal fun WorkflowContinueResult.Standard.toStandardCliMap(): Map<String, Any?> =

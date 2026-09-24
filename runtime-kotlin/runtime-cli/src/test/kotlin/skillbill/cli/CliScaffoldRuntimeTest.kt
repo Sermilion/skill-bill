@@ -60,10 +60,11 @@ class CliScaffoldRuntimeTest {
         CliRuntimeContext(
           repositoryRoot = invocationRoot,
           userHome = invocationRoot,
-          stdinText = payload.replace(
-            "\"kind\":\"horizontal\"",
-            "\"kind\":\"horizontal\",\"repo_root\":\"$explicitRoot\"",
-          ),
+          stdinText =
+            payload.replace(
+              "\"kind\":\"horizontal\"",
+              "\"kind\":\"horizontal\",\"repo_root\":\"$explicitRoot\"",
+            ),
         ),
       )
 

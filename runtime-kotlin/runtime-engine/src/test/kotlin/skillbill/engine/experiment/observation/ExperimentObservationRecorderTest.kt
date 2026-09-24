@@ -2,8 +2,8 @@ package skillbill.engine.experiment.observation
 
 import skillbill.contracts.JsonCodec
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
-import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import skillbill.ports.experiment.pair.ExperimentPairPayload
+import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

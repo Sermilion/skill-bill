@@ -31,8 +31,8 @@ import skillbill.ports.experiment.measurement.ExperimentArmMeasurement
 import skillbill.ports.experiment.measurement.ExperimentArmMeasurementPort
 import skillbill.ports.experiment.measurement.ExperimentMeasuredValue
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
-import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import skillbill.ports.experiment.pair.ExperimentPairPayload
+import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import skillbill.ports.experiment.publication.ExperimentParentDeliveryPort
 import skillbill.ports.experiment.publication.ExperimentParentDeliveryRequest
 import skillbill.ports.experiment.publication.ExperimentPublicationResult
@@ -384,7 +384,7 @@ class ExperimentPairCoordinator(
       pairOwner.saveReport(
         pairId,
         ExperimentPairPayload(
-        ExperimentReportProjector.project(payload.toMap(), ExperimentExecutionMode.GOAL_PAIR.wireValue),
+          ExperimentReportProjector.project(payload.toMap(), ExperimentExecutionMode.GOAL_PAIR.wireValue),
         ),
       )
     }

@@ -24,7 +24,6 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
-import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
 import skillbill.ports.goalrunner.runner.model.GoalRunnerCompletionPersistenceResult
 import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorization
@@ -35,6 +34,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanOptions
 import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanWriteResult
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily

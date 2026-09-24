@@ -247,6 +247,10 @@ private fun StringBuilder.appendGoalStatusSummary(
   appendLine("complete: ${projection?.completeCount ?: 0}")
   appendLine("pending: ${projection?.pendingCount ?: 0}")
   appendLine("blocked: ${projection?.blockedCount ?: 0}")
+  appendGoalStatusExecutionSummary(projection)
+}
+
+private fun StringBuilder.appendGoalStatusExecutionSummary(projection: GoalRunnerStatusProjection?) {
   appendLine("current_subtask: ${projection?.currentSubtaskId ?: "none"}")
   appendLine("current_step: ${projection?.currentStep ?: "none"}")
   appendLine("active_agent: ${projection?.activeAgent ?: "none"}")

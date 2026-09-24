@@ -1,7 +1,7 @@
 package skillbill.ports.experiment.pair
 
-import skillbill.ports.experiment.pair.model.ExperimentPairPersistedState as ExperimentPairPersistedStateModel
 import skillbill.ports.experiment.pair.model.ExperimentPairPayload as ExperimentPairPayloadModel
+import skillbill.ports.experiment.pair.model.ExperimentPairPersistedState as ExperimentPairPersistedStateModel
 
 typealias ExperimentPairPersistedState = ExperimentPairPersistedStateModel
 typealias ExperimentPairPayload = ExperimentPairPayloadModel

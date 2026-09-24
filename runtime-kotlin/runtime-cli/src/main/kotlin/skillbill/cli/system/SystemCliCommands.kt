@@ -12,10 +12,10 @@ import skillbill.application.updatecheck.SkillBillUpdateService
 import skillbill.application.updatecheck.UpdateCheckService
 import skillbill.application.updatecheck.model.UpdateCheckResult
 import skillbill.application.updatecheck.model.UpdateCheckStatus
-import skillbill.application.updatecheck.model.UpdateRunStatus
 import skillbill.application.updatecheck.model.UpdateRunPlan
 import skillbill.application.updatecheck.model.UpdateRunRequest
 import skillbill.application.updatecheck.model.UpdateRunResult
+import skillbill.application.updatecheck.model.UpdateRunStatus
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.formatOption

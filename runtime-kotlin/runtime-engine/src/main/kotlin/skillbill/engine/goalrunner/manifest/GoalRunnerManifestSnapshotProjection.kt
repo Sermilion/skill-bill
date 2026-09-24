@@ -4,8 +4,8 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerResetSnapshot
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
 import skillbill.goalrunner.model.GoalRunnerAcceptedSubtask
-import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.model.GoalRunnerResetSubtaskSnapshot
+import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask

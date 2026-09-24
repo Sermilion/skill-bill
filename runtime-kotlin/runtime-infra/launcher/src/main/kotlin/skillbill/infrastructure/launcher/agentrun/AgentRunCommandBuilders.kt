@@ -137,8 +137,10 @@ internal fun resolveClaudeModelDirective(
 internal fun isOfficialAnthropicEndpoint(baseUrl: String): Boolean = baseUrl.contains("anthropic.com")
 
 internal val ANTHROPIC_MODEL_ALIASES = setOf("opus", "sonnet", "haiku")
+
 internal fun isAnthropicModelReference(model: String): Boolean =
   model.startsWith("claude-") || model in ANTHROPIC_MODEL_ALIASES
+
 internal class ClaudeAgentRunCommandBuilder(
   internal val providerEnvironment: Map<String, String> = System.getenv(),
   override val governedReviewLaunchCapability: GovernedReviewLaunchCapability =

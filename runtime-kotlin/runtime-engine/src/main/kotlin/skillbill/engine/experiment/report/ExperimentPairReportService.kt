@@ -4,15 +4,18 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.ExperimentNavigationPairUnavailableError
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
-import skillbill.ports.experiment.pair.ExperimentPairPayload
 import skillbill.ports.experiment.pair.ExperimentPairReportPort
+import skillbill.ports.experiment.pair.model.ExperimentPairPayload
 import skillbill.ports.experiment.pair.model.ExperimentStatsPayload
 
 @Inject
 class ExperimentPairReportService(
   private val pairOwner: ExperimentPairOwnerPort,
 ) : ExperimentPairReportPort {
-  override fun renderReport(pairId: String, format: String): String {
+  override fun renderReport(
+    pairId: String,
+    format: String,
+  ): String {
     val state = pairOwner.load(pairId) ?: throw ExperimentNavigationPairUnavailableError(pairId)
     val projection =
       ExperimentReportProjector.project(
