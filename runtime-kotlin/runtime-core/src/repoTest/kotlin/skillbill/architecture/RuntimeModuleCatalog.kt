@@ -170,7 +170,6 @@ object RuntimeModuleCatalog {
           "runtime-infra:host",
           "runtime-infra:contracts",
           "runtime-infra:workflow",
-          "runtime-infra:sqlite",
           "runtime-ports",
         ),
       "runtime-contracts" to emptySet(),

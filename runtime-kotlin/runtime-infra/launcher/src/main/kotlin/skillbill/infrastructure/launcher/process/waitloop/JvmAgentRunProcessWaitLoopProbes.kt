@@ -6,7 +6,7 @@ import skillbill.ports.agentrun.model.AgentRunOutputStream
 import skillbill.ports.agentrun.model.AgentRunWorktreeEditObserver
 
 internal fun ProcessWaitLoop.pollWorkflowProgress(nowNanos: Long) {
-  val read = request.progressProbe.readProgressToken(degradation)
+  val read = request.probes.progressProbe.readProgressToken(degradation)
   if (read.failed) return
   val progressToken = read.value
   if (progressToken == null && lastProgressToken != null) {
@@ -20,7 +20,7 @@ internal fun ProcessWaitLoop.pollWorkflowProgress(nowNanos: Long) {
     lastProgressInstant = clock.instant()
     fileActivityWindowStartNanos = null
     writeProgressLabel()
-    request.activityStampSink.safeStamp(AgentActivityLabel.DURABLE_PROGRESS)
+    request.probes.activityStampSink.safeStamp(AgentActivityLabel.DURABLE_PROGRESS)
   }
 }
 
@@ -29,12 +29,12 @@ internal fun ProcessWaitLoop.pollOutputActivity(nowNanos: Long) {
   if (observedMillis != lastObservedOutputMillis) {
     lastObservedOutputMillis = observedMillis
     lastOutputNanos = nowNanos
-    request.activityStampSink.safeStamp(AgentActivityLabel.STDOUT)
+    request.probes.activityStampSink.safeStamp(AgentActivityLabel.STDOUT)
   }
 }
 
 internal fun ProcessWaitLoop.pollFileActivity(nowNanos: Long) {
-  val read = request.activityProbe.readActivityToken(degradation)
+  val read = request.probes.activityProbe.readActivityToken(degradation)
   if (read.failed) return
   val activityToken = read.value
   if (activityToken == null && lastActivityToken != null) {
@@ -49,8 +49,8 @@ internal fun ProcessWaitLoop.pollFileActivity(nowNanos: Long) {
       fileActivityWindowStartNanos = nowNanos
     }
     writeActivityLabel()
-    request.activityStampSink.safeStamp(AgentActivityLabel.WORKTREE_WRITE)
-    request.worktreeEditObserver.safeObserve()
+    request.probes.activityStampSink.safeStamp(AgentActivityLabel.WORKTREE_WRITE)
+    request.probes.worktreeEditObserver.safeObserve()
   }
 }
 
@@ -60,7 +60,7 @@ internal fun ProcessWaitLoop.pollStatusHeartbeat(nowNanos: Long) {
   if (nowNanos - lastStatusHeartbeatNanos < statusHeartbeatNanos) return
   lastStatusHeartbeatNanos = nowNanos
   lifecycleEmitter.emitHeartbeat(alive)
-  request.progressProbe.readProgressLabel(degradation).value?.takeIf(String::isNotBlank)?.let { label ->
+  request.probes.progressProbe.readProgressLabel(degradation).value?.takeIf(String::isNotBlank)?.let { label ->
     lastProgressLabel = label
   }
   val workflowLabel = lastProgressLabel?.takeIf(String::isNotBlank)
@@ -73,34 +73,34 @@ internal fun ProcessWaitLoop.pollStatusHeartbeat(nowNanos: Long) {
       .takeIf(String::isNotBlank)
       ?.let { "; $it" }
       .orEmpty()
-  request.outputSink.write(
+  request.launch.outputSink.write(
     AgentRunOutputStream.STDERR,
-    "skill-bill: status heartbeat (${request.statusHeartbeatInterval}): child run still active$details\n",
+    "skill-bill: status heartbeat (${request.timing.statusHeartbeatInterval}): child run still active$details\n",
   )
 }
 
 internal fun ProcessWaitLoop.writeProgressLabel() {
-  request.progressProbe.readProgressLabel(degradation).value
+  request.probes.progressProbe.readProgressLabel(degradation).value
     ?.takeIf(String::isNotBlank)
     ?.let { label ->
       lastProgressLabel = label
       lastSnapshotInstant = clock.instant()
-      request.outputSink.write(AgentRunOutputStream.STDERR, "skill-bill: workflow progress: $label\n")
+      request.launch.outputSink.write(AgentRunOutputStream.STDERR, "skill-bill: workflow progress: $label\n")
     }
 }
 
 internal fun ProcessWaitLoop.writeActivityLabel() {
-  val activityLabel = request.activityProbe.readActivityLabel(degradation).value?.takeIf(String::isNotBlank)
+  val activityLabel = request.probes.activityProbe.readActivityLabel(degradation).value?.takeIf(String::isNotBlank)
   if (activityLabel != null) {
     lastActivityLabel = activityLabel
   }
-  val workflowLabel = request.progressProbe.readProgressLabel(degradation).value?.takeIf(String::isNotBlank)
+  val workflowLabel = request.probes.progressProbe.readProgressLabel(degradation).value?.takeIf(String::isNotBlank)
   val suffix =
     listOfNotNull(activityLabel, workflowLabel).joinToString("; ")
       .takeIf(String::isNotBlank)
       ?.let { label -> ": $label" }
       .orEmpty()
-  request.outputSink.write(
+  request.launch.outputSink.write(
     AgentRunOutputStream.STDERR,
     "skill-bill: file activity observed; durable workflow progress is still pending$suffix\n",
   )

@@ -12,7 +12,9 @@ import skillbill.application.review.snapshot.reviewLayer
 import skillbill.application.review.snapshot.reviewPack
 import skillbill.application.runner
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
-import skillbill.review.context.model.accounting.toBoundedPayload
+import skillbill.contracts.JsonCodec
+import skillbill.review.context.model.accounting.ReviewAccountingSummary
+import skillbill.workflow.model.goalreview.toReviewAccountingBoundedJson
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -123,7 +125,7 @@ class ParallelCodeReviewEndToEndTest {
     assertEquals(first.mergeResult.formattedOutput, second.mergeResult.formattedOutput)
     val firstSummary = assertNotNull(first.accountingSummary)
     val secondSummary = assertNotNull(second.accountingSummary)
-    assertEquals(firstSummary.toBoundedPayload(), secondSummary.toBoundedPayload())
+    assertEquals(firstSummary.toReviewAccountingBoundedJson(), secondSummary.toReviewAccountingBoundedJson())
     assertEquals(firstSummary.lanes.map { it.lane }, secondSummary.lanes.map { it.lane })
   }
 
@@ -160,7 +162,7 @@ class ParallelCodeReviewEndToEndTest {
       .run(harnessRequest())
 
     val record = recorder.savedAccounting.single()
-    assertEquals("accounting_summary", record.summary.toBoundedPayload()["kind"])
+    assertEquals("accounting_summary", record.summary.boundedPayload()["kind"])
     assertTrue(record.reviewId.isNotBlank() && record.packetDigest.isNotBlank())
   }
 
@@ -173,7 +175,7 @@ class ParallelCodeReviewEndToEndTest {
 
     val record = recorder.savedAccounting.single()
     assertEquals(reviewRunId, record.reviewId)
-    assertEquals(reviewRunId, record.summary.toBoundedPayload()["review_id"])
+    assertEquals(reviewRunId, record.summary.boundedPayload()["review_id"])
   }
 
   @Test fun `accounting falls back to the packet review id when no run id is supplied`() {
@@ -217,6 +219,13 @@ class ParallelCodeReviewEndToEndTest {
 }
 
 private const val KOTLIN_ARCHITECTURE = "bill-kotlin-code-review-architecture"
+
+private fun ReviewAccountingSummary.boundedPayload(): Map<String, Any?> =
+  requireNotNull(
+    JsonCodec.parseObjectOrNull(toReviewAccountingBoundedJson())
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap),
+  )
 
 internal fun finding(
   path: String,

@@ -11,7 +11,6 @@ dependencies {
   implementation(project(":runtime-infra:host"))
   implementation(libs.kotlin.inject.runtime)
   implementation(libs.jackson.databind)
-  implementation(libs.jackson.dataformat.yaml)
   testImplementation(testFixtures(project(":runtime-ports")))
   testImplementation(testFixtures(project(":runtime-infra:host")))
   testImplementation(libs.junit.jupiter)

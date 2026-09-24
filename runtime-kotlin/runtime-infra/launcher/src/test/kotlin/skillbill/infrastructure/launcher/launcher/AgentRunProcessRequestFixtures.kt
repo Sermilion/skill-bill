@@ -1,12 +1,117 @@
 package skillbill.infrastructure.launcher.launcher
 
+import skillbill.infrastructure.launcher.process.launch.AgentRunActivityProbe
+import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessEnvironmentFields
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessExperimentCapabilityFields
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessLaunchFields
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessProbeFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRequest
-import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRequestDsl
-import skillbill.infrastructure.launcher.process.launch.agentRunProcessRequest
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessReviewFields
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessTimingFields
+import skillbill.infrastructure.launcher.process.launch.DEFAULT_FILE_ACTIVITY_GRACE_TIMEOUT
+import skillbill.infrastructure.launcher.process.launch.DEFAULT_STATUS_HEARTBEAT_INTERVAL
+import skillbill.ports.agentrun.model.AgentRunActivityStampSink
+import skillbill.ports.agentrun.model.AgentRunDeclaredProgressProbe
+import skillbill.ports.agentrun.model.AgentRunMcpStartupProbe
+import skillbill.ports.agentrun.model.AgentRunOutputSink
+import skillbill.ports.agentrun.model.AgentRunProgressEmitter
+import skillbill.ports.agentrun.model.AgentRunProgressProbe
+import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
+import skillbill.ports.agentrun.model.AgentRunWorktreeEditObserver
+import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointHandle
+import skillbill.ports.review.evidence.ReviewEvidenceBroker
+import skillbill.review.context.model.launch.ReviewConversationIsolation
 import java.nio.file.Path
+import kotlin.time.Duration
 
+/**
+ * Flat builder for launcher tests, which vary one or two fields at a time. Production code constructs
+ * [AgentRunProcessRequest] from its field groups directly; this convenience lives in test sources so the
+ * production type keeps a single construction path.
+ */
 internal fun testAgentRunProcessRequest(
   command: List<String>,
   workingDirectory: Path,
-  configure: AgentRunProcessRequestDsl.() -> Unit = {},
-): AgentRunProcessRequest = agentRunProcessRequest(command, workingDirectory, configure)
+  configure: TestAgentRunProcessRequestBuilder.() -> Unit = {},
+): AgentRunProcessRequest = TestAgentRunProcessRequestBuilder().apply(configure).build(command, workingDirectory)
+
+internal class TestAgentRunProcessRequestBuilder {
+  var stdinText: String? = null
+  var outputSink: AgentRunOutputSink = AgentRunOutputSink.NONE
+  var timeout: Duration? = null
+  var progressIdleTimeout: Duration? = null
+  var fileActivityGraceTimeout: Duration = DEFAULT_FILE_ACTIVITY_GRACE_TIMEOUT
+  var statusHeartbeatInterval: Duration = DEFAULT_STATUS_HEARTBEAT_INTERVAL
+  var operationDeadline: Duration? = null
+  var progressProbe: AgentRunProgressProbe = AgentRunProgressProbe.NONE
+  var declaredProgressProbe: AgentRunDeclaredProgressProbe = AgentRunDeclaredProgressProbe.NONE
+  var mcpStartupProbe: AgentRunMcpStartupProbe = AgentRunMcpStartupProbe.NONE
+  var progressEmitter: AgentRunProgressEmitter = AgentRunProgressEmitter.NONE
+  var activityProbe: AgentRunActivityProbe = AgentRunActivityProbe.NONE
+  var activityStampSink: AgentRunActivityStampSink = AgentRunActivityStampSink.NONE
+  var worktreeEditObserver: AgentRunWorktreeEditObserver = AgentRunWorktreeEditObserver.NONE
+  var idlePolicy: AgentRunIdlePolicy = AgentRunIdlePolicy.DB_PROGRESS_ONLY
+  var environment: Map<String, String> = emptyMap()
+  var inheritEnvironment: Boolean = true
+  var environmentPassthroughKeys: Set<String> = emptySet()
+  var conversationIsolation: ReviewConversationIsolation? = null
+  var reviewEvidenceBroker: ReviewEvidenceBroker? = null
+  var reviewEvidenceEndpoint: GovernedReviewEvidenceEndpointHandle? = null
+  var spawnAuthorization: AgentRunSpawnAuthorization? = null
+  var treatmentCapabilitiesEnabled: Set<String> = emptySet()
+  var treatmentCapabilitiesDenied: Set<String> = emptySet()
+  var denyRemotePublication: Boolean = false
+
+  fun build(
+    command: List<String>,
+    workingDirectory: Path,
+  ): AgentRunProcessRequest =
+    AgentRunProcessRequest(
+      launch =
+        AgentRunProcessLaunchFields(
+          command = command,
+          workingDirectory = workingDirectory,
+          stdinText = stdinText,
+          outputSink = outputSink,
+        ),
+      timing =
+        AgentRunProcessTimingFields(
+          timeout = timeout,
+          progressIdleTimeout = progressIdleTimeout,
+          fileActivityGraceTimeout = fileActivityGraceTimeout,
+          statusHeartbeatInterval = statusHeartbeatInterval,
+          operationDeadline = operationDeadline,
+        ),
+      probes =
+        AgentRunProcessProbeFields(
+          progressProbe = progressProbe,
+          declaredProgressProbe = declaredProgressProbe,
+          mcpStartupProbe = mcpStartupProbe,
+          progressEmitter = progressEmitter,
+          activityProbe = activityProbe,
+          activityStampSink = activityStampSink,
+          worktreeEditObserver = worktreeEditObserver,
+          idlePolicy = idlePolicy,
+        ),
+      environmentFields =
+        AgentRunProcessEnvironmentFields(
+          environment = environment,
+          inheritEnvironment = inheritEnvironment,
+          environmentPassthroughKeys = environmentPassthroughKeys,
+        ),
+      review =
+        AgentRunProcessReviewFields(
+          conversationIsolation = conversationIsolation,
+          reviewEvidenceBroker = reviewEvidenceBroker,
+          reviewEvidenceEndpoint = reviewEvidenceEndpoint,
+          spawnAuthorization = spawnAuthorization,
+        ),
+      experimentCapabilities =
+        AgentRunProcessExperimentCapabilityFields(
+          treatmentCapabilitiesEnabled = treatmentCapabilitiesEnabled,
+          treatmentCapabilitiesDenied = treatmentCapabilitiesDenied,
+          denyRemotePublication = denyRemotePublication,
+        ),
+    )
+}

@@ -90,5 +90,3 @@ object FeatureTaskRuntimePhaseOutputWireSchema {
     sourceLabel: String,
   ): NormalizedFeatureTaskRuntimePhaseOutput = normalizeVerifyingPhaseOutputLenient(phaseOutputText, sourceLabel)
 }
-
-internal typealias FeatureTaskRuntimePhaseOutputSchemaValidator = FeatureTaskRuntimePhaseOutputWireSchema

@@ -1,12 +1,12 @@
 package skillbill.infrastructure.sqlite.review.stats
 
 import skillbill.SAMPLE_REVIEW
-import skillbill.application.learning.learningAppliedSessionWire
-import skillbill.application.learning.learningEntryDto
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
+import skillbill.infrastructure.sqlite.learning.testLearningAppliedSessionWire
+import skillbill.infrastructure.sqlite.learning.testLearningEntryDto
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
 import skillbill.infrastructure.sqlite.review.stage.and.addLearning
 import skillbill.infrastructure.sqlite.review.stage.runtime.TriageRuntime
@@ -574,13 +574,13 @@ private fun cacheSkillLearning(
           rejectedOutcome = RejectedLearningSourceOutcome("fix_rejected", "Intentional wording"),
         ),
     )
-  val learningDto = learningEntryDto(SQLiteLearningStore.getLearning(connection, learningId))
+  val learningDto = testLearningEntryDto(SQLiteLearningStore.getLearning(connection, learningId))
   SQLiteLearningStore.saveSessionLearnings(
     connection = connection,
     reviewSessionId = reviewSessionId,
     learningsJson =
       JsonCodec.mapToJsonString(
-        learningAppliedSessionWire(null, listOf(learningDto)).toPayload().toMutableMap().apply {
+        testLearningAppliedSessionWire(null, listOf(learningDto)).toPayload().toMutableMap().apply {
           put("scope_counts", mapOf("global" to 0, "repo" to 0, "skill" to 1))
         },
       ),

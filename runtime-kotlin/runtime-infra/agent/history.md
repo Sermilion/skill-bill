@@ -1,5 +1,17 @@
 # Boundary History — runtime-kotlin/runtime-infra
 
+## [2026-09-25] SKILL-376 subtask 1 — process ownership, single owners, and adapter seams
+Areas: runtime-infra/{host,launcher,workflow,sqlite,skills,contracts}, runtime-core architecture guards, runtime-application and runtime-engine test edges, runtime-kotlin documentation
+- Split process ownership by lifetime: runtime-infra/host owns one-shot execution (BoundedExternalProcessRunner, BoundedExternalProcessOutput, InstallerProcessAdapter, GateJvmResolver, GitTrackedFiles) and runtime-infra/launcher owns long-running agent processes; git invocation and the PR-check runner delegate to host while keeping git result semantics (trimmed output, exit -1 on timeout, IOException as readFailure). reusable
+- Removed the bespoke git session types and the duplicate accounting bounded-payload encoders; one serializer now produces persisted accounting bytes, pinned by a baseline fixture owned by the sqlite module.
+- Pattern: one construction path per request type — AgentRunProcessRequest is built only from its six field groups, with the flat DSL demoted to launcher test sources; forwarding getters, the AgentRunAdapter indirection, and three typealiases are gone.
+- Ambient time removed from runtime-infra production sources (injected Clock instead of System.currentTimeMillis), with the ambient-clock architecture guard extended to catch regressions. reusable
+- Repo validation now reports a named issue per failed discovery source instead of silently returning an empty list, across all three validation sites.
+- Six build files carry only the dependency edges their sources use; contracts and skills dropped their :runtime-infra:workflow edge and sqlite dropped its :runtime-application edge.
+- Known limitation: three contracts tests and four skills install cases still exercise FileSystemReviewNativeAgentPreflight through module-internal support, so those test relocations wait for a later subtask.
+Feature flag: N/A
+Acceptance criteria: 10/10 implemented
+
 ## [2026-09-18] SKILL-354 subtask 2 — split runtime infrastructure by ownership
 Areas: runtime-infra/{host,contracts,skills,launcher,workflow}, runtime-core architecture, runtime-kotlin documentation
 - Replaced the monolithic runtime-infra/fs module with five ownership-aligned modules, preserving production and test coverage while updating package, resource, Gradle, fixture, and architecture boundaries.

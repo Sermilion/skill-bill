@@ -1,4 +1,4 @@
-package skillbill.infrastructure.launcher
+package skillbill.infrastructure.host.process
 
 import skillbill.ports.process.DEFAULT_INSTALLER_PROCESS_DEADLINE_SECONDS
 import skillbill.ports.process.INSTALLER_OUTPUT_TRUNCATION_SENTINEL

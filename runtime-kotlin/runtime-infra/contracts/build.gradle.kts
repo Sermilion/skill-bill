@@ -16,7 +16,6 @@ dependencies {
   testImplementation(testFixtures(project(":runtime-ports")))
   testImplementation(testFixtures(project(":runtime-infra:host")))
   testImplementation(project(":runtime-application"))
-  testImplementation(project(":runtime-infra:workflow"))
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.kotlin.test)
 }

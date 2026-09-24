@@ -1,12 +1,12 @@
 package skillbill.infrastructure.sqlite.review.stage.and
 
 import skillbill.SAMPLE_REVIEW
-import skillbill.application.learning.learningAppliedSessionWire
-import skillbill.application.learning.learningEntryDto
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.learning.LearningEntryDto
 import skillbill.error.learning.InvalidLearningSourceError
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
+import skillbill.infrastructure.sqlite.learning.testLearningAppliedSessionWire
+import skillbill.infrastructure.sqlite.learning.testLearningEntryDto
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
 import skillbill.infrastructure.sqlite.review.stage.finished.fetchSessionLearnings
 import skillbill.infrastructure.sqlite.review.stage.runtime.ReviewRuntime
@@ -79,7 +79,7 @@ class TriageAndLearningsRuntimeTest {
       assertEquals(listOf(skillId, repoId, globalId), resolved.map { it.id })
       assertTrue(resolved.first().rationale.contains("current prompt wording"))
 
-      val payloadEntries = resolved.map(::learningEntryDto)
+      val payloadEntries = resolved.map(::testLearningEntryDto)
       saveCachedLearnings(connection, review.reviewSessionId, payloadEntries)
 
       val cached = SQLiteLearningStore.fetchSessionLearnings(connection, review.reviewSessionId)
@@ -241,6 +241,6 @@ private fun saveCachedLearnings(
   SQLiteLearningStore.saveSessionLearnings(
     connection = connection,
     reviewSessionId = reviewSessionId,
-    learningsJson = JsonCodec.mapToJsonString(learningAppliedSessionWire(null, payloadEntries).toPayload()),
+    learningsJson = JsonCodec.mapToJsonString(testLearningAppliedSessionWire(null, payloadEntries).toPayload()),
   )
 }

@@ -1,6 +1,9 @@
 package skillbill.infrastructure.host.jvm
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.infrastructure.host.process.BoundedExternalProcessOutput
+import skillbill.infrastructure.host.process.BoundedExternalProcessRequest
+import skillbill.infrastructure.host.process.BoundedExternalProcessRunner
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.system.HostPlatformPort
 import java.io.File
@@ -8,7 +11,6 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
-import java.util.concurrent.TimeUnit
 
 sealed interface GateJvmDisposition {
   data class Export(val javaHome: String) : GateJvmDisposition
@@ -67,24 +69,27 @@ class GateJvmResolver(
     guard: Path,
     environment: Map<String, String>,
   ): GuardEvaluation {
-    val builder =
-      ProcessBuilder("sh", "-c", GUARD_PROGRAM, "sh", guard.toString())
-        .redirectError(ProcessBuilder.Redirect.DISCARD)
-    builder.environment().clear()
-    builder.environment().putAll(environment)
-    val process =
-      try {
-        builder.start()
-      } catch (error: IOException) {
-        throw GateJvmGuardExecutionException("no POSIX sh available to evaluate $guard", error)
-      }
-    process.outputStream.close()
-    if (!process.waitFor(GUARD_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-      process.destroyForcibly()
+    val result =
+      BoundedExternalProcessRunner.run(
+        BoundedExternalProcessRequest(
+          argv = listOf("sh", "-c", GUARD_PROGRAM, "sh", guard.toString()),
+          environment = environment,
+          clearEnvironment = true,
+          mergeStderr = false,
+          deadlineSeconds = GUARD_TIMEOUT_SECONDS,
+          output = BoundedExternalProcessOutput.Captured(capBytes = null),
+        ),
+      )
+    if (result.launchFailure) {
+      throw GateJvmGuardExecutionException(
+        "no POSIX sh available to evaluate $guard",
+        result.readFailure ?: IOException(result.output),
+      )
+    }
+    if (result.timedOut) {
       throw GateJvmGuardTimeoutException(GUARD_TIMEOUT_SECONDS)
     }
-    val stdout = process.inputStream.use { stream -> stream.readBytes().toString(Charsets.UTF_8) }
-    return GuardEvaluation(status = process.exitValue(), stdout = stdout)
+    return GuardEvaluation(status = result.exitCode, stdout = result.output)
   }
 
   private fun dispositionOf(

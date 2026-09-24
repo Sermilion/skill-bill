@@ -75,7 +75,7 @@ internal class SQLiteUnitOfWork(
   private val runtimeVersion: String,
 ) : UnitOfWork {
   private val phaseSettlementStore = SqliteFeatureTaskPhaseSettlementStore(connection)
-  private val experimentPairStore = SqliteExperimentPairStore(connection)
+  private val experimentPairStore = SqliteExperimentPairStore(connection, clock)
 
   internal val sessionClock: Clock get() = clock
   internal val sessionDiagnostics: RuntimeDiagnostics get() = diagnostics

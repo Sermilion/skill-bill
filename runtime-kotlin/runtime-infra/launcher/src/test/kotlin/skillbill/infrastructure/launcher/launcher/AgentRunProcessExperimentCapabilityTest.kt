@@ -17,8 +17,8 @@ class AgentRunProcessExperimentCapabilityTest {
         denyRemotePublication = true
       }
 
-    assertEquals(setOf("fixture-treatment"), request.treatmentCapabilitiesEnabled)
-    assertTrue(request.denyRemotePublication)
+    assertEquals(setOf("fixture-treatment"), request.experimentCapabilities.treatmentCapabilitiesEnabled)
+    assertTrue(request.experimentCapabilities.denyRemotePublication)
   }
 
   @Test

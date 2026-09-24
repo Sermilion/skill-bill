@@ -1,5 +1,6 @@
 package skillbill.infrastructure.launcher.launcher.process
 
+import skillbill.infrastructure.host.process.BoundedExternalProcessOutput
 import skillbill.infrastructure.host.process.BoundedExternalProcessRequest
 import skillbill.infrastructure.host.process.BoundedExternalProcessRunner
 import java.nio.file.Files
@@ -21,9 +22,8 @@ class BoundedExternalProcessRunnerLifetimeTest {
         BoundedExternalProcessRunner.run(
           BoundedExternalProcessRequest(
             argv = listOf("sh", "-c", "printf stderr >&2"),
-            redirectOutputFile = output,
             deadlineSeconds = 1,
-            outputCapBytes = null,
+            output = BoundedExternalProcessOutput.RedirectToFile(output),
           ),
         )
       assertEquals(0, result.exitCode)

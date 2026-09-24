@@ -21,8 +21,6 @@ import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection
 import java.time.Clock
 
-internal typealias WorkflowStateRow = WorkflowStateRecord
-
 internal const val DELETE_GOAL_CHILD_FIRST_STATUS_INDEX: Int = 2
 internal const val MINIMUM_OWNER_TOKEN_LENGTH: Int = 16
 

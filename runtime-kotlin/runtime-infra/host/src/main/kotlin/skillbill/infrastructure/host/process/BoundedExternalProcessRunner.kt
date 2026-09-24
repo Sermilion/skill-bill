@@ -1,9 +1,7 @@
 package skillbill.infrastructure.host.process
 
 import skillbill.ports.process.INSTALLER_OUTPUT_TRUNCATION_SENTINEL
-import skillbill.ports.process.INSTALLER_PROCESS_OUTPUT_CAP_BYTES
 import java.io.IOException
-import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
@@ -17,9 +15,10 @@ data class BoundedExternalProcessRequest(
   val environment: Map<String, String>? = null,
   val mergeEnvironment: Map<String, String> = emptyMap(),
   val clearEnvironment: Boolean = false,
-  val redirectOutputFile: Path? = null,
+  val stdin: ByteArray? = null,
+  val mergeStderr: Boolean = true,
   val deadlineSeconds: Long,
-  val outputCapBytes: Long? = INSTALLER_PROCESS_OUTPUT_CAP_BYTES.toLong(),
+  val output: BoundedExternalProcessOutput = BoundedExternalProcessOutput.Captured(),
 )
 
 data class BoundedExternalProcessResult(
@@ -27,6 +26,7 @@ data class BoundedExternalProcessResult(
   val output: String = "",
   val timedOut: Boolean = false,
   val launchFailure: Boolean = false,
+  val readFailure: IOException? = null,
 )
 
 object BoundedExternalProcessRunner {
@@ -39,15 +39,18 @@ object BoundedExternalProcessRunner {
 private class BoundedExternalProcessSession(
   private val request: BoundedExternalProcessRequest,
 ) {
+  private val redirectFile = (request.output as? BoundedExternalProcessOutput.RedirectToFile)?.path
   private val deadlineSeconds = request.deadlineSeconds.coerceAtLeast(1L)
   private val operationDeadlineNanos =
     System.nanoTime() + TimeUnit.SECONDS.toNanos(deadlineSeconds)
   private val ownedDescendants = linkedSetOf<ProcessHandle>()
   private val output = StringBuilder()
   private val truncated = AtomicBoolean(false)
+  private val stopRequested = AtomicBoolean(false)
   private val readFailure = AtomicReference<IOException?>()
   private var process: Process? = null
   private var outputThread: Thread? = null
+  private var inputThread: Thread? = null
   private var timedOut = false
   private var exitCode = 1
   private var primaryFailure: Throwable? = null
@@ -82,18 +85,22 @@ private class BoundedExternalProcessSession(
           if (request.mergeEnvironment.isNotEmpty()) {
             environment().putAll(request.mergeEnvironment)
           }
-          redirectErrorStream(true)
-          request.redirectOutputFile?.let { redirectOutput(it.toFile()) }
+          if (request.mergeStderr) {
+            redirectErrorStream(true)
+          } else {
+            redirectError(ProcessBuilder.Redirect.DISCARD)
+          }
+          redirectFile?.let { redirectOutput(it.toFile()) }
         }.start()
       }.getOrElse { failure ->
         primaryFailure = failure
         return false
       }
     process = started
-    runCatching { started.outputStream.close() }.onFailure(::recordCleanupFailure)
-    if (request.redirectOutputFile == null) {
+    if (redirectFile == null) {
       startOutputThread(started)
     }
+    startInput(started)
     return true
   }
 
@@ -103,45 +110,53 @@ private class BoundedExternalProcessSession(
       exitCode = 1,
       output = "Failed to launch process: $message",
       launchFailure = true,
+      readFailure = primaryFailure as? IOException,
     )
   }
 
   private fun startOutputThread(process: Process) {
     outputThread =
       thread(start = true, name = "skill-bill-bounded-process-output") {
-        drainCapped(process.inputStream)
+        drainOutput(process)
       }
   }
 
-  private fun drainCapped(stream: InputStream) {
-    val cap = request.outputCapBytes
-    if (cap == null) {
-      output.append(stream.bufferedReader().readText())
+  private fun drainOutput(process: Process) {
+    when (val mode = request.output) {
+      is BoundedExternalProcessOutput.Captured ->
+        try {
+          truncated.set(readCappedOutput(process.inputStream, mode.capBytes, output))
+        } catch (error: IOException) {
+          readFailure.compareAndSet(null, error)
+        }
+      is BoundedExternalProcessOutput.Lines ->
+        try {
+          if (readBoundedLines(process.inputStream, mode)) {
+            stopRequested.set(true)
+          }
+        } catch (error: IOException) {
+          if (!mode.shouldStop()) {
+            readFailure.compareAndSet(null, error)
+          }
+        }
+      is BoundedExternalProcessOutput.RedirectToFile -> Unit
+    }
+  }
+
+  private fun startInput(process: Process) {
+    val stdin = request.stdin
+    if (stdin == null) {
+      runCatching { process.outputStream.close() }.onFailure(::recordCleanupFailure)
       return
     }
-    val buffer = ByteArray(BUFFER_BYTES)
-    var capturedBytes = 0
-    try {
-      var done = false
-      while (!done) {
-        val count = stream.read(buffer)
-        if (count < 0) {
-          done = true
-        } else if (capturedBytes + count > cap) {
-          val remaining = cap - capturedBytes
-          if (remaining > 0) {
-            output.append(String(buffer, 0, remaining.toInt(), Charsets.UTF_8))
-            capturedBytes += remaining.toInt()
-          }
-          truncated.set(true)
-        } else {
-          output.append(String(buffer, 0, count, Charsets.UTF_8))
-          capturedBytes += count
+    inputThread =
+      thread(start = true, name = "skill-bill-bounded-process-input") {
+        try {
+          process.outputStream.use { stream -> stream.write(stdin) }
+        } catch (error: IOException) {
+          readFailure.compareAndSet(null, error)
         }
       }
-    } catch (error: IOException) {
-      readFailure.compareAndSet(null, error)
-    }
   }
 
   private fun awaitProcess() {
@@ -157,6 +172,9 @@ private class BoundedExternalProcessSession(
         minOf(remainingWaitNanos, TimeUnit.MILLISECONDS.toNanos(PROCESS_POLL_MILLIS)),
         TimeUnit.NANOSECONDS,
       )
+      if (stopRequested.get()) {
+        attemptCleanup { destroyProcessTree(active) }
+      }
     }
     if (!timedOut && !active.isAlive) {
       exitCode = active.exitValue()
@@ -169,9 +187,6 @@ private class BoundedExternalProcessSession(
 
   private fun settleOutput() {
     val active = process ?: return
-    if (request.redirectOutputFile != null) {
-      return
-    }
     val outputDeadlineNanos =
       if (timedOut) {
         System.nanoTime() + TimeUnit.SECONDS.toNanos(PROCESS_CLEANUP_BUDGET_SECONDS)
@@ -181,6 +196,11 @@ private class BoundedExternalProcessSession(
           System.nanoTime() + TimeUnit.SECONDS.toNanos(PROCESS_CLEANUP_BUDGET_SECONDS),
         )
       }
+    inputThread?.let { writerThread ->
+      if (!joinWithDeadline(writerThread, outputDeadlineNanos)) {
+        readFailure.compareAndSet(null, IOException("process input delivery did not settle before deadline"))
+      }
+    }
     outputThread?.let { drainThread ->
       if (!closeInputAndJoin(active, drainThread, outputDeadlineNanos)) {
         readFailure.compareAndSet(null, IOException("process output capture did not settle before deadline"))
@@ -198,6 +218,9 @@ private class BoundedExternalProcessSession(
     val active = process ?: return
     val cleanupDeadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(PROCESS_CLEANUP_BUDGET_SECONDS)
     attemptCleanup { active.outputStream.close() }
+    inputThread?.let { writerThread ->
+      attemptCleanup { joinWithDeadline(writerThread, cleanupDeadlineNanos) }
+    }
     outputThread?.let { drainThread ->
       attemptCleanup { closeInputAndJoin(active, drainThread, cleanupDeadlineNanos) }
     }
@@ -214,7 +237,7 @@ private class BoundedExternalProcessSession(
 
   private fun buildResult(): BoundedExternalProcessResult {
     val fileOutput =
-      request.redirectOutputFile?.let { path ->
+      redirectFile?.let { path ->
         if (!Files.exists(path)) "" else Files.readString(path)
       }
     val captured =
@@ -231,12 +254,14 @@ private class BoundedExternalProcessSession(
         exitCode = TIMEOUT_EXIT_CODE,
         output = captured.ifBlank { readFailure.get()?.message.orEmpty() },
         timedOut = true,
+        readFailure = readFailure.get(),
       )
     }
     readFailure.get()?.let { failure ->
       return BoundedExternalProcessResult(
         exitCode = if (exitCode == 0) 1 else exitCode,
         output = captured.ifBlank { failure.message.orEmpty() },
+        readFailure = failure,
       )
     }
     return BoundedExternalProcessResult(exitCode = exitCode, output = captured)
@@ -279,5 +304,4 @@ private class BoundedExternalProcessSession(
   }
 }
 
-private const val BUFFER_BYTES = 8192
 private const val TIMEOUT_EXIT_CODE = 124

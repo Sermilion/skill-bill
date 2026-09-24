@@ -33,6 +33,7 @@ private val AMBIENT_CLOCK_FORMS: List<Pair<Regex, String>> =
     Regex("""\bZonedDateTime\.now\s*\(""") to "ZonedDateTime.now()",
     Regex("""\bClock\.systemUTC\s*\(""") to "Clock.systemUTC()",
     Regex("""\bJvmSystemClock\.instant\s*\(""") to "JvmSystemClock.instant()",
+    Regex("""\bSystem\.currentTimeMillis\s*\(""") to "System.currentTimeMillis()",
   )
 
 private val AMBIENT_ENVIRONMENT_FORMS: List<Pair<Regex, String>> =

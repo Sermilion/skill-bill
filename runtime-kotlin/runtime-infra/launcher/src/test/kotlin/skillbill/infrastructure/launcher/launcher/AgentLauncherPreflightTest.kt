@@ -76,8 +76,8 @@ class AgentLauncherPreflightTest {
     val facts = adapter.launch(request())
 
     assertFalse(facts.spawnFailed)
-    assertEquals("cursor-agent", runner.requests.single().command.first())
-    assertContains(runner.requests.single().command, "--print")
+    assertEquals("cursor-agent", runner.requests.single().launch.command.first())
+    assertContains(runner.requests.single().launch.command, "--print")
   }
 
   @Test
@@ -93,7 +93,7 @@ class AgentLauncherPreflightTest {
 
     adapter.launch(request())
 
-    assertEquals("agent", runner.requests.single().command.first())
+    assertEquals("agent", runner.requests.single().launch.command.first())
   }
 }
 

@@ -19,12 +19,6 @@ import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.SkillRunRequest
 import java.nio.file.Path
 
-internal interface AgentRunAdapter {
-  val agent: SupportedAgent
-
-  fun launch(request: SkillRunRequest): AgentRunLaunchFacts
-}
-
 internal sealed interface LauncherResolution {
   data class Resolved(val command: List<String>) : LauncherResolution
 
@@ -32,12 +26,12 @@ internal sealed interface LauncherResolution {
 }
 
 internal class ProcessAgentRunAdapter(
-  override val agent: SupportedAgent,
+  val agent: SupportedAgent,
   private val commandBuilder: AgentRunCommandBuilder,
   private val processRunner: AgentRunProcessRunner,
   private val executableLookup: ExecutableLookup = PathExecutableLookup(),
-) : AgentRunAdapter {
-  override fun launch(request: SkillRunRequest): AgentRunLaunchFacts {
+) {
+  fun launch(request: SkillRunRequest): AgentRunLaunchFacts {
     val built = commandBuilder.build(request)
     val command =
       when (val resolution = resolveLauncherExecutable(built.command, commandBuilder.launcherCli)) {
@@ -280,7 +274,7 @@ internal fun headlessAgentRunAdapters(
   processRunner: AgentRunProcessRunner,
   executableLookup: ExecutableLookup = PathExecutableLookup(),
   databasePath: Path? = null,
-): Map<SupportedAgent, AgentRunAdapter> =
+): Map<SupportedAgent, ProcessAgentRunAdapter> =
   listOf(
     ClaudeAgentRunCommandBuilder(databasePath = databasePath),
     CodexAgentRunCommandBuilder(databasePath = databasePath),

@@ -61,139 +61,32 @@ data class AgentRunProcessRequest(
   val review: AgentRunProcessReviewFields = AgentRunProcessReviewFields(),
   val experimentCapabilities: AgentRunProcessExperimentCapabilityFields = AgentRunProcessExperimentCapabilityFields(),
 ) {
-  val command: List<String> get() = launch.command
-  val workingDirectory: Path get() = launch.workingDirectory
-  val stdinText: String? get() = launch.stdinText
-  val outputSink: AgentRunOutputSink get() = launch.outputSink
-  val timeout: Duration? get() = timing.timeout
-  val progressIdleTimeout: Duration? get() = timing.progressIdleTimeout
-  val fileActivityGraceTimeout: Duration get() = timing.fileActivityGraceTimeout
-  val statusHeartbeatInterval: Duration get() = timing.statusHeartbeatInterval
-  val operationDeadline: Duration? get() = timing.operationDeadline
-  val progressProbe: AgentRunProgressProbe get() = probes.progressProbe
-  val declaredProgressProbe: AgentRunDeclaredProgressProbe get() = probes.declaredProgressProbe
-  val mcpStartupProbe: AgentRunMcpStartupProbe get() = probes.mcpStartupProbe
-  val progressEmitter: AgentRunProgressEmitter get() = probes.progressEmitter
-  val activityProbe: AgentRunActivityProbe get() = probes.activityProbe
-  val activityStampSink: AgentRunActivityStampSink get() = probes.activityStampSink
-  val worktreeEditObserver: AgentRunWorktreeEditObserver get() = probes.worktreeEditObserver
-  val idlePolicy: AgentRunIdlePolicy get() = probes.idlePolicy
-  val environment: Map<String, String> get() = environmentFields.environment
-  val inheritEnvironment: Boolean get() = environmentFields.inheritEnvironment
-  val environmentPassthroughKeys: Set<String> get() = environmentFields.environmentPassthroughKeys
-  val conversationIsolation: ReviewConversationIsolation? get() = review.conversationIsolation
-  val reviewEvidenceBroker: ReviewEvidenceBroker? get() = review.reviewEvidenceBroker
-  val reviewEvidenceEndpoint: GovernedReviewEvidenceEndpointHandle? get() = review.reviewEvidenceEndpoint
-  val spawnAuthorization: AgentRunSpawnAuthorization? get() = review.spawnAuthorization
-  val treatmentCapabilitiesEnabled: Set<String> get() = experimentCapabilities.treatmentCapabilitiesEnabled
-  val treatmentCapabilitiesDenied: Set<String> get() = experimentCapabilities.treatmentCapabilitiesDenied
-  val denyRemotePublication: Boolean get() = experimentCapabilities.denyRemotePublication
-
   init {
-    require(command.isNotEmpty()) { "Agent run command is required." }
-    require(command.first().isNotBlank()) { "Agent run executable is required." }
-    timeout?.let { maxWallClockTimeout ->
+    require(launch.command.isNotEmpty()) { "Agent run command is required." }
+    require(launch.command.first().isNotBlank()) { "Agent run executable is required." }
+    timing.timeout?.let { maxWallClockTimeout ->
       require(maxWallClockTimeout.isPositive()) { "Agent run timeout must be positive when provided." }
     }
-    progressIdleTimeout?.let { idleTimeout ->
+    timing.progressIdleTimeout?.let { idleTimeout ->
       require(idleTimeout.isPositive()) { "Agent run progress idle timeout must be positive." }
     }
-    require(fileActivityGraceTimeout.isPositive()) { "Agent run file activity grace timeout must be positive." }
-    require(statusHeartbeatInterval.isPositive()) { "Agent run status heartbeat interval must be positive." }
-    operationDeadline?.let { deadline ->
+    require(timing.fileActivityGraceTimeout.isPositive()) {
+      "Agent run file activity grace timeout must be positive."
+    }
+    require(timing.statusHeartbeatInterval.isPositive()) {
+      "Agent run status heartbeat interval must be positive."
+    }
+    timing.operationDeadline?.let { deadline ->
       require(deadline.isPositive()) { "Agent run operation deadline must be positive when provided." }
     }
-    require(reviewEvidenceBroker == null || conversationIsolation == ReviewConversationIsolation.FRESH) {
+    require(
+      review.reviewEvidenceBroker == null ||
+        review.conversationIsolation == ReviewConversationIsolation.FRESH,
+    ) {
       "A process review evidence transport requires fresh-context isolation."
     }
-    require((reviewEvidenceBroker == null) == (reviewEvidenceEndpoint == null)) {
+    require((review.reviewEvidenceBroker == null) == (review.reviewEvidenceEndpoint == null)) {
       "A process review evidence transport and its bound endpoint must be supplied together."
     }
   }
-}
-
-internal fun agentRunProcessRequest(
-  command: List<String>,
-  workingDirectory: Path,
-  configure: AgentRunProcessRequestDsl.() -> Unit = {},
-): AgentRunProcessRequest = AgentRunProcessRequestDsl().apply(configure).build(command, workingDirectory)
-
-internal class AgentRunProcessRequestDsl {
-  var stdinText: String? = null
-  var outputSink: AgentRunOutputSink = AgentRunOutputSink.NONE
-  var timeout: Duration? = null
-  var progressIdleTimeout: Duration? = null
-  var fileActivityGraceTimeout: Duration = DEFAULT_FILE_ACTIVITY_GRACE_TIMEOUT
-  var statusHeartbeatInterval: Duration = DEFAULT_STATUS_HEARTBEAT_INTERVAL
-  var operationDeadline: Duration? = null
-  var progressProbe: AgentRunProgressProbe = AgentRunProgressProbe.NONE
-  var declaredProgressProbe: AgentRunDeclaredProgressProbe = AgentRunDeclaredProgressProbe.NONE
-  var mcpStartupProbe: AgentRunMcpStartupProbe = AgentRunMcpStartupProbe.NONE
-  var progressEmitter: AgentRunProgressEmitter = AgentRunProgressEmitter.NONE
-  var activityProbe: AgentRunActivityProbe = AgentRunActivityProbe.NONE
-  var activityStampSink: AgentRunActivityStampSink = AgentRunActivityStampSink.NONE
-  var worktreeEditObserver: AgentRunWorktreeEditObserver = AgentRunWorktreeEditObserver.NONE
-  var idlePolicy: AgentRunIdlePolicy = AgentRunIdlePolicy.DB_PROGRESS_ONLY
-  var environment: Map<String, String> = emptyMap()
-  var inheritEnvironment: Boolean = true
-  var environmentPassthroughKeys: Set<String> = emptySet()
-  var conversationIsolation: ReviewConversationIsolation? = null
-  var reviewEvidenceBroker: ReviewEvidenceBroker? = null
-  var reviewEvidenceEndpoint: GovernedReviewEvidenceEndpointHandle? = null
-  var spawnAuthorization: AgentRunSpawnAuthorization? = null
-  var treatmentCapabilitiesEnabled: Set<String> = emptySet()
-  var treatmentCapabilitiesDenied: Set<String> = emptySet()
-  var denyRemotePublication: Boolean = false
-
-  internal fun build(
-    command: List<String>,
-    workingDirectory: Path,
-  ): AgentRunProcessRequest =
-    AgentRunProcessRequest(
-      launch =
-        AgentRunProcessLaunchFields(
-          command = command,
-          workingDirectory = workingDirectory,
-          stdinText = stdinText,
-          outputSink = outputSink,
-        ),
-      timing =
-        AgentRunProcessTimingFields(
-          timeout = timeout,
-          progressIdleTimeout = progressIdleTimeout,
-          fileActivityGraceTimeout = fileActivityGraceTimeout,
-          statusHeartbeatInterval = statusHeartbeatInterval,
-          operationDeadline = operationDeadline,
-        ),
-      probes =
-        AgentRunProcessProbeFields(
-          progressProbe = progressProbe,
-          declaredProgressProbe = declaredProgressProbe,
-          mcpStartupProbe = mcpStartupProbe,
-          progressEmitter = progressEmitter,
-          activityProbe = activityProbe,
-          activityStampSink = activityStampSink,
-          worktreeEditObserver = worktreeEditObserver,
-          idlePolicy = idlePolicy,
-        ),
-      environmentFields =
-        AgentRunProcessEnvironmentFields(
-          environment = environment,
-          inheritEnvironment = inheritEnvironment,
-          environmentPassthroughKeys = environmentPassthroughKeys,
-        ),
-      review =
-        AgentRunProcessReviewFields(
-          conversationIsolation = conversationIsolation,
-          reviewEvidenceBroker = reviewEvidenceBroker,
-          reviewEvidenceEndpoint = reviewEvidenceEndpoint,
-          spawnAuthorization = spawnAuthorization,
-        ),
-      experimentCapabilities =
-        AgentRunProcessExperimentCapabilityFields(
-          treatmentCapabilitiesEnabled = treatmentCapabilitiesEnabled,
-          treatmentCapabilitiesDenied = treatmentCapabilitiesDenied,
-          denyRemotePublication = denyRemotePublication,
-        ),
-    )
 }

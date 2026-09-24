@@ -28,10 +28,10 @@ class AgentRunLauncherProcessTest {
     requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.CLAUDE]).launch(request)
 
     val captured = runner.requests.single()
-    assertEquals("claude", captured.command[0])
-    assertEquals(AGENT_RUN_LAUNCHER_PHASE_PROMPT, captured.stdinText)
+    assertEquals("claude", captured.launch.command[0])
+    assertEquals(AGENT_RUN_LAUNCHER_PHASE_PROMPT, captured.launch.stdinText)
 
-    assertEquals("--add-dir", captured.command[captured.command.size - 2])
+    assertEquals("--add-dir", captured.launch.command[captured.launch.command.size - 2])
   }
 
   @Test
@@ -42,8 +42,8 @@ class AgentRunLauncherProcessTest {
     requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.JUNIE]).launch(request)
 
     val captured = runner.requests.single()
-    assertEquals("junie", captured.command.first())
-    assertEquals(AGENT_RUN_LAUNCHER_PHASE_PROMPT, captured.command.last())
+    assertEquals("junie", captured.launch.command.first())
+    assertEquals(AGENT_RUN_LAUNCHER_PHASE_PROMPT, captured.launch.command.last())
   }
 
   @Test
@@ -170,8 +170,8 @@ class AgentRunLauncherProcessTest {
     )
 
     assertEquals(2, runner.requests.size)
-    assertContains(requireNotNull(runner.requests[0].stdinText), "SKILL-56")
-    assertContains(requireNotNull(runner.requests[1].stdinText), "SKILL-57")
+    assertContains(requireNotNull(runner.requests[0].launch.stdinText), "SKILL-56")
+    assertContains(requireNotNull(runner.requests[1].launch.stdinText), "SKILL-57")
   }
 
   @Test

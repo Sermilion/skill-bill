@@ -55,33 +55,33 @@ internal class ProcessWaitLoop(
   internal val degradation: ProcessRunDegradationRecorder,
 ) {
   internal val timeoutMillis =
-    request.timeout
+    request.timing.timeout
       ?.toLong(DurationUnit.MILLISECONDS)
       ?.coerceAtLeast(MIN_TIMEOUT_MILLIS)
   internal val idleTimeoutNanos =
-    request.progressIdleTimeout
+    request.timing.progressIdleTimeout
       ?.toLong(DurationUnit.NANOSECONDS)
       ?.coerceAtLeast(MIN_TIMEOUT_NANOS)
   internal val fileActivityGraceNanos =
-    request.fileActivityGraceTimeout
+    request.timing.fileActivityGraceTimeout
       .toLong(DurationUnit.NANOSECONDS)
       .coerceAtLeast(MIN_TIMEOUT_NANOS)
   internal val statusHeartbeatNanos =
-    request.statusHeartbeatInterval
+    request.timing.statusHeartbeatInterval
       .toLong(DurationUnit.NANOSECONDS)
       .coerceAtLeast(MIN_TIMEOUT_NANOS)
   internal val operationDeadlineNanos =
-    request.operationDeadline
+    request.timing.operationDeadline
       ?.toLong(DurationUnit.NANOSECONDS)
       ?.coerceAtLeast(MIN_TIMEOUT_NANOS)
   internal val startNanos = System.nanoTime()
   internal var lastWorkflowProgressNanos = startNanos
   internal var lastStatusHeartbeatNanos = startNanos
   internal var lastLiveHeartbeatNanos = startNanos
-  internal var lastProgressToken = request.progressProbe.readProgressToken(degradation).value
-  internal var lastActivityToken = request.activityProbe.readActivityToken(degradation).value
+  internal var lastProgressToken = request.probes.progressProbe.readProgressToken(degradation).value
+  internal var lastActivityToken = request.probes.activityProbe.readActivityToken(degradation).value
   internal var fileActivityWindowStartNanos: Long? = null
-  internal var lastProgressLabel: String? = request.progressProbe.readProgressLabel(degradation).value
+  internal var lastProgressLabel: String? = request.probes.progressProbe.readProgressLabel(degradation).value
   internal var lastProgressInstant: Instant? = null
   internal var lastSnapshotInstant: Instant? = null
   internal var lastActivityLabel: String? = null
@@ -102,7 +102,7 @@ internal class ProcessWaitLoop(
   }
 
   private fun nextWait(): ProcessWait? {
-    if (request.reviewEvidenceBroker?.terminalOutcome() != null) {
+    if (request.review.reviewEvidenceBroker?.terminalOutcome() != null) {
       return ProcessWait(
         finished = false,
         progressIdleTimedOut = false,
@@ -305,7 +305,7 @@ internal class ProcessLifecycleEmitter(
     outcome: GoalProgressOutcome,
   ) {
     runCatching {
-      request.progressEmitter.emit(
+      request.probes.progressEmitter.emit(
         AgentRunProgressEmission(
           eventKind = kind,
           processAlive = processAlive,

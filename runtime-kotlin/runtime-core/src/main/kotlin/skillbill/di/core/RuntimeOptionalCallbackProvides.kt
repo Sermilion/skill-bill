@@ -1,7 +1,7 @@
 package skillbill.di.core
 import me.tatarka.inject.annotations.Provides
+import skillbill.infrastructure.host.process.InstallerProcessAdapter
 import skillbill.infrastructure.http.HttpInstallerScriptFetchAdapter
-import skillbill.infrastructure.launcher.InstallerProcessAdapter
 import skillbill.infrastructure.launcher.agentrun.FileSystemAgentRunLauncher
 import skillbill.infrastructure.launcher.agentrun.PathExecutableLookup
 import skillbill.infrastructure.workflow.git.goal.GhGoalPullRequestPort

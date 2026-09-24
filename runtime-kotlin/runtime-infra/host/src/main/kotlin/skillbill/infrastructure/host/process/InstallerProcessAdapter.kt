@@ -1,8 +1,6 @@
-package skillbill.infrastructure.launcher
+package skillbill.infrastructure.host.process
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.host.process.BoundedExternalProcessRequest
-import skillbill.infrastructure.host.process.BoundedExternalProcessRunner
 import skillbill.ports.process.InstallerProcessPort
 import skillbill.ports.process.model.InstallerProcessRequest
 import skillbill.ports.process.model.InstallerProcessResult

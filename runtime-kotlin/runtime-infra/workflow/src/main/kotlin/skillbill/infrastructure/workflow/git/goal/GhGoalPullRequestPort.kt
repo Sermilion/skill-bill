@@ -2,6 +2,7 @@ package skillbill.infrastructure.workflow.git.goal
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
+import skillbill.infrastructure.host.process.BoundedExternalProcessOutput
 import skillbill.infrastructure.host.process.BoundedExternalProcessRequest
 import skillbill.infrastructure.host.process.BoundedExternalProcessRunner
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
@@ -10,13 +11,11 @@ import skillbill.ports.goalrunner.runner.model.GoalPullRequestResult
 import java.nio.file.Files
 import java.nio.file.Path
 
-@Inject
-class GhGoalPullRequestPort() : GoalPullRequestPort {
-  private var ghExecutableResolver: (Path) -> Path? = ::resolveGhExecutable
-
-  internal constructor(ghExecutableResolver: (Path) -> Path?) : this() {
-    this.ghExecutableResolver = ghExecutableResolver
-  }
+class GhGoalPullRequestPort internal constructor(
+  private val ghExecutableResolver: (Path) -> Path?,
+) : GoalPullRequestPort {
+  @Inject
+  constructor() : this(::resolveGhExecutable)
 
   override fun open(request: GoalPullRequestRequest): GoalPullRequestResult =
     request.headBranch.takeIf(String::isNotBlank)
@@ -90,7 +89,7 @@ class GhGoalPullRequestPort() : GoalPullRequestPort {
             workingDirectory = root,
             mergeEnvironment = mapOf("GIT_TERMINAL_PROMPT" to "0"),
             deadlineSeconds = COMMAND_TIMEOUT_SECONDS,
-            outputCapBytes = MAX_OUTPUT_BYTES.toLong(),
+            output = BoundedExternalProcessOutput.Captured(MAX_OUTPUT_BYTES.toLong()),
           ),
         )
       if (result.timedOut) {
@@ -114,29 +113,29 @@ class GhGoalPullRequestPort() : GoalPullRequestPort {
       }
     return if (output.isBlank()) "GitHub provider exited with code ${result.exitCode}." else output
   }
-
-  private fun resolveGhExecutable(root: Path): Path? {
-    val names = executableNames("gh")
-    val host = JdkHostPlatformPort
-    return host.resolveEnvironment()["PATH"]
-      .orEmpty()
-      .split(host.pathSeparator)
-      .asSequence()
-      .mapNotNull { raw -> raw.takeIf(String::isNotBlank)?.let(Path::of) }
-      .flatMap { directory -> names.asSequence().map(directory::resolve) }
-      .firstOrNull { candidate -> Files.isRegularFile(candidate) && Files.isExecutable(candidate) }
-      ?: names.asSequence()
-        .map(root::resolve)
-        .firstOrNull { candidate -> Files.isRegularFile(candidate) && Files.isExecutable(candidate) }
-  }
-
-  private fun executableNames(base: String): List<String> =
-    if (JdkHostPlatformPort.osName.contains("windows", ignoreCase = true)) {
-      listOf("$base.exe", "$base.cmd", "$base.bat", base)
-    } else {
-      listOf(base)
-    }
 }
+
+private fun resolveGhExecutable(root: Path): Path? {
+  val names = executableNames("gh")
+  val host = JdkHostPlatformPort
+  return host.resolveEnvironment()["PATH"]
+    .orEmpty()
+    .split(host.pathSeparator)
+    .asSequence()
+    .mapNotNull { raw -> raw.takeIf(String::isNotBlank)?.let(Path::of) }
+    .flatMap { directory -> names.asSequence().map(directory::resolve) }
+    .firstOrNull { candidate -> Files.isRegularFile(candidate) && Files.isExecutable(candidate) }
+    ?: names.asSequence()
+      .map(root::resolve)
+      .firstOrNull { candidate -> Files.isRegularFile(candidate) && Files.isExecutable(candidate) }
+}
+
+private fun executableNames(base: String): List<String> =
+  if (JdkHostPlatformPort.osName.contains("windows", ignoreCase = true)) {
+    listOf("$base.exe", "$base.cmd", "$base.bat", base)
+  } else {
+    listOf(base)
+  }
 
 private data class CommandResult(
   val exitCode: Int,

@@ -85,6 +85,11 @@ class RuntimeApplicationAmbientClockArchitectureTest {
   }
 
   @Test
+  fun `ambient clock scanner fires on unlisted System currentTimeMillis site`() {
+    assertScannerReports("fun nowMarker() = System.currentTimeMillis()", "System.currentTimeMillis()")
+  }
+
+  @Test
   fun `ambient clock scanner fires on unlisted LocalDate now site`() {
     assertScannerReports("fun todayMarker() = LocalDate.now()", "LocalDate.now()")
   }

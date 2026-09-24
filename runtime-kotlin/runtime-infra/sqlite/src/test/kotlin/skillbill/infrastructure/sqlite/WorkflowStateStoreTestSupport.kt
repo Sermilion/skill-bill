@@ -1,11 +1,11 @@
 package skillbill.infrastructure.sqlite
 
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
-import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateRow
 import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateStore
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.WorkflowSnapshotValidator
+import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskRouteScope
@@ -29,7 +29,7 @@ internal val testWorkflowSnapshotValidator =
 
 internal fun assertRuntimeAndVerifyStateTransitions(
   store: WorkflowStateStore,
-  initial: WorkflowStateRow,
+  initial: WorkflowStateRecord,
   startedAt: String,
 ) {
   val runtimeInitial =
@@ -50,7 +50,7 @@ internal fun assertRuntimeAndVerifyStateTransitions(
   assertEquals(false, runtimeTransitioned.stateEnteredAtEstimated)
 
   val verifyInitial =
-    WorkflowStateRow(
+    WorkflowStateRecord(
       workflowId = "wfv-state-entry",
       sessionId = "fvr-state-entry",
       workflowName = "bill-feature-verify",
@@ -81,7 +81,7 @@ internal fun assertRuntimeAndVerifyStateTransitions(
 
 internal fun prepareConcurrentWorkflowTransitions(
   dbPath: Path,
-  initial: WorkflowStateRow,
+  initial: WorkflowStateRecord,
 ) {
   DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
     WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
@@ -281,8 +281,8 @@ internal fun workflowRow(
   workflowName: String,
   currentStepId: String,
   mode: FeatureTaskWorkflowMode? = null,
-): WorkflowStateRow =
-  WorkflowStateRow(
+): WorkflowStateRecord =
+  WorkflowStateRecord(
     workflowId = workflowId,
     sessionId = sessionId,
     workflowName = workflowName,
@@ -300,7 +300,7 @@ internal fun workflowRow(
 internal fun goalChildWorkflow(
   workflowId: String,
   parentWorkflowId: String,
-): WorkflowStateRow =
+): WorkflowStateRecord =
   workflowRow(
     workflowId = workflowId,
     sessionId = "ftr-$workflowId",
@@ -312,7 +312,7 @@ internal fun goalChildWorkflow(
       """{"goal_continuation":{"issue_key":"SKILL-128","subtask_id":1,"parent_workflow_id":"$parentWorkflowId"}}""",
   )
 
-internal fun goalChildIdentity(row: WorkflowStateRow): FeatureTaskExecutionIdentity =
+internal fun goalChildIdentity(row: WorkflowStateRecord): FeatureTaskExecutionIdentity =
   FeatureTaskExecutionIdentity(
     workflowId = row.workflowId,
     normalizedIssueKey = "SKILL-128",

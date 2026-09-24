@@ -1,6 +1,5 @@
-package skillbill.infrastructure.contracts.review
+package skillbill.infrastructure.workflow.review.specialists.review
 
-import skillbill.infrastructure.workflow.review.specialists.review.ClasspathReviewSpecialistContractProvider
 import skillbill.review.context.model.packet.ReviewPacketConsumerContract
 import java.nio.file.Files
 import java.nio.file.Path

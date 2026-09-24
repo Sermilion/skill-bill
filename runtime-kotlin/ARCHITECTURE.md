@@ -181,7 +181,7 @@ fixtures and must not import `skillbill.infrastructure.sqlite.core` from tests.
 
 Public SQLite DI surface stays limited to `SQLiteDatabaseSessionFactory`,
 `SqliteFeatureTaskPhaseSettlementRepository`, `WorkflowGoalRunnerManifestStore`,
-`WorkflowGoalRunnerOutcomeStore`, and `WorkflowGoalRunnerOutcomeStoreBridgeBuilder`.
+and `WorkflowGoalRunnerOutcomeStore`.
 Other adapters are `internal`; repositories mutate only inside
 `SQLiteDatabaseSessionFactory` write/read transaction callbacks.
 
@@ -291,7 +291,8 @@ runtime-core
   contracts, `*SchemaPaths` constants, `*_CONTRACT_VERSION` constants, and the
   `skillbill.error` runtime exception taxonomy. It no longer owns the JSON-Schema
   validators or their schema-resource copy tasks; those moved to
-  `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` (see below). It also owns `skillbill.contracts.time.JvmSystemClock`,
+  `runtime-infra/contracts`, except the platform-pack and native-agent composition
+  validators, which moved to `runtime-infra/skills` (see below). It also owns `skillbill.contracts.time.JvmSystemClock`,
   the single ambient wall-clock seam (UTC default zone, millisecond precision, and live
   JDK-clock delegation in `instant()` and `withZone`), which
   cannot live in `runtime-domain` because domain effect purity forbids ambient time reads.
@@ -325,22 +326,36 @@ runtime-core
   telemetry outbox persistence.
 - `runtime-infra/http` (`:runtime-infra:http`): telemetry HTTP client/requester implementation and
   telemetry proxy payload mapping.
-- `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`: filesystem and process adapters for telemetry config,
-  with governed review evidence JSON-RPC codec objects internal to
-  `skillbill.infrastructure.launcher.review` (not `runtime-ports`),
-  install plan/apply, install staging, governed scaffold/load/render,
-  repo validation, native-agent rendering/linking, launcher MCP registration,
-  git workflow operations, decomposition-manifest file storage, and
-  skill-remove filesystem cascades. The injected `FileSystemAgentRunLauncher`
-  constructor takes the composition-selected `ExecutableLookup` (explicit
-  callback override, else default PATH discovery); availability policy is not a
-  process sandbox. It also owns the concrete JSON-Schema
-  validators (`AgentAddonSchemaValidator`, `InstallPlanSchemaValidator`,
-  `WorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`,
-  and the `DecompositionManifestCoherenceValidator`) plus their schema-resource
-  copy tasks (`copyInstallPlanSchema`, `copyWorkflowStateSchema`,
+- `runtime-infra/host` (`:runtime-infra:host`): JDK and host-environment ports,
+  repository-root resolution, telemetry config file storage and paths, filesystem
+  primitives, and one-shot process execution — the bounded external process
+  runner, git process invocation, gate JVM resolution, git-tracked-file listing,
+  and `InstallerProcessAdapter`.
+- `runtime-infra/contracts` (`:runtime-infra:contracts`): the concrete JSON-Schema
+  validators (`InstallPlanSchemaValidator`, `WorkflowStateSchemaValidator`,
+  `DecompositionManifestSchemaValidator` with its
+  `DecompositionManifestCoherenceValidator`, `GoalProgressEventSchemaValidator`,
+  and `IdeStatusSchemaValidator`) plus their schema-resource copy tasks
+  (`copyInstallPlanSchema`, `copyWorkflowStateSchema`,
   `copyDecompositionManifestSchema`, `copyDecompositionManifestBundleJournalSchema`),
-  reached only through domain-neutral ports.
+  phase-output repair engines, and workflow wire mappers. All are reached only
+  through domain-neutral ports.
+- `runtime-infra/skills` (`:runtime-infra:skills`): install plan/apply, install
+  staging, governed scaffold load/render, repo validation, agent-add-on and
+  native-agent discovery, rendering, and linking, skill-remove filesystem
+  cascades, and the pack-side validators `AgentAddonSchemaValidator`,
+  `PlatformPackSchemaValidator`, and `NativeAgentCompositionSchemaValidator`.
+- `runtime-infra/launcher` (`:runtime-infra:launcher`): long-running agent and
+  review child-process launch, launcher MCP registration, and the governed review
+  evidence JSON-RPC codec objects internal to
+  `skillbill.infrastructure.launcher.review` (not `runtime-ports`). The injected
+  `FileSystemAgentRunLauncher` constructor takes the composition-selected
+  `ExecutableLookup` (explicit callback override, else default PATH discovery);
+  availability policy is not a process sandbox.
+- `runtime-infra/workflow` (`:runtime-infra:workflow`): git workflow operations,
+  review evidence adapters, feature-task stores, goal-planning discovery,
+  validation gates, and decomposition-manifest file storage including the bundle
+  journal.
 - `runtime-core`: Kotlin-Inject component definitions and DI
   providers. It may know concrete adapters only inside composition code.
   `runtime-core` publishes only the generated Kotlin-Inject ABI edges that its
@@ -366,7 +381,7 @@ runtime-core
   JSON output, help, completion surfaces, and CLI runtime context creation.
   SKILL-52.2 subtask 5 narrows the main-source project dependency allow-list to
   `runtime-application`, `runtime-contracts`, `runtime-core`, `runtime-domain`,
-  and `runtime-ports`. `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` and `runtime-infra/http` (`:runtime-infra:http`) are dropped
+  and `runtime-ports`. Every `runtime-infra` module is dropped
   — runtime-cli has no concrete `skillbill.infrastructure.*` imports outside
   test sources; the infrastructure adapters are resolved through
   `RuntimeComponent` (kotlin-inject). The allow-list is enforced by
@@ -375,7 +390,7 @@ runtime-core
   server, MCP telemetry schema validation, and MCP runtime context creation.
   SKILL-52.2 subtask 5 narrows the main-source project dependency allow-list to
   `runtime-application`, `runtime-contracts`, `runtime-core`, `runtime-domain`,
-  and `runtime-ports`. `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` and `runtime-infra/http` (`:runtime-infra:http`) are dropped
+  and `runtime-ports`. Every `runtime-infra` module is dropped
   — runtime-mcp has no concrete `skillbill.infrastructure.*` imports outside
   test sources; the infrastructure adapters are resolved through
   `RuntimeComponent`. The allow-list is enforced by
@@ -492,7 +507,7 @@ and `:runtime-infra:sqlite`.
   Mapping from application/domain/port models into contract DTOs belongs in
   application or adapter-owned packages. This package spans two modules: the
   DTOs, helpers, and constants compile in `runtime-contracts`, and the schema
-  validator classes compile into `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` under
+  validator classes compile into `runtime-infra/contracts` under
   `skillbill.infrastructure.contracts` and its subpackages
   (`SchemaValidatorLocale`, `install.InstallPlanSchemaValidator`,
   `review.ReviewContextSchemaValidator` and `ReviewContextSchemaLocator`, and
@@ -503,9 +518,10 @@ and `:runtime-infra:sqlite`.
   adapter-owned parse/repair engines rather than schema validators.
 - `skillbill.error`: runtime exception taxonomy.
 - `skillbill.agent.model`: phase handoff string envelopes for agent phase input and output owned by `runtime-domain`.
-- `skillbill.agentaddon` and `skillbill.agentaddon.model`: governed agent-add-on
-  filesystem discovery and schema validation owned by `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`, plus
-  typed declaration models owned by `runtime-domain`.
+- `skillbill.infrastructure.skills.agentaddon`: governed agent-add-on filesystem
+  discovery and schema validation owned by `runtime-infra/skills`;
+  `skillbill.agentaddon.model` holds the typed declaration models owned by
+  `runtime-domain`.
 - `skillbill.workflow.engine` and `skillbill.workflow.engine.model`: workflow
   engine, snapshot codec, continuation assembly, and engine models owned by
   `runtime-domain`.
@@ -610,14 +626,15 @@ reads through the production coordinator and recorders.
   mutation rules, and port-backed runtime surfaces owned by `runtime-application`.
 - `skillbill.text`: UTF-8 truncation and size helpers owned by `runtime-domain`.
 - `skillbill.infrastructure.host`: JDK and host-environment ports, repository-root
-  resolution, telemetry config paths, and filesystem primitives.
+  resolution, telemetry config storage and paths, filesystem primitives, and
+  one-shot process execution.
 - `skillbill.infrastructure.contracts`: JSON-Schema validators, phase-output
   repair engines, and workflow wire mappers.
 - `skillbill.infrastructure.skills`: agent-addon, native-agent, scaffold, install,
   and skill-remove filesystem adapters (`agentaddon` → `nativeagent` → `scaffold`
   → `install` → `skillremove` → module root import order is architecture-tested).
-- `skillbill.infrastructure.launcher`: agent-run and review child-process launch,
-  installer process adapter, and governed review MCP config.
+- `skillbill.infrastructure.launcher`: long-running agent-run and review
+  child-process launch, and governed review MCP config.
 - `skillbill.infrastructure.workflow`: git workflow operations, review evidence
   adapters, feature-task stores, goal-planning discovery, and validation gates.
 - `skillbill.infrastructure.http`: the injected remote transport, telemetry
@@ -710,7 +727,14 @@ port owns its temporary staging directory and removes it after the installer
 process settles. `HttpInstallerScriptFetchAdapterTest` covers non-2xx, I/O,
 interruption, atomic promotion, and foreign-directory refusal.
 
-`InstallerProcessAdapter` in runtime-infra modules (see Gradle Modules) starts an argv vector with an
+`runtime-infra/host` owns one-shot process execution: a process started for a
+single bounded command, run to completion or killed, with captured output.
+`runtime-infra/launcher` owns long-running agent processes: interactive or
+streaming child agents with progress probes, idle policy, and heartbeat
+supervision. `InstallerProcessAdapter` is one-shot execution and therefore lives
+in `runtime-infra/host`.
+
+`InstallerProcessAdapter` in `runtime-infra/host` starts an argv vector with an
 explicit environment map, closes child stdin immediately after start, captures
 merged stdout/stderr with a 1 MiB cap and `INSTALLER_OUTPUT_TRUNCATION_SENTINEL`,
 and applies `DEFAULT_INSTALLER_PROCESS_DEADLINE_SECONDS` (600s) from the request
@@ -733,9 +757,13 @@ This is not a universal SOLID certification claim.
 
 ### Git workflow process I/O (SKILL-248 subtask 2)
 
-`runGitProcess` in runtime-infra modules (see Gradle Modules) delegates to `invokeGitProcess`, which
-registers the child process, input writer, stdout drain worker, and stream
-handles before any blocking stdin delivery, wait, or join. Stdin writes and
+`runGitProcess` in `runtime-infra/workflow` delegates to `invokeGitProcess`,
+which runs the command through `BoundedExternalProcessRunner` in
+`runtime-infra/host` — the single one-shot process owner. That runner registers
+the child process, input writer, stdout drain worker, and stream handles before
+any blocking stdin delivery, wait, or join; `runtime-infra/workflow` maps its
+result back to git semantics (trimmed output, exit `-1` on timeout,
+`IOException` as `readFailure`). Stdin writes and
 stdout draining run concurrently so a full pipe cannot deadlock ordinary
 NUL-delimited staging input. One operation deadline derived from
 `gitTimeoutSeconds` covers stdin delivery, `Process.waitFor`, and output
@@ -755,7 +783,7 @@ deadline becomes `readFailure` or timeout semantics, never
 inherited stdout handles, timeout, and ordinary completion.
 
 Decomposition manifest bundle journals (`DecompositionManifestBundleJournal` in
-`runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`) persist a governed `0.1` envelope
+`runtime-infra/workflow`) persist a governed `0.1` envelope
 (`orchestration/contracts/decomposition-manifest-bundle-journal-schema.yaml`,
 `copyDecompositionManifestBundleJournalSchema`). Recovery validates the full marker,
 transaction-owned staging directory (real-path containment, marker name binding),
@@ -789,7 +817,9 @@ silently bypass the journal boundary.
    main source is a pure DTO/constants/exceptions leaf: it MUST NOT contain any
    JSON-Schema validator, any `com.networknt.*` or `com.fasterxml.jackson.*`
    reference, or any `java.nio.file.Files` filesystem call. The concrete schema
-   validators and their schema-resource copy tasks live in `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`,
+   validators and their schema-resource copy tasks live in
+   `runtime-infra/contracts` (pack and native-agent validators in
+   `runtime-infra/skills`),
    and `runtime-domain` / `runtime-application` reach schema validation only
    through the ports `InstallPlanWireValidator`,
    `DecompositionManifestValidator`, and `WorkflowSnapshotValidator` — never by
@@ -811,7 +841,7 @@ silently bypass the journal boundary.
     `TelemetryConfigStore`, `TelemetryClient`, and
     `TelemetryOutboxRepository`. HTTP request mechanics belong in
     `skillbill.infrastructure.http`; config file IO belongs in
-    `skillbill.infrastructure.skills`; telemetry ports expose typed domain result
+    `skillbill.infrastructure.host`; telemetry ports expose typed domain result
     models from `skillbill.telemetry.model`; telemetry proxy wire DTOs belong
     in `skillbill.contracts.telemetry`; telemetry proxy payload mapping belongs
     with the HTTP adapter.
@@ -864,7 +894,7 @@ The subsystem package set is:
 
 ```text
 skillbill.agent.model
-skillbill.agentaddon
+skillbill.agentaddon.model
 skillbill.application
 skillbill.cli
 skillbill.config
@@ -913,13 +943,13 @@ skillbill.workflow.verify
   `inputSchema` (`McpInputSchemaProjection` strips `event_name`,
   `contract_version`, and runtime-owned quality-check keys). The JVM
   JSON-Schema validators, their typed schema errors, and their
-  classpath-resource copy tasks live in `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`,
-reached only through the ports-owned validators `InstallPlanWireValidator`,
+  classpath-resource copy tasks live in `runtime-infra/contracts`,
+  reached only through the ports-owned validators `InstallPlanWireValidator`,
   `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`. Validator modules
   load schema resources from the `runtime-infra/contracts` classpath copy tasks, not from `runtime-contracts`.
 - Workflow-state schema validation is owned by
   `skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator`, compiled into
-  `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`. The runtime-domain workflow engine MUST NOT import that
+  `runtime-infra/contracts`. The runtime-domain workflow engine MUST NOT import that
   validator directly. The ports module declares
   `skillbill.ports.workflow.WorkflowSnapshotValidator`, which the composition root
   wires to the infra adapter
@@ -949,7 +979,7 @@ reached only through the ports-owned validators `InstallPlanWireValidator`,
   `FeatureTaskRuntimeWireArtifactKind`) plus `FeatureTaskRuntimePhaseOutputValidator`
   and `DecompositionManifestValidator`. Infra implements them through
   `FeatureTaskRuntimeWireArtifactValidatorAdapter` and the phase-output /
-  decomposition adapters under `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`; composition wires one adapter
+  decomposition adapters under `runtime-infra/contracts`; composition wires one adapter
   instance per port. Goal progress, observability, and planning-preparation validator
   names are type aliases to that same port and select their closed artifact kinds
   through extension helpers. Extension helpers on the wire-artifact port preserve
@@ -964,14 +994,14 @@ reached only through the ports-owned validators `InstallPlanWireValidator`,
   the feature-task runtime workflow definition.
 - Install-plan schema validation is owned by
   `skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator`, compiled into
-  `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` and reached through the domain-owned port
+  `runtime-infra/contracts` and reached through the domain-owned port
   `skillbill.ports.install.InstallPlanWireValidator`. The owning seams are
   install-plan building and CLI/MCP emission, both of which validate through the
   injected port rather than importing the validator directly.
 - Decomposition-manifest schema validation is owned by
   `skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator` (paired
   with `DecompositionManifestCoherenceValidator`), compiled into
-  `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` and reached through the domain-owned port
+  `runtime-infra/contracts` and reached through the domain-owned port
   `skillbill.ports.workflow.decomposition.DecompositionManifestValidator`. The owning parse/emission
   seam is `skillbill.application.decomposition.DecompositionManifestFileWrites`, which
   validates YAML text and in-memory maps through that port before workflow
@@ -980,11 +1010,11 @@ reached only through the ports-owned validators `InstallPlanWireValidator`,
   `skillbill.infrastructure.workflow.FileSystemDecompositionManifestFileStore`
   behind `skillbill.ports.workflow.decomposition.DecompositionManifestStore`.
 - Platform-pack manifest schema validation is owned by
-  `skillbill.scaffold.PlatformPackSchemaValidator` in `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`. The
+  `skillbill.scaffold.PlatformPackSchemaValidator` in `runtime-infra/skills`. The
   owning parse seam is `skillbill.scaffold.ShellContentLoader.buildPack`.
 - Native-agent composition schema validation is owned by
   `skillbill.nativeagent.NativeAgentCompositionSchemaValidator` in
-  `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`. The owning parse seam is native-agent source loading and
+  `runtime-infra/skills`. The owning parse seam is native-agent source loading and
   composition.
 - Telemetry-event schema validation is owned by the MCP adapter because the MCP
   tool registry is the event-name source of truth. The owning parse seam is the
@@ -992,7 +1022,7 @@ reached only through the ports-owned validators `InstallPlanWireValidator`,
 - Goal declared-progress event schema validation
   (`orchestration/contracts/goal-progress-event-schema.yaml`) is owned by
   `skillbill.infrastructure.contracts.workflow.GoalProgressEventSchemaValidator` in
-  `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`, reached through the domain-owned port
+  `runtime-infra/contracts`, reached through the domain-owned port
   `skillbill.workflow.goal.GoalProgressEventValidator` (wired in `RuntimeComponent`
   to `skillbill.infrastructure.contracts.GoalProgressEventValidatorAdapter`, mirroring
   `GoalObservabilityEventValidator`). The owning durable write/parse seam is
@@ -1005,7 +1035,7 @@ reached only through the ports-owned validators `InstallPlanWireValidator`,
 - IDE status schema validation
   (`orchestration/contracts/ide-status-schema.yaml`) is owned by
   `skillbill.infrastructure.contracts.workflow.IdeStatusSchemaValidator` in
-  `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`, reached through the domain-owned port
+  `runtime-infra/contracts`, reached through the domain-owned port
   `skillbill.workflow.idestatus.IdeStatusValidator` (wired in `RuntimeComponent` to
   `IdeStatusValidatorAdapter`). The owning emit seam is
   `skillbill.application.work.IdeStatusService`, which validates before CLI
@@ -1090,7 +1120,7 @@ its own Draft 2020-12 contract
 pinned by `FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION` and
 `FeatureTaskRuntimeHandoffEnvelopeSchemaContractVersionTest`), reached from the
 domain only through the `FeatureTaskRuntimeHandoffEnvelopeValidator` port with
-`FeatureTaskRuntimeHandoffEnvelopeValidatorInfraAdapter` in `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` —
+`FeatureTaskRuntimeHandoffEnvelopeValidatorInfraAdapter` in `runtime-infra/contracts` —
 the same domain/infra validator-boundary convention as
 `WorkflowSnapshotValidator`. Delivered envelopes persist separately from private
 evidence as `FeatureTaskRuntimeDeliveredProjectionRecord` under
@@ -1304,7 +1334,7 @@ selected platforms, planned skills, agent targets, MCP registration intent, and
 the typed `InstallPlanDraft` without touching filesystem, process execution,
 staging hashes, symlink checks, binary discovery, or rollback mechanics.
 
-### runtime-infra modules (see Gradle Modules) `java.util.logging` (SKILL-353)
+### Infrastructure `java.util.logging` owners (SKILL-353)
 
 Contract validators log schema drift at `WARNING` through `logSchemaLoadFailure`
 before throwing the family's `Invalid*SchemaError`; that is the operator signal
@@ -1340,7 +1370,7 @@ adapter and bounded process/degradation export seams have no injectable
 secondary sink). These are intentional adapter-boundary logs; new fallback
 degradations use `RuntimeDiagnostics`.
 
-`runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` remains the owner of filesystem/process mechanics: platform
+`runtime-infra/skills` remains the owner of these filesystem mechanics: platform
 manifest discovery and schema parsing, base-skill directory scans, agent
 detection/default path probing, pointer realpath validation, content hashing,
 staging path computation, symlink/native-agent/MCP/apply side effects, Windows
@@ -1672,7 +1702,8 @@ repository-relative paths and identifier violations on `path#name`, both against
 `api(project(...))` and `implementation(project(...))` sets; `RuntimeCoreCompositionOnlyTest`
 compares Gradle files to that authority. `runtime-core` keeps
 `api(:runtime-application)` and `api(:runtime-ports)` as the kotlin-inject ABI
-edges. `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`, `runtime-infra/http` (`:runtime-infra:http`), and `runtime-infra/sqlite` (`:runtime-infra:sqlite`)
+edges. Every `runtime-infra` module (`host`, `contracts`, `skills`, `launcher`,
+`workflow`, `http`, and `sqlite`)
 narrow `api(:runtime-ports)` and `api(:runtime-domain)` to `implementation`.
 `runtime-cli` carries no `api` project edges.
 

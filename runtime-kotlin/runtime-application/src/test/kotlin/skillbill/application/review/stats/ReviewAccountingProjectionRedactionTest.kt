@@ -18,8 +18,8 @@ import skillbill.review.context.model.accounting.ReviewAccountingCounters
 import skillbill.review.context.model.accounting.ReviewAccountingInput
 import skillbill.review.context.model.accounting.ReviewAccountingSummary
 import skillbill.review.context.model.accounting.ReviewAccountingTerminalOutcome
-import skillbill.review.context.model.accounting.toBoundedPayload
 import skillbill.review.context.model.packet.ReviewLaneSegmentAccounting
+import skillbill.workflow.model.goalreview.toReviewAccountingBoundedJson
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -31,7 +31,7 @@ class ReviewAccountingProjectionRedactionTest {
 
   @Test fun `projection of a real review contains bounded metadata and no content bodies`() {
     val (recorder, recorded) = recordedReview()
-    val serialized = recorded.toBoundedPayload().toString()
+    val serialized = recorded.toReviewAccountingBoundedJson()
 
     assertTrue(
       recorder.parentPrompts.isNotEmpty() &&
@@ -43,13 +43,14 @@ class ReviewAccountingProjectionRedactionTest {
   }
 
   @Test fun `projection contains bounded metadata and no content bodies`() {
-    val serialized = summary().toBoundedPayload().toString()
+    val parent =
+      requireNotNull(JsonCodec.anyToStringAnyMap(summary().boundedPayload()[ReviewAccountingPayloadKeys.PARENT]))
 
-    assertTrue(serialized.contains("tool_calls=2"))
+    assertEquals(2L, (parent[ReviewAccountingPayloadKeys.TOOL_CALLS] as Number).toLong())
   }
 
   @Test fun `projection exposes exactly the bounded contract keys`() {
-    val payload = summary().toBoundedPayload()
+    val payload = summary().boundedPayload()
 
     assertEquals(
       setOf(
@@ -121,14 +122,14 @@ class ReviewAccountingProjectionRedactionTest {
       )
     val lane =
       requireNotNull(
-        JsonCodec.anyToStringAnyMapList(summary.toBoundedPayload()[ReviewAccountingPayloadKeys.LANES]),
+        JsonCodec.anyToStringAnyMapList(summary.boundedPayload()[ReviewAccountingPayloadKeys.LANES]),
       ).single()
     assertEquals(digest, lane[ReviewAccountingPayloadKeys.BUNDLE_COMPOSITION_DIGEST])
     assertEquals(listOf("unreviewable"), lane[ReviewAccountingPayloadKeys.UNREVIEWED_SEGMENT_IDS])
     val segments = requireNotNull(JsonCodec.anyToStringAnyMapList(lane[ReviewAccountingPayloadKeys.SEGMENT_ACCOUNTING]))
     assertEquals("seg-000", segments.single()[ReviewAccountingPayloadKeys.SEGMENT_ID])
-    assertEquals(128L, segments.single()[ReviewAccountingPayloadKeys.MEASURED_BYTES])
-    assertEquals(2, segments.single()[ReviewAccountingPayloadKeys.ENTRY_COUNT])
+    assertEquals(128L, (segments.single()[ReviewAccountingPayloadKeys.MEASURED_BYTES] as Number).toLong())
+    assertEquals(2L, (segments.single()[ReviewAccountingPayloadKeys.ENTRY_COUNT] as Number).toLong())
   }
 
   @Test fun `incomplete broker-refusal accounting projects refused segment ids only`() {
@@ -155,7 +156,7 @@ class ReviewAccountingProjectionRedactionTest {
       )
     val lane =
       requireNotNull(
-        JsonCodec.anyToStringAnyMapList(summary.toBoundedPayload()[ReviewAccountingPayloadKeys.LANES]),
+        JsonCodec.anyToStringAnyMapList(summary.boundedPayload()[ReviewAccountingPayloadKeys.LANES]),
       ).single()
     assertEquals(listOf("seg-evidence-refused"), lane[ReviewAccountingPayloadKeys.UNREVIEWED_SEGMENT_IDS])
     assertFalse(lane.toString().contains("evidence-unreviewable"))
@@ -163,17 +164,17 @@ class ReviewAccountingProjectionRedactionTest {
 
   @Test fun `bounded payload survives the durable record contract`() {
     val recorded = recordedReview().second
-    val payload = recorded.toBoundedPayload()
+    val payload = recorded.boundedPayload()
 
     val record = ReviewAccountingRecord(recorded.reviewId, recorded.packetDigest, recorded)
 
-    assertEquals(payload, record.summary.toBoundedPayload())
-    forbidden.forEach { assertFalse(record.summary.toBoundedPayload().toString().contains(it)) }
+    assertEquals(payload, record.summary.boundedPayload())
+    forbidden.forEach { assertFalse(record.summary.toReviewAccountingBoundedJson().contains(it)) }
     validateReviewContextPayload(payload, "review-accounting-record")
   }
 
   @Test fun `durable record rejects an accounting payload carrying content`() {
-    val leaking = summary().toBoundedPayload() + ("prompt" to "PROMPT_SECRET")
+    val leaking = summary().boundedPayload() + ("prompt" to "PROMPT_SECRET")
 
     val failure =
       runCatching {
@@ -233,3 +234,10 @@ class ReviewAccountingProjectionRedactionTest {
       ),
     )
 }
+
+private fun ReviewAccountingSummary.boundedPayload(): Map<String, Any?> =
+  requireNotNull(
+    JsonCodec.parseObjectOrNull(toReviewAccountingBoundedJson())
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap),
+  )

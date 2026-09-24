@@ -1,6 +1,7 @@
 package skillbill.infrastructure.workflow.review.specialists.review
 
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
+import skillbill.infrastructure.host.process.BoundedExternalProcessOutput
 import skillbill.infrastructure.host.process.BoundedExternalProcessRequest
 import skillbill.infrastructure.host.process.BoundedExternalProcessRunner
 import skillbill.infrastructure.workflow.process.GIT_TIMEOUT_SECONDS
@@ -62,9 +63,8 @@ internal fun readImmutableReviewCommand(
       BoundedExternalProcessRunner.run(
         BoundedExternalProcessRequest(
           argv = listOf("git", "-C", root.toString()) + args,
-          redirectOutputFile = output,
           deadlineSeconds = GIT_TIMEOUT_SECONDS,
-          outputCapBytes = null,
+          output = BoundedExternalProcessOutput.RedirectToFile(output),
         ),
       )
     if (result.timedOut) {

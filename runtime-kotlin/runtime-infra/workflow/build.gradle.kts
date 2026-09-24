@@ -12,7 +12,6 @@ dependencies {
   implementation(project(":runtime-infra:contracts"))
   implementation(project(":runtime-infra:host"))
   implementation(libs.kotlin.inject.runtime)
-  implementation(libs.json.schema.validator)
   implementation(libs.jackson.databind)
   implementation(libs.jackson.dataformat.yaml)
   testImplementation(testFixtures(project(":runtime-ports")))

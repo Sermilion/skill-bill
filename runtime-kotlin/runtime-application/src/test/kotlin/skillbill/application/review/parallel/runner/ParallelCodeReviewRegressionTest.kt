@@ -10,8 +10,8 @@ import skillbill.application.review.snapshot.reviewPack
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.application.runner
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
-import skillbill.review.context.model.accounting.toBoundedPayload
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.model.goalreview.toReviewAccountingBoundedJson
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,7 +38,7 @@ class ParallelCodeReviewRegressionTest {
       assertFalse(prompt.contains("PARENT_BRIEFING_SENTINEL"), "A review lane saw the parent briefing body.")
     }
     val summary = assertNotNull(result.accountingSummary)
-    val serialized = summary.toBoundedPayload().toString()
+    val serialized = summary.toReviewAccountingBoundedJson()
     assertFalse(serialized.contains("AGENTS_BODY_SENTINEL"))
     assertFalse(serialized.contains("PARENT_BRIEFING_SENTINEL"))
     assertTrue(summary.aggregateCounters.launchBytes > 0, "The isolated launch projection remains measured.")

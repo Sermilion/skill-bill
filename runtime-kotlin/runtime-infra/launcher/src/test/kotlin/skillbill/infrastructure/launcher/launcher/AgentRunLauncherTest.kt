@@ -130,8 +130,8 @@ class HeadlessAgentRunAdapterTest {
 
     ProcessAgentRunAdapter(SupportedAgent.CODEX, builder, runner, ALL_EXECUTABLES_AVAILABLE).launch(request)
 
-    assertEquals(ReviewConversationIsolation.FRESH, runner.requests.single().conversationIsolation)
-    assertTrue(runner.requests.single().command.any { it == "fork_turns=none" })
+    assertEquals(ReviewConversationIsolation.FRESH, runner.requests.single().review.conversationIsolation)
+    assertTrue(runner.requests.single().launch.command.any { it == "fork_turns=none" })
   }
 
   @Test
@@ -141,14 +141,13 @@ class HeadlessAgentRunAdapterTest {
 
     val cursorAdapter = adapters[SupportedAgent.CURSOR]
     assertNotNull(cursorAdapter, "cursor must be registered as a headless adapter")
-    assertTrue(cursorAdapter is ProcessAgentRunAdapter, "cursor adapter must be ProcessAgentRunAdapter")
 
     val request = phaseRunRequest()
     cursorAdapter.launch(request)
 
     val captured = runner.requests.single()
-    assertEquals("agent", captured.command.first())
-    assertTrue(captured.command.contains("--workspace"))
+    assertEquals("agent", captured.launch.command.first())
+    assertTrue(captured.launch.command.contains("--workspace"))
   }
 
   @Test
@@ -194,8 +193,8 @@ class HeadlessAgentRunAdapterTest {
     requireNotNull(adapters[SupportedAgent.CURSOR]).launch(request)
 
     val captured = runner.requests.single()
-    assertEquals(100.milliseconds, captured.timeout)
-    assertTrue(captured.command.contains("stream-json"))
+    assertEquals(100.milliseconds, captured.timing.timeout)
+    assertTrue(captured.launch.command.contains("stream-json"))
   }
 
   @Test
@@ -234,7 +233,7 @@ class HeadlessAgentRunAdapterTest {
     requireNotNull(adapters[SupportedAgent.CURSOR]).launch(request)
 
     val captured = runner.requests.single()
-    assertEquals(AgentRunIdlePolicy.HEARTBEAT_EXTENDED, captured.idlePolicy)
+    assertEquals(AgentRunIdlePolicy.HEARTBEAT_EXTENDED, captured.probes.idlePolicy)
   }
 }
 

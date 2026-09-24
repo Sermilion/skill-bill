@@ -1,26 +1,25 @@
 package skillbill.infrastructure.host.jvm
 
-import java.io.IOException
+import skillbill.infrastructure.host.process.BoundedExternalProcessOutput
+import skillbill.infrastructure.host.process.BoundedExternalProcessRequest
+import skillbill.infrastructure.host.process.BoundedExternalProcessRunner
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 
 private const val GIT_TRACKED_FILES_TIMEOUT_SECONDS = 30L
 
 fun readGitTrackedFiles(repoRoot: Path): Set<String>? {
-  val process =
-    try {
-      ProcessBuilder("git", "-C", repoRoot.toString(), "ls-files")
-        .redirectErrorStream(true)
-        .start()
-    } catch (_: IOException) {
-      return null
-    }
-  val output = process.inputStream.bufferedReader().use { reader -> reader.readText() }
-  if (!process.waitFor(GIT_TRACKED_FILES_TIMEOUT_SECONDS, TimeUnit.SECONDS) || process.exitValue() != 0) {
-    process.destroyForcibly()
+  val result =
+    BoundedExternalProcessRunner.run(
+      BoundedExternalProcessRequest(
+        argv = listOf("git", "-C", repoRoot.toString(), "ls-files"),
+        deadlineSeconds = GIT_TRACKED_FILES_TIMEOUT_SECONDS,
+        output = BoundedExternalProcessOutput.Captured(capBytes = null),
+      ),
+    )
+  if (result.launchFailure || result.timedOut || result.exitCode != 0) {
     return null
   }
-  return output.lineSequence()
+  return result.output.lineSequence()
     .map(String::trim)
     .filter(String::isNotEmpty)
     .toSet()

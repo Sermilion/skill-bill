@@ -29,7 +29,7 @@ class AgentRunGoalContinuationCommandTest {
       skillRunRequest(goalContinuation = null).copy(promptOverride = "Run the implementation phase."),
     )
 
-    assertNull(runner.requests.single().environment["SKILL_BILL_GOAL_CONTINUATION"])
+    assertNull(runner.requests.single().environmentFields.environment["SKILL_BILL_GOAL_CONTINUATION"])
   }
 
   @Test
@@ -68,15 +68,15 @@ class AgentRunGoalContinuationCommandTest {
         "--agent",
         "claude",
       ),
-      request.command,
+      request.launch.command,
     )
-    assertNull(request.stdinText)
-    assertFalse(request.command.any { value -> "bill-feature-task" in value })
-    assertFalse(request.command.any { value -> value == "claude" && request.command.indexOf(value) == 0 })
-    assertEquals("1", request.environment["SKILL_BILL_GOAL_CONTINUATION"])
-    assertEquals("inline", request.environment["SKILL_BILL_CODE_REVIEW_MODE"])
-    assertEquals("full", request.environment["SKILL_BILL_VALIDATION_DEPTH"])
-    assertTrue(request.inheritEnvironment)
+    assertNull(request.launch.stdinText)
+    assertFalse(request.launch.command.any { value -> "bill-feature-task" in value })
+    assertFalse(request.launch.command.any { value -> value == "claude" && request.launch.command.indexOf(value) == 0 })
+    assertEquals("1", request.environmentFields.environment["SKILL_BILL_GOAL_CONTINUATION"])
+    assertEquals("inline", request.environmentFields.environment["SKILL_BILL_CODE_REVIEW_MODE"])
+    assertEquals("full", request.environmentFields.environment["SKILL_BILL_VALIDATION_DEPTH"])
+    assertTrue(request.environmentFields.inheritEnvironment)
   }
 
   @Test
@@ -115,11 +115,11 @@ class AgentRunGoalContinuationCommandTest {
         "--agent",
         "claude",
       ),
-      request.command,
+      request.launch.command,
     )
-    assertNull(request.stdinText)
-    assertFalse(request.command.any { value -> "bill-feature-task" in value })
-    assertFalse(request.command.contains("--workflow-id"))
+    assertNull(request.launch.stdinText)
+    assertFalse(request.launch.command.any { value -> "bill-feature-task" in value })
+    assertFalse(request.launch.command.contains("--workflow-id"))
   }
 
   @Test
@@ -132,14 +132,14 @@ class AgentRunGoalContinuationCommandTest {
     )
 
     val request = runner.requests.single()
-    assertContains(request.command, "feature-task")
-    assertContains(request.command, "run")
-    assertContains(request.command, "SKILL-56")
-    assertContains(request.command, ".feature-specs/SKILL-56-goal/spec_subtask_2.md")
-    val workflowIdFlagIndex = request.command.indexOf("--workflow-id")
+    assertContains(request.launch.command, "feature-task")
+    assertContains(request.launch.command, "run")
+    assertContains(request.launch.command, "SKILL-56")
+    assertContains(request.launch.command, ".feature-specs/SKILL-56-goal/spec_subtask_2.md")
+    val workflowIdFlagIndex = request.launch.command.indexOf("--workflow-id")
     assertTrue(workflowIdFlagIndex >= 0)
-    assertEquals("wfl-assigned", request.command[workflowIdFlagIndex + 1])
-    assertFalse(request.command.contains("resume"))
+    assertEquals("wfl-assigned", request.launch.command[workflowIdFlagIndex + 1])
+    assertFalse(request.launch.command.contains("resume"))
   }
 
   @Test
@@ -154,19 +154,19 @@ class AgentRunGoalContinuationCommandTest {
     runner.requests.forEach { request ->
       assertEquals(
         listOf("skill-bill", "--db", "/tmp/skillbill-agent-run/metrics.db", "feature-task"),
-        request.command.take(4),
+        request.launch.command.take(4),
       )
-      assertContains(request.command, "run")
-      assertContains(request.command, "--suppress-pr")
-      assertNull(request.stdinText)
-      assertFalse(request.command.any { value -> "bill-feature-task" in value })
-      assertFalse(request.command.any { value -> "workflow continue" in value })
-      assertFalse(request.command.any { value -> "use the" in value.lowercase() && "skill" in value.lowercase() })
+      assertContains(request.launch.command, "run")
+      assertContains(request.launch.command, "--suppress-pr")
+      assertNull(request.launch.stdinText)
+      assertFalse(request.launch.command.any { value -> "bill-feature-task" in value })
+      assertFalse(request.launch.command.any { value -> "workflow continue" in value })
+      assertFalse(request.launch.command.any { value -> "use the" in value.lowercase() && "skill" in value.lowercase() })
     }
     val perAgent = listOf("claude", "codex", "junie", "cursor")
     runner.requests.forEachIndexed { index, request ->
-      assertEquals(perAgent[index], request.command.last())
-      assertEquals("--agent", request.command[request.command.size - 2])
+      assertEquals(perAgent[index], request.launch.command.last())
+      assertEquals("--agent", request.launch.command[request.launch.command.size - 2])
     }
   }
 
@@ -176,7 +176,7 @@ class AgentRunGoalContinuationCommandTest {
     requireNotNull(adapters(runner)[SupportedAgent.CODEX])
       .launch(skillRunRequest())
 
-    assertContains(runner.requests.single().command, "--suppress-pr")
+    assertContains(runner.requests.single().launch.command, "--suppress-pr")
   }
 
   @Test
@@ -186,7 +186,7 @@ class AgentRunGoalContinuationCommandTest {
       skillRunRequest().copy(modelOverride = "gpt-sol", effortOverride = "high"),
     )
 
-    val command = runner.requests.single().command
+    val command = runner.requests.single().launch.command
     assertFalse(command.contains("--model"))
     assertFalse(command.contains("--effort"))
     assertFalse(command.any { it.startsWith("model_reasoning_effort=") })
@@ -262,13 +262,13 @@ class AgentRunGoalContinuationCommandTest {
         "--agent",
         "cursor",
       ),
-      request.command,
+      request.launch.command,
     )
-    assertNull(request.stdinText)
-    assertEquals("1", request.environment["SKILL_BILL_GOAL_CONTINUATION"])
-    assertEquals("inline", request.environment["SKILL_BILL_CODE_REVIEW_MODE"])
-    assertEquals("full", request.environment["SKILL_BILL_VALIDATION_DEPTH"])
-    assertTrue(request.inheritEnvironment)
+    assertNull(request.launch.stdinText)
+    assertEquals("1", request.environmentFields.environment["SKILL_BILL_GOAL_CONTINUATION"])
+    assertEquals("inline", request.environmentFields.environment["SKILL_BILL_CODE_REVIEW_MODE"])
+    assertEquals("full", request.environmentFields.environment["SKILL_BILL_VALIDATION_DEPTH"])
+    assertTrue(request.environmentFields.inheritEnvironment)
   }
 
   @Test
@@ -307,10 +307,10 @@ class AgentRunGoalContinuationCommandTest {
         "--agent",
         "cursor",
       ),
-      request.command,
+      request.launch.command,
     )
-    assertNull(request.stdinText)
-    assertFalse(request.command.contains("--workflow-id"))
+    assertNull(request.launch.stdinText)
+    assertFalse(request.launch.command.contains("--workflow-id"))
   }
 
   @Test
@@ -323,16 +323,16 @@ class AgentRunGoalContinuationCommandTest {
     )
 
     val request = runner.requests.single()
-    assertContains(request.command, "feature-task")
-    assertContains(request.command, "run")
-    assertContains(request.command, "SKILL-56")
-    assertContains(request.command, ".feature-specs/SKILL-56-goal/spec_subtask_2.md")
-    val workflowIdFlagIndex = request.command.indexOf("--workflow-id")
+    assertContains(request.launch.command, "feature-task")
+    assertContains(request.launch.command, "run")
+    assertContains(request.launch.command, "SKILL-56")
+    assertContains(request.launch.command, ".feature-specs/SKILL-56-goal/spec_subtask_2.md")
+    val workflowIdFlagIndex = request.launch.command.indexOf("--workflow-id")
     assertTrue(workflowIdFlagIndex >= 0)
-    assertEquals("wfl-assigned", request.command[workflowIdFlagIndex + 1])
-    assertFalse(request.command.contains("resume"))
-    assertEquals("cursor", request.command.last())
-    assertEquals("--agent", request.command[request.command.size - 2])
+    assertEquals("wfl-assigned", request.launch.command[workflowIdFlagIndex + 1])
+    assertFalse(request.launch.command.contains("resume"))
+    assertEquals("cursor", request.launch.command.last())
+    assertEquals("--agent", request.launch.command[request.launch.command.size - 2])
   }
 
   @Test
@@ -345,8 +345,8 @@ class AgentRunGoalContinuationCommandTest {
     )
 
     val request = runner.requests.single()
-    assertFalse(request.command.contains("--validation-depth"))
-    assertEquals("full", request.environment["SKILL_BILL_VALIDATION_DEPTH"])
+    assertFalse(request.launch.command.contains("--validation-depth"))
+    assertEquals("full", request.environmentFields.environment["SKILL_BILL_VALIDATION_DEPTH"])
   }
 
   @Test
@@ -362,52 +362,52 @@ class AgentRunGoalContinuationCommandTest {
 
       val request = runner.requests.single()
       val tokens = FeatureTaskRuntimeGoalContinuationLaunchTokens
-      assertContains(request.command, tokens.GOAL_PARENT_ISSUE_KEY_FLAG)
-      assertContains(request.command, "SKILL-56")
-      assertContains(request.command, tokens.GOAL_SUBTASK_ID_FLAG)
-      assertContains(request.command, "2")
-      assertContains(request.command, tokens.GOAL_BRANCH_FLAG)
-      assertContains(request.command, "feat/SKILL-56-goal")
-      assertContains(request.command, tokens.SUPPRESS_PR_FLAG)
-      assertContains(request.command, tokens.GOAL_PARENT_WORKFLOW_ID_FLAG)
-      assertContains(request.command, "wfl-parent")
-      assertContains(request.command, tokens.GOAL_LAST_RESUMABLE_STEP_FLAG)
-      assertContains(request.command, "implement")
-      assertContains(request.command, tokens.CODE_REVIEW_MODE_FLAG)
-      assertContains(request.command, CodeReviewExecutionMode.AUTO.wireValue)
-      assertContains(request.command, tokens.QUALITY_GATE_SELECTION_FLAG)
-      assertContains(request.command, FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue)
-      assertContains(request.command, tokens.GOAL_EXPERIMENT_ARM_ID_FLAG)
-      assertContains(request.command, ExperimentArmId.TREATMENT.wireValue)
-      assertContains(request.command, tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_FLAG)
-      assertContains(request.command, "capability-a")
-      assertContains(request.command, "capability-b")
-      assertContains(request.command, tokens.DEFER_REMOTE_PUBLICATION_FLAG)
-      assertContains(request.command, tokens.GOAL_REVIEW_BASE_SHA_FLAG)
-      assertContains(request.command, "a".repeat(40))
-      assertContains(request.command, tokens.GOAL_BASELINE_UNTRACKED_PATH_FLAG)
-      assertContains(request.command, "existing.txt")
-      assertContains(request.command, tokens.AGENT_ADDON_SELECTION_JSON_FLAG)
-      assertTrue(request.command.any { "review-helper" in it })
-      assertEquals("1", request.environment[tokens.GOAL_CONTINUATION_ENV])
-      assertEquals("SKILL-56", request.environment[tokens.GOAL_PARENT_ISSUE_KEY_ENV])
-      assertEquals("2", request.environment[tokens.GOAL_SUBTASK_ID_ENV])
-      assertEquals("feat/SKILL-56-goal", request.environment[tokens.GOAL_BRANCH_ENV])
-      assertEquals("true", request.environment[tokens.SUPPRESS_PR_ENV])
-      assertEquals("wfl-parent", request.environment[tokens.GOAL_PARENT_WORKFLOW_ID_ENV])
-      assertEquals("implement", request.environment[tokens.GOAL_LAST_RESUMABLE_STEP_ENV])
-      assertEquals(CodeReviewExecutionMode.AUTO.wireValue, request.environment[tokens.CODE_REVIEW_MODE_ENV])
-      assertEquals(ValidationDepth.FULL.wireValue, request.environment[tokens.VALIDATION_DEPTH_ENV])
+      assertContains(request.launch.command, tokens.GOAL_PARENT_ISSUE_KEY_FLAG)
+      assertContains(request.launch.command, "SKILL-56")
+      assertContains(request.launch.command, tokens.GOAL_SUBTASK_ID_FLAG)
+      assertContains(request.launch.command, "2")
+      assertContains(request.launch.command, tokens.GOAL_BRANCH_FLAG)
+      assertContains(request.launch.command, "feat/SKILL-56-goal")
+      assertContains(request.launch.command, tokens.SUPPRESS_PR_FLAG)
+      assertContains(request.launch.command, tokens.GOAL_PARENT_WORKFLOW_ID_FLAG)
+      assertContains(request.launch.command, "wfl-parent")
+      assertContains(request.launch.command, tokens.GOAL_LAST_RESUMABLE_STEP_FLAG)
+      assertContains(request.launch.command, "implement")
+      assertContains(request.launch.command, tokens.CODE_REVIEW_MODE_FLAG)
+      assertContains(request.launch.command, CodeReviewExecutionMode.AUTO.wireValue)
+      assertContains(request.launch.command, tokens.QUALITY_GATE_SELECTION_FLAG)
+      assertContains(request.launch.command, FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue)
+      assertContains(request.launch.command, tokens.GOAL_EXPERIMENT_ARM_ID_FLAG)
+      assertContains(request.launch.command, ExperimentArmId.TREATMENT.wireValue)
+      assertContains(request.launch.command, tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_FLAG)
+      assertContains(request.launch.command, "capability-a")
+      assertContains(request.launch.command, "capability-b")
+      assertContains(request.launch.command, tokens.DEFER_REMOTE_PUBLICATION_FLAG)
+      assertContains(request.launch.command, tokens.GOAL_REVIEW_BASE_SHA_FLAG)
+      assertContains(request.launch.command, "a".repeat(40))
+      assertContains(request.launch.command, tokens.GOAL_BASELINE_UNTRACKED_PATH_FLAG)
+      assertContains(request.launch.command, "existing.txt")
+      assertContains(request.launch.command, tokens.AGENT_ADDON_SELECTION_JSON_FLAG)
+      assertTrue(request.launch.command.any { "review-helper" in it })
+      assertEquals("1", request.environmentFields.environment[tokens.GOAL_CONTINUATION_ENV])
+      assertEquals("SKILL-56", request.environmentFields.environment[tokens.GOAL_PARENT_ISSUE_KEY_ENV])
+      assertEquals("2", request.environmentFields.environment[tokens.GOAL_SUBTASK_ID_ENV])
+      assertEquals("feat/SKILL-56-goal", request.environmentFields.environment[tokens.GOAL_BRANCH_ENV])
+      assertEquals("true", request.environmentFields.environment[tokens.SUPPRESS_PR_ENV])
+      assertEquals("wfl-parent", request.environmentFields.environment[tokens.GOAL_PARENT_WORKFLOW_ID_ENV])
+      assertEquals("implement", request.environmentFields.environment[tokens.GOAL_LAST_RESUMABLE_STEP_ENV])
+      assertEquals(CodeReviewExecutionMode.AUTO.wireValue, request.environmentFields.environment[tokens.CODE_REVIEW_MODE_ENV])
+      assertEquals(ValidationDepth.FULL.wireValue, request.environmentFields.environment[tokens.VALIDATION_DEPTH_ENV])
       assertEquals(
         FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue,
-        request.environment[tokens.QUALITY_GATE_SELECTION_ENV],
+        request.environmentFields.environment[tokens.QUALITY_GATE_SELECTION_ENV],
       )
-      assertEquals(ExperimentArmId.TREATMENT.wireValue, request.environment[tokens.GOAL_EXPERIMENT_ARM_ID_ENV])
+      assertEquals(ExperimentArmId.TREATMENT.wireValue, request.environmentFields.environment[tokens.GOAL_EXPERIMENT_ARM_ID_ENV])
       assertEquals(
         "capability-a,capability-b",
-        request.environment[tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV],
+        request.environmentFields.environment[tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV],
       )
-      assertEquals("true", request.environment[tokens.DEFER_REMOTE_PUBLICATION_ENV])
+      assertEquals("true", request.environmentFields.environment[tokens.DEFER_REMOTE_PUBLICATION_ENV])
     }
   }
 

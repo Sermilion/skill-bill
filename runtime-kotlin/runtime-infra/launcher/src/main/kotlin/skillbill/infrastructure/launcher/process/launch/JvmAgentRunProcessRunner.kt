@@ -24,9 +24,9 @@ class JvmAgentRunProcessRunner(
   private val gateJvmResolver: GateJvmResolver,
 ) : AgentRunProcessRunner {
   override fun run(request: AgentRunProcessRequest): AgentRunProcessResult {
-    request.reviewEvidenceEndpoint?.let(liveEndpoints::add)
+    request.review.reviewEvidenceEndpoint?.let(liveEndpoints::add)
     return try {
-      request.experimentCapabilities.validate(request.command)
+      request.experimentCapabilities.validate(request.launch.command)
       runGoverned(request)
     } finally {
       closeEndpoint(request)
@@ -37,7 +37,7 @@ class JvmAgentRunProcessRunner(
     var startedProcess: ProcessStart? = null
     val processStart =
       runCatching {
-        request.spawnAuthorization?.withAuthorization {
+        request.review.spawnAuthorization?.withAuthorization {
           startProcess(request).also { startedProcess = it }
         } ?: startProcess(request).also { startedProcess = it }
       }.getOrElse { failure ->
@@ -76,12 +76,12 @@ class JvmAgentRunProcessRunner(
     }
 
     internal fun closeEndpoint(request: AgentRunProcessRequest) {
-      val endpoint = request.reviewEvidenceEndpoint ?: return
+      val endpoint = request.review.reviewEvidenceEndpoint ?: return
       liveEndpoints.remove(endpoint)
       runCatching { endpoint.close() }.onFailure { failure ->
         val sinkDelivered =
           runCatching {
-            request.outputSink.write(
+            request.launch.outputSink.write(
               AgentRunOutputStream.STDERR,
               "governed review evidence endpoint teardown failed: ${failure.message.orEmpty()}\n",
             )
@@ -123,7 +123,7 @@ class JvmAgentRunProcessRunner(
     request: AgentRunProcessRequest,
   ): AgentRunProcessResult {
     val degradation = ProcessRunDegradationRecorder()
-    val outputTracker = OutputObservationTracker()
+    val outputTracker = OutputObservationTracker(clock)
     val lifecycleEmitter = ProcessLifecycleEmitter(request, degradation)
     val resources =
       createProcessResources(
@@ -141,10 +141,10 @@ class JvmAgentRunProcessRunner(
     var primaryFailure: Throwable? = null
     var cleanupFailure: Throwable? = null
     try {
-      mcpStartupObservedAtStart = request.mcpStartupProbe.readStartupObserved(degradation).value == true
+      mcpStartupObservedAtStart = request.probes.mcpStartupProbe.readStartupObserved(degradation).value == true
       resources.stdout.start()
       resources.stderr.start()
-      writeAndCloseStdin(process, request.stdinText, degradation)
+      writeAndCloseStdin(process, request.launch.stdinText, degradation)
       lifecycleEmitter.emitStarted(process.isAlive)
       waitResult =
         runCatching {
@@ -158,7 +158,7 @@ class JvmAgentRunProcessRunner(
       rethrow(failure)
     } finally {
       cleanupFailure = runCatching { resources.lifetime.release(waitResult) }.exceptionOrNull()
-      exportRunDegradationEvidence(degradation, request.outputSink)
+      exportRunDegradationEvidence(degradation, request.launch.outputSink)
       if (primaryFailure != null && cleanupFailure != null && cleanupFailure !== primaryFailure) {
         primaryFailure.addSuppressed(cleanupFailure)
       }
@@ -199,7 +199,7 @@ class JvmAgentRunProcessRunner(
         input = args.stdoutStream,
         limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
         outputStream = AgentRunOutputStream.STDOUT,
-        outputSink = args.request.outputSink,
+        outputSink = args.request.launch.outputSink,
         onChunkRead = { args.outputTracker.markObserved() },
       )
     val stderr =
@@ -207,7 +207,7 @@ class JvmAgentRunProcessRunner(
         input = args.stderrStream,
         limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
         outputStream = AgentRunOutputStream.STDERR,
-        outputSink = args.request.outputSink,
+        outputSink = args.request.launch.outputSink,
         onChunkRead = { args.outputTracker.markObserved() },
       )
     return ProcessResources(
@@ -237,7 +237,7 @@ class JvmAgentRunProcessRunner(
     input.lifecycleEmitter.emitCompleted(processAlive = false, outcome = terminalOutcome)
     val mcpStartupObserved =
       input.mcpStartupObservedAtStart ||
-        input.request.mcpStartupProbe.readStartupObserved(input.degradation).value == true
+        input.request.probes.mcpStartupProbe.readStartupObserved(input.degradation).value == true
     if (release.interrupted) {
       return interruptedResult(
         release = release,
@@ -337,8 +337,8 @@ class JvmAgentRunProcessRunner(
     }
 
   private fun buildProcess(request: AgentRunProcessRequest): ProcessBuilder =
-    ProcessBuilder(request.command)
-      .directory(request.workingDirectory.toFile())
+    ProcessBuilder(request.launch.command)
+      .directory(request.launch.workingDirectory.toFile())
       .also { configureLaunchEnvironment(it, request, gateJvmResolver) }
 
   private fun cleanupProcessStart(start: ProcessStart?) {
