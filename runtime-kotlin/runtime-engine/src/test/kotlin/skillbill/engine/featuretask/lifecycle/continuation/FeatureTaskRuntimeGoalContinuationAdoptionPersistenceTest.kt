@@ -67,7 +67,7 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
         RuntimeFakeDatabaseSessionFactory(harness.repository),
         object : WorkflowSnapshotValidator {
           override fun validate(
-            snapshot: skillbill.workflow.engine.model.WorkflowStateSnapshot,
+            snapshot: WorkflowStateSnapshot,
             slug: String,
           ) {
             DurableWorkflowArtifacts.fromMap(snapshot.artifacts).goalContinuationArtifact()

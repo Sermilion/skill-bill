@@ -113,7 +113,7 @@ Target: one definition each; pure rules to domain; shells stay engine/applicatio
 | **Truncating private** | `asGoalObservabilityIntOrNull` in `GoalObservabilityArtifacts.kt` | Migrate |
 | **Whole-number Double check** | `FeatureTaskRuntimePlanOutcomeDecoders.asIntOrNull` | Migrate |
 | **Long-only exact (no BigDecimal)** | three `asIntegerOrNull` in readiness/validation/gate evidence files | Migrate to reader |
-| **Documented lenient (decision 2026-09-16)** | `AttemptLedgerWorkflowDecoding.asLenientIntOrNull` | **Symbol missing post–subtask 1 tree** — task 2 must restore sole lenient helper per runtime-domain `agent/decisions.md` (c); preserve historical lenient regression once reintroduced |
+| **Documented lenient (decision 2026-09-16)** | `AttemptLedgerWorkflowDecoding.asLenientIntOrNull` | **Symbol missing post–subtask 1 tree** — task 2 must restore sole lenient helper per runtime-domain `../../../agent/decisions.md` (c); preserve historical lenient regression once reintroduced |
 
 ## Compatibility fixtures to preserve (bytes / ordering / timestamps)
 

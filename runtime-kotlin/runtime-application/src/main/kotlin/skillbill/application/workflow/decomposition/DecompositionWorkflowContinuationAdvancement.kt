@@ -8,6 +8,7 @@ import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.service.decompositionRuntimeArtifacts
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -139,7 +140,6 @@ internal fun subtaskStartArtifacts(
       "assessment" to
         mapOf(
           DecompositionPlanningPayloadKeys.SPEC_PATH to selection.subtask.specPath,
-          "goal_continuation" to true,
           SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
           SharedPayloadKeys.SUBTASK_ID to selection.subtask.id,
           "accepted_without_user_confirmation" to true,
@@ -148,15 +148,14 @@ internal fun subtaskStartArtifacts(
         mapOf(
           "branch_name" to selection.branchPlan.branch,
           DecompositionPlanningPayloadKeys.BRANCH to selection.branchPlan.branch,
-          "goal_continuation" to true,
         ),
       DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.entry(
         mapOf(
-          "enabled" to true,
           SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
           SharedPayloadKeys.SUBTASK_ID to selection.subtask.id,
           "suppress_pr" to true,
-          "outcome_authority" to "workflow_store",
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.GOAL_BRANCH to selection.branchPlan.branch,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.CODE_REVIEW_MODE to "inline",
         ),
       ),
       DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.entry(

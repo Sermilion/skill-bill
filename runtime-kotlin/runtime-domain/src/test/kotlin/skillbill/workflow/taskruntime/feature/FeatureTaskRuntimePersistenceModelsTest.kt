@@ -217,13 +217,13 @@ class FeatureTaskRuntimePersistenceModelsTest {
         baseBranch = "main",
         featureBranch = "feat/SKILL-372",
         currentSubtaskIntent =
-          skillbill.workflow.decomposition.model.CurrentSubtaskIntent(
+          CurrentSubtaskIntent(
             subtaskId = 2,
             action = "implement",
           ),
         subtasks =
           listOf(
-            skillbill.workflow.decomposition.model.DecompositionSubtask(
+            DecompositionSubtask(
               id = 2,
               name = "domain artifacts",
               specPath = ".feature-specs/SKILL-372/subtask_2.md",
@@ -235,7 +235,7 @@ class FeatureTaskRuntimePersistenceModelsTest {
         mapOf(
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
             DecompositionManifestWireMap.from(
-              skillbill.workflow.decomposition.DecompositionManifestWireCodec.encode(manifest),
+              DecompositionManifestWireCodec.encode(manifest),
             ),
         ),
       )
@@ -251,7 +251,7 @@ class FeatureTaskRuntimePersistenceModelsTest {
   fun `projection failure accessor distinguishes absent malformed and typed values`() {
     assertNull(DurableWorkflowArtifacts.EMPTY.decompositionManifestProjectionFailure())
     assertEquals(
-      skillbill.workflow.decomposition.runtime.DecompositionManifestProjectionFailureArtifact(
+      DecompositionManifestProjectionFailureArtifact(
         operation = "write",
         targetPath = ".feature-specs/SKILL-372/decomposition-manifest.yaml",
       ),

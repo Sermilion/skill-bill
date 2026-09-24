@@ -12,6 +12,7 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.infrastructure.contracts.review.ReviewContextSchemaValidator
 import skillbill.infrastructure.sqlite.ensureTestDatabase
+import skillbill.infrastructure.sqlite.review.accounting.toBoundedPayload
 import skillbill.infrastructure.sqlite.reviewAccountingOnConnection
 import skillbill.infrastructure.sqlite.telemetryOutboxOnConnection
 import skillbill.ports.review.model.ReviewAccountingRecord

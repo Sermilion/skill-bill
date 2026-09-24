@@ -1,4 +1,4 @@
-package skillbill.di.review
+package skillbill.infrastructure.sqlite.review.accounting
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.ReviewAccountingPayloadKeys

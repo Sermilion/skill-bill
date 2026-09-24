@@ -27,6 +27,7 @@ import skillbill.workflow.model.goalreview.goalObservabilityLatestEventFromArtif
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -132,8 +133,8 @@ class WorkflowCliResultMappersTest {
               ),
             ),
           ),
-        startedAt = java.time.Instant.parse("2026-06-18T10:00:00Z"),
-        updatedAt = java.time.Instant.parse("2026-06-18T10:03:00Z"),
+        startedAt = Instant.parse("2026-06-18T10:00:00Z"),
+        updatedAt = Instant.parse("2026-06-18T10:03:00Z"),
         finishedAt = null,
         mode = definition.workflowMode?.let(FeatureTaskWorkflowMode::fromWireValue),
       )

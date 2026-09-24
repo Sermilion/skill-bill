@@ -62,7 +62,7 @@ class RuntimeDatabasePathPlumbingArchitectureTest {
     )
     assertEquals(
       listOf(
-        "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/example/ExampleRequest.kt:3 " +
+        "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/example/ExampleRequest.kt:2 " +
           "threads db override plumbing",
       ),
       portsViolation,

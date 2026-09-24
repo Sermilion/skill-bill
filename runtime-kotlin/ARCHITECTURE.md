@@ -774,6 +774,7 @@ silently bypass the journal boundary.
    through the ports `InstallPlanWireValidator`,
    `DecompositionManifestValidator`, and `WorkflowSnapshotValidator` — never by
    importing a concrete `*SchemaValidator` / `*CoherenceValidator`.
+   The install validator port is `skillbill.ports.install.InstallPlanWireValidator`.
 6. Infrastructure packages implement ports and may depend on domain,
    contracts, ports, and JVM APIs. They must not depend on runtime-core or
    entry adapters.
@@ -944,14 +945,14 @@ reached only through the ports-owned validators `InstallPlanWireValidator`,
 - Install-plan schema validation is owned by
   `skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator`, compiled into
   `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` and reached through the domain-owned port
-  `skillbill.install.model.InstallPlanWireValidator`. The owning seams are
+  `skillbill.ports.install.InstallPlanWireValidator`. The owning seams are
   install-plan building and CLI/MCP emission, both of which validate through the
   injected port rather than importing the validator directly.
 - Decomposition-manifest schema validation is owned by
   `skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator` (paired
   with `DecompositionManifestCoherenceValidator`), compiled into
   `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` and reached through the domain-owned port
-  `skillbill.workflow.decomposition.DecompositionManifestValidator`. The owning parse/emission
+  `skillbill.ports.workflow.decomposition.DecompositionManifestValidator`. The owning parse/emission
   seam is `skillbill.application.decomposition.DecompositionManifestFileWrites`, which
   validates YAML text and in-memory maps through that port before workflow
   artifacts are persisted or returned. Repo-local manifest text persistence is

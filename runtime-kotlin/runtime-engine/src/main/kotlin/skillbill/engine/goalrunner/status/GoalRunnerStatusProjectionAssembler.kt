@@ -199,8 +199,8 @@ private fun GoalRunnerStatusProjectionAssembler.buildStatusProjectionRuntimeInpu
         assembly.currentSubtask,
       ),
     currentStepOverride =
-      derivedChildCurrentStep(assembly.childWorkflowId)
-        ?: assembly.progress?.currentStepId,
+      assembly.progress?.currentStepId
+        ?: derivedChildCurrentStep(assembly.childWorkflowId),
     currentWorkflowStatus = assembly.progress?.workflowStatus,
     latestLivenessSignal = assembly.progress?.latestLivenessSignal,
     latestObservabilityEvent = assembly.progress?.latestGoalObservabilityEvent?.toObservabilityEvent(),

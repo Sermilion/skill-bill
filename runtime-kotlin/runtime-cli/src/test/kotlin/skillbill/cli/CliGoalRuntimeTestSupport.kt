@@ -2,10 +2,10 @@ package skillbill.cli
 
 import kotlinx.serialization.json.JsonElement
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.cli.workflow.parseArtifactsPatch
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.task.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
@@ -235,6 +235,18 @@ internal fun recordRunningGoalChildProgress(
                 "sequence" to sequence,
                 "timestamp" to "2026-06-01T00:00:00Z",
               ),
+            "goal_observability_latest_event" to
+              mapOf(
+                "contract_version" to "0.2",
+                "issue_key" to "SKILL-901",
+                "subtask_id" to 1,
+                "workflow_phase" to "implement",
+                "worker_role" to "phase_subagent",
+                "liveness_class" to "durable_progress",
+                "activity_summary" to message,
+                "sequence_number" to sequence,
+                "timestamp" to "2026-06-01T00:00:00Z",
+              ),
           ),
         ),
     ),
@@ -308,6 +320,8 @@ internal fun seedAuthoritativeCompleteChild(fixture: GoalCliFixture) {
               mapOf(
                 "issue_key" to "SKILL-901",
                 "subtask_id" to 1,
+                "goal_branch" to "feat/SKILL-901-goal",
+                "code_review_mode" to "auto",
                 "suppress_pr" to true,
               ),
             "goal_continuation_outcome" to
@@ -512,8 +526,8 @@ internal class GoalFixtureAgentRunLauncher(
         dbPath = dbPath,
         workflowId = workflowId,
         workflowStatus = WorkflowStatus.FAILED.wireValue,
-        currentStep = "review",
-        stepUpdates = """[{"step_id":"review","status":"failed","attempt_count":1}]""",
+        currentStep = "implement",
+        stepUpdates = """[{"step_id":"implement","status":"failed","attempt_count":1}]""",
         artifactsPatch = jsonString(mapOf("blocked_reason" to "forced failure")),
       ),
       launcher = this,

@@ -5,6 +5,8 @@ import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
 import skillbill.di.core.SkillBillVersion
+import skillbill.infrastructure.sqlite.withLifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.process.InstallerProcessPort
 import skillbill.ports.process.InstallerScriptFetchPort
 import skillbill.ports.process.model.InstallerProcessRequest
@@ -631,7 +633,7 @@ internal fun assertSqliteTimestampShape(
   timestamp: String,
   label: String,
 ) {
-  assertMatchesPattern(Regex("""^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"""), timestamp, label)
+  assertMatchesPattern(Regex("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$"""), timestamp, label)
 }
 
 internal fun assertMatchesPattern(

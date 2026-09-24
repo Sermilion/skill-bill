@@ -1,7 +1,6 @@
 package skillbill.engine.goalrunner.planning.model
 
 import skillbill.contracts.workflow.identity.status.GOAL_PLANNING_WAVE_CAP
-import skillbill.engine.goalrunner.planning.hydration.expectedProvenance
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance

@@ -45,19 +45,32 @@ internal fun goalObservabilityEventFromArtifact(
       reader.optionalString("record_kind")?.let(GoalObservabilityRecordKind::fromWire)
         ?: GoalObservabilityRecordKind.PROGRESS,
     issueKey = reader.requiredString("issue_key"),
-    subtaskId = reader.requiredInt("subtask_id").requirePositiveObservationInt(sourceLabel, "subtask_id"),
+    subtaskId =
+      reader.requiredObservationInt(eventMap, "subtask_id", sourceLabel)
+        .requirePositiveObservationInt(sourceLabel, "subtask_id"),
     workflowId = reader.optionalString("workflow_id"),
     workflowPhase = reader.requiredString("workflow_phase"),
     workerRole = reader.requiredString("worker_role"),
     livenessClass = reader.requiredString("liveness_class"),
     activitySummary = reader.requiredString("activity_summary"),
     timestamp = parseObservationTimestamp(reader.requiredString("timestamp"), sourceLabel),
-    sequenceNumber = reader.requiredInt("sequence_number").requireNonNegativeObservationInt(sourceLabel),
+    sequenceNumber =
+      reader.requiredObservationInt(eventMap, "sequence_number", sourceLabel)
+        .requireNonNegativeObservationInt(sourceLabel),
     changedFileSummary =
       reader.optionalNestedObject("changed_file_summary")
         ?.toChangedFileSummary(sourceLabel),
     diffStat = reader.optionalNestedObject("diff_stat")?.toDiffStat(sourceLabel),
-    changedFiles = reader.optionalStringList("changed_files"),
+    changedFiles =
+      reader.optionalStringList("changed_files").also { files ->
+        if (files.size > MAX_CHANGED_FILES) {
+          throw invalidGoalObservabilityEvent(
+            sourceLabel,
+            "changed_files",
+            "field must contain at most 500 entries.",
+          )
+        }
+      },
     diffStatByFile = reader.optionalList("diff_stat_by_file").toFileDiffStats(sourceLabel),
   )
 }
@@ -108,12 +121,14 @@ private fun Map<*, *>.toChangedFileSummary(sourceLabel: String): GoalObservabili
   requireOnlyKeys(GOAL_OBSERVABILITY_CHANGED_FILE_SUMMARY_KEYS, "$sourceLabel.changed_file_summary").let {
     val reader = goalObservabilityReader(this, "$sourceLabel.changed_file_summary")
     GoalObservabilityChangedFileSummary(
-      total = reader.requiredInt("total").requireNonNegative(sourceLabel, "total"),
-      added = reader.requiredInt("added").requireNonNegative(sourceLabel, "added"),
-      modified = reader.requiredInt("modified").requireNonNegative(sourceLabel, "modified"),
-      deleted = reader.requiredInt("deleted").requireNonNegative(sourceLabel, "deleted"),
-      renamed = reader.requiredInt("renamed").requireNonNegative(sourceLabel, "renamed"),
-      untracked = reader.requiredInt("untracked").requireNonNegative(sourceLabel, "untracked"),
+      total = reader.requiredObservationInt(this, "total", sourceLabel).requireNonNegative(sourceLabel, "total"),
+      added = reader.requiredObservationInt(this, "added", sourceLabel).requireNonNegative(sourceLabel, "added"),
+      modified =
+        reader.requiredObservationInt(this, "modified", sourceLabel).requireNonNegative(sourceLabel, "modified"),
+      deleted = reader.requiredObservationInt(this, "deleted", sourceLabel).requireNonNegative(sourceLabel, "deleted"),
+      renamed = reader.requiredObservationInt(this, "renamed", sourceLabel).requireNonNegative(sourceLabel, "renamed"),
+      untracked =
+        reader.requiredObservationInt(this, "untracked", sourceLabel).requireNonNegative(sourceLabel, "untracked"),
       samplePaths = reader.optionalStringList("sample_paths"),
     )
   }
@@ -122,9 +137,14 @@ private fun Map<*, *>.toDiffStat(sourceLabel: String): GoalObservabilityDiffStat
   requireOnlyKeys(GOAL_OBSERVABILITY_DIFF_STAT_KEYS, "$sourceLabel.diff_stat").let {
     val reader = goalObservabilityReader(this, "$sourceLabel.diff_stat")
     GoalObservabilityDiffStat(
-      filesChanged = reader.requiredInt("files_changed").requireNonNegative(sourceLabel, "files_changed"),
-      insertions = reader.requiredInt("insertions").requireNonNegative(sourceLabel, "insertions"),
-      deletions = reader.requiredInt("deletions").requireNonNegative(sourceLabel, "deletions"),
+      filesChanged =
+        reader
+          .requiredObservationInt(this, "files_changed", sourceLabel)
+          .requireNonNegative(sourceLabel, "files_changed"),
+      insertions =
+        reader.requiredObservationInt(this, "insertions", sourceLabel).requireNonNegative(sourceLabel, "insertions"),
+      deletions =
+        reader.requiredObservationInt(this, "deletions", sourceLabel).requireNonNegative(sourceLabel, "deletions"),
     )
   }
 
@@ -133,8 +153,10 @@ private fun Map<*, *>.toFileDiffStat(sourceLabel: String): GoalObservabilityFile
     val reader = goalObservabilityReader(this, sourceLabel)
     GoalObservabilityFileDiffStat(
       path = reader.requiredString("path"),
-      insertions = reader.requiredInt("insertions").requireNonNegative(sourceLabel, "insertions"),
-      deletions = reader.requiredInt("deletions").requireNonNegative(sourceLabel, "deletions"),
+      insertions =
+        reader.requiredObservationInt(this, "insertions", sourceLabel).requireNonNegative(sourceLabel, "insertions"),
+      deletions =
+        reader.requiredObservationInt(this, "deletions", sourceLabel).requireNonNegative(sourceLabel, "deletions"),
     )
   }
 
@@ -144,6 +166,18 @@ private fun Int.requireNonNegative(
 ): Int =
   takeIf { it >= 0 }
     ?: throw invalidGoalObservabilityEvent(sourceLabel, field, "field must be a non-negative integer.")
+
+private fun DurableArtifactMapReader.requiredObservationInt(
+  map: Map<*, *>,
+  key: String,
+  sourceLabel: String,
+): Int {
+  val value = map[key]
+  if (value != null && value !is Number) {
+    throw invalidGoalObservabilityEvent(sourceLabel, key, "field must decode to an integer.")
+  }
+  return requiredInt(key)
+}
 
 private val GOAL_OBSERVABILITY_EVENT_KEYS =
   setOf(
@@ -179,6 +213,8 @@ private val GOAL_OBSERVABILITY_DIFF_STAT_KEYS = setOf("files_changed", "insertio
 
 private val GOAL_OBSERVABILITY_FILE_DIFF_STAT_KEYS = setOf("path", "insertions", "deletions")
 
+private const val MAX_CHANGED_FILES = 500
+
 internal fun Map<*, *>.requireOnlyKeys(
   allowedKeys: Set<String>,
   sourceLabel: String,
@@ -188,7 +224,7 @@ internal fun Map<*, *>.requireOnlyKeys(
       key as? String
         ?: throw invalidGoalObservabilityEvent(sourceLabel, "", "event keys must be strings.")
     if (stringKey !in allowedKeys) {
-      throw invalidGoalObservabilityEvent(sourceLabel, stringKey, "unknown field is not allowed.")
+      throw invalidGoalObservabilityEvent(sourceLabel, "", "unknown field '$stringKey' is not allowed.")
     }
   }
 }
@@ -206,8 +242,32 @@ internal fun goalObservabilityReader(
       throw invalidGoalObservabilityEvent(sourceLabel, "", detail)
     }
   return DurableArtifactMapReader(converted) { detail ->
-    throw invalidGoalObservabilityEvent(sourceLabel, detail, "malformed durable field.")
+    throw invalidGoalObservabilityEvent(
+      sourceLabel,
+      goalObservabilityMalformedField(detail, sourceLabel),
+      "malformed durable field.",
+    )
   }
+}
+
+private fun goalObservabilityMalformedField(
+  detail: String,
+  sourceLabel: String,
+): String {
+  if (detail.contains("missing required field")) return ""
+  return Regex("""'([^']+)'""")
+    .find(detail)
+    ?.groupValues
+    ?.get(1)
+    ?.let { field ->
+      val localField = if (field == "changed_files" && detail.contains("contain only")) "$field[0]" else field
+      if (sourceLabel.contains('.') || sourceLabel.contains('[')) {
+        "${sourceLabel.substringAfter('.', sourceLabel)}.$localField"
+      } else {
+        localField
+      }
+    }
+    ?: ""
 }
 
 internal fun requireGoalObservabilityContractVersion(

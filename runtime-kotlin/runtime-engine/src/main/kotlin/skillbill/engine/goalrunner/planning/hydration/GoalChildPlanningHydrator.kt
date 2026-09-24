@@ -4,6 +4,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.persist.durationMillis
 import skillbill.engine.featuretask.persist.workflowArtifactEntryMap
 import skillbill.engine.goalrunner.planning.model.GoalChildPlanningHydration
+import skillbill.engine.goalrunner.planning.model.expectedProvenance
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRecoveryKind
 import skillbill.engine.goalrunner.planning.recovery.classifyGoalPlanningRecovery
 import skillbill.engine.planningprojection.requireValidPlanningProjection
@@ -456,22 +457,6 @@ private class GoalChildPlanningImportMatcher(
       planningSteps.all { it.status.workflowStepStatus() == expected[it.stepId] }
   }
 }
-
-internal fun expectedProvenance(request: GoalChildPlanningHydrationRequest): Map<String, Any?> =
-  mapOf(
-    "source_kind" to "imported_goal_planning",
-    "parent_goal_workflow_id" to request.identity.parentGoalWorkflowId,
-    "normalized_issue_key" to request.identity.normalizedIssueKey,
-    "repository_identity" to request.identity.repositoryIdentity,
-    SharedPayloadKeys.SUBTASK_ID to request.descriptor.subtaskId,
-    "manifest_order" to request.descriptor.manifestOrder,
-    "governed_sub_spec_path" to request.descriptor.governedSubSpecPath,
-    "decomposition_manifest_hash" to request.provenance.decompositionManifestHash,
-    "planning_contract_id" to request.provenance.planningContractId,
-    "planning_contract_version" to request.provenance.planningContractVersion,
-    "phase_output_contract_id" to request.provenance.phaseOutputContractId,
-    "phase_output_contract_version" to request.provenance.phaseOutputContractVersion,
-  )
 
 private fun completedStep(phaseId: String): Map<String, Any?> =
   linkedMapOf(

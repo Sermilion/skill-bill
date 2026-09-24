@@ -3,6 +3,7 @@ package skillbill.cli
 import skillbill.cli.kernel.cli.drainTelemetryOnCompletion
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.transport.RemoteTransportPort
 import java.nio.file.Files

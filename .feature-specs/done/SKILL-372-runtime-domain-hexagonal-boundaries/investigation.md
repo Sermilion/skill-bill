@@ -23,7 +23,7 @@ The fix removes code. Decode once at the port mapping. Run the existing validati
 - Baseline HEAD: `dbf9f4830a019441f94eb7d04f7fbb6402aa5f8b`, rechecked after `git fetch` immediately before writing. runtime-domain has no uncommitted change. The sorted production-file digest is `b7799fd116e4ffd9a8533d85861d8a3df44564d1188c10de04cb2f4107c727dd`.
 - Tests: `./gradlew :runtime-domain:test` passed, 844 tests, 0 failed, 0 skipped.
 - Censuses: Python and grep scripts over every `.kt` file outside `build/` and `build-logic/` in `runtime-kotlin`. No review subagents were used. Files cited in findings were read at the cited ranges.
-- Context read: `CLAUDE.md`, `runtime-kotlin/ARCHITECTURE.md` (Design Principles, Gradle Modules, Package Ownership, Enforcement Status), `docs/code-principles.md`, `runtime-kotlin/runtime-domain/agent/decisions.md` and `history.md`, the prior SKILL-351 bundle, and the seven sibling bundles SKILL-370, 371, 373, 374, 375, and 376.
+- Context read: `../../../CLAUDE.md`, `runtime-kotlin/ARCHITECTURE.md` (Design Principles, Gradle Modules, Package Ownership, Enforcement Status), `docs/code-principles.md`, `runtime-kotlin/runtime-domain/agent/decisions.md` and `history.md`, the prior SKILL-351 bundle, and the seven sibling bundles SKILL-370, 371, 373, 374, 375, and 376.
 - First pass and verification: the first pass of this bundle missed the cycle, invariant, validator-parameter, timestamp, vocabulary, resource, coercion-landing, single-consumer, interface-substitute, construction, orphan-test, and guard-validity checks. They were added in two follow-up passes and are measured below.
 
 ## Census
@@ -118,7 +118,7 @@ I opened every guard this bundle cites and traced its scan root. `ArchitectureSc
 
 | Guard | Scan root | Reads domain? |
 | --- | --- | --- |
-| `ApplicationPackageAcyclicityArchitectureTest` | `PrincipleEnforcementInventory.mainScanRoot` = `runtime-kotlin/runtime-domain/src/main/kotlin` | Yes, but cuts packages to their first segment and finds only 2-node cycles (F-004) |
+| `ApplicationPackageAcyclicityArchitectureTest` | `PrincipleEnforcementInventory.mainScanRoot` = `../../../runtime-kotlin/runtime-domain/src/main/kotlin` | Yes, but cuts packages to their first segment and finds only 2-node cycles (F-004) |
 | `PackageSiblingCountArchitectureTest`, `PackageClusteringArchitectureTest` | `runtimeKotlinModuleDirectory(...)/src/main/kotlin` | Yes |
 | `ProductionFileLineCeilingArchitectureTest` | `runtime-kotlin` | Yes |
 | `TypedParseBoundaryArchitectureTest` | explicit `runtime-kotlin/runtime-domain/...` files, read with `readText` | Yes |
@@ -199,7 +199,7 @@ Landing check against its acceptance criteria:
 
 ## Findings
 
-Paths are relative to `runtime-kotlin/`; `…/` abbreviates `src/main/kotlin/skillbill/`.
+Paths are relative to `../../../runtime-kotlin`; `…/` abbreviates `src/main/kotlin/skillbill/`.
 
 | ID | Priority | Anchor | Summary | Subtask |
 | --- | --- | --- | --- | --- |
@@ -411,9 +411,9 @@ Domain parses its own strings: `GoalRunnerExecutionLease` parses in its initiali
 
 ### F-010. Skill kind as an enum
 
-**Evidence.** `SKILL_KIND_*` string constants and `SUPPORTED_SKILL_KINDS: Set<String>` (`ScaffoldPolicyConstants.kt:8-15`) model a closed set. Literals are restated in infra/skills (`ScaffoldServicePlanning*.kt`, `ScaffoldTemplateRendering.kt:51`, `FileSystemScaffoldGateway.kt:249-259`, `File*AddonSourceConfig*.kt`) and in CLI (`ScaffoldWizardValueNormalization.kt:7-10`). `docs/code-principles.md` requires enums for closed sets.
+**Evidence.** `SKILL_KIND_*` string constants and `SUPPORTED_SKILL_KINDS: Set<String>` (`ScaffoldPolicyConstants.kt:8-15`) model a closed set. Literals are restated in infra/skills (`ScaffoldServicePlanning*.kt`, `ScaffoldTemplateRendering.kt:51`, `FileSystemScaffoldGateway.kt:249-259`, `File*AddonSourceConfig*.kt`) and in CLI (`ScaffoldWizardValueNormalization.kt:7-10`). `../../../docs/code-principles.md` requires enums for closed sets.
 
-**Fix.** Add `enum class SkillKind(val wireValue: String)` in `scaffold.model` with one `fromWire`. CLI alias normalisation returns the enum. The wire bytes are the same strings, so no codec output changes. `APPROVED_CODE_REVIEW_AREAS` follows the same rule while `AGENTS.md` keeps that list closed.
+**Fix.** Add `enum class SkillKind(val wireValue: String)` in `scaffold.model` with one `fromWire`. CLI alias normalisation returns the enum. The wire bytes are the same strings, so no codec output changes. `APPROVED_CODE_REVIEW_AREAS` follows the same rule while `../../../AGENTS.md` keeps that list closed.
 
 ### F-011. Delete compatibility typealiases around domain types
 

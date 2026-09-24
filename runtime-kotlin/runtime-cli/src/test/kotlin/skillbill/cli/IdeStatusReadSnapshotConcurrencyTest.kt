@@ -12,6 +12,10 @@ import skillbill.engine.work.model.IdeStatusProblemCode
 import skillbill.engine.work.model.IdeStatusRequest
 import skillbill.engine.work.model.IdeStatusResult
 import skillbill.goalrunner.model.GoalRunnerControlState
+import skillbill.infrastructure.host.CanonicalRepositoryRoot
+import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
+import skillbill.infrastructure.sqlite.ensureTestDatabase
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics

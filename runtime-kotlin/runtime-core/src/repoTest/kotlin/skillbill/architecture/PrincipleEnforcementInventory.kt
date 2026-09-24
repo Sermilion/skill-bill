@@ -136,7 +136,7 @@ object PrincipleEnforcementInventory {
         "Dynamic ReviewRepository proxy passes typed args through erased invoke; casts mirror the repository contract",
       ),
       SuppressionAllowListRow(
-        "runtime-core/src/test/kotlin/skillbill/di/workflow/ApplicationPersistencePortTestSupport.kt",
+        "runtime-core/src/test/kotlin/skillbill/application/ApplicationPersistencePortTestSupport.kt",
         "noopPort",
         "UNCHECKED_CAST",
         "Dynamic port proxy returns typed facade from erased invoke",
@@ -492,7 +492,8 @@ object PrincipleEnforcementInventory {
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
-          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/GoalObservabilityParsing.kt",
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/model/" +
+            "goalreview/GoalObservabilityParsing.kt",
         functionNames =
           setOf(
             "goalObservabilityHistoryFromArtifacts",
@@ -502,7 +503,7 @@ object PrincipleEnforcementInventory {
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
-          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/" +
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/model/goalreview/" +
             "GoalSubtaskReviewFindingArtifacts.kt",
         functionNames =
           setOf(
@@ -514,7 +515,7 @@ object PrincipleEnforcementInventory {
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
-          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/" +
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/model/goalreview/" +
             "GoalSubtaskReviewStateDecoding.kt",
         functionNames =
           setOf(
@@ -525,7 +526,7 @@ object PrincipleEnforcementInventory {
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
-          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/" +
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/model/goalreview/" +
             "GoalObservabilityParsing.kt",
         functionNames = setOf("goalObservabilityReader", "requireGoalObservabilityContractVersion"),
       ),
@@ -554,7 +555,7 @@ object PrincipleEnforcementInventory {
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
           "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/engine/" +
-            "WorkflowEngineSnapshotCodecDurable.kt",
+            "WorkflowEngineSnapshotCodec.kt",
         functionNames = setOf("decodeSteps", "decodeObject"),
       ),
     )

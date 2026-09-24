@@ -4,6 +4,7 @@ import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.cli.core.CliRuntime
 import skillbill.contracts.JsonCodec
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.ports.workflow.decomposition.loadDecompositionManifest
 import java.nio.file.Files
 import java.nio.file.Path

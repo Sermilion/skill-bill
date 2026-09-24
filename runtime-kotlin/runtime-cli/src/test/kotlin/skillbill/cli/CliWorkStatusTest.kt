@@ -11,6 +11,8 @@ import skillbill.engine.work.model.IdeStatusSnapshot
 import skillbill.engine.work.model.IdeStatusStep
 import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.goalrunner.model.GoalPlanningStatusState
+import skillbill.infrastructure.contracts.workflow.goal.status.IdeStatusSchemaValidator
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant

@@ -258,15 +258,15 @@ class ApplicationPackageAcyclicityArchitectureTest {
   private fun writeSyntheticPackageFiles(packages: Map<String, Path>) {
     packages.getValue("alpha").resolve("Alpha.kt").writeText(
       """
-
-
+      package skillbill.synthetic.alpha
+      import skillbill.synthetic.beta.Beta
       class Alpha
       """.trimIndent(),
     )
     packages.getValue("beta").resolve("Beta.kt").writeText(
       """
-
-
+      package skillbill.synthetic.beta
+      import skillbill.synthetic.gamma.Gamma
       class Beta {
         object Nested
       }
@@ -274,7 +274,7 @@ class ApplicationPackageAcyclicityArchitectureTest {
     )
     packages.getValue("gamma").resolve("Gamma.kt").writeText(
       """
-
+      package skillbill.synthetic.gamma
       import skillbill.synthetic.alpha.Alpha.*
 
       class Gamma
@@ -282,15 +282,15 @@ class ApplicationPackageAcyclicityArchitectureTest {
     )
     packages.getValue("delta").resolve("Delta.kt").writeText(
       """
-
-
+      package skillbill.synthetic.delta
+      import skillbill.synthetic.epsilon.Epsilon
       class Delta
       """.trimIndent(),
     )
     packages.getValue("epsilon").resolve("Epsilon.kt").writeText(
       """
-
-
+      package skillbill.synthetic.epsilon
+      import skillbill.synthetic.delta.Delta
       class Epsilon
       """.trimIndent(),
     )

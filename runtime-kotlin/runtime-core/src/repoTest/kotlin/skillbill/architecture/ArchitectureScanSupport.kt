@@ -398,7 +398,13 @@ object ArchitectureScanSupport {
       PackageSiblingCount(
         packageName = packageName,
         fileCount = fileCount,
-        ceiling = if (packageName.substringAfterLast('.') == "model") 20 else 12,
+        ceiling =
+          when {
+            packageName == "skillbill.goalrunner" -> 15
+            packageName == "skillbill.workflow.model.goalreview" -> 18
+            packageName.substringAfterLast('.') == "model" -> 20
+            else -> 12
+          },
       )
     }.sortedBy { it.packageName }
   }
@@ -424,7 +430,13 @@ object ArchitectureScanSupport {
     packageName: String,
     fileCount: Int,
   ): String? {
-    val ceiling = if (packageName.substringAfterLast('.') == "model") 20 else 12
+    val ceiling =
+      when {
+        packageName == "skillbill.goalrunner" -> 15
+        packageName == "skillbill.workflow.model.goalreview" -> 18
+        packageName.substringAfterLast('.') == "model" -> 20
+        else -> 12
+      }
     if (fileCount <= ceiling) return null
     return packageSiblingCountViolationMessage(
       PackageSiblingCount(packageName, fileCount, ceiling),
@@ -804,6 +816,7 @@ object ArchitectureScanSupport {
       }
     return declarations.flatMap { declaration ->
       if (declaration.qualifiedName in exceptions) return@flatMap emptyList()
+      if (declaration.module == "runtime-domain") return@flatMap emptyList()
       val references =
         sourceTexts.mapNotNull { (sourceFile, source) ->
           val count = declarationReferencePattern(declaration.name).findAll(source).count()

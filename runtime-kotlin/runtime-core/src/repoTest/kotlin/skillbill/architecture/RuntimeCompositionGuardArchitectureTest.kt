@@ -25,6 +25,8 @@ class RuntimeCompositionGuardArchitectureTest {
     val boundClasses =
       ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
         """
+        import skillbill.example.FileTelemetryConfigStore as StoreAlias
+
         @Provides
         fun bindStore(store: FileTelemetryConfigStore): FileTelemetryConfigStore = store
         @Provides
@@ -37,6 +39,8 @@ class RuntimeCompositionGuardArchitectureTest {
         relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
         source =
           """
+          import skillbill.example.FileTelemetryConfigStore as StoreAlias
+
           class Example {
             fun leak() {
               FileTelemetryConfigStore(context)
@@ -101,6 +105,8 @@ class RuntimeCompositionGuardArchitectureTest {
     val boundClasses =
       ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
         """
+        import skillbill.example.FileTelemetryConfigStore as StoreAlias
+
         @Provides
         fun bind(store: FileTelemetryConfigStore): FileTelemetryConfigStore = store
         """.trimIndent(),
@@ -111,6 +117,8 @@ class RuntimeCompositionGuardArchitectureTest {
         relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
         source =
           """
+          import skillbill.example.FileTelemetryConfigStore as StoreAlias
+
           class Example {
             fun leak() {
               StoreAlias(context)
@@ -132,6 +140,8 @@ class RuntimeCompositionGuardArchitectureTest {
     val boundClasses =
       ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
         """
+        import skillbill.example.FileTelemetryConfigStore as StoreAlias
+
         @Provides
         fun bind(store: StoreAlias): TelemetryConfigStore = store
         """.trimIndent(),

@@ -7,6 +7,7 @@ import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.system.UninstallCommand
+import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.install.model.McpMutationResult
 import skillbill.ports.install.agent.InstallAgentTargetPort
 import skillbill.ports.install.agent.model.ClaudeConfigRootsRequest

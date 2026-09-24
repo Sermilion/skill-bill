@@ -37,7 +37,7 @@ Resolve F-001, F-002, F-003, and F-009 in [investigation.md](investigation.md).
 5. An engine or SQLite update with an undeclared step id or a status the definition does not allow raises `InvalidWorkflowStateSchemaError` from `updateRecord`. The update validation entry point is not public.
 6. `WorkflowSnapshotValidator` is declared in `runtime-ports`, not runtime-domain. `WorkflowEngine` has no constructor parameters, and every existing workflow-state schema rejection test still rejects.
 7. The timestamps named in scope are `Instant`, the listed consumer re-parse sites are gone, and each stored timestamp format round-trips byte-identically.
-8. Snapshot wire JSON, step JSON, and acknowledgement payloads match the SKILL-351 baselines under `.feature-specs/done/SKILL-351-runtime-domain-boundaries-and-simplicity/baselines/`.
+8. Snapshot wire JSON, step JSON, and acknowledgement payloads match the SKILL-351 baselines under `../SKILL-351-runtime-domain-boundaries-and-simplicity/baselines`.
 
 ## Non-goals
 

@@ -383,7 +383,14 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
           WorkflowArtifactPatch.from(
             mapOf(
               "assessment" to mapOf("spec_path" to subtaskOne.toString()),
-              "goal_continuation" to mapOf("enabled" to true, "suppress_pr" to true),
+              "goal_continuation" to
+                mapOf(
+                  "issue_key" to "SKILL-51",
+                  "subtask_id" to 1,
+                  "suppress_pr" to true,
+                  "goal_branch" to "feature/skill-51-demo",
+                  "code_review_mode" to "inline",
+                ),
               "commit_push_result" to mapOf("commit_sha" to "abc123"),
             ),
           ),
@@ -450,7 +457,14 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
           WorkflowArtifactPatch.from(
             mapOf(
               "assessment" to mapOf("spec_path" to subtaskOne.toString()),
-              "goal_continuation" to mapOf("enabled" to true, "suppress_pr" to true),
+              "goal_continuation" to
+                mapOf(
+                  "issue_key" to "SKILL-51",
+                  "subtask_id" to 1,
+                  "suppress_pr" to true,
+                  "goal_branch" to "feature/skill-51-demo",
+                  "code_review_mode" to "inline",
+                ),
             ),
           ),
       ),

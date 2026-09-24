@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.model.core
 
-import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 

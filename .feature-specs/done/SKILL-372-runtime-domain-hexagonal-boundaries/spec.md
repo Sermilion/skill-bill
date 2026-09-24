@@ -44,7 +44,7 @@ Each commit builds and stands alone.
 
 This bundle runs on the current tree. It does not wait for a subtask of another issue. Do the work in the acceptance criteria here. If another bundle already changed a name or moved a file, use what is there.
 
-Prepared in local mode on 2026-09-22. The key was rechecked after `git fetch` against `.feature-specs/`, `.feature-specs/done/`, `git branch -a`, and `git log --all`; SKILL-372 is held only by this bundle. Baseline HEAD `dbf9f4830a019441f94eb7d04f7fbb6402aa5f8b`, runtime-domain digest `b7799fd116e4ffd9a8533d85861d8a3df44564d1188c10de04cb2f4107c727dd`, 844 domain tests passing. This bundle prepares work only; all subtasks start pending.
+Prepared in local mode on 2026-09-22. The key was rechecked after `git fetch` against `../..`, `.feature-specs/done/`, `git branch -a`, and `git log --all`; SKILL-372 is held only by this bundle. Baseline HEAD `dbf9f4830a019441f94eb7d04f7fbb6402aa5f8b`, runtime-domain digest `b7799fd116e4ffd9a8533d85861d8a3df44564d1188c10de04cb2f4107c727dd`, 844 domain tests passing. This bundle prepares work only; all subtasks start pending.
 
 ## Acceptance Criteria
 
@@ -63,11 +63,11 @@ Prepared in local mode on 2026-09-22. The key was rechecked after `git fetch` ag
 13. No runtime-domain typealias and no engine alias of a domain type remain. The F-012 package merges are done, orphan test packages are aligned, and no two runtime-domain production files share a basename.
 14. The unreferenced declarations from a re-run census are deleted (domain `normalizedBlockedReason` stays as the single copy). Same-file-only and module-only public declarations are narrowed. The path-filter catch is narrowed.
 15. runtime-domain has no `version.properties` resource or `processResources` block, and infra-sqlite has no version resource or reader of its own.
-16. `agent/decisions.md` records decisions superseding the 2026-09-06 duplicated-cluster entry and decision (a) of the 2026-09-16 runtime-domain entry. `ARCHITECTURE.md` describes the aggregate, the decode and validation seams, and the cycle scan as implemented.
+16. `../../../agent/decisions.md` records decisions superseding the 2026-09-06 duplicated-cluster entry and decision (a) of the 2026-09-16 runtime-domain entry. `ARCHITECTURE.md` describes the aggregate, the decode and validation seams, and the cycle scan as implemented.
 
 ## Constraints
 
-- Follow `runtime-kotlin/ARCHITECTURE.md` Design Principles, `docs/code-principles.md`, `docs/observability-policy.md`, and `AGENTS.md`.
+- Follow `../../../runtime-kotlin/ARCHITECTURE.md` Design Principles, `docs/code-principles.md`, `docs/observability-policy.md`, and `AGENTS.md`.
 - Keep the Gradle modules, pinned edges, the `api` re-exports, and the `runtime-domain` → `runtime-contracts` edge.
 - runtime-domain imports no `java.nio`, `skillbill.ports`, application, engine, adapter, or serialization type.
 - No new modules, frameworks, dependency bags, or architecture-test classes. The only guard change is exact-granularity cycle detection in the existing scanner. No baseline rows, exemptions, or suppressions are added.

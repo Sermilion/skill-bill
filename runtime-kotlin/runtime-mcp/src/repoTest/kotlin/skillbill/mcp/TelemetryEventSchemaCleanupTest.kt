@@ -2,7 +2,6 @@ package skillbill.mcp
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
-import skillbill.mcp.telemetry.EXPECTED_SCHEMA_ID
 import skillbill.mcp.telemetry.TELEMETRY_EVENT_CONTRACT_VERSION
 import skillbill.mcp.telemetry.TelemetryEventSchemaPaths
 import skillbill.mcp.telemetry.TelemetryEventSchemaValidator

@@ -4,6 +4,7 @@ import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.persist.durationMillis
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.model.WorkflowStepStatus

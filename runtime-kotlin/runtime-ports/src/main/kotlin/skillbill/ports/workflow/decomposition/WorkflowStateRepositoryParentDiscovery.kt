@@ -19,27 +19,15 @@ fun WorkflowStateRepository.findDecomposedParentOrCorruptFallback(
   currentProjectedManifest: DecompositionManifest?,
 ): WorkflowStateRecord? {
   val normalizedIssueKey = issueKey.trim()
-  val validCandidates = mutableListOf<DecomposedParentCandidate>()
-  val corruptCandidates = mutableListOf<WorkflowStateRecord>()
-  listFeatureTaskWorkflowsForParentDiscovery()
-    .filter { row ->
-      val snapshot = row.toSnapshot()
-      !snapshot.isGoalContinuationChildWorkflow() &&
-        (row.issueKey?.trim() == normalizedIssueKey || snapshot.hasDecompositionPlan()) &&
-        (snapshot.hasDecompositionPlan() || snapshot.artifacts.hasDecompositionRuntimeArtifact())
+  val candidates =
+    listFeatureTaskWorkflowsForParentDiscovery().mapNotNull { row ->
+      parentDiscoveryCandidate(row, normalizedIssueKey)
     }
-    .forEach { row ->
-      val manifest = row.decompositionRuntimeOrNull()
-      val workflowStatus = row.workflowStatus.workflowStatus()
-      when {
-        manifest != null &&
-          manifest.issueKey == normalizedIssueKey &&
-          workflowStatus !in WorkflowStatus.terminalStatuses ->
-          validCandidates += DecomposedParentCandidate(row, manifest)
-        manifest == null && workflowStatus !in WorkflowStatus.terminalStatuses ->
-          corruptCandidates += row
-      }
+  val validCandidates =
+    candidates.filterIsInstance<ParentDiscoveryCandidate.Valid>().map { candidate ->
+      DecomposedParentCandidate(candidate.record, candidate.manifest)
     }
+  val corruptCandidates = candidates.filterIsInstance<ParentDiscoveryCandidate.Corrupt>()
   val nonStale = validCandidates.filterNot { it.isStaleAbandonedLineage(currentProjectedManifest) }
   val active = nonStale.filter { it.manifest.isActiveGoalRuntime() }
   if (active.size > 1) {
@@ -54,11 +42,32 @@ fun WorkflowStateRepository.findDecomposedParentOrCorruptFallback(
   if (corruptCandidates.size > 1) {
     error(
       "Ambiguous corrupt-manifest parent rows for '$normalizedIssueKey': " +
-        corruptCandidates.joinToString { it.workflowId } +
+        corruptCandidates.joinToString { it.record.workflowId } +
         ". Operator intervention is required to resolve the duplicate parent rows.",
     )
   }
-  return corruptCandidates.firstOrNull()
+  return corruptCandidates.firstOrNull()?.record
+}
+
+private fun parentDiscoveryCandidate(
+  row: WorkflowStateRecord,
+  issueKey: String,
+): ParentDiscoveryCandidate? {
+  val snapshot = row.toSnapshot()
+  if (snapshot.isGoalContinuationChildWorkflow()) return null
+  val relevant =
+    row.issueKey?.trim() == issueKey ||
+      snapshot.hasDecompositionPlan() ||
+      snapshot.artifacts.hasDecompositionRuntimeArtifact()
+  if (!relevant || snapshot.workflowStatus in WorkflowStatus.terminalStatuses) return null
+  val manifest = row.decompositionRuntimeOrNull()
+  return if (manifest == null) {
+    ParentDiscoveryCandidate.Corrupt(row)
+  } else if (manifest.issueKey == issueKey) {
+    ParentDiscoveryCandidate.Valid(row, manifest)
+  } else {
+    null
+  }
 }
 
 private fun WorkflowStateRecord.decompositionRuntimeOrNull(): DecompositionManifest? =
@@ -107,6 +116,17 @@ fun WorkflowStateRepository.findDecomposedParentWorkflow(
     )
   }
   return activeCandidates.firstOrNull()?.record ?: candidates.firstOrNull()?.record
+}
+
+private sealed interface ParentDiscoveryCandidate {
+  val record: WorkflowStateRecord
+
+  data class Valid(
+    override val record: WorkflowStateRecord,
+    val manifest: DecompositionManifest,
+  ) : ParentDiscoveryCandidate
+
+  data class Corrupt(override val record: WorkflowStateRecord) : ParentDiscoveryCandidate
 }
 
 private data class DecomposedParentCandidate(

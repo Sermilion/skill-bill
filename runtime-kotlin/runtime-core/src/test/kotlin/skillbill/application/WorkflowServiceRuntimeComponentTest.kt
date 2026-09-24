@@ -2,7 +2,6 @@ package skillbill.application
 
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowUpdateRequest
-import skillbill.application.workflow.model.WorkflowUpdateResult.Ok
 import skillbill.di.core.OptionalCallbacks
 import skillbill.di.core.RuntimeComponent
 import skillbill.di.core.RuntimeContext
@@ -18,7 +17,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import skillbill.application.workflow.model.WorkflowOpenResult.Ok as WorkflowOpenResultOk
-import skillbill.application.workflow.model.WorkflowUpdateResult.Ok as Ok
+import skillbill.application.workflow.model.WorkflowUpdateResult.Ok as WorkflowUpdateResultOk
 
 class WorkflowServiceRuntimeComponentTest {
   @Test
@@ -67,7 +66,7 @@ class WorkflowServiceRuntimeComponentTest {
       }
 
     val manifest = parentSpec.parent.resolve("decomposition-manifest.yaml")
-    assertTrue(updated is Ok)
+    assertTrue(updated is WorkflowUpdateResultOk)
     assertTrue(Files.isRegularFile(manifest), "RuntimeComponent must bind a writable decomposition manifest store.")
     assertTrue(Files.readString(manifest).contains("same_branch_commit_per_subtask"))
   }

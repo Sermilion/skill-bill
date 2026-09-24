@@ -1,9 +1,8 @@
 package skillbill.application.featurespec
 
 import skillbill.application.decomposition.DecompositionManifestWriter
-import skillbill.ports.workflow.decomposition.loadDecompositionManifest
-import skillbill.di.core.OptionalCallbacks
 import skillbill.application.decomposition.decompositionManifestPath
+import skillbill.di.core.OptionalCallbacks
 import skillbill.di.core.RuntimeComponent
 import skillbill.di.core.RuntimeContext
 import skillbill.di.core.TransportContext
@@ -19,6 +18,7 @@ import skillbill.featurespec.model.FeatureSpecWriteResult
 import skillbill.infrastructure.contracts.workflow.decomposition.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore
 import skillbill.model.EnvironmentContext
+import skillbill.ports.workflow.decomposition.loadDecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import java.nio.file.Files
 import java.nio.file.Path

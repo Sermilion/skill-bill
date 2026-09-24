@@ -1,4 +1,4 @@
-package skillbill.di.workflow
+package skillbill.application
 
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.baseBranch

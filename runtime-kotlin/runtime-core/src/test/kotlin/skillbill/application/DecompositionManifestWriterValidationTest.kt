@@ -1,10 +1,6 @@
 package skillbill.application
 
 import skillbill.application.decomposition.DecompositionManifestWriter
-import skillbill.application.decompositionPlanningPlan
-import skillbill.application.writeFromWorkflowUpdate
-import skillbill.application.writeIfDecomposed
-import skillbill.application.writeProjectionFromWorkflowState
 import skillbill.application.decomposition.baseBranch
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError

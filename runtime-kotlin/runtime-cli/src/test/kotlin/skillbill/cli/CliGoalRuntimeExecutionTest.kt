@@ -63,7 +63,7 @@ class CliGoalRuntimeExecutionTest {
     assertContains(reset.stdout, "after: status=in_progress")
     assertContains(reset.stdout, "id=1; status=complete")
     assertContains(reset.stdout, "id=2; status=in_progress")
-    assertContains(reset.stdout, "last_resumable_step=review")
+    assertContains(reset.stdout, "last_resumable_step=implement")
     assertContains(reset.stdout, "recovery: subtask=2; workflow_id=")
     assertContains(reset.stdout, "classification=incompatible_terminal")
     assertContains(

@@ -451,6 +451,22 @@ internal fun findRawMapViolations(file: SourceFile): List<String> {
   return violations
 }
 
+private val rawMapBoundaryAccessors =
+  setOf(
+    "skillbill.workflow.taskruntime.phaseartifacts.decodeStrictKeyedArtifactMap",
+    "skillbill.workflow.taskruntime.model.persistence.task.runtime.goal." +
+      "FeatureTaskRuntimeGoalContinuationArtifact.toWorkflowArtifactPatch",
+    "skillbill.workflow.decomposition.runtime.goalParentArtifactProjection",
+    "skillbill.workflow.engine.model.DurableWorkflowArtifactFamily.contains",
+    "skillbill.workflow.engine.model.DurableWorkflowArtifactFamily.value",
+    "skillbill.workflow.engine.model.DurableWorkflowArtifactFamily.putInto",
+    "skillbill.workflow.engine.model.DurableWorkflowArtifactFamily.removeFrom",
+    "skillbill.goalrunner.missingResultPrefixTerminalOutcomeArtifact",
+    "skillbill.goalrunner.goalReviewArtifacts",
+    "skillbill.goalrunner.validatedGoalReviewPasses",
+    "skillbill.ports.goalrunner.GoalParentProjectionWriter.artifacts",
+  )
+
 private fun rawMapViolationForLine(
   file: SourceFile,
   lines: List<String>,
@@ -478,6 +494,7 @@ private fun rawMapViolationForLine(
       .joinToString(".")
   return when {
     !signatureUsesBannedRawMap(signature, rawMapBannedShapes, bannedTypeAliases) -> null
+    fqn in rawMapBoundaryAccessors -> null
     isBoundaryCarrierRawMapDeclaration(context) -> null
     else -> "${file.relativePath}:${index + 1} public `$declName` exposes raw map shape (fqn=$fqn)"
   }

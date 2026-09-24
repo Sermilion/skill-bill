@@ -2,6 +2,7 @@ package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
+import skillbill.infrastructure.sqlite.withLifecycleTelemetryStore
 import skillbill.telemetry.model.GoalFinishedRecord
 import skillbill.telemetry.model.GoalStartedRecord
 import java.nio.file.Files

@@ -51,7 +51,7 @@ Resolve F-005, F-006, F-007, and F-008 in [investigation.md](investigation.md). 
 6. Every existing schema rejection test still rejects, now at an adapter or application seam. A malformed artifact written through an engine or SQLite path is rejected before it is persisted.
 7. runtime-domain has one exact and one documented lenient integer coercion. A non-integral number on a formerly truncating path raises the family's typed error, and supported integral values decode unchanged.
 8. The restored raw-map guard (SKILL-371) reports no violation introduced by this subtask.
-9. `agent/decisions.md` records both superseding decisions and the artifact-ownership rule.
+9. `../../../agent/decisions.md` records both superseding decisions and the artifact-ownership rule.
 
 ## Non-goals
 

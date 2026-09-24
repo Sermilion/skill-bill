@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.goalrunner.commitShaFrom
 import skillbill.goalrunner.goalContinuationOutcome
 import skillbill.goalrunner.missingResultPrefixTerminalOutcomeArtifact
@@ -142,7 +143,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
               artifactsPatch =
                 WorkflowArtifactPatch.from(
                   mapOf(
-                    "goal_continuation_outcome" to
+                    WorkflowWirePayloadKeys.GOAL_CONTINUATION_OUTCOME to
                       mapOf(
                         SharedPayloadKeys.ISSUE_KEY to issueKey,
                         SharedPayloadKeys.SUBTASK_ID to subtaskId,
@@ -195,7 +196,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
     if (terminalArtifact != null &&
       goalContinuationOutcome(existingArtifacts, issueKey, subtaskId, suppressPr = true) == null
     ) {
-      artifactsPatch["goal_continuation_outcome"] = terminalArtifact
+      artifactsPatch[WorkflowWirePayloadKeys.GOAL_CONTINUATION_OUTCOME] = terminalArtifact
     }
     val updated =
       engine.updateRecord(

@@ -95,9 +95,8 @@ class InstallPolicyOwnershipArchitectureTest {
         )
         .readText()
     assertTrue(
-      policyText.contains("InstallPlanWireValidator") &&
-        policyText.contains("validateInstallPlanWireSnapshot(plan)"),
-      "InstallPlanPolicy must delegate schema validation to the injected InstallPlanWireValidator port.",
+      policyText.contains("validateInstallPlanWireSnapshot(plan, validate)"),
+      "InstallPlanPolicy must delegate schema validation through its validation callback.",
     )
     assertTrue(
       !policyText.contains("InstallPlanSchemaValidator"),
@@ -111,9 +110,9 @@ class InstallPolicyOwnershipArchitectureTest {
         )
         .readText()
     assertTrue(
-      wireMapText.contains("validator: InstallPlanWireValidator") &&
-        wireMapText.contains("validator.validate(buildInstallPlanWireMap(plan))"),
-      "validateInstallPlanWireSnapshot must delegate to the injected InstallPlanWireValidator port.",
+      wireMapText.contains("validate: (InstallPlanWireMap) -> Unit") &&
+        wireMapText.contains("validate(buildInstallPlanWireMap(plan))"),
+      "validateInstallPlanWireSnapshot must invoke the supplied wire validator.",
     )
   }
 
