@@ -2,7 +2,6 @@ package skillbill.engine
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.engine.featuretask.lifecycle.core.AlwaysValidValidator
 import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerOutcomeStore
 import skillbill.engine.goalrunner.persist.OutcomeStoreTestArtifactPorts
@@ -74,7 +73,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     assertTrue(recorded)
     assertNull(workflows.getFeatureImplementWorkflow("wftr-task-runtime"))
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-task-runtime")).toSnapshot()
-    val artifacts = decodeWorkflowArtifacts(saved.artifactsJson)
+    val artifacts = saved.artifacts.toMap()
     val ledger = artifacts["goal_attempt_ledger"] as List<*>
     val entry = ledger.single() as Map<*, *>
     assertEquals("final_reconciled_outcome", entry["action"])
@@ -107,7 +106,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     assertTrue(recorded)
     assertNull(workflows.getFeatureImplementWorkflow("wftr-task-runtime"))
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-task-runtime")).toSnapshot()
-    val artifacts = decodeWorkflowArtifacts(saved.artifactsJson)
+    val artifacts = saved.artifacts.toMap()
     val outcomes = artifacts["goal_worker_subtask_request_outcomes"] as List<*>
     val rejected = outcomes.single() as Map<*, *>
     assertEquals("rejected", rejected["status"])
@@ -375,7 +374,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     assertEquals("running", updated.workflowStatus)
     assertEquals("review", updated.currentStepId)
     val review =
-      phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifacts(updated.artifactsJson))
+      phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifactsForTest(updated.artifactsJson))
         .getValue("review")
     assertEquals("pending", review.status.wireValue)
   }

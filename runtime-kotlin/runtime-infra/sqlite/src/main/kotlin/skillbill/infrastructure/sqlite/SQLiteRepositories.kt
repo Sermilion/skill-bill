@@ -50,6 +50,7 @@ import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStatsRepository
 import skillbill.review.model.FeatureTaskRuntimeWorkflowStats
 import skillbill.review.model.FeatureVerifyWorkflowStats
@@ -68,6 +69,7 @@ internal class SQLiteUnitOfWork(
   override val dbPath: Path,
   private val clock: Clock,
   private val diagnostics: RuntimeDiagnostics,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
 ) : UnitOfWork {
   private val phaseSettlementStore = SqliteFeatureTaskPhaseSettlementStore(connection)
   private val experimentPairStore = SqliteExperimentPairStore(connection)
@@ -84,7 +86,7 @@ internal class SQLiteUnitOfWork(
       connection,
     )
   override val telemetryOutbox: TelemetryOutboxRepository = TelemetryOutboxStore(connection)
-  override val workflowStates: WorkflowStateRepository = WorkflowStateStore(connection, clock)
+  override val workflowStates: WorkflowStateRepository = WorkflowStateStore(connection, clock, workflowSnapshotValidator)
   override val workList: WorkListRepository = SQLiteWorkListRepository(connection)
   override val goalPlanningPreparations: GoalPlanningPreparationRepository =
     GoalPlanningPreparationStore(connection)

@@ -43,7 +43,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction false
       wireArtifactValidator.validateEnvelope(briefing.handoffEnvelope.asWorkflowArtifactEntry(), workflowId)
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val updatedBriefings =
         LinkedHashMap(phaseBriefingsFrom(artifacts, wireArtifactValidator::validateEnvelopeWire))
           .apply { put(briefing.phaseId, briefing) }
@@ -117,7 +117,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      phaseBriefingsFrom(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)) { envelope ->
+      phaseBriefingsFrom(record.artifacts) { envelope ->
         wireArtifactValidator.validateEnvelope(envelope, workflowId)
       }
     }
@@ -128,7 +128,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
       deliveredProjectionsFrom(
-        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+        record.artifacts,
         validateEnvelope = { envelope -> wireArtifactValidator.validateEnvelope(envelope, workflowId) },
         validatePersistenceRecord = { persistence ->
           wireArtifactValidator.validatePersistenceRecord(persistence, "delivered-projection:$workflowId")

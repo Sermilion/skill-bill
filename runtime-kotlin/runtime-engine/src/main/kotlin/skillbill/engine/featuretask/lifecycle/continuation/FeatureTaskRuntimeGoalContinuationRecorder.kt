@@ -16,7 +16,7 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
 import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
@@ -34,10 +34,10 @@ class FeatureTaskRuntimeGoalContinuationRecorder(
   private val diagnostics: RuntimeDiagnostics,
   private val clock: Clock,
 ) {
-  private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator)
+  private val engine: WorkflowEngine = WorkflowEngine()
   private val patcher = FeatureTaskRuntimeGoalContinuationArtifactPatcher(engine)
   private val runtimeOwnedPersistence = RuntimeOwnedPersistenceBoundary(database, diagnostics)
-  val reviewStateRecorder = FeatureTaskRuntimeGoalContinuationStateRecorder(database, engine)
+  val reviewStateRecorder = FeatureTaskRuntimeGoalContinuationStateRecorder(database, engine, clock)
   val reviewPassRecorder = FeatureTaskRuntimeGoalReviewPassRecorder(database, patcher, runtimeOwnedPersistence)
   private val inputBuilder =
     FeatureTaskRuntimeGoalReviewInputBuilder(

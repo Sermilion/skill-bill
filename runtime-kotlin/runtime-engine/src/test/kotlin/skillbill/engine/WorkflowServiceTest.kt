@@ -95,10 +95,11 @@ import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -239,7 +240,7 @@ class WorkflowServiceTest {
     assertEquals(listOf("operator_abandonment"), abandoned.acknowledgement.updatedArtifactKeys)
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId)).toSnapshot()
     assertEquals("abandoned", saved.workflowStatus.wireValue)
-    assertContains(saved.artifactsJson, "Superseded after a deterministic policy block.")
+    assertContains(JsonCodec.mapToJsonString(saved.artifacts.toMap()), "Superseded after a deterministic policy block.")
     val repeated =
       assertIs<WorkflowUpdateResult.Error>(
         service.abandonFeatureTaskRuntime(opened.workflowId, "Try again."),
@@ -338,7 +339,7 @@ class WorkflowServiceTest {
     assertEquals("abandoned", abandoned.acknowledgement.workflowStatus.wireValue)
     assertEquals(listOf("operator_abandonment"), abandoned.acknowledgement.updatedArtifactKeys)
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId)).toSnapshot()
-    assertContains(saved.artifactsJson, "Operator abandoned the goal.")
+    assertContains(JsonCodec.mapToJsonString(saved.artifacts.toMap()), "Operator abandoned the goal.")
     assertTrue(saved.workflowStatus.wireValue in FeatureTaskRuntimePhaseWorkflowDefinition.definition.terminalStatuses)
     assertTrue(WorkflowStatus.PAUSED.wireValue in FeatureTaskRuntimePhaseWorkflowDefinition.definition.workflowStatuses)
     assertIs<WorkflowUpdateResult.Error>(service.abandonFeatureTaskRuntime(opened.workflowId, "Again."))
@@ -400,7 +401,7 @@ class WorkflowServiceTest {
       )
     assertEquals(listOf("operator_identity_repair"), repaired.acknowledgement.updatedArtifactKeys)
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId)).toSnapshot()
-    assertContains(saved.artifactsJson, "Repair a legacy identity.")
+    assertContains(JsonCodec.mapToJsonString(saved.artifacts.toMap()), "Repair a legacy identity.")
   }
 
   @Test
@@ -648,7 +649,7 @@ class WorkflowServiceTest {
         clock = Clock.systemUTC(),
       )
 
-    assertFailsWith<InvalidWorkflowStateSchemaError> {
+    val result = assertIs<WorkflowUpdateResult.Error>(
       service.update(
         WorkflowFamilyKind.TASK_RUNTIME,
         WorkflowUpdateRequest(
@@ -667,8 +668,10 @@ class WorkflowServiceTest {
             ),
           sessionId = "",
         ),
-      )
-    }
+      ),
+    )
+    assertContains(result.error, "snapshot fails schema validation")
+    assertEquals(opened, workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId))
   }
 
   @Test
@@ -741,8 +744,25 @@ class WorkflowServiceTest {
     assertEquals(opened.workflowId, decoded.workflowId)
   }
 
-  private fun newService(): WorkflowService {
+  @Test
+  fun `corrupt artifacts fail on resume status and goal progress without rewriting the row`() {
     val workflows = InMemoryWorkflowStates()
+    val row = testWorkflowEngine.openRecord(
+      FeatureTaskRuntimePhaseWorkflowDefinition.definition, "wftr-corrupt", "session", "preplan",
+    ).toRecord().copy(artifactsJson = "{")
+    workflows.saveFeatureTaskRuntimeWorkflow(row)
+    val database = FakeDatabaseSessionFactory(workflows)
+    val service = newService(workflows)
+    val progress = testWorkflowGoalRunnerOutcomeStore(database, testWorkflowSnapshotValidator)
+
+    assertFailsWith<InvalidWorkflowStateSchemaError> { service.resume(WorkflowFamilyKind.TASK_RUNTIME, row.workflowId) }
+    assertFailsWith<InvalidWorkflowStateSchemaError> { service.get(WorkflowFamilyKind.TASK_RUNTIME, row.workflowId) }
+    assertFailsWith<InvalidWorkflowStateSchemaError> { service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, row.workflowId) }
+    assertFailsWith<InvalidWorkflowStateSchemaError> { progress.progress(row.workflowId) }
+    assertEquals(row, workflows.getFeatureTaskRuntimeWorkflow(row.workflowId))
+  }
+
+  private fun newService(workflows: InMemoryWorkflowStates = InMemoryWorkflowStates()): WorkflowService {
     return WorkflowService(
       database = FakeDatabaseSessionFactory(workflows),
       gitOperations = NoopWorkflowGitOperations,
@@ -1637,6 +1657,7 @@ class WorkflowGoalStatusProjectionTest {
         FeatureTaskRuntimePhaseWorkflowDefinition.definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "implement",
           stepUpdates =
@@ -1665,6 +1686,7 @@ class WorkflowGoalStatusProjectionTest {
         FeatureTaskRuntimePhaseWorkflowDefinition.definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "commit_push",
           stepUpdates =
@@ -1933,7 +1955,7 @@ class GoalRunnerCommitShaRecoveryTest {
     assertEquals(GoalRunnerTerminalStatus.BLOCKED, outcome.status)
     assertEquals("implement", outcome.lastResumableStep)
     val saved = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot()
-    val artifacts = decodeWorkflowArtifactsForTest(saved.artifactsJson)
+    val artifacts = saved.artifacts.toMap()
     assertTrue(artifacts.containsKey("goal_runner_missing_result_prefix_recovery"))
     assertEquals("prefixless terminal json", outcome.blockedReason)
   }
@@ -1989,6 +2011,7 @@ class GoalRunnerCommitShaRecoveryTest {
         FeatureTaskRuntimePhaseWorkflowDefinition.definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "commit_push",
           stepUpdates =
@@ -2026,6 +2049,7 @@ class GoalRunnerCommitShaRecoveryTest {
       FeatureTaskRuntimePhaseWorkflowDefinition.definition,
       opened,
       WorkflowUpdateInput(
+        terminalInstant = Instant.EPOCH,
         workflowStatus = WorkflowStatus.BLOCKED,
         currentStepId = "commit_push",
         stepUpdates =
@@ -2074,6 +2098,7 @@ class GoalRunnerCommitShaRecoveryTest {
         FeatureTaskRuntimePhaseWorkflowDefinition.definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "commit_push",
           stepUpdates =
@@ -2271,8 +2296,8 @@ class WorkflowGoalRunnerReconciliationTest {
     assertEquals("wfl-authoritative", subtaskOutcome.workflowId)
     val stale = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-stale")).toSnapshot()
     assertEquals("blocked", stale.workflowStatus.wireValue)
-    assertEquals("blocked", decodeWorkflowStepsForTest(stale.stepsJson).getValue("implement"))
-    assertContains(stale.artifactsJson, "stale running child 'wfl-stale'")
+    assertEquals("blocked", decodeWorkflowStepsForTest(stale.steps).getValue("implement"))
+    assertContains(JsonCodec.mapToJsonString(stale.artifacts.toMap()), "stale running child 'wfl-stale'")
   }
 
   @Test
@@ -2285,6 +2310,7 @@ class WorkflowGoalRunnerReconciliationTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "implement",
           stepUpdates =
@@ -2321,7 +2347,7 @@ class WorkflowGoalRunnerReconciliationTest {
     assertEquals("wfl-orphan", outcome.workflowId)
     val orphan = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-orphan")).toSnapshot()
     assertEquals("blocked", orphan.workflowStatus.wireValue)
-    assertContains(orphan.artifactsJson, "no longer active")
+    assertContains(JsonCodec.mapToJsonString(orphan.artifacts.toMap()), "no longer active")
   }
 
   @Test
@@ -2334,6 +2360,7 @@ class WorkflowGoalRunnerReconciliationTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "implement",
           stepUpdates =
@@ -2368,7 +2395,7 @@ class WorkflowGoalRunnerReconciliationTest {
     assertTrue(outcomes.isEmpty())
     val active = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-active")).toSnapshot()
     assertEquals("running", active.workflowStatus.wireValue)
-    assertEquals("running", decodeWorkflowStepsForTest(active.stepsJson).getValue("implement"))
+    assertEquals("running", decodeWorkflowStepsForTest(active.steps).getValue("implement"))
   }
 
   @Test
@@ -2390,7 +2417,7 @@ class WorkflowGoalRunnerReconciliationTest {
     assertEquals("wfl-blocked", outcome.workflowId)
     val stillActive = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-active")).toSnapshot()
     assertEquals("running", stillActive.workflowStatus.wireValue)
-    assertEquals("running", decodeWorkflowStepsForTest(stillActive.stepsJson).getValue("implement"))
+    assertEquals("running", decodeWorkflowStepsForTest(stillActive.steps).getValue("implement"))
     val stillBlocked = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-blocked")).toSnapshot()
     assertEquals("blocked", stillBlocked.workflowStatus.wireValue)
   }
@@ -2405,6 +2432,7 @@ class WorkflowGoalRunnerReconciliationTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "implement",
           stepUpdates =
@@ -2442,7 +2470,7 @@ class WorkflowGoalRunnerReconciliationTest {
     val saved = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot()
     assertEquals("blocked", saved.workflowStatus.wireValue)
     assertEquals("implement", saved.currentStepId)
-    val steps = decodeWorkflowStepsForTest(saved.stepsJson)
+    val steps = decodeWorkflowStepsForTest(saved.steps)
     assertEquals("completed", steps.getValue("preplan"))
     assertEquals("blocked", steps.getValue("implement"))
   }
@@ -2457,6 +2485,7 @@ class WorkflowGoalRunnerReconciliationTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "plan",
           stepUpdates =
@@ -2507,7 +2536,7 @@ class WorkflowGoalRunnerReconciliationTest {
     assertEquals("implement", blockedStep)
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-child")).toSnapshot()
     assertEquals("implement", saved.currentStepId)
-    val steps = decodeWorkflowStepsForTest(saved.stepsJson)
+    val steps = decodeWorkflowStepsForTest(saved.steps)
     assertEquals("completed", steps.getValue("preplan"))
     assertEquals("completed", steps.getValue("plan"))
     assertEquals("blocked", steps.getValue("implement"))
@@ -2523,6 +2552,7 @@ class WorkflowGoalRunnerReconciliationTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "audit",
           stepUpdates =
@@ -2561,7 +2591,7 @@ class WorkflowGoalRunnerReconciliationTest {
     assertEquals("audit", blockedStep)
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-clean-review")).toSnapshot()
     assertEquals("audit", saved.currentStepId)
-    val steps = decodeWorkflowStepsForTest(saved.stepsJson)
+    val steps = decodeWorkflowStepsForTest(saved.steps)
     assertEquals("pending", steps.getValue("implement_fix"))
     assertEquals("completed", steps.getValue("review"))
     assertEquals("blocked", steps.getValue("audit"))
@@ -2577,6 +2607,7 @@ class WorkflowGoalRunnerReconciliationTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "implement_fix",
           stepUpdates =
@@ -2615,7 +2646,7 @@ class WorkflowGoalRunnerReconciliationTest {
     assertEquals("implement_fix", blockedStep)
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-mid-fix")).toSnapshot()
     assertEquals("implement_fix", saved.currentStepId)
-    val steps = decodeWorkflowStepsForTest(saved.stepsJson)
+    val steps = decodeWorkflowStepsForTest(saved.steps)
     assertEquals("completed", steps.getValue("review"))
     assertEquals("blocked", steps.getValue("implement_fix"))
   }
@@ -2654,6 +2685,7 @@ private fun staleRunningChildRecord(definition: WorkflowDefinition) =
     definition,
     testWorkflowEngine.openRecord(definition, "wfl-stale", "ftr-001", "preplan"),
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates =
@@ -2683,6 +2715,7 @@ private fun authoritativeCompleteChildRecord(definition: WorkflowDefinition) =
     definition,
     testWorkflowEngine.openRecord(definition, "wfl-authoritative", "ftr-002", "preplan"),
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "commit_push",
       stepUpdates =
@@ -2720,6 +2753,7 @@ private fun blockedSiblingChildRecord(definition: WorkflowDefinition) =
     definition,
     testWorkflowEngine.openRecord(definition, "wfl-blocked", "ftr-001", "preplan"),
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.BLOCKED,
       currentStepId = "review",
       stepUpdates =
@@ -2748,6 +2782,7 @@ private fun activeRetryChildRecord(definition: WorkflowDefinition) =
     definition,
     testWorkflowEngine.openRecord(definition, "wfl-active", "ftr-002", "preplan"),
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates =
@@ -2923,7 +2958,7 @@ class WorkflowGoalRunnerProgressStoreTest {
 
     assertTrue(recorded)
     val saved = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot()
-    val artifacts = decodeWorkflowArtifactsForTest(saved.artifactsJson)
+    val artifacts = saved.artifacts.toMap()
     val outcomes = artifacts["goal_worker_subtask_request_outcomes"] as List<*>
     val accepted = outcomes[0] as Map<*, *>
     val rejected = outcomes[1] as Map<*, *>
@@ -2949,10 +2984,7 @@ class WorkflowGoalRunnerProgressStoreTest {
     assertTrue(store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 0)))
     assertTrue(store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 1)))
 
-    val artifacts =
-      decodeWorkflowArtifactsForTest(
-        requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifactsJson,
-      )
+    val artifacts = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifacts
     val history = artifacts["goal_progress_run_history"] as List<*>
     assertEquals(2, history.size)
     assertEquals(0, (history[0] as Map<*, *>)["sequence_number"])
@@ -2976,10 +3008,7 @@ class WorkflowGoalRunnerProgressStoreTest {
       store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = sequence))
     }
 
-    val artifacts =
-      decodeWorkflowArtifactsForTest(
-        requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifactsJson,
-      )
+    val artifacts = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifacts
     val history = artifacts["goal_progress_run_history"] as List<*>
     assertEquals(GOAL_PROGRESS_HISTORY_LIMIT, history.size)
     val sequences = history.map { (it as Map<*, *>)["sequence_number"] }
@@ -3030,10 +3059,7 @@ class WorkflowGoalRunnerProgressStoreTest {
     assertFailsWith<InvalidGoalProgressEventSchemaError> {
       store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 0))
     }
-    val artifacts =
-      decodeWorkflowArtifactsForTest(
-        requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifactsJson,
-      )
+    val artifacts = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifacts
     assertFalse(artifacts.containsKey("goal_progress_run_history"))
     assertFalse(artifacts.containsKey("goal_progress_latest_event"))
   }
@@ -3054,10 +3080,7 @@ class WorkflowGoalRunnerProgressStoreTest {
     }
     assertFalse(store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-missing", sequenceNumber = 0)))
 
-    val artifacts =
-      decodeWorkflowArtifactsForTest(
-        requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifactsJson,
-      )
+    val artifacts = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifacts
     val history = artifacts["goal_attempt_ledger"] as List<*>
     assertEquals(GOAL_ATTEMPT_LEDGER_LIMIT, history.size)
     val sequences = history.map { (it as Map<*, *>)["sequence_number"] }
@@ -3130,6 +3153,7 @@ class WorkflowGoalRunnerProgressStoreTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "implement",
           stepUpdates =
@@ -3155,7 +3179,7 @@ class WorkflowGoalRunnerProgressStoreTest {
     assertEquals("implement", aligned.currentStepId)
     val saved = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child"))
     assertEquals("implement", saved.currentStepId)
-    val steps = decodeWorkflowStepsForTest(saved.stepsJson)
+    val steps = decodeWorkflowStepsForTest(saved.toSnapshot().steps)
     assertEquals("completed", steps.getValue("preplan"))
     assertEquals("running", steps.getValue("implement"))
   }
@@ -3220,23 +3244,8 @@ class WorkflowGoalRunnerProgressStoreTest {
 
 private const val COMPACT_UPDATE_ACK_PAYLOAD_BYTE_CEILING = 1024
 
-private fun decodeWorkflowStepsForTest(stepsJson: String): Map<String, String> {
-  val element = JsonCodec.json.parseToJsonElement(stepsJson)
-  val value = JsonCodec.jsonElementToValue(element) as List<*>
-  return value.associate { raw ->
-    val item = raw as Map<*, *>
-    item["step_id"].toString() to item["status"].toString()
-  }
-}
-
-private fun decodeWorkflowArtifactsForTest(artifactsJson: String): Map<String, Any?> {
-  val element = JsonCodec.json.parseToJsonElement(artifactsJson)
-  return requireNotNull(
-    JsonCodec.anyToStringAnyMap(
-      JsonCodec.jsonElementToValue(element),
-    ),
-  )
-}
+private fun decodeWorkflowStepsForTest(steps: List<WorkflowStepState>): Map<String, String> =
+  steps.associate { step -> step.stepId to step.status.wireValue }
 
 private fun progressEventRequest(
   workflowId: String,
@@ -3303,7 +3312,7 @@ private fun assertPersistedProgressEventArtifacts(
   assertTrue(persisted.snapshot.artifacts.containsKey("progress_event"))
 }
 
-private val testWorkflowEngine: WorkflowEngine = WorkflowEngine(testWorkflowSnapshotValidator)
+private val testWorkflowEngine: WorkflowEngine = WorkflowEngine()
 
 private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
   object : GoalObservabilityEventValidator {
@@ -3325,6 +3334,7 @@ private fun workflowRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus =
         WorkflowStatus.fromWire(workflowStatus)
           ?: error("Unknown workflow status '$workflowStatus'."),

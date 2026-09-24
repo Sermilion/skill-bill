@@ -51,8 +51,8 @@ fun GoalRunnerExecutionLease.asWorkerOwnership(parentWorkflowId: String) =
     pid = pid,
     processBirthToken = processBirthToken,
     leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
-    heartbeatAt = heartbeatAt,
-    expiresAt = expiresAt,
+    heartbeatAt = heartbeatAt.toString(),
+    expiresAt = expiresAt.toString(),
     phaseId = "goal_runner",
     phaseAttempt = 1,
   )
@@ -167,7 +167,7 @@ class DefaultGoalRunnerExecutionCoordinator(
     return runCatching {
       supervisor.startHeartbeat(plan) {
         val now = clock.instant()
-        val updated = lease.copy(heartbeatAt = now.toString(), expiresAt = now.plus(LEASE_DURATION).toString())
+        val updated = lease.copy(heartbeatAt = now, expiresAt = now.plus(LEASE_DURATION))
         if (manifestStore.heartbeatExecutionLease(parentWorkflowId, updated)) {
           FeatureTaskRuntimeHeartbeatTick.Renewed
         } else {
@@ -348,8 +348,8 @@ class DefaultGoalRunnerExecutionCoordinator(
       bootIdentity = process.bootIdentity,
       pid = process.pid,
       processBirthToken = process.processBirthToken,
-      heartbeatAt = now.toString(),
-      expiresAt = now.plus(LEASE_DURATION).toString(),
+      heartbeatAt = now,
+      expiresAt = now.plus(LEASE_DURATION),
     )
   }
 

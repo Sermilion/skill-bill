@@ -1,7 +1,9 @@
 package skillbill.infrastructure.skills.scaffold
 
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.infrastructure.contracts.WorkflowStateSnapshotWireMapper
+import skillbill.ports.workflow.toRecord
+import skillbill.ports.workflow.model.toSnapshot
+import java.time.Instant
 import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowDefinition
@@ -16,7 +18,7 @@ import kotlin.test.assertFailsWith
 
 class WorkflowStateSchemaValidatesExistingWorkflowsTest {
   private val validator = WorkflowStateSchemaValidator()
-  private val engine: WorkflowEngine = WorkflowEngine(WorkflowStateSchemaValidator())
+  private val engine: WorkflowEngine = WorkflowEngine()
 
   @Test
   fun `every feature-task step snapshot from the engine validates clean`() {
@@ -42,7 +44,8 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
   fun `unknown durable workflow status token raises the typed schema error`() {
     val error =
       assertFailsWith<InvalidWorkflowStateSchemaError> {
-        WorkflowStateSnapshotWireMapper.workflowStatusFromWire("unknown", "workflow_status")
+        engine.openRecord(FeatureVerifyWorkflowDefinition.definition, "wfv-invalid", "", "gather_diff")
+          .toRecord().copy(workflowStatus = "unknown").toSnapshot()
       }
 
     assertEquals("Workflow state workflow_status has unsupported value 'unknown'.", error.message)
@@ -93,6 +96,7 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
           existing = opened,
           input =
             WorkflowUpdateInput(
+              terminalInstant = Instant.EPOCH,
               workflowStatus =
                 WorkflowStatus.fromWire(status)
                   ?: error("Unsupported workflow status '$status'"),
@@ -104,7 +108,7 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
         )
       val withFinishedAt =
         if (terminal) {
-          updated.copy(finishedAt = "1970-01-01T00:00:00Z")
+          updated.copy(finishedAt = Instant.EPOCH)
         } else {
           updated
         }

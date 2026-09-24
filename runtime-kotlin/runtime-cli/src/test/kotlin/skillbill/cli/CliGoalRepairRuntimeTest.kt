@@ -1,6 +1,5 @@
 package skillbill.cli
 
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
@@ -248,7 +247,7 @@ class CliGoalRepairRuntimeTest {
     assertContains(result.stdout, "status: repaired")
     assertContains(result.stdout, "completed_upstream_missing_output")
     val repairedRecords =
-      phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifacts(readChildArtifacts(fixture, childWorkflowId)))
+      phaseRecordsFromWorkflowArtifacts(parseWorkflowArtifactsForTest(readChildArtifacts(fixture, childWorkflowId)))
     assertEquals(WorkflowStepStatus.PENDING, repairedRecords.getValue("verify_findings").status)
     assertEquals(WorkflowStepStatus.PENDING, repairedRecords.getValue("implement_fix").status)
   }
@@ -344,7 +343,7 @@ class CliGoalRepairRuntimeTest {
             rows.getString(1)
           }
         }
-      val artifacts = decodeWorkflowArtifacts(current).toMutableMap()
+      val artifacts = parseWorkflowArtifactsForTest(current).toMutableMap()
       val records = phaseRecordsFromWorkflowArtifacts(artifacts).toMutableMap()
       val timestamp = "2026-09-12T08:00:00Z"
       records.putIfAbsent(
@@ -395,3 +394,8 @@ class CliGoalRepairRuntimeTest {
     }
   }
 }
+
+private fun parseWorkflowArtifactsForTest(json: String): Map<String, Any?> =
+  requireNotNull(
+    JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(json)))),
+  )

@@ -75,7 +75,7 @@ class GoalRunnerStopVerbTest {
 
   @Test
   fun `an expired lease whose process the supervisor still confirms live is terminated`() {
-    val store = StopFakeManifestStore(lease = liveLease().copy(expiresAt = "2026-08-07T11:00:00Z"))
+    val store = StopFakeManifestStore(lease = liveLease().copy(expiresAt = Instant.parse("2026-08-07T11:00:00Z")))
     val supervisor = RecordingSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive)
 
     val result = stopService(store, supervisor).stop("SKILL-168", null)
@@ -87,7 +87,7 @@ class GoalRunnerStopVerbTest {
 
   @Test
   fun `an expired lease whose process is gone reports no live lease`() {
-    val store = StopFakeManifestStore(lease = liveLease().copy(expiresAt = "2026-08-07T11:00:00Z"))
+    val store = StopFakeManifestStore(lease = liveLease().copy(expiresAt = Instant.parse("2026-08-07T11:00:00Z")))
     val supervisor = RecordingSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning)
 
     val result = stopService(store, supervisor).stop("SKILL-168", null)

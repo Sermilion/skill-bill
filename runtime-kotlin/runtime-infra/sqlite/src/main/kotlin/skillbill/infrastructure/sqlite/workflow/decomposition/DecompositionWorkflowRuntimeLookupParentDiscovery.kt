@@ -1,5 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.decomposition
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
+
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.model.toSnapshot
@@ -26,7 +26,7 @@ internal fun WorkflowStateRepository.findDecomposedParentOrCorruptFallback(
         row.issueKey == normalizedIssueKey &&
         (
           snapshot.hasDecompositionPlan() ||
-            DECOMPOSITION_RUNTIME_ARTIFACT_KEY in decodeArtifacts(snapshot.artifactsJson)
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY in snapshot.artifacts
         )
     }
     .forEach { row ->

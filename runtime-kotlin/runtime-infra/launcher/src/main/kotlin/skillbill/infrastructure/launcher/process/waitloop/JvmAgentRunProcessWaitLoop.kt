@@ -174,7 +174,7 @@ internal class ProcessWaitLoop(
       processState = processState,
       workflowId = declared?.workflowId ?: parsedWorkflowId,
       workflowStep = declared?.let { it.stepId ?: it.workflowPhase } ?: parsedWorkflowStep,
-      lastDurableProgressAt = declared?.timestamp ?: lastProgressInstant?.toIsoUtc(),
+      lastDurableProgressAt = declared?.timestamp?.toIsoUtc() ?: lastProgressInstant?.toIsoUtc(),
       lastDurableProgressLabel = lastProgressLabel?.takeIf(String::isNotBlank),
       lastWorkflowSnapshotAt = lastSnapshotInstant?.toIsoUtc(),
       lastFileActivityAt = lastActivityInstant?.toIsoUtc(),

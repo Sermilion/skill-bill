@@ -81,7 +81,7 @@ class GoalPlanningLogService(
       val eventKind = event.eventKind
       when (eventKind) {
         GoalProgressEventKind.OPERATION_STARTED -> {
-          val occurrence = AttemptOccurrence(operation, timestamp(event))
+          val occurrence = AttemptOccurrence(operation, event.timestamp)
           occurrences += occurrence
           open.getOrPut(operation) { mutableListOf() } += occurrence
         }
@@ -90,7 +90,7 @@ class GoalPlanningLogService(
           val pending =
             open[operation]?.removeLastOrNull()
               ?: AttemptOccurrence(operation, startedAt = null).also { occurrences += it }
-          pending.settle(timestamp(event), outcomeWire(event.outcome))
+          pending.settle(event.timestamp, outcomeWire(event.outcome))
         }
 
         GoalProgressEventKind.PHASE_STARTED,
@@ -134,8 +134,6 @@ class GoalPlanningLogService(
       this.outcome = outcome?.let(GoalPlanningAttemptOutcome::fromWire) ?: GoalPlanningAttemptOutcome.IN_FLIGHT
     }
   }
-
-  private fun timestamp(event: GoalProgressEvent): Instant? = runCatching { Instant.parse(event.timestamp) }.getOrNull()
 
   private fun outcomeWire(outcome: GoalProgressOutcome): String? =
     if (outcome == GoalProgressOutcome.NONE) null else outcome.wireValue

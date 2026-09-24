@@ -16,7 +16,7 @@ import skillbill.ports.workflow.save
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -47,6 +47,7 @@ internal data class WorkflowRowAdvance(
   val currentStepId: String,
   val workflowStatus: String,
   val stepUpdates: List<FeatureTaskRuntimePhaseStepWireUpdate>? = null,
+  val terminalInstant: Instant? = null,
 ) {
   companion object {
     fun keepFrom(record: WorkflowStateSnapshot): WorkflowRowAdvance =
@@ -58,9 +59,9 @@ class FeatureTaskRuntimeWorkflowPersistence
   @Inject
   constructor(
     private val database: DatabaseSessionFactory,
-    workflowSnapshotValidator: WorkflowSnapshotValidator,
+    private val workflowSnapshotValidator: WorkflowSnapshotValidator,
   ) {
-    private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator)
+    private val engine: WorkflowEngine = WorkflowEngine()
 
     fun existingWorkflowMode(workflowId: String): FeatureTaskWorkflowMode? =
       database.read { unitOfWork ->
@@ -119,7 +120,8 @@ class FeatureTaskRuntimeWorkflowPersistence
     fun readArtifacts(workflowId: String): DurableWorkflowArtifacts? =
       database.read { unitOfWork ->
         val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-        artifactsFrom(record)
+        workflowSnapshotValidator.validate(record, record.workflowName)
+        record.artifacts
       }
 
     internal fun persistArtifactsPatch(
@@ -133,6 +135,7 @@ class FeatureTaskRuntimeWorkflowPersistence
           WorkflowFamily.TASK_RUNTIME.definition,
           record,
           WorkflowUpdateInput(
+            terminalInstant = advance.terminalInstant,
             workflowStatus =
               WorkflowStatus.fromWire(advance.workflowStatus)
                 ?: throw InvalidWorkflowStateSchemaError(
@@ -162,13 +165,6 @@ class FeatureTaskRuntimeWorkflowPersistence
       )
     }
 
-    companion object {
-      fun artifactsFrom(record: WorkflowStateSnapshot): DurableWorkflowArtifacts =
-        DurableWorkflowArtifacts.fromJson(record.artifactsJson)
-
-      fun artifactsFromJson(artifactsJson: String?): DurableWorkflowArtifacts? =
-        artifactsJson?.takeIf(String::isNotBlank)?.let(DurableWorkflowArtifacts::fromJson)
-    }
   }
 
 internal object FeatureTaskRuntimeWorkflowArtifactPatches {
@@ -228,9 +224,9 @@ fun attemptStatusFor(request: FeatureTaskRuntimePhaseStateRequest): FeatureTaskR
   }
 
 fun durationMillis(
-  startedAt: String,
-  finishedAt: String,
-): Long = Duration.between(Instant.parse(startedAt), Instant.parse(finishedAt)).toMillis().coerceAtLeast(0)
+  startedAt: Instant,
+  finishedAt: Instant,
+): Long = Duration.between(startedAt, finishedAt).toMillis().coerceAtLeast(0)
 
 fun sha256Hex(value: String): String =
   MessageDigest.getInstance("SHA-256")

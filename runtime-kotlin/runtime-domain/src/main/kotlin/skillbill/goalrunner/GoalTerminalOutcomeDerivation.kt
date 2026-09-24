@@ -3,7 +3,6 @@ package skillbill.goalrunner
 import skillbill.goalrunner.model.GoalContinuation
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
-import skillbill.workflow.engine.decodeWorkflowSteps
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
@@ -45,7 +44,7 @@ fun derivedTerminalOutcomeFor(
   goalContinuation: GoalContinuation,
   measuredCommitSha: () -> String?,
 ): GoalRunnerStoredOutcome? {
-  val steps = decodeWorkflowSteps(snapshot.stepsJson)
+  val steps = snapshot.steps
   val commitSha =
     commitShaFrom(artifacts)
       ?: if (commitPushCompletedUnderSuppressPr(steps, goalContinuation.suppressPr)) measuredCommitSha() else null

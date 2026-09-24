@@ -50,7 +50,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
           ?: return@transaction false
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val existingEntries = decodePhaseLedger(artifacts)
       val nextSequence = (existingEntries.maxOfOrNull { it.sequenceNumber } ?: -1) + 1
       val entry =
@@ -88,7 +88,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction false
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val existing = quarantineEntriesFrom(artifacts)
       val alreadyRecorded =
         existing.any {
@@ -114,7 +114,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      quarantineEntriesFrom(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+      quarantineEntriesFrom(record.artifacts)
     }
 
   fun recordResolvedBranch(
@@ -125,7 +125,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction false
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       if (resolvedBranchFromWorkflowArtifacts(artifacts) != null) {
         return@transaction true
       }
@@ -142,7 +142,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      resolvedBranchFromWorkflowArtifacts(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+      resolvedBranchFromWorkflowArtifacts(record.artifacts)
     }
 
   fun appendCheckpointIdentity(args: AppendCheckpointIdentityArgs): Boolean {
@@ -155,7 +155,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      checkpointIdentitiesFrom(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+      checkpointIdentitiesFrom(record.artifacts)
     }
 
   fun quarantineCheckpointIdentities(workflowId: String): Boolean =
@@ -183,7 +183,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction false
       val resolved =
-        resolvedBranchFromWorkflowArtifacts(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+        resolvedBranchFromWorkflowArtifacts(record.artifacts)
           ?: return@transaction false
       val updated = resolved.copy(workflowOwnedPaths = ownedPaths.distinct().sorted())
       workflowPersistence.persistArtifactsPatch(
@@ -220,7 +220,7 @@ fun FeatureTaskRuntimePhaseEvidenceRecorder.appendCheckpointIdentityAtCurrentVer
     val record =
       WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, args.workflowId)
         ?: return@transaction false
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    val artifacts = record.artifacts
     val existing = checkpointIdentitiesFrom(artifacts)
     val sequenceNumber = (existing.maxOfOrNull { it.sequenceNumber } ?: -1) + 1
     val entry =
@@ -260,7 +260,7 @@ fun FeatureTaskRuntimePhaseEvidenceRecorder.quarantineCheckpointIdentitiesOnVers
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       try {
         checkpointIdentitiesFrom(artifacts)
         null

@@ -1,7 +1,8 @@
 package skillbill.infrastructure.sqlite.workflow.decomposition
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.error.shellcontent.LegacyProseWorkflowError
 import skillbill.infrastructure.sqlite.decomposition.asStringAnyMapOrNull
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.model.toSnapshot
@@ -15,17 +16,18 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 
 internal fun WorkflowStateSnapshot.decompositionRuntime(
   validator: DecompositionManifestValidator,
 ): DecompositionManifest? =
-  decodeArtifacts(artifactsJson)[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
+  artifacts[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
     ?.let {
       validator.decodeManifest(DecompositionManifestWireMap.from(it), DECOMPOSITION_RUNTIME_ARTIFACT_KEY)
     }
 
 internal fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
-  decodeArtifacts(artifactsJson)["plan"].asStringAnyMapOrNull()?.get("mode") == "decompose"
+  artifacts["plan"].asStringAnyMapOrNull()?.get(DecompositionPlanningPayloadKeys.MODE) == "decompose"
 
 internal val IMPLEMENT_TERMINAL_STATUSES: Set<WorkflowStatus> = WorkflowStatus.terminalStatuses
 
@@ -94,8 +96,8 @@ private fun DecomposedParentLookupCandidate.isStaleAbandonedLineage(
 }
 
 internal fun WorkflowStateSnapshot.isGoalContinuationChildWorkflow(): Boolean {
-  val goalContinuation = decodeArtifacts(artifactsJson)["goal_continuation"].asStringAnyMapOrNull() ?: return false
+  val goalContinuation = artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY].asStringAnyMapOrNull() ?: return false
   return goalContinuation["enabled"] == true ||
-    goalContinuation.containsKey("issue_key") ||
-    goalContinuation.containsKey("subtask_id")
+    goalContinuation.containsKey(SharedPayloadKeys.ISSUE_KEY) ||
+    goalContinuation.containsKey(SharedPayloadKeys.SUBTASK_ID)
 }

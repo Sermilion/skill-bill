@@ -8,6 +8,7 @@ import skillbill.infrastructure.sqlite.workflow.workflow.listFeatureTaskWorkflow
 import skillbill.infrastructure.sqlite.workflow.workflow.terminalizeLegacyProseFeatureTaskWorkflowRow
 import skillbill.infrastructure.sqlite.workflow.workflow.upsertFeatureTaskWorkflowRow
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection
 import java.time.Clock
@@ -15,6 +16,7 @@ import java.time.Clock
 internal class FeatureTaskWorkflowRowStore(
   private val connection: Connection,
   private val clock: Clock,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
 ) {
   fun saveFeatureTaskWorkflow(
     row: WorkflowStateRecord,
@@ -29,6 +31,7 @@ internal class FeatureTaskWorkflowRowStore(
       implementationSkill = row.implementationSkill.orEmpty().ifBlank { mode.defaultImplementationSkill },
       defaultContractVersion = mode.defaultContractVersion,
       clock = clock,
+      workflowSnapshotValidator = workflowSnapshotValidator,
     )
   }
 

@@ -246,7 +246,7 @@ class ImplementationOwnershipArchitectureTest {
         "skillbill.workflow.goal.GoalPlanningPreparationEnvelopeValidator",
         "skillbill.workflow.goal.GoalProgressEventValidator",
         "skillbill.ports.idestatus.IdeStatusValidator",
-        "skillbill.workflow.engine.WorkflowSnapshotValidator",
+        "skillbill.ports.workflow.WorkflowSnapshotValidator",
         "skillbill.infrastructure.skills.scaffold.adapters.FileSystemScaffoldRepoValidation",
         "skillbill.infrastructure.skills.scaffold.adapters.FileSystemScaffoldSourceLoader",
         "skillbill.infrastructure.skills.skillremove.FileSystemSkillRemoveFileSystem",

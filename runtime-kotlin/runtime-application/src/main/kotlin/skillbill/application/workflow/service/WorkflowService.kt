@@ -54,7 +54,7 @@ import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -70,7 +70,7 @@ class WorkflowService(
   private val database: DatabaseSessionFactory,
   private val gitOperations: WorkflowGitOperations,
   private val decompositionManifestStore: DecompositionManifestStore,
-  workflowSnapshotValidator: WorkflowSnapshotValidator,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
   private val decompositionManifestValidator: DecompositionManifestValidator,
   private val decompositionManifestWriter: DecompositionManifestWriter,
   private val repositoryRoot: RepositoryRoot,
@@ -79,13 +79,9 @@ class WorkflowService(
   private val clock: Clock,
 ) {
   private val workflowIdRandom = Random.Default
-  private val engine: WorkflowEngine =
-    WorkflowEngine(workflowSnapshotValidator) {
-      val resolved = gitOperations.repositoryFingerprint(repositoryRoot.path)
-      check(resolved is WorkflowGitOperationResult.Ok) { resolved.error }
-      resolved.value.orEmpty()
-    }
-  private val featureTaskAbandon = WorkflowServiceFeatureTaskAbandon(engine, clock)
+  private val engine = WorkflowEngine()
+  private val featureTaskAbandon =
+    WorkflowServiceFeatureTaskAbandon(engine, clock, ::repositoryCheckpointIdentity)
   private val blockedPhaseRetry =
     WorkflowServiceBlockedPhaseRetry(
       engine,
@@ -95,8 +91,16 @@ class WorkflowService(
       repositoryRoot,
       runtimeDiagnostics,
       clock,
+      ::repositoryCheckpointIdentity,
     )
-  private val featureTaskIdentityRepair = WorkflowServiceFeatureTaskIdentityRepair(engine, clock)
+  private val featureTaskIdentityRepair =
+    WorkflowServiceFeatureTaskIdentityRepair(engine, clock, ::repositoryCheckpointIdentity)
+
+  private fun repositoryCheckpointIdentity(): String {
+    val resolved = gitOperations.repositoryFingerprint(repositoryRoot.path)
+    check(resolved is WorkflowGitOperationResult.Ok) { resolved.error }
+    return resolved.value.orEmpty()
+  }
 
   fun open(args: WorkflowServiceOpenArgs): WorkflowOpenResult {
     incompleteFeatureTaskIdentityError(args)?.let { return it }
@@ -110,9 +114,6 @@ class WorkflowService(
         family.definition,
         workflowId,
       )
-    WorkflowEngine.validateOpen(family.definition, stepId)?.let { error ->
-      return WorkflowOpenResult.Error(workflowId, error)
-    }
     val hasIdentityCoordinates = args.repositoryIdentity != null || args.governedSpecPath != null
     val executionIdentity =
       buildFeatureTaskExecutionIdentity(
@@ -126,18 +127,24 @@ class WorkflowService(
           routeScope = args.routeScope,
         ),
       )
-    return persistOpenedWorkflow(
-      PersistOpenedWorkflowArgs(
-        family = family,
-        workflowId = workflowId,
-        effectiveSessionId = effectiveSessionId,
-        stepId = stepId,
-        issueKey = args.issueKey,
-        executionIdentity = executionIdentity,
-        engine = engine,
-        database = database,
-      ),
-    ).withGoalObservability()
+    return try {
+      persistOpenedWorkflow(
+        PersistOpenedWorkflowArgs(
+          family = family,
+          workflowId = workflowId,
+          effectiveSessionId = effectiveSessionId,
+          stepId = stepId,
+          issueKey = args.issueKey,
+          executionIdentity = executionIdentity,
+          engine = engine,
+          workflowSnapshotValidator = workflowSnapshotValidator,
+          repositoryCheckpointIdentity = ::repositoryCheckpointIdentity,
+          database = database,
+        ),
+      ).withGoalObservability()
+    } catch (error: InvalidWorkflowStateSchemaError) {
+      WorkflowOpenResult.Error(workflowId, error.message.orEmpty())
+    }
   }
 
   private fun WorkflowOpenResult.withGoalObservability(): WorkflowOpenResult =
@@ -156,16 +163,17 @@ class WorkflowService(
     val family = kind.workflowFamily()
     val input =
       try {
-        request.toWorkflowUpdateInput()
+        request.toWorkflowUpdateInput().copy(terminalInstant = clock.instant())
       } catch (error: InvalidWorkflowStateSchemaError) {
         return WorkflowUpdateResult.Error(request.workflowId, error.message.orEmpty())
       }
-    WorkflowEngine.validateUpdate(family.definition, input)?.let { error ->
-      return WorkflowUpdateResult.Error(request.workflowId, error)
-    }
     val persisted =
-      database.transaction { unitOfWork ->
-        persistUpdate(family, request, input, unitOfWork)
+      try {
+        database.transaction { unitOfWork ->
+          persistUpdate(family, request, input, unitOfWork)
+        }
+      } catch (error: InvalidWorkflowStateSchemaError) {
+        return WorkflowUpdateResult.Error(request.workflowId, error.message.orEmpty())
       }
     persisted.pendingProjection?.let { pending ->
       reconcileDecompositionManifestProjectionAfterCommit(pending)
@@ -201,6 +209,7 @@ class WorkflowService(
           ),
           pendingProjection = null,
         )
+    workflowSnapshotValidator.validate(existing, family.definition.workflowName)
     val runtimeInput =
       family.withDecompositionRuntime(
         DecompositionRuntimeWriteArgs(
@@ -223,6 +232,7 @@ class WorkflowService(
         repoRoot = repositoryRoot.path,
       )
     val updatedRecord = engine.updateRecord(family.definition, existing, effectiveInput)
+    workflowSnapshotValidator.validate(updatedRecord, family.definition.workflowName)
     family.save(unitOfWork.workflowStates, updatedRecord)
     val updated = family.get(unitOfWork.workflowStates, request.workflowId) ?: updatedRecord
     if (runtimeInput.updated) {
@@ -235,7 +245,15 @@ class WorkflowService(
       )
     }
     return WorkflowUpdatePersistence(
-      result = buildUpdateOk(engine, family.definition, updated, effectiveInput, unitOfWork.dbPath.toString()),
+      result =
+        buildUpdateOk(
+          engine,
+          family.definition,
+          updated,
+          effectiveInput,
+          unitOfWork.dbPath.toString(),
+          ::repositoryCheckpointIdentity,
+        ),
       pendingProjection = pendingDecompositionProjection(runtimeInput, updated, request, unitOfWork),
     )
   }
@@ -257,7 +275,7 @@ class WorkflowService(
     }
     return PendingDecompositionProjection(
       ownerWorkflowId = ownerWorkflowId,
-      artifactsJson = updated.artifactsJson,
+      artifacts = updated.artifacts,
     )
   }
 
@@ -340,6 +358,7 @@ class WorkflowService(
             "Unknown workflow_id '$workflowId'.",
             unitOfWork.dbPath.toString(),
           )
+      workflowSnapshotValidator.validate(record, family.definition.workflowName)
       val snapshot = engine.snapshotView(family.definition, record)
       WorkflowGetResult.Ok(
         workflowId = record.workflowId,
@@ -359,7 +378,10 @@ class WorkflowService(
       WorkflowListResult(
         dbPath = unitOfWork.dbPath.toString(),
         workflowCount = rows.size,
-        workflows = rows.map { engine.summaryView(family.definition, it) },
+        workflows = rows.map {
+          workflowSnapshotValidator.validate(it, family.definition.workflowName)
+          engine.summaryView(family.definition, it)
+        },
       )
     }
 
@@ -372,6 +394,7 @@ class WorkflowService(
             dbPath = unitOfWork.dbPath.toString(),
             error = "No ${family.humanName} workflows found.",
           )
+      workflowSnapshotValidator.validate(record, family.definition.workflowName)
       WorkflowLatestResult.Ok(
         dbPath = unitOfWork.dbPath.toString(),
         summary = engine.summaryView(family.definition, record),
@@ -391,6 +414,7 @@ class WorkflowService(
             "Unknown workflow_id '$workflowId'.",
             unitOfWork.dbPath.toString(),
           )
+      workflowSnapshotValidator.validate(record, family.definition.workflowName)
       WorkflowResumeResult.Ok(
         workflowId = record.workflowId,
         dbPath = unitOfWork.dbPath.toString(),
@@ -427,6 +451,7 @@ class WorkflowService(
           dbPath = unitOfWork.dbPath.toString(),
           workflowId = workflowId,
         )
+        workflowSnapshotValidator.validate(record, family.definition.workflowName)
         val continuation =
           engine.continueExistingWorkflow(
             family,
@@ -437,6 +462,7 @@ class WorkflowService(
               fileStore = decompositionManifestStore,
               repoRoot = repositoryRoot.path,
               manifestWriter = decompositionManifestWriter,
+              repositoryCheckpointIdentity = ::repositoryCheckpointIdentity,
             ),
           )
         pendingProjection = mergePendingProjection(pendingProjection, continuation)
@@ -453,11 +479,11 @@ class WorkflowService(
     existing: PendingDecompositionProjection?,
     continuation: ContinuationStepResult,
   ): PendingDecompositionProjection? {
-    val artifactsJson = continuation.projectionArtifactsJson ?: return existing
+    val artifacts = continuation.projectionArtifacts ?: return existing
     val ownerWorkflowId =
       continuation.projectionOwnerWorkflowId?.takeIf(String::isNotBlank)
         ?: return existing
-    return PendingDecompositionProjection(ownerWorkflowId, artifactsJson)
+    return PendingDecompositionProjection(ownerWorkflowId, artifacts)
   }
 
   private fun currentParentProjectionForChild(
@@ -486,7 +512,7 @@ class WorkflowService(
       )
       return null
     }
-    return PendingDecompositionProjection(ownerWorkflowId, ownerRecord.artifactsJson)
+    return PendingDecompositionProjection(ownerWorkflowId, ownerRecord.artifacts)
   }
 
   private fun reconcileDecompositionManifestProjectionAfterCommit(pending: PendingDecompositionProjection) {
@@ -501,7 +527,7 @@ class WorkflowService(
       val outcome =
         decompositionManifestWriter.writeProjectionFromWorkflowState(
           repositoryRoot.path,
-          pending.artifactsJson,
+          pending.artifacts,
           decompositionManifestValidator,
           decompositionManifestStore,
         )

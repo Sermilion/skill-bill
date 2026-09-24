@@ -107,7 +107,7 @@ class GoalRunnerReplanTest {
   fun `scoped replan refuses live goals without mutation`() {
     val store =
       refusalBaseStore().apply {
-        executionLeaseForTest = idleLease().copy(expiresAt = "2026-07-27T12:00:01Z")
+        executionLeaseForTest = idleLease().copy(expiresAt = Instant.parse("2026-07-27T12:00:01Z"))
       }
     val failure =
       assertFailsWith<IllegalArgumentException> {

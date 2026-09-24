@@ -48,7 +48,7 @@ class GoalRunnerChildRepairWedgeDiagnosis(
     val record =
       WorkflowFamily.TASK_RUNTIME.get(workflowStates, workflowId)
         ?: return healthyDiagnosis(subtaskId, workflowId)
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    val artifacts = record.artifacts
     val wedges = mutableListOf<GoalRunnerWedgeFinding>()
     val passed = mutableListOf<String>()
 

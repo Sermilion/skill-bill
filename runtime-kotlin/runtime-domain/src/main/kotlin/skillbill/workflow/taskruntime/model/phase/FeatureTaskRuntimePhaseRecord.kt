@@ -8,14 +8,16 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
 import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.requireKnownFeatureTaskRuntimePhaseId
+import skillbill.workflow.time.parsePersistedInstant
+import java.time.Instant
 
 data class FeatureTaskRuntimePhaseRecord(
   val phaseId: String,
   val status: WorkflowStepStatus,
   val attemptCount: Int,
-  val startedAt: String,
-  val firstStartedAt: String = startedAt,
-  val finishedAt: String? = null,
+  val startedAt: Instant,
+  val firstStartedAt: Instant = startedAt,
+  val finishedAt: Instant? = null,
   val durationMillis: Long? = null,
   val resolvedAgentId: String,
   val executionOrigin: FeatureTaskRuntimePhaseExecutionOrigin =
@@ -37,7 +39,7 @@ data class FeatureTaskRuntimePhaseRecord(
 ) {
   constructor(
     phaseId: String,
-    status: String,
+    status: Any,
     attemptCount: Int,
     startedAt: String,
     firstStartedAt: String = startedAt,
@@ -62,13 +64,18 @@ data class FeatureTaskRuntimePhaseRecord(
   ) : this(
     phaseId = phaseId,
     status =
-      requireNotNull(WorkflowStepStatus.fromWire(status)) {
-        "Unknown feature-task-runtime phase status '$status'."
+      when (status) {
+        is WorkflowStepStatus -> status
+        is String ->
+          requireNotNull(WorkflowStepStatus.fromWire(status)) {
+            "Unknown feature-task-runtime phase status '$status'."
+          }
+        else -> error("Unknown feature-task-runtime phase status '$status'.")
       },
     attemptCount = attemptCount,
-    startedAt = startedAt,
-    firstStartedAt = firstStartedAt,
-    finishedAt = finishedAt,
+    startedAt = parsePersistedInstant(startedAt),
+    firstStartedAt = parsePersistedInstant(firstStartedAt),
+    finishedAt = finishedAt?.let(::parsePersistedInstant),
     durationMillis = durationMillis,
     resolvedAgentId = resolvedAgentId,
     executionOrigin = executionOrigin,
@@ -93,8 +100,6 @@ data class FeatureTaskRuntimePhaseRecord(
     require(attemptCount >= 1) {
       "FeatureTaskRuntimePhaseRecord.attemptCount must be >= 1, was $attemptCount."
     }
-    require(startedAt.isNotBlank()) { "FeatureTaskRuntimePhaseRecord.startedAt must be non-blank." }
-    require(firstStartedAt.isNotBlank()) { "FeatureTaskRuntimePhaseRecord.firstStartedAt must be non-blank." }
     require(resolvedAgentId.isNotBlank()) { "FeatureTaskRuntimePhaseRecord.resolvedAgentId must be non-blank." }
     durationMillis?.let { duration ->
       require(duration >= 0) { "FeatureTaskRuntimePhaseRecord.durationMillis must be non-negative, was $duration." }
@@ -132,12 +137,12 @@ data class FeatureTaskRuntimePhaseRecord(
       SharedPayloadKeys.PHASE_ID to phaseId,
       SharedPayloadKeys.STATUS to status.wireValue,
       "attempt_count" to attemptCount,
-      "started_at" to startedAt,
-      "first_started_at" to firstStartedAt,
+      "started_at" to startedAt.toString(),
+      "first_started_at" to firstStartedAt.toString(),
       "resolved_agent_id" to resolvedAgentId,
       "execution_origin" to executionOrigin.wireValue,
     ).apply {
-      finishedAt?.let { put("finished_at", it) }
+      finishedAt?.let { put("finished_at", it.toString()) }
       durationMillis?.let { put("duration_millis", it) }
       outputArtifact?.let { put("output_artifact", it) }
       blockedReason?.let { put(DecompositionManifestPayloadKeys.BLOCKED_REASON, it) }
@@ -174,9 +179,9 @@ data class FeatureTaskRuntimePhaseRecord(
             WorkflowStepStatus.fromWire(reader.requiredString(SharedPayloadKeys.STATUS))
               ?: incompatiblePhaseRecord(listOf("unknown status '${raw[SharedPayloadKeys.STATUS]}'")),
           attemptCount = reader.requiredInt("attempt_count"),
-          startedAt = reader.requiredString("started_at"),
-          firstStartedAt = reader.requiredString("first_started_at"),
-          finishedAt = reader.optionalString("finished_at"),
+          startedAt = parsePersistedInstant(reader.requiredString("started_at")),
+          firstStartedAt = parsePersistedInstant(reader.requiredString("first_started_at")),
+          finishedAt = reader.optionalString("finished_at")?.let(::parsePersistedInstant),
           durationMillis = reader.optionalLong("duration_millis"),
           resolvedAgentId = reader.requiredString("resolved_agent_id"),
           executionOrigin =

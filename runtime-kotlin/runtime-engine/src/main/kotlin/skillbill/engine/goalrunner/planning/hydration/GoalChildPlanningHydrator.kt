@@ -16,7 +16,6 @@ import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.ports.goalrunner.runner.model.GoalChildPlanningHydrationRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
 import skillbill.text.sha256HexUtf8
-import skillbill.workflow.engine.decodeWorkflowSteps
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
@@ -293,7 +292,7 @@ private class GoalChildPlanningImportMatcher(
     setup: GoalRunnerChildWorkflowSetup,
     request: GoalChildPlanningHydrationRequest,
   ): String? {
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(existing)
+    val artifacts = existing.artifacts
     val expected =
       artifacts[FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY] as? Map<*, *>
         ?: return "child carries no goal planning import artifact"
@@ -449,7 +448,7 @@ private class GoalChildPlanningImportMatcher(
     existing: WorkflowStateSnapshot,
     expected: Map<String, WorkflowStepStatus>,
   ): Boolean {
-    val planningSteps = decodeWorkflowSteps(existing.stepsJson).filter { it.stepId in PLANNING_PHASE_IDS }
+    val planningSteps = existing.steps.filter { it.stepId in PLANNING_PHASE_IDS }
     return planningSteps.size == PLANNING_PHASE_IDS.size &&
       planningSteps.all { it.status.workflowStepStatus() == expected[it.stepId] }
   }

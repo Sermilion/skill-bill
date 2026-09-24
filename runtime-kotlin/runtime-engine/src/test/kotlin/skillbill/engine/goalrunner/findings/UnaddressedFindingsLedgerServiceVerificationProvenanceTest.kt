@@ -1,6 +1,7 @@
 package skillbill.engine.goalrunner.findings
+import java.time.Instant
+import skillbill.engine.decodeWorkflowArtifactsForTest
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
 import skillbill.goalrunner.model.UnaddressedFinding
@@ -71,7 +72,7 @@ private fun seedWorkflow(
   workflowId: String,
   artifactsJson: String,
 ) {
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val definition = WorkflowFamily.TASK_RUNTIME.definition
   val opened = engine.openRecord(definition, workflowId, "ftr-provenance", "verify_findings")
   val seeded =
@@ -79,10 +80,11 @@ private fun seedWorkflow(
       definition,
       opened,
       WorkflowUpdateInput(
+        terminalInstant = Instant.EPOCH,
         workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "verify_findings",
         stepUpdates = null,
-        artifactsPatch = WorkflowArtifactPatch.from(decodeWorkflowArtifacts(artifactsJson)),
+        artifactsPatch = WorkflowArtifactPatch.from(decodeWorkflowArtifactsForTest(artifactsJson)),
         sessionId = "ftr-provenance",
       ),
     ).toRecord()

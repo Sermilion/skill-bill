@@ -3,9 +3,7 @@ import skillbill.goalrunner.STALENESS_EVIDENCE_WINDOW
 import skillbill.goalrunner.declaredProgressEventFrom
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
-import skillbill.goalrunner.parseInstantOrNull
 import skillbill.goalrunner.terminalOutcomeFor
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.goalrunner.control.authoritativeOutcomesBySubtask
 import skillbill.infrastructure.sqlite.goalrunner.control.goalContinuation
 import skillbill.infrastructure.sqlite.goalrunner.control.staleRunningReason
@@ -153,7 +151,7 @@ internal class WorkflowGoalRunnerOutcomeReconcile(
     listOf(WorkflowFamily.TASK_RUNTIME).flatMap { family ->
       family.list(workflowStates, Int.MAX_VALUE).mapNotNull { snapshot ->
         engine.snapshotView(family.definition, snapshot)
-        val artifacts = decodeArtifacts(snapshot.artifactsJson)
+        val artifacts = snapshot.artifacts
         val goalContinuation = goalContinuation(artifacts) ?: return@mapNotNull null
         if (goalContinuation.issueKey != issueKey) {
           return@mapNotNull null
@@ -181,9 +179,9 @@ internal class WorkflowGoalRunnerOutcomeReconcile(
     }.getOrDefault(false)
 
   private fun candidateLivenessInstants(candidate: GoalContinuationCandidate): List<Instant> {
-    val artifacts = decodeArtifacts(candidate.snapshot.artifactsJson)
+    val artifacts = candidate.snapshot.artifacts
     val declared = declaredProgressEventFrom(artifacts)?.timestamp
     val observed = goalObservabilityLatestEventFromArtifacts(artifacts, goalObservabilityEventValidator)?.timestamp
-    return listOfNotNull(declared, observed, candidate.snapshot.updatedAt).mapNotNull(::parseInstantOrNull)
+    return listOfNotNull(declared, observed, candidate.snapshot.updatedAt)
   }
 }

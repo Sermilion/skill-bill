@@ -14,7 +14,7 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import skillbill.workflow.model.FeatureTaskRouteScope
@@ -26,10 +26,10 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 @Inject
 class FeatureTaskContinuationLookupService(
   private val database: DatabaseSessionFactory,
-  workflowSnapshotValidator: WorkflowSnapshotValidator,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
   private val decompositionManifestValidator: DecompositionManifestValidator,
 ) {
-  private val engine = WorkflowEngine(workflowSnapshotValidator)
+  private val engine = WorkflowEngine()
 
   fun claim(candidate: FeatureTaskContinuationCandidate): Boolean =
     database.transaction { unitOfWork ->
@@ -120,7 +120,7 @@ class FeatureTaskContinuationLookupService(
       throw LegacyProseWorkflowError(candidate.workflow.workflowId, candidate.workflow.issueKey)
     }
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
-    engine.snapshotView(definition, candidate.workflow.toSnapshot())
+    workflowSnapshotValidator.validate(candidate.workflow.toSnapshot(), definition.workflowName)
     val status = candidate.workflow.workflowStatus
     val typedStatus = status.workflowStatus()
     return FeatureTaskContinuationCandidate(

@@ -4,7 +4,7 @@ import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.install.model.InstallPlanWireMap
 import skillbill.install.model.InstallPlanWireValidator
 import skillbill.model.RepositoryRoot
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files

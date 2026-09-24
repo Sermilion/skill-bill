@@ -2,6 +2,7 @@ package skillbill.workflow.engine
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowContinueDecision
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowInputProjection
@@ -16,20 +17,17 @@ import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-private typealias CheckpointResolver = () -> String
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 
-private val unresolvedCheckpoint: CheckpointResolver = { "" }
-
-class WorkflowEngine(
-  private val schemaValidator: WorkflowSnapshotValidator,
-  private val checkpoint: CheckpointResolver = unresolvedCheckpoint,
-) {
+class WorkflowEngine {
   fun openRecord(
     definition: WorkflowDefinition,
     workflowId: String,
     sessionId: String,
     currentStepId: String,
   ): WorkflowStateSnapshot {
+    validateWorkflowOpen(definition, currentStepId)?.let { throw InvalidWorkflowStateSchemaError(it) }
     val snapshot =
       WorkflowStateSnapshot(
         workflowId = workflowId,
@@ -38,14 +36,13 @@ class WorkflowEngine(
         contractVersion = definition.contractVersion,
         workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = currentStepId,
-        stepsJson = jsonString(defaultSteps(definition, currentStepId)),
-        artifactsJson = jsonString(emptyMap<String, Any?>()),
+        steps = defaultSteps(definition, currentStepId),
+        artifacts = DurableWorkflowArtifacts.EMPTY,
         startedAt = null,
         updatedAt = null,
         finishedAt = null,
-        mode = definition.workflowMode,
+        mode = definition.workflowMode?.let(FeatureTaskWorkflowMode::fromWireValue),
       )
-    schemaValidator.validate(snapshot, definition.workflowName)
     return snapshot
   }
 
@@ -54,12 +51,12 @@ class WorkflowEngine(
     existing: WorkflowStateSnapshot,
     input: WorkflowUpdateInput,
   ): WorkflowStateSnapshot {
-    val existingArtifacts = decodeObject(existing.artifactsJson)
+    validateWorkflowUpdate(definition, input)?.let { throw InvalidWorkflowStateSchemaError(it) }
     val mergedArtifacts =
       if (input.replaceArtifacts) {
         LinkedHashMap<String, Any?>()
       } else {
-        existingArtifacts.toMutableMap()
+        existing.artifacts.toMutableMap()
       }
     input.artifactsPatch?.let { patch -> mergedArtifacts.putAll(patch) }
     val terminal = definition.isTerminalStatus(input.workflowStatus)
@@ -68,14 +65,16 @@ class WorkflowEngine(
         sessionId = input.sessionId.trim().ifBlank { existing.sessionId.orEmpty() },
         workflowStatus = input.workflowStatus,
         currentStepId = input.currentStepId.trim().ifBlank { existing.currentStepId.orEmpty() },
-        stepsJson =
-          jsonString(
-            mergeStepUpdates(definition, decodeSteps(existing.stepsJson), input.stepUpdates?.asEntries()),
-          ),
-        artifactsJson = jsonString(mergedArtifacts),
-        finishedAt = if (terminal) existing.finishedAt ?: "" else null,
+        steps = mergeStepUpdates(definition, existing.steps, input.stepUpdates?.asEntries()),
+        artifacts = DurableWorkflowArtifacts.fromMap(mergedArtifacts),
+        finishedAt =
+          if (terminal) {
+            existing.finishedAt ?: input.terminalInstant
+              ?: throw InvalidWorkflowStateSchemaError("A terminal workflow update requires a terminal instant.")
+          } else {
+            null
+          },
       )
-    schemaValidator.validate(updated, definition.workflowName)
     return updated
   }
 
@@ -83,7 +82,6 @@ class WorkflowEngine(
     definition: WorkflowDefinition,
     record: WorkflowStateSnapshot,
   ): WorkflowSnapshotView {
-    schemaValidator.validate(record, definition.workflowName)
     return snapshotViewFrom(record)
   }
 
@@ -91,18 +89,17 @@ class WorkflowEngine(
     definition: WorkflowDefinition,
     record: WorkflowStateSnapshot,
   ): WorkflowSummaryView {
-    schemaValidator.validate(record, definition.workflowName)
     return WorkflowSummaryView(
       workflowId = record.workflowId,
-      sessionId = record.sessionId.orEmpty(),
+      sessionId = record.sessionId,
       workflowName = record.workflowName,
-      mode = record.mode,
+      mode = record.mode?.wireValue,
       contractVersion = record.contractVersion,
       workflowStatus = record.workflowStatus,
-      currentStepId = record.currentStepId.orEmpty(),
-      startedAt = record.startedAt.orEmpty(),
-      updatedAt = record.updatedAt.orEmpty(),
-      finishedAt = record.finishedAt.orEmpty(),
+      currentStepId = record.currentStepId,
+      startedAt = record.startedAt?.toString().orEmpty(),
+      updatedAt = record.updatedAt?.toString().orEmpty(),
+      finishedAt = record.finishedAt?.toString().orEmpty(),
     )
   }
 
@@ -182,6 +179,7 @@ class WorkflowEngine(
     sessionSummary: WorkflowContinueSessionSummary = WorkflowContinueSessionSummary.EMPTY,
     continueStatusOverride: WorkflowContinueStatus? = null,
     workflowStatusBeforeContinueOverride: WorkflowStatus? = null,
+    resolvedRepositoryCheckpointIdentity: String = "",
   ): WorkflowContinueDecision {
     val resume = resumeView(definition, record)
     val snapshot = resume.snapshot
@@ -199,7 +197,14 @@ class WorkflowEngine(
             record = record,
             resume = resume,
             snapshot = snapshot,
-            declaredProjection = launchProjection(definition, snapshot, resume.resumeStepId, attemptCount),
+            declaredProjection =
+              launchProjection(
+                definition,
+                snapshot,
+                resume.resumeStepId,
+                attemptCount,
+                resolvedRepositoryCheckpointIdentity,
+              ),
           ),
         continueStatus = continueStatus,
         workflowStatusBeforeContinue = workflowStatusBeforeContinue,
@@ -215,7 +220,7 @@ class WorkflowEngine(
     snapshot: WorkflowSnapshotView,
     stepId: String,
     producerIteration: Int,
-    resolvedRepositoryCheckpointIdentity: String = checkpoint(),
+    resolvedRepositoryCheckpointIdentity: String = "",
   ): WorkflowInputProjection? =
     definition.inputProjectionsByStep[stepId]?.let {
       WorkflowInputProjectionSelector.select(
@@ -235,15 +240,4 @@ class WorkflowEngine(
   ): WorkflowInputProjection? =
     launchProjection(definition, snapshotView(definition, record), stepId, producerIteration)
 
-  companion object {
-    fun validateOpen(
-      definition: WorkflowDefinition,
-      currentStepId: String,
-    ): String? = validateWorkflowOpen(definition, currentStepId)
-
-    fun validateUpdate(
-      definition: WorkflowDefinition,
-      input: WorkflowUpdateInput,
-    ): String? = validateWorkflowUpdate(definition, input)
-  }
 }

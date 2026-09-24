@@ -1,4 +1,5 @@
 package skillbill.engine
+import java.time.Instant
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
@@ -384,13 +385,14 @@ class FeatureTaskContinuationLookupServiceTest {
             ),
         )
       val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
-      val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+      val engine = WorkflowEngine()
       val opened = engine.openRecord(definition, "wfl-goal-parent", "ftr-goal", "preplan")
       states.saveFeatureTaskRuntimeWorkflow(
         engine.updateRecord(
           definition,
           opened,
           WorkflowUpdateInput(
+            terminalInstant = Instant.EPOCH,
             workflowStatus =
               WorkflowStatus.fromWire(workflowStatus)
                 ?: error("Unknown workflow status '$workflowStatus'."),

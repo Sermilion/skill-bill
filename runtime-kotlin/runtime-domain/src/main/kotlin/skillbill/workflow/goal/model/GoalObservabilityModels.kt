@@ -5,6 +5,8 @@ import skillbill.contracts.workflow.goal.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSI
 import skillbill.contracts.workflow.goal.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.workflow.goal.invalidGoalObservabilityEvent
+import skillbill.workflow.time.parsePersistedInstant
+import java.time.Instant
 
 const val GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY: String = "goal_observability_latest_event"
 const val GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY: String = "goal_observability_run_history"
@@ -66,7 +68,7 @@ data class GoalProgressEvent(
   val workflowPhase: String,
   val processAlive: Boolean,
   val sequenceNumber: Int,
-  val timestamp: String,
+  val timestamp: Instant,
   val stepId: String? = null,
   val operationName: String? = null,
   val operationKind: String? = null,
@@ -74,11 +76,38 @@ data class GoalProgressEvent(
   val outcome: GoalProgressOutcome = GoalProgressOutcome.NONE,
   val contractVersion: String = GOAL_PROGRESS_EVENT_CONTRACT_VERSION,
 ) {
+  constructor(
+    eventKind: GoalProgressEventKind,
+    workflowId: String,
+    workflowPhase: String,
+    processAlive: Boolean,
+    sequenceNumber: Int,
+    timestamp: String,
+    stepId: String? = null,
+    operationName: String? = null,
+    operationKind: String? = null,
+    expectedLong: Boolean = false,
+    outcome: GoalProgressOutcome = GoalProgressOutcome.NONE,
+    contractVersion: String = GOAL_PROGRESS_EVENT_CONTRACT_VERSION,
+  ) : this(
+    eventKind = eventKind,
+    workflowId = workflowId,
+    workflowPhase = workflowPhase,
+    processAlive = processAlive,
+    sequenceNumber = sequenceNumber,
+    timestamp = parsePersistedInstant(timestamp),
+    stepId = stepId,
+    operationName = operationName,
+    operationKind = operationKind,
+    expectedLong = expectedLong,
+    outcome = outcome,
+    contractVersion = contractVersion,
+  )
+
   init {
     require(workflowId.isNotBlank()) { "GoalProgressEvent.workflowId is required." }
     require(workflowPhase.isNotBlank()) { "GoalProgressEvent.workflowPhase is required." }
     require(sequenceNumber >= 0) { "GoalProgressEvent.sequenceNumber must be non-negative." }
-    require(timestamp.isNotBlank()) { "GoalProgressEvent.timestamp is required." }
     if (eventKind.isOperationEvent) {
       require(!operationName.isNullOrBlank()) {
         "GoalProgressEvent.operationName is required for operation_* events."
@@ -96,7 +125,7 @@ data class GoalProgressEvent(
       "workflow_phase" to workflowPhase,
       "process_alive" to processAlive,
       "sequence_number" to sequenceNumber,
-      "timestamp" to timestamp,
+      "timestamp" to timestamp.toString(),
     ).apply {
       stepId?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.STEP_ID, it) }
       operationName?.takeIf(String::isNotBlank)?.let { put("operation_name", it) }
@@ -167,7 +196,7 @@ data class GoalObservabilityEvent(
   val workerRole: String,
   val livenessClass: String,
   val activitySummary: String,
-  val timestamp: String,
+  val timestamp: Instant,
   val sequenceNumber: Int,
   val workflowId: String? = null,
   val changedFileSummary: GoalObservabilityChangedFileSummary? = null,
@@ -176,6 +205,40 @@ data class GoalObservabilityEvent(
   val diffStatByFile: List<GoalObservabilityFileDiffStat> = emptyList(),
   val contractVersion: String = GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION,
 ) {
+  constructor(
+    recordKind: GoalObservabilityRecordKind = GoalObservabilityRecordKind.PROGRESS,
+    issueKey: String,
+    subtaskId: Int,
+    workflowPhase: String,
+    workerRole: String,
+    livenessClass: String,
+    activitySummary: String,
+    timestamp: String,
+    sequenceNumber: Int,
+    workflowId: String? = null,
+    changedFileSummary: GoalObservabilityChangedFileSummary? = null,
+    diffStat: GoalObservabilityDiffStat? = null,
+    changedFiles: List<String> = emptyList(),
+    diffStatByFile: List<GoalObservabilityFileDiffStat> = emptyList(),
+    contractVersion: String = GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION,
+  ) : this(
+    recordKind = recordKind,
+    issueKey = issueKey,
+    subtaskId = subtaskId,
+    workflowPhase = workflowPhase,
+    workerRole = workerRole,
+    livenessClass = livenessClass,
+    activitySummary = activitySummary,
+    timestamp = parsePersistedInstant(timestamp),
+    sequenceNumber = sequenceNumber,
+    workflowId = workflowId,
+    changedFileSummary = changedFileSummary,
+    diffStat = diffStat,
+    changedFiles = changedFiles,
+    diffStatByFile = diffStatByFile,
+    contractVersion = contractVersion,
+  )
+
   internal fun toArtifactMap(includeHeavyFields: Boolean = false): Map<String, Any?> =
     linkedMapOf<String, Any?>(
       SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
@@ -187,7 +250,7 @@ data class GoalObservabilityEvent(
       "worker_role" to workerRole,
       "liveness_class" to livenessClass,
       "activity_summary" to activitySummary,
-      "timestamp" to timestamp,
+      "timestamp" to timestamp.toString(),
       "sequence_number" to sequenceNumber,
     ).apply {
       changedFileSummary?.let { summary -> put("changed_file_summary", summary.toArtifactMap()) }
@@ -237,7 +300,7 @@ data class GoalObservabilityEvent(
       "liveness_class" to livenessClass,
       "activity_summary" to activitySummary,
       "sequence_number" to sequenceNumber,
-      "timestamp" to timestamp,
+      "timestamp" to timestamp.toString(),
     ).apply {
       changedFileSummary?.let { summary -> put("changed_file_summary", summary.toArtifactMap()) }
       diffStat?.let { stat -> put("diff_stat", stat.toArtifactMap()) }

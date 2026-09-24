@@ -49,7 +49,7 @@ class UnaddressedFindingsLedgerService(
         val record =
           WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
             ?: return@flatMap emptyList()
-        val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+        val artifacts = record.artifacts
         val artifactKey =
           when {
             artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY] != null ->
@@ -85,7 +85,7 @@ class UnaddressedFindingsLedgerService(
         val state =
           runCatching {
             GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(
-              FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+              record.artifacts,
             )
           }.getOrNull() ?: return@mapNotNull null
         runCatching { state.repairLedger }.getOrNull()

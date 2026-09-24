@@ -34,7 +34,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
       val raw =
-        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[
+        record.artifacts[
           FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY,
         ]
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null
@@ -63,7 +63,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
       val raw =
-        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[
+        record.artifacts[
           FEATURE_TASK_RUNTIME_BUILD_GATE_PROGRESS_ARTIFACT_KEY,
         ]
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null
@@ -74,7 +74,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
       GoalSubtaskReviewArtifactDecoder.decodeContinuationOnly(
-        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+        record.artifacts,
       )
         ?.qualityGateSelection
     }
@@ -83,7 +83,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
       val raw =
-        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[
+        record.artifacts[
           FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_ARTIFACT_KEY,
         ]
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null

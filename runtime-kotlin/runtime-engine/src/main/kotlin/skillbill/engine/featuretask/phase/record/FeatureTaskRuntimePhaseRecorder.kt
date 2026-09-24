@@ -26,7 +26,7 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.review.model.ReviewFindingVerdict
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticSignal
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeQuarantineEntry

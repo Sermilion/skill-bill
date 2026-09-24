@@ -1,5 +1,6 @@
 package skillbill.application.workflow.decomposition
 
+import java.time.Instant
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
@@ -39,7 +40,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-private val testWorkflowEngine: WorkflowEngine = WorkflowEngine(testWorkflowSnapshotValidator)
+private val testWorkflowEngine: WorkflowEngine = WorkflowEngine()
 
 private class CheckoutRecordingGitOperations : WorkflowGitOperations by NoopWorkflowGitOperations {
   val checkoutCalls = mutableListOf<String>()
@@ -65,6 +66,7 @@ private fun workflowRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = workflowStatus,
       currentStepId = "plan",
       stepUpdates = null,

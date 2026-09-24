@@ -2,7 +2,6 @@ package skillbill.infrastructure.sqlite.goalrunner.manifest
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
 import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.workflow.decomposition.decompositionRuntime
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.workflow.model.WorkflowFamily
@@ -23,14 +22,9 @@ internal class GoalParentProjectionWriter(
 ) {
   fun artifacts(
     manifest: DecompositionManifest,
-    existingArtifactsJson: String? = null,
+    existingArtifacts: Map<String, Any?> = emptyMap(),
   ): Map<String, Any?> =
-    LinkedHashMap(
-      existingArtifactsJson
-        ?.takeIf(String::isNotBlank)
-        ?.let(::decodeArtifacts)
-        .orEmpty(),
-    ).apply {
+    LinkedHashMap(existingArtifacts).apply {
       remove(GOAL_REVIEW_POLICY_ARTIFACT_KEY)
       remove(GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY)
       put(
@@ -54,7 +48,7 @@ internal class GoalParentProjectionWriter(
           workflowStatus = existing.workflowStatus,
           currentStepId = existing.currentStepId,
           stepUpdates = null,
-          artifactsPatch = WorkflowArtifactPatch.from(artifacts(manifest, existing.artifactsJson)),
+          artifactsPatch = WorkflowArtifactPatch.from(artifacts(manifest, existing.artifacts)),
           sessionId = existing.sessionId,
           replaceArtifacts = true,
         ),

@@ -1,8 +1,9 @@
 package skillbill.engine.featuretask.review.finding
+import java.time.Instant
+import skillbill.engine.decodeWorkflowArtifactsForTest
 
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
@@ -94,15 +95,16 @@ private fun seedWorkflow(
   workflowId: String,
   artifactsJson: String,
 ) {
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val definition = WorkflowFamily.TASK_RUNTIME.definition
   val opened = engine.openRecord(definition, workflowId, "ftr-finding-verification", "verify_findings")
-  val artifacts = decodeWorkflowArtifacts(artifactsJson)
+  val artifacts = decodeWorkflowArtifactsForTest(artifactsJson)
   val seeded =
     engine.updateRecord(
       definition,
       opened,
       WorkflowUpdateInput(
+        terminalInstant = Instant.EPOCH,
         workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "verify_findings",
         stepUpdates = null,

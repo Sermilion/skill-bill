@@ -58,7 +58,7 @@ class RuntimeImplementationImportRulesTest {
       listOf(
         "skillbill.install.model.InstallPlanWireValidator",
         "skillbill.workflow.decomposition.DecompositionManifestValidator",
-        "skillbill.workflow.engine.WorkflowSnapshotValidator",
+        "skillbill.ports.workflow.WorkflowSnapshotValidator",
         "skillbill.application.InstallService",
         "skillbill.infrastructure.contracts.install.InstallPlanSchemaPaths",
       )

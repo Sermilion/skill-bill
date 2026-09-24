@@ -27,7 +27,7 @@ internal class GoalRunnerProgressEventEmitter(
         workflowPhase = "goal_runner_supervision",
         processAlive = emission.processAlive,
         sequenceNumber = sequence++,
-        timestamp = clock.instant().toString(),
+        timestamp = clock.instant(),
         operationName = emission.operationName,
         operationKind = emission.operationKind,
         expectedLong = emission.expectedLong,

@@ -130,7 +130,7 @@ internal class WorkflowGoalRunnerManifestLoader(
                   ),
                 )
               },
-            artifactsPatch = WorkflowArtifactPatch.from(parentProjection.artifacts(manifest, base.artifactsJson)),
+            artifactsPatch = WorkflowArtifactPatch.from(parentProjection.artifacts(manifest, base.artifacts)),
             sessionId = base.sessionId.orEmpty(),
             replaceArtifacts = true,
           ),

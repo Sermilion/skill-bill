@@ -1,4 +1,6 @@
 package skillbill.engine.goalrunner.repair
+import java.time.Instant
+import skillbill.engine.decodeWorkflowArtifactsForTest
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
@@ -6,7 +8,6 @@ import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.execution.core.GoalRunnerStatusTestPorts
@@ -513,13 +514,14 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           ),
       )
     val definition = WorkflowFamily.TASK_RUNTIME.definition
-    val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+    val engine = WorkflowEngine()
     val opened = engine.openRecord(definition, workflowId, "fis-repair", "implement_fix")
     workflows.saveFeatureTaskRuntimeWorkflow(
       engine.updateRecord(
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "implement_fix",
           stepUpdates = null,
@@ -580,13 +582,14 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           ),
       )
     val definition = WorkflowFamily.TASK_RUNTIME.definition
-    val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+    val engine = WorkflowEngine()
     val opened = engine.openRecord(definition, workflowId, "fis-repair", "write_history")
     workflows.saveFeatureTaskRuntimeWorkflow(
       engine.updateRecord(
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "write_history",
           stepUpdates = null,
@@ -620,13 +623,14 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     seedRepairParent(workflows, workflowId)
     val artifacts = unsettledBuildUpstreamArtifacts()
     val definition = WorkflowFamily.TASK_RUNTIME.definition
-    val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+    val engine = WorkflowEngine()
     val opened = engine.openRecord(definition, workflowId, "fis-repair", "write_history")
     workflows.saveFeatureTaskRuntimeWorkflow(
       engine.updateRecord(
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.BLOCKED,
           currentStepId = "write_history",
           stepUpdates = null,
@@ -653,7 +657,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     val updated = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId))
     assertEquals("running", updated.workflowStatus)
     assertEquals("build", updated.currentStepId)
-    val records = phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifacts(updated.artifactsJson))
+    val records = phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifactsForTest(updated.artifactsJson))
     assertEquals("pending", records.getValue("build").status.wireValue)
     assertEquals("pending", records.getValue("write_history").status.wireValue)
   }
@@ -684,13 +688,14 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           ),
       )
     val definition = WorkflowFamily.TASK_RUNTIME.definition
-    val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+    val engine = WorkflowEngine()
     val opened = engine.openRecord(definition, workflowId, "fis-repair", "implement_fix")
     workflows.saveFeatureTaskRuntimeWorkflow(
       engine.updateRecord(
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.BLOCKED,
           currentStepId = "implement_fix",
           stepUpdates = null,
@@ -717,11 +722,11 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     val updated = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId))
     assertEquals("running", updated.workflowStatus)
     assertEquals("verify_findings", updated.currentStepId)
-    val records = phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifacts(updated.artifactsJson))
+    val records = phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifactsForTest(updated.artifactsJson))
     assertEquals("pending", records.getValue("verify_findings").status.wireValue)
     assertEquals("pending", records.getValue("implement_fix").status.wireValue)
     val evidence =
-      (decodeWorkflowArtifacts(updated.artifactsJson)[GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY] as List<*>)
+      (decodeWorkflowArtifactsForTest(updated.artifactsJson)[GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY] as List<*>)
         .single() as Map<*, *>
     assertEquals("completed_upstream_missing_output", evidence["wedge_class"])
     assertEquals("verify_findings", evidence["field"])
@@ -789,7 +794,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     val updated = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId))
     assertEquals("running", updated.workflowStatus)
     assertEquals("verify_findings", updated.currentStepId)
-    val after = decodeWorkflowArtifacts(updated.artifactsJson)
+    val after = decodeWorkflowArtifactsForTest(updated.artifactsJson)
     assertEquals("full", (after["goal_continuation"] as Map<*, *>)["validation_depth"])
     val records = phaseRecordsFromWorkflowArtifacts(after)
     assertEquals("pending", records.getValue("verify_findings").status.wireValue)
@@ -822,13 +827,14 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
           ),
       )
     val definition = WorkflowFamily.TASK_RUNTIME.definition
-    val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+    val engine = WorkflowEngine()
     val opened = engine.openRecord(definition, workflowId, "fis-repair", "implement_fix")
     workflows.saveFeatureTaskRuntimeWorkflow(
       engine.updateRecord(
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.BLOCKED,
           currentStepId = "implement_fix",
           stepUpdates = null,
@@ -868,7 +874,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     assertEquals(1, applied.repairs.size)
     assertEquals(GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION, applied.repairs.single().wedgeClass)
     val after =
-      decodeWorkflowArtifacts(
+      decodeWorkflowArtifactsForTest(
         requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
       )
     val continuation = after["goal_continuation"] as Map<*, *>
@@ -904,7 +910,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
       ),
     )
     val before =
-      decodeWorkflowArtifacts(
+      decodeWorkflowArtifactsForTest(
         requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
       )
     val store = repairStore(workflows, git = ReachableGit())
@@ -923,7 +929,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     assertEquals(1, applied.repairs.size)
     assertEquals("full", applied.repairs.single().newValue)
     val after =
-      decodeWorkflowArtifacts(
+      decodeWorkflowArtifactsForTest(
         requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
       )
     assertEquals(COMPLETED_COMMIT, after["commit_sha"])
@@ -967,7 +973,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
       ),
     )
     val beforeReview =
-      decodeWorkflowArtifacts(
+      decodeWorkflowArtifactsForTest(
         requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
       )[GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY]
     val store = repairStore(workflows, git = ReachableGit())
@@ -987,7 +993,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     assertEquals(staleReason, applied.repairs.single().priorValue)
     assertNull(applied.repairs.single().newValue)
     val after =
-      decodeWorkflowArtifacts(
+      decodeWorkflowArtifactsForTest(
         requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
       )
     assertNull(after["goal_continuation_outcome"])
@@ -1045,7 +1051,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     assertEquals(unreachable, applied.repairs.single().priorValue)
     assertEquals(recovered, applied.repairs.single().newValue)
     val after =
-      decodeWorkflowArtifacts(
+      decodeWorkflowArtifactsForTest(
         requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
       )
     val state = requireNotNull(GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(after))
@@ -1070,7 +1076,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     )
     val beforeJson = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson
     workflows.failSaveWhen = { row ->
-      decodeWorkflowArtifacts(row.artifactsJson).containsKey(GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY)
+      decodeWorkflowArtifactsForTest(row.artifactsJson).containsKey(GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY)
     }
     val store = repairStore(workflows, git = ReachableGit())
 
@@ -1573,13 +1579,14 @@ internal abstract class GoalRunnerRepairFixtures {
         subtasks = listOf(subtask(1, childWorkflowId)),
       )
     val definition = WorkflowFamily.TASK_RUNTIME.definition
-    val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+    val engine = WorkflowEngine()
     val opened = engine.openRecord(definition, "wfl-parent", "fis-repair-parent", "preplan")
     workflows.saveFeatureTaskRuntimeWorkflow(
       engine.updateRecord(
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "plan",
           stepUpdates = null,
@@ -1649,7 +1656,7 @@ internal abstract class GoalRunnerRepairFixtures {
 
   protected fun repairChildRecord(args: RepairChildRecordArgs): WorkflowStateRecord {
     val definition = WorkflowFamily.TASK_RUNTIME.definition
-    val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+    val engine = WorkflowEngine()
     val opened = engine.openRecord(definition, args.workflowId, "fis-repair", "preplan")
     val artifacts =
       linkedMapOf<String, Any?>(
@@ -1670,6 +1677,7 @@ internal abstract class GoalRunnerRepairFixtures {
       definition,
       opened,
       WorkflowUpdateInput(
+        terminalInstant = Instant.EPOCH,
         workflowStatus =
           WorkflowStatus.fromWire(args.workflowStatus)
             ?: error("Unknown workflow status '${args.workflowStatus}'."),

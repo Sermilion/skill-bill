@@ -10,7 +10,6 @@ import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.application.workflow.persist.FeatureTaskRuntimePhaseLedgerDecoder
 import skillbill.application.workflow.persist.buildUpdateOk
 import skillbill.application.workflow.persist.decodeFeatureTaskRuntimePhaseRecords
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
@@ -52,6 +51,7 @@ internal class WorkflowServiceBlockedPhaseRetry(
   private val repositoryRoot: RepositoryRoot,
   private val runtimeDiagnostics: RuntimeDiagnostics,
   private val clock: Clock,
+  private val repositoryCheckpointIdentity: () -> String = { "" },
 ) {
   fun retry(
     database: DatabaseSessionFactory,
@@ -94,7 +94,7 @@ internal class WorkflowServiceBlockedPhaseRetry(
     val outcome =
       decompositionManifestWriter.writeProjectionFromWorkflowState(
         repositoryRoot.path,
-        pending.artifactsJson,
+        pending.artifacts,
         decompositionManifestValidator,
         decompositionManifestStore,
       )
@@ -159,7 +159,7 @@ internal class WorkflowServiceBlockedPhaseRetry(
         ),
       )
     }
-    val artifacts = decodeWorkflowArtifacts(existing.artifactsJson)
+    val artifacts = existing.artifacts
     val phaseRecords = decodeFeatureTaskRuntimePhaseRecords(artifacts)
     val ledger = FeatureTaskRuntimePhaseLedgerDecoder.decode(artifacts)
     val blockedRecord =
@@ -200,23 +200,31 @@ internal class WorkflowServiceBlockedPhaseRetry(
     val family = WorkflowFamily.TASK_RUNTIME
     val updated = engine.updateRecord(family.definition, existing, input)
     family.save(unitOfWork.workflowStates, updated)
-    val projectionArtifactsJson =
+    val projectionArtifacts =
       engine.updateGoalParentForBlockedPhaseRetry(
         unitOfWork = unitOfWork,
         childWorkflowId = request.workflowId,
-        childArtifacts = decodeWorkflowArtifacts(updated.artifactsJson),
+        childArtifacts = updated.artifacts,
         phaseId = request.phaseId,
         validator = decompositionManifestValidator,
       )
     val pendingProjection =
-      projectionArtifactsJson?.let { artifactsJson ->
+      projectionArtifacts?.let { artifacts ->
         val ownerWorkflowId =
-          goalContinuationParentWorkflowIdForSettlement(updated.artifactsJson)
+          goalContinuationParentWorkflowIdForSettlement(updated.artifacts)
             ?: request.workflowId
-        PendingDecompositionProjection(ownerWorkflowId, artifactsJson)
+        PendingDecompositionProjection(ownerWorkflowId, artifacts)
       }
     return BlockedPhaseRetryPersistence(
-      result = buildUpdateOk(engine, family.definition, updated, input, unitOfWork.dbPath.toString()),
+      result =
+        buildUpdateOk(
+          engine,
+          family.definition,
+          updated,
+          input,
+          unitOfWork.dbPath.toString(),
+          repositoryCheckpointIdentity,
+        ),
       pendingProjection = pendingProjection,
     )
   }

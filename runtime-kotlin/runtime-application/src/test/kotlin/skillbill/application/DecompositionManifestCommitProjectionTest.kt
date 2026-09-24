@@ -32,6 +32,7 @@ import skillbill.workflow.decomposition.runtime.DECOMPOSITION_MANIFEST_PROJECTIO
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
@@ -289,7 +290,7 @@ class DecompositionManifestCommitProjectionTest {
     val outcome =
       testDecompositionManifestWriter.writeProjectionFromWorkflowState(
         repoRoot = repoRoot,
-        artifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
+        artifacts = durableRuntimeArtifacts(initial.manifest, subtaskSpec),
         validator = testDecompositionManifestValidator,
         fileStore = failingStore,
       )
@@ -298,7 +299,7 @@ class DecompositionManifestCommitProjectionTest {
     val recovered =
       testDecompositionManifestWriter.writeProjectionFromWorkflowState(
         repoRoot = repoRoot,
-        artifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
+        artifacts = durableRuntimeArtifacts(initial.manifest, subtaskSpec),
         validator = testDecompositionManifestValidator,
         fileStore = TestDecompositionManifestStore,
       )
@@ -357,7 +358,7 @@ class DecompositionManifestCommitProjectionTest {
     val outcome =
       database.transaction { unitOfWork ->
         persistDecompositionManifestProjectionFailure(
-          engine = WorkflowEngine(testWorkflowSnapshotValidator),
+          engine = WorkflowEngine(),
           unitOfWork = unitOfWork,
           workflowId = "missing-owner",
           outcome =
@@ -378,7 +379,7 @@ class DecompositionManifestCommitProjectionTest {
     val outcome =
       database.transaction { unitOfWork ->
         clearDecompositionManifestProjectionFailure(
-          engine = WorkflowEngine(testWorkflowSnapshotValidator),
+          engine = WorkflowEngine(),
           unitOfWork = unitOfWork,
           workflowId = "missing-owner",
         )
@@ -613,6 +614,14 @@ class DecompositionManifestCommitProjectionTest {
             "suppress_pr" to true,
           ),
       ),
+    )
+
+  private fun durableRuntimeArtifacts(
+    manifest: DecompositionManifest,
+    subtaskSpec: Path,
+  ): DurableWorkflowArtifacts =
+    DurableWorkflowArtifacts.fromMap(
+      requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(durableRuntimeArtifactsJson(manifest, subtaskSpec)))),
     )
 }
 

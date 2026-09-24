@@ -36,7 +36,7 @@ internal fun FeatureTaskRuntimeRemediationBaseReconciler.persistHealedRemediatio
     val record =
       WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return@transaction null
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    val artifacts = record.artifacts
     val latest = reviewStateFromArtifacts(artifacts) ?: return@transaction null
     if (latest.remediationBaseSha == request.target) return@transaction latest
     val updated = latest.copy(remediationBaseSha = request.target)

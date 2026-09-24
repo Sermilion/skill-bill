@@ -7,6 +7,7 @@ import skillbill.workflow.goal.invalidGoalObservabilityEvent
 import skillbill.workflow.taskruntime.artifact.validateGoalObservabilityEvent
 import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
 import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
+import skillbill.workflow.time.parsePersistedInstant
 
 fun goalObservabilityLatestEventFromArtifacts(
   artifacts: Any,
@@ -64,7 +65,14 @@ fun goalObservabilityEventFromArtifact(
     workerRole = reader.requiredString("worker_role"),
     livenessClass = reader.requiredString("liveness_class"),
     activitySummary = reader.requiredString("activity_summary"),
-    timestamp = reader.requiredString("timestamp"),
+    timestamp =
+      reader.requiredString("timestamp").let { value ->
+        try {
+          parsePersistedInstant(value)
+        } catch (error: IllegalArgumentException) {
+          throw invalidGoalObservabilityEvent(sourceLabel, "timestamp", "field must be a persisted instant.", error)
+        }
+      },
     sequenceNumber =
       reader.requiredInt("sequence_number").also { value ->
         if (value < 0) {

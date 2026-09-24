@@ -7,7 +7,6 @@ import skillbill.goalrunner.model.GoalContinuation
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.nonCompleteStoredOutcomeIsCorroborated
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.goalrunner.control.goalContinuation
 import skillbill.infrastructure.sqlite.goalrunner.control.toGoalContinuationWireStatus
 import skillbill.infrastructure.sqlite.goalrunner.control.workflowFamilyFor
@@ -44,7 +43,7 @@ internal class WorkflowGoalRunnerStaleBlockedOutcomeDisplacement(
   ): DisplacementContext? {
     val family = workflowFamilyFor(workflowStates, workflowId) ?: return null
     val record = family.get(workflowStates, workflowId) ?: return null
-    val artifacts = decodeArtifacts(record.artifactsJson)
+    val artifacts = record.artifacts
     val continuation =
       goalContinuation(artifacts)
         ?.takeIf { it.issueKey == issueKey && it.subtaskId == subtaskId }

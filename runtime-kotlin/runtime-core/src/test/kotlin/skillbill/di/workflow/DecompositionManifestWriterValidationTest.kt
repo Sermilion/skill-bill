@@ -5,7 +5,6 @@ import skillbill.application.decompositionPlanningPlan
 import skillbill.application.writeFromWorkflowUpdate
 import skillbill.application.writeIfDecomposed
 import skillbill.application.writeProjectionFromWorkflowState
-import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.infrastructure.contracts.workflow.decomposition.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore
@@ -14,6 +13,7 @@ import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifes
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -51,7 +51,7 @@ class DecompositionManifestWriterValidationTest {
         writer.writeFromWorkflowUpdate(
           DecompositionManifestWorkflowProjectionInput(
             repoRoot = repoRoot,
-            existingArtifactsJson = invalidDurableRuntimeArtifactsJson(initial.manifest),
+            existingArtifacts = invalidDurableRuntimeArtifacts(initial.manifest),
             validator = validator,
             fileStore = fileStore,
           ),
@@ -87,7 +87,7 @@ class DecompositionManifestWriterValidationTest {
       assertFailsWith<InvalidDecompositionManifestSchemaError> {
         writer.writeProjectionFromWorkflowState(
           repoRoot = repoRoot,
-          artifactsJson = invalidDurableRuntimeArtifactsJson(initial.manifest),
+          artifacts = invalidDurableRuntimeArtifacts(initial.manifest),
           validator = validator,
           fileStore = fileStore,
         )
@@ -98,11 +98,13 @@ class DecompositionManifestWriterValidationTest {
     assertContains(error.reason, "offending value: invalid-contract")
   }
 
-  private fun invalidDurableRuntimeArtifactsJson(manifest: DecompositionManifest): String {
+  private fun invalidDurableRuntimeArtifacts(manifest: DecompositionManifest): DurableWorkflowArtifacts {
     val invalidManifest =
       LinkedHashMap(validator.encodeManifestWireMap(manifest)).apply {
         put("contract_version", "invalid-contract")
       }
-    return JsonCodec.mapToJsonString(mapOf("decomposition_runtime" to invalidManifest))
+    return DurableWorkflowArtifacts.fromMap(
+      mapOf("decomposition_runtime" to invalidManifest),
+    )
   }
 }

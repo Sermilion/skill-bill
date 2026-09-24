@@ -11,6 +11,7 @@ import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifes
 import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -26,7 +27,7 @@ class DecompositionManifestProjectionOutcomeTest {
     val outcome =
       testDecompositionManifestWriter.writeProjectionFromWorkflowState(
         repoRoot = repoRoot,
-        artifactsJson = JsonCodec.mapToJsonString(emptyMap()),
+        artifacts = DurableWorkflowArtifacts.EMPTY,
         validator = testDecompositionManifestValidator,
         fileStore = TestDecompositionManifestStore,
       )
@@ -60,7 +61,7 @@ class DecompositionManifestProjectionOutcomeTest {
     val outcome =
       testDecompositionManifestWriter.writeProjectionFromWorkflowState(
         repoRoot = repoRoot,
-        artifactsJson = durableRuntimeArtifactsJson(initial.manifest),
+        artifacts = durableRuntimeArtifacts(initial.manifest),
         validator = testDecompositionManifestValidator,
         fileStore = TestDecompositionManifestStore,
       )
@@ -106,7 +107,7 @@ class DecompositionManifestProjectionOutcomeTest {
     val outcome =
       testDecompositionManifestWriter.writeProjectionFromWorkflowState(
         repoRoot = repoRoot,
-        artifactsJson = durableRuntimeArtifactsJson(initial.manifest),
+        artifacts = durableRuntimeArtifacts(initial.manifest),
         validator = testDecompositionManifestValidator,
         fileStore = failingStore,
       )
@@ -120,5 +121,10 @@ class DecompositionManifestProjectionOutcomeTest {
       mapOf(
         DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
       ),
+    )
+
+  private fun durableRuntimeArtifacts(manifest: DecompositionManifest): DurableWorkflowArtifacts =
+    DurableWorkflowArtifacts.fromMap(
+      requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(durableRuntimeArtifactsJson(manifest)))),
     )
 }

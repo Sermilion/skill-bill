@@ -23,7 +23,7 @@ internal fun WorkflowFamily.withDecompositionRuntime(args: DecompositionRuntimeW
     args.manifestWriter.manifestFromWorkflowUpdate(
       DecompositionManifestWorkflowProjectionInput(
         repoRoot = args.repoRoot,
-        existingArtifactsJson = args.existing.artifactsJson,
+        existingArtifacts = args.existing.artifacts,
         validator = args.validator,
         planningResult = args.planningResult,
         artifactsPatch = args.input.artifactsPatch,

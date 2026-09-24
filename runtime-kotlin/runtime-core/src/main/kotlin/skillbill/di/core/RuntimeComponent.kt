@@ -76,6 +76,7 @@ import skillbill.ports.scaffold.ScaffoldGateway
 import skillbill.ports.scaffold.UnsupportedScaffoldGateway
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.telemetry.transport.RemoteTransportPort
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.telemetry.transport.TelemetryConfigStore
 import skillbill.ports.telemetry.transport.TelemetryLevelMutator
 import skillbill.ports.validation.RepoValidationGateway
@@ -167,7 +168,9 @@ abstract class RuntimeComponent(
     context: EnvironmentContext,
     clock: Clock,
     diagnostics: RuntimeDiagnostics,
-  ): DatabaseSessionFactory = RuntimeBootstrapBindings.databaseSessionFactory(context, clock, diagnostics)
+    workflowSnapshotValidator: WorkflowSnapshotValidator,
+  ): DatabaseSessionFactory =
+    RuntimeBootstrapBindings.databaseSessionFactory(context, clock, diagnostics, workflowSnapshotValidator)
 
   @Provides
   fun interruptSignal(): InterruptSignalPort = JvmInterruptSignalPort

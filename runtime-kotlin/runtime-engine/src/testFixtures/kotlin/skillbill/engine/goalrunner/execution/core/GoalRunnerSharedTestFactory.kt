@@ -50,7 +50,7 @@ import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
 import java.time.Clock
 

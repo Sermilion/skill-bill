@@ -22,8 +22,8 @@ class GoalRunnerTelemetryEmitter(
   private val clock: Clock,
   private val state: GoalRunnerManifestState,
 ) {
-  private val segmentStartedAt: String = clock.instant().toString()
-  private val segmentWorkflowId: String = "${state.parentWorkflowId}:seg:$segmentStartedAt"
+  private val segmentStartedAt: Instant = clock.instant()
+  private val segmentWorkflowId: String = "${state.parentWorkflowId}:seg:${segmentStartedAt}"
   private val resumed: Boolean = state.manifest.subtasks.any { it.hasStarted() }
 
   private val subtasksTerminalAtSegmentStart: Set<Int> =
@@ -32,7 +32,7 @@ class GoalRunnerTelemetryEmitter(
       .map { it.id }
       .toSet()
   private val subtasksEmittedThisSegment: MutableSet<Int> = mutableSetOf()
-  private val subtaskStartedAt: MutableMap<Int, String> = mutableMapOf()
+  private val subtaskStartedAt: MutableMap<Int, Instant> = mutableMapOf()
 
   fun goalStarted() {
     telemetry.goalStarted(
@@ -42,7 +42,7 @@ class GoalRunnerTelemetryEmitter(
         workflowId = segmentWorkflowId,
         subtaskTotal = state.manifest.subtasks.size,
         resumed = resumed,
-        startedAt = segmentStartedAt,
+        startedAt = segmentStartedAt.toString(),
         status = "running",
         mode = "runtime",
         parentWorkflowId = state.parentWorkflowId,
@@ -51,7 +51,7 @@ class GoalRunnerTelemetryEmitter(
   }
 
   fun markSubtaskStarted(subtaskId: Int) {
-    subtaskStartedAt.putIfAbsent(subtaskId, clock.instant().toString())
+    subtaskStartedAt.putIfAbsent(subtaskId, clock.instant())
   }
 
   fun emitNewlyTerminalSubtasks(
@@ -65,7 +65,7 @@ class GoalRunnerTelemetryEmitter(
       .filter { it.id !in subtasksTerminalAtSegmentStart && it.id !in subtasksEmittedThisSegment }
       .forEach { subtask ->
         subtasksEmittedThisSegment += subtask.id
-        val startedAt = subtaskStartedAt[subtask.id] ?: finishedAt
+        val startedAt = subtaskStartedAt[subtask.id] ?: finishedAtInstant
         telemetry.goalSubtaskFinished(
           GoalSubtaskFinishedRequest(
             issueKey = manifest.issueKey,
@@ -75,7 +75,7 @@ class GoalRunnerTelemetryEmitter(
             subtaskId = subtask.id,
             subtaskName = subtask.name,
             status = subtask.status,
-            startedAt = startedAt,
+            startedAt = startedAt.toString(),
             finishedAt = finishedAt,
             durationMs = durationMs(startedAt, finishedAtInstant),
             attemptCount = attempted.count { it == subtask.id }.coerceAtLeast(1),
@@ -111,7 +111,7 @@ class GoalRunnerTelemetryEmitter(
         issueKey = manifest.issueKey,
         workflowId = segmentWorkflowId,
         status = goalFinishedStatus(report),
-        startedAt = segmentStartedAt,
+        startedAt = segmentStartedAt.toString(),
         finishedAt = finishedAtInstant.toString(),
         durationMs = durationMs(segmentStartedAt, finishedAtInstant),
         subtasksComplete =
@@ -165,9 +165,9 @@ class GoalRunnerTelemetryEmitter(
   }
 
   private fun durationMs(
-    startedAt: String,
+    startedAt: Instant,
     finishedAt: Instant,
-  ): Long = Duration.between(Instant.parse(startedAt), finishedAt).toMillis().coerceAtLeast(0)
+  ): Long = Duration.between(startedAt, finishedAt).toMillis().coerceAtLeast(0)
 
   private companion object {
     val TERMINAL_STATUSES =

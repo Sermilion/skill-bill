@@ -4,7 +4,6 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.GoalRunnerQualityGateSelectionResolver
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
 import skillbill.infrastructure.sqlite.goalrunner.manifest.GoalParentProjectionWriter
 import skillbill.infrastructure.sqlite.goalrunner.manifest.mergeConcurrentGoalProgress
@@ -23,6 +22,7 @@ import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -39,7 +39,7 @@ import java.nio.file.Path
 
 internal data class SavedGoalChildWorkflow(
   internal val state: GoalRunnerManifestState,
-  internal val projectionArtifactsJson: String,
+  internal val projectionArtifacts: DurableWorkflowArtifacts,
 )
 
 internal class WorkflowGoalRunnerChildWorkflowPersistence(
@@ -94,7 +94,7 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
           manifest = refreshedParent.decompositionRuntime(decompositionManifestValidator) ?: state.manifest,
           controlState = unitOfWork.goalRunnerControls.controlState(refreshedParent.workflowId),
         ),
-      projectionArtifactsJson = refreshedParent.artifactsJson,
+      projectionArtifacts = refreshedParent.artifacts,
     )
   }
 
@@ -157,7 +157,7 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
     setup: GoalRunnerChildWorkflowSetup,
   ) {
     val continuation =
-      decodeArtifacts(existing.artifactsJson)[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY]
+      existing.artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY]
         as? Map<*, *>
     val matches =
       continuation?.get(SharedPayloadKeys.ISSUE_KEY) == state.manifest.issueKey &&
@@ -201,7 +201,7 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
                   existingParent.decompositionRuntime(decompositionManifestValidator) ?: state.manifest,
                   state.manifest,
                 ),
-                existingParent.artifactsJson,
+                existingParent.artifacts,
               ),
             ),
           sessionId = existingParent.sessionId.orEmpty(),

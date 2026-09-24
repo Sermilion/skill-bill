@@ -3,6 +3,8 @@ package skillbill.di.core
 import skillbill.model.EnvironmentContext
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.transport.RemoteTransportPort
+import skillbill.ports.workflow.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import java.nio.file.Files
 import java.time.Clock
 import java.time.Duration
@@ -30,7 +32,12 @@ class RuntimeComponentInvocationSnapshotTest {
         )
       val environment = component.resolvedEnvironmentContext
       val firstDbPath =
-        component.databaseSessionFactory(environment, Clock.systemUTC(), component.runtimeDiagnostics)
+        component.databaseSessionFactory(
+          environment,
+          Clock.systemUTC(),
+          component.runtimeDiagnostics,
+          NoOpWorkflowSnapshotValidator,
+        )
           .resolveDbPath().toAbsolutePath().normalize()
       val firstConfigPath = component.telemetryConfigStorePort.configPath().toAbsolutePath().normalize()
       assertEquals(homeA, environment.userHome.toAbsolutePath().normalize())
@@ -43,6 +50,7 @@ class RuntimeComponentInvocationSnapshotTest {
           afterMutationEnvironment,
           Clock.systemUTC(),
           component.runtimeDiagnostics,
+          NoOpWorkflowSnapshotValidator,
         ).resolveDbPath().toAbsolutePath().normalize()
       val secondConfigPath = component.telemetryConfigStorePort.configPath().toAbsolutePath().normalize()
 
@@ -142,12 +150,18 @@ class RuntimeComponentInvocationSnapshotTest {
         componentA.resolvedEnvironmentContext,
         Clock.systemUTC(),
         componentA.runtimeDiagnostics,
+        NoOpWorkflowSnapshotValidator,
       ),
       componentB.databaseSessionFactory(
         componentB.resolvedEnvironmentContext,
         Clock.systemUTC(),
         componentB.runtimeDiagnostics,
+        NoOpWorkflowSnapshotValidator,
       ),
     )
+  }
+
+  private object NoOpWorkflowSnapshotValidator : WorkflowSnapshotValidator {
+    override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
   }
 }

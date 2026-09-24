@@ -1,7 +1,6 @@
 package skillbill.application.workflow.decomposition
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.asStringAnyMapOrNull
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.error.shellcontent.LegacyProseWorkflowError
@@ -19,15 +18,13 @@ import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 
 fun WorkflowStateSnapshot.decompositionRuntime(validator: DecompositionManifestValidator): DecompositionManifest? =
-  decodeWorkflowArtifacts(artifactsJson)[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
+  artifacts[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
     ?.let {
       validator.decodeManifest(DecompositionManifestWireMap.from(it), DECOMPOSITION_RUNTIME_ARTIFACT_KEY)
     }
 
 fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
-  decodeWorkflowArtifacts(
-    artifactsJson,
-  )["plan"].asStringAnyMapOrNull()?.get(DecompositionPlanningPayloadKeys.MODE) == "decompose"
+  artifacts["plan"].asStringAnyMapOrNull()?.get(DecompositionPlanningPayloadKeys.MODE) == "decompose"
 
 val IMPLEMENT_TERMINAL_STATUSES: Set<WorkflowStatus> = WorkflowStatus.terminalStatuses
 
@@ -97,7 +94,7 @@ private fun DecomposedParentLookupCandidate.isStaleAbandonedLineage(
 
 fun WorkflowStateSnapshot.isGoalContinuationChildWorkflow(): Boolean {
   val goalContinuation =
-    decodeWorkflowArtifacts(artifactsJson)["goal_continuation"].asStringAnyMapOrNull() ?: return false
+    artifacts["goal_continuation"].asStringAnyMapOrNull() ?: return false
   return goalContinuation["enabled"] == true ||
     goalContinuation.containsKey(SharedPayloadKeys.ISSUE_KEY) ||
     goalContinuation.containsKey(SharedPayloadKeys.SUBTASK_ID)

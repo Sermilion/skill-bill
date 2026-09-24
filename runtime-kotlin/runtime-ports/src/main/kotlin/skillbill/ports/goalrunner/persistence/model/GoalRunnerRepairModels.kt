@@ -1,6 +1,7 @@
 package skillbill.ports.goalrunner.persistence.model
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.nio.file.Path
 
 enum class GoalRunnerWedgeClass(val wireValue: String, val durableField: String) {
@@ -90,7 +91,7 @@ data class GoalRunnerChildRepairApplyRequest(
 
 data class GoalRunnerChildRepairApplyResult(
   val repairs: List<GoalRunnerAppliedRepair> = emptyList(),
-  val manifestProjectionArtifactsJson: String? = null,
+  val manifestProjectionArtifacts: DurableWorkflowArtifacts? = null,
 )
 
 data class GoalRunnerAppliedRepair(

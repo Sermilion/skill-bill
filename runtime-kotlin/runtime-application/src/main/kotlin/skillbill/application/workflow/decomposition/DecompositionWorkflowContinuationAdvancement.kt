@@ -4,8 +4,7 @@ import skillbill.application.workflow.model.AdvanceCompletedSubtasksRequest
 import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
 import skillbill.application.workflow.model.GoalContinuationOutcome
 import skillbill.application.workflow.model.WorkflowContinueResult
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
-import skillbill.application.workflow.service.decompositionRuntimeArtifactsJson
+import skillbill.application.workflow.service.decompositionRuntimeArtifacts
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -18,6 +17,7 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.withBlockedSubtask
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
@@ -26,7 +26,7 @@ import java.nio.file.Path
 internal data class AdvancementResult(
   val manifest: DecompositionManifest,
   val error: String? = null,
-  val projectionArtifactsJson: String? = null,
+  val projectionArtifacts: DurableWorkflowArtifacts? = null,
 )
 
 internal data class CommitAdvanceResult(
@@ -50,7 +50,7 @@ internal fun WorkflowEngine.advanceCompletedSubtasks(request: AdvanceCompletedSu
       if (advanced.error != null) {
         updated = updated.withBlockedSubtask(subtask.id, advanced.error, "commit_push")
         persistParentDecompositionRuntime(request.parentRecord, updated, request.unitOfWork, request.validator)
-        return AdvancementResult(updated, advanced.error, decompositionRuntimeArtifactsJson(updated, request.validator))
+        return AdvancementResult(updated, advanced.error, decompositionRuntimeArtifacts(updated, request.validator))
       }
       updated = advanced.manifest
     }
@@ -167,10 +167,10 @@ internal fun subtaskStartArtifacts(
 internal fun parentProjectionArtifacts(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
-  existingArtifactsJson: String,
+  existingArtifacts: DurableWorkflowArtifacts,
 ): WorkflowArtifactPatch =
   WorkflowArtifactPatch.from(
-    LinkedHashMap(decodeWorkflowArtifacts(existingArtifactsJson)).apply {
+    LinkedHashMap(existingArtifacts).apply {
       remove("goal_review_policy")
       remove("goal_out_of_band_acceptances")
       put(

@@ -56,7 +56,7 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
   }
 
   fun manifestFromWorkflowUpdate(input: DecompositionManifestWorkflowProjectionInput): DecompositionManifest? {
-    val existingArtifacts = decodeWorkflowArtifactsForManifest(input.existingArtifactsJson)
+    val existingArtifacts = input.existingArtifacts
     val update =
       input.runtimeUpdate.copy(
         planningResult = input.planningResult,
@@ -85,11 +85,10 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
 
   override fun writeProjectionFromWorkflowState(
     repoRoot: Path,
-    artifactsJson: String,
+    artifacts: DurableWorkflowArtifacts,
     validator: DecompositionManifestValidator,
     fileStore: DecompositionManifestStore,
   ): DecompositionManifestProjectionOutcome {
-    val artifacts = decodeWorkflowArtifactsForManifest(artifactsJson)
     val runtime =
       artifacts[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
         ?.let {
@@ -385,6 +384,3 @@ private fun writeProjectionOutcome(args: WriteProjectionOutcomeArgs): Decomposit
 
 private fun DecompositionManifest.gitTrackedProjection(): DecompositionManifest =
   copy(subtasks = subtasks.map { subtask -> subtask.copy(commitSha = null) })
-
-private fun decodeWorkflowArtifactsForManifest(artifactsJson: String): DurableWorkflowArtifacts =
-  DurableWorkflowArtifacts.fromJson(artifactsJson)

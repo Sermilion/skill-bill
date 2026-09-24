@@ -10,7 +10,7 @@ import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
 import skillbill.infrastructure.contracts.WorkflowStateSnapshotWireMapper
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import java.util.logging.Level
 import java.util.logging.Logger

@@ -1,7 +1,6 @@
 package skillbill.application.decomposition
 
 import skillbill.application.decomposition.model.RetryDecompositionManifestProjectionArgs
-import skillbill.contracts.decomposition.DecompositionManifestProjectionFailurePayloadKeys
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
@@ -69,7 +68,7 @@ internal fun clearDecompositionManifestProjectionFailure(
         stepUpdates = null,
         artifactsPatch =
           WorkflowArtifactPatch.from(
-            DurableWorkflowArtifacts.fromJson(existing.artifactsJson).toMutableMap().apply {
+            existing.artifacts.toMutableMap().apply {
               remove(DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
             },
           ),
@@ -91,14 +90,14 @@ internal fun retryDecompositionManifestProjectionFromAuthoritativeState(
   val decompositionManifestStore = args.decompositionManifestStore
   val repoRoot = args.repoRoot
   val workflowId = args.workflowId
-  val artifactsJson =
+  val artifacts =
     database.read { unitOfWork ->
-      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)?.artifactsJson
+      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)?.artifacts
     } ?: return DecompositionManifestProjectionOutcome.Absent
   val outcome =
     decompositionManifestWriter.writeProjectionFromWorkflowState(
       repoRoot = repoRoot,
-      artifactsJson = artifactsJson,
+      artifacts = artifacts,
       validator = decompositionManifestValidator,
       fileStore = decompositionManifestStore,
     )
@@ -112,16 +111,4 @@ internal fun retryDecompositionManifestProjectionFromAuthoritativeState(
     }
   }
   return outcome
-}
-
-internal fun decompositionManifestProjectionFailure(
-  artifactsJson: String,
-): DecompositionManifestProjectionOutcome.Failed? {
-  val artifacts = DurableWorkflowArtifacts.fromJson(artifactsJson)
-  val payload =
-    artifacts[DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY] as? Map<*, *>
-      ?: return null
-  val operation = payload[DecompositionManifestProjectionFailurePayloadKeys.OPERATION] as? String ?: return null
-  val targetPath = payload[DecompositionManifestProjectionFailurePayloadKeys.TARGET_PATH] as? String ?: return null
-  return DecompositionManifestProjectionOutcome.Failed(operation = operation, targetPath = targetPath)
 }

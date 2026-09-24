@@ -24,7 +24,7 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
   childArtifacts: DurableWorkflowArtifacts,
   phaseId: String,
   validator: DecompositionManifestValidator,
-): String? {
+): DurableWorkflowArtifacts? {
   val rawContinuation =
     childArtifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY]
       ?: return null
@@ -85,7 +85,7 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
     unitOfWork.workflowStates,
     updatedParent.toRecord().copy(issueKey = retriedManifest.issueKey),
   )
-  return updatedParent.artifactsJson
+  return updatedParent.artifacts
 }
 
 private fun invalidGoalRetryProjection(reason: String): Nothing = throw InvalidWorkflowStateSchemaError(reason)

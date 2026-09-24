@@ -9,7 +9,7 @@ import skillbill.application.workflow.persist.generateWorkflowId
 import skillbill.application.workflow.service.ContinuationStepResult
 import skillbill.application.workflow.service.blockedGitResult
 import skillbill.application.workflow.service.blockedSubtaskResult
-import skillbill.application.workflow.service.decompositionRuntimeArtifactsJson
+import skillbill.application.workflow.service.decompositionRuntimeArtifacts
 import skillbill.application.workflow.service.doneDecompositionResult
 import skillbill.application.workflow.service.migrateLegacyGoalRunnerControls
 import skillbill.application.workflow.service.missingSubtaskWorkflowResult
@@ -19,6 +19,8 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
+import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.saveRecord
@@ -46,6 +48,12 @@ class DecompositionWorkflowContinuation(
   private val clock: Clock,
   private val workflowIdRandom: Random,
 ) {
+  private fun repositoryCheckpointIdentity(): String {
+    val resolved = gitOperations.repositoryFingerprint(repoRoot)
+    check(resolved is WorkflowGitOperationResult.Ok) { resolved.error }
+    return resolved.value.orEmpty()
+  }
+
   internal fun continueDecomposedParentByIssueKey(
     issueKey: String,
     unitOfWork: UnitOfWork,
@@ -136,7 +144,7 @@ class DecompositionWorkflowContinuation(
                 ),
               )
             },
-          artifactsPatch = parentProjectionArtifacts(manifest, validator, base.artifactsJson),
+          artifactsPatch = parentProjectionArtifacts(manifest, validator, base.artifacts),
           sessionId = base.sessionId.orEmpty(),
           replaceArtifacts = true,
         ),
@@ -173,18 +181,18 @@ class DecompositionWorkflowContinuation(
       val blocked =
         ContinuationStepResult(
           blockedGitResult(parentRecord.workflowId, manifest.issueKey, unitOfWork.dbPath.toString(), advancement.error),
-          advancement.projectionArtifactsJson,
-          projectionOwnerWorkflowId = parentRecord.workflowId.takeIf { advancement.projectionArtifactsJson != null },
+          advancement.projectionArtifacts,
+          projectionOwnerWorkflowId = parentRecord.workflowId.takeIf { advancement.projectionArtifacts != null },
         )
       return blocked
     }
     val advancedManifest = advancement.manifest
-    val projectionArtifactsJson =
-      if (advancedManifest != manifest) decompositionRuntimeArtifactsJson(advancedManifest, validator) else null
+    val projectionArtifacts =
+      if (advancedManifest != manifest) decompositionRuntimeArtifacts(advancedManifest, validator) else null
     return selectedContinuation(parentRecord, advancedManifest, unitOfWork, requestedSubtaskId)
-      .withProjectionArtifactsIfMissing(projectionArtifactsJson)
+      .withProjectionArtifactsIfMissing(projectionArtifacts)
       .let { step ->
-        if (step.projectionOwnerWorkflowId == null && step.projectionArtifactsJson != null) {
+        if (step.projectionOwnerWorkflowId == null && step.projectionArtifacts != null) {
           step.copy(projectionOwnerWorkflowId = parentRecord.workflowId)
         } else {
           step
@@ -233,6 +241,7 @@ class DecompositionWorkflowContinuation(
           fileStore = fileStore,
           repoRoot = repoRoot,
           manifestWriter = manifestWriter,
+          repositoryCheckpointIdentity = ::repositoryCheckpointIdentity,
         ),
       ).withDecompositionFields(
         issueKey = manifest.issueKey,
@@ -322,6 +331,7 @@ class DecompositionWorkflowContinuation(
         fileStore = fileStore,
         repoRoot = repoRoot,
         manifestWriter = manifestWriter,
+        repositoryCheckpointIdentity = ::repositoryCheckpointIdentity,
       ),
     )
       .withProjection(updatedManifest, validator, parentRecord.workflowId)

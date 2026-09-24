@@ -36,7 +36,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction null
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val storedGeneration = reviewGenerationFrom(artifacts)
       val existingRecords = decodePhaseRecords(artifacts)
       val previousReview =
@@ -90,7 +90,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction 0
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val storedGeneration = reviewGenerationFrom(artifacts)
       val tombstoned =
         decodePhaseRecords(artifacts)[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW]
@@ -114,7 +114,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction false
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val existingRecords = decodePhaseRecords(artifacts)
       val previous = existingRecords[producerPhaseId] ?: return@transaction true
       if (previous.status.workflowStepStatus() != WorkflowStepStatus.COMPLETED) {

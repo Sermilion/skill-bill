@@ -23,6 +23,7 @@ import java.time.ZoneOffset
 internal class WorkflowServiceFeatureTaskIdentityRepair(
   private val engine: WorkflowEngine,
   private val clock: Clock,
+  private val repositoryCheckpointIdentity: () -> String = { "" },
 ) {
   fun repair(args: FeatureTaskIdentityRepairArgs): WorkflowUpdateResult {
     val unitOfWork = args.unitOfWork
@@ -57,7 +58,14 @@ internal class WorkflowServiceFeatureTaskIdentityRepair(
     val input = repairInput(existing, args)
     val updated = engine.updateRecord(family.definition, existing, input)
     family.save(unitOfWork.workflowStates, updated)
-    return buildUpdateOk(engine, family.definition, updated, input, unitOfWork.dbPath.toString())
+    return buildUpdateOk(
+      engine,
+      family.definition,
+      updated,
+      input,
+      unitOfWork.dbPath.toString(),
+      repositoryCheckpointIdentity,
+    )
   }
 
   private fun persistIdentity(

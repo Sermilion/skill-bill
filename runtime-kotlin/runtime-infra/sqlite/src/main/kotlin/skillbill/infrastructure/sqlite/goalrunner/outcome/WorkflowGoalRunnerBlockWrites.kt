@@ -2,7 +2,6 @@ package skillbill.infrastructure.sqlite.goalrunner.outcome
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.toPersistenceWire
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseLedger
 import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseRecords
 import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
@@ -15,7 +14,6 @@ import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.blockedStepId
-import skillbill.workflow.engine.decodeWorkflowSteps
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -59,7 +57,7 @@ internal class WorkflowGoalRunnerBlockWrites(
   }
 
   fun markBlocked(write: GoalRunnerBlockWrite): String {
-    val steps = decodeWorkflowSteps(write.record.stepsJson)
+    val steps = write.record.steps
     val definitionStepIds =
       if (write.family == WorkflowFamily.TASK_RUNTIME) {
         write.family.definition.stepIds.filterNot { it in write.family.loopOnlyStepIds }
@@ -73,6 +71,7 @@ internal class WorkflowGoalRunnerBlockWrites(
         write.family.definition,
         write.record,
         WorkflowUpdateInput(
+          terminalInstant = clock.instant(),
           workflowStatus = WorkflowStatus.BLOCKED,
           currentStepId = stepId,
           stepUpdates =
@@ -110,7 +109,7 @@ internal class WorkflowGoalRunnerBlockWrites(
     if (family.definition.isTerminalStatus(existing.workflowStatus)) {
       return false
     }
-    val artifacts = decodeArtifacts(existing.artifactsJson)
+    val artifacts = existing.artifacts
     val phaseRecords = decodePhaseRecords(artifacts)
     val blockedRecord =
       operatorReopenablePhaseRecord(

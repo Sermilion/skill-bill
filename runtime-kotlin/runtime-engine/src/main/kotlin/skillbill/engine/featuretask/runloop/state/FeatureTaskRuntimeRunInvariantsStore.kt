@@ -26,7 +26,7 @@ class FeatureTaskRuntimeRunInvariantsStore(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      runInvariantsFrom(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+      runInvariantsFrom(record.artifacts)
     }
   }
 
@@ -38,7 +38,7 @@ class FeatureTaskRuntimeRunInvariantsStore(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val existing = runInvariantsFrom(artifacts)
       when {
         existing == null -> workflowPersistence.persistRunInvariantsPatch(unitOfWork.workflowStates, record, proposed)

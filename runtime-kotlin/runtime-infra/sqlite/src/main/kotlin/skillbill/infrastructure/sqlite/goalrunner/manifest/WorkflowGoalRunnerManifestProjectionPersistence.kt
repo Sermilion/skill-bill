@@ -15,11 +15,12 @@ import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
 internal data class SavedManifestProjection(
   internal val state: GoalRunnerManifestState,
-  internal val projectionArtifactsJson: String,
+  internal val projectionArtifacts: DurableWorkflowArtifacts,
 )
 
 internal class WorkflowGoalRunnerManifestProjectionPersistence(
@@ -69,7 +70,7 @@ internal class WorkflowGoalRunnerManifestProjectionPersistence(
           stepUpdates = null,
           artifactsPatch =
             WorkflowArtifactPatch.from(
-              parentProjection.artifacts(manifest, existingSnapshot.artifactsJson),
+              parentProjection.artifacts(manifest, existingSnapshot.artifacts),
             ),
           sessionId = existingSnapshot.sessionId.orEmpty(),
           replaceArtifacts = true,
@@ -90,7 +91,7 @@ internal class WorkflowGoalRunnerManifestProjectionPersistence(
           controlState = unitOfWork.goalRunnerControls.controlState(refreshed.workflowId),
           repoRoot = state.repoRoot,
         ),
-      projectionArtifactsJson = refreshed.artifactsJson,
+      projectionArtifacts = refreshed.artifacts,
     )
   }
 }

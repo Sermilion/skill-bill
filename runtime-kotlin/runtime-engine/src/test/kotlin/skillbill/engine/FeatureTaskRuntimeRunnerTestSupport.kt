@@ -150,7 +150,7 @@ import skillbill.scaffold.model.ValidationGateExecutedWorkSignal
 import skillbill.scaffold.model.ValidationGateFindingsFormat.JUNIT_XML
 import skillbill.scaffold.model.ValidationGateFindingsLocator
 import skillbill.telemetry.model.TelemetrySettings
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
@@ -865,6 +865,7 @@ private fun harnessWorkflowParts(database: RuntimeFakeDatabaseSessionFactory): R
       FeatureTaskRuntimeDecomposeTerminalRecorder(
         database,
         NoopWorkflowSnapshotValidator,
+        testHarnessClock,
       ),
     runInvariantsStore =
       FeatureTaskRuntimeRunInvariantsStore(

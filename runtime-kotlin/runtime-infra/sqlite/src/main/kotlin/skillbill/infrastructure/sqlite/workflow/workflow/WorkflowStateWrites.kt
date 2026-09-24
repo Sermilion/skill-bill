@@ -2,6 +2,8 @@ package skillbill.infrastructure.sqlite.workflow.workflow
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.toSnapshot
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.isTerminal
@@ -43,7 +45,9 @@ internal fun Connection.upsertWorkflowRow(
   row: WorkflowStateRecord,
   defaultContractVersion: String,
   clock: Clock,
+  workflowSnapshotValidator: WorkflowSnapshotValidator,
 ) {
+  workflowSnapshotValidator.validate(row.toSnapshot(), row.workflowName)
   val transitionTimestamp = nextStateEnteredAtSql(tableName)
   val insertionTimestamp = row.startedAt.orInsertionTimestamp(clock)
   prepareStatement(
@@ -90,7 +94,9 @@ internal fun Connection.upsertFeatureTaskWorkflowRow(
   implementationSkill: String,
   defaultContractVersion: String,
   clock: Clock,
+  workflowSnapshotValidator: WorkflowSnapshotValidator,
 ) {
+  workflowSnapshotValidator.validate(row.toSnapshot(), row.workflowName)
   val transitionTimestamp = nextStateEnteredAtSql("feature_task_workflows")
   val insertionTimestamp = row.startedAt.orInsertionTimestamp(clock)
   prepareStatement(
@@ -133,7 +139,9 @@ internal fun Connection.upsertFeatureTaskWorkflowRow(
   }
 }
 
-internal fun Connection.terminalizeLegacyProseFeatureTaskWorkflowRow(row: WorkflowStateRecord) {
+internal fun Connection.terminalizeLegacyProseFeatureTaskWorkflowRow(
+  row: WorkflowStateRecord,
+) {
   val transitionTimestamp = nextStateEnteredAtSql("feature_task_workflows")
   prepareStatement(
     """

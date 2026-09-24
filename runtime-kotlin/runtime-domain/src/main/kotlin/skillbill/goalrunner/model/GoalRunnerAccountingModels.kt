@@ -3,6 +3,8 @@ package skillbill.goalrunner.model
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.time.parsePersistedInstant
+import java.time.Instant
 
 const val GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY: String = "goal_attempt_ledger"
 const val GOAL_ATTEMPT_LEDGER_LIMIT: Int = 200
@@ -63,7 +65,7 @@ sealed interface GoalAttemptLaunchOutcome {
 data class GoalAttemptLedgerEntry(
   val action: GoalAttemptLedgerAction,
   val sequenceNumber: Int,
-  val timestamp: String,
+  val timestamp: Instant,
   val issueKey: String? = null,
   val subtaskId: Int? = null,
   val previousWorkflowId: String? = null,
@@ -90,9 +92,45 @@ data class GoalAttemptLedgerEntry(
   val reAttemptCause: String? = null,
   val findingsInScope: Int? = null,
 ) {
+  constructor(
+    action: GoalAttemptLedgerAction,
+    sequenceNumber: Int,
+    timestamp: String,
+    issueKey: String? = null,
+    subtaskId: Int? = null,
+    previousWorkflowId: String? = null,
+    previousStatus: WorkflowStatus? = null,
+    previousStep: String? = null,
+    blockedReason: String? = null,
+    latestLiveness: String? = null,
+    launchOutcome: GoalAttemptLaunchOutcome? = null,
+    timedOut: Boolean? = null,
+    interrupted: Boolean? = null,
+    childSessionPath: String? = null,
+    childSessionId: String? = null,
+    finalReconciledResult: String? = null,
+    stopReason: String? = null,
+    diagnosticClass: String? = null,
+    currentStep: String? = null,
+    exitStatus: Int? = null,
+    recoverableJsonPresent: Boolean? = null,
+    nextSafeAction: String? = null,
+    loopId: String? = null,
+    cumulativeLoopCount: Int? = null,
+    attemptDurationMillis: Long? = null,
+    causingLoopEntry: String? = null,
+    reAttemptCause: String? = null,
+    findingsInScope: Int? = null,
+  ) : this(
+    action, sequenceNumber, parsePersistedInstant(timestamp), issueKey, subtaskId, previousWorkflowId,
+    previousStatus, previousStep, blockedReason, latestLiveness, launchOutcome, timedOut, interrupted,
+    childSessionPath, childSessionId, finalReconciledResult, stopReason, diagnosticClass, currentStep,
+    exitStatus, recoverableJsonPresent, nextSafeAction, loopId, cumulativeLoopCount, attemptDurationMillis,
+    causingLoopEntry, reAttemptCause, findingsInScope,
+  )
+
   init {
     require(sequenceNumber >= 0) { "GoalAttemptLedgerEntry.sequenceNumber must be non-negative." }
-    require(timestamp.isNotBlank()) { "GoalAttemptLedgerEntry.timestamp is required." }
   }
 
   fun toPersistenceWire(): Any = toArtifactMap()
@@ -129,7 +167,7 @@ data class GoalAttemptLedgerEntry(
     return linkedMapOf<String, Any?>(
       "action" to action.wireValue,
       "sequence_number" to sequenceNumber,
-      "timestamp" to timestamp,
+      "timestamp" to timestamp.toString(),
     ).apply { putAll(optional.filterValues { it != null }) }
   }
 }

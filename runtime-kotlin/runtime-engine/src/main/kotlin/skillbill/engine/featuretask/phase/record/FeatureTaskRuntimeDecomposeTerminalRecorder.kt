@@ -1,14 +1,14 @@
 package skillbill.engine.featuretask.phase.record
 
+import java.time.Clock
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
-import skillbill.engine.featuretask.phase.core.decomposeTerminalFromWorkflowArtifacts
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
@@ -22,8 +22,9 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 class FeatureTaskRuntimeDecomposeTerminalRecorder(
   private val database: DatabaseSessionFactory,
   private val workflowSnapshotValidator: WorkflowSnapshotValidator,
+  private val clock: Clock,
 ) {
-  private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator)
+  private val engine: WorkflowEngine = WorkflowEngine()
 
   fun recordDecomposeTerminal(
     workflowId: String,
@@ -38,6 +39,7 @@ class FeatureTaskRuntimeDecomposeTerminalRecorder(
           WorkflowFamily.TASK_RUNTIME.definition,
           record,
           WorkflowUpdateInput(
+            terminalInstant = clock.instant(),
             workflowStatus = WorkflowStatus.COMPLETED,
             currentStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
             stepUpdates = null,
@@ -57,6 +59,6 @@ class FeatureTaskRuntimeDecomposeTerminalRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      decomposeTerminalFromWorkflowArtifacts(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+      decomposeTerminalFromWorkflowArtifacts(record.artifacts)
     }
 }

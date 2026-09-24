@@ -5,6 +5,7 @@ import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.goalrunner.model.parseExecutionLeaseInstant
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
+import java.time.Instant
 import java.time.Duration
 
 fun GoalRunnerControlRepository.executionLease(parentWorkflowId: String): GoalRunnerExecutionLease? =
@@ -21,8 +22,8 @@ fun GoalRunnerControlRepository.acquireExecutionLease(
     parentWorkflowId,
     state.copy(
       executionLease = lease,
-      activeDurationAsOf = lease.heartbeatAt,
-      subtaskActiveDurationAsOf = lease.heartbeatAt.takeIf { state.currentSubtaskId != null },
+      activeDurationAsOf = lease.heartbeatAt.toString(),
+      subtaskActiveDurationAsOf = lease.heartbeatAt.toString().takeIf { state.currentSubtaskId != null },
     ),
   )
   return true
@@ -68,7 +69,7 @@ fun GoalRunnerControlRepository.releaseExecutionLeaseIfExpired(
   return releaseExecutionLease(parentWorkflowId, ownerToken, generation)
 }
 
-private fun GoalRunnerControlState.advancedBy(heartbeatAt: String): GoalRunnerControlState {
+private fun GoalRunnerControlState.advancedBy(heartbeatAt: Instant): GoalRunnerControlState {
   val goal = advanceAccumulator(activeDurationMs, activeDurationAsOf, heartbeatAt)
   val subtask =
     if (currentSubtaskId != null) {
@@ -87,16 +88,16 @@ private fun GoalRunnerControlState.advancedBy(heartbeatAt: String): GoalRunnerCo
 private fun advanceAccumulator(
   accumulatedMs: Long,
   asOf: String?,
-  heartbeatAt: String,
+  heartbeatAt: Instant,
 ): Pair<Long, String?> {
-  val previous = asOf ?: return accumulatedMs to heartbeatAt
+  val previous = asOf ?: return accumulatedMs to heartbeatAt.toString()
   val elapsedMs =
     Duration.between(
       parseExecutionLeaseInstant("active_duration_as_of", previous),
-      parseExecutionLeaseInstant("heartbeat_at", heartbeatAt),
+      heartbeatAt,
     ).toMillis()
   val counted = elapsedMs.coerceIn(0, GOAL_ACTIVE_HEARTBEAT_GAP_LIMIT_MS)
-  return accumulatedMs + counted to heartbeatAt
+  return accumulatedMs + counted to heartbeatAt.toString()
 }
 
 fun GoalRunnerControlRepository.clearRunnerInterruptedPauseState(parentWorkflowId: String): GoalRunnerControlState {

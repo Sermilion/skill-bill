@@ -2,7 +2,6 @@ package skillbill.engine
 import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.testHarnessClock
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.lifecycle.continuation.agentAttributionFromPhaseState
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
@@ -36,7 +35,7 @@ import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
@@ -66,6 +65,19 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FeatureTaskRuntimeStatusServiceTest {
+  @Test
+  fun `corrupt artifacts fail at status projection and preserve the stored bytes`() {
+    val harness = statusHarness()
+    harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+    val row = requireNotNull(harness.repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID)).copy(artifactsJson = "{")
+    harness.repository.saveFeatureTaskRuntimeWorkflow(row)
+
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId = WORKFLOW_ID))
+    }
+    assertEquals(row, harness.repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID))
+  }
+
   @Test
   fun `null projection for an unknown workflow id`() {
     val harness = statusHarness()
@@ -1129,7 +1141,7 @@ internal fun statusHarness(): StatusHarness {
       testHarnessClock,
       NoopRuntimeDiagnostics,
     )
-  val decomposeTerminalRecorder = FeatureTaskRuntimeDecomposeTerminalRecorder(database, StatusNoopSnapshotValidator)
+  val decomposeTerminalRecorder = FeatureTaskRuntimeDecomposeTerminalRecorder(database, StatusNoopSnapshotValidator, testHarnessClock)
   val runInvariantsStore =
     FeatureTaskRuntimeRunInvariantsStore(
       database,
@@ -1149,7 +1161,7 @@ internal class StatusHarness(
   val decomposeTerminalRecorder: FeatureTaskRuntimeDecomposeTerminalRecorder,
   val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
   val service: FeatureTaskRuntimeStatusService,
-  private val repository: StatusInMemoryWorkflowRepository,
+  val repository: StatusInMemoryWorkflowRepository,
 ) {
   fun recordRunning(
     phaseId: String,
@@ -1258,7 +1270,7 @@ internal class StatusHarness(
 
   fun seedDiagnosticSignalsArtifact(raw: Any?) {
     val row = requireNotNull(repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID))
-    val artifacts = decodeWorkflowArtifacts(row.artifactsJson).toMutableMap()
+    val artifacts = decodeWorkflowArtifactsForTest(row.artifactsJson).toMutableMap()
     artifacts[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY] = raw
     repository.saveFeatureTaskRuntimeWorkflow(
       row.copy(artifactsJson = JsonCodec.mapToJsonString(artifacts)),
@@ -1288,7 +1300,7 @@ internal class StatusHarness(
 }
 
 private class StatusFakeDatabaseSessionFactory(
-  private val repository: StatusInMemoryWorkflowRepository,
+  val repository: StatusInMemoryWorkflowRepository,
 ) : DatabaseSessionFactory {
   private val dbPath = Path.of("/fake/status-metrics.db")
 

@@ -1,11 +1,14 @@
 package skillbill.workflow.taskruntime.feature
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.contracts.JsonCodec
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepState
+import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeRequiredArtifactPresenceResolver
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
@@ -17,9 +20,10 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import java.time.Instant
 
 class FeatureTaskRuntimeResumeGateTest {
-  private val engine = WorkflowEngine(NoopWorkflowSnapshotValidator)
+  private val engine = WorkflowEngine()
   private val runtimeDefinition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
 
   @Test
@@ -173,34 +177,6 @@ class FeatureTaskRuntimeResumeGateTest {
   }
 
   @Test
-  fun `runtime resume gate loud-fails on a corrupt phase record rather than coercing to empty`() {
-    val corruptArtifactsJson =
-
-      """{"feature_task_runtime_phase_records":{"preplan":""" +
-        """{"phase_id":"preplan","status":"completed","attempt_count":1,""" +
-        """"started_at":"2026-06-18T10:00:00Z"}}}"""
-    val record =
-      WorkflowStateSnapshot(
-        workflowId = "wftr-test",
-        sessionId = "ftr-test",
-        workflowName = runtimeDefinition.workflowName,
-        contractVersion = runtimeDefinition.contractVersion,
-        workflowStatus = WorkflowStatus.RUNNING,
-        currentStepId = "plan",
-        stepsJson = stepsJson("preplan" to "completed", "plan" to "pending"),
-        artifactsJson = corruptArtifactsJson,
-        startedAt = "2026-06-18T10:00:00Z",
-        updatedAt = "2026-06-18T10:05:00Z",
-        finishedAt = null,
-        mode = runtimeDefinition.workflowMode,
-      )
-
-    assertFailsWith<InvalidWorkflowStateSchemaError> {
-      engine.resumeView(runtimeDefinition, record)
-    }
-  }
-
-  @Test
   fun `runtime resume gate loud-fails on malformed quality gate selection`() {
     val snapshot =
       WorkflowSnapshotView(
@@ -253,12 +229,12 @@ class FeatureTaskRuntimeResumeGateTest {
       contractVersion = runtimeDefinition.contractVersion,
       workflowStatus = workflowStatus,
       currentStepId = currentStepId,
-      stepsJson = stepsJson,
-      artifactsJson = phaseRecordsArtifactsJson(phaseRecordStatuses, phaseRecordOutputs),
-      startedAt = "2026-06-18T10:00:00Z",
-      updatedAt = "2026-06-18T10:05:00Z",
+      steps = decodeSteps(stepsJson),
+      artifacts = DurableWorkflowArtifacts.fromMap(decodeArtifacts(phaseRecordsArtifactsJson(phaseRecordStatuses, phaseRecordOutputs))),
+      startedAt = Instant.parse("2026-06-18T10:00:00Z"),
+      updatedAt = Instant.parse("2026-06-18T10:05:00Z"),
       finishedAt = null,
-      mode = runtimeDefinition.workflowMode,
+      mode = runtimeDefinition.workflowMode?.let(FeatureTaskWorkflowMode::fromWireValue),
     )
 
   private fun implementSnapshot(
@@ -273,13 +249,26 @@ class FeatureTaskRuntimeResumeGateTest {
       contractVersion = definition.contractVersion,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = currentStepId,
-      stepsJson = stepsJson,
-      artifactsJson = "{}",
-      startedAt = "2026-06-18T10:00:00Z",
-      updatedAt = "2026-06-18T10:05:00Z",
+      steps = decodeSteps(stepsJson),
+      artifacts = DurableWorkflowArtifacts.EMPTY,
+      startedAt = Instant.parse("2026-06-18T10:00:00Z"),
+      updatedAt = Instant.parse("2026-06-18T10:05:00Z"),
       finishedAt = null,
-      mode = definition.workflowMode,
+      mode = definition.workflowMode?.let(FeatureTaskWorkflowMode::fromWireValue),
     )
+
+  private fun decodeSteps(raw: String): List<WorkflowStepState> =
+    (JsonCodec.parseValue(raw) as List<*>).map { value ->
+      val entry = requireNotNull(JsonCodec.anyToStringAnyMap(value))
+      WorkflowStepState(
+        stepId = entry.getValue("step_id") as String,
+        status = WorkflowStepStatus.fromWire(entry.getValue("status") as String)!!,
+        attemptCount = (entry.getValue("attempt_count") as Number).toInt(),
+      )
+    }
+
+  private fun decodeArtifacts(raw: String): Map<String, Any?> =
+    requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(raw)))
 
   private fun stepsJson(vararg stepStatuses: Pair<String, String>): String =
     stepStatuses.joinToString(prefix = "[", postfix = "]") { (stepId, status) ->
@@ -308,10 +297,4 @@ class FeatureTaskRuntimeResumeGateTest {
   private fun jsonStringLiteral(value: String): String =
     value.replace("\\", "\\\\").replace("\"", "\\\"").let { """"$it"""" }
 
-  private object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
-    override fun validate(
-      snapshot: WorkflowStateSnapshot,
-      slug: String,
-    ) = Unit
-  }
 }

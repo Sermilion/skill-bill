@@ -7,7 +7,6 @@ import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.runtime.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
@@ -60,7 +59,7 @@ internal fun clearDecompositionManifestProjectionFailure(
         stepUpdates = null,
         artifactsPatch =
           WorkflowArtifactPatch.from(
-            DurableWorkflowArtifacts.fromJson(existing.artifactsJson).toMutableMap().apply {
+            existing.artifacts.toMutableMap().apply {
               remove(DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
             },
           ),

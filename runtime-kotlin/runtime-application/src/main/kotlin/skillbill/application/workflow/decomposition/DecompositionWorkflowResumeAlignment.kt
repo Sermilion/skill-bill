@@ -4,7 +4,6 @@ import skillbill.application.decomposition.executionModel
 import skillbill.application.workflow.model.ContinueExistingWorkflowArgs
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
 import skillbill.application.workflow.model.WorkflowContinueResult
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.application.workflow.persist.toReopenInput
 import skillbill.application.workflow.service.ContinuationStepResult
 import skillbill.application.workflow.service.migrateLegacyGoalRunnerControls
@@ -25,6 +24,7 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -40,8 +40,14 @@ internal fun WorkflowEngine.continueExistingWorkflow(
   var record = initialRecord
   val workflowId = initialRecord.workflowId
   val sessionSummary = family.sessionSummary(unitOfWork.workflowStates, record.sessionId.orEmpty())
-  var decision = continueDecision(family.definition, record, sessionSummary)
-  var projectionArtifactsJson: String? = null
+  var decision =
+    continueDecision(
+      family.definition,
+      record,
+      sessionSummary,
+      resolvedRepositoryCheckpointIdentity = args.repositoryCheckpointIdentity(),
+    )
+  var projectionArtifacts: DurableWorkflowArtifacts? = null
   var projectionOwnerWorkflowId: String? = null
   if (decision.shouldReopen) {
     val originalContinueStatus = decision.view.continueStatus
@@ -71,7 +77,7 @@ internal fun WorkflowEngine.continueExistingWorkflow(
     if (family == WorkflowFamily.TASK_RUNTIME && reopenValidator != null) {
       projectionOwnerWorkflowId = resolveDecompositionProjectionOwner(record, unitOfWork, reopenValidator)
       if (projectionOwnerWorkflowId != null) {
-        projectionArtifactsJson = record.artifactsJson
+        projectionArtifacts = record.artifacts
       }
     }
     decision =
@@ -81,6 +87,7 @@ internal fun WorkflowEngine.continueExistingWorkflow(
         sessionSummary,
         continueStatusOverride = originalContinueStatus,
         workflowStatusBeforeContinueOverride = originalWorkflowStatus,
+        resolvedRepositoryCheckpointIdentity = args.repositoryCheckpointIdentity(),
       )
   }
   return ContinuationStepResult(
@@ -88,7 +95,7 @@ internal fun WorkflowEngine.continueExistingWorkflow(
       dbPath = unitOfWork.dbPath.toString(),
       view = decision.view,
     ),
-    projectionArtifactsJson = projectionArtifactsJson,
+    projectionArtifacts = projectionArtifacts,
     projectionOwnerWorkflowId = projectionOwnerWorkflowId,
   )
 }
@@ -183,7 +190,7 @@ fun WorkflowEngine.persistParentDecompositionRuntime(
         stepUpdates = null,
         artifactsPatch =
           WorkflowArtifactPatch.from(
-            LinkedHashMap(decodeWorkflowArtifacts(parentRecord.artifactsJson)).apply {
+            LinkedHashMap(parentRecord.artifacts).apply {
               remove("goal_review_policy")
               remove("goal_out_of_band_acceptances")
               put(

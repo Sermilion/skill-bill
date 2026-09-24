@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.review.goal
 
+import java.time.Instant
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.lifecycle.continuation.reconcileRemediationBaseCoherence
@@ -103,7 +104,7 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
     goalBranch: String = "feat/SKILL-142",
     checkpointIdentities: List<FeatureTaskRuntimeCheckpointIdentity> = emptyList(),
   ): FeatureTaskRuntimeGoalContinuationRecorder {
-    val engine = WorkflowEngine(featureTaskGitIntegrationSnapshotValidator)
+    val engine = WorkflowEngine()
     val definition = WorkflowFamily.TASK_RUNTIME.definition
     val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
     val artifactsPatch =
@@ -131,6 +132,7 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "review",
           stepUpdates = null,

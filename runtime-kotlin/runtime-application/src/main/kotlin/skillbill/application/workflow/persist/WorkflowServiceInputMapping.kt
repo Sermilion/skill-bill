@@ -72,6 +72,7 @@ internal fun persistOpenedWorkflow(args: PersistOpenedWorkflowArgs): WorkflowOpe
         args.effectiveSessionId,
         stepId,
       )
+    args.workflowSnapshotValidator.validate(record, family.definition.workflowName)
     family.saveRecord(
       unitOfWork.workflowStates,
       record.toRecord().copy(
@@ -91,6 +92,7 @@ internal fun persistOpenedWorkflow(args: PersistOpenedWorkflowArgs): WorkflowOpe
         engine.snapshotView(family.definition, saved),
         stepId,
         currentStep?.attemptCount ?: 0,
+        args.repositoryCheckpointIdentity,
       )
     WorkflowOpenResult.Ok(
       workflowId = saved.workflowId,
@@ -152,11 +154,7 @@ internal fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
   return if (patch?.containsKey("progress_event") != true) {
     this
   } else {
-    val existingArtifacts =
-      JsonCodec.parseObjectOrNull(existing.artifactsJson)
-        ?.let(JsonCodec::jsonElementToValue)
-        ?.let(JsonCodec::anyToStringAnyMap)
-        .orEmpty()
+    val existingArtifacts = existing.artifacts
     val mergedArtifacts = LinkedHashMap(existingArtifacts).apply { putAll(patch) }
     val observabilityPatch =
       GoalObservabilityArtifacts.patchForProgressEvent(
@@ -191,6 +189,7 @@ internal fun buildUpdateOk(
   updated: WorkflowStateSnapshot,
   effectiveInput: WorkflowUpdateInput,
   dbPath: String,
+  repositoryCheckpointIdentity: () -> String = { "" },
 ): WorkflowUpdateResult.Ok {
   val snapshot = engine.snapshotView(definition, updated)
   val currentStep = snapshot.steps.firstOrNull { it.stepId == snapshot.currentStepId }
@@ -209,6 +208,7 @@ internal fun buildUpdateOk(
         snapshot,
         snapshot.currentStepId,
         currentStep?.attemptCount ?: 0,
+        repositoryCheckpointIdentity,
       ),
   )
 }
@@ -219,13 +219,22 @@ internal fun launchProjectionIfReady(
   snapshot: WorkflowSnapshotView,
   stepId: String,
   producerIteration: Int,
+  repositoryCheckpointIdentity: () -> String = { "" },
 ) = definition.inputProjectionsByStep[stepId]
   ?.takeIf { declaration ->
     declaration.requiredArtifactKeys.all { artifactKey ->
       artifactKey == RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY || snapshot.artifacts.containsKey(artifactKey)
     }
   }
-  ?.let { engine.launchProjection(definition, snapshot, stepId, producerIteration) }
+  ?.let {
+    engine.launchProjection(
+      definition,
+      snapshot,
+      stepId,
+      producerIteration,
+      repositoryCheckpointIdentity(),
+    )
+  }
 
 fun WorkflowService.openFeatureTask(args: WorkflowServiceOpenFeatureTaskArgs): WorkflowOpenResult {
   require(args.kind in FEATURE_TASK_FAMILY_KINDS) {

@@ -61,7 +61,7 @@ internal fun blockedContinuationRecord(fixture: BlockedContinuationRecordFixture
   val storedBlockedReason = fixture.storedBlockedReason
   val declaredProgressTimestamp = fixture.declaredProgressTimestamp
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-176", "preplan")
   val artifacts =
     linkedMapOf<String, Any?>(
@@ -102,6 +102,7 @@ internal fun blockedContinuationRecord(fixture: BlockedContinuationRecordFixture
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus =
         WorkflowStatus.fromWire(workflowStatus)
           ?: error("Unknown workflow status '$workflowStatus'."),
@@ -120,12 +121,13 @@ internal fun blockedContinuationRecord(fixture: BlockedContinuationRecordFixture
 
 internal fun completeWithoutShaContinuationRecord(workflowId: String): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-176", "preplan")
   return engine.updateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "commit_push",
       stepUpdates =
@@ -163,12 +165,13 @@ internal fun runtimeCandidateRecordNoDeclaredEvent(
   updatedAt: String?,
 ): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   return engine.updateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates =
@@ -199,12 +202,13 @@ internal fun goalReviewWorkflowRecord(
   rawReviewResult: String,
 ): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   return engine.updateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "review",
       stepUpdates = null,
@@ -233,7 +237,7 @@ internal fun runtimeCandidateRecord(
   declaredProgressTimestamp: Instant,
 ): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   val declaredEvent =
     GoalProgressEvent(
@@ -251,6 +255,7 @@ internal fun runtimeCandidateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates =
@@ -278,12 +283,13 @@ internal fun runtimeCandidateRecord(
 
 internal fun taskRuntimeWorkflowRecord(workflowId: String): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   return engine.updateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates = null,
@@ -293,14 +299,14 @@ internal fun taskRuntimeWorkflowRecord(workflowId: String): WorkflowStateRecord 
   ).toRecord()
 }
 
-internal fun decodeWorkflowArtifacts(artifactsJson: String): Map<String, Any?> {
+internal fun decodeWorkflowArtifactsForTest(artifactsJson: String): Map<String, Any?> {
   val element = JsonCodec.json.parseToJsonElement(artifactsJson)
   return requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(element)))
 }
 
 internal fun tornBlockedReviewRecord(workflowId: String): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   val reviewRecord =
     FeatureTaskRuntimePhaseRecord(
@@ -314,6 +320,7 @@ internal fun tornBlockedReviewRecord(workflowId: String): WorkflowStateRecord {
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.BLOCKED,
       currentStepId = "review",
       stepUpdates =
@@ -344,12 +351,13 @@ internal fun tornBlockedReviewRecord(workflowId: String): WorkflowStateRecord {
 
 internal fun crashedChildRecord(workflowId: String): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   return engine.updateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates = null,

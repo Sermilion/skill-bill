@@ -50,5 +50,5 @@ fun GoalObservabilityEvent.toProgressEvent(): GoalObservabilityProgressEvent =
     livenessClass = livenessClass,
     activitySummary = activitySummary,
     sequenceNumber = sequenceNumber,
-    timestamp = timestamp,
+    timestamp = timestamp.toString(),
   )

@@ -60,7 +60,7 @@ class GoalRunnerChildRepairWedgeApplyLoop(
     var record =
       WorkflowFamily.TASK_RUNTIME.get(workflowStates, request.workflowId)
         ?: return GoalRunnerChildRepairApplyResult()
-    var artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    var artifacts = record.artifacts
     val state =
       ApplyState(
         request = request,
@@ -84,7 +84,7 @@ class GoalRunnerChildRepairWedgeApplyLoop(
     val updated = WorkflowFamily.TASK_RUNTIME.get(workflowStates, request.workflowId) ?: record
     return GoalRunnerChildRepairApplyResult(
       repairs = state.applied,
-      manifestProjectionArtifactsJson = state.manifestProjectionArtifactsJson,
+      manifestProjectionArtifacts = state.manifestProjectionArtifacts,
     )
   }
 
@@ -203,7 +203,7 @@ class GoalRunnerChildRepairWedgeApplyLoop(
     var workingContinuation: FeatureTaskRuntimeGoalContinuationArtifact? =
       workingContinuation
     var workingReview: GoalSubtaskReviewState? = workingReview
-    var manifestProjectionArtifactsJson: String? = null
+    var manifestProjectionArtifacts: DurableWorkflowArtifacts? = null
   }
 }
 
@@ -387,10 +387,10 @@ internal fun applyCompletedUpstreamChildRepairWedge(
   val updated = engine.updateRecord(WorkflowFamily.TASK_RUNTIME.definition, state.record, input)
   WorkflowFamily.TASK_RUNTIME.save(workflowStates, updated)
   state.record = updated
-  state.artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(updated)
+  state.artifacts = updated.artifacts
   state.workingContinuation = continuationArtifactFromMap(state.artifacts)
   state.workingReview = GoalSubtaskReviewArtifactDecoder.decode(state.artifacts)?.state
-  state.manifestProjectionArtifactsJson =
+  state.manifestProjectionArtifacts =
     engine.updateGoalParentForBlockedPhaseRetry(
       unitOfWork = state.request.unitOfWork,
       childWorkflowId = state.request.workflowId,

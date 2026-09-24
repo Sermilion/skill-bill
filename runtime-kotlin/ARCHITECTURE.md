@@ -753,7 +753,7 @@ silently bypass the journal boundary.
    reference, or any `java.nio.file.Files` filesystem call. The concrete schema
    validators and their schema-resource copy tasks live in `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`,
    and `runtime-domain` / `runtime-application` reach schema validation only
-   through the domain-owned ports `InstallPlanWireValidator`,
+   through the ports `InstallPlanWireValidator`,
    `DecompositionManifestValidator`, and `WorkflowSnapshotValidator` — never by
    importing a concrete `*SchemaValidator` / `*CoherenceValidator`.
 6. Infrastructure packages implement ports and may depend on domain,
@@ -875,23 +875,24 @@ skillbill.workflow.verify
   `contract_version`, and runtime-owned quality-check keys). The JVM
   JSON-Schema validators, their typed schema errors, and their
   classpath-resource copy tasks live in `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`,
-  reached only through the domain-neutral ports `InstallPlanWireValidator`,
+reached only through the ports-owned validators `InstallPlanWireValidator`,
   `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`. Validator modules
   load schema resources from the `runtime-infra/contracts` classpath copy tasks, not from `runtime-contracts`.
 - Workflow-state schema validation is owned by
   `skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator`, compiled into
   `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`. The runtime-domain workflow engine MUST NOT import that
-  validator directly — instead it depends on the domain-owned port
-  `skillbill.workflow.engine.WorkflowSnapshotValidator`, which the composition root
+  validator directly. The ports module declares
+  `skillbill.ports.workflow.WorkflowSnapshotValidator`, which the composition root
   wires to the infra adapter
   `skillbill.infrastructure.contracts.WorkflowSnapshotValidatorInfraAdapter`. The
   port takes the typed `skillbill.workflow.engine.model.WorkflowStateSnapshot`, not a
   `Map<String, Any?>`; projecting that record onto the canonical wire shape is
   adapter work owned by
   `skillbill.infrastructure.contracts.WorkflowStateSnapshotWireMapper`, so
-  `WorkflowEngine` never builds a snapshot map. The owning read seam is still
-  `skillbill.workflow.engine.WorkflowEngine`; durable record
-  mapping stays pure and the next engine read rejects drift. Architecture
+  `WorkflowEngine` never builds a snapshot map. `WorkflowStateRecord.toSnapshot()`
+  strictly decodes step and artifact columns at the ports mapping boundary. The
+  engine owns aggregate rules, while adapters and application entry points own
+  canonical schema validation. Architecture
   tests forbid any `skillbill.infrastructure.contracts.workflow.*SchemaValidator*` or
   `skillbill.infrastructure.contracts.*Mapper` import under `runtime-domain` workflow
   source. (SKILL-52.2 Subtask 4 narrowed the

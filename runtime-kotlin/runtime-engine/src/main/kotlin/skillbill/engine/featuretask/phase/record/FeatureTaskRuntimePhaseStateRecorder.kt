@@ -46,6 +46,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.time.Clock
+import java.time.Instant
 
 class FeatureTaskRuntimePhaseStateRecorder(
   val database: DatabaseSessionFactory,
@@ -59,9 +60,9 @@ class FeatureTaskRuntimePhaseStateRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
           ?: return@transaction false
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val existingRecords = decodePhaseRecords(artifacts)
-      val now = clock.instant().toString()
+      val now = clock.instant()
       val previous = existingRecords[request.phaseId]
       val phaseRecord = phaseRecordFor(request, previous, now)
       val updatedRecords = LinkedHashMap(existingRecords).apply { put(request.phaseId, phaseRecord) }
@@ -76,6 +77,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
         record,
         patch,
         WorkflowRowAdvance(
+          terminalInstant = now,
           currentStepId = request.phaseId,
           workflowStatus = workflowStatusFor(request),
           stepUpdates = stepUpdatesFrom(updatedRecords),
@@ -96,7 +98,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
           ?: return@transaction false
       val patch =
         implementationAttemptPatch(
-          FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+          record.artifacts,
           request,
           FeatureTaskRuntimeImplementationAttemptStatus.INCOMPLETE,
         )
@@ -110,7 +112,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      implementationAttemptsFrom(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+      implementationAttemptsFrom(record.artifacts)
     }
 
   fun clearBackwardEdgeContext(
@@ -121,7 +123,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction false
-      val existingRecords = decodePhaseRecords(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+      val existingRecords = decodePhaseRecords(record.artifacts)
       val cleared = LinkedHashMap(existingRecords)
       phaseIds.forEach { phaseId ->
         val previous = existingRecords[phaseId] ?: return@forEach
@@ -149,7 +151,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      decodePhaseRecords(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+      decodePhaseRecords(record.artifacts)
     }
 
   fun loadOperatorBlockRetry(workflowId: String): FeatureTaskRuntimeOperatorBlockRetry? =
@@ -157,7 +159,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val retry = operatorBlockRetryFromWorkflowArtifacts(artifacts) ?: return@read null
       val phaseEntries = decodePhaseLedger(artifacts).filter { it.phaseId == retry.phaseId }
       val latestRetry =
@@ -180,14 +182,14 @@ class FeatureTaskRuntimePhaseStateRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      decodePhaseLedger(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+      decodePhaseLedger(record.artifacts)
     }
 }
 
 fun featureTaskRuntimePhaseRecordFor(
   request: FeatureTaskRuntimePhaseStateRequest,
   previous: FeatureTaskRuntimePhaseRecord?,
-  now: String,
+  now: Instant,
 ): FeatureTaskRuntimePhaseRecord {
   val firstStartedAt = previous?.firstStartedAt ?: now
   val startedAt =
@@ -234,6 +236,13 @@ fun featureTaskRuntimePhaseRecordFor(
     reviewRunId = request.reviewRunId ?: previous?.reviewRunId,
   )
 }
+
+fun featureTaskRuntimePhaseRecordFor(
+  request: FeatureTaskRuntimePhaseStateRequest,
+  previous: FeatureTaskRuntimePhaseRecord?,
+  now: String,
+): FeatureTaskRuntimePhaseRecord =
+  featureTaskRuntimePhaseRecordFor(request, previous, Instant.parse(now))
 
 fun FeatureTaskRuntimePhaseStateRecorder.implementationAttemptsFrom(
   artifacts: Map<String, Any?>,
@@ -320,11 +329,11 @@ fun FeatureTaskRuntimePhaseStateRecorder.recordCompletedPhaseWrite(
     val record =
       WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return@requiredWrite false
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    val artifacts = record.artifacts
     val existingRecords = decodePhaseRecords(artifacts)
     val updatedRecords =
       LinkedHashMap(existingRecords).apply {
-        put(request.phaseId, phaseRecordFor(request, existingRecords[request.phaseId], clock.instant().toString()))
+        put(request.phaseId, phaseRecordFor(request, existingRecords[request.phaseId], clock.instant()))
       }
     val ledger = decodePhaseLedger(artifacts)
     val completion =
@@ -353,7 +362,7 @@ fun FeatureTaskRuntimePhaseStateRecorder.recordCompletedPhaseWrite(
         FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to updatedLedger,
       ) + implementationAttemptPatch(artifacts, request, FeatureTaskRuntimeImplementationAttemptStatus.COMPLETED) +
         findingVerificationCheckpointPatch(request),
-      WorkflowRowAdvance(request.phaseId, workflowStatusFor(request), stepUpdatesFrom(updatedRecords)),
+      WorkflowRowAdvance(request.phaseId, workflowStatusFor(request), stepUpdatesFrom(updatedRecords), clock.instant()),
     )
     true
   }
@@ -361,5 +370,5 @@ fun FeatureTaskRuntimePhaseStateRecorder.recordCompletedPhaseWrite(
 fun FeatureTaskRuntimePhaseStateRecorder.phaseRecordFor(
   request: FeatureTaskRuntimePhaseStateRequest,
   previous: FeatureTaskRuntimePhaseRecord?,
-  now: String,
+  now: Instant,
 ): FeatureTaskRuntimePhaseRecord = featureTaskRuntimePhaseRecordFor(request, previous, now)

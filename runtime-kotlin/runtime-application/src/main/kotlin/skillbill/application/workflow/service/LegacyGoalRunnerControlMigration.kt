@@ -1,7 +1,6 @@
 package skillbill.application.workflow.service
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
@@ -20,7 +19,7 @@ internal fun migrateLegacyGoalRunnerControls(
   unitOfWork: GoalRunnerPersistenceSession,
   existing: WorkflowStateSnapshot,
 ) {
-  val artifacts = decodeWorkflowArtifacts(existing.artifactsJson)
+  val artifacts = existing.artifacts
   if (unitOfWork.goalRunnerControls.reviewPolicy(existing.workflowId) == null) {
     reviewPolicyFromLegacyArtifacts(artifacts)?.let {
       unitOfWork.goalRunnerControls.persistReviewPolicy(existing.workflowId, it)

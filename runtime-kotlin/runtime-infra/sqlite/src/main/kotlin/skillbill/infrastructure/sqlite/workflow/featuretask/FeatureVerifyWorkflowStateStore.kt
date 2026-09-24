@@ -5,6 +5,7 @@ import skillbill.infrastructure.sqlite.workflow.workflow.getWorkflowRows
 import skillbill.infrastructure.sqlite.workflow.workflow.listWorkflowRows
 import skillbill.infrastructure.sqlite.workflow.workflow.upsertWorkflowRow
 import skillbill.ports.workflow.FeatureVerifyWorkflowStateRepository
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import java.sql.Connection
@@ -15,6 +16,7 @@ internal const val FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION: String = "0.3"
 internal class FeatureVerifyWorkflowStateStore(
   private val connection: Connection,
   private val clock: Clock,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
 ) : FeatureVerifyWorkflowStateRepository {
   override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) {
     connection.upsertWorkflowRow(
@@ -22,6 +24,7 @@ internal class FeatureVerifyWorkflowStateStore(
       row = row,
       defaultContractVersion = FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION,
       clock = clock,
+      workflowSnapshotValidator = workflowSnapshotValidator,
     )
   }
 

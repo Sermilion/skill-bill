@@ -42,7 +42,8 @@ import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import java.nio.file.Path
 import java.time.Clock
 
@@ -59,7 +60,7 @@ class WorkflowGoalRunnerManifestStore
     private val planningHydrator: GoalChildPlanningHydratorPort,
     private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
   ) : GoalRunnerManifestStore {
-    private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator)
+    private val engine: WorkflowEngine = WorkflowEngine()
     private val parentProjection = GoalParentProjectionWriter(engine, decompositionManifestValidator)
     private val manifestLoader =
       WorkflowGoalRunnerManifestLoader(
@@ -238,7 +239,7 @@ class WorkflowGoalRunnerManifestStore
 
     override fun save(state: GoalRunnerManifestState): GoalRunnerManifestState {
       val saved = projectionPersistence.save(state)
-      writeProjectionFile(state, saved.projectionArtifactsJson)
+      writeProjectionFile(state, saved.projectionArtifacts)
       return saved.state
     }
 
@@ -279,7 +280,7 @@ class WorkflowGoalRunnerManifestStore
               ),
           )
         }
-      writeProjectionFile(state, saved.projectionArtifactsJson)
+      writeProjectionFile(state, saved.projectionArtifacts)
       return saved.state
     }
 
@@ -308,7 +309,7 @@ class WorkflowGoalRunnerManifestStore
           val recoveredManifest = state.manifest.afterIncompatibleChildDeletion(subtaskId)
           projectionPersistence.saveInTransaction(unitOfWork, state.copy(manifest = recoveredManifest))
         }
-      writeProjectionFile(state, saved.projectionArtifactsJson)
+      writeProjectionFile(state, saved.projectionArtifacts)
       return saved.state
     }
 
@@ -338,7 +339,7 @@ class WorkflowGoalRunnerManifestStore
         database.transaction { unitOfWork ->
           childWorkflowPersistence.saveInTransaction(unitOfWork, state, setup)
         }
-      writeProjectionFile(state, saved.projectionArtifactsJson)
+      writeProjectionFile(state, saved.projectionArtifacts)
       return saved.state
     }
 
@@ -422,12 +423,12 @@ class WorkflowGoalRunnerManifestStore
 
     private fun writeProjectionFile(
       state: GoalRunnerManifestState,
-      projectionArtifactsJson: String,
+      projectionArtifacts: DurableWorkflowArtifacts,
     ): DecompositionManifestProjectionOutcome {
       val outcome =
         decompositionManifestWriter.writeProjectionFromWorkflowState(
           state.repoRoot ?: repositoryRoot.path,
-          projectionArtifactsJson,
+          projectionArtifacts,
           decompositionManifestValidator,
           decompositionManifestStore,
         )

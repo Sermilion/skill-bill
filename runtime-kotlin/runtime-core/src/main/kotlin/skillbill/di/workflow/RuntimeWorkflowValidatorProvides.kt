@@ -6,7 +6,7 @@ import skillbill.infrastructure.contracts.workflow.goal.status.IdeStatusSchemaVa
 import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
 import skillbill.ports.idestatus.IdeStatusValidator
 import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.GoalPlanningPreparationEnvelopeValidator
 import skillbill.workflow.goal.GoalProgressEventValidator

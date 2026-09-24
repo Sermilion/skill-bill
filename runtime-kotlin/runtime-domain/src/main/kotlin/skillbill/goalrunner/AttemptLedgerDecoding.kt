@@ -9,6 +9,7 @@ import skillbill.workflow.goal.model.GoalProgressOutcome
 import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
 import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
+import skillbill.workflow.time.parsePersistedInstant
 
 fun progressEventFrom(artifacts: Any): GoalRunnerProgressEvent? {
   val wire = artifacts.asGoalWorkflowArtifactMap("goal progress event artifacts")
@@ -41,7 +42,11 @@ fun Map<*, *>.decodeDeclaredGoalProgressEvent(sourceLabel: String): GoalProgress
   val eventKind = requiredProgressEventKind(reader, sourceLabel)
   val workflowId = reader.requiredString("workflow_id")
   val workflowPhase = reader.requiredString("workflow_phase")
-  val timestamp = reader.requiredString("timestamp")
+  val timestamp =
+    runCatching { parsePersistedInstant(reader.requiredString("timestamp")) }
+      .getOrElse { error ->
+        throw InvalidGoalProgressEventSchemaError(sourceLabel, "timestamp", "must be an RFC 3339 instant.", error)
+      }
   val sequenceNumber =
     reader.requiredInt("sequence_number").also { value ->
       if (value < 0) {

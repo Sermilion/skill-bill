@@ -9,9 +9,6 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 
-fun decodeWorkflowArtifacts(artifactsJson: String): DurableWorkflowArtifacts =
-  DurableWorkflowArtifacts.fromJson(artifactsJson)
-
 internal fun decodeFeatureTaskRuntimePhaseRecords(
   artifacts: DurableWorkflowArtifacts,
 ): Map<String, FeatureTaskRuntimePhaseRecord> {

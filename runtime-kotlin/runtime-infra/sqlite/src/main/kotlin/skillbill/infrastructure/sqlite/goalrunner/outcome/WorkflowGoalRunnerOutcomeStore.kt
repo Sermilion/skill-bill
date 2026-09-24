@@ -5,7 +5,6 @@ import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.goalrunner.control.authoritativeOutcomesBySubtask
 import skillbill.infrastructure.sqlite.goalrunner.control.goalReviewArtifacts
 import skillbill.infrastructure.sqlite.goalrunner.control.taskRuntimeRecordOrNull
@@ -80,7 +79,7 @@ class WorkflowGoalRunnerOutcomeStore
     private val decompositionManifestStore = dependencies.decompositionManifestStore
     private val decompositionManifestWriter = dependencies.decompositionManifestWriter
     private val childRepairExecutor = dependencies.childRepairExecutor
-    private val engine = WorkflowEngine(workflowSnapshotValidator)
+    private val engine = WorkflowEngine()
     private val blockWrites = WorkflowGoalRunnerBlockWrites(engine, clock)
     private val terminalPersistence =
       WorkflowGoalRunnerOutcomeTerminalPersistence(
@@ -102,6 +101,7 @@ class WorkflowGoalRunnerOutcomeStore
       WorkflowGoalRunnerProgressRecording(
         database,
         engine,
+        workflowSnapshotValidator,
         goalObservabilityEventValidator,
         goalProgressEventValidator,
       )
@@ -301,13 +301,13 @@ internal class WorkflowGoalRunnerReviewBridge(
   override fun goalSubtaskReviewState(workflowId: String): GoalSubtaskReviewState? =
     database.read { unitOfWork ->
       val record = taskRuntimeRecordOrNull(unitOfWork.workflowStates, workflowId) ?: return@read null
-      goalReviewArtifacts(decodeArtifacts(record.artifactsJson))?.state
+      goalReviewArtifacts(record.artifacts)?.state
     }
 
   override fun unemittedGoalReviewPasses(workflowId: String): List<GoalSubtaskReviewPassResult> =
     database.read { unitOfWork ->
       val record = taskRuntimeRecordOrNull(unitOfWork.workflowStates, workflowId) ?: return@read emptyList()
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = record.artifacts
       if (GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY !in artifacts) return@read emptyList()
       val review = goalReviewArtifacts(artifacts) ?: return@read emptyList()
       validatedGoalReviewPasses(review, phaseOutputValidator, unitOfWork)
@@ -320,7 +320,7 @@ internal class WorkflowGoalRunnerReviewBridge(
   ): Boolean =
     database.transaction { unitOfWork ->
       val record = taskRuntimeRecordOrNull(unitOfWork.workflowStates, workflowId) ?: return@transaction false
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = record.artifacts
       val review = goalReviewArtifacts(artifacts) ?: return@transaction false
       val state = review.state
       validatedGoalReviewPasses(review, phaseOutputValidator, unitOfWork)
@@ -441,12 +441,12 @@ internal class WorkflowGoalRunnerChildRepairBridge(
           ),
         )
       }
-    result.manifestProjectionArtifactsJson?.let { artifactsJson ->
+    result.manifestProjectionArtifacts?.let { artifacts ->
       when (
         val outcome =
           decompositionManifestWriter.writeProjectionFromWorkflowState(
             repoRoot = request.repoRoot,
-            artifactsJson = artifactsJson,
+            artifacts = artifacts,
             validator = decompositionManifestValidator,
             fileStore = decompositionManifestStore,
           )

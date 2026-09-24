@@ -4,6 +4,7 @@ import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
+import java.time.OffsetDateTime
 import java.time.Instant
 import java.time.format.DateTimeParseException
 
@@ -14,11 +15,31 @@ data class GoalRunnerExecutionLease(
   val bootIdentity: String,
   val pid: Long,
   val processBirthToken: String,
-  val heartbeatAt: String,
-  val expiresAt: String,
+  val heartbeatAt: Instant,
+  val expiresAt: Instant,
 ) {
-  val heartbeatAtInstant: Instant = parseExecutionLeaseInstant("heartbeat_at", heartbeatAt)
-  val expiresAtInstant: Instant = parseExecutionLeaseInstant("expires_at", expiresAt)
+  val heartbeatAtInstant: Instant get() = heartbeatAt
+  val expiresAtInstant: Instant get() = expiresAt
+
+  constructor(
+    generation: Long,
+    ownerToken: String,
+    hostIdentity: String,
+    bootIdentity: String,
+    pid: Long,
+    processBirthToken: String,
+    heartbeatAt: String,
+    expiresAt: String,
+  ) : this(
+    generation,
+    ownerToken,
+    hostIdentity,
+    bootIdentity,
+    pid,
+    processBirthToken,
+    parseExecutionLeaseInstant("heartbeat_at", heartbeatAt),
+    parseExecutionLeaseInstant("expires_at", expiresAt),
+  )
 
   init {
     require(generation > 0) { "execution lease generation must be positive." }
@@ -27,8 +48,6 @@ data class GoalRunnerExecutionLease(
     require(bootIdentity.isNotBlank()) { "execution lease bootIdentity must not be blank." }
     require(pid > 0) { "execution lease pid must be positive." }
     require(processBirthToken.isNotBlank()) { "execution lease processBirthToken must not be blank." }
-    require(heartbeatAt.isNotBlank()) { "execution lease heartbeatAt must not be blank." }
-    require(expiresAt.isNotBlank()) { "execution lease expiresAt must not be blank." }
   }
 }
 
@@ -39,7 +58,14 @@ fun parseExecutionLeaseInstant(
   try {
     Instant.parse(value)
   } catch (_: DateTimeParseException) {
-    throw InvalidWorkflowStateSchemaError("Goal runner execution lease field '$field' must be an RFC 3339 instant.")
+    try {
+      OffsetDateTime.parse(value).toInstant()
+    } catch (error: DateTimeParseException) {
+      throw InvalidWorkflowStateSchemaError(
+        "Goal runner execution lease field '$field' must be an RFC 3339 instant.",
+        error,
+      )
+    }
   }
 
 const val GOAL_PAUSE_REASON_OPERATOR_REQUEST: String = "operator_request"

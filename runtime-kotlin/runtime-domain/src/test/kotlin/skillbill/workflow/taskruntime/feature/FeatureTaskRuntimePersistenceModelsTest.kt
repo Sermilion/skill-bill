@@ -25,6 +25,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -285,7 +286,7 @@ class FeatureTaskRuntimePersistenceModelsTest {
       )
     val decoded = FeatureTaskRuntimePhaseRecord.fromArtifactMap(record.toArtifactMap())
     assertEquals(record, decoded)
-    assertEquals("2026-06-02T10:00:00Z", decoded.firstStartedAt)
+    assertEquals(Instant.parse("2026-06-02T10:00:00Z"), decoded.firstStartedAt)
     assertEquals("exhausted the bounded fix loop", decoded.blockedReason)
   }
 

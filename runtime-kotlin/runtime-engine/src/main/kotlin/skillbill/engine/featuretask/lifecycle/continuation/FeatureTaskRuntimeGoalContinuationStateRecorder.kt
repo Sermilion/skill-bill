@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.lifecycle.continuation
 
+import java.time.Clock
 import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.runloop.observability.continuation
 import skillbill.ports.db.DatabaseSessionFactory
@@ -19,13 +20,14 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence
 class FeatureTaskRuntimeGoalContinuationStateRecorder(
   private val database: DatabaseSessionFactory,
   private val engine: WorkflowEngine,
+  private val clock: Clock,
 ) {
   internal fun recordGoalContinuationState(request: GoalContinuationStateRecordRequest): Boolean =
     database.transaction { unitOfWork ->
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
           ?: return@transaction false
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val existingContinuation = continuationFromArtifacts(artifacts)
       val supplied =
         request.continuation?.let { continuation ->
@@ -50,6 +52,7 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
           WorkflowFamily.TASK_RUNTIME.definition,
           record,
           WorkflowUpdateInput(
+            terminalInstant = clock.instant(),
             workflowStatus =
               request.workflowStatus?.let { status ->
                 WorkflowStatus.fromWire(status)
@@ -71,12 +74,12 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
   fun reviewState(workflowId: String): GoalSubtaskReviewState? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      reviewStateFromArtifacts(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+      reviewStateFromArtifacts(record.artifacts)
     }
 
   fun continuation(workflowId: String): FeatureTaskRuntimeGoalContinuationArtifact? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      continuationFromArtifacts(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
+      continuationFromArtifacts(record.artifacts)
     }
 }

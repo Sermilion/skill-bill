@@ -13,14 +13,6 @@ class DurableWorkflowArtifacts private constructor(
 
     fun fromMap(map: Map<String, Any?>): DurableWorkflowArtifacts = DurableWorkflowArtifacts(LinkedHashMap(map))
 
-    fun fromJson(artifactsJson: String): DurableWorkflowArtifacts {
-      val parsed =
-        JsonCodec.parseObjectOrNull(artifactsJson)
-          ?.let(JsonCodec::jsonElementToValue)
-          ?.let(JsonCodec::anyToStringAnyMap)
-      return DurableWorkflowArtifacts(parsed.orEmpty())
-    }
-
     fun fromAny(raw: Any?): DurableWorkflowArtifacts =
       when (raw) {
         null -> EMPTY

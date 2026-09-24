@@ -65,7 +65,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val rejected =
         artifacts[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY]
           ?: return@transaction
@@ -92,7 +92,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
   private fun readRemediationSnapshot(workflowId: String): RemediationReconcileSnapshot? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       runCatching {
         val state = reviewStateFromArtifacts(artifacts) ?: return@read null
         val continuation = continuationFromArtifacts(artifacts) ?: return@read null
@@ -112,7 +112,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
   ) {
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val goalBranch = continuationFromArtifacts(artifacts)?.goalBranch.orEmpty()
       val evidenceEntry =
         remediationBaseRecoveryEvidenceEntry(
@@ -387,7 +387,7 @@ internal fun FeatureTaskRuntimeRemediationBaseReconciler.appendRemediationBaseRe
 ) {
   database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    val artifacts = record.artifacts
     val evidenceEntry = remediationBaseRecoveryEvidenceEntry(recovery, signal)
     val priorEvidence = (artifacts[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY] as? List<*>).orEmpty()
     patcher.save(

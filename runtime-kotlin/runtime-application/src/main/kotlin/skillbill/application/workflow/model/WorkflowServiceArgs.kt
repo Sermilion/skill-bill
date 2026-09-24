@@ -13,6 +13,7 @@ internal data class ContinueExistingWorkflowArgs(
   val fileStore: DecompositionManifestStore? = null,
   val repoRoot: Path? = null,
   val manifestWriter: DecompositionManifestWriter? = null,
+  val repositoryCheckpointIdentity: () -> String = { "" },
 )
 
 internal data class DecompositionRuntimeWriteArgs(

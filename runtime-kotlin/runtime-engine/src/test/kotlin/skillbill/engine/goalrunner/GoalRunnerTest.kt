@@ -146,7 +146,7 @@ import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY
@@ -2005,7 +2005,7 @@ class GoalRunnerStatusProjectionTest {
 
     val heartbeatFailure =
       assertFailsWith<IllegalStateException> {
-        store.heartbeatExecutionLease("wfl-parent", staleLease.copy(heartbeatAt = "2026-07-27T12:00:00Z"))
+        store.heartbeatExecutionLease("wfl-parent", staleLease.copy(heartbeatAt = Instant.parse("2026-07-27T12:00:00Z")))
       }
     assertTrue(heartbeatFailure.message?.contains("SQLITE_BUSY") == true)
     val status =
@@ -2122,7 +2122,7 @@ class GoalRunnerStatusProjectionTest {
 
     assertEquals(ExecutionLiveness.LIVE, requireNotNull(liveService.status(goalStatusRequest())).executionLiveness)
 
-    store.executionLeaseForTest = store.executionLeaseForTest!!.copy(expiresAt = "2026-07-27T11:59:59Z")
+    store.executionLeaseForTest = store.executionLeaseForTest!!.copy(expiresAt = Instant.parse("2026-07-27T11:59:59Z"))
     assertEquals(ExecutionLiveness.LIVE, requireNotNull(liveService.status(goalStatusRequest())).executionLiveness)
 
     val idleService =

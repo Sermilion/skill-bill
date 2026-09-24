@@ -120,7 +120,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
     val record =
       WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return null
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    val artifacts = record.artifacts
     val reviewArtifacts = GoalSubtaskReviewArtifactDecoder.decode(artifacts) ?: return null
     val reservedPass = reviewArtifacts.state.reservedPassNumber ?: 1
     val envelope =
@@ -179,7 +179,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
             LinkedHashMap(existingRecords).apply {
               put(
                 request.phaseId,
-                featureTaskRuntimePhaseRecordFor(request, existingRecords[request.phaseId], clock.instant().toString()),
+                featureTaskRuntimePhaseRecordFor(request, existingRecords[request.phaseId], clock.instant()),
               )
             },
         ),

@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.lifecycle.remediation
 
+import java.time.Instant
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.lifecycle.continuation.reconcileRemediationBaseCoherence
@@ -403,7 +404,7 @@ class RemediationBaseReconciliationUnderAmendTest {
     repository: FeatureTaskGitIntegrationWorkflowRepository = FeatureTaskGitIntegrationWorkflowRepository(),
     legacyCheckpointRecord: Map<String, Any?>? = null,
   ): FeatureTaskRuntimeGoalContinuationRecorder {
-    val engine = WorkflowEngine(featureTaskGitIntegrationSnapshotValidator)
+    val engine = WorkflowEngine()
     val definition = WorkflowFamily.TASK_RUNTIME.definition
     val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
     val artifactsPatch =
@@ -432,6 +433,7 @@ class RemediationBaseReconciliationUnderAmendTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "review",
           stepUpdates = null,

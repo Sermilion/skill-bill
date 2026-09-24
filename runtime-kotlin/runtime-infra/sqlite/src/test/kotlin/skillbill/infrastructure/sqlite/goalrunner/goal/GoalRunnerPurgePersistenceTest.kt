@@ -4,6 +4,7 @@ import skillbill.infrastructure.sqlite.goalChildIdentity
 import skillbill.infrastructure.sqlite.goalChildWorkflow
 import skillbill.infrastructure.sqlite.goalrunner.manifest.goalRunnerPurgePersistence
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
+import skillbill.infrastructure.sqlite.testWorkflowSnapshotValidator
 import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateStore
 import skillbill.infrastructure.sqlite.workflowRow
 import skillbill.workflow.model.FeatureTaskRouteScope
@@ -29,7 +30,7 @@ class GoalRunnerPurgePersistenceTest {
     val tempDir = Files.createTempDirectory("goal-purge")
     val dbPath = tempDir.resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val store = WorkflowStateStore(connection, Clock.systemUTC())
+      val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
       val fixture = seedGoalPurgeFixture(connection, store)
       val outboxBefore =
         connection.prepareStatement("SELECT COUNT(*) FROM telemetry_outbox").use { rows ->

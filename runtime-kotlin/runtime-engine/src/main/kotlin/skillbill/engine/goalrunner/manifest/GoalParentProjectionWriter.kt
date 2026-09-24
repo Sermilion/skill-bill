@@ -52,7 +52,7 @@ class GoalParentProjectionWriter(
           stepUpdates = null,
           artifactsPatch =
             WorkflowArtifactPatch.from(
-              artifacts(manifest, FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(existing)),
+              artifacts(manifest, existing.artifacts),
             ),
           sessionId = existing.sessionId,
           replaceArtifacts = true,

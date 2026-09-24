@@ -42,7 +42,7 @@ class DurableGoalPlanningAttemptRecorder(
                   ?.plus(1)
                   ?: 0
               },
-            timestamp = clock.instant().toString(),
+            timestamp = clock.instant(),
             stepId = attempt.phaseId,
             operationName = "${attempt.phaseId}:${attempt.subtaskId}:attempt:${attempt.attempt}",
             operationKind = "planning_projection_attempt",

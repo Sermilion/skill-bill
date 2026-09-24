@@ -2,6 +2,7 @@ package skillbill.engine.featuretask.persist
 import org.junit.jupiter.api.Test
 import skillbill.contracts.JsonCodec
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.decodeGoalContinuationArtifactFromArtifact
 import skillbill.workflow.taskruntime.artifact.decodeHandoffEnvelopeFromArtifact
@@ -23,7 +24,7 @@ class FeatureTaskRuntimeWorkflowPersistenceSeamTest {
   @Test
   fun `artifacts round trip preserves bytes`() {
     val artifactsJson = """{"progress_event":{"summary":"a"},"goal_continuation_outcome":null}"""
-    val decoded = FeatureTaskRuntimeWorkflowPersistence.artifactsFromJson(artifactsJson)!!
+    val decoded = decodeArtifacts(artifactsJson)
     val repersisted = JsonCodec.mapToJsonString(decoded)
     assertEquals(artifactsJson, repersisted)
   }
@@ -81,11 +82,14 @@ class FeatureTaskRuntimeWorkflowPersistenceSeamTest {
         """"timestamp":"2026-09-17T12:00:00Z","phase_id":"plan","attempt_count":1}]}""",
       """{"$FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY":null}""",
     ).forEach { fixture ->
-      val restored = FeatureTaskRuntimeWorkflowPersistence.artifactsFromJson(fixture)
+      val restored = decodeArtifacts(fixture)
 
       assertEquals(fixture, JsonCodec.mapToJsonString(requireNotNull(restored)))
     }
   }
+
+  private fun decodeArtifacts(json: String): DurableWorkflowArtifacts =
+    DurableWorkflowArtifacts.fromMap(requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(json))))
 
   private fun assertFamilyRoundTrip(
     key: String,
@@ -95,7 +99,7 @@ class FeatureTaskRuntimeWorkflowPersistenceSeamTest {
   ) {
     val valueMap = assertNotNull(JsonCodec.anyToStringAnyMap(wire))
     val fixture = JsonCodec.mapToJsonString(mapOf(key to valueMap))
-    val restored = requireNotNull(FeatureTaskRuntimeWorkflowPersistence.artifactsFromJson(fixture))
+    val restored = requireNotNull(decodeArtifacts(fixture))
     val restoredMap = assertNotNull(JsonCodec.anyToStringAnyMap(restored[key]))
 
     assertEquals(fixture, JsonCodec.mapToJsonString(restored))

@@ -1,4 +1,5 @@
 package skillbill.application
+import java.time.Instant
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.executionModel
@@ -31,7 +32,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class DecompositionManifestWriterTest {
-  private val engine: WorkflowEngine = WorkflowEngine(testWorkflowSnapshotValidator)
+  private val engine: WorkflowEngine = WorkflowEngine()
 
   @Test
   fun `decomposition planning result writes validated same branch manifest beside parent spec`() {
@@ -550,6 +551,7 @@ class DecompositionManifestWriterTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "implement",
           stepUpdates =

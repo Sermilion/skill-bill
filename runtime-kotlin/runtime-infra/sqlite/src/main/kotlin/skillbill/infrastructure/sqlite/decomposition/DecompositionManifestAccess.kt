@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.decomposition
 
-import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestFileCandidate
@@ -74,12 +73,6 @@ internal fun archivedDecompositionManifest(
       .replace('\\', '/')
   return relative.startsWith(".feature-specs/done/")
 }
-
-internal fun decodeArtifacts(existingArtifactsJson: String): Map<String, Any?> =
-  JsonCodec.parseObjectOrNull(existingArtifactsJson)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    .orEmpty()
 
 internal fun findMatchingDecompositionManifests(
   repoRoot: Path,

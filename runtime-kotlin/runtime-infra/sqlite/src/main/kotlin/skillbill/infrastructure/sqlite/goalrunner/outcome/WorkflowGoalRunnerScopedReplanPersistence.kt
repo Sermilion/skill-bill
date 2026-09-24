@@ -10,6 +10,7 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 
@@ -21,7 +22,7 @@ internal class WorkflowGoalRunnerScopedReplanPersistence(
     state: GoalRunnerManifestState,
     subtaskId: Int,
     options: GoalRunnerScopedReplanOptions,
-  ): Pair<GoalRunnerScopedReplanWriteResult, String> {
+  ): Pair<GoalRunnerScopedReplanWriteResult, DurableWorkflowArtifacts> {
     val preparations = unitOfWork.goalPlanningPreparations
     val plannedBefore = preparations.listPreparedPlanSubtaskIds(state.parentWorkflowId)
     val sharedBefore = preparations.hasPreparedSharedPreplan(state.parentWorkflowId)
@@ -50,7 +51,7 @@ internal class WorkflowGoalRunnerScopedReplanPersistence(
       discardedSharedPreplan = sharedBefore && !sharedAfter,
       cascadedPlanSubtaskIds = discard.cascadedIds,
       clearedChildSubtaskIds = clearedChildIds,
-    ) to projection.projectionArtifactsJson
+    ) to projection.projectionArtifacts
   }
 
   private data class ScopedReplanDiscard(

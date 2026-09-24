@@ -38,7 +38,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction GoalSubtaskReviewPassReservation.MissingState
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val state =
         reviewStateFromArtifacts(artifacts)
           ?: return@transaction GoalSubtaskReviewPassReservation.MissingState
@@ -66,7 +66,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
   ): GoalSubtaskReviewState? =
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val state =
         reviewStateFromArtifacts(artifacts)
           ?: return@transaction null
@@ -102,7 +102,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
       val state =
         reviewStateFromArtifacts(
-          FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+          record.artifacts,
         ) ?: return@transaction null
       val updated = transform(state)
       if (updated == state) return@transaction state
@@ -138,7 +138,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
   fun lastGoalReviewResult(workflowId: String): String? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val state =
         reviewStateFromArtifacts(artifacts)
           ?: return@read null
@@ -162,7 +162,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
     val record =
       WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return null
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    val artifacts = record.artifacts
     val state = reviewStateFromArtifacts(artifacts) ?: return null
     require(request.rawReviewResult.isNotBlank()) { "Goal-subtask review pass result must be non-blank." }
     val continuation =

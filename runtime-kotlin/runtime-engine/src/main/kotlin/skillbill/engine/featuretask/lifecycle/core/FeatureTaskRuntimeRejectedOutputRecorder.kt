@@ -276,9 +276,7 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
             ?: return@transaction
         val existing =
           decodeDiagnosticSignalsFromArtifact(
-            FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(
-              record,
-            )[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
+            record.artifacts[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
           )
         workflowPersistence.persistArtifactsPatch(
           unitOfWork.workflowStates,
@@ -298,9 +296,7 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read emptyList()
       decodeDiagnosticSignalsFromArtifact(
-        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(
-          record,
-        )[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
+        record.artifacts[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
       )
     }
 

@@ -12,6 +12,7 @@ import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalProgressOutcome
 import skillbill.workflow.goal.model.goalObservabilityEventFromArtifact
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -82,6 +83,25 @@ class GoalObservabilityModelsTest {
     assertFalse(rendered.containsKey("changed_files"))
     assertEquals("implement", rendered["workflow_phase"])
     assertEquals("durable_progress", rendered["liveness_class"])
+  }
+
+  @Test
+  fun `goal observability timestamps decode to instants`() {
+    val decoded =
+      goalObservabilityEventFromArtifact(
+        raw = event(1).toArtifactMap(),
+        sourceLabel = "goal_observability_latest_event",
+        validator =
+          object : GoalObservabilityEventValidator {
+            override fun validate(
+              kind: FeatureTaskRuntimeWireArtifactKind,
+              payload: Any,
+              sourceLabel: String,
+            ) = Unit
+          },
+      )
+
+    assertEquals(Instant.parse("2026-06-01T00:00:00Z"), decoded.timestamp)
   }
 
   private fun event(

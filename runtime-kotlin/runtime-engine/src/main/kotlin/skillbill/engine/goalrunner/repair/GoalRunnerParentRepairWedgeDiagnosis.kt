@@ -42,7 +42,7 @@ internal class GoalRunnerParentRepairWedgeDiagnosis(
       GoalRunnerWedgeFinding(
         wedgeClass = GoalRunnerWedgeClass.STALE_EXECUTION_LEASE,
         field = GoalRunnerWedgeClass.STALE_EXECUTION_LEASE.durableField,
-        currentValue = lease.expiresAt,
+        currentValue = lease.expiresAt.toString(),
       )
   }
 

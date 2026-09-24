@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.lifecycle.continuation
 
+import java.time.Instant
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.contracts.JsonCodec
@@ -229,7 +230,7 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
 
   private fun seedHarness(continuationMap: Map<String, Any?>): AdoptionHarness {
     val repository = InMemoryRuntimeWorkflowRepository()
-    val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+    val engine = WorkflowEngine()
     val definition = WorkflowFamily.TASK_RUNTIME.definition
     val opened = engine.openRecord(definition, workflowId, "fis-176", "preplan")
     val seeded =
@@ -237,6 +238,7 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "preplan",
           stepUpdates = null,

@@ -45,7 +45,7 @@ data class DecompositionPlanManifestInput(
 
 data class DecompositionManifestWorkflowProjectionInput(
   val repoRoot: Path,
-  val existingArtifactsJson: String,
+  val existingArtifacts: DurableWorkflowArtifacts,
   val validator: DecompositionManifestValidator,
   val planningResult: DecompositionPlanningResult? = null,
   val artifactsPatch: WorkflowArtifactPatch? = null,

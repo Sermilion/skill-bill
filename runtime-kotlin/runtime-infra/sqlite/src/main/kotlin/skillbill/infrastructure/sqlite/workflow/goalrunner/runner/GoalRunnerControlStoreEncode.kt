@@ -1,5 +1,8 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.runner
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.workflow.WorkflowTimestampPayloadKeys
+import skillbill.goalrunner.model.parseExecutionLeaseInstant
+import java.time.Instant
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
@@ -30,7 +33,7 @@ internal fun GoalRunnerOutOfBandAcceptance.toArtifactMap(): Map<String, Any?> =
     "accepted_at" to acceptedAt,
   )
 
-internal fun GoalRunnerExecutionLease.toArtifactMap(): Map<String, Any?> =
+internal fun GoalRunnerExecutionLease.toArtifactMap(source: Map<*, *>? = null): Map<String, Any?> =
   mapOf(
     "generation" to generation,
     "owner_token" to ownerToken,
@@ -38,11 +41,11 @@ internal fun GoalRunnerExecutionLease.toArtifactMap(): Map<String, Any?> =
     "boot_identity" to bootIdentity,
     "pid" to pid,
     "process_birth_token" to processBirthToken,
-    "heartbeat_at" to heartbeatAt,
-    "expires_at" to expiresAt,
+    WorkflowTimestampPayloadKeys.HEARTBEAT_AT to leaseTimestamp(heartbeatAt, source, WorkflowTimestampPayloadKeys.HEARTBEAT_AT),
+    WorkflowTimestampPayloadKeys.EXPIRES_AT to leaseTimestamp(expiresAt, source, WorkflowTimestampPayloadKeys.EXPIRES_AT),
   )
 
-internal fun GoalRunnerControlState.toArtifactMap(): Map<String, Any?> =
+internal fun GoalRunnerControlState.toArtifactMap(source: Map<String, Any?>? = null): Map<String, Any?> =
   mapOf(
     "stop_after_subtask_id" to stopAfterSubtaskId,
     "pause_requested" to pauseRequested,
@@ -52,7 +55,7 @@ internal fun GoalRunnerControlState.toArtifactMap(): Map<String, Any?> =
     "paused_at" to pausedAt,
     "stop_after_consumed" to stopAfterConsumed,
     "repository_identity" to repositoryIdentity,
-    "execution_lease" to executionLease?.toArtifactMap(),
+    "execution_lease" to executionLease?.toArtifactMap(source?.get("execution_lease") as? Map<*, *>),
     "active_duration_ms" to activeDurationMs,
     "active_duration_as_of" to activeDurationAsOf,
     "current_subtask_id" to currentSubtaskId,
@@ -65,3 +68,8 @@ internal fun GoalRunnerControlState.toArtifactMap(): Map<String, Any?> =
     "pending_causing_loop_entry_by_subtask" to
       pendingCausingLoopEntryBySubtask.entries.associate { (k, v) -> k.toString() to v },
   )
+
+private fun leaseTimestamp(value: Instant, source: Map<*, *>?, field: String): String {
+  val original = source?.get(field) as? String ?: return value.toString()
+  return if (parseExecutionLeaseInstant(field, original) == value) original else value.toString()
+}

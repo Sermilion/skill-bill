@@ -17,7 +17,6 @@ import skillbill.goalrunner.summarizeAttemptLedgerFromEntries
 import skillbill.goalrunner.summary
 import skillbill.goalrunner.toPersistenceWire
 import skillbill.goalrunner.toProgressEvent
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseRecords
 import skillbill.infrastructure.sqlite.goalrunner.control.goalContinuation
 import skillbill.infrastructure.sqlite.goalrunner.control.maxHistorySequence
@@ -31,12 +30,12 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequ
 import skillbill.ports.goalrunner.runner.model.GoalRunnerLedgerSequenceWatermarks
 import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.list
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.decodeWorkflowSteps
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.progressToken
@@ -63,6 +62,7 @@ private val PROGRESS_POLL_ARTIFACT_KEYS =
 internal class WorkflowGoalRunnerProgressRecording(
   private val database: DatabaseSessionFactory,
   private val engine: WorkflowEngine,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
   private val goalObservabilityEventValidator: GoalObservabilityEventValidator,
   private val goalProgressEventValidator: GoalProgressEventValidator,
 ) : GoalRunnerWorkflowProgressStore,
@@ -72,9 +72,9 @@ internal class WorkflowGoalRunnerProgressRecording(
     database.read { unitOfWork ->
       val family = workflowFamilyFor(unitOfWork.workflowStates, workflowId) ?: return@read null
       val record = family.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      engine.snapshotView(family.definition, record)
-      val steps = decodeWorkflowSteps(record.stepsJson)
-      val artifacts = sparseArtifactKeys(record.artifactsJson, PROGRESS_POLL_ARTIFACT_KEYS)
+      workflowSnapshotValidator.validate(record, family.definition.workflowName)
+      val steps = record.steps
+      val artifacts = record.artifacts.filterKeys(PROGRESS_POLL_ARTIFACT_KEYS::contains)
       val finishCompleted =
         steps.any {
             step ->
@@ -104,7 +104,7 @@ internal class WorkflowGoalRunnerProgressRecording(
           observabilityEvent?.compactLivenessSummary()
             ?: progressEvent?.summary()
             ?: "workflow_status=${record.workflowStatus}; step=$currentStep",
-        lastSnapshotUpdatedAt = record.updatedAt,
+        lastSnapshotUpdatedAt = record.updatedAt?.toString(),
       )
     }
 
@@ -116,7 +116,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       val record =
         family.get(unitOfWork.workflowStates, request.workflowId)
           ?: return@transaction false
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = record.artifacts
       val observabilityPatch =
         GoalObservabilityArtifacts.patchForRuntimeEvent(
           input =
@@ -175,7 +175,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       val record =
         family.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction emptyList()
-      (decodeArtifacts(record.artifactsJson)[GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY] as? List<*>)
+      (record.artifacts[GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY] as? List<*>)
         .orEmpty()
         .mapNotNull { item -> item as? Map<*, *> }
         .mapNotNull { item -> JsonCodec.anyToStringAnyMap(item) }
@@ -193,7 +193,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       val record =
         family.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction false
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = record.artifacts
       val existing =
         (artifacts[WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY] as? List<*>)
           .orEmpty()
@@ -229,7 +229,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       val backwardEdgeCounts = mutableMapOf<String, Int>()
       listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
         family.list(unitOfWork.workflowStates, Int.MAX_VALUE).forEach { snapshot ->
-          val artifacts = decodeArtifacts(snapshot.artifactsJson)
+          val artifacts = snapshot.artifacts
           if (goalContinuation(artifacts)?.issueKey != normalizedIssueKey) {
             return@forEach
           }
@@ -251,7 +251,7 @@ internal class WorkflowGoalRunnerProgressRecording(
     database.read { unitOfWork ->
       val family = workflowFamilyFor(unitOfWork.workflowStates, workflowId) ?: return@read emptyMap()
       val record = family.get(unitOfWork.workflowStates, workflowId) ?: return@read emptyMap()
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = record.artifacts
       val result = mutableMapOf<String, Int>()
       decodePhaseRecords(artifacts).values.forEach { phaseRecord ->
         val loopId = phaseRecord.loopId ?: return@forEach
@@ -268,7 +268,7 @@ internal class WorkflowGoalRunnerProgressRecording(
         buildList {
           listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
             family.list(unitOfWork.workflowStates, Int.MAX_VALUE).forEach { snapshot ->
-              val artifacts = decodeArtifacts(snapshot.artifactsJson)
+              val artifacts = snapshot.artifacts
               if (goalContinuation(artifacts)?.issueKey != normalizedIssueKey) return@forEach
               (artifacts[GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY] as? List<*>).orEmpty().forEach { item ->
                 (item as? Map<*, *>)?.let(::add)
@@ -287,7 +287,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       val record =
         family.get(unitOfWork.workflowStates, append.workflowId)
           ?: return@transaction false
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = record.artifacts
       val existing =
         (artifacts[append.historyKey] as? List<*>)
           .orEmpty()
@@ -314,18 +314,4 @@ internal class WorkflowGoalRunnerProgressRecording(
       family.save(unitOfWork.workflowStates, updated)
       true
     }
-}
-
-private fun sparseArtifactKeys(
-  existingArtifactsJson: String,
-  keys: Set<String>,
-): Map<String, Any?> {
-  if (keys.isEmpty()) return emptyMap()
-  val root = JsonCodec.parseObjectOrNull(existingArtifactsJson) ?: return emptyMap()
-  return buildMap {
-    keys.forEach { key ->
-      val element = root[key] ?: return@forEach
-      put(key, JsonCodec.jsonElementToValue(element))
-    }
-  }
 }
