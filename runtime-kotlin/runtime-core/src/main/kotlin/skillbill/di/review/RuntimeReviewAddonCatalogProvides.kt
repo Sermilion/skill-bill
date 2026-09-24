@@ -10,19 +10,19 @@ import skillbill.ports.review.launch.DeclaredReviewSpecialistsPort
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 
 internal interface RuntimeReviewAddonCatalogProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun declaredReviewSpecialistsPort(adapter: FileSystemDeclaredReviewSpecialists): DeclaredReviewSpecialistsPort =
     adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installedPlatformPackCatalogPort(
     adapter: FileSystemInstalledPlatformPackCatalog,
   ): InstalledPlatformPackCatalogPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun agentAddonSelectionPort(): AgentAddonSelectionPort = AgentAddonSelectionResolver()
 
-  @Provides @JvmSynthetic
+  @Provides
   fun externalAgentAddonSourceConfigPort(
     store: FileExternalAgentAddonSourceConfigStore,
   ): ExternalAgentAddonSourceConfigPort = store

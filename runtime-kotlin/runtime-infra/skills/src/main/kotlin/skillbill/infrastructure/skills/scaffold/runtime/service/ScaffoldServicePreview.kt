@@ -2,7 +2,6 @@ package skillbill.infrastructure.skills.scaffold.runtime.service
 import skillbill.infrastructure.skills.scaffold.manifest.renderExternalAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.manifest.renderGovernedAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.manifest.renderReadmeCatalogRow
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_CODE_REVIEW_AREA

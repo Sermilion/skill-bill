@@ -10,6 +10,7 @@ import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.application.updatecheck.UpdateCheckService
 import skillbill.application.updatecheck.model.UpdateCheckStatus
 import skillbill.idestatus.model.AgentActivityLabel
+import skillbill.model.RuntimeVersion
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
@@ -335,7 +336,7 @@ private fun versionedSystemService(version: String): SystemService =
     UpdateCheckTestDatabaseSessionFactory(),
     UpdateCheckTestTelemetrySettingsProvider,
     NoopRuntimeDiagnostics,
-    version,
+    RuntimeVersion(version),
   )
 
 private class UpdateCheckTestDatabaseSessionFactory : DatabaseSessionFactory {

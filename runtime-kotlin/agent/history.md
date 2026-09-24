@@ -1,3 +1,46 @@
+## [2026-09-24] SKILL-373 subtask 3 — Test ownership and declared inputs
+Areas: runtime-kotlin/runtime-core (src/repoTest and src/test), runtime-kotlin/runtime-cli/src/repoTest, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra/{contracts,sqlite}, runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/agent/decisions.md, AGENTS.md, docs/code-principles.md
+- All 54 architecture tests plus 62 baselines moved from `runtime-core/src/test` to `runtime-core/src/repoTest`, which applies the `skillbill.repo-test` convention and declares `runtimeKotlinArchitectureSources` as an explicit input.
+- Pattern: repo-scanning tests belong in a `repoTest` source set with declared file inputs, so Gradle invalidates them when scanned sources change instead of on an unrelated classpath edge. reusable
+- Cache invalidation proven at the validate gate: a main-source `//` comment made `:runtime-core:repoTest` re-execute and fail; an `install.sh` whitespace change made `:runtime-cli:repoTest` re-execute; after revert both return to UP-TO-DATE.
+- The four installer-shell tests moved to `runtime-cli/src/repoTest/kotlin/skillbill/installer`, where `install.sh` is a declared input rather than an untracked read from a runtime-core test.
+- Tests that exercise another module's behavior moved to that module: decomposition manifest and schema-validator loud-fail to `runtime-infra/contracts`, telemetry release attribution to `runtime-infra/sqlite`, and the goal-runner control repository test to `runtime-ports` (renamed `UnavailableGoalRunnerControlRepositoryTest`, it asserts the absent-port object, not a binding).
+- Every remaining `runtime-core/src/test` file now declares a `skillbill.di.*` package matching its directory, so the composition-root module's own tests are only composition tests.
+- Deleted the install.sh 29-substring assertion and its now-unused `assertExternalAddonOverlayOrdering` helper; repo `@Test` count went 5731 to 5730.
+- `runtime-infra/contracts` gained `testImplementation(project(":runtime-application"))`, needed by the two relocated contract tests.
+- Follow-on from validate: subtask 1 removed the `FeatureSpecPreparationRuntime` constructor lambda, so `FeatureTaskRuntimeRunnerTestSupport.noOpDecompositionPlanner` and the `RuntimeHarnessConfig.useRealDecompositionPlanner` flag were removed; the engine harness always uses the real planner.
+- Known limitation: relocations were made with plain `mv` (session rules denied `git mv`); contents are byte-identical apart from package lines, so rename detection happens at staging time.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
+## [2026-09-24] SKILL-373 subtask 2 — Guard coverage and pruning
+Areas: runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture (+ baselines), runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/experiment, runtime-kotlin/runtime-engine/{goalrunner/execution/core,goalrunner/experiment} main and test, runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/agent/decisions.md, docs/code-principles.md, AGENTS.md
+- The ambient-clock, ambient-environment, and inject-constructor-default rules now iterate every module in `settings.gradle.kts` through `PrincipleEnforcementInventory.moduleArchitectureScanCases` instead of a hard-coded module list.
+- Pattern: each restored rule carries a rejection fixture that seeds a violation into a temporary runtime-engine tree, so a silent scanner that reads zero files fails the test. reusable
+- Baseline rows are keyed `path:call:count` with no line numbers, so moving a tolerated call within a file leaves the baselines unchanged. `ArchitectureBaselineRecorder` and `ArchitectureScanGuardSupport` own the shared scan/record helpers. reusable
+- No architecture test reads `ARCHITECTURE.md`, `AGENTS.md`, `docs/code-principles.md`, or any `agent/*.md`; the suppression allow-list moved from `decisions.md` prose into `PrincipleEnforcementInventory`.
+- Pruned tests whose only subject was a retired shape, a rule count, a doc prose pin, or a restatement of current source: `RuntimeArchitectureDocumentationTest`, `PrincipleEnforcementInventoryTest`, the run-loop context census, the parameter-bag test, and the feature-task boundary-ownership test are gone; `ImplementationOwnershipArchitectureTest` went 15 tests to 6 and `RuntimeGradleModuleLayeringTest` 5 to 1.
+- Module edges are compared only against `RuntimeModuleCatalog`; `RuntimeCoreCompositionOnlyTest` keeps its added-edge, removed-edge, and changed-configuration rejection fixtures.
+- `enforceableRules` pairs each of 23 rules with a test class that exists; ARCHITECTURE.md Architecture Guardrails lists those rules and carries no `SKILL-` reference.
+- Removing kotlin-inject constructor defaults in runtime-engine required an explicit `@Provides` returning null for `ExperimentTelemetryRecorder?` — kotlin-inject does not derive the nullable key from a non-null provider. Wiring behavior is unchanged.
+- Known limitation: the corrected runtime-engine ambient-clock baseline reflects the post-default-removal tree; a future engine change that reintroduces an ambient call must add a row deliberately, not by re-recording.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-09-24] SKILL-373 subtask 1 — Composition root simplification
+Areas: runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/{core,experiment,featurespec,featuretask,goal,install,review,scaffold,telemetry,workflow}, runtime-core tests (architecture, di, application), runtime-ports/skillbill/model, runtime-engine/{featuretask/prepare,goalrunner/experiment}, runtime-cli, runtime-mcp, runtime-application, runtime-infra/skills scaffold, runtime-kotlin/ARCHITECTURE.md
+- `RuntimeGoalRunnerStoreProvides` declares no class; both goal-runner stores are `@Inject` bindings exposed as `RuntimeComponent` accessors, and the generated CLI/MCP components reference no `skillbill.infrastructure` type.
+- Composition input types (`RuntimeContext`, `TransportContext`, `WorkflowOpsContext`, `OptionalCallbacks`) moved from `skillbill.model` into runtime-core `skillbill.di.core`; `skillbill.model.RuntimeContext` and friends no longer exist anywhere.
+- Pattern: every provider that reads a composition input is collected into one internal `RuntimeOptionalCallbackProvides` in `di.core`, so no `di.<area>` package imports another `di` package and the package-cycle baseline stays empty. reusable
+- `runtime-core-package-cycle-baseline.txt` is now 0 bytes (was `core|telemetry` and `core|workflow`); `@JvmSynthetic` is gone from runtime-core main together with the rule that required it.
+- `ScaffoldStandaloneEntrypoint` moved out of every `src/main` into `runtime-infra/skills/src/test`; the composition guard keeps no exemption list, and no production classpath widened.
+- Removed four `RuntimeComponent` accessors with no generated or handwritten reader (phase recorder, goal-planning preparation checkpoint, installed-workspace baseline status, uninstall paths), so the accessor set equals the child-component export set.
+- Deviation: `ExperimentGoalRunnerFactory` is declared in `di.core` rather than `di.experiment` — declaring it in the area package forced either an internal type on a public `@Provides` or a `di.experiment -> di.core` cycle.
+- `RuntimeImplementationImportRules` now allowlists the runtime-core-owned composition types and maps `skillbill.model.*` to `:runtime-ports`, keeping the documented ABI closure unchanged.
+- Known limitations: `WorkflowGoalRunnerOutcomeStoreDependencies` stays in runtime-infra/sqlite (removal belongs to SKILL-376); AC-2 and AC-8 depend on regenerated KSP readers, first proven at the validate gate.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-09-22] SKILL-368 subtask 2 — Governed resources typed task and Java guard ownership
 Areas: runtime-kotlin/build-logic/convention, runtime-kotlin/runtime-infra/{contracts,workflow,host}, install.sh, uninstall.sh, docs/code-principles.md
 - `GovernedResourceCopy` is a typed task with one `@OutputFile` per entry (36 contracts entries share one destination directory, so `@OutputDirectory` would overlap); the extension and plugin wire only main `processResources`, with no `afterEvaluate` and no `processTestResources`. reusable
@@ -424,7 +467,7 @@ Feature flag: N/A
 Acceptance criteria: 11/11 implemented
 
 ## [2026-09-03] SKILL-231 subtask 1 — Guardrails and recorded baselines
-Areas: runtime-kotlin/{runtime-core/src/test/kotlin/skillbill/architecture{,/baselines},agent,ARCHITECTURE.md}
+Areas: runtime-kotlin/{runtime-core/src/repoTest/kotlin/skillbill/architecture{,/baselines},agent,ARCHITECTURE.md}
 - Widened package-acyclicity, ambient-clock, ambient-environment, `@Inject`-defaults, and spillover-filename scanners across all ten `settings.gradle.kts` modules without forking scanner bodies. reusable
 - Generalized `RuntimeCoreCompositionOnlyTest` so every module's `api`/`implementation` project edges are pinned to today's sets (including infra `api` to ports and domain). reusable
 - Recorded per-module baselines from the recorder census; reported divergences vs the pre-spec table (ambient clock 12 vs 13, ambient env 129 vs ~127, mcp `@Inject` defaults empty) instead of hand-editing baselines.
@@ -436,7 +479,7 @@ Feature flag: N/A
 Acceptance criteria: 11/11 implemented
 
 ## [2026-09-02] SKILL-229 subtask 1 — runtime-cli guardrails and recorded baselines
-Areas: runtime-kotlin/{runtime-core/src/test/kotlin/skillbill/architecture{,/baselines},ARCHITECTURE.md}
+Areas: runtime-kotlin/{runtime-core/src/repoTest/kotlin/skillbill/architecture{,/baselines},ARCHITECTURE.md}
 - Parameterized the package-acyclicity, ambient-clock, and `@Inject`-defaults scanners on scan root / package prefix so one scanner body serves both `runtime-application` and `runtime-cli`; no scanner was copied. reusable
 - Added an ambient-environment guard banning `System.getenv`, `System.getProperty`, `Path.of("")`, `Paths.get("")` in `runtime-cli` main, and widened the clock ban to `LocalDate.now()`. reusable
 - Recorded `runtime-cli` baselines from generated censuses, not the spec table: 16 mutual-import pairs (spec said 15), 2 ambient-clock sites (spec said 1), 22 ambient-environment sites, 8 `CliRunState` `@Inject` defaults. The four `runtime-application` baselines stay empty.
@@ -2718,7 +2761,7 @@ Acceptance criteria: 8/8 implemented
 Areas: orchestration/contracts, runtime-kotlin/runtime-domain/workflow, runtime-kotlin/runtime-contracts/error, runtime-kotlin/runtime-application/workflow, runtime-kotlin/runtime-desktop/core/data, runtime-kotlin/runtime-domain build
 - Extended the platform-pack schema architecture to a SECOND runtime contract: `orchestration/contracts/workflow-state-schema.yaml` (Draft 2020-12) is now the SSOT for `WorkflowStateSnapshot`; `WORKFLOW_STATE_CONTRACT_VERSION` pins it; parity test pins schema const ↔ Kotlin constant ↔ `FeatureImplement/VerifyWorkflowDefinition.contractVersion` (three sources). reusable
 - Per-skill enum divergence handled via JSON Schema `oneOf` keyed on `workflow_name` const, not flat enum. FeatureImplement (12 steps / 6 statuses incl. `blocked`) and FeatureVerify (8 steps / 5 statuses) each get a `$defs` branch. Adding a third workflow family later requires editing three coupled sites (top enum + new $defs branch + new oneOf entry). reusable
-- Validator placement DEVIATES from the platform-pack mirror: `WorkflowStateSchemaValidator` lives in `runtime-domain/workflow` (not `runtime-core/scaffold`) because `WorkflowEngine` is its primary consumer and `runtime-core` already api-depends on `runtime-domain`. Tests still live in `runtime-core/src/test/kotlin/skillbill/scaffold/` via existing `testFixtures` capability. `assertWorkflowStateSchemaIdentity` is module-public (not internal) for cross-module shadow-guard test access.
+- Validator placement DEVIATES from the platform-pack mirror: `WorkflowStateSchemaValidator` lives in `runtime-domain/workflow` (not `runtime-core/scaffold`) because `WorkflowEngine` is its primary consumer and `runtime-core` already api-depends on `runtime-domain`. Tests now live in `runtime-infra/skills/src/test/kotlin/skillbill/infrastructure/skills/scaffold/` and `runtime-infra/skills/src/repoTest/kotlin/skillbill/scaffold/`. `assertWorkflowStateSchemaIdentity` is module-public (not internal) for cross-module shadow-guard test access.
 - F-101 follow-up adopted day one: `runtime-domain/build.gradle.kts` Copy task uses `inputs.file(schemaPath)` + `doFirst { require(file.exists()) {...} }` — NO configure-time `File.exists()` reads. Configuration cache reused on every run. reusable: this is now the canonical pattern for any future `orchestration/contracts/*.yaml` Copy task.
 - Desktop auto-listing: `RuntimeRepoBrowserService.loadContracts` switched from a hard-coded single leaf to `Files.list(orchestration/contracts/*.yaml)` sorted alphabetically, with label derivation by suffix-strip + dash-replace + title-case of first character. Wrapped in `runCatching` so an IO failure on the contracts dir degrades ONLY the Contracts group, not the whole repo tree. New YAMLs surface automatically with no code change. reusable
 - Observability: validator emits a bounded WARN log on validation failure (slug + first 1-2 dotted field paths + offending values + violation count) before throwing `InvalidWorkflowStateSchemaError`, plus SEVERE on schema-load failure naming the classpath resource. Loud-fail preserved; payload bodies never logged.

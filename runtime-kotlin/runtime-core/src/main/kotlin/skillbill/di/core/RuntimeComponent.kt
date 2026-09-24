@@ -46,13 +46,10 @@ import skillbill.di.workflow.RuntimeWorkflowValidatorProvides
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeWorkerCoordinator
 import skillbill.engine.featuretask.phase.core.FeatureTaskPhaseSettlementService
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunner
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
-import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.GoalOperatorDecisionService
 import skillbill.engine.goalrunner.GoalRunner
-import skillbill.engine.goalrunner.experiment.ExperimentGoalRunnerFactory
 import skillbill.engine.goalrunner.experiment.ExperimentGoalRunnerPort
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.GoalPlanningLogService
@@ -61,16 +58,15 @@ import skillbill.engine.goalrunner.status.GoalRunnerStatusService
 import skillbill.engine.work.IdeStatusService
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.model.EnvironmentContext
-import skillbill.model.OptionalCallbacks
-import skillbill.model.RuntimeContext
-import skillbill.model.TransportContext
-import skillbill.model.WorkflowOpsContext
+import skillbill.model.RepositoryRoot
+import skillbill.model.RuntimeVersion
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.featurespec.FeatureSpecPathResolverPort
-import skillbill.ports.install.baseline.InstalledWorkspaceBaselineStatusPort
+import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
+import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.install.nativeagent.InstallNativeAgentLinkPort
 import skillbill.ports.install.selection.InstallSelectionPersistencePort
@@ -78,7 +74,6 @@ import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.ScaffoldGateway
 import skillbill.ports.scaffold.UnsupportedScaffoldGateway
-import skillbill.ports.system.UninstallPathsPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.ports.telemetry.transport.TelemetryConfigStore
@@ -113,49 +108,68 @@ abstract class RuntimeComponent(
     RuntimeExperimentProvides,
     RuntimeExperimentGoalProvides,
     RuntimeExperimentTelemetryProvides,
+    RuntimeOptionalCallbackProvides,
     RuntimeDiagnosticsProvides {
   private val resolvedRuntimeContext: RuntimeContext by lazy {
     RuntimeBootstrapBindings.runtimeContext(inputRuntimeContext)
   }
 
-  @Provides @JvmSynthetic
+  @Provides
   fun runtimeContext(): RuntimeContext = resolvedRuntimeContext
 
-  @Provides @JvmSynthetic
-  fun experimentGoalRunnerFactory(): ExperimentGoalRunnerFactory =
-    ExperimentGoalRunnerFactory { context ->
-      val component = RuntimeComponent::class.create(context)
-      ExperimentGoalRunnerPort { request -> component.goalRunner.run(request) }
+  @Provides
+  fun experimentGoalRunnerPort(ctx: RuntimeContext): ExperimentGoalRunnerPort =
+    ExperimentGoalRunnerPort { request ->
+      val armContext =
+        if (request.experimentArmId == null) {
+          ctx
+        } else {
+          val armRoot = request.repoRoot.toAbsolutePath().normalize()
+          ctx.copy(
+            environment =
+              ctx.environment.copy(
+                dbPathOverride = armRoot.resolve(".skill-bill/runtime.db").toString(),
+                repositoryRoot = armRoot,
+              ),
+          )
+        }
+      RuntimeComponent::class.create(armContext).goalRunner.run(request)
     }
 
-  @Provides @JvmSynthetic
+  @Provides
   fun environmentContext(ctx: RuntimeContext): EnvironmentContext = ctx.environment
 
-  @Provides @JvmSynthetic
+  @Provides
   fun transportContext(ctx: RuntimeContext): TransportContext = ctx.transport
 
-  @Provides @JvmSynthetic
+  @Provides
   fun remoteTransportPort(ctx: TransportContext): RemoteTransportPort =
     RuntimeBootstrapBindings.remoteTransportPort(ctx)
 
-  @Provides @JvmSynthetic
+  @Provides
   fun workflowOpsContext(ctx: RuntimeContext): WorkflowOpsContext = ctx.workflowOps
 
-  @Provides @JvmSynthetic
+  @Provides
+  fun repositoryRoot(context: EnvironmentContext): RepositoryRoot = RepositoryRoot(context.repositoryRoot)
+
+  @Provides
+  fun runtimeVersion(): RuntimeVersion = RuntimeVersion(SkillBillVersion.VALUE)
+
+  @Provides
   fun optionalCallbacks(ctx: RuntimeContext): OptionalCallbacks = ctx.callbacks
 
-  @Provides @JvmSynthetic
+  @Provides
   fun repositoryEnclosingRootPort(): RepositoryEnclosingRootPort =
     RuntimeBootstrapBindings.repositoryEnclosingRootPort()
 
-  @Provides @RuntimeSingleton @JvmSynthetic
+  @Provides @RuntimeSingleton
   fun databaseSessionFactory(
     context: EnvironmentContext,
     clock: Clock,
     diagnostics: RuntimeDiagnostics,
   ): DatabaseSessionFactory = RuntimeBootstrapBindings.databaseSessionFactory(context, clock, diagnostics)
 
-  @Provides @JvmSynthetic
+  @Provides
   fun interruptSignal(): InterruptSignalPort = JvmInterruptSignalPort
 
   abstract val resolvedEnvironmentContext: EnvironmentContext
@@ -173,14 +187,14 @@ abstract class RuntimeComponent(
   abstract val externalAddonOverlayService: ExternalAddonOverlayService
   abstract val externalPlatformPackResolutionService: ExternalPlatformPackResolutionService
   abstract val agentRunService: AgentRunService
-  abstract val featureTaskRuntimePhaseRecorder: FeatureTaskRuntimePhaseRecorder
   abstract val featureTaskRuntimeRunner: FeatureTaskRuntimeRunner
   abstract val featureTaskRuntimeStatusService: FeatureTaskRuntimeStatusService
   abstract val featureTaskRuntimeWorkerCoordinator: FeatureTaskRuntimeWorkerCoordinator
-  abstract val goalPlanningPreparationCheckpoint: GoalPlanningPreparationCheckpoint
   abstract val featureTaskRuntimeRunInvariantsSource: FeatureTaskRuntimeRunInvariantsSource
   abstract val featureSpecPathResolverPort: FeatureSpecPathResolverPort
   abstract val goalRunner: GoalRunner
+  abstract val goalRunnerManifestStore: GoalRunnerManifestStore
+  abstract val goalRunnerWorkflowOutcomeStore: GoalRunnerWorkflowOutcomeStore
   abstract val goalPreflightService: GoalPreflightService
   abstract val goalRunnerStatusService: GoalRunnerStatusService
   abstract val goalPlanningLogService: GoalPlanningLogService
@@ -189,7 +203,6 @@ abstract class RuntimeComponent(
   abstract val installMcpRegistrationPort: InstallMcpRegistrationPort
   abstract val installNativeAgentLinkPort: InstallNativeAgentLinkPort
   abstract val installSelectionPersistencePort: InstallSelectionPersistencePort
-  abstract val installedWorkspaceBaselineStatusPort: InstalledWorkspaceBaselineStatusPort
   abstract val learningService: LearningService
   abstract val lifecycleTelemetryService: LifecycleTelemetryService
   abstract val repoValidationGateway: RepoValidationGateway
@@ -206,7 +219,6 @@ abstract class RuntimeComponent(
   abstract val telemetryConfigStorePort: TelemetryConfigStore
   abstract val telemetryLevelMutator: TelemetryLevelMutator
   abstract val telemetryService: TelemetryService
-  abstract val uninstallPathsPort: UninstallPathsPort
   abstract val unsupportedScaffoldGateway: UnsupportedScaffoldGateway
   abstract val workflowService: WorkflowService
   abstract val workListService: WorkListService

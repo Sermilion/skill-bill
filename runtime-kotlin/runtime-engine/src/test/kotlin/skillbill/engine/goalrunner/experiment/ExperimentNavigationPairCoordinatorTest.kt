@@ -18,6 +18,7 @@ import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 import java.security.MessageDigest
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -62,6 +63,9 @@ class ExperimentNavigationPairCoordinatorTest {
           },
         gitOperations = gitOperations,
         pairOwner = InMemoryPairOwner(),
+        measurementPort = null,
+        telemetryRecorder = null,
+        clock = Clock.systemUTC(),
       )
 
     val pairId =
@@ -246,6 +250,9 @@ class ExperimentNavigationPairCoordinatorTest {
         },
       gitOperations = gitOperations,
       pairOwner = owner,
+      measurementPort = null,
+      telemetryRecorder = null,
+      clock = Clock.systemUTC(),
     )
 
   private class InMemoryPairOwner : ExperimentPairOwnerPort {

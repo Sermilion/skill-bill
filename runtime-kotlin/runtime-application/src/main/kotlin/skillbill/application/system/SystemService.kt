@@ -4,6 +4,7 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.contracts.system.DoctorContract
 import skillbill.contracts.system.VersionContract
+import skillbill.model.RuntimeVersion
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
@@ -13,8 +14,10 @@ class SystemService(
   private val database: DatabaseSessionFactory,
   private val settingsProvider: TelemetrySettingsProvider,
   private val diagnostics: RuntimeDiagnostics,
-  private val versionValue: String,
+  runtimeVersion: RuntimeVersion,
 ) {
+  private val versionValue = runtimeVersion.value
+
   fun version(): VersionContract = VersionContract(version = versionValue)
 
   fun doctor(): DoctorContract {

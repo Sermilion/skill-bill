@@ -1,9 +1,27 @@
 plugins {
   alias(libs.plugins.ksp)
   id("skillbill.jvm-library")
+  id("skillbill.repo-test")
   id("skillbill.quality")
 
   `java-test-fixtures`
+}
+
+tasks.named<Test>("repoTest") {
+  inputs.files(
+    fileTree(rootProject.layout.projectDirectory) {
+      include(
+        "**/src/**",
+        "**/*.gradle.kts",
+        "**/ARCHITECTURE.md",
+        "**/agent/**",
+        "config/**",
+        ".editorconfig",
+      )
+      exclude("**/build/**", "**/.gradle/**", ".kotlin/**")
+    },
+  ).withPathSensitivity(PathSensitivity.RELATIVE)
+    .withPropertyName("runtimeKotlinArchitectureSources")
 }
 
 tasks.named<ProcessResources>("processResources") {

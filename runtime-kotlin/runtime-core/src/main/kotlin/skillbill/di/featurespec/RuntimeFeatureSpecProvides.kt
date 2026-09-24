@@ -1,21 +1,14 @@
 package skillbill.di.featurespec
 import me.tatarka.inject.annotations.Provides
-import skillbill.featurespec.FeatureSpecPreparationPolicy
-import skillbill.featurespec.model.FeatureSpecPreparationDecision
-import skillbill.featurespec.model.FeatureSpecPreparationIntake
 import skillbill.infrastructure.workflow.filesystem.FileSystemFeatureSpecPathResolver
 import skillbill.infrastructure.workflow.filesystem.FileSystemSpecScratchStore
 import skillbill.ports.featurespec.FeatureSpecPathResolverPort
 import skillbill.ports.workflow.specscratch.SpecScratchStore
 
 internal interface RuntimeFeatureSpecProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun specScratchStore(store: FileSystemSpecScratchStore): SpecScratchStore = store
 
-  @Provides @JvmSynthetic
+  @Provides
   fun featureSpecPathResolverPort(adapter: FileSystemFeatureSpecPathResolver): FeatureSpecPathResolverPort = adapter
-
-  @Provides @JvmSynthetic
-  fun featureSpecPreparationCore(): (FeatureSpecPreparationIntake) -> FeatureSpecPreparationDecision =
-    FeatureSpecPreparationPolicy::prepare
 }

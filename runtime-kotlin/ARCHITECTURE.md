@@ -119,38 +119,6 @@ a narrowed overload already exists; retained broad inputs require a concrete,
 current orchestration requirement documented here or in the owning area
 `agent/decisions.md`.
 
-The complete run-loop file census is pinned below. `current` is the source-tree
-count and `target` is the retained orchestration count enforced by
-`FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest`; a new
-extension requires an intentional update to both the implementation and this
-table.
-
-| Run-loop file | current | target |
-| --- | ---: | ---: |
-| `FeatureTaskRuntimeRunLoop.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopAttemptSettlement.kt` | 3 | 3 |
-| `FeatureTaskRuntimeRunLoopAuditRetry.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopBackwardEdge.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopCheckpoint.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopCheckpointRemediation.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopCommitPush.kt` | 9 | 9 |
-| `FeatureTaskRuntimeRunLoopDrive.kt` | 2 | 2 |
-| `FeatureTaskRuntimeRunLoopLaunch.kt` | 2 | 2 |
-| `FeatureTaskRuntimeRunLoopModels.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopOutputPersistence.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopOutputVerification.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopPhaseAttempts.kt` | 4 | 4 |
-| `FeatureTaskRuntimeRunLoopPhaseRunner.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopPlanningBranch.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopRecordRejection.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopRepairReceipt.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopReview.kt` | 6 | 6 |
-| `FeatureTaskRuntimeRunLoopSession.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopSharedArgs.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopSubtaskCommit.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopTransitions.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopValidationGate.kt` | 9 | 9 |
-
 ### Resource Lifetime And Failure
 
 Successful acquisition immediately establishes one cleanup owner for a child
@@ -262,19 +230,17 @@ the required property is absence of repeated maintenance.
 ### Enforcement Status
 
 Review applies these requirements now. Mechanical checks prove only their tested
-scope. Keep the existing enforcement inventory and baselines as the record of
-implemented checks and tolerated debt; do not expand an exemption to make a change
-pass. Documentation must distinguish current enforcement from planned coverage.
+scope. `PrincipleEnforcementInventory.enforceableRules` is the record of what is
+mechanically checked: each entry pairs a rule with the test class that proves it,
+so a rule without a surviving test cannot stay listed.
+`PrincipleEnforcementInventory.reviewOnlyRules` records the requirements that stay
+review-only. Do not expand an exemption to make a change pass.
 
-| Requirement with an identified gap | Implementation owner |
-| --- | --- |
-| Cleanup after callback failure and incomplete drain settlement | SKILL-239 subtask 1 |
-| Database readiness and explicit projection outcomes | SKILL-239 subtask 2 — `:runtime-infra:sqlite` write-readiness gate keyed by `PRAGMA user_version` plus stable file identity; decomposition manifest projection outcomes (`absent` / `written` / `failed`) with projection-only retry |
-| Run-loop state ownership, narrow helper inputs, and engine cycle removal | SKILL-239 subtask 3 — `ApplicationPackageAcyclicityArchitectureTest` applies the per-module shrink-only package-cycle baselines; the `runtime-engine-package-cycle-baseline.txt` baseline is empty |
-| Independent wire-key coverage and truthful architecture documentation | SKILL-239 subtask 4 plus SKILL-351 subtask 2 — `WireVocabularyGovernedSeamInventory` loads decomposition-manifest, bundle-journal, and workflow phase-output envelope fields from canonical schema YAML and independently declares the goal-continuation artifact vocabulary; `WireVocabularyArchitectureSupport` fails schema fields without `*Keys` owners independently of the declaration scan, and literal payload-key accesses only inside declared path markers for those seams; `DecompositionManifestPayloadKeys`, `FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys`, plus `SharedPayloadKeys.DERIVED_NOTES`; `RuntimeArchitectureDocumentationTest` no longer bans incidental English phrases |
-| Redundant role interfaces and application forwarders | SKILL-238 |
+These requirements are reviewed by hand and have no mechanical guard:
 
-The owning subtask updates this status with the checks that actually landed.
+- Cleanup after callback failure and incomplete drain settlement.
+- Redundant role interfaces and application forwarders.
+
 Neither a green source scan nor an archived spec establishes universal compliance
 with Clean Architecture, SOLID, or YAGNI.
 
@@ -337,9 +303,8 @@ runtime-core
   types live in area-owned `model` packages, including the
   `skillbill.model.FileLocation` value type that carries repo paths through domain
   and port signatures without a `java.nio` dependency.
-- `runtime-ports`: `skillbill.model.RuntimeContext` (one constructor:
-  `EnvironmentContext`, `TransportContext`, `WorkflowOpsContext`, `OptionalCallbacks`),
-  persistence sessions,
+- `runtime-ports`: `skillbill.model.EnvironmentContext`, the
+  `skillbill.model.RuntimeVersion` packaged-version value type, persistence sessions,
   repositories, gateway interfaces, telemetry port interfaces, workflow git
   operations, decomposition-manifest file-store ports, port-owned model types,
   the `skillbill.model.toPath` and `skillbill.ports.repository.toFileLocation` bridges that adapters use to turn
@@ -452,10 +417,15 @@ and `:runtime-infra:sqlite`.
   `RuntimeReviewAddonCatalogProvides`, `RuntimeScaffoldValidationProvides`,
   `RuntimeGoalPlanningSweepProvides`), never by pairing two areas. Each
   `@Provides` is declared once, and `RuntimeBootstrapBindings` holds only the
-  ambient construction seam. The logical service surface is the pinned abstract
-  property set on `RuntimeComponent`; `@Provides` methods (including
-  `@JvmSynthetic` generated parent wiring such as `runtimeContext` and
-  `databaseSessionFactory`) are the integration surface and are not duplicated
+  ambient construction seam. `runtime-core` is the single composition root; the
+  abstract properties on `RuntimeComponent` are the export list that generated
+  Kotlin-Inject child components read, and every accessor has a reader. Providers
+  bind one port to one `@Inject` implementation; there are no parameter-bag
+  classes. The composition inputs `RuntimeContext`, `TransportContext`,
+  `WorkflowOpsContext`, and `OptionalCallbacks` are declared in
+  `skillbill.di.core`, while `EnvironmentContext` stays in `runtime-ports`.
+  `@Provides` methods such as `runtimeContext` and `databaseSessionFactory` are
+  the integration surface and are not duplicated
   in a second signature table. Any other public function on `RuntimeComponent`
   or a `Runtime*Provides` mixin is rejected even when abstract properties are
   unchanged. `RuntimeComponent` memoizes the first
@@ -475,8 +445,10 @@ and `:runtime-infra:sqlite`.
   results share that boundary. When a package has multiple noun families,
   place each family in a child package rather than growing the parent.
 - `skillbill.model`: shared runtime model types that are not owned by a
-  narrower area: `RuntimeContext`, `EnvironmentContext`, `TransportContext`,
-  `WorkflowOpsContext`, `OptionalCallbacks`, and `RepositoryRoot`.
+  narrower area: `EnvironmentContext`, `RepositoryRoot`, and `RuntimeVersion`.
+  The composition inputs `RuntimeContext`, `TransportContext`,
+  `WorkflowOpsContext`, and `OptionalCallbacks` belong to the composition root
+  and live in `skillbill.di.core`.
 - `skillbill.config.*`: repo-local configuration domain models and resolution
   policy owned by `runtime-domain`.
 - `skillbill.ports.*`: port contracts for persistence, install, scaffold,
@@ -707,8 +679,8 @@ and applies `DEFAULT_INSTALLER_PROCESS_DEADLINE_SECONDS` (600s) from the request
 object. Tests inject shorter deadlines through that field; the CLI exposes no
 public timeout flag. Post-failure teardown uses `GIT_PROCESS_CLEANUP_BUDGET_SECONDS`
 (5s), `destroyOwnedProcessTree`, and `DESTROY_WAIT_TIMEOUT_MILLIS` (1s) over the
-owned process handle and its descendants only. `RuntimeInstallerProvides` wires
-production adapters from `RuntimeComponent`; `OptionalCallbacks` supplies test
+owned process handle and its descendants only. `RuntimeOptionalCallbackProvides`
+wires production adapters from `RuntimeComponent`; `OptionalCallbacks` supplies test
 substitutes for both ports.
 
 `SkillBillUninstallService` owns uninstall plan construction and mutation
@@ -1447,16 +1419,26 @@ and wire serialisation; they do not widen the port surface.
     (standalone JVM entry)
 ## Architecture Guardrails
 
-The architecture tests enforce the following rules:
+The architecture suite lives in `runtime-core/src/repoTest/kotlin/skillbill/architecture`
+and runs in `:runtime-core:repoTest`. That task declares every module's `src/**`,
+every `*.gradle.kts`, `ARCHITECTURE.md`, `agent/**`, `build-logic/convention/src/**`,
+`config/**`, and `.editorconfig` as inputs, so editing any source the scanners read
+invalidates the task instead of leaving a stale pass. Installer and launcher shell
+tests run in `:runtime-cli:repoTest`, which reads `install.sh` and `uninstall.sh`
+through the shared governed-repository inputs.
 
-- `ARCHITECTURE.md`, Gradle settings, and the architecture-test module catalog
-  describe the same module and subsystem graph.
-- `runtime-core` contains only `skillbill` and `skillbill.di` source packages.
-- `runtime-core` does not directly re-export contract or concrete
-  infrastructure modules as adapter API, and its transitive API closure stays
-  limited to the documented Kotlin-Inject generated ABI closure.
-- Top-level runtime modules do not depend upward or on sibling concrete
-  adapters where forbidden.
+Test placement: the subject's module owns its test. `runtime-core` owns composition
+and multi-adapter integration tests under `skillbill.di.*`. Repository-contract
+suites — the ones that read governed sources outside their own module — live in
+`src/repoTest`.
+
+`PrincipleEnforcementInventory.enforceableRules` pairs each mechanically checked
+rule with the test class that proves it. The tests also enforce the following
+boundary rules:
+
+- `runtime-core` contains only `skillbill.di` source packages.
+- `runtime-core`'s public project edges match `RuntimeComponent`'s generated
+  public ABI exactly, read from the component source rather than from prose.
 - Infrastructure modules do not depend on runtime-core, CLI, MCP, or
   sibling concrete infrastructure adapters.
 - CLI and MCP adapters declare direct runtime dependencies and do not
@@ -1484,9 +1466,6 @@ The architecture tests enforce the following rules:
 - Workflow-state, install-plan, decomposition-manifest, platform-pack,
   native-agent composition, and telemetry-event schema validators are exercised
   at their owning parse seams.
-- typed CLI presenter models are the input to CLI text rendering.
-- `docs/architecture/gradle-module-split-evaluation.md` records the physical
-  Gradle split decision and readiness rules.
 - Every `runtime-cli` command area's transitive `skillbill.cli` import closure
   contains only the shared `kernel` and `model` leaves, never a sibling command
   area and never the composition root `skillbill.cli.core`.
@@ -1499,15 +1478,11 @@ The architecture tests enforce the following rules:
 - No main-source site outside `skillbill.di` constructs a concrete class censused
   from `@Provides` parameter types and explicit Provides constructions;
   `RuntimeCompositionGuardArchitectureTest` matches import aliases, ignores comments
-  and string literals, skips unrelated same-named functions, and names sanctioned
-  second entrypoints explicitly.
+  and string literals, and skips unrelated same-named functions.
 - `RuntimeComponent` logical service properties are pinned separately from `@Provides`
   generated wiring; `RuntimeComponentInboundApiArchitectureTest` rejects any other
   public function on `RuntimeComponent` or a `Runtime*Provides` mixin even when the
   abstract property set is unchanged.
-- `skillbill.infrastructure.skills.scaffold.runtime.ScaffoldStandaloneEntrypoint` is the sanctioned
-  second scaffold entrypoint for in-tree parity and rollback tests that cannot
-  reach `RuntimeComponent`; production paths use `FileSystemScaffoldOrchestrator`.
 - A failed `uninstall` mutation is a recorded degradation with a non-zero exit
   code, shared by launcher removal, desktop removal, recursive tree removal,
   agent-target cleanup, native-agent unlinking, and MCP unregistration.
@@ -1529,7 +1504,7 @@ contract-import, and skills-import walkers. `RuntimeRawMapArchitectureTest`
 and `RuntimeArchitectureTest` match
 `runtime-kotlin/<module>/src/main/kotlin/`.
 
-### SKILL-227 runtime-application guardrails
+### Line-ceiling and cycle guardrails
 
 `ProductionLogicalTypeLineCeilingArchitectureTest` attributes each production
 Kotlin file to a logical type: type-declaring files bill to the first top-level
@@ -1544,15 +1519,24 @@ The `runtime-application` baseline is shrink-only; any new mutual-import pair
 not already baselined fails the build.
 
 `RuntimeApplicationAmbientClockArchitectureTest` bans `Instant.now()`,
-`LocalDateTime.now()`, `LocalDate.now()`, and `Clock.systemUTC()` under a
-parameterized scan root. The `runtime-application` baseline is shrink-only.
+`LocalDateTime.now()`, `LocalDate.now()`, `OffsetDateTime.now()`,
+`ZonedDateTime.now()`, `Clock.systemUTC()`, and `JvmSystemClock.instant()` in
+every module main source root declared by
+`PrincipleEnforcementInventory.moduleArchitectureScanCases`. One iterating test
+compares each module against its baseline; a rejection fixture seeds a synthetic
+violation into a temporary `runtime-engine` tree and asserts the rule reports it.
+
+Ambient-clock and ambient-environment baseline rows are keyed `path:call:count`,
+grouped per file and call form. Inject-default rows are keyed
+`path::Symbol::parameter`. Neither form carries line numbers, so moving a call
+or declaration to another line leaves the baselines unchanged.
 
 `InjectConstructorDefaultsArchitectureTest` bans default arguments on
 `@Inject` constructors and dependency bags consumed by them, and non-private
 property initializers on an `@Inject` class that declares no primary
-constructor. Production wiring must bind every port explicitly in
-`RuntimeComponent`; test-only stubs such as `ApprovingReviewDriverStub` are
-never reachable through an unbound dependency.
+constructor, in every declared module main source root. Production wiring must
+bind every port explicitly in `RuntimeComponent`; test-only stubs such as
+`ApprovingReviewDriverStub` are never reachable through an unbound dependency.
 
 The scanner strips comments and string and character literals before it walks
 delimiters, so a default whose literal holds an unbalanced brace or paren does
@@ -1561,12 +1545,12 @@ empty by rule, not by census: the recorder never rewrites it and the test
 asserts it stays empty, so a new default fails the build instead of being
 recorded away.
 
-### SKILL-229 runtime-cli guardrails
+### Ambient-environment and command-area guardrails
 
 The acyclicity, ambient-clock, and `@Inject`-defaults scanners are shared, not
 copied: each takes its scan root (and, for acyclicity, its package prefix) as a
-parameter, and `runtime-cli` is a second case over the same scanner body. A
-second copy of a scanner scoped to another module is not an acceptable
+parameter, and each rule iterates every module scan case over the same scanner
+body. A second copy of a scanner scoped to another module is not an acceptable
 substitute.
 
 `AmbientEnvironmentArchitectureTest` bans `System.getenv`, `System.getProperty`,
@@ -1575,18 +1559,17 @@ the scan root plus a recorded baseline per module, with no per-pattern carve-out
 test infrastructure stays outside the scanned root. Named file-path exemptions on
 `PrincipleEnforcementInventory.ambientEnvironmentExemptions` omit a process entry
 from baseline recording only; every other main-source site must still match an
-empty baseline. Today that list names
+empty baseline. That list names
 `runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/core/Main.kt` as the
-MCP process boundary.
+MCP process boundary and
+`runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeBootstrapBindings.kt`
+as the runtime bootstrap boundary.
 
-The four `runtime-cli` baselines started as a census — 16 mutual-import pairs, 2
-ambient-clock sites, 22 ambient-environment sites, and `CliRunState`'s 8
-default-valued fields — and subtasks 2 and 3 emptied all four. Each
-`runtime-cli` case asserts set equality against its baseline rather than absence
-of unlisted sites, so a scanner that ignored its new scan-root or
-package-prefix parameter cannot pass against a stale baseline; with the
-baselines empty that equality is a hard ban. Regenerate these baselines from
-the scanners with `RECORD_ARCHITECTURE_BASELINES=1`, never by hand.
+Every module case asserts set equality against its baseline rather than absence
+of unlisted sites, so a scanner that ignored its scan-root or package-prefix
+parameter cannot pass against a stale baseline; where the baseline is empty that
+equality is a hard ban. Regenerate these baselines from the scanners with
+`RECORD_ARCHITECTURE_BASELINES=1`, never by hand.
 
 `RuntimeCliAreaIsolationArchitectureTest` proves what an empty cycle baseline
 cannot: every command area's transitive `skillbill.cli` import closure must
@@ -1620,7 +1603,7 @@ The 1200-line per-file ceiling (2026-09-04 decision) moves only by decision
 entry, never by baseline or exemption: a re-merged unit above it fails the
 logical-type ceiling instead.
 
-### SKILL-231 inward-layer guardrails
+### Inward-layer guardrails
 
 The package-acyclicity, ambient-clock, ambient-environment, and
 `@Inject`-defaults scanners are instantiated once per Gradle module through
@@ -1646,8 +1629,7 @@ repository-relative paths and identifier violations on `path#name`, both against
 
 `RuntimeModuleCatalog.moduleEdgeExpectations` owns every module's expected
 `api(project(...))` and `implementation(project(...))` sets; `RuntimeCoreCompositionOnlyTest`
-compares Gradle files to that authority alongside the retained
-infrastructure-and-entrypoint `api` ban on `runtime-core`. `runtime-core` keeps
+compares Gradle files to that authority. `runtime-core` keeps
 `api(:runtime-application)` and `api(:runtime-ports)` as the kotlin-inject ABI
 edges. `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`, `runtime-infra/http` (`:runtime-infra:http`), and `runtime-infra/sqlite` (`:runtime-infra:sqlite`)
 narrow `api(:runtime-ports)` and `api(:runtime-domain)` to `implementation`.
@@ -1667,10 +1649,7 @@ source. A port whose absence a production call site actually reaches is
 nullable, and the reached site names its fallback (`?: JdkHttpRequester`,
 `?: git`) or returns the absent answer. The substitutes that tests still need
 live in the owning module's `src/testFixtures` under their original packages,
-so they are unreachable from a published runtime. The former
-`RecordingNullObjectDiagnostics` global bind was removed under SKILL-233 (see
-`runtime-kotlin/agent/decisions.md`); SKILL-349 deletes the leftover contracts-module
-declaration with no replacement recorder.
+so they are unreachable from a published runtime.
 
 `RuntimeContractModuleImportRulesTest` pins the two inward layers: `runtime-ports`
 declares interfaces and DTOs and imports no adapter machinery

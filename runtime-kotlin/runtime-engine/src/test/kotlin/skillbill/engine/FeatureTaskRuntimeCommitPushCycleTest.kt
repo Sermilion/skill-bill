@@ -59,7 +59,6 @@ class FeatureTaskRuntimeCommitPushCycleTest {
                 parentWorkflowId = "wfl-parent",
                 reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
               ),
-            useRealDecompositionPlanner = true,
           ),
           core =
             RunnerHarnessCore(

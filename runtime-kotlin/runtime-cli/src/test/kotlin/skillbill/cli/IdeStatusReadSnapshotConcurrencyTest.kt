@@ -1,6 +1,10 @@
 package skillbill.cli
 
+import skillbill.di.core.OptionalCallbacks
 import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.RuntimeContext
+import skillbill.di.core.TransportContext
+import skillbill.di.core.WorkflowOpsContext
 import skillbill.di.core.create
 import skillbill.engine.work.IdeStatusProjector
 import skillbill.engine.work.IdeStatusService
@@ -13,10 +17,6 @@ import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
-import skillbill.model.OptionalCallbacks
-import skillbill.model.RuntimeContext
-import skillbill.model.TransportContext
-import skillbill.model.WorkflowOpsContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.goalrunner.GoalRunnerControlRepository

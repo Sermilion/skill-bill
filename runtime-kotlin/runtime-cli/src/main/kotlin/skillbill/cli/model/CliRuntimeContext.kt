@@ -1,19 +1,18 @@
 package skillbill.cli.model
 
+import skillbill.di.core.OptionalCallbacks
+import skillbill.di.core.RuntimeContext
+import skillbill.di.core.TransportContext
+import skillbill.di.core.WorkflowOpsContext
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.model.EnvironmentContext
-import skillbill.model.OptionalCallbacks
-import skillbill.model.RuntimeContext
-import skillbill.model.TransportContext
-import skillbill.model.WorkflowOpsContext
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
 import skillbill.ports.process.InstallerProcessPort
 import skillbill.ports.process.InstallerScriptFetchPort
-import skillbill.ports.review.launch.ReviewNativeAgentPreflightPort
 import skillbill.ports.system.HostPlatformPort
 import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.ports.time.RuntimeTimingPort
@@ -31,7 +30,6 @@ data class CliRuntimeContext(
   val agentRunLauncher: AgentRunLauncher? = null,
   val goalPullRequestPort: GoalPullRequestPort? = null,
   val executableLookup: ExecutableLookup? = null,
-  val reviewNativeAgentPreflight: ReviewNativeAgentPreflightPort? = null,
   val runtimeTimingPort: RuntimeTimingPort? = null,
   val hostPlatformPort: HostPlatformPort? = null,
   val installerProcessPort: InstallerProcessPort? = null,
@@ -62,7 +60,6 @@ data class CliRuntimeContext(
           runtimeDiagnostics = runtimeDiagnostics,
           goalPullRequestPort = goalPullRequestPort,
           executableLookup = executableLookup,
-          reviewNativeAgentPreflight = reviewNativeAgentPreflight,
           runtimeTimingPort = runtimeTimingPort,
           hostPlatformPort = hostPlatformPort,
           installerProcessPort = installerProcessPort,

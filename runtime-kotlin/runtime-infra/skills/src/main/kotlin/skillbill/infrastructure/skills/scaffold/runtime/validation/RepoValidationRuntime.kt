@@ -1,7 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.runtime.validation
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionContext
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.APPEND

@@ -12,22 +12,22 @@ import skillbill.workflow.goal.GoalPlanningPreparationEnvelopeValidator
 import skillbill.workflow.goal.GoalProgressEventValidator
 
 internal interface RuntimeWorkflowValidatorProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun decompositionManifestValidator(): DecompositionManifestValidator = DecompositionManifestSchemaValidator()
 
-  @Provides @JvmSynthetic
+  @Provides
   fun workflowSnapshotValidator(): WorkflowSnapshotValidator = WorkflowStateSchemaValidator()
 
-  @Provides @JvmSynthetic
+  @Provides
   fun goalPlanningPreparationEnvelopeValidator(): GoalPlanningPreparationEnvelopeValidator =
     FeatureTaskRuntimeWireArtifactValidator()
 
-  @Provides @JvmSynthetic
+  @Provides
   fun goalObservabilityEventValidator(): GoalObservabilityEventValidator = FeatureTaskRuntimeWireArtifactValidator()
 
-  @Provides @JvmSynthetic
+  @Provides
   fun goalProgressEventValidator(): GoalProgressEventValidator = FeatureTaskRuntimeWireArtifactValidator()
 
-  @Provides @JvmSynthetic
+  @Provides
   fun ideStatusValidator(): IdeStatusValidator = IdeStatusSchemaValidator()
 }

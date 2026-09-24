@@ -6,11 +6,11 @@ import skillbill.ports.install.platformpack.ExternalPlatformPackSourceConfigPort
 import skillbill.ports.install.platformpack.PlatformPackCatalogPort
 
 internal interface RuntimeExternalPlatformPackProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun externalPlatformPackSourceConfigPort(
     store: FileExternalPlatformPackSourceConfigStore,
   ): ExternalPlatformPackSourceConfigPort = store
 
-  @Provides @JvmSynthetic
+  @Provides
   fun platformPackCatalogPort(loader: PlatformPackCatalogLoader): PlatformPackCatalogPort = loader
 }

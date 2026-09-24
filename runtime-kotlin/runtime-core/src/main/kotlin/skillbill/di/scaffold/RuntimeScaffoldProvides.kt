@@ -19,31 +19,31 @@ import skillbill.ports.scaffold.source.ScaffoldSourceLoaderPort
 import skillbill.ports.scaffold.staging.ScaffoldGeneratedStagingPort
 
 internal interface RuntimeScaffoldProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun scaffoldRepoValidation(
     environmentContext: EnvironmentContext,
     catalogLoader: PlatformPackCatalogLoader,
   ): FileSystemScaffoldRepoValidation = FileSystemScaffoldRepoValidation(environmentContext, catalogLoader)
 
-  @Provides @JvmSynthetic
+  @Provides
   fun scaffoldGateway(gateway: FileSystemScaffoldGateway): ScaffoldGateway = gateway
 
-  @Provides @JvmSynthetic
+  @Provides
   fun unsupportedScaffoldGateway(gateway: FileSystemUnsupportedScaffoldGateway): UnsupportedScaffoldGateway = gateway
 
-  @Provides @JvmSynthetic
+  @Provides
   fun scaffoldCatalogGateway(gateway: FileSystemScaffoldCatalogGateway): ScaffoldCatalogGateway = gateway
 
-  @Provides @JvmSynthetic
+  @Provides
   fun scaffoldSourceLoaderPort(adapter: FileSystemScaffoldSourceLoader): ScaffoldSourceLoaderPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun scaffoldManifestPersistencePort(adapter: FileSystemScaffoldManifestPersistence): ScaffoldManifestPersistencePort =
     adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun scaffoldGeneratedStagingPort(adapter: FileSystemScaffoldGeneratedStaging): ScaffoldGeneratedStagingPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun scaffoldInstallLinkPort(adapter: FileSystemScaffoldInstallLink): ScaffoldInstallLinkPort = adapter
 }

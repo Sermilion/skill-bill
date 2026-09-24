@@ -1,7 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.validation.shape
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.resolveSkillClassForSkill
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.model.SkillClassManifest
 import java.nio.file.Path
 

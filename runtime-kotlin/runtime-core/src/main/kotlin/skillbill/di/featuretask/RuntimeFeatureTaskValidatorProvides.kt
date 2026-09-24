@@ -10,18 +10,18 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputVa
 import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactSchemaValidator
 
 internal interface RuntimeFeatureTaskValidatorProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun featureTaskRuntimePhaseOutputValidator(): FeatureTaskRuntimePhaseOutputValidator =
     FeatureTaskRuntimePhaseOutputSchemaValidator()
 
-  @Provides @JvmSynthetic
+  @Provides
   fun featureTaskRuntimeWireArtifactValidator(): FeatureTaskRuntimeWireArtifactValidator =
     FeatureTaskRuntimeWireArtifactSchemaValidator()
 
-  @Provides @JvmSynthetic
+  @Provides
   fun rejectedOutputDiagnosticMetadataValidator(): RejectedOutputDiagnosticMetadataValidator =
     RejectedOutputDiagnosticSchemaValidator()
 
-  @Provides @JvmSynthetic
+  @Provides
   fun producerOutputEvidenceValidator(): ProducerOutputEvidenceValidator = ProducerOutputEvidenceSchemaValidator()
 }

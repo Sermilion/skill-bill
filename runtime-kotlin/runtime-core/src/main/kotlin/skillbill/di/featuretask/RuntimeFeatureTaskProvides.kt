@@ -19,33 +19,33 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeSpecStatusWriter
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 
 internal interface RuntimeFeatureTaskProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun featureTaskRuntimeReviewDriver(launcher: GoalRunnerSubtaskLauncher): FeatureTaskRuntimeReviewDriver =
     FeatureTaskLastCommitReviewDriver(launcher)
 
-  @Provides @JvmSynthetic
+  @Provides
   fun featureTaskPhaseSettlementRepository(database: DatabaseSessionFactory): FeatureTaskPhaseSettlementRepository =
     SqliteFeatureTaskPhaseSettlementRepository(database)
 
-  @Provides @JvmSynthetic
+  @Provides
   fun featureTaskRuntimeRunInvariantsSource(
     adapter: FileSystemFeatureTaskRuntimeRunInvariantsSource,
   ): FeatureTaskRuntimeRunInvariantsSource = adapter
 
-  @Provides @RuntimeSingleton @JvmSynthetic
+  @Provides @RuntimeSingleton
   fun featureTaskRuntimeWorkerSupervisor(
     adapter: JdkFeatureTaskRuntimeWorkerSupervisor,
   ): FeatureTaskRuntimeWorkerSupervisor = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun featureTaskRuntimeSpecStatusWriter(
     adapter: FileSystemFeatureTaskRuntimeSpecStatusWriter,
   ): FeatureTaskRuntimeSpecStatusWriter = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun checkedOutBranchSource(source: FileSystemCheckedOutBranchSource): CheckedOutBranchSource = source
 
-  @Provides @JvmSynthetic
+  @Provides
   fun featureTaskRuntimeReadinessEvidencePort(
     recorder: FeatureTaskRuntimePhaseRecorder,
   ): FeatureTaskRuntimeReadinessEvidencePort = recorder

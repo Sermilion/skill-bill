@@ -18,30 +18,30 @@ import skillbill.ports.install.reconcile.InstallReconcileApplyPort
 import skillbill.ports.install.reconcile.InstallReconcilePort
 
 internal interface RuntimeInstallTargetProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun installReconcilePort(adapter: FileSystemInstallReconcile): InstallReconcilePort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installReconcileApplyPort(adapter: FileSystemInstallReconcileApply): InstallReconcileApplyPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun baselineManifestPersistencePort(adapter: FileSystemBaselineManifestPersistence): BaselineManifestPersistencePort =
     adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installedWorkspaceBaselineStatusPort(
     adapter: FileSystemInstalledWorkspaceBaselineStatus,
   ): InstalledWorkspaceBaselineStatusPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installSkillLinkPort(adapter: FileSystemInstallSkillLink): InstallSkillLinkPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installAgentTargetPort(adapter: FileSystemInstallAgentTargets): InstallAgentTargetPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installNativeAgentLinkPort(adapter: FileSystemInstallNativeAgentLinks): InstallNativeAgentLinkPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installMcpRegistrationPort(adapter: FileSystemInstallMcpRegistration): InstallMcpRegistrationPort = adapter
 }

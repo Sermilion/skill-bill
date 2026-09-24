@@ -11,7 +11,6 @@ import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoringTarget
 import skillbill.infrastructure.skills.scaffold.catalog.ScaffoldCatalog
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.model.EnvironmentContext
 import skillbill.model.toPath
 import skillbill.ports.scaffold.ScaffoldCatalogGateway

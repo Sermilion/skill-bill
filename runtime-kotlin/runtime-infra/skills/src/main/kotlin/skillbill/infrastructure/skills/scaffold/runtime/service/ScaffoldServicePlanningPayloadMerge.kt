@@ -9,7 +9,6 @@ import skillbill.infrastructure.skills.agentaddon.AgentAddonSchemaValidator
 import skillbill.infrastructure.skills.scaffold.payload.requireStringListPayload
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.PRE_SHELL_FAMILIES
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.install.model.SupportedAgent
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON

@@ -45,7 +45,7 @@ Feature flag: N/A
 Acceptance criteria: n/a
 
 ## [2026-09-03] SKILL-229 loud-fail seams and package structure (subtask 3)
-Areas: runtime-kotlin/runtime-cli/{core,kernel,model,system,telemetry,scaffold,install,learning,featuretask,goal}, runtime-kotlin/runtime-core/{skillbill/di,src/test/kotlin/skillbill/architecture{,/baselines}}, runtime-kotlin/ARCHITECTURE.md
+Areas: runtime-kotlin/runtime-cli/{core,kernel,model,system,telemetry,scaffold,install,learning,featuretask,goal}, runtime-kotlin/runtime-core/{skillbill/di,src/repoTest/kotlin/skillbill/architecture{,/baselines}}, runtime-kotlin/ARCHITECTURE.md
 - `uninstall`'s six mutation sites (launcher, desktop entry, recursive tree removal, agent-target cleanup, native-agent unlink, MCP unregistration) route every failure through one `UninstallMutationRecorder` to a `RuntimeDiagnostics` error record plus a non-zero exit; the old warning-string-on-zero-exit path is gone. reusable: one recorder owns the failure policy for a whole command family instead of per-site handling.
 - All three telemetry-drain abandonment paths emit a `RuntimeDiagnostics` warning and still cannot touch stdout, stderr, or the exit code. The drain's silence is now observable without becoming load-bearing.
 - reusable seam: a `runtime-core` port reaches `CliComponent` through `abstract val runtimeDiagnostics: RuntimeDiagnostics` on `RuntimeComponent` — the same `@Provides`-plus-same-name-accessor shape `installSelectionPersistencePort` already used. Adding the accessor (not a new binding) keeps `runtime-cli` free of any `runtime-infra-fs` dependency and leaves `RuntimeAdapterDependencyAllowlistTest`'s pinned list untouched. Use this when a CLI command needs a port the adapter module owns.

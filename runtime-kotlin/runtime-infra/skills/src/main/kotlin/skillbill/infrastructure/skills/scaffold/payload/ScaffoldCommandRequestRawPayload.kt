@@ -1,6 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.payload
 
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON

@@ -21,41 +21,41 @@ import skillbill.review.model.ParallelReviewParseResult
 import skillbill.review.parallel.ParallelReviewFindingParser
 
 internal interface RuntimeReviewEvidenceProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun reviewContextEnvelopeValidator(validator: ReviewContextSchemaValidator): ReviewContextEnvelopeValidator =
     validator
 
-  @Provides @JvmSynthetic
+  @Provides
   fun reviewEvidenceBrokerFactory(): ReviewEvidenceBrokerFactory =
     ReviewEvidenceBrokerFactory { binding -> FileSystemReviewEvidenceBroker(binding) }
 
-  @Provides @JvmSynthetic
+  @Provides
   fun governedReviewEvidenceEndpointBinder(
     adapter: UnixSocketGovernedReviewEvidenceEndpointBinder,
   ): GovernedReviewEvidenceEndpointBinder = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun sharedEvidenceResolverPort(
     adapter: FileSystemFeatureTaskRuntimeSharedEvidenceStore,
   ): FeatureTaskRuntimeSharedEvidenceResolverPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun sharedEvidenceLocatorReadPort(
     adapter: FileSystemFeatureTaskRuntimeSharedEvidenceStore,
   ): FeatureTaskRuntimeSharedEvidenceLocatorReadPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun reviewSnapshotGateway(gateway: FileSystemReviewSnapshotGateway): ReviewSnapshotGateway = gateway
 
-  @Provides @JvmSynthetic
+  @Provides
   fun reviewInputSource(source: FileSystemReviewInputSource): ReviewInputSource = source
 
-  @Provides @JvmSynthetic
+  @Provides
   fun diffResolverPort(adapter: FileSystemDiffResolver): DiffResolverPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun repositoryOriginScopeKeyPort(adapter: GitRepositoryOriginScopeKey): RepositoryOriginScopeKeyPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun parallelReviewParseRegister(): (String) -> ParallelReviewParseResult = ParallelReviewFindingParser::parse
 }

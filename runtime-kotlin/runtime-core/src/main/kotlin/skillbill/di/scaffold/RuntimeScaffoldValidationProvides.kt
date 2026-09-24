@@ -15,21 +15,21 @@ import skillbill.ports.validation.RepoValidationGateway
 import skillbill.ports.validation.ValidationGateRunner
 
 internal interface RuntimeScaffoldValidationProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun scaffoldRepoValidationPort(adapter: FileSystemScaffoldRepoValidation): ScaffoldRepoValidationPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun repoLocalConfigPort(diagnostics: RuntimeDiagnostics): RepoLocalConfigPort = FileSystemRepoLocalConfig(diagnostics)
 
-  @Provides @JvmSynthetic
+  @Provides
   fun repoValidationGateway(gateway: FileSystemRepoValidationGateway): RepoValidationGateway = gateway
 
-  @Provides @JvmSynthetic
+  @Provides
   fun validationGateRunner(runner: FileSystemValidationGateRunner): ValidationGateRunner = runner
 
-  @Provides @JvmSynthetic
+  @Provides
   fun prCheckDiscovery(discovery: GitHubPullRequestCheckDiscovery): PrCheckDiscovery = discovery
 
-  @Provides @JvmSynthetic
+  @Provides
   fun prCheckProcessRunner(runner: FileSystemPrCheckProcessRunner): PrCheckProcessRunner = runner
 }
