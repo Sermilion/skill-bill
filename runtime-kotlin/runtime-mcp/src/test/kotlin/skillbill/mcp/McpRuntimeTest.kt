@@ -356,11 +356,11 @@ class McpRuntimeTest {
     val defaultSkillPath = Path.of(defaultResult["skill_path"] as String)
     val explicitSkillPath = Path.of(explicitResult["skill_path"] as String)
     assertTrue(
-      defaultSkillPath.startsWith(invocationRoot.toRealPath()),
+      defaultSkillPath.startsWith(invocationRoot.toAbsolutePath().normalize()),
       "default skill path $defaultSkillPath was not under $invocationRoot",
     )
     assertTrue(
-      explicitSkillPath.startsWith(explicitRoot.toRealPath()),
+      explicitSkillPath.startsWith(explicitRoot.toAbsolutePath().normalize()),
       "explicit skill path $explicitSkillPath was not under $explicitRoot",
     )
   }

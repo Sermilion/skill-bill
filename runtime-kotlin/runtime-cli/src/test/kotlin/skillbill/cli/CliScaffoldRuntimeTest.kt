@@ -73,11 +73,11 @@ class CliScaffoldRuntimeTest {
     val defaultSkillPath = Path.of(parseJsonObject(defaultResult.stdout).stringValue("skill_path"))
     val explicitSkillPath = Path.of(parseJsonObject(explicitResult.stdout).stringValue("skill_path"))
     assertTrue(
-      defaultSkillPath.startsWith(invocationRoot.toRealPath()),
+      defaultSkillPath.startsWith(invocationRoot.toAbsolutePath().normalize()),
       "default skill path $defaultSkillPath was not under $invocationRoot",
     )
     assertTrue(
-      explicitSkillPath.startsWith(explicitRoot.toRealPath()),
+      explicitSkillPath.startsWith(explicitRoot.toAbsolutePath().normalize()),
       "explicit skill path $explicitSkillPath was not under $explicitRoot",
     )
   }
