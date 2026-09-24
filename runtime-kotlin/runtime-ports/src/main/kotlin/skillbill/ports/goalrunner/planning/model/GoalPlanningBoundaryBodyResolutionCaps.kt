@@ -1,7 +1,5 @@
 package skillbill.ports.goalrunner.planning.model
 
-import skillbill.contracts.goalplanning.GoalVerificationBoundaryCaps
-
 data class GoalPlanningBoundaryBodyResolutionCaps(
   val maxSelectedBodies: Int = GoalPlanningContext.MAX_SELECTED_BODIES,
   val maxBodyBytes: Int = GoalPlanningContext.MAX_BODY_BYTES,
@@ -11,9 +9,9 @@ data class GoalPlanningBoundaryBodyResolutionCaps(
     val PLANNING: GoalPlanningBoundaryBodyResolutionCaps = GoalPlanningBoundaryBodyResolutionCaps()
     val VERIFICATION: GoalPlanningBoundaryBodyResolutionCaps =
       GoalPlanningBoundaryBodyResolutionCaps(
-        maxSelectedBodies = GoalVerificationBoundaryCaps.maxSelectedBodies,
-        maxBodyBytes = GoalVerificationBoundaryCaps.maxBodyBytes,
-        maxTotalBodyBytes = GoalVerificationBoundaryCaps.maxTotalBodyBytes,
+        maxSelectedBodies = GoalPlanningContext.VERIFICATION_MAX_SELECTED_BODIES,
+        maxBodyBytes = GoalPlanningContext.VERIFICATION_MAX_BODY_BYTES,
+        maxTotalBodyBytes = GoalPlanningContext.VERIFICATION_MAX_TOTAL_BODY_BYTES,
       )
   }
 }

@@ -64,10 +64,13 @@ class RuntimeArchitectureTest {
       import com.networknt.schema.JsonSchemaFactory
       import com.fasterxml.jackson.databind.ObjectMapper
       import java.nio.file.Files
+      import org.yaml.snakeyaml.Yaml
+      import java.io.InputStream
 
       object ContractsLeak {
         fun read() {
           Files.readString(somePath)
+          javaClass.getResourceAsStream("/skillbill/contract.yaml")
         }
       }
       """.trimIndent()
@@ -77,9 +80,11 @@ class RuntimeArchitectureTest {
         "com.networknt.schema.JsonSchemaFactory",
         "com.fasterxml.jackson.databind.ObjectMapper",
         "java.nio.file.Files",
+        "org.yaml.snakeyaml.Yaml",
+        "java.io.InputStream",
       ),
       fixture.imports,
-      "Production RuntimeArchitectureScanConstants.importPattern must parse the fixture's three " +
+      "Production RuntimeArchitectureScanConstants.importPattern must parse the fixture's five " +
         "forbidden imports from source.",
     )
     assertFailsWith<AssertionError>(
@@ -97,7 +102,8 @@ class RuntimeArchitectureTest {
     assertEquals(
       RuntimeArchitectureScanConstants.contractsForbiddenSourceReferences,
       sourceViolations,
-      "Contracts purity source scanner must report each banned reference (incl. the `Files.` call site).",
+      "Contracts purity source scanner must report each banned reference (incl. the `Files.` call site and " +
+        "the classpath `getResourceAsStream` loader).",
     )
   }
 

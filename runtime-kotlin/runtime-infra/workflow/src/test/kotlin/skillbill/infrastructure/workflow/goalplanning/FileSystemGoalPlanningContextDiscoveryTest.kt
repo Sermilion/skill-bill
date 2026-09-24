@@ -1,8 +1,8 @@
 package skillbill.infrastructure.workflow.goalplanning
 
 import org.junit.jupiter.api.Assumptions.assumeTrue
-import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
 import skillbill.contracts.time.JvmSystemClock
+import skillbill.goalrunner.planning.GoalPlanningExcludedPaths
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeading
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import java.nio.file.Files
@@ -58,8 +58,8 @@ class FileSystemGoalPlanningContextDiscoveryTest {
     assertEquals(1, context.boundaryCatalog.size)
     assertTrue(
       context.boundaryCatalog.none { entry ->
-        GoalPlanningDiscoveryExclusions.isExcluded(entry.sourcePath) ||
-          GoalPlanningDiscoveryExclusions.excludedRoots.any { root -> entry.headingId.startsWith(root) }
+        GoalPlanningExcludedPaths.isExcluded(entry.sourcePath) ||
+          GoalPlanningExcludedPaths.EXCLUDED_ROOTS.any { root -> entry.headingId.startsWith(root) }
       },
       "no catalog entry names an exclusion-list root in its source path or heading id",
     )
@@ -69,11 +69,11 @@ class FileSystemGoalPlanningContextDiscoveryTest {
   @Test
   fun `every excluded root and directory name is pruned at any depth`() {
     val repo = Files.createTempDirectory("goal-context-all-roots")
-    GoalPlanningDiscoveryExclusions.excludedRoots.forEach { root ->
+    GoalPlanningExcludedPaths.EXCLUDED_ROOTS.forEach { root ->
       val agent = Files.createDirectories(repo.resolve(root).resolve("nested/agent"))
       writeEntries(agent.resolve("history.md"), "excluded-history", "excluded body")
     }
-    GoalPlanningDiscoveryExclusions.excludedDirectoryNames.forEach { name ->
+    GoalPlanningExcludedPaths.EXCLUDED_DIRECTORY_NAMES.forEach { name ->
 
       val agent = Files.createDirectories(repo.resolve("runtime-kotlin/module/$name/nested/agent"))
       writeEntries(agent.resolve("history.md"), "excluded-history", "excluded body")

@@ -2,10 +2,10 @@ package skillbill.infrastructure.http
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.RemoteStatsQueryPayload
+import skillbill.error.core.ShellContentContractException
 import skillbill.error.core.TelemetryProxyInvalidResponseError
 import skillbill.error.core.TelemetryProxyRequestFailureError
 import skillbill.error.core.TelemetryRelayUrlUnconfiguredError
-import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.model.RemoteTransportResponse

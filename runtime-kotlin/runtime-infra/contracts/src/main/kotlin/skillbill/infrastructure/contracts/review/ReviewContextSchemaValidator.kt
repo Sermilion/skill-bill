@@ -10,8 +10,8 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.contracts.review.ReviewContextSchemaPaths
+import skillbill.error.core.ShellContentContractException
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
-import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.ValidatedClasspathYamlNodeRequest
 import skillbill.ports.review.ReviewContextEnvelopeValidator

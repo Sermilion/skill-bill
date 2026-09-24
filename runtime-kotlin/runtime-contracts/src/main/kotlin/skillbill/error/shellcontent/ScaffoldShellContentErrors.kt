@@ -47,11 +47,6 @@ class SkillAlreadyExistsError(
   cause: Throwable? = null,
 ) : ScaffoldError(message, cause)
 
-class ScaffoldValidatorError(
-  message: String,
-  cause: Throwable? = null,
-) : ScaffoldError(message, cause)
-
 class ScaffoldRollbackError(
   message: String,
   cause: Throwable? = null,

@@ -1,6 +1,4 @@
-package skillbill.error.shellcontent
-
-import skillbill.error.core.SkillBillRuntimeException
+package skillbill.error.core
 
 open class ShellContentContractException(
   message: String,

@@ -25,6 +25,20 @@ Areas: runtime-kotlin/runtime-engine/skillbill/engine/goalrunner/{status,manifes
 Feature flag: N/A
 Acceptance criteria: 7/7 implemented
 
+## [2026-09-24] SKILL-374 subtask 1 — runtime-contracts stops loading, and the error-package cycle is gone
+Areas: runtime-kotlin/{runtime-contracts,runtime-domain,runtime-ports,runtime-engine,runtime-infra/{contracts,workflow,http},runtime-core repoTest,runtime-cli tests}, runtime-kotlin/{ARCHITECTURE.md,agent/decisions.md}, orchestration/contracts, skills/bill-boundary-{history,decisions}
+- `runtime-contracts` no longer reads anything at runtime: the snakeyaml dependency, the packaged-YAML resource copy task, and `PackagedContractYamlNumbers` are deleted, so the module is now plain Kotlin constants plus kotlinx-serialization. Its `build.gradle.kts` is five lines.
+- Pattern: a shared-kernel module states values; adapters load files. Values that used to be read from `goal-verification-boundary-caps.yaml` and `goal-planning-discovery-exclusions.yaml` are now literals on `GoalPlanningContext`/`GoalPlanningBoundaryBodyResolutionCaps`, and both YAMLs (with their schemas) are deleted rather than kept as a parity source. reusable
+- The exclusion *logic* moved to `skillbill.goalrunner.planning.GoalPlanningExcludedPaths` in runtime-domain with a behavioral test (segment-aware prefixes, backslash separators, nested `build/`, root escape); the old contracts-side object and its resource were dropped together.
+- Guard added, not assumed: `RuntimeArchitectureTest`'s contracts-leak rule now bans `org.yaml.`, `java.io.` and the source reference `getResourceAsStream` inside runtime-contracts, and its rejection fixture asserts every banned form is actually reported. reusable
+- Package cycle `skillbill.error.core <-> skillbill.error.shellcontent` removed by relocating single-owner error declarations to their owning package; runtime-contracts now falls under the default `skillbill.` EXACT_PACKAGE_SCC case with an empty baseline (the `skillbill.contracts.` override is deleted).
+- `JsonCodec.parseObjectOrNull` is the one tolerant JSON entry point kept; `parseArrayOrEmpty` and 13 other unread declarations (schema-path holders, payload-key objects) were deleted — ~43 members in total.
+- Repo tests that read checked-in files moved out of runtime-contracts into `runtime-infra/contracts` repoTest, including a new `IssueKeySchemaLengthRepoTest` pinning `issue-key-schema.yaml` min/max against `MAX_ISSUE_KEY_LENGTH`.
+- Both boundary skills lost the phrase "checked-in goal-planning discovery exclusion contract" — after this change the exclusion list is code, not a contract file.
+- Known limitations: a duplicate `VERIFICATION_MAX_BOUNDARY_FILE_BYTES` from the plan was dropped (no reader, same value as the existing cap); no new synthetic cycle fixture was added because `ApplicationPackageAcyclicityArchitectureTest` already runs two- and three-package SCC fixtures at these settings.
+Feature flag: N/A
+Acceptance criteria: 11/11 implemented
+
 ## [2026-09-24] SKILL-381 subtask 1 — Runtime delivery integrity
 Areas: runtime-kotlin/{runtime-contracts,runtime-domain,runtime-application,runtime-infra/http,runtime-infra/sqlite,runtime-mcp,runtime-cli,runtime-core tests}, docs/telemetry-privacy.md, orchestration/contracts/telemetry-event-schema.yaml
 - Each outbox row's `event_uuid` is now the top-level PostHog `uuid` of its event (`$insert_id` stays on properties for installed relays); a row without one mints nothing. That identity is what makes the existing unbounded-retry design safe — `UNKNOWN` still consumes no attempt, and a resent batch carries the same `uuid`, so the receiver can collapse the duplicate. reusable

@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.pointer
 
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.infrastructure.host.jvm.readGitTrackedFiles
 import skillbill.infrastructure.skills.nativeagent.validation.discoverNativeAgentGeneratedArtifactFiles
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest

@@ -2,9 +2,9 @@ package skillbill.contracts.issuekey
 
 const val TRACKER_STYLE_ISSUE_KEY_PATTERN: String = "[A-Z0-9]+-\\d+(?:\\.\\d+)?"
 
-val TRACKER_STYLE_ISSUE_KEY: Regex = Regex("(?i)$TRACKER_STYLE_ISSUE_KEY_PATTERN")
+private val TRACKER_STYLE_ISSUE_KEY: Regex = Regex("(?i)$TRACKER_STYLE_ISSUE_KEY_PATTERN")
 
-val ISSUE_AND_FEATURE_DIRECTORY: Regex = Regex("^(?i)($TRACKER_STYLE_ISSUE_KEY_PATTERN)-(.+)$")
+private val ISSUE_AND_FEATURE_DIRECTORY: Regex = Regex("^(?i)($TRACKER_STYLE_ISSUE_KEY_PATTERN)-(.+)$")
 
 fun issueAndFeature(directoryName: String): Pair<String, String> {
   val match = ISSUE_AND_FEATURE_DIRECTORY.matchEntire(directoryName)

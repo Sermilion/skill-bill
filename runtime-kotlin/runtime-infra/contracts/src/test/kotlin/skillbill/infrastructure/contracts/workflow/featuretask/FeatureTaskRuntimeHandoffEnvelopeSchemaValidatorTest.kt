@@ -1,7 +1,7 @@
 package skillbill.infrastructure.contracts.workflow.featuretask
 
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION
-import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
+import skillbill.error.featuretask.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.validateEnvelope

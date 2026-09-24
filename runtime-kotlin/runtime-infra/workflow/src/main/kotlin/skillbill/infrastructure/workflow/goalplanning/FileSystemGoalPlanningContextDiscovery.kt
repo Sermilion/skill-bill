@@ -1,9 +1,8 @@
 package skillbill.infrastructure.workflow.goalplanning
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
-import skillbill.contracts.goalplanning.GoalVerificationBoundaryCaps
 import skillbill.error.shellcontent.GoalVerificationBoundaryCapExceededError
+import skillbill.goalrunner.planning.GoalPlanningExcludedPaths
 import skillbill.ports.goalrunner.planning.GoalPlanningContextDiscovery
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeading
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeadingKind
@@ -33,7 +32,7 @@ class FileSystemGoalPlanningContextDiscovery(
     val normalizedPaths =
       findingPaths.mapNotNull(GoalPlanningRepositoryScope::normalizeFindingPath)
         .distinct()
-        .filterNot(GoalPlanningDiscoveryExclusions::isExcluded)
+        .filterNot(GoalPlanningExcludedPaths::isExcluded)
     if (normalizedPaths.isEmpty()) {
       return GoalVerificationBoundaryDiscovery(
         boundaryCatalog = emptyList(),
@@ -203,11 +202,11 @@ class FileSystemGoalPlanningContextDiscovery(
       )
     val VerificationDiscoveryCaps =
       DiscoveryCaps(
-        maxDiscoveryFileCount = GoalVerificationBoundaryCaps.maxDiscoveryFileCount,
-        maxHeadingsPerFile = GoalVerificationBoundaryCaps.maxHeadingsPerFile,
-        maxCatalogHeadings = GoalVerificationBoundaryCaps.maxCatalogHeadings,
+        maxDiscoveryFileCount = GoalPlanningContext.VERIFICATION_MAX_DISCOVERY_FILE_COUNT,
+        maxHeadingsPerFile = GoalPlanningContext.VERIFICATION_MAX_HEADINGS_PER_FILE,
+        maxCatalogHeadings = GoalPlanningContext.VERIFICATION_MAX_CATALOG_HEADINGS,
         includeValidationGuidance = false,
-        historyRecencyDays = GoalVerificationBoundaryCaps.historyRecencyDays,
+        historyRecencyDays = GoalPlanningContext.VERIFICATION_HISTORY_RECENCY_DAYS,
       )
   }
 }

@@ -15,7 +15,7 @@ private fun issueKeySchemaBody(): JsonNode {
   val stream =
     checkNotNull(
       Thread.currentThread().contextClassLoader.getResourceAsStream(ISSUE_KEY_SCHEMA_RESOURCE)
-        ?: IssueKeyShapeClasspath::class.java.classLoader.getResourceAsStream(ISSUE_KEY_SCHEMA_RESOURCE),
+        ?: IssueKeySchemaClasspath::class.java.classLoader.getResourceAsStream(ISSUE_KEY_SCHEMA_RESOURCE),
     ) { "issue-key schema is missing from the classpath at $ISSUE_KEY_SCHEMA_RESOURCE" }
   val raw = stream.use { YAMLMapper().readTree(it) }
   check(raw is ObjectNode) { "issue-key schema must be an object" }
@@ -46,4 +46,4 @@ private fun inlineIssueKeySchemaRefsIn(
   }
 }
 
-private object IssueKeyShapeClasspath
+private object IssueKeySchemaClasspath

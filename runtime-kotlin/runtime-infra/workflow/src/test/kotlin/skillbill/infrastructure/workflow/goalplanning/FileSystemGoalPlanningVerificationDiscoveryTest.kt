@@ -1,8 +1,8 @@
 package skillbill.infrastructure.workflow.goalplanning
 
-import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
-import skillbill.contracts.goalplanning.GoalVerificationBoundaryCaps
 import skillbill.contracts.time.JvmSystemClock
+import skillbill.goalrunner.planning.GoalPlanningExcludedPaths
+import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDate
@@ -61,7 +61,7 @@ class FileSystemGoalPlanningVerificationDiscoveryTest {
     assertFalse(fromSafePath.boundaryContextUnavailable)
     assertEquals(listOf("modules/safe/agent/history.md"), fromSafePath.boundaryCatalog.map { it.sourcePath })
     assertTrue(
-      fromSafePath.boundaryCatalog.none { entry -> GoalPlanningDiscoveryExclusions.isExcluded(entry.sourcePath) },
+      fromSafePath.boundaryCatalog.none { entry -> GoalPlanningExcludedPaths.isExcluded(entry.sourcePath) },
     )
   }
 
@@ -114,7 +114,7 @@ class FileSystemGoalPlanningVerificationDiscoveryTest {
     val repo = Files.createTempDirectory("goal-verification-history-recency")
     val agent = Files.createDirectories(repo.resolve("modules/a/agent"))
     val recent = LocalDate.now(ZoneOffset.UTC).minusDays(5)
-    val stale = LocalDate.now(ZoneOffset.UTC).minusDays(GoalVerificationBoundaryCaps.historyRecencyDays + 1L)
+    val stale = LocalDate.now(ZoneOffset.UTC).minusDays(GoalPlanningContext.VERIFICATION_HISTORY_RECENCY_DAYS + 1L)
     Files.writeString(
       agent.resolve("history.md"),
       """
@@ -146,7 +146,7 @@ class FileSystemGoalPlanningVerificationDiscoveryTest {
   fun `verification discovery does not filter decisions by history recency`() {
     val repo = Files.createTempDirectory("goal-verification-decisions-recency")
     val agent = Files.createDirectories(repo.resolve("modules/a/agent"))
-    val stale = LocalDate.now(ZoneOffset.UTC).minusDays(GoalVerificationBoundaryCaps.historyRecencyDays + 1L)
+    val stale = LocalDate.now(ZoneOffset.UTC).minusDays(GoalPlanningContext.VERIFICATION_HISTORY_RECENCY_DAYS + 1L)
     Files.writeString(
       agent.resolve("decisions.md"),
       "# Boundary Decisions\n\n## [$stale] stale-decision\n\nstale decision body\n",

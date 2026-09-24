@@ -10,7 +10,6 @@ dependencies {
   api(project(":runtime-ports"))
   implementation(project(":runtime-application"))
   implementation(libs.kotlin.inject.runtime)
-  implementation(libs.kotlinx.serialization.json)
   testFixturesImplementation(project(":runtime-application"))
   testFixturesImplementation(project(":runtime-domain"))
   testFixturesImplementation(project(":runtime-ports"))

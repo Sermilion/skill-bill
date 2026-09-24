@@ -1,7 +1,5 @@
 package skillbill.error.core
 
-import skillbill.error.shellcontent.ShellContentContractException
-
 class InvalidMcpToolArgumentError(
   val toolName: String,
   val argumentKey: String,

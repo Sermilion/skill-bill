@@ -9,7 +9,7 @@ import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.config.ExternalPlatformPackResolutionPayloadKeys
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.scaffold.policy.platformpack.model.PlatformPackSourceKind
 
 @Inject

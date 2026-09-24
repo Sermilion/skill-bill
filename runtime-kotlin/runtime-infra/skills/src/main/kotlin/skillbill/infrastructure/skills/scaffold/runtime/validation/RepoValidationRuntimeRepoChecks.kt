@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.runtime.validation
 
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.infrastructure.skills.agentaddon.discoverAgentAddons
 import skillbill.infrastructure.skills.nativeagent.composition.NATIVE_AGENT_SOURCE_DIR
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider

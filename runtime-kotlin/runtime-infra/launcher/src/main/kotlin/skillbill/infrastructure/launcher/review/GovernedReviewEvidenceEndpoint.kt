@@ -3,8 +3,8 @@ package skillbill.infrastructure.launcher.review
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.GovernedReviewEvidenceContracts
+import skillbill.error.core.ShellContentContractException
 import skillbill.error.shellcontent.GovernedReviewEvidenceTransportError
-import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.host.jvm.resolveUserHome
 import skillbill.infrastructure.host.jvm.rollbackDeleteIfExists

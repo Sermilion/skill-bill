@@ -1,15 +1,10 @@
 package skillbill.error.shellcontent
 
-import skillbill.error.core.FailureWireCode
-import skillbill.error.core.coarseFailureKindForPhaseOutputWireCode
+import skillbill.error.core.ShellContentContractException
+import skillbill.error.featuretask.FeatureTaskRuntimeHandoffProjectionFailureKind
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.error.featuretask.InvalidFeatureTaskRuntimeHandoffProjectionContext
-
-enum class FeatureTaskRuntimePhaseOutputFailureKind(
-  override val wireValue: String,
-) : FailureWireCode {
-  MALFORMED("malformed"),
-  SCHEMA_INVALID("schema_invalid"),
-}
+import skillbill.error.featuretask.coarseFailureKindForPhaseOutputWireCode
 
 data class FeatureTaskRuntimePhaseOutputStructuralRepairSource(
   val label: String,
@@ -68,20 +63,6 @@ class InvalidFeatureTaskRuntimePhaseOutputSchemaError(
     get() = structuralRepair != null
 }
 
-enum class FeatureTaskRuntimeHandoffProjectionFailureKind(
-  override val wireValue: String,
-) : FailureWireCode {
-  MISSING_REQUIRED_SOURCE("missing_required_source"),
-  MALFORMED_FIELD("malformed_field"),
-  UNSUPPORTED_CONTRACT_VERSION("unsupported_contract_version"),
-  UNDECLARED_FIELD("undeclared_field"),
-  DUPLICATE_PROJECTION_NAME("duplicate_projection_name"),
-  BUDGET_OVERFLOW("budget_overflow"),
-  INVALID_COMPACT_REFERENCE("invalid_compact_reference"),
-  CHECKPOINT_POLICY_VIOLATION("checkpoint_policy_violation"),
-  SCHEMA_INVALID("schema_invalid"),
-}
-
 class InvalidFeatureTaskRuntimeHandoffProjectionError(
   val context: InvalidFeatureTaskRuntimeHandoffProjectionContext,
   cause: Throwable? = null,
@@ -103,20 +84,6 @@ class InvalidFeatureTaskRuntimeHandoffProjectionError(
   val reason: String get() = context.reason
 }
 
-class InvalidFeatureTaskRuntimePhaseBriefingFramingError(
-  val consumerPhaseId: String,
-  val workflowId: String?,
-  val framingBytes: Int,
-  val ceilingBytes: Int,
-) : ShellContentContractException(
-    "Feature-task-runtime phase '${consumerPhaseId.ifBlank { "<unknown>" }}' " +
-      "in workflow '${workflowId?.ifBlank { null } ?: "<unknown>"}' " +
-      "has a launch briefing whose layer-1/framing is $framingBytes bytes, over the $ceilingBytes-byte ceiling " +
-      "before any projection body is inlined; the governing contract plus resolved repository checkpoint is too " +
-      "large for a single phase briefing and must not be silently truncated. Narrow the run scope or commit " +
-      "unrelated working-tree changes before relaunching.",
-  )
-
 class InvalidFeatureTaskRuntimeRepairReceiptError(
   val fieldPath: String,
   val reason: String,
@@ -124,16 +91,6 @@ class InvalidFeatureTaskRuntimeRepairReceiptError(
   cause: Throwable? = null,
 ) : ShellContentContractException(
     "Feature-task-runtime repair receipt fails at '${fieldPath.ifBlank { "<root>" }}': $reason",
-    cause,
-  )
-
-class InvalidFeatureTaskRuntimeRepairPlanError(
-  val fieldPath: String,
-  val reason: String,
-  val payloadFreeReason: String,
-  cause: Throwable? = null,
-) : ShellContentContractException(
-    "Feature-task-runtime repair plan fails at '${fieldPath.ifBlank { "<root>" }}': $reason",
     cause,
   )
 

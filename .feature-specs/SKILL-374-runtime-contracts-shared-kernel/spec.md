@@ -12,11 +12,10 @@ contents wrong:
 
 - Three lazy singletons read YAML from the classpath to deliver values fixed at build
   time.
-- 29 DTO classes, 13 `*Keys` objects, and every schema locator have one owner elsewhere,
-  once sibling bundles' changes are accounted for.
+- Adapter-bound DTOs, 13 `*Keys` objects, and every schema locator have one owner
+  elsewhere, once sibling bundles' changes are accounted for.
 - Two SQLite-named key objects restate 92 values.
 - The error packages form a cycle that the cycle scan cannot see.
-- A marker interface has no consumer.
 
 150 of the last 897 runtime commits edited the module, and each change to its public
 surface recompiles 14 modules.
@@ -50,7 +49,13 @@ checklist, and the guard-validity table.
    `api` edge, and redundant kotlinx declarations in infra:http and runtime-engine (the
    ports copy belongs to SKILL-377).
 7. F-007 (P3): documentation drift.
-8. F-008 (P3): `JsonPayloadContract` has 20 implementations and no use as a type.
+8. F-008 (P3, superseded at planning): `JsonPayloadContract` is not dead. About 30
+   signatures in runtime-ports, runtime-application, infra:contracts, and infra:launcher
+   use it as the typed carrier that keeps raw maps out of inner-layer signatures, so it
+   stays. Likewise, DTOs with a public `toPayload()` map that application or domain code
+   builds and CLI or MCP serializes stay in runtime-contracts, because
+   `RuntimeRawMapArchitectureTest` forbids public raw maps in application, domain, and
+   ports.
 9. F-009 (P3): the `skillbill.contracts.workflow.workflow` stutter and the `JsonSupportTest`
    name.
 
@@ -65,8 +70,10 @@ contract versions; the error kernel and its names; `JsonCodec`; `Map<String, Any
 - Placement rule, written into `AGENTS.md` and `runtime-kotlin/ARCHITECTURE.md`: a
   declaration lives in `runtime-contracts` when two or more production modules read or
   write it, or a `runtime-ports` signature exposes it. Otherwise it lives with its one
-  owner. Schema locators belong to `runtime-infra/contracts`, which stages the resources.
-  Wire keys are still declared exactly once.
+  owner. A DTO with a public `Map<String, Any?>` member never moves into application,
+  domain, or ports. Schema locators belong to `runtime-infra/contracts`, which stages the
+  resources. Wire keys are still declared exactly once. `JsonPayloadContract` stays as the
+  typed payload carrier.
 - `runtime-contracts` main has no classpath, filesystem, or YAML access, and the existing
   purity scan enforces it. Its build file has no task and no SnakeYAML.
 - Verification caps are `const val` beside the planning caps in `GoalPlanningContext`.
@@ -90,21 +97,23 @@ contract versions; the error kernel and its names; `JsonCodec`; `Map<String, Any
    `InvalidFeatureTaskRuntimePhaseBriefingFramingError`.
 5. The runtime-contracts package-cycle scan covers every `skillbill.contracts.*` and
    `skillbill.error.*` subpackage, its baseline is empty, and it passes.
-6. Each item investigation F-002 lists under "Moving" is declared in the named target
-   module. Every remaining runtime-contracts main declaration outside `skillbill.error`
-   and `*_CONTRACT_VERSION` meets the placement rule.
+6. Each item subtask 2 scope item 1, 2, or 4 names as moving is declared in the named
+   target module. Every remaining runtime-contracts main declaration outside
+   `skillbill.error`, `skillbill.contracts.experiment`, and `*_CONTRACT_VERSION` meets the
+   placement rule.
 7. `SqliteLifecycleTelemetryMaterializationPayloadKeys` and
    `SqliteReviewTelemetryPayloadKeys` declare no value that a shared owner named in
    investigation F-003 declares. The governed-key set for each SQLite seam in
    `WireVocabularyGovernedSeamInventory` is unchanged.
-8. `JsonPayloadContract` no longer exists, and every former implementation still has a
-   `toPayload()` that returns the same map.
+8. `JsonPayloadContract` still exists in runtime-contracts, and no declaration moved into
+   application, domain, or ports main has a public `Map<String, Any?>` member.
 9. No package named `skillbill.contracts.workflow.workflow` exists.
 10. `AGENTS.md`, `runtime-kotlin/ARCHITECTURE.md`, and `runtime-kotlin/agent/decisions.md`
     state the placement rule and describe `runtime-contracts` as it now is.
     `decisions.md` supersedes the 2026-05-28 "`*SchemaPaths` stay in runtime-contracts"
     clause for locators, the 2026-09-06 (e) kotlinx clause, and the SKILL-174
-    packaged-YAML pattern.
+    packaged-YAML pattern, and records why `JsonPayloadContract` and the `toPayload()`
+    DTOs stay.
 
 ## Executable scope
 
@@ -129,7 +138,9 @@ needs subtask 1's deletions first, or it would move code that is about to be del
 
 This bundle runs on the current tree. It does not wait for a subtask of another issue.
 
-- Do the work in these acceptance criteria here. If experiment declarations are still in runtime-contracts, delete them in this bundle.
+- Do the work in these acceptance criteria here. Move the four experiment `*SchemaPaths`
+  locators with the other locators; leave every other experiment declaration for SKILL-378
+  subtask 1.
 - Edit the architecture suite where it lives. If a scanner this bundle relies on still reads zero files, repair that scanner here.
 - The cycle-guard fix uses exact-package granularity when that mode exists, and a second prefix scan when it does not. Add the mode here if the criterion requires it and it is missing.
 - Keep `UpdateCheckContract` in runtime-contracts. CLI and MCP both consume it from there if they do not already.
@@ -147,6 +158,7 @@ This bundle does not wait for SKILL-380. If SKILL-380 has added `WorkflowProfile
 - Moving, renaming, or regrouping error classes beyond the three moves in F-005.
 - Consolidating map-reader helpers, including `DecompositionPlanningResult`'s decoder.
 - Changing any wire value, contract version, or remaining schema file.
+- Deleting `JsonPayloadContract` or redesigning payload types across modules.
 - Repairing vacuous guards that this bundle's criteria do not depend on.
 - Adding fallback records at the 59 `parseObjectOrNull` call sites.
 - Typing the `IllegalArgumentException` that `normalizeIssueKey` throws.

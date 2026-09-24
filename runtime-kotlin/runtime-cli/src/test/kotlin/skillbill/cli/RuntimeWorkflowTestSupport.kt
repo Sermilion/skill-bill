@@ -117,7 +117,7 @@ internal object RuntimeWorkflowTestSupport {
   }
 
   fun parseStepUpdates(rawJson: String): List<Map<String, Any?>> =
-    JsonCodec.parseArrayOrEmpty(rawJson).map { value ->
+    JsonCodec.parseJsonArrayStrict(rawJson).map { value ->
       requireNotNull(JsonCodec.anyToStringAnyMap(value))
     }
 

@@ -2,7 +2,7 @@ package skillbill.infrastructure.sqlite.review.stats
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 
 internal fun embeddedReviewPayloads(row: Map<String, Any?>): List<ReviewHealthPayload> {
   val rawChildSteps = row.stringValue("child_steps_json")

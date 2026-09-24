@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite.review.core
 
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 
 internal class InvalidGoalTelemetryRowError(
   internal val rowIdentity: String,

@@ -1,12 +1,12 @@
 package skillbill.engine.featuretask.review.finding
 
-import skillbill.contracts.goalplanning.GoalVerificationBoundaryCaps
 import skillbill.contracts.time.JvmSystemClock
 import skillbill.engine.disposition
 import skillbill.engine.featuretask.lifecycle.checkpoint.sanitized
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFindingBoundaryMemoryRequest
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningBoundaryBodyResolver
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningContextDiscovery
+import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
@@ -200,11 +200,11 @@ class FeatureTaskRuntimeFindingVerificationBoundaryMemoryTest {
     val repo = Files.createTempDirectory("verify-findings-cap-gate")
     val agent = Files.createDirectories(repo.resolve("modules/a/agent"))
     val headings =
-      (0 until GoalVerificationBoundaryCaps.maxHeadingsPerFile).joinToString("\n\n") { index ->
+      (0 until GoalPlanningContext.VERIFICATION_MAX_HEADINGS_PER_FILE).joinToString("\n\n") { index ->
         "## [${LocalDate.now(ZoneOffset.UTC).minusDays((index % 28).toLong())}] history-$index\n\nhistory body $index"
       }
     val decisions =
-      (0 until GoalVerificationBoundaryCaps.maxHeadingsPerFile).joinToString("\n\n") { index ->
+      (0 until GoalPlanningContext.VERIFICATION_MAX_HEADINGS_PER_FILE).joinToString("\n\n") { index ->
         "## [${LocalDate.now(ZoneOffset.UTC).minusDays((index % 28).toLong())}] decision-$index\n\ndecision body $index"
       }
     Files.writeString(agent.resolve("history.md"), "# Boundary History\n\n$headings\n")

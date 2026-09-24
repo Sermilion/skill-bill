@@ -1,5 +1,7 @@
 package skillbill.error.shellcontent
 
+import skillbill.error.core.ShellContentContractException
+
 class InternalSkillSidecarCollisionError(
   val parentSkillName: String,
   val internalSkillName: String,
@@ -33,26 +35,6 @@ class ComposedNativeAgentBudgetExceededError(
 ) : ShellContentContractException(message, cause)
 
 class MissingRequiredSectionError(
-  message: String,
-  cause: Throwable? = null,
-) : ShellContentContractException(message, cause)
-
-class InvalidDescriptorSectionError(
-  message: String,
-  cause: Throwable? = null,
-) : ShellContentContractException(message, cause)
-
-class InvalidExecutionSectionError(
-  message: String,
-  cause: Throwable? = null,
-) : ShellContentContractException(message, cause)
-
-class InvalidCeremonySectionError(
-  message: String,
-  cause: Throwable? = null,
-) : ShellContentContractException(message, cause)
-
-class MissingShellCeremonyFileError(
   message: String,
   cause: Throwable? = null,
 ) : ShellContentContractException(message, cause)

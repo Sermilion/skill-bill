@@ -58,7 +58,6 @@ import skillbill.engine.featuretask.runner.mutatingReconciliationGateReason
 import skillbill.engine.featuretask.runner.phaseDeclaration
 import skillbill.engine.goalrunner.status.completed
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
-import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseBriefingFramingError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewStructuredFindingsParse
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -201,9 +200,6 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         null
       } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {
         "Phase '${run.phaseId}' reported 'completed' but its output cannot satisfy immediate consumer " +
-          "'$consumerPhaseId': ${boundedSchemaGateDetail(error.message.orEmpty())}"
-      } catch (error: InvalidFeatureTaskRuntimePhaseBriefingFramingError) {
-        "Phase '${run.phaseId}' reported 'completed' but its output cannot frame immediate consumer " +
           "'$consumerPhaseId': ${boundedSchemaGateDetail(error.message.orEmpty())}"
       }
     }

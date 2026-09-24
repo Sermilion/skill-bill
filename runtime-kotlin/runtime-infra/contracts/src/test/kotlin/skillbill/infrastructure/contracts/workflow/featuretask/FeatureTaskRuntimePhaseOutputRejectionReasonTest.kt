@@ -1,7 +1,7 @@
 package skillbill.infrastructure.contracts.workflow.featuretask
 
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.infrastructure.contracts.review.offendingValue
 import kotlin.test.Test

@@ -300,9 +300,13 @@ runtime-core
   the single ambient wall-clock seam (UTC default zone, millisecond precision, and live
   JDK-clock delegation in `instant()` and `withZone`), which
   cannot live in `runtime-domain` because domain effect purity forbids ambient time reads.
-  `skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode` owns the eleven
+  `skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode` owns the eleven
   phase-output failure wire tokens and their coarse `FeatureTaskRuntimePhaseOutputFailureKind`
-  mapping; `coarseFailureKindForPhaseOutputWireCode` delegates to that enum.
+  mapping; `coarseFailureKindForPhaseOutputWireCode` sits beside it and delegates to that
+  enum. The `skillbill.error.*` packages are acyclic: `ShellContentContractException` and
+  the `FailureWireCode` contract live in `skillbill.error.core`, feature-task failure
+  vocabulary in `skillbill.error.featuretask`, and per-surface shell-content errors in
+  `skillbill.error.shellcontent`, which depends on both.
 - `runtime-domain`: pure agent-add-on, learning, review, telemetry, workflow,
   install-plan, scaffold, and skill-remove models/rules. Public domain data
   types live in area-owned `model` packages, including the
@@ -502,11 +506,16 @@ and `:runtime-infra:sqlite`.
   contract.
 - `skillbill.contracts.*`: contract DTOs, JSON helpers, runtime surface
   contracts, `*SchemaPaths` constants, and `*_CONTRACT_VERSION` constants.
-  Three packaged YAML resources are copied into this module at build time and
-  validated with lightweight SnakeYAML document reads (not a generic schema
-  engine): `goal-verification-boundary-caps.yaml`, `goal-planning-discovery-exclusions.yaml`,
-  and `issue-key-schema.yaml`. Kotlin loaders enforce the same numeric bounds and
-  `uniqueItems` rules as the canonical schemas; `JsonCodec` exposes strict array
+  This module loads nothing: it declares only `kotlinx-serialization-json`, stages
+  no resources, and an architecture guard bans `org.yaml.`, `java.io.`, and
+  `getResourceAsStream` from its sources. Values that used to be read out of
+  packaged YAML are now compile-time constants owned by their reading layer —
+  verification caps and reporting bounds in `skillbill.ports…GoalPlanningContext`,
+  the discovery exclusion list in `skillbill.goalrunner.planning.GoalPlanningExcludedPaths`,
+  issue-key shape in `skillbill.contracts.issuekey.IssueKeys` — and a repo test in
+  `runtime-infra/contracts` asserts `issue-key-schema.yaml` still agrees with
+  `MAX_ISSUE_KEY_LENGTH`.
+  `JsonCodec` exposes strict array
   parsing for callers that must distinguish malformed text, wrong roots, and empty
   arrays, while tolerant object probes remain for optional external text. Numeric
   conversion preserves exact `BigInteger`/`BigDecimal` values; unsupported map keys

@@ -1,16 +1,5 @@
 package skillbill.error.core
 
-import skillbill.error.shellcontent.ShellContentContractException
-
-open class InvalidValidatorWireInputError(
-  val sourceLabel: String,
-  val reason: String,
-  cause: Throwable? = null,
-) : ShellContentContractException(
-    "Validator wire input '${sourceLabel.ifBlank { "<unknown>" }}' is invalid: $reason",
-    cause,
-  )
-
 class InvalidGovernedReviewEvidenceRequestError(
   val operation: String,
   val reason: String,

@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.runtime.validation
 
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.ORCHESTRATION_PLAYBOOKS
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.validatePointerTargetParity

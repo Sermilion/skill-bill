@@ -29,15 +29,12 @@ object JsonCodec {
       explicitNulls = false
     }
 
-  fun parseObjectOrNull(rawValue: String): JsonObject? {
-    val parsed =
-      try {
-        json.parseToJsonElement(rawValue)
-      } catch (_: Exception) {
-        return null
-      }
-    return parsed as? JsonObject
-  }
+  fun parseObjectOrNull(rawValue: String): JsonObject? =
+    try {
+      parseJsonElementStrict(rawValue) as? JsonObject
+    } catch (_: MalformedJsonTextError) {
+      null
+    }
 
   fun parseJsonArrayStrict(rawValue: String): List<Any?> {
     val parsed = parseJsonElementStrict(rawValue)
@@ -45,20 +42,6 @@ object JsonCodec {
       throw JsonWrongRootTypeError("a JSON array")
     }
     return parsed.map(::jsonElementToValue)
-  }
-
-  fun parseArrayOrEmpty(rawValue: String): List<Any?> {
-    val parsed =
-      try {
-        json.parseToJsonElement(rawValue)
-      } catch (_: Exception) {
-        return emptyList()
-      }
-    return if (parsed is JsonArray) {
-      parsed.map(::jsonElementToValue)
-    } else {
-      emptyList()
-    }
   }
 
   fun jsonElementToValue(element: JsonElement): Any? =
@@ -115,18 +98,7 @@ object JsonCodec {
         "JSON value type ${value?.let { it::class.simpleName } ?: "null"} is not supported",
       )
 
-  fun parseValue(rawValue: String): Any? =
-    try {
-      jsonElementToValue(parseJsonElementStrict(rawValue))
-    } catch (error: MalformedJsonTextError) {
-      throw error
-    } catch (error: JsonWrongRootTypeError) {
-      throw error
-    } catch (error: SerializationException) {
-      throw MalformedJsonTextError(error)
-    } catch (error: IllegalArgumentException) {
-      throw MalformedJsonTextError(error)
-    }
+  fun parseValue(rawValue: String): Any? = jsonElementToValue(parseJsonElementStrict(rawValue))
 
   fun valueToJsonString(value: Any?): String = json.encodeToString(JsonElement.serializer(), valueToJsonElement(value))
 }

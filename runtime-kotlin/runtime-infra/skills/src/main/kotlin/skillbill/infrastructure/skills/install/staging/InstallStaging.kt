@@ -1,8 +1,8 @@
 package skillbill.infrastructure.skills.install.staging
 
 import skillbill.error.core.InvalidInstallStagingError
+import skillbill.error.core.ShellContentContractException
 import skillbill.error.core.SkillBillRuntimeException
-import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.skills.install.identity.SKILL_CONTENT_IDENTITY_FILENAME
 import skillbill.infrastructure.skills.install.identity.suppliedSkillContentIdentity
 import skillbill.infrastructure.skills.install.staging.content.installedSkillSlug

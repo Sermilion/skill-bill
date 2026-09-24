@@ -1,7 +1,7 @@
 package skillbill.di.goal
 
+import skillbill.error.core.ShellContentContractException
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
-import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.contracts.workflow.goal.GoalPlanningPreparationSchemaValidator
 import skillbill.infrastructure.sqlite.withGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository

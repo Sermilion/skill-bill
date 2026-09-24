@@ -1,6 +1,6 @@
 package skillbill.application.review.service
 
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.review.preparation.ReviewAttributionPort
 import skillbill.review.attribution.canonicalPackSkillNames

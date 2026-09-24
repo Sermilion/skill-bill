@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask.phase.core
 
-import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
+import skillbill.error.featuretask.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionFailureClassification
 
 fun FeatureTaskRuntimeHandoffProjectionFailureKind.toMeasurementFailureClassification():
