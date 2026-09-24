@@ -2,10 +2,9 @@ package skillbill.engine.goalrunner.persist
 import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
+import skillbill.engine.goalrunner.manifest.WorkflowGoalRunnerManifestStore
 import skillbill.engine.goalrunner.repair.GoalRunnerChildRepairOperations
-import skillbill.infrastructure.sqlite.goalrunner.manifest.WorkflowGoalRunnerManifestStore
-import skillbill.infrastructure.sqlite.goalrunner.outcome.WorkflowGoalRunnerOutcomeStore
-import skillbill.infrastructure.sqlite.goalrunner.outcome.WorkflowGoalRunnerOutcomeStoreDependencies
+import skillbill.engine.goalrunner.repair.WorkflowGoalRunnerChildRepairStore
 import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
@@ -31,7 +30,7 @@ data class OutcomeStoreTestArtifactPorts(
   val decompositionManifestStore: DecompositionManifestStore = UnavailableDecompositionManifestStore,
 )
 
-fun sqliteWorkflowGoalRunnerManifestStore(
+fun engineWorkflowGoalRunnerManifestStore(
   database: DatabaseSessionFactory,
   workflowSnapshotValidator: WorkflowSnapshotValidator,
   decompositionManifestValidator: DecompositionManifestValidator,
@@ -54,31 +53,36 @@ fun sqliteWorkflowGoalRunnerManifestStore(
     repositoryEnclosingRootPort = repositoryEnclosingRootPort,
   )
 
-fun sqliteWorkflowGoalRunnerOutcomeStore(
+fun engineWorkflowGoalRunnerOutcomeStore(
   database: DatabaseSessionFactory,
   workflowSnapshotValidator: WorkflowSnapshotValidator,
   gitOperations: WorkflowGitOperations,
   workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
   clock: Clock,
   artifactPorts: OutcomeStoreTestArtifactPorts,
-  decompositionManifestValidator: DecompositionManifestValidator,
-  decompositionManifestWriter: DecompositionManifestProjectionWriter,
-  childRepairExecutor: GoalRunnerChildRepairOperations,
 ): WorkflowGoalRunnerOutcomeStore =
   WorkflowGoalRunnerOutcomeStore(
     database = database,
-    dependencies =
-      WorkflowGoalRunnerOutcomeStoreDependencies(
-        workflowSnapshotValidator = workflowSnapshotValidator,
-        goalObservabilityEventValidator = artifactPorts.goalObservabilityEventValidator,
-        goalProgressEventValidator = artifactPorts.goalProgressEventValidator,
-        gitOperations = gitOperations,
-        phaseOutputValidator = artifactPorts.phaseOutputValidator,
-        workerSupervisor = workerSupervisor,
-        clock = clock,
-        decompositionManifestValidator = decompositionManifestValidator,
-        decompositionManifestStore = artifactPorts.decompositionManifestStore,
-        decompositionManifestWriter = decompositionManifestWriter,
-        childRepairExecutor = childRepairExecutor,
-      ),
+    workflowSnapshotValidator = workflowSnapshotValidator,
+    goalObservabilityEventValidator = artifactPorts.goalObservabilityEventValidator,
+    goalProgressEventValidator = artifactPorts.goalProgressEventValidator,
+    gitOperations = gitOperations,
+    phaseOutputValidator = artifactPorts.phaseOutputValidator,
+    workerSupervisor = workerSupervisor,
+    clock = clock,
+  )
+
+fun engineWorkflowGoalRunnerChildRepairStore(
+  database: DatabaseSessionFactory,
+  childRepairExecutor: GoalRunnerChildRepairOperations,
+  decompositionManifestValidator: DecompositionManifestValidator,
+  decompositionManifestWriter: DecompositionManifestProjectionWriter,
+  decompositionManifestStore: DecompositionManifestStore = UnavailableDecompositionManifestStore,
+): WorkflowGoalRunnerChildRepairStore =
+  WorkflowGoalRunnerChildRepairStore(
+    database = database,
+    childRepairExecutor = childRepairExecutor,
+    decompositionManifestValidator = decompositionManifestValidator,
+    decompositionManifestStore = decompositionManifestStore,
+    decompositionManifestWriter = decompositionManifestWriter,
   )

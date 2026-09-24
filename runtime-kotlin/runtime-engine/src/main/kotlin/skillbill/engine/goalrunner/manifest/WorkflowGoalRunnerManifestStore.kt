@@ -1,24 +1,24 @@
-package skillbill.infrastructure.sqlite.goalrunner.manifest
+package skillbill.engine.goalrunner.manifest
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.engine.goalrunner.reset.WorkflowGoalRunnerChildWorkflowPersistence
+import skillbill.engine.goalrunner.reset.WorkflowGoalRunnerScopedReplanPersistence
+import skillbill.engine.goalrunner.reset.afterIncompatibleChildDeletion
+import skillbill.engine.goalrunner.status.GoalRunnerControlCoordinator
+import skillbill.engine.goalrunner.status.acquireExecutionLease
+import skillbill.engine.goalrunner.status.bindRepositoryIdentity
+import skillbill.engine.goalrunner.status.executionLease
+import skillbill.engine.goalrunner.status.heartbeatExecutionLease
+import skillbill.engine.goalrunner.status.persistStopAfterSubtask
+import skillbill.engine.goalrunner.status.planningSpawnAuthorization
+import skillbill.engine.goalrunner.status.releaseExecutionLease
+import skillbill.engine.goalrunner.status.releaseExecutionLeaseIfExpired
+import skillbill.engine.goalrunner.status.requestPause
+import skillbill.engine.goalrunner.status.requestPauseByIssueKey
+import skillbill.engine.goalrunner.status.resume
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
-import skillbill.infrastructure.sqlite.goalrunner.control.GoalRunnerControlCoordinator
-import skillbill.infrastructure.sqlite.goalrunner.control.acquireExecutionLease
-import skillbill.infrastructure.sqlite.goalrunner.control.bindRepositoryIdentity
-import skillbill.infrastructure.sqlite.goalrunner.control.executionLease
-import skillbill.infrastructure.sqlite.goalrunner.control.heartbeatExecutionLease
-import skillbill.infrastructure.sqlite.goalrunner.control.persistStopAfterSubtask
-import skillbill.infrastructure.sqlite.goalrunner.control.planningSpawnAuthorization
-import skillbill.infrastructure.sqlite.goalrunner.control.releaseExecutionLease
-import skillbill.infrastructure.sqlite.goalrunner.control.releaseExecutionLeaseIfExpired
-import skillbill.infrastructure.sqlite.goalrunner.control.requestPause
-import skillbill.infrastructure.sqlite.goalrunner.control.requestPauseByIssueKey
-import skillbill.infrastructure.sqlite.goalrunner.control.resume
-import skillbill.infrastructure.sqlite.goalrunner.outcome.WorkflowGoalRunnerChildWorkflowPersistence
-import skillbill.infrastructure.sqlite.goalrunner.outcome.WorkflowGoalRunnerScopedReplanPersistence
-import skillbill.infrastructure.sqlite.goalrunner.outcome.afterIncompatibleChildDeletion
 import skillbill.model.RepositoryRoot
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.db.DatabaseSessionFactory
@@ -35,7 +35,6 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerPausePersistenceResult
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanOptions
 import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanWriteResult
-import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
@@ -351,9 +350,7 @@ class WorkflowGoalRunnerManifestStore
       database.read { it.workflowStates.listGoalChildWorkflowIdsByParent(parentWorkflowId) }
 
     override fun purgeDecomposedGoal(parentWorkflowId: String) {
-      database.transaction { unitOfWork ->
-        goalRunnerPurgePersistence().purgeDecomposedGoal(unitOfWork, parentWorkflowId)
-      }
+      database.transaction { unitOfWork -> unitOfWork.purgeDecomposedGoal(parentWorkflowId) }
     }
 
     override fun reviewMode(parentWorkflowId: String): CodeReviewExecutionMode? =
@@ -455,14 +452,3 @@ class WorkflowGoalRunnerManifestStore
       return outcome
     }
   }
-
-internal class WorkflowGoalRunnerPurgePersistence {
-  fun purgeDecomposedGoal(
-    unitOfWork: UnitOfWork,
-    parentWorkflowId: String,
-  ) {
-    unitOfWork.purgeDecomposedGoal(parentWorkflowId)
-  }
-}
-
-internal fun goalRunnerPurgePersistence(): WorkflowGoalRunnerPurgePersistence = WorkflowGoalRunnerPurgePersistence()

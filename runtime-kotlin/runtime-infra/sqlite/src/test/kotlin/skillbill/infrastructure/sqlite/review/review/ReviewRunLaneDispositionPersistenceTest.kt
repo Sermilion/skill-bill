@@ -2,7 +2,6 @@ package skillbill.infrastructure.sqlite.review.review
 
 import skillbill.infrastructure.sqlite.columnNames
 import skillbill.infrastructure.sqlite.core.schema.DatabaseReviewColumnMigrations
-import skillbill.infrastructure.sqlite.goalrunner.control.resume
 import skillbill.infrastructure.sqlite.review.stage.lane.fetchReviewRunLanes
 import skillbill.infrastructure.sqlite.review.stage.lane.replaceReviewRunLanes
 import skillbill.infrastructure.sqlite.worklist.required

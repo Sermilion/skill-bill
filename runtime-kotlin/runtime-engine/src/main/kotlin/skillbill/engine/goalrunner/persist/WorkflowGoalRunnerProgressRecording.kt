@@ -1,5 +1,8 @@
-package skillbill.infrastructure.sqlite.goalrunner.outcome
+package skillbill.engine.goalrunner.persist
+
 import skillbill.contracts.JsonCodec
+import skillbill.engine.goalrunner.execution.support.maxHistorySequence
+import skillbill.engine.goalrunner.execution.support.workflowFamilyFor
 import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.WORKER_SUBTASK_REQUEST_OUTCOME_LIMIT
 import skillbill.goalrunner.backwardEdgeCountsFromLedger
@@ -15,9 +18,6 @@ import skillbill.goalrunner.summarizeAttemptLedgerFromEntries
 import skillbill.goalrunner.summary
 import skillbill.goalrunner.toPersistenceWire
 import skillbill.goalrunner.toProgressEvent
-import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseRecords
-import skillbill.infrastructure.sqlite.goalrunner.control.maxHistorySequence
-import skillbill.infrastructure.sqlite.goalrunner.control.workflowFamilyFor
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.persistence.model.HistoryArtifactAppend
 import skillbill.ports.goalrunner.runner.GoalRunnerAttemptLedgerStore
@@ -47,6 +47,7 @@ import skillbill.workflow.model.goalreview.GOAL_PROGRESS_HISTORY_LIMIT
 import skillbill.workflow.model.goalreview.GoalProgressEvent
 import skillbill.workflow.model.goalreview.appendBoundedHistoryBySequence
 import skillbill.workflow.model.goalreview.goalObservabilityLatestEventFromArtifacts
+import skillbill.workflow.taskruntime.artifact.phaseRecordsFromWorkflowArtifacts
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuation
 
 private val PROGRESS_POLL_ARTIFACT_KEYS =
@@ -266,7 +267,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       val record = family.get(unitOfWork.workflowStates, workflowId) ?: return@read emptyMap()
       val artifacts = record.artifacts
       val result = mutableMapOf<String, Int>()
-      decodePhaseRecords(artifacts).values.forEach { phaseRecord ->
+      phaseRecordsFromWorkflowArtifacts(artifacts).values.forEach { phaseRecord ->
         val loopId = phaseRecord.loopId ?: return@forEach
         val edgeIteration = phaseRecord.edgeIteration ?: return@forEach
         result.merge(loopId, edgeIteration, ::maxOf)

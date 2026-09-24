@@ -133,7 +133,7 @@ class FeatureTaskRuntimeValidationGateCoordinator {
   }
 }
 
-private fun terminalBlockedResult(
+internal fun terminalBlockedResult(
   reason: String,
   remainingFindings: ValidationFindingSetProjection? = null,
   measurements: List<FeatureTaskRuntimeValidationGateRunRecord> = emptyList(),

@@ -1,13 +1,7 @@
-package skillbill.infrastructure.sqlite.goalrunner.goal
+package skillbill.infrastructure.sqlite
 
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
-import skillbill.infrastructure.sqlite.goalChildIdentity
-import skillbill.infrastructure.sqlite.goalChildWorkflow
-import skillbill.infrastructure.sqlite.goalrunner.manifest.goalRunnerPurgePersistence
-import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
-import skillbill.infrastructure.sqlite.testWorkflowSnapshotValidator
 import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateStore
-import skillbill.infrastructure.sqlite.workflowRow
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.nio.file.Files
@@ -39,9 +33,7 @@ class GoalRunnerPurgePersistenceTest {
         }
       val factory =
         sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
-      factory.transaction { unitOfWork ->
-        goalRunnerPurgePersistence().purgeDecomposedGoal(unitOfWork, fixture.parentId)
-      }
+      factory.transaction { unitOfWork -> unitOfWork.purgeDecomposedGoal(fixture.parentId) }
       assertPurgedGoalState(connection, store, fixture, outboxBefore)
     }
   }

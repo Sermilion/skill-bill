@@ -178,10 +178,14 @@ connection; `ensureTestDatabase` applies schema readiness only; `sqliteSessionFa
 builds the production session factory with `SqliteTestDiagnostics`. Consumer modules
 (`runtime-cli`, `runtime-core`, `runtime-mcp`, `runtime-engine`) depend on those
 fixtures and must not import `skillbill.infrastructure.sqlite.core` from tests.
+`withGoalRunnerControlRepository` hands a caller a `GoalRunnerControlRepository` over a
+reopenable database path so engine-owned control coordination can be regressed against
+real SQLite without importing the adapter.
 
 Public SQLite DI surface stays limited to `SQLiteDatabaseSessionFactory`,
-`SqliteFeatureTaskPhaseSettlementRepository`, `WorkflowGoalRunnerManifestStore`,
-and `WorkflowGoalRunnerOutcomeStore`.
+`SqliteFeatureTaskPhaseSettlementRepository`, and `SqliteExperimentPairOwnerStore`.
+Goal-runner coordination is owned by `runtime-engine`, not the adapter, so
+`runtime-infra/sqlite` production code declares no public top-level function.
 Other adapters are `internal`; repositories mutate only inside
 `SQLiteDatabaseSessionFactory` write/read transaction callbacks.
 
@@ -316,7 +320,11 @@ runtime-core
   workflow orchestration, telemetry lifecycle orchestration,
   presenter-to-contract mapping, and validated decomposition-manifest file/artifact projection through workflow ports.
 - `runtime-engine`: feature-task run loop, goal runner, goal planning, and
-  planning projection use cases. It also owns the agent-output helpers
+  planning projection use cases. Goal-runner coordination that only composes
+  ports — control state, manifest projection, outcome reconciliation, block
+  writes, scoped replan, and child repair — lives here rather than in the SQLite
+  adapter, which supplies only the session factory and the repositories it opens.
+  It also owns the agent-output helpers
   (`skillbill.engine.agentoutput`) and the worktree edit journal writer
   (`skillbill.engine.worktreeedit`). It depends on `runtime-application` through
   `implementation` for the shared services those loops call today and exposes a
@@ -1026,7 +1034,7 @@ skillbill.workflow.verify
   `skillbill.workflow.goal.GoalProgressEventValidator` (wired in `RuntimeComponent`
   to `skillbill.infrastructure.contracts.GoalProgressEventValidatorAdapter`, mirroring
   `GoalObservabilityEventValidator`). The owning durable write/parse seam is
-  `skillbill.application.WorkflowGoalRunnerOutcomeStore.recordProgressEvent`,
+  `skillbill.engine.goalrunner.persist.WorkflowGoalRunnerOutcomeStore.recordProgressEvent`,
   which validates the declared-progress event map through the injected port
   before it is appended to the bounded `goal_progress_run_history` /
   `goal_progress_latest_event` workflow artifacts. The supervisor read seam

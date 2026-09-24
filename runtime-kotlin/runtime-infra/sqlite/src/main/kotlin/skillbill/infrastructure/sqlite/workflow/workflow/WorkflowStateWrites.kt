@@ -12,7 +12,6 @@ import java.sql.PreparedStatement
 import java.time.Clock
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import kotlin.random.Random
 
 internal const val FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION: String = "0.1"
 internal const val FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION: String = "0.3"
@@ -268,21 +267,3 @@ private class SqlParameterBinder(
     statement.bindAll(values)
   }
 }
-
-internal const val WORKFLOW_ID_SUFFIX_LENGTH: Int = 4
-internal const val SUFFIX_CHARS: String = "abcdefghijklmnopqrstuvwxyz0123456789"
-
-internal fun generateWorkflowId(
-  prefix: String,
-  clock: Clock,
-  random: Random,
-): String {
-  val now = clock.instant().atOffset(ZoneOffset.UTC)
-  val suffix =
-    (1..WORKFLOW_ID_SUFFIX_LENGTH).map { SUFFIX_CHARS[random.nextInt(SUFFIX_CHARS.length)] }
-      .joinToString("")
-  return "$prefix-${now.year}${now.monthValue.twoDigits()}${now.dayOfMonth.twoDigits()}-" +
-    "${now.hour.twoDigits()}${now.minute.twoDigits()}${now.second.twoDigits()}-$suffix"
-}
-
-private fun Int.twoDigits(): String = toString().padStart(2, '0')

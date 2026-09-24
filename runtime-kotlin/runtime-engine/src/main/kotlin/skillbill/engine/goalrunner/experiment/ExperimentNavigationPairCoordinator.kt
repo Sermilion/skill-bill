@@ -2,7 +2,6 @@ package skillbill.engine.goalrunner.experiment
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.branchName
-import skillbill.contracts.JsonCodec
 import skillbill.contracts.experiment.EXPERIMENT_PAIR_CONTRACT_VERSION
 import skillbill.contracts.experiment.ExperimentPairPayloadKeys
 import skillbill.contracts.experiment.ExperimentTelemetryPayloadKeys
@@ -716,11 +715,6 @@ class ExperimentNavigationPairCoordinator(
 
   private fun safePath(value: String): String = value.replace(Regex("[^A-Za-z0-9._-]"), "-")
 }
-
-private fun ExperimentPairPayload.toMap(): Map<String, Any?> =
-  JsonCodec.anyToStringAnyMap(
-    JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(toJson()))),
-  ) ?: error("Experiment pair payload must decode to an object.")
 
 fun parseNavigationAcceptanceCriteria(specText: String): List<String> =
   GovernedSpecSectionParser.parseListSection(specText) {

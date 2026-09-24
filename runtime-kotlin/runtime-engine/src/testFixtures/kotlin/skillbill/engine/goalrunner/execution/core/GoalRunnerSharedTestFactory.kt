@@ -18,8 +18,9 @@ import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.validation.ValidationGateResolver
 import skillbill.engine.goalrunner.persist.OutcomeStoreTestArtifactPorts
-import skillbill.engine.goalrunner.persist.sqliteWorkflowGoalRunnerManifestStore
-import skillbill.engine.goalrunner.persist.sqliteWorkflowGoalRunnerOutcomeStore
+import skillbill.engine.goalrunner.persist.engineWorkflowGoalRunnerChildRepairStore
+import skillbill.engine.goalrunner.persist.engineWorkflowGoalRunnerManifestStore
+import skillbill.engine.goalrunner.persist.engineWorkflowGoalRunnerOutcomeStore
 import skillbill.engine.goalrunner.planning.hydration.GoalChildPlanningHydratorPortAdapter
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningStatusReasonCoherence
 import skillbill.engine.goalrunner.repair.GoalRunnerChildRepairOperations
@@ -168,7 +169,7 @@ fun testWorkflowGoalRunnerManifestStore(
   clock: Clock,
   decompositionManifestValidator: DecompositionManifestValidator = testDecompositionManifestValidator,
 ): GoalRunnerManifestStore =
-  sqliteWorkflowGoalRunnerManifestStore(
+  engineWorkflowGoalRunnerManifestStore(
     database = database,
     workflowSnapshotValidator = testWorkflowSnapshotValidator,
     decompositionManifestValidator = decompositionManifestValidator,
@@ -185,16 +186,25 @@ fun testWorkflowGoalRunnerOutcomeStore(
   gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
   workerSupervisor: FeatureTaskRuntimeWorkerSupervisor = NoopFeatureTaskRuntimeWorkerSupervisor,
   artifactPorts: OutcomeStoreTestArtifactPorts = OutcomeStoreTestArtifactPorts(),
-) = sqliteWorkflowGoalRunnerOutcomeStore(
+) = engineWorkflowGoalRunnerOutcomeStore(
   database = database,
   workflowSnapshotValidator = workflowSnapshotValidator,
   gitOperations = gitOperations,
   workerSupervisor = workerSupervisor,
   clock = testHarnessClock,
   artifactPorts = artifactPorts,
+)
+
+fun testWorkflowGoalRunnerChildRepairStore(
+  database: DatabaseSessionFactory,
+  gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
+  artifactPorts: OutcomeStoreTestArtifactPorts = OutcomeStoreTestArtifactPorts(),
+) = engineWorkflowGoalRunnerChildRepairStore(
+  database = database,
+  childRepairExecutor = testGoalRunnerChildRepairExecutor(database, gitOperations),
   decompositionManifestValidator = testDecompositionManifestValidator,
   decompositionManifestWriter = testDecompositionManifestWriter,
-  childRepairExecutor = testGoalRunnerChildRepairExecutor(database, gitOperations),
+  decompositionManifestStore = artifactPorts.decompositionManifestStore,
 )
 
 fun testPhaseRecorder(

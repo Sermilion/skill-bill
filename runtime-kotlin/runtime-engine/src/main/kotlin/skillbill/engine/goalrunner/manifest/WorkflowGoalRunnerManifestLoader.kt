@@ -1,9 +1,9 @@
-package skillbill.infrastructure.sqlite.goalrunner.manifest
+package skillbill.engine.goalrunner.manifest
+
+import skillbill.application.workflow.decomposition.requireRuntimeModeForEngineWrite
+import skillbill.application.workflow.persist.generateWorkflowId
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
-import skillbill.infrastructure.sqlite.decomposition.withParentStatus
-import skillbill.infrastructure.sqlite.workflow.decomposition.requireRuntimeModeForEngineWrite
-import skillbill.infrastructure.sqlite.workflow.workflow.generateWorkflowId
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.GoalParentProjectionWriter
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
@@ -20,6 +20,7 @@ import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
+import skillbill.workflow.decomposition.withParentStatus
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates

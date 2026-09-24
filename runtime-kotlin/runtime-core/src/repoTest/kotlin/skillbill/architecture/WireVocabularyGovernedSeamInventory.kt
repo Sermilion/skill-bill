@@ -45,8 +45,8 @@ internal object WireVocabularyGovernedSeamInventory {
             "application/workflow/Decomposition",
             "application/featurespec/",
             "infrastructure/contracts/workflow/DecompositionManifest",
-            "infrastructure/sqlite/goalrunner/WorkflowGoalRunnerManifest",
-            "infrastructure/sqlite/goalrunner/GoalContinuationArtifactCodec",
+            "engine/goalrunner/manifest/WorkflowGoalRunnerManifest",
+            "engine/goalrunner/persist/GoalContinuationArtifactCodec.kt",
             "engine/goalrunner/planning/GoalPlanningShared",
             "contracts/goalplanning/GoalPlanningSharedContextPacketPayloadKeys",
             "contracts/workflow/ImplementationReturnContractPayloadKeys",
@@ -93,7 +93,7 @@ internal object WireVocabularyGovernedSeamInventory {
         governedRelativePathMarkers =
           listOf(
             "taskruntime/model/persistence/task/runtime/goal/FeatureTaskRuntimeGoalContinuationArtifact",
-            "infrastructure/sqlite/goalrunner/GoalContinuationArtifactCodec",
+            "engine/goalrunner/persist/GoalContinuationArtifactCodec.kt",
           ),
       ),
       GovernedPayloadSeam(

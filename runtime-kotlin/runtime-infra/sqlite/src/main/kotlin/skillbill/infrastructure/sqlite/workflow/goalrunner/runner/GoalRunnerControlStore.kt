@@ -2,10 +2,9 @@ package skillbill.infrastructure.sqlite.workflow.goalrunner.runner
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.goalrunner.control.clearRunnerInterruptedPauseState
-import skillbill.infrastructure.sqlite.goalrunner.control.executionLease
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
@@ -45,8 +44,20 @@ internal class GoalRunnerControlStore(
     return state
   }
 
-  override fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState =
-    clearRunnerInterruptedPauseState(parentWorkflowId)
+  override fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState {
+    val state = controlState(parentWorkflowId)
+    if (state.pauseReason != GOAL_PAUSE_REASON_RUNNER_INTERRUPTED) return state
+    return persistControlState(
+      parentWorkflowId,
+      state.copy(
+        paused = false,
+        pauseRequested = false,
+        pauseConsumed = false,
+        pauseReason = null,
+        pausedAt = null,
+      ),
+    )
+  }
 
   override fun clearControlState(parentWorkflowId: String) {
     val existing = controlState(parentWorkflowId)

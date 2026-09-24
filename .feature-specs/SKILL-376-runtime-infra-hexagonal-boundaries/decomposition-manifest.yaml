@@ -9,18 +9,18 @@ base_branch: "main"
 feature_branch: "feat/SKILL-376-runtime-infra-hexagonal-boundaries"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 1
+  subtask_id: 2
   action: "resume"
 subtasks:
 - id: 1
   name: "Process ownership, single owners, and adapter seams"
   spec_path: ".feature-specs/SKILL-376-runtime-infra-hexagonal-boundaries/spec_subtask_1_process-ownership-and-adapter-seams.md"
-  status: "in_progress"
+  status: "complete"
   branch: null
   commit_sha: null
   workflow_id: "wftr-20260924-210723-cscj"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   linear_issue_id: null
   finalizing_agent_id: null
   participating_agent_ids: []
@@ -28,10 +28,10 @@ subtasks:
 - id: 2
   name: "Goal-runner coordination moves to the engine"
   spec_path: ".feature-specs/SKILL-376-runtime-infra-hexagonal-boundaries/spec_subtask_2_goal-runner-coordination-to-engine.md"
-  status: "pending"
+  status: "in_progress"
   branch: null
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wftr-20260924-220836-cel2"
   blocked_reason: null
   last_resumable_step: null
   linear_issue_id: null

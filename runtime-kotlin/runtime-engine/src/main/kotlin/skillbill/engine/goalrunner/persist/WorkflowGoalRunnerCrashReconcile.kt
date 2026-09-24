@@ -1,4 +1,4 @@
-package skillbill.infrastructure.sqlite.goalrunner.outcome
+package skillbill.engine.goalrunner.persist
 
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus

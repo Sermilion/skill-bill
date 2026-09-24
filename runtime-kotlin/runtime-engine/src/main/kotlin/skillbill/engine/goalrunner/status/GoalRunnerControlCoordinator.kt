@@ -1,17 +1,12 @@
-package skillbill.infrastructure.sqlite.goalrunner.control
-import skillbill.agentaddon.model.AgentAddonSelection
-import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.contracts.JsonCodec
-import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
+package skillbill.engine.goalrunner.status
+
+import skillbill.engine.goalrunner.execution.support.pauseAtOperatorBoundary
+import skillbill.engine.goalrunner.manifest.SavedManifestProjection
+import skillbill.engine.goalrunner.manifest.mergeConcurrentGoalProgress
 import skillbill.error.goalrunner.GoalRunnerLaunchAuthorizationDeniedException
-import skillbill.error.shellcontent.InvalidAgentAddonSelectionError
-import skillbill.error.shellcontent.LegacyProseWorkflowError
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_REQUEST
-import skillbill.goalrunner.model.GOAL_PAUSE_REASON_STOP_AFTER_SUBTASK
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
-import skillbill.infrastructure.sqlite.goalrunner.manifest.SavedManifestProjection
-import skillbill.infrastructure.sqlite.goalrunner.manifest.mergeConcurrentGoalProgress
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.runner.model.GoalRunnerCompletionPersistenceResult
@@ -20,7 +15,6 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerPausePersistenceResult
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.repository.RepositoryEnclosingRootPort
-import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.workflow.get
@@ -28,7 +22,6 @@ import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.DecompositionStatus
-import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.Path
 import java.time.Clock
@@ -125,9 +118,8 @@ internal class GoalRunnerControlCoordinator(
     overwriteExistingReason: Boolean,
   ): GoalRunnerControlState? =
     database.transaction { unitOfWork ->
-      val parent =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
-          ?: return@transaction null
+      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
+        ?: return@transaction null
       val existing = unitOfWork.goalRunnerControls.controlState(parentWorkflowId)
       if (existing.paused && !overwriteExistingReason) {
         return@transaction existing
@@ -206,12 +198,9 @@ internal fun reconcileControlStateForManifest(
 internal fun GoalRunnerControlCoordinator.requireParent(
   unitOfWork: UnitOfWork,
   parentWorkflowId: String,
-): WorkflowStateSnapshot {
-  val parent =
-    WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
-      ?: error("Unknown decomposed parent workflow '$parentWorkflowId'.")
-  return parent
-}
+): WorkflowStateSnapshot =
+  WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
+    ?: error("Unknown decomposed parent workflow '$parentWorkflowId'.")
 
 internal fun GoalRunnerControlCoordinator.spawnAuthorization(
   state: GoalRunnerManifestState,
@@ -289,11 +278,14 @@ internal fun GoalRunnerControlCoordinator.persistStopAfterSubtask(
     require(existing.stopAfterSubtaskId == null || existing.stopAfterSubtaskId == subtaskId) {
       "Goal parent '$parentWorkflowId' already has stop-after subtask ${existing.stopAfterSubtaskId}."
     }
-    existing.stopAfterSubtaskId?.let { existing }
-      ?: unitOfWork.goalRunnerControls.persistControlState(
+    if (existing.stopAfterSubtaskId != null) {
+      existing
+    } else {
+      unitOfWork.goalRunnerControls.persistControlState(
         parentWorkflowId,
         existing.copy(stopAfterSubtaskId = subtaskId),
       )
+    }
   }
 
 internal fun GoalRunnerControlCoordinator.resume(parentWorkflowId: String): GoalRunnerManifestState? =
@@ -374,101 +366,3 @@ internal fun GoalRunnerControlCoordinator.requestPauseByIssueKey(
     }
     GoalRunnerPausePersistenceResult(parent.workflowId, persistPauseRequest(unitOfWork, parent.workflowId))
   }
-
-internal fun workflowFamilyFor(
-  workflowStates: WorkflowStateRepository,
-  workflowId: String,
-): WorkflowFamily? {
-  val featureTaskRow = workflowStates.getFeatureTaskWorkflow(workflowId)
-  if (featureTaskRow != null) {
-    return when (featureTaskRow.mode) {
-      FeatureTaskWorkflowMode.RUNTIME -> WorkflowFamily.TASK_RUNTIME
-      FeatureTaskWorkflowMode.PROSE, null -> throw LegacyProseWorkflowError(workflowId, featureTaskRow.issueKey)
-    }
-  }
-  return if (workflowStates.getFeatureVerifyWorkflow(workflowId) != null) {
-    WorkflowFamily.VERIFY
-  } else {
-    null
-  }
-}
-
-internal fun GoalRunnerControlState.pauseAtOperatorBoundary(
-  pausedAtNow: String,
-  targetReached: Boolean = false,
-): GoalRunnerControlState =
-  when {
-    paused -> copy(stopAfterConsumed = stopAfterConsumed || targetReached)
-    pauseRequested ->
-      copy(
-        pauseConsumed = true,
-        paused = true,
-        pauseReason = pauseReason ?: GOAL_PAUSE_REASON_OPERATOR_REQUEST,
-        pausedAt = pausedAtNow,
-        stopAfterConsumed = stopAfterConsumed || targetReached,
-      )
-    targetReached ->
-      copy(
-        paused = true,
-        pauseReason = GOAL_PAUSE_REASON_STOP_AFTER_SUBTASK,
-        pausedAt = pausedAtNow,
-        stopAfterConsumed = true,
-      )
-    else -> this
-  }
-
-internal fun decodeGoalAgentAddonSelection(raw: Any?): AgentAddonSelection {
-  val values = raw ?: return AgentAddonSelection()
-  val entries =
-    values as? List<*>
-      ?: throw InvalidAgentAddonSelectionError("Goal review policy agent_addon_selection must be a list.")
-  return AgentAddonSelection(
-    entries.mapIndexed(::decodeGoalAgentAddonSelectionEntry),
-  )
-}
-
-private fun decodeGoalAgentAddonSelectionEntry(
-  index: Int,
-  value: Any?,
-): PersistedAgentAddonSelectionEntry {
-  val entry =
-    JsonCodec.anyToStringAnyMap(value)
-      ?: throw InvalidAgentAddonSelectionError(
-        "Goal review policy agent_addon_selection entry $index must be a map.",
-      )
-  val expectedKeys =
-    setOf(
-      FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG,
-      FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
-      FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
-    )
-  if (entry.keys != expectedKeys) {
-    throw InvalidAgentAddonSelectionError(
-      "Goal review policy agent_addon_selection entry $index has invalid fields.",
-    )
-  }
-  return PersistedAgentAddonSelectionEntry(
-    requiredAddonField(entry, index, FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG, "slug"),
-    requiredAddonField(
-      entry,
-      index,
-      FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
-      "source_identity",
-    ),
-    requiredAddonField(
-      entry,
-      index,
-      FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
-      "content_sha256",
-    ),
-  )
-}
-
-private fun requiredAddonField(
-  entry: Map<String, Any?>,
-  index: Int,
-  key: String,
-  label: String,
-): String =
-  entry[key] as? String
-    ?: throw InvalidAgentAddonSelectionError("Goal review policy add-on entry $index is missing $label.")

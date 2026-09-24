@@ -1,6 +1,8 @@
-package skillbill.infrastructure.sqlite.goalrunner.outcome
+package skillbill.engine.goalrunner.persist
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.engine.goalrunner.execution.support.authoritativeOutcomesBySubtask
+import skillbill.engine.goalrunner.execution.support.workflowFamilyFor
 import skillbill.goalrunner.goalReviewArtifacts
 import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
@@ -8,20 +10,7 @@ import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.validatedGoalReviewPasses
-import skillbill.infrastructure.sqlite.goalrunner.control.authoritativeOutcomesBySubtask
-import skillbill.infrastructure.sqlite.goalrunner.control.goalReviewEmissionEnvelope
-import skillbill.infrastructure.sqlite.goalrunner.control.taskRuntimeRecordOrNull
-import skillbill.infrastructure.sqlite.goalrunner.control.workflowFamilyFor
-import skillbill.infrastructure.sqlite.review.stage.fetchFindingVerdicts
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
-import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
-import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairStore
-import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildRepairApplyRequest
-import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildRepairApplyResult
-import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildWedgeDiagnosis
-import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildWedgeDiagnosisRequest
-import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildWedgeRepairRequest
 import skillbill.ports.goalrunner.persistence.model.GoalSubtaskIdentity
 import skillbill.ports.goalrunner.runner.GoalRunnerAttemptLedgerStore
 import skillbill.ports.goalrunner.runner.GoalRunnerReviewOutcomeStore
@@ -33,16 +22,14 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequ
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
-import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
-import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
-import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -52,6 +39,7 @@ import skillbill.workflow.model.goalreview.GoalProgressEvent
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewPassResult
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import java.nio.file.Path
+import java.time.Clock
 
 internal data class RecoverMissingResultPrefixTerminalOutcomeArgs(
   internal val workflowStates: WorkflowStateRepository,
@@ -67,21 +55,15 @@ class WorkflowGoalRunnerOutcomeStore
   @Inject
   constructor(
     private val database: DatabaseSessionFactory,
-    dependencies: WorkflowGoalRunnerOutcomeStoreDependencies,
+    workflowSnapshotValidator: WorkflowSnapshotValidator,
+    goalObservabilityEventValidator: FeatureTaskRuntimeWireArtifactValidator,
+    goalProgressEventValidator: FeatureTaskRuntimeWireArtifactValidator,
+    gitOperations: WorkflowGitOperations,
+    phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
+    workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
+    clock: Clock,
   ) : GoalRunnerWorkflowOutcomeStore,
-    GoalRunnerAttemptLedgerStore,
-    GoalRunnerChildRepairStore {
-    private val workflowSnapshotValidator = dependencies.workflowSnapshotValidator
-    private val goalObservabilityEventValidator = dependencies.goalObservabilityEventValidator
-    private val goalProgressEventValidator = dependencies.goalProgressEventValidator
-    private val gitOperations = dependencies.gitOperations
-    private val phaseOutputValidator = dependencies.phaseOutputValidator
-    private val workerSupervisor = dependencies.workerSupervisor
-    private val clock = dependencies.clock
-    private val decompositionManifestValidator = dependencies.decompositionManifestValidator
-    private val decompositionManifestStore = dependencies.decompositionManifestStore
-    private val decompositionManifestWriter = dependencies.decompositionManifestWriter
-    private val childRepairExecutor = dependencies.childRepairExecutor
+    GoalRunnerAttemptLedgerStore {
     private val engine = WorkflowEngine()
     private val blockWrites = WorkflowGoalRunnerBlockWrites(engine, clock)
     private val terminalPersistence =
@@ -111,15 +93,6 @@ class WorkflowGoalRunnerOutcomeStore
     private val review = WorkflowGoalRunnerReviewBridge(database, engine, phaseOutputValidator)
     private val reconcile = WorkflowGoalRunnerReconcileBridge(database, outcomeReconcile)
     private val blocks = WorkflowGoalRunnerBlockBridge(database, blockWrites)
-    private val childRepairBridge =
-      WorkflowGoalRunnerChildRepairBridge(
-        database,
-        childRepairExecutor,
-        decompositionManifestValidator,
-        decompositionManifestStore,
-        decompositionManifestWriter,
-        engine,
-      )
 
     override fun terminalOutcome(
       workflowId: String,
@@ -203,12 +176,6 @@ class WorkflowGoalRunnerOutcomeStore
 
     override fun readAttemptLedgerSummary(issueKey: String): GoalRunnerAttemptLedgerSummary =
       progressRecording.readAttemptLedgerSummary(issueKey)
-
-    override fun diagnoseChildWedges(request: GoalRunnerChildWedgeDiagnosisRequest): GoalRunnerChildWedgeDiagnosis =
-      childRepairBridge.diagnoseChildWedges(request)
-
-    override fun applyChildWedgeRepairs(request: GoalRunnerChildWedgeRepairRequest): GoalRunnerChildRepairApplyResult =
-      childRepairBridge.applyChildWedgeRepairs(request)
   }
 
 internal class WorkflowGoalRunnerTerminalBridge(
@@ -253,14 +220,12 @@ internal class WorkflowGoalRunnerTerminalBridge(
           subtaskId,
         )
       val recovered =
-        resolved.let { outcome ->
-          terminalPersistence.recoverResolvedCommitPushBlock(
-            workflowStates = unitOfWork.workflowStates,
-            identity = GoalSubtaskIdentity(workflowId, issueKey, subtaskId),
-            repoRoot = repoRoot,
-            outcome = outcome,
-          ) ?: outcome
-        }
+        terminalPersistence.recoverResolvedCommitPushBlock(
+          workflowStates = unitOfWork.workflowStates,
+          identity = GoalSubtaskIdentity(workflowId, issueKey, subtaskId),
+          repoRoot = repoRoot,
+          outcome = resolved,
+        ) ?: resolved
       recovered.also { outcome ->
         terminalPersistence.persistMeasuredCompletion(
           unitOfWork.workflowStates,
@@ -416,68 +381,4 @@ internal class WorkflowGoalRunnerBlockBridge(
     database.transaction { unitOfWork ->
       blockWrites.reopenBlockedPhaseForOperatorResume(unitOfWork, workflowId, preferredPhaseId, reason)
     }
-}
-
-internal class WorkflowGoalRunnerChildRepairBridge(
-  private val database: DatabaseSessionFactory,
-  private val childRepair: GoalRunnerChildRepairRunnerPort,
-  private val decompositionManifestValidator: DecompositionManifestValidator,
-  private val decompositionManifestStore: DecompositionManifestStore,
-  private val decompositionManifestWriter: DecompositionManifestProjectionWriter,
-  private val engine: WorkflowEngine,
-) : GoalRunnerChildRepairStore {
-  override fun diagnoseChildWedges(request: GoalRunnerChildWedgeDiagnosisRequest): GoalRunnerChildWedgeDiagnosis =
-    database.read { unitOfWork ->
-      childRepair.diagnose(
-        workflowStates = unitOfWork.workflowStates,
-        workflowId = request.workflowId,
-        issueKey = request.issueKey,
-        subtaskId = request.subtaskId,
-        repoRoot = request.repoRoot,
-      )
-    }
-
-  override fun applyChildWedgeRepairs(request: GoalRunnerChildWedgeRepairRequest): GoalRunnerChildRepairApplyResult {
-    val result =
-      database.transaction { unitOfWork ->
-        childRepair.apply(
-          GoalRunnerChildRepairApplyRequest(
-            unitOfWork = unitOfWork,
-            workflowId = request.workflowId,
-            issueKey = request.issueKey,
-            subtaskId = request.subtaskId,
-            wedgeClasses = request.wedgeClasses,
-            repoRoot = request.repoRoot,
-            wedgeFindings = request.wedgeFindings,
-          ),
-        )
-      }
-    result.manifestProjectionArtifacts?.let { artifacts ->
-      when (
-        val outcome =
-          decompositionManifestWriter.writeProjectionFromWorkflowState(
-            repoRoot = request.repoRoot,
-            artifacts = artifacts,
-            validator = decompositionManifestValidator,
-            fileStore = decompositionManifestStore,
-          )
-      ) {
-        is DecompositionManifestProjectionOutcome.Failed ->
-          database.transaction { unitOfWork ->
-            persistDecompositionManifestProjectionFailure(
-              engine,
-              unitOfWork,
-              request.workflowId,
-              outcome,
-            )
-          }
-        is DecompositionManifestProjectionOutcome.Written ->
-          database.transaction { unitOfWork ->
-            clearDecompositionManifestProjectionFailure(engine, unitOfWork, request.workflowId)
-          }
-        DecompositionManifestProjectionOutcome.Absent -> Unit
-      }
-    }
-    return result
-  }
 }

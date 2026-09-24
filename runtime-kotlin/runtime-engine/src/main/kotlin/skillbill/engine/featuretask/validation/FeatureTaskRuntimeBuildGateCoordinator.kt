@@ -32,7 +32,6 @@ import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateRepairWindowPhase
@@ -407,20 +406,5 @@ private fun terminalCompletedResult(
           repositoryCheckpoint = repositoryCheckpoint,
           measurements = measurements,
         ),
-    ),
-  )
-
-private fun terminalBlockedResult(
-  reason: String,
-  remainingFindings: ValidationFindingSetProjection? = null,
-  measurements: List<FeatureTaskRuntimeValidationGateRunRecord> = emptyList(),
-  failureDisposition: FeatureTaskRuntimeFailureDisposition? = null,
-): ValidationGateCycleResult =
-  ValidationGateCycleResult.Terminal(
-    ValidationGateCycleTerminalOutcome.Blocked(
-      reason = reason,
-      remainingFindings = remainingFindings,
-      measurements = measurements,
-      failureDisposition = failureDisposition,
     ),
   )

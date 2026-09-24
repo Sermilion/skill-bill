@@ -1,12 +1,9 @@
-package skillbill.infrastructure.sqlite.goalrunner.outcome
+package skillbill.engine.goalrunner.persist
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.goalrunner.execution.support.workflowFamilyFor
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.toPersistenceWire
-import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseLedger
-import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseRecords
-import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
-import skillbill.infrastructure.sqlite.goalrunner.control.workflowFamilyFor
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerBlockWrite
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.WorkflowStateRepository
@@ -22,6 +19,9 @@ import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.artifact.phaseLedgerFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.artifact.phaseRecordsFromWorkflowArtifacts
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
@@ -109,7 +109,7 @@ internal class WorkflowGoalRunnerBlockWrites(
       return false
     }
     val artifacts = existing.artifacts
-    val phaseRecords = decodePhaseRecords(artifacts)
+    val phaseRecords = phaseRecordsFromWorkflowArtifacts(artifacts)
     val blockedRecord =
       operatorReopenablePhaseRecord(
         phaseRecords,
@@ -121,7 +121,12 @@ internal class WorkflowGoalRunnerBlockWrites(
       engine.updateRecord(
         family.definition,
         existing,
-        operatorBlockedPhaseReopenUpdate(blockedRecord, phaseRecords, decodePhaseLedger(artifacts), reason),
+        operatorBlockedPhaseReopenUpdate(
+          blockedRecord,
+          phaseRecords,
+          phaseLedgerFromWorkflowArtifacts(artifacts),
+          reason,
+        ),
       ),
     )
     return true
@@ -176,10 +181,10 @@ internal class WorkflowGoalRunnerBlockWrites(
         WorkflowArtifactPatch.from(
           mapOf(
             DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS.entry(
-              reopened.mapValues { (_, record) -> record.encodeWorkflowArtifact() },
+              reopened.mapValues { (_, record) -> record.asWorkflowArtifactEntry() },
             ),
             DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_LEDGER.entry(
-              (ledger.map { it.encodeWorkflowArtifact() } + retryEntry.encodeWorkflowArtifact()).takeLast(
+              (ledger.map { it.asWorkflowArtifactEntry() } + retryEntry.asWorkflowArtifactEntry()).takeLast(
                 FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
               ),
             ),
@@ -189,7 +194,7 @@ internal class WorkflowGoalRunnerBlockWrites(
                 "reason" to reason,
                 "retried_at" to clock.instant().atOffset(ZoneOffset.UTC).toString(),
                 "previous_blocked_reason" to blockedRecord.blockedReason,
-                "previous_blocked_record" to blockedRecord.encodeWorkflowArtifact(),
+                "previous_blocked_record" to blockedRecord.asWorkflowArtifactEntry(),
               ),
             ),
           ),
