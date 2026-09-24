@@ -8,7 +8,8 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 
 internal fun decomposeTerminalFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal? {
-  val raw = artifacts[FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY] ?: return null
+  if (FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY !in artifacts) return null
+  val raw = artifacts[FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY]
   val entryMap =
     JsonCodec.anyToStringAnyMap(raw)
       ?: schemaError(
@@ -18,7 +19,8 @@ internal fun decomposeTerminalFrom(artifacts: Map<String, Any?>): FeatureTaskRun
 }
 
 internal fun phaseLedgerFrom(artifacts: Map<String, Any?>): List<FeatureTaskRuntimePhaseLedgerEntry> {
-  val raw = artifacts[FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY] ?: return emptyList()
+  if (FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY !in artifacts) return emptyList()
+  val raw = artifacts[FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY]
   val rawList =
     raw as? List<*>
       ?: throw InvalidWorkflowStateSchemaError(

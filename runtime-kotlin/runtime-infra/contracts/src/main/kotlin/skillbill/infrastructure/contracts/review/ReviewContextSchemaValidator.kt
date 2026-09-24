@@ -14,7 +14,7 @@ import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.ValidatedClasspathYamlNodeRequest
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.util.logging.Level
 import java.util.logging.Logger

@@ -8,6 +8,7 @@ import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionStackBranch
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
@@ -237,3 +238,11 @@ private fun invalidDecompositionManifest(
     reason = reason,
     failureCode = "invalid_shape",
   )
+
+fun decodeDecompositionManifestWireMap(
+  wireMap: DecompositionManifestWireMap,
+  sourceLabel: String,
+): DecompositionManifest = DecompositionManifestWireCodec.decode(wireMap, sourceLabel)
+
+fun encodeDecompositionManifestWireMap(manifest: DecompositionManifest): DecompositionManifestWireMap =
+  DecompositionManifestWireMap.from(DecompositionManifestWireCodec.encode(manifest))

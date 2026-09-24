@@ -22,9 +22,7 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.recoverGoalSubtaskReviewBaseline
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 import java.nio.file.Path
@@ -174,14 +172,15 @@ class FeatureTaskRuntimeGoalReviewInputBuilder(
           "failure_message" to request.failureMessage,
           "goal_branch" to request.continuation.goalBranch,
         )
-      val priorEvidence = (artifacts[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY] as? List<*>).orEmpty()
+      val priorEvidence =
+        (DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.value(artifacts) as? List<*>).orEmpty()
       patcher.save(
         record,
         unitOfWork.workflowStates,
         mapOf(
-          GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to replaced.toPersistenceWire(),
-          GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY to goalReviewInputArtifactMap(input),
-          GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY to priorEvidence + evidenceEntry,
+          DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(replaced.toPersistenceWire()),
+          DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_INPUT.entry(goalReviewInputArtifactMap(input)),
+          DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.entry(priorEvidence + evidenceEntry),
         ),
       )
       replaced
@@ -196,13 +195,13 @@ class FeatureTaskRuntimeGoalReviewInputBuilder(
       GoalReviewBaseField.REMEDIATION_BASE ->
         latest.copy(
           remediationBaseSha = recoveredBaseline.reviewBaseSha,
-          reviewInputArtifact = GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY,
+          reviewInputArtifact = DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_INPUT.label(),
         )
       GoalReviewBaseField.REVIEW_BASE ->
         latest.copy(
           reviewBaseSha = recoveredBaseline.reviewBaseSha,
           baselineUntrackedPaths = recoveredBaseline.baselineUntrackedPaths.distinct().sorted(),
-          reviewInputArtifact = GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY,
+          reviewInputArtifact = DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_INPUT.label(),
         )
     }
 }

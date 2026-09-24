@@ -21,6 +21,17 @@ class FeatureTaskRuntimeValidationGateExecutionEvidenceTest {
         "validate",
       )
     }
+    assertFailsWith<InvalidFeatureTaskRuntimeValidationEvidenceSchemaError> {
+      FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(
+        evidenceArtifact(
+          checks = emptyList(),
+          gateRuns = listOf(gateRun().toArtifactMap()),
+        ).toMutableMap().apply {
+          put(ValidationEvidencePayloadKeys.GATE_RUN_COUNT, 1.7)
+        },
+        "fractional-gate-count",
+      )
+    }
   }
 
   @Test

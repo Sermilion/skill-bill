@@ -1,5 +1,4 @@
 package skillbill.engine.goalrunner.repair
-import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.featuretask.lifecycle.remediation.diagnoseUnsettledCompletedUpstreamPhaseId
 import skillbill.engine.featuretask.lifecycle.remediation.featureSizeFromArtifacts
@@ -16,12 +15,12 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.model.WorkflowFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
-import skillbill.workflow.taskruntime.artifact.decodeGoalContinuationArtifactFromArtifact
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY
 import java.nio.file.Path
 import java.time.Clock
 
@@ -128,7 +127,8 @@ class GoalRunnerChildRepairWedgeDiagnosis(
     wedges: MutableList<GoalRunnerWedgeFinding>,
     passed: MutableList<String>,
   ) {
-    val importArtifact = artifacts[FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY] as? Map<*, *>
+    val importArtifact =
+      DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT.value(artifacts) as? Map<*, *>
     val storedVersion = importArtifact?.get("phase_output_contract_version") as? String
     if (storedVersion == null || storedVersion == FEATURE_TASK_RUNTIME_CONTRACT_VERSION) {
       passed += PASSED_PHASE_OUTPUT_CONTRACT
@@ -242,9 +242,6 @@ class GoalRunnerChildRepairWedgeDiagnosis(
   }
 
   private fun continuationArtifact(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact? {
-    val raw =
-      JsonCodec.anyToStringAnyMap(artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY])
-        ?: return null
-    return decodeGoalContinuationArtifactFromArtifact(raw)
+    return DurableWorkflowArtifacts.fromMap(artifacts).goalContinuationArtifact()
   }
 }

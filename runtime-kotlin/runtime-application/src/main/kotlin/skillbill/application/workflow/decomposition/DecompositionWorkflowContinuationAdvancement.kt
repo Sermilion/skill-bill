@@ -1,5 +1,4 @@
 package skillbill.application.workflow.decomposition
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.workflow.model.AdvanceCompletedSubtasksRequest
 import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
 import skillbill.application.workflow.model.GoalContinuationOutcome
@@ -9,13 +8,14 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.withBlockedSubtask
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -148,7 +148,7 @@ internal fun subtaskStartArtifacts(
           DecompositionPlanningPayloadKeys.BRANCH to selection.branchPlan.branch,
           "goal_continuation" to true,
         ),
-      "goal_continuation" to
+      DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.entry(
         mapOf(
           "enabled" to true,
           SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
@@ -156,11 +156,13 @@ internal fun subtaskStartArtifacts(
           "suppress_pr" to true,
           "outcome_authority" to "workflow_store",
         ),
-      DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+      ),
+      DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.entry(
         validator.encodeManifestWireMap(
           manifest,
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+          DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
         ),
+      ),
     ),
   )!!
 
@@ -171,11 +173,14 @@ internal fun parentProjectionArtifacts(
 ): WorkflowArtifactPatch =
   WorkflowArtifactPatch.from(
     LinkedHashMap(existingArtifacts).apply {
-      remove("goal_review_policy")
-      remove("goal_out_of_band_acceptances")
-      put(
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-        validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+      DurableWorkflowArtifactFamily.GOAL_REVIEW_POLICY.removeFrom(this)
+      DurableWorkflowArtifactFamily.GOAL_OUT_OF_BAND_ACCEPTANCE.removeFrom(this)
+      DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.putInto(
+        this,
+        validator.encodeManifestWireMap(
+          manifest,
+          DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
+        ),
       )
     },
   )!!

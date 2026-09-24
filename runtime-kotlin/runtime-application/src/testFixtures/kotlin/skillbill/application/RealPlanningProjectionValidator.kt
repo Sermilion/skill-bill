@@ -1,7 +1,7 @@
 package skillbill.application
 
 import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactSchemaValidator
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactValidatorPort
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactValidatorPort
 
 val realPlanningProjectionValidator: FeatureTaskRuntimeWireArtifactValidatorPort =
   FeatureTaskRuntimeWireArtifactSchemaValidator()

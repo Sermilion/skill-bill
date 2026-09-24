@@ -2,11 +2,10 @@ package skillbill.infrastructure.sqlite.goalrunner.outcome
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.commitShaFrom
 import skillbill.goalrunner.goalContinuationOutcome
+import skillbill.goalrunner.missingResultPrefixTerminalOutcomeArtifact
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.terminalOutcomeFor
-import skillbill.infrastructure.sqlite.goalrunner.control.goalContinuation
-import skillbill.infrastructure.sqlite.goalrunner.control.missingResultPrefixTerminalOutcomeArtifact
 import skillbill.infrastructure.sqlite.goalrunner.control.workflowFamilyFor
 import skillbill.ports.goalrunner.persistence.model.CrashReconcileExpiredWorkerRequest
 import skillbill.ports.goalrunner.persistence.model.GoalSubtaskIdentity
@@ -19,9 +18,11 @@ import skillbill.ports.workflow.save
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuation
 import java.nio.file.Path
 import java.time.Clock
 
@@ -46,7 +47,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
     return candidate?.let { (family, snapshot) ->
       engine.snapshotView(family.definition, snapshot)
       val artifacts = snapshot.artifacts
-      goalContinuation(artifacts)
+      DurableWorkflowArtifacts.fromMap(artifacts).goalContinuation()
         ?.takeIf { it.issueKey == issueKey && it.subtaskId == subtaskId }
         ?.let { continuation -> terminalOutcomeFor(snapshot, artifacts, continuation, measuredCommitSha) }
     }
@@ -63,7 +64,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
       ?.let {
         workflowFamilyFor(workflowStates, identity.workflowId)?.get(workflowStates, identity.workflowId)
       }
-      ?.let { record -> goalContinuation(record.artifacts) }
+      ?.let { record -> DurableWorkflowArtifacts.fromMap(record.artifacts).goalContinuation() }
       ?.takeIf { continuation ->
         continuation.issueKey == identity.issueKey && continuation.subtaskId == identity.subtaskId
       }
@@ -95,7 +96,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
     val continuation =
       row
         ?.takeIf { it.workflowStatus.workflowStatus() == WorkflowStatus.RUNNING }
-        ?.let { goalContinuation(it.toSnapshot().artifacts) }
+        ?.let { DurableWorkflowArtifacts.fromMap(it.toSnapshot().artifacts).goalContinuation() }
         ?.takeIf { it.issueKey == issueKey && it.subtaskId == subtaskId }
     if (ownership == null || row == null || continuation == null) return null
     return crashReconcileExpiredWorkerToResumable(
@@ -210,7 +211,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
     family.save(workflowStates, updated)
     val recoveredArtifacts = existingArtifacts + artifactsPatch
     val recoveredContinuation =
-      goalContinuation(recoveredArtifacts)
+      DurableWorkflowArtifacts.fromMap(recoveredArtifacts).goalContinuation()
         ?.takeIf { it.issueKey == issueKey && it.subtaskId == subtaskId }
     val recovered =
       recoveredContinuation?.let {

@@ -14,13 +14,14 @@ import skillbill.infrastructure.contracts.workflow.goal.observability.GoalObserv
 import skillbill.infrastructure.contracts.workflow.goal.planning.GoalPlanningPreparationSchemaValidator
 import skillbill.infrastructure.contracts.workflow.goal.progress.GoalProgressEventSchemaValidator
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 
 @Inject
 class FeatureTaskRuntimeWireArtifactValidator : FeatureTaskRuntimeWireArtifactValidator {
   override fun validate(
     kind: FeatureTaskRuntimeWireArtifactKind,
-    payload: Any,
+    payload: FeatureTaskRuntimeWorkflowArtifactMap,
     sourceLabel: String,
   ) {
     val wireMap = requireFeatureTaskRuntimeArtifactMap(kind, payload, sourceLabel)

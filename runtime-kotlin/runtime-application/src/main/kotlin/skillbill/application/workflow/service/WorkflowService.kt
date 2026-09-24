@@ -1,16 +1,13 @@
 package skillbill.application.workflow.service
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.decomposition.DecompositionManifestProjectionFailurePersistence
 import skillbill.application.decomposition.DecompositionManifestWriter
-import skillbill.application.decomposition.clearDecompositionManifestProjectionFailure
 import skillbill.application.decomposition.model.RetryDecompositionManifestProjectionArgs
-import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.application.decomposition.retryDecompositionManifestProjectionFromAuthoritativeState
 import skillbill.application.workflow.decomposition.DecompositionWorkflowContinuation
 import skillbill.application.workflow.decomposition.PendingDecompositionProjection
 import skillbill.application.workflow.decomposition.continueExistingWorkflow
-import skillbill.application.workflow.decomposition.isGoalContinuationChildWorkflow
 import skillbill.application.workflow.decomposition.resolveDecompositionProjectionOwner
+import skillbill.workflow.decomposition.runtime.isGoalContinuationChildWorkflow
 import skillbill.application.workflow.model.BuildFeatureTaskExecutionIdentityArgs
 import skillbill.application.workflow.model.ContinueExistingWorkflowArgs
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
@@ -41,6 +38,9 @@ import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.decomposition.DecompositionManifestProjectionFailurePersistence
+import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
+import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -51,14 +51,14 @@ import skillbill.ports.workflow.list
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.save
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.GoalObservabilityEventValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.FeatureTaskWorkflowMode
@@ -74,7 +74,7 @@ class WorkflowService(
   private val decompositionManifestValidator: DecompositionManifestValidator,
   private val decompositionManifestWriter: DecompositionManifestWriter,
   private val repositoryRoot: RepositoryRoot,
-  private val goalObservabilityEventValidator: GoalObservabilityEventValidator,
+  private val goalObservabilityEventValidator: FeatureTaskRuntimeWireArtifactValidator,
   private val runtimeDiagnostics: RuntimeDiagnostics,
   private val clock: Clock,
 ) {
@@ -154,7 +154,7 @@ class WorkflowService(
     }
 
   private fun goalObservabilityOf(snapshot: WorkflowSnapshotView): GoalObservabilityEvent? =
-    goalObservabilityLatestEventFromArtifacts(snapshot.artifacts, goalObservabilityEventValidator)
+    goalObservabilityLatestEventFromArtifacts(snapshot.artifacts)
 
   fun update(
     kind: WorkflowFamilyKind,

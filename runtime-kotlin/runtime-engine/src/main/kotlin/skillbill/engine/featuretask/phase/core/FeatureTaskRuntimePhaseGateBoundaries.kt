@@ -16,7 +16,7 @@ import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.validation.ValidationGateRunner
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 
 @Inject
 data class FeatureTaskRuntimePhaseGateBranchBoundaries(

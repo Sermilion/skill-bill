@@ -21,7 +21,7 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.decodeDiagnosticSignalsFromArtifact
-import skillbill.workflow.taskruntime.model.audit.FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticSignal
 import skillbill.workflow.taskruntime.model.audit.featureTaskRuntimeAppendDiagnosticSignal
@@ -276,14 +276,15 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
             ?: return@transaction
         val existing =
           decodeDiagnosticSignalsFromArtifact(
-            record.artifacts[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
+            DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS.value(record.artifacts),
           )
         workflowPersistence.persistArtifactsPatch(
           unitOfWork.workflowStates,
           record,
           mapOf(
-            FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY to
+            DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS.entry(
               featureTaskRuntimeAppendDiagnosticSignal(existing, signal).map { it.asWorkflowArtifactEntry() },
+            ),
           ),
         )
       }
@@ -296,7 +297,7 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read emptyList()
       decodeDiagnosticSignalsFromArtifact(
-        record.artifacts[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
+        DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS.value(record.artifacts),
       )
     }
 

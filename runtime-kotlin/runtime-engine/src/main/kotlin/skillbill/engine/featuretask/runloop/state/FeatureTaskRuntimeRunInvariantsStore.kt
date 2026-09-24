@@ -7,10 +7,10 @@ import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.taskruntime.artifact.decodeRunInvariantsFromArtifact
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY
 
 @Inject
 class FeatureTaskRuntimeRunInvariantsStore(
@@ -54,11 +54,12 @@ class FeatureTaskRuntimeRunInvariantsStore(
 }
 
 private fun runInvariantsFrom(artifacts: DurableWorkflowArtifacts): FeatureTaskRuntimeRunInvariants? {
-  val raw = artifacts[FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY] ?: return null
+  val family = DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_RUN_INVARIANTS
+  val raw = family.value(artifacts) ?: return null
   val entryMap =
     JsonCodec.anyToStringAnyMap(raw)
       ?: throw InvalidWorkflowStateSchemaError(
-        "Feature-task-runtime artifact '$FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY' must decode to a map.",
+        "Feature-task-runtime artifact '${family.label()}' must decode to a map.",
       )
   return decodeRunInvariantsFromArtifact(entryMap)
 }

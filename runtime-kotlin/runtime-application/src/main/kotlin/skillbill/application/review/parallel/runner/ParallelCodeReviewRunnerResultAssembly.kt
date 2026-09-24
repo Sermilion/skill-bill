@@ -15,7 +15,7 @@ import skillbill.ports.review.model.ParallelReviewLaneRunResult
 import skillbill.ports.review.model.ReviewIntegrationPassOutcome
 import skillbill.ports.review.model.ReviewIntegrationPassRecord
 import skillbill.ports.review.model.ReviewLaneAccounting
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.ReviewTreeAccounting
 import skillbill.review.context.model.accounting.ReviewAccountingCounters
 import skillbill.review.context.model.accounting.ReviewAccountingInput

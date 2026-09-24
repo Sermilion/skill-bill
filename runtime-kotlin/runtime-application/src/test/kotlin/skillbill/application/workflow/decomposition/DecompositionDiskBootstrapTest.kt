@@ -4,7 +4,6 @@ import java.time.Instant
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testDecompositionManifestWriter
@@ -17,8 +16,9 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.toRecord
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
@@ -87,7 +87,7 @@ private fun InMemoryWorkflowStates.decomposedParentRows(issueKey: String): List<
     val snapshot = row.toSnapshot()
     row.issueKey == issueKey &&
       !snapshot.isGoalContinuationChildWorkflow() &&
-      snapshot.decompositionRuntime(testDecompositionManifestValidator) != null
+      snapshot.decompositionRuntime() != null
   }
 
 class DecompositionDiskBootstrapTest {
@@ -122,7 +122,7 @@ class DecompositionDiskBootstrapTest {
           WorkflowArtifactPatch.from(
             mapOf(
               "plan" to mapOf("mode" to "decompose"),
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to
                 testDecompositionManifestValidator.encodeManifestWireMap(manifest),
             ),
           ),
@@ -331,7 +331,7 @@ class DecompositionDiskBootstrapTest {
     assertEquals(1, parentRows.size, "Bootstrap must reuse the existing parent, not mint a second one.")
     assertEquals("wfl-corrupt-parent", parentRows.single().workflowId)
     assertNotNull(
-      parentRows.single().toSnapshot().decompositionRuntime(testDecompositionManifestValidator),
+      parentRows.single().toSnapshot().decompositionRuntime(),
       "Reclaimed parent must carry a decodable decomposition_runtime artifact.",
     )
   }
@@ -372,7 +372,7 @@ class DecompositionDiskBootstrapTest {
           WorkflowArtifactPatch.from(
             mapOf(
               "plan" to mapOf("mode" to "decompose"),
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
+              DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to "not-a-map",
             ),
           ),
       ).copy(issueKey = "SKILL-TEST"),
@@ -490,7 +490,7 @@ class DecompositionDiskBootstrapTest {
           WorkflowArtifactPatch.from(
             mapOf(
               "plan" to mapOf("mode" to "decompose"),
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
+              DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to "not-a-map",
             ),
           ),
       ).copy(issueKey = "SKILL-TEST"),
@@ -557,7 +557,7 @@ class DecompositionDiskBootstrapTest {
           WorkflowArtifactPatch.from(
             mapOf(
               "plan" to mapOf("mode" to "decompose"),
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
+              DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to "not-a-map",
             ),
           ),
       ).copy(issueKey = "SKILL-TEST"),

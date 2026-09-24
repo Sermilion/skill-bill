@@ -11,7 +11,7 @@ import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
 import skillbill.install.model.InstallPlanWireMap
-import skillbill.install.model.InstallPlanWireValidator
+import skillbill.ports.install.InstallPlanWireValidator
 import java.util.logging.Level
 import java.util.logging.Logger
 

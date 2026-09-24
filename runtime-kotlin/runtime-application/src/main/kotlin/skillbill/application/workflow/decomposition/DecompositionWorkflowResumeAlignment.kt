@@ -1,5 +1,4 @@
 package skillbill.application.workflow.decomposition
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.executionModel
 import skillbill.application.workflow.model.ContinueExistingWorkflowArgs
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
@@ -16,12 +15,14 @@ import skillbill.ports.workflow.save
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.sessionSummary
 import skillbill.ports.workflow.toRecord
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.decomposition.runtime.goalParentArtifactProjection
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
@@ -190,14 +191,13 @@ fun WorkflowEngine.persistParentDecompositionRuntime(
         stepUpdates = null,
         artifactsPatch =
           WorkflowArtifactPatch.from(
-            LinkedHashMap(parentRecord.artifacts).apply {
-              remove("goal_review_policy")
-              remove("goal_out_of_band_acceptances")
-              put(
-                DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-                validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
-              )
-            },
+            goalParentArtifactProjection(
+              parentRecord.artifacts,
+              validator.encodeManifestWireMap(
+                manifest,
+                DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
+              ),
+            ),
           ),
         sessionId = parentRecord.sessionId.orEmpty(),
         replaceArtifacts = true,

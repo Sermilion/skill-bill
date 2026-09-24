@@ -6,7 +6,7 @@ import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.error.shellcontent.UnreadableSpecIntentProjectionError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.execution.SpecIntentProjection
 import skillbill.review.context.model.execution.SpecIntentProvenance
 import skillbill.review.context.model.execution.SpecIntentSurroundingContext

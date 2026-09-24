@@ -1,4 +1,5 @@
-package skillbill.workflow.taskruntime.phase.task
+package skillbill.ports.taskruntime
+
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
 
@@ -12,11 +13,6 @@ interface FeatureTaskRuntimePhaseOutputValidator {
     phaseOutputText: String,
     sourceLabel: String,
   )
-
-  fun validateAndReadPhaseOutput(
-    phaseOutputText: String,
-    sourceLabel: String,
-  ): Any
 
   fun normalizePhaseOutput(
     phaseOutputText: String,

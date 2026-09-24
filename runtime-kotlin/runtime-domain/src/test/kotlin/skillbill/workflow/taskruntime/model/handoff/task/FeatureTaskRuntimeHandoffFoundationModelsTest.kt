@@ -1,7 +1,5 @@
 package skillbill.workflow.taskruntime.model.handoff.task
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDelivery
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionShape
@@ -48,7 +46,7 @@ class FeatureTaskRuntimeHandoffFoundationModelsTest {
     assertEquals(true, wire["allows_private_artifact_reference"])
     assertEquals("private_evidence_artifact", wire["inline_alternative"])
     assertFalse(wire.containsKey("source_ref"))
-    assertEquals(declaration, PhaseHandoffProjectionDeclaration.fromArtifactMap(wire, AcceptingFoundationValidator))
+    assertEquals(declaration, PhaseHandoffProjectionDeclaration.fromArtifactMap(wire) { _, _, _ -> })
   }
 
   @Test
@@ -135,10 +133,3 @@ class FeatureTaskRuntimeHandoffFoundationModelsTest {
   }
 }
 
-private object AcceptingFoundationValidator : FeatureTaskRuntimeWireArtifactValidator {
-  override fun validate(
-    kind: FeatureTaskRuntimeWireArtifactKind,
-    payload: Any,
-    sourceLabel: String,
-  ) = Unit
-}

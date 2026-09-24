@@ -13,8 +13,8 @@ import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.time.RuntimeTimingPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 
 @Inject
 data class GoalPlanningSweepCheckpointBoundaries(

@@ -16,7 +16,7 @@ import skillbill.ports.review.evidence.ReviewSnapshotGateway
 import skillbill.ports.review.preparation.ReviewInputSource
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.model.ParallelReviewParseResult
 import skillbill.review.parallel.ParallelReviewFindingParser
 

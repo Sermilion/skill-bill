@@ -16,14 +16,13 @@ import skillbill.ports.workflow.save
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
@@ -31,12 +30,9 @@ import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.FeatureTaskRuntimeImplementationAttemptStatus
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_STATUS_BLOCKED
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_STATUS_PENDING
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.security.MessageDigest
@@ -150,6 +146,7 @@ class FeatureTaskRuntimeWorkflowPersistence
             sessionId = record.sessionId.orEmpty(),
           ),
         )
+      workflowSnapshotValidator.validate(updated, updated.workflowName)
       WorkflowFamily.TASK_RUNTIME.save(workflowStates, updated)
     }
 
@@ -161,7 +158,11 @@ class FeatureTaskRuntimeWorkflowPersistence
       persistArtifactsPatch(
         workflowStates,
         record,
-        mapOf(FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY to runInvariants.asWorkflowArtifactEntry()),
+        mapOf(
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_RUN_INVARIANTS.entry(
+            runInvariants.asWorkflowArtifactEntry(),
+          ),
+        ),
       )
     }
 
@@ -169,15 +170,16 @@ class FeatureTaskRuntimeWorkflowPersistence
 
 internal object FeatureTaskRuntimeWorkflowArtifactPatches {
   fun clearGoalContinuationOutcome(): Map<String, Any?> =
-    mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY to null)
+    mapOf(DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME.entry(null))
 
   fun goalContinuationArtifact(entry: Any): Map<String, Any?> =
-    mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to entry)
+    mapOf(DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.entry(entry))
 
-  fun goalSubtaskReviewState(entry: Any): Map<String, Any?> = mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to entry)
+  fun goalSubtaskReviewState(entry: Any): Map<String, Any?> =
+    mapOf(DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(entry))
 
   fun goalReviewBaseRecoveries(entries: List<Any?>): Map<String, Any?> =
-    mapOf(GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY to entries)
+    mapOf(DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.entry(entries))
 
   fun goalChildRepairEvidence(entries: List<Any?>): Map<String, Any?> =
     mapOf(GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY to entries)

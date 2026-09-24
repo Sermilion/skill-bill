@@ -11,7 +11,7 @@ import skillbill.ports.review.preparation.ReviewLaneSelectionPort
 import skillbill.ports.review.preparation.ReviewLearningsPort
 import skillbill.ports.review.preparation.ReviewScopeResolverPort
 import skillbill.ports.review.preparation.ReviewStackRoutingPort
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.bundle.ReviewLaneBundle
 import skillbill.review.context.model.bundle.ReviewLaneBundleEntry
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact

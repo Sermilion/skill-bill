@@ -2,7 +2,8 @@ package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runti
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.artifact.validatePlanningProjection
+import skillbill.ports.taskruntime.validatePlanningProjection
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -16,7 +17,7 @@ class FeatureTaskRuntimePlanningProjectionSchemaValidatorTest {
       assertFailsWith<InvalidFeatureTaskRuntimePlanningProjectionSchemaError> {
         FeatureTaskRuntimeWireArtifactValidator().validate(
           FeatureTaskRuntimeWireArtifactKind.PLANNING_PROJECTION,
-          listOf("not-an-object"),
+          FeatureTaskRuntimeWorkflowArtifactMap.from(listOf("not-an-object")),
           "planning-projection#non-object",
         )
       }

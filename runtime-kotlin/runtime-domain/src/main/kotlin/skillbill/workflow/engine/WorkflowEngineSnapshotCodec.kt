@@ -8,6 +8,7 @@ import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
 
 internal fun snapshotViewFrom(record: WorkflowStateSnapshot): WorkflowSnapshotView =
   WorkflowSnapshotView(

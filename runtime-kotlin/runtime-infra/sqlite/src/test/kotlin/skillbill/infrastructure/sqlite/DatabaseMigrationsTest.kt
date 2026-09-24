@@ -1,7 +1,6 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
-import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.infrastructure.sqlite.core.migration.column.DatabaseColumnMigrations
 import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.ops.attachSqliteDiagnostics
@@ -29,6 +28,11 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
+private val GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_OUT_OF_BAND_ACCEPTANCE.label()
+private val GOAL_REVIEW_POLICY_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_REVIEW_POLICY.label()
 
 class DatabaseMigrationsTest {
   @Test

@@ -1,13 +1,13 @@
 package skillbill.application.workflow.service
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.workflow.decomposition.withPendingProjection
 import skillbill.application.workflow.model.GoalContinuationOutcome
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 
@@ -131,10 +131,13 @@ internal fun decompositionRuntimeArtifacts(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
 ): DurableWorkflowArtifacts =
-  DurableWorkflowArtifacts.fromMap(mapOf(
-      DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+  DurableWorkflowArtifacts.fromMap(
+    mapOf(
+      DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.entry(
         validator.encodeManifestWireMap(
           manifest,
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+          DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
         ),
-    ))
+      ),
+    ),
+  )

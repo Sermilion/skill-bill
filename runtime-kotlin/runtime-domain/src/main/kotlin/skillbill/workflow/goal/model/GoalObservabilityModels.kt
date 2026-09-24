@@ -8,12 +8,12 @@ import skillbill.workflow.goal.invalidGoalObservabilityEvent
 import skillbill.workflow.time.parsePersistedInstant
 import java.time.Instant
 
-const val GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY: String = "goal_observability_latest_event"
-const val GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY: String = "goal_observability_run_history"
+internal const val GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY: String = "goal_observability_latest_event"
+internal const val GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY: String = "goal_observability_run_history"
 const val GOAL_OBSERVABILITY_HISTORY_LIMIT: Int = 50
 
-const val GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY: String = "goal_progress_latest_event"
-const val GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY: String = "goal_progress_run_history"
+internal const val GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY: String = "goal_progress_latest_event"
+internal const val GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY: String = "goal_progress_run_history"
 const val GOAL_PROGRESS_HISTORY_LIMIT: Int = 50
 
 enum class GoalObservabilityRecordKind(val wireValue: String) {

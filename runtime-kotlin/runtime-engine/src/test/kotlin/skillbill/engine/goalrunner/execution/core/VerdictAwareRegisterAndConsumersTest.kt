@@ -27,7 +27,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeResol
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeHandoffPromptVisibility
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.noop.NoopFeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -226,7 +226,7 @@ class VerdictAwareRegisterAndConsumersTest {
         workflowId = "wftr-1",
         validationDepth = ValidationDepth.DEFAULT,
         recordedFindingVerdicts = recordedVerdicts,
-        planningProjectionValidator = NoopFeatureTaskRuntimeWireArtifactValidator,
+        planningProjectionValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator::validate,
       ),
     )
 }

@@ -12,7 +12,7 @@ import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestSt
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.model.WorkflowStatus
 import java.time.Clock
 import kotlin.test.Test
@@ -208,7 +208,7 @@ private fun newService(): WorkflowService =
     decompositionManifestValidator = testDecompositionManifestValidator,
     decompositionManifestWriter = testDecompositionManifestWriter,
     repositoryRoot = testRepositoryRoot,
-    goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+    goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
     runtimeDiagnostics = NoopRuntimeDiagnostics,
     clock = Clock.systemUTC(),
   )

@@ -13,9 +13,8 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 
@@ -50,19 +49,21 @@ class UnaddressedFindingsLedgerService(
           WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
             ?: return@flatMap emptyList()
         val artifacts = record.artifacts
-        val artifactKey =
+        val artifactFamily =
           when {
-            artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY] != null ->
-              FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
-            artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY] != null ->
-              FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
+            DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS.value(artifacts) !=
+              null ->
+              DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS
+            DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT.value(artifacts) !=
+              null ->
+              DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT
             else -> return@flatMap emptyList()
           }
-        val raw = artifacts[artifactKey] ?: return@flatMap emptyList()
+        val raw = artifactFamily.value(artifacts) ?: return@flatMap emptyList()
         runCatching {
           FeatureTaskRuntimeFindingVerificationDisposition.parseList(
             raw,
-            artifactKey,
+            artifactFamily.label(),
           )
         }.getOrElse { error ->
           val message =

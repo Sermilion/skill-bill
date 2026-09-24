@@ -4,6 +4,8 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
 import skillbill.goalrunner.model.GoalRunnerProgressEvent
 import skillbill.workflow.goal.model.GoalObservabilityEvent
+import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
+import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
 
 fun Map<*, *>.toGoalRunnerProgressEventOrNull(): GoalRunnerProgressEvent? {
   val stepId = this[SharedPayloadKeys.STEP_ID]?.toString()?.takeIf(String::isNotBlank)
@@ -12,15 +14,25 @@ fun Map<*, *>.toGoalRunnerProgressEventOrNull(): GoalRunnerProgressEvent? {
   return if (stepId != null && kind != null && timestamp != null) {
     GoalRunnerProgressEvent(
       stepId = stepId,
-      attemptCount = this["attempt_count"].asGoalRunnerIntOrNull() ?: 0,
+      attemptCount = requiredLegacyProgressInt("attempt_count"),
       kind = kind,
       message = this["message"]?.toString().orEmpty(),
-      sequence = this["sequence"].asGoalRunnerIntOrNull() ?: 0,
+      sequence = requiredLegacyProgressInt("sequence"),
       timestamp = timestamp,
     )
   } else {
     null
   }
+}
+
+private fun Map<*, *>.requiredLegacyProgressInt(key: String): Int {
+  val value = this[key] ?: return 0
+  return value.asExactIntOrNull()
+    ?: throw InvalidGoalProgressEventSchemaError(
+      "progress_event",
+      key,
+      "must be an integer.",
+    )
 }
 
 fun GoalRunnerProgressEvent.summary(): String =

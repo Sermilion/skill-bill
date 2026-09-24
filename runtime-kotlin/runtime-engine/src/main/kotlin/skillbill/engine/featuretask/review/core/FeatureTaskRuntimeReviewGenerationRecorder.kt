@@ -14,15 +14,12 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.review.model.ReviewFindingVerdict
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
@@ -58,18 +55,21 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
       val nextGeneration = storedGeneration + 1
       val patch =
         linkedMapOf<String, Any?>(
-          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS.entry(
             updatedRecords.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
-          FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY to nextGeneration,
+          ),
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_REVIEW_GENERATION.entry(nextGeneration),
         )
       GoalSubtaskReviewArtifactDecoder.decode(artifacts)?.state?.let { state ->
-        patch[GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY] =
+        DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.putInto(
+          patch,
           GoalSubtaskReviewState.initial(
             reviewBaseSha = state.reviewBaseSha,
             baselineUntrackedPaths = state.baselineUntrackedPaths,
             codeReviewMode = state.codeReviewMode,
-          ).toPersistenceWire()
-        patch[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY] = emptyMap<String, String>()
+          ).toPersistenceWire(),
+        )
+        DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_RESULTS.putInto(patch, emptyMap<String, String>())
         unitOfWork.unaddressedFindings.clearWorkflowLedger(workflowId)
       }
       workflowPersistence.persistArtifactsPatch(
@@ -99,7 +99,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
       workflowPersistence.persistArtifactsPatch(
         unitOfWork.workflowStates,
         record,
-        mapOf(FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY to 1),
+        mapOf(DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_REVIEW_GENERATION.entry(1)),
       )
       1
     }
@@ -134,8 +134,9 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
         unitOfWork.workflowStates,
         record,
         mapOf(
-          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS.entry(
             updatedRecords.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
+          ),
         ),
         WorkflowRowAdvance(
           currentStepId = record.currentStepId,

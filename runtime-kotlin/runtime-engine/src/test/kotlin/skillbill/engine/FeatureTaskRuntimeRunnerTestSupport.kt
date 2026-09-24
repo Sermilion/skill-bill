@@ -130,7 +130,7 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.specscratch.SpecScratchStore
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.accounting.ReviewBudgetKind
 import skillbill.review.context.model.hunk.ReviewContextBudgetExceeded
 import skillbill.review.context.model.hunk.ReviewContextBudgetExceededException
@@ -152,8 +152,7 @@ import skillbill.scaffold.model.ValidationGateFindingsLocator
 import skillbill.telemetry.model.TelemetrySettings
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskRouteScope
@@ -162,12 +161,10 @@ import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
@@ -181,8 +178,8 @@ import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode.CACHE_ELIGIBLE
 import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome.FAILED
 import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome.PASSED
-import skillbill.workflow.taskruntime.noop.NoopFeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.lang.Boolean.TYPE
 import java.lang.reflect.Method
@@ -240,6 +237,15 @@ internal val PLAN_OUTPUT = seededProjectionEnvelope("plan", PlanningProjectionFi
 internal val IMPLEMENT_OUTPUT =
   seededProjectionEnvelope("implement", PlanningProjectionFixtures.IMPLEMENT_PROSE)
 internal val SIMPLIFY_OUTPUT = validJsonOutput("simplify")
+
+private val GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_RESULTS.label()
+private val GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.label()
+private val FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES.label()
+private val FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS.label()
 
 private fun seededProjectionEnvelope(
   phaseId: String,
@@ -620,9 +626,9 @@ internal data class RuntimeHarnessConfig(
   val eventSink: FeatureTaskRuntimeRunEventSink? = null,
   val acceptanceCriteria: List<String> = listOf("AC-1", "AC-2"),
   val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator =
-    NoopFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
   val buildReceiptValidator: FeatureTaskRuntimeWireArtifactValidator =
-    NoopFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
   val codeReviewMode: CodeReviewExecutionMode = CodeReviewExecutionMode.DEFAULT,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
     FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
@@ -653,9 +659,9 @@ private data class RuntimePhaseGatesDeps(
   val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
   val specGate: FeatureTaskRuntimeSpecGate = testSpecGate(),
   val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator =
-    NoopFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
   val buildReceiptValidator: FeatureTaskRuntimeWireArtifactValidator =
-    NoopFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
     FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
   val diffResolver: DiffResolverPort =
@@ -1863,10 +1869,21 @@ internal object CanonicalWrapperTestValidator : FeatureTaskRuntimePhaseOutputTes
     phaseOutputText: String,
     sourceLabel: String,
   ) {
-    validateAndReadPhaseOutput(phaseOutputText, sourceLabel)
+    parseAndValidate(phaseOutputText, sourceLabel)
   }
 
-  override fun validateAndReadPhaseOutput(
+  override fun normalizePhaseOutput(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ): NormalizedFeatureTaskRuntimePhaseOutput {
+    val envelope = parseAndValidate(phaseOutputText, sourceLabel)
+    return NormalizedFeatureTaskRuntimePhaseOutput(
+      canonicalJson = JsonCodec.mapToJsonString(envelope),
+      envelope = envelope,
+    )
+  }
+
+  private fun parseAndValidate(
     phaseOutputText: String,
     sourceLabel: String,
   ): Map<String, Any?> {

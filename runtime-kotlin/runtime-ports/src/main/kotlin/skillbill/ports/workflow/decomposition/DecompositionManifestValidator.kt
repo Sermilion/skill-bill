@@ -1,4 +1,4 @@
-package skillbill.workflow.decomposition
+package skillbill.ports.workflow.decomposition
 
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult

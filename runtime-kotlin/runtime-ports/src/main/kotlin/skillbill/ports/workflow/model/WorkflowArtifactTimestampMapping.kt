@@ -3,24 +3,19 @@ package skillbill.ports.workflow.model
 import skillbill.contracts.workflow.workflow.WorkflowTimestampPayloadKeys
 import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.time.parsePersistedInstant
 
-private val timestampArtifactKeys = setOf(
-  FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY,
-  FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY,
-  GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY,
-  GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY,
-  GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY,
-  GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY,
-  GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY,
+private val timestampArtifactFamilies = setOf(
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS,
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_LEDGER,
+  DurableWorkflowArtifactFamily.GOAL_ATTEMPT_LEDGER,
+  DurableWorkflowArtifactFamily.GOAL_OBSERVABILITY_LATEST_EVENT,
+  DurableWorkflowArtifactFamily.GOAL_OBSERVABILITY_RUN_HISTORY,
+  DurableWorkflowArtifactFamily.GOAL_PROGRESS_LATEST_EVENT,
+  DurableWorkflowArtifactFamily.GOAL_PROGRESS_RUN_HISTORY,
 )
+private val timestampArtifactKeys = timestampArtifactFamilies.mapTo(hashSetOf()) { it.label() }
 private val timestampFieldKeys = setOf(
   WorkflowTimestampPayloadKeys.TIMESTAMP,
   WorkflowTimestampPayloadKeys.FIRST_STARTED_AT,
@@ -32,7 +27,12 @@ internal fun preserveArtifactTimestampText(
   artifacts: Map<String, Any?>,
   source: Map<String, Any?>?,
 ): Map<String, Any?> = artifacts.mapValues { (key, value) ->
-  if (key in timestampArtifactKeys) preserveTimestampFields(value, source?.get(key)) else value
+  if (key in timestampArtifactKeys) {
+    val family = timestampArtifactFamilies.first { it.label() == key }
+    preserveTimestampFields(value, source?.let(family::value))
+  } else {
+    value
+  }
 }
 
 private fun preserveTimestampFields(value: Any?, source: Any?): Any? = when {

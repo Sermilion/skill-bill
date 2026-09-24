@@ -1,11 +1,11 @@
 package skillbill.engine.goalrunner.persist
 
 import skillbill.contracts.JsonCodec
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.progressToken
-import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import java.time.Instant
@@ -14,6 +14,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+
+private val GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_PROGRESS_LATEST_EVENT.label()
 
 class AttemptLedgerWorkflowDecodingTest {
   @Test

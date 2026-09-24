@@ -1,8 +1,9 @@
 package skillbill.infrastructure.sqlite.goalrunner.manifest
+import skillbill.ports.goalrunner.GoalParentProjectionWriter
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.infrastructure.sqlite.goalrunner.control.reconcileControlStateForManifest
-import skillbill.infrastructure.sqlite.workflow.decomposition.decompositionRuntime
-import skillbill.infrastructure.sqlite.workflow.decomposition.findDecomposedParentWorkflow
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
+import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.infrastructure.sqlite.workflow.decomposition.requireRuntimeModeForEngineWrite
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
@@ -12,7 +13,7 @@ import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
@@ -54,7 +55,7 @@ internal class WorkflowGoalRunnerManifestProjectionPersistence(
     val manifest =
       if (mergeConcurrentProgress) {
         mergeConcurrentGoalProgress(
-          existingSnapshot.decompositionRuntime(decompositionManifestValidator) ?: state.manifest,
+          existingSnapshot.decompositionRuntime() ?: state.manifest,
           state.manifest,
         )
       } else {
@@ -87,7 +88,7 @@ internal class WorkflowGoalRunnerManifestProjectionPersistence(
         GoalRunnerManifestState(
           parentWorkflowId = refreshed.workflowId,
           dbPath = unitOfWork.dbPath.toString(),
-          manifest = refreshed.decompositionRuntime(decompositionManifestValidator) ?: manifest,
+          manifest = refreshed.decompositionRuntime() ?: manifest,
           controlState = unitOfWork.goalRunnerControls.controlState(refreshed.workflowId),
           repoRoot = state.repoRoot,
         ),

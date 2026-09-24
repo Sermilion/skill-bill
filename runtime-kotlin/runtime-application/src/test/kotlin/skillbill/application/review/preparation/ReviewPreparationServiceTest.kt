@@ -24,7 +24,7 @@ import skillbill.ports.review.preparation.ReviewScopeResolverPort
 import skillbill.ports.review.preparation.ReviewStackRoutingPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceLocatorReadRequest
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.bundle.ReviewLaneBundle
 import skillbill.review.context.model.commit.ReviewAssignment
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
@@ -288,7 +288,7 @@ class ReviewPreparationServiceTest {
 
   @Test fun `every projected envelope is schema validated before launch`() {
     val validator = RecordingValidator()
-    service(ports(), validator).prepare(request())
+    service(ports()).prepare(request())
     assertEquals(
       listOf("review-packet:review", "review-assignment:review:security", "review-assignment:review:testing"),
       validator.labels,

@@ -18,13 +18,14 @@ import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.model.GoalObservabilityProgressInput
 import skillbill.goalrunner.model.GoalObservabilityWorktreeActivity
+import skillbill.ports.taskruntime.validateGoalObservabilityEvent
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
-import skillbill.workflow.engine.RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowContinueDecision
 import skillbill.workflow.engine.model.WorkflowDefinition
@@ -32,7 +33,7 @@ import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.GoalObservabilityEventValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Clock
@@ -146,7 +147,7 @@ internal fun WorkflowContinueDecision.toReopenInput(sessionId: String): Workflow
 internal fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
   existing: WorkflowStateSnapshot,
   workflowId: String,
-  validator: GoalObservabilityEventValidator,
+  validator: FeatureTaskRuntimeWireArtifactValidator,
   gitOperations: WorkflowGitOperations,
   repoRoot: Path,
 ): WorkflowUpdateInput {
@@ -174,7 +175,7 @@ internal fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
                   )
                 },
           ),
-        validator = validator,
+        validator = validator::validateGoalObservabilityEvent,
       )
     observabilityPatch?.let { patchValue ->
       val decoded = JsonCodec.anyToStringAnyMap(patchValue) ?: return this
@@ -223,7 +224,8 @@ internal fun launchProjectionIfReady(
 ) = definition.inputProjectionsByStep[stepId]
   ?.takeIf { declaration ->
     declaration.requiredArtifactKeys.all { artifactKey ->
-      artifactKey == RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY || snapshot.artifacts.containsKey(artifactKey)
+      DurableWorkflowArtifactFamily.RUNTIME_REPOSITORY_EVIDENCE.contains(snapshot.artifacts) ||
+        snapshot.artifacts.containsKey(artifactKey)
     }
   }
   ?.let {

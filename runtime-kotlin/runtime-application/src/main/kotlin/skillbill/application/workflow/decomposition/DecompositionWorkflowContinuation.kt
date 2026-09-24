@@ -1,6 +1,5 @@
 package skillbill.application.workflow.decomposition
 import skillbill.application.decomposition.DecompositionManifestWriter
-import skillbill.application.decomposition.resolveDecompositionManifest
 import skillbill.application.workflow.model.AdvanceCompletedSubtasksRequest
 import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
 import skillbill.application.workflow.model.ContinueExistingWorkflowArgs
@@ -17,6 +16,11 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.resolveDecompositionManifest
+import skillbill.ports.workflow.decomposition.findDecomposedParentOrCorruptFallback
+import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflowForRuntime
+import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
+import skillbill.ports.workflow.get
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -26,9 +30,10 @@ import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionContinuationSelector
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
@@ -64,11 +69,11 @@ class DecompositionWorkflowContinuation(
       unitOfWork.workflowStates
         .findDecomposedParentWorkflow(issueKey, validator, diskManifest)
         ?.toSnapshot()
-    var manifest = parentRecord?.decompositionRuntime(validator)
+    var manifest = parentRecord?.decompositionRuntime()
     if (parentRecord == null || manifest == null) {
       if (diskManifest != null) {
         parentRecord = bootstrapParentWorkflowFromManifest(diskManifest, unitOfWork)
-        manifest = parentRecord.decompositionRuntime(validator)
+        manifest = parentRecord.decompositionRuntime()
       }
     }
     val result =

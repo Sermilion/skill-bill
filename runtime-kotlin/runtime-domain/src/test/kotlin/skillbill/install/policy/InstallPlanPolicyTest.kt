@@ -12,7 +12,7 @@ import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.install.model.InstallPlanWireMap
-import skillbill.install.model.InstallPlanWireValidator
+import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.install.model.InstallPlatformPackDiscoverySnapshot
 import skillbill.install.model.InstallPlatformPackSnapshot
 import skillbill.install.model.InstallPlatformSkillMaterializationRequest
@@ -352,7 +352,7 @@ class InstallPlanPolicyTest {
           capturedWireMap = plan
         }
       }
-    val result = InstallPlanPolicy.validateInstallPlanSnapshot(plan, recordingValidator)
+    val result = InstallPlanPolicy.validateInstallPlanSnapshot(plan, recordingValidator::validate)
     assertEquals(InstallPolicyValidationStatus.VALID, result.status)
     assertEquals("planned", capturedWireMap?.get("status"))
 
@@ -367,7 +367,7 @@ class InstallPlanPolicyTest {
       }
     val error =
       assertFailsWith<InvalidInstallPlanSchemaError> {
-        InstallPlanPolicy.validateInstallPlanSnapshot(plan, loudFailValidator)
+        InstallPlanPolicy.validateInstallPlanSnapshot(plan, loudFailValidator::validate)
       }
     assertContains(error.message.orEmpty(), "mcp_registration.runtime_mcp_bin")
   }

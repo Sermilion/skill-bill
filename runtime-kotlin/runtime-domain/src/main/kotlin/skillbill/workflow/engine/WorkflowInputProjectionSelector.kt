@@ -9,7 +9,7 @@ import skillbill.workflow.engine.model.WorkflowInputProjectionDeclaration
 import skillbill.workflow.engine.model.WorkflowLaunchProjectionArtifacts
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 
-const val RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY = "repository_evidence"
+internal const val RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY = "repository_evidence"
 
 private fun collectionItemCount(value: Any?): Int =
   when (value) {

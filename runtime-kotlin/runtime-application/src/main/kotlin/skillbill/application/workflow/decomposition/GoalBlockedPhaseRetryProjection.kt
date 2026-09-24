@@ -1,22 +1,21 @@
 package skillbill.application.workflow.decomposition
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.workflow.service.migrateLegacyGoalRunnerControls
-import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.withRetriedSubtask
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.taskruntime.artifact.decodeGoalContinuationArtifactFromArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 
 fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
   unitOfWork: GoalRunnerPersistenceSession,
@@ -25,19 +24,7 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
   phaseId: String,
   validator: DecompositionManifestValidator,
 ): DurableWorkflowArtifacts? {
-  val rawContinuation =
-    childArtifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY]
-      ?: return null
-  val continuationMap =
-    JsonCodec.anyToStringAnyMap(rawContinuation)
-      ?: invalidGoalRetryProjection(
-        "Workflow artifact '$FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY' must be an object.",
-      )
-  val continuation =
-    decodeGoalContinuationArtifactFromArtifact(continuationMap)
-      ?: invalidGoalRetryProjection(
-        "Workflow artifact '$FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY' is invalid.",
-      )
+  val continuation = childArtifacts.goalContinuationArtifact() ?: return null
   val parentWorkflowId = continuation.parentWorkflowId ?: return null
   val parent =
     WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
@@ -45,7 +32,7 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
         "Goal child '$childWorkflowId' references unknown parent workflow '$parentWorkflowId'.",
       )
   val parentManifest =
-    parent.decompositionRuntime(validator)
+    parent.decompositionRuntime()
       ?: invalidGoalRetryProjection(
         "Goal parent '$parentWorkflowId' has no decomposition runtime artifact.",
       )
@@ -69,11 +56,12 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
       artifactsPatch =
         WorkflowArtifactPatch.from(
           mapOf(
-            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+            DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.entry(
               validator.encodeManifestWireMap(
                 retriedManifest,
-                DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+                DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
               ),
+            ),
           ),
         ),
       sessionId = parent.sessionId.orEmpty(),

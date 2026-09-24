@@ -3,7 +3,6 @@ package skillbill.engine
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.executionModel
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
@@ -12,7 +11,8 @@ import skillbill.application.testDecompositionManifestWriter
 import skillbill.application.testRepositoryRoot
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.decomposition.alignSubtaskResumeStep
-import skillbill.application.workflow.decomposition.decompositionRuntime
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.application.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.application.workflow.decomposition.persistParentDecompositionRuntime
 import skillbill.application.workflow.model.RepairFeatureTaskRuntimeIdentityArgs
@@ -88,8 +88,8 @@ import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.text.sha256HexUtf8
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
@@ -103,16 +103,17 @@ import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.GoalObservabilityEventValidator
-import skillbill.workflow.goal.GoalProgressEventValidator
-import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.goal.model.GOAL_PROGRESS_HISTORY_LIMIT
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
@@ -145,6 +146,9 @@ private fun WorkflowService.openTestRuntime(
     ),
   )
 
+private val DECOMPOSITION_RUNTIME_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label()
+
 class WorkflowServiceTest {
   @Test
   fun `open returns Ok with dbPath and snapshot`() {
@@ -168,7 +172,7 @@ class WorkflowServiceTest {
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         runtimeDiagnostics = NoopRuntimeDiagnostics,
         clock = Clock.systemUTC(),
       )
@@ -215,7 +219,7 @@ class WorkflowServiceTest {
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         runtimeDiagnostics = NoopRuntimeDiagnostics,
         clock = Clock.systemUTC(),
       )
@@ -260,7 +264,7 @@ class WorkflowServiceTest {
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         runtimeDiagnostics = NoopRuntimeDiagnostics,
         clock = Clock.systemUTC(),
       )
@@ -315,7 +319,7 @@ class WorkflowServiceTest {
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         runtimeDiagnostics = NoopRuntimeDiagnostics,
         clock = Clock.systemUTC(),
       )
@@ -357,7 +361,7 @@ class WorkflowServiceTest {
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         runtimeDiagnostics = NoopRuntimeDiagnostics,
         clock = Clock.systemUTC(),
       )
@@ -416,7 +420,7 @@ class WorkflowServiceTest {
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         runtimeDiagnostics = NoopRuntimeDiagnostics,
         clock = Clock.systemUTC(),
       )
@@ -601,7 +605,7 @@ class WorkflowServiceTest {
         gitOperations = NoopWorkflowGitOperations,
         decompositionManifestStore = UnavailableDecompositionManifestStore,
         workflowSnapshotValidator = loudFailValidator,
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
@@ -641,7 +645,7 @@ class WorkflowServiceTest {
         gitOperations = NoopWorkflowGitOperations,
         decompositionManifestStore = UnavailableDecompositionManifestStore,
         workflowSnapshotValidator = loudFailValidator,
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
@@ -686,7 +690,7 @@ class WorkflowServiceTest {
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
-        goalObservabilityEventValidator = testGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = testFeatureTaskRuntimeWireArtifactValidator,
         runtimeDiagnostics = NoopRuntimeDiagnostics,
         clock = Clock.systemUTC(),
       )
@@ -771,7 +775,7 @@ class WorkflowServiceTest {
       decompositionManifestValidator = testDecompositionManifestValidator,
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
-      goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+      goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
       clock = Clock.systemUTC(),
     )
@@ -1486,7 +1490,7 @@ class WorkflowServiceGoalManifestStoreTest {
     val persisted = workflows.getFeatureTaskRuntimeWorkflow("wfl-parent")
     val persistedManifest =
       requireNotNull(persisted).toSnapshot()
-        .decompositionRuntime(testDecompositionManifestValidator)
+        .decompositionRuntime()
     assertEquals("complete", persistedManifest?.status)
     assertEquals("complete", persistedManifest?.subtasks?.single()?.status)
     assertEquals("sha-child", persistedManifest?.subtasks?.single()?.commitSha)
@@ -1760,7 +1764,7 @@ class WorkflowGoalStatusProjectionTest {
           testWorkflowSnapshotValidator,
           artifactPorts =
             OutcomeStoreTestArtifactPorts(
-              goalObservabilityEventValidator = testGoalObservabilityEventValidator,
+              goalObservabilityEventValidator = testFeatureTaskRuntimeWireArtifactValidator,
             ),
         ),
       phaseRecorder =
@@ -2222,7 +2226,7 @@ class WorkflowUpdateAcknowledgementBudgetTest {
       gitOperations = NoopWorkflowGitOperations,
       decompositionManifestStore = UnavailableDecompositionManifestStore,
       workflowSnapshotValidator = testWorkflowSnapshotValidator,
-      goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+      goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
       decompositionManifestValidator = testDecompositionManifestValidator,
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
@@ -2843,10 +2847,10 @@ class WorkflowGoalRunnerProgressStoreTest {
         artifactPorts =
           OutcomeStoreTestArtifactPorts(
             goalObservabilityEventValidator =
-              object : GoalObservabilityEventValidator {
+              object : FeatureTaskRuntimeWireArtifactValidator {
                 override fun validate(
                   kind: FeatureTaskRuntimeWireArtifactKind,
-                  payload: Any,
+                  payload: FeatureTaskRuntimeWorkflowArtifactMap,
                   sourceLabel: String,
                 ) {
                   throw InvalidGoalObservabilityEventSchemaError(sourceLabel, "subtask_id", "subtask_id is required.")
@@ -3040,10 +3044,10 @@ class WorkflowGoalRunnerProgressStoreTest {
         artifactPorts =
           OutcomeStoreTestArtifactPorts(
             goalProgressEventValidator =
-              object : GoalProgressEventValidator {
+              object : FeatureTaskRuntimeWireArtifactValidator {
                 override fun validate(
                   kind: FeatureTaskRuntimeWireArtifactKind,
-                  payload: Any,
+                  payload: FeatureTaskRuntimeWorkflowArtifactMap,
                   sourceLabel: String,
                 ) {
                   throw InvalidGoalProgressEventSchemaError(
@@ -3314,11 +3318,11 @@ private fun assertPersistedProgressEventArtifacts(
 
 private val testWorkflowEngine: WorkflowEngine = WorkflowEngine()
 
-private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
-  object : GoalObservabilityEventValidator {
+private val testFeatureTaskRuntimeWireArtifactValidator: FeatureTaskRuntimeWireArtifactValidator =
+  object : FeatureTaskRuntimeWireArtifactValidator {
     override fun validate(
       kind: FeatureTaskRuntimeWireArtifactKind,
-      payload: Any,
+      payload: FeatureTaskRuntimeWorkflowArtifactMap,
       sourceLabel: String,
     ) = Unit
   }
@@ -3839,7 +3843,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         runtimeDiagnostics = NoopRuntimeDiagnostics,
         clock = Clock.systemUTC(),
       )

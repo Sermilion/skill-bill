@@ -22,7 +22,7 @@ import skillbill.ports.review.preparation.ReviewLearningsPort
 import skillbill.ports.review.preparation.ReviewScopeResolverPort
 import skillbill.ports.review.preparation.ReviewStackRoutingPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.commit.ReviewCommitLaneRoutingMatrix
 import skillbill.review.context.model.execution.ReviewLaneDecision
 import skillbill.review.context.model.execution.SpecIntentAbsenceReason

@@ -22,8 +22,7 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewRevision
@@ -34,9 +33,7 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction.COMPLETE
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
@@ -81,12 +78,14 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
       unitOfWork.workflowStates,
       write.record,
       mapOf(
-        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to write.completedState.toPersistenceWire(),
-        GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to rawResults,
-        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+        DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(write.completedState.toPersistenceWire()),
+        DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_RESULTS.entry(rawResults),
+        DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS.entry(
           write.persisted.updatedRecords.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
-        FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
+        ),
+        DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_LEDGER.entry(
           goalReviewCompletionLedger(request, write.persisted.artifacts),
+        ),
       ),
       WorkflowRowAdvance(
         currentStepId = request.phaseId,

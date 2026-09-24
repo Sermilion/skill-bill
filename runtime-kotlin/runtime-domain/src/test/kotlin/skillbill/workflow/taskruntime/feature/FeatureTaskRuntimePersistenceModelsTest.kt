@@ -2,19 +2,40 @@ package skillbill.workflow.taskruntime.feature
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
+import skillbill.goalrunner.asGoalRunnerIntOrNull
+import skillbill.goalrunner.FeatureTaskRuntimeCommitPushResultArtifact
 import skillbill.goalrunner.model.FeatureTaskRuntimeGoalContinuationOutcome
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.BUILD
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.VALIDATE
+import skillbill.workflow.taskruntime.model.core.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationFieldAdoption
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
+import skillbill.goalrunner.commitPushResultArtifact
+import skillbill.goalrunner.goalContinuationOutcomeArtifact
+import skillbill.goalrunner.goalSubtaskReviewArtifacts
+import skillbill.workflow.taskruntime.artifact.phaseLedger
+import skillbill.workflow.taskruntime.artifact.phaseRecords
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.featureTaskRuntimeRunInvariantsFromArtifactMap
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.toArtifactMap
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
@@ -25,6 +46,25 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
+import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
+import skillbill.workflow.decomposition.runtime.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
+import skillbill.workflow.decomposition.runtime.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY
+import skillbill.workflow.decomposition.runtime.decompositionManifestProjectionFailure
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
+import skillbill.workflow.decomposition.runtime.goalParentArtifactProjection
+import skillbill.workflow.taskruntime.artifact.decomposeTerminal
+import skillbill.workflow.taskruntime.artifact.goalContinuationFieldAdoption
+import skillbill.workflow.taskruntime.artifact.operatorBlockRetry
+import skillbill.workflow.taskruntime.artifact.resolvedBranch
+import skillbill.workflow.taskruntime.artifact.reviewGeneration
+import java.math.BigDecimal
+import java.math.BigInteger
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -34,6 +74,223 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FeatureTaskRuntimePersistenceModelsTest {
+  @Test
+  fun `typed phase accessors preserve decoded values and reject present null artifacts`() {
+    val record =
+      FeatureTaskRuntimePhaseRecord(
+        phaseId = "plan",
+        status = "running",
+        attemptCount = 1,
+        startedAt = "2026-08-11T12:00:00Z",
+        resolvedAgentId = "planner",
+      )
+    val ledger =
+      FeatureTaskRuntimePhaseLedgerEntry(
+        action = FeatureTaskRuntimePhaseLedgerAction.START,
+        sequenceNumber = 0,
+        timestamp = "2026-08-11T12:00:00Z",
+        phaseId = "plan",
+        attemptCount = 1,
+      )
+    val artifacts =
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(
+          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf("plan" to record.toArtifactMap()),
+          FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to listOf(ledger.toArtifactMap()),
+        ),
+      )
+
+    assertEquals(mapOf("plan" to record), artifacts.phaseRecords())
+    assertEquals(listOf(ledger), artifacts.phaseLedger())
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to null),
+      ).phaseRecords()
+    }
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to null),
+      ).phaseLedger()
+    }
+  }
+
+  @Test
+  fun `remaining task runtime accessors preserve their decoded fixture values`() {
+    val artifacts =
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(
+          FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY to
+            mapOf(
+              "reason" to "decomposition complete",
+              "parent_spec_path" to ".feature-specs/SKILL-372/spec.md",
+              "decomposition_manifest_path" to ".feature-specs/SKILL-372/decomposition-manifest.yaml",
+              "subtask_spec_paths" to listOf(".feature-specs/SKILL-372/subtask_1.md"),
+            ),
+          FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY to
+            mapOf(
+              "branch" to "feat/SKILL-372",
+              "created" to true,
+              "baseline_owned_paths" to listOf("runtime-kotlin/runtime-domain"),
+            ),
+          FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY to 3,
+          FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to
+            mapOf(
+              "phase_id" to "review",
+              "reason" to "operator requested retry",
+              "retried_at" to "2026-09-24T10:00:00Z",
+            ),
+          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY to
+            mapOf(
+              "field" to "validation_depth",
+              "adopted_value" to "full",
+              "reason" to "legacy artifact",
+            ),
+        ),
+      )
+
+    assertEquals(
+      "decomposition complete",
+      artifacts.decomposeTerminal()?.reason,
+    )
+    assertEquals(
+      FeatureTaskRuntimeResolvedBranch(
+        branch = "feat/SKILL-372",
+        created = true,
+        baselineOwnedPaths = listOf("runtime-kotlin/runtime-domain"),
+      ),
+      artifacts.resolvedBranch(),
+    )
+    assertEquals(3, artifacts.reviewGeneration())
+    assertEquals(
+      FeatureTaskRuntimeOperatorBlockRetry(
+        phaseId = "review",
+        reason = "operator requested retry",
+        retriedAt = "2026-09-24T10:00:00Z",
+      ),
+      artifacts.operatorBlockRetry(),
+    )
+    assertEquals(
+      FeatureTaskRuntimeGoalContinuationFieldAdoption(
+        field = "validation_depth",
+        adoptedValue = "full",
+        reason = "legacy artifact",
+      ),
+      artifacts.goalContinuationFieldAdoption(),
+    )
+  }
+
+  @Test
+  fun `durable artifact integer reader preserves integral values and rejects lossy values`() {
+    val reader =
+      durableArtifactMapReader(
+        mapOf(
+          "byte" to 7.toByte(),
+          "decimal" to BigDecimal("8"),
+          "string" to "9",
+          "fractional" to BigDecimal("2.7"),
+          "overflow" to BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE),
+        ),
+      )
+
+    assertEquals(7, reader.requiredInt("byte"))
+    assertEquals(8, reader.requiredInt("decimal"))
+    assertEquals(9, reader.requiredInt("string"))
+    assertEquals(10, durableArtifactMapReader(mapOf("whole" to 10.0)).requiredInt("whole"))
+    assertFailsWith<InvalidWorkflowStateSchemaError> { reader.optionalInt("fractional") }
+    assertFailsWith<InvalidWorkflowStateSchemaError> { reader.optionalLong("overflow") }
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      durableArtifactMapReader(mapOf("nonFinite" to Double.NaN)).requiredInt("nonFinite")
+    }
+    assertFailsWith<InvalidWorkflowStateSchemaError> { 2.7.asGoalRunnerIntOrNull() }
+  }
+
+  @Test
+  fun `decomposition accessor preserves the manifest and rejects a present null artifact`() {
+    val manifest =
+      DecompositionManifest(
+        issueKey = "SKILL-372",
+        featureName = "domain boundaries",
+        parentSpecPath = ".feature-specs/SKILL-372/spec.md",
+        baseBranch = "main",
+        featureBranch = "feat/SKILL-372",
+        currentSubtaskIntent =
+          skillbill.workflow.decomposition.model.CurrentSubtaskIntent(
+            subtaskId = 2,
+            action = "implement",
+          ),
+        subtasks =
+          listOf(
+            skillbill.workflow.decomposition.model.DecompositionSubtask(
+              id = 2,
+              name = "domain artifacts",
+              specPath = ".feature-specs/SKILL-372/subtask_2.md",
+            ),
+          ),
+      )
+    val artifacts =
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(
+          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+            DecompositionManifestWireMap.from(
+              skillbill.workflow.decomposition.DecompositionManifestWireCodec.encode(manifest),
+            ),
+        ),
+      )
+
+    assertEquals(manifest, artifacts.decompositionRuntime())
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      DurableWorkflowArtifacts.fromMap(mapOf(DECOMPOSITION_RUNTIME_ARTIFACT_KEY to null))
+        .decompositionRuntime()
+    }
+  }
+
+  @Test
+  fun `projection failure accessor distinguishes absent malformed and typed values`() {
+    assertNull(DurableWorkflowArtifacts.EMPTY.decompositionManifestProjectionFailure())
+    assertEquals(
+      skillbill.workflow.decomposition.runtime.DecompositionManifestProjectionFailureArtifact(
+        operation = "write",
+        targetPath = ".feature-specs/SKILL-372/decomposition-manifest.yaml",
+      ),
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(
+          DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY to
+            mapOf(
+              "operation" to "write",
+              "target_path" to ".feature-specs/SKILL-372/decomposition-manifest.yaml",
+            ),
+        ),
+      ).decompositionManifestProjectionFailure(),
+    )
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY to null),
+      ).decompositionManifestProjectionFailure()
+    }
+  }
+
+  @Test
+  fun `goal parent projection preserves unrelated artifacts while removing legacy controls`() {
+    val projected =
+      goalParentArtifactProjection(
+        existing =
+          linkedMapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            "goal_review_policy" to mapOf("code_review_mode" to "inline"),
+            "goal_out_of_band_acceptances" to listOf(mapOf("subtask_id" to 1)),
+          ),
+        encodedManifest = linkedMapOf("issue_key" to "SKILL-372", "status" to "in_progress"),
+      )
+
+    assertEquals(
+      linkedMapOf(
+        "plan" to mapOf("mode" to "decompose"),
+        "decomposition_runtime" to linkedMapOf("issue_key" to "SKILL-372", "status" to "in_progress"),
+      ),
+      projected,
+    )
+  }
+
   @Test
   fun `launched model and effort round-trip through the phase record artifact map`() {
     val wire =
@@ -704,6 +961,83 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
 class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
   @Test
+  fun `goal-runner artifact accessors preserve typed values and reject malformed present values`() {
+    val outcome =
+      FeatureTaskRuntimeGoalContinuationOutcome(
+        issueKey = "SKILL-372",
+        subtaskId = 2,
+        status = "complete",
+        workflowId = "wf-child",
+        commitSha = "abc123",
+        lastResumableStep = "commit_push",
+      )
+    val artifacts =
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(
+          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY to outcome.toPersistenceWire(),
+          DecompositionManifestPayloadKeys.COMMIT_PUSH_RESULT to
+            mapOf(
+              DecompositionManifestPayloadKeys.COMMIT_SHA to "abc123",
+              DecompositionManifestPayloadKeys.PRE_COMMIT_PROJECTION to true,
+            ),
+        ),
+      )
+
+    assertEquals(outcome, artifacts.goalContinuationOutcomeArtifact())
+    assertEquals(
+      FeatureTaskRuntimeCommitPushResultArtifact("abc123", true),
+      artifacts.commitPushResultArtifact(),
+    )
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(DecompositionManifestPayloadKeys.COMMIT_PUSH_RESULT to null),
+      ).commitPushResultArtifact()
+    }
+  }
+
+  @Test
+  fun `goal review accessor distinguishes absent state from an incomplete artifact family`() {
+    assertNull(DurableWorkflowArtifacts.EMPTY.goalSubtaskReviewArtifacts())
+    assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to emptyMap<String, Any?>()),
+      ).goalSubtaskReviewArtifacts()
+    }
+  }
+
+  @Test
+  fun `goal-continuation accessor distinguishes absent and malformed durable artifacts`() {
+    val valid =
+      FeatureTaskRuntimeGoalContinuationArtifact(
+        issueKey = "SKILL-372",
+        subtaskId = 2,
+        suppressPr = true,
+        goalBranch = "feat/SKILL-372",
+        codeReviewMode = CodeReviewExecutionMode.INLINE,
+      )
+
+    assertNull(DurableWorkflowArtifacts.EMPTY.goalContinuationArtifact())
+    assertEquals(
+      valid,
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to valid.toArtifactMap()),
+      ).goalContinuationArtifact(),
+    )
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(
+          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to
+            valid.toArtifactMap() + ("subtask_id" to 2.7),
+        ),
+      ).goalContinuationArtifact()
+    }
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      DurableWorkflowArtifacts.fromMap(mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to null))
+        .goalContinuationArtifact()
+    }
+  }
+
+  @Test
   fun `goal-continuation artifact retains the immutable review mode and optional parallel lane`() {
     val artifact =
       FeatureTaskRuntimeGoalContinuationArtifact(
@@ -930,3 +1264,23 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
     }
   }
 }
+
+private val acceptingDecompositionManifestValidator =
+  object : DecompositionManifestValidator {
+    override fun validate(
+      manifest: DecompositionManifestWireMap,
+      sourceLabel: String,
+    ) = Unit
+
+    override fun validateYamlText(
+      yamlText: String,
+      sourceLabel: String,
+    ): DecompositionManifest =
+      error("YAML validation is not part of this accessor test.")
+
+    override fun validateYamlTextResult(
+      yamlText: String,
+      sourceLabel: String,
+    ): DecompositionManifestValidationResult =
+      error("YAML validation is not part of this accessor test.")
+  }

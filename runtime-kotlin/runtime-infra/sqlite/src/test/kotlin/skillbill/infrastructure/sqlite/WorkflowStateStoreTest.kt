@@ -9,10 +9,14 @@ import skillbill.infrastructure.sqlite.workflow.workflow.FEATURE_IMPLEMENT_WORKF
 import skillbill.infrastructure.sqlite.workflow.workflow.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION
 import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateRow
 import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateStore
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 import java.nio.file.Files
 import java.sql.DriverManager
 import java.time.Clock
@@ -28,6 +32,38 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class WorkflowStateStoreTest {
+  @Test
+  fun `malformed goal continuation is rejected before sqlite persistence`() {
+    val dbPath = Files.createTempDirectory("malformed-goal-continuation-write").resolve("metrics.db")
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      val validator =
+        object : WorkflowSnapshotValidator {
+          override fun validate(snapshot: WorkflowStateSnapshot, slug: String) {
+            if (DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.contains(snapshot.artifacts)) {
+              snapshot.artifacts.goalContinuationArtifact()
+            }
+          }
+        }
+      val store = WorkflowStateStore(connection, Clock.systemUTC(), validator)
+      val row =
+        workflowRow(
+          "wftr-malformed-continuation",
+          "ftr-malformed-continuation",
+          "bill-feature-task",
+          "plan",
+          FeatureTaskWorkflowMode.RUNTIME,
+        ).copy(
+          artifactsJson =
+            """{"${DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.label()}":{"issue_key":"SKILL-372","subtask_id":2.7,"suppress_pr":true,"goal_branch":"feat/SKILL-372","code_review_mode":"inline"}}""",
+        )
+
+      assertFailsWith<InvalidWorkflowStateSchemaError> {
+        store.saveFeatureTaskRuntimeWorkflow(row)
+      }
+      assertEquals(null, store.getFeatureTaskRuntimeWorkflow(row.workflowId))
+    }
+  }
+
   @Test
   fun `identity-less goal parent is excluded from standalone candidates so lookup can reach goal continuation`() {
     val dbPath = Files.createTempDirectory("standalone-candidate-goal-parent").resolve("metrics.db")

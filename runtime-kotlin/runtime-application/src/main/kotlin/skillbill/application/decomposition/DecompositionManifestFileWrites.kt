@@ -4,23 +4,14 @@ import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.runtime.model.LoadedDecompositionManifest
 import skillbill.ports.workflow.decomposition.runtime.model.ValidatedDecompositionManifestYaml
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.requireAccepted
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
-
-fun loadDecompositionManifest(
-  path: Path,
-  fileStore: DecompositionManifestStore,
-  validator: DecompositionManifestValidator,
-  recoverPending: Boolean = true,
-): DecompositionManifest {
-  return loadValidatedDecompositionManifest(path, fileStore, validator, recoverPending).manifest
-}
 
 fun loadValidatedDecompositionManifest(
   path: Path,

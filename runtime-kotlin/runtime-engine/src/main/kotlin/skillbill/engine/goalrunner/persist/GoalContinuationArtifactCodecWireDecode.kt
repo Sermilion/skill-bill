@@ -19,7 +19,6 @@ fun GoalRunnerSupervisionEvent.toArtifactsMap(): Map<String, Any?> =
     "last_output_at" to lastOutputAt,
   )
 
-const val WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY = "goal_worker_subtask_request_outcomes"
 const val WORKER_SUBTASK_REQUEST_OUTCOME_LIMIT = 50
 
 fun GoalRunnerWorkerSubtaskRequestOutcome.toPersistenceWire(): Map<String, Any?> =
@@ -64,10 +63,3 @@ fun GoalRunnerWorkerSubtaskRequest.toPersistenceWire(): Map<String, Any?> =
     "requires_operator_confirmation" to requiresOperatorConfirmation,
   ).filterValues { value -> value != null }
 
-fun Any?.asGoalRunnerIntOrNull(): Int? =
-  when (this) {
-    is Int -> this
-    is Number -> toInt()
-    is String -> toIntOrNull()
-    else -> null
-  }

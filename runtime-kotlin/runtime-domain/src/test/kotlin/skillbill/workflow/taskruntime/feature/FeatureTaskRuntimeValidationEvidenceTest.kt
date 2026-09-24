@@ -43,6 +43,21 @@ class FeatureTaskRuntimeValidationEvidenceTest {
         "malformed",
       )
     }
+    assertFailsWith<InvalidFeatureTaskRuntimeValidationEvidenceSchemaError> {
+      FeatureTaskRuntimeValidationEvidence.fromArtifactMap(
+        mapOf(
+          ValidationEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
+          ValidationEvidencePayloadKeys.RESULTS to
+            listOf(
+              mapOf(
+                ValidationEvidencePayloadKeys.COMMAND to "./gradlew check",
+                ValidationEvidencePayloadKeys.EXIT_CODE to 2.7,
+              ),
+            ),
+        ),
+        "fractional-exit-code",
+      )
+    }
   }
 
   @Test

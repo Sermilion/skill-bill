@@ -21,9 +21,8 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.taskruntime.artifact.decodeCheckpointIdentitiesFromArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
@@ -67,14 +66,14 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
           ?: return@transaction
       val artifacts = record.artifacts
       val rejected =
-        artifacts[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY]
+        DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES.value(artifacts)
           ?: return@transaction
       val existing = (artifacts[CHECKPOINT_IDENTITY_QUARANTINE_ARTIFACT_KEY] as? List<*>).orEmpty()
       patcher.save(
         record,
         unitOfWork.workflowStates,
         mapOf(
-          FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY to null,
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES.entry(null),
           CHECKPOINT_IDENTITY_QUARANTINE_ARTIFACT_KEY to existing +
             listOf(
               linkedMapOf(
@@ -98,7 +97,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
         val continuation = continuationFromArtifacts(artifacts) ?: return@read null
         val checkpoints =
           decodeCheckpointIdentitiesFromArtifact(
-            artifacts[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY],
+            DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES.value(artifacts),
           )
         RemediationReconcileSnapshot(state, continuation, checkpoints)
       }.getOrElse { error ->
@@ -125,11 +124,14 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
           ),
           signal,
         )
-      val priorEvidence = (artifacts[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY] as? List<*>).orEmpty()
+      val priorEvidence =
+        (DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.value(artifacts) as? List<*>).orEmpty()
       patcher.save(
         record,
         unitOfWork.workflowStates,
-        mapOf(GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY to priorEvidence + evidenceEntry),
+        mapOf(
+          DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.entry(priorEvidence + evidenceEntry),
+        ),
       )
     }
   }
@@ -389,11 +391,14 @@ internal fun FeatureTaskRuntimeRemediationBaseReconciler.appendRemediationBaseRe
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction
     val artifacts = record.artifacts
     val evidenceEntry = remediationBaseRecoveryEvidenceEntry(recovery, signal)
-    val priorEvidence = (artifacts[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY] as? List<*>).orEmpty()
+    val priorEvidence =
+      (DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.value(artifacts) as? List<*>).orEmpty()
     patcher.save(
       record,
       unitOfWork.workflowStates,
-      mapOf(GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY to priorEvidence + evidenceEntry),
+      mapOf(
+        DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.entry(priorEvidence + evidenceEntry),
+      ),
     )
   }
 }

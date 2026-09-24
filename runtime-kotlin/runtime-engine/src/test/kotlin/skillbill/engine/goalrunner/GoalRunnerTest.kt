@@ -147,9 +147,9 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.ports.workflow.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
-import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
@@ -4276,8 +4276,10 @@ class GoalRunnerProgressEventEmitterTest {
             artifacts = emptyMap<String, Any?>(),
             request = observabilityOutcomes.observabilityRecords.single(),
           ),
-        validator = NoopGoalObservabilityEventValidator,
-      ).let { patch -> (patch as Map<*, *>)[GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY] }
+        validator = { _, _ -> },
+      ).let {
+        patch -> (patch as Map<*, *>)[DurableWorkflowArtifactFamily.GOAL_OBSERVABILITY_LATEST_EVENT.label()]
+      }
     val observabilityBytes = jsonBytes(observabilityEvent)
     val expected =
       (

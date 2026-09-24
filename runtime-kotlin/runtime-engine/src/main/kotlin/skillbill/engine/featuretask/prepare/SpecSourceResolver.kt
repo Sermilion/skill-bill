@@ -4,7 +4,7 @@ import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
 import skillbill.application.decomposition.loadManifestOrNull
 import skillbill.application.decomposition.resolvedParentSpecPath
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.specsource.SpecSourceSpecReader
 import java.nio.file.NoSuchFileException

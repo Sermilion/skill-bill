@@ -3,7 +3,7 @@ package skillbill.application.decomposition.model
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import java.nio.file.Path
 

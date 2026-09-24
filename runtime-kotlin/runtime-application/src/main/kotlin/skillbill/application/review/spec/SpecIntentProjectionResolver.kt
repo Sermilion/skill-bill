@@ -12,7 +12,7 @@ import skillbill.review.context.model.execution.SpecIntentProjectionResolveReque
 import skillbill.review.context.model.execution.SpecIntentResolution
 import skillbill.review.context.model.execution.SpecIntentResolutionRung
 import skillbill.review.context.model.execution.SpecIntentSurroundingContext
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionSubtask

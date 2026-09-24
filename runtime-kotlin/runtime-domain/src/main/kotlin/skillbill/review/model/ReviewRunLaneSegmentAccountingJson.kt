@@ -5,8 +5,8 @@ import skillbill.error.core.JsonWrongRootTypeError
 import skillbill.error.core.MalformedJsonTextError
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.review.context.model.packet.ReviewLaneSegmentAccounting
-import java.math.BigDecimal
-import java.math.BigInteger
+import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
+import skillbill.workflow.taskruntime.model.persistence.artifact.asExactLongOrNull
 
 object ReviewRunLaneSegmentAccountingJson {
   fun encode(segments: List<ReviewLaneSegmentAccounting>): String? {
@@ -102,20 +102,3 @@ object ReviewRunLaneSegmentAccountingJson {
 fun List<String>.toStoredSegmentIdList(): String = joinToString(",")
 
 fun String.toStoredSegmentIdList(): List<String> = split(',').map { it.trim() }.filter { it.isNotEmpty() }
-
-private fun Any?.asExactIntOrNull(): Int? =
-  asExactLongOrNull()?.let { value ->
-    value.takeIf { it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() }?.toInt()
-  }
-
-private fun Any?.asExactLongOrNull(): Long? =
-  when (this) {
-    is Byte -> toLong()
-    is Short -> toLong()
-    is Int -> toLong()
-    is Long -> this
-    is BigInteger -> runCatching { longValueExact() }.getOrNull()
-    is BigDecimal -> runCatching { longValueExact() }.getOrNull()
-    is String -> toLongOrNull()
-    else -> null
-  }

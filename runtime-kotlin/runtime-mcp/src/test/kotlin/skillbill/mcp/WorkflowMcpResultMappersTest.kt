@@ -10,11 +10,12 @@ import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
-import skillbill.workflow.goal.GoalObservabilityEventValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -278,14 +279,14 @@ class WorkflowMcpResultMappersTest {
   private fun WorkflowGetResult.Ok.withDecodedGoalObservability(): WorkflowGetResult.Ok =
     copy(
       goalObservability =
-        goalObservabilityLatestEventFromArtifacts(snapshot.artifacts, testGoalObservabilityEventValidator),
+        goalObservabilityLatestEventFromArtifacts(snapshot.artifacts),
     )
 
-  private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
-    object : GoalObservabilityEventValidator {
+  private val testFeatureTaskRuntimeWireArtifactValidator: FeatureTaskRuntimeWireArtifactValidator =
+    object : FeatureTaskRuntimeWireArtifactValidator {
       override fun validate(
         kind: FeatureTaskRuntimeWireArtifactKind,
-        payload: Any,
+        payload: FeatureTaskRuntimeWorkflowArtifactMap,
         sourceLabel: String,
       ) {
         GoalObservabilityEventSchemaValidator.validate(

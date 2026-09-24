@@ -2,25 +2,21 @@ package skillbill.workflow.goal.model
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.goal.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
-import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.invalidGoalObservabilityEvent
-import skillbill.workflow.taskruntime.artifact.validateGoalObservabilityEvent
 import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
 import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
 import skillbill.workflow.time.parsePersistedInstant
 
 fun goalObservabilityLatestEventFromArtifacts(
   artifacts: Any,
-  validator: GoalObservabilityEventValidator,
 ): GoalObservabilityEvent? {
   val artifactMap = artifacts.asGoalWorkflowArtifactMap("goal observability artifacts")
   return artifactMap[GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY]
-    ?.let { raw -> goalObservabilityEventFromArtifact(raw, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY, validator) }
+    ?.let { raw -> goalObservabilityEventFromArtifact(raw, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY) }
 }
 
 fun goalObservabilityHistoryFromArtifacts(
   artifacts: Any,
-  validator: GoalObservabilityEventValidator,
 ): GoalObservabilityHistory {
   val artifactMap = artifacts.asGoalWorkflowArtifactMap("goal observability history artifacts")
   val rawHistory = artifactMap[GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY] ?: return GoalObservabilityHistory()
@@ -34,7 +30,7 @@ fun goalObservabilityHistoryFromArtifacts(
   return GoalObservabilityHistory(
     events =
       rawEvents.mapIndexed { index, raw ->
-        goalObservabilityEventFromArtifact(raw, "$GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY[$index]", validator)
+        goalObservabilityEventFromArtifact(raw, "$GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY[$index]")
       },
   )
 }
@@ -42,10 +38,8 @@ fun goalObservabilityHistoryFromArtifacts(
 fun goalObservabilityEventFromArtifact(
   raw: Any?,
   sourceLabel: String,
-  validator: GoalObservabilityEventValidator,
 ): GoalObservabilityEvent {
   val eventMap = raw.toGoalObservabilityEventMap(sourceLabel)
-  validator.validateGoalObservabilityEvent(eventMap, sourceLabel)
   eventMap.requireOnlyKeys(GOAL_OBSERVABILITY_EVENT_KEYS, sourceLabel)
   val reader = goalObservabilityReader(eventMap, sourceLabel)
   return GoalObservabilityEvent(

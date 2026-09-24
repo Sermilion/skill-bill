@@ -57,16 +57,6 @@ object FeatureTaskRuntimePhaseOutputWireSchema {
     validate(parsed, sourceLabel)
   }
 
-  fun validateAndReadPhaseOutput(
-    phaseOutputText: String,
-    sourceLabel: String,
-  ): Map<String, Any?> {
-    val node = readPhaseOutputObjectNode(phaseOutputText, sourceLabel)
-    val parsed = phaseOutputObjectNodeToMap(node, sourceLabel)
-    validate(parsed, sourceLabel)
-    return parsed
-  }
-
   fun normalizePhaseOutput(
     phaseOutputText: String,
     sourceLabel: String,

@@ -1,11 +1,12 @@
 package skillbill.engine.featuretask.lifecycle.core
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 
 object AcceptingFeatureTaskRuntimeWireArtifactValidator : FeatureTaskRuntimeWireArtifactValidator {
   override fun validate(
     kind: FeatureTaskRuntimeWireArtifactKind,
-    payload: Any,
+    payload: FeatureTaskRuntimeWorkflowArtifactMap,
     sourceLabel: String,
   ) = Unit
 }

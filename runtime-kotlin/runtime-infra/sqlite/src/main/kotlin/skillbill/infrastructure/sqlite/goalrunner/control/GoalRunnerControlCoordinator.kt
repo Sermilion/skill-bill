@@ -12,8 +12,8 @@ import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.infrastructure.sqlite.goalrunner.manifest.SavedManifestProjection
 import skillbill.infrastructure.sqlite.goalrunner.manifest.mergeConcurrentGoalProgress
-import skillbill.infrastructure.sqlite.workflow.decomposition.decompositionRuntime
-import skillbill.infrastructure.sqlite.workflow.decomposition.findDecomposedParentWorkflow
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
+import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.runner.model.GoalRunnerCompletionPersistenceResult
@@ -25,7 +25,7 @@ import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.FeatureTaskWorkflowMode
@@ -110,7 +110,7 @@ internal class GoalRunnerControlCoordinator(
       require(subtaskId > 0) { "subtaskId must be positive." }
       val existing = requireParent(unitOfWork, state.parentWorkflowId)
       val controls = unitOfWork.goalRunnerControls.controlState(existing.workflowId)
-      val manifest = existing.decompositionRuntime(decompositionManifestValidator) ?: state.manifest
+      val manifest = existing.decompositionRuntime() ?: state.manifest
       GoalRunnerLaunchAuthorization(
         authorized = !controls.requiresPauseBoundary(manifest),
         controlState = controls,
@@ -148,7 +148,7 @@ internal class GoalRunnerControlCoordinator(
     database.transaction { unitOfWork ->
       val parent = requireParent(unitOfWork, state.parentWorkflowId)
       val controls = unitOfWork.goalRunnerControls.controlState(parent.workflowId)
-      val authoritativeManifest = parent.decompositionRuntime(decompositionManifestValidator) ?: state.manifest
+      val authoritativeManifest = parent.decompositionRuntime() ?: state.manifest
       val authoritativeState = state.copy(manifest = authoritativeManifest)
       val targetReached = controls.targetReached(authoritativeState)
       val pausedControls =
@@ -171,7 +171,7 @@ internal class GoalRunnerControlCoordinator(
     database.transaction { unitOfWork ->
       val parent = requireParent(unitOfWork, state.parentWorkflowId)
       val controls = unitOfWork.goalRunnerControls.controlState(parent.workflowId)
-      val persistedManifest = parent.decompositionRuntime(decompositionManifestValidator) ?: state.manifest
+      val persistedManifest = parent.decompositionRuntime() ?: state.manifest
       val authoritativeManifest = mergeConcurrentGoalProgress(persistedManifest, state.manifest)
       val authoritativeState = state.copy(manifest = authoritativeManifest)
       val targetReached = controls.stopAfterSubtaskId == subtaskId && !controls.stopAfterConsumed
@@ -196,7 +196,7 @@ internal fun reconcileControlStateForManifest(
   validator: DecompositionManifestValidator,
 ) {
   val parent = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId) ?: return
-  val manifest = parent.decompositionRuntime(validator) ?: return
+  val manifest = parent.decompositionRuntime() ?: return
   val existing = unitOfWork.goalRunnerControls.controlState(parentWorkflowId)
   val reconciled = existing.reconciledForCurrentSubtask(manifest.currentSubtaskIntent.subtaskId)
   if (reconciled != existing) {
@@ -222,7 +222,7 @@ internal fun GoalRunnerControlCoordinator.spawnAuthorization(
       database.transaction { unitOfWork ->
         val parent = requireParent(unitOfWork, state.parentWorkflowId)
         val controls = unitOfWork.goalRunnerControls.controlState(parent.workflowId)
-        val manifest = parent.decompositionRuntime(decompositionManifestValidator) ?: state.manifest
+        val manifest = parent.decompositionRuntime() ?: state.manifest
         if (controls.requiresPauseBoundary(manifest)) {
           throw GoalRunnerLaunchAuthorizationDeniedException(controls.pauseReason)
         }
@@ -264,7 +264,7 @@ internal fun GoalRunnerControlCoordinator.planningSpawnAuthorization(
         val parent = requireParent(unitOfWork, parentWorkflowId)
         val controls = unitOfWork.goalRunnerControls.controlState(parent.workflowId)
         val manifest =
-          parent.decompositionRuntime(decompositionManifestValidator)
+          parent.decompositionRuntime()
             ?: error("Goal parent '$parentWorkflowId' has no decomposition manifest.")
         if (controls.requiresPauseBoundary(manifest)) {
           throw GoalRunnerLaunchAuthorizationDeniedException(controls.pauseReason)
@@ -281,7 +281,7 @@ internal fun GoalRunnerControlCoordinator.persistStopAfterSubtask(
     require(subtaskId > 0) { "stop-after subtask id must be positive." }
     val parent = requireParent(unitOfWork, parentWorkflowId)
     val manifest =
-      parent.decompositionRuntime(decompositionManifestValidator)
+      parent.decompositionRuntime()
         ?: error("Goal parent '$parentWorkflowId' has no decomposition manifest.")
     require(manifest.subtasks.any { it.id == subtaskId }) {
       "Goal parent '$parentWorkflowId' has no subtask '$subtaskId'."
@@ -318,7 +318,7 @@ internal fun GoalRunnerControlCoordinator.resume(parentWorkflowId: String): Goal
       } else {
         existing
       }
-    parent.decompositionRuntime(decompositionManifestValidator)?.let { manifest ->
+    parent.decompositionRuntime()?.let { manifest ->
       GoalRunnerManifestState(
         parentWorkflowId = parent.workflowId,
         dbPath = unitOfWork.dbPath.toString(),

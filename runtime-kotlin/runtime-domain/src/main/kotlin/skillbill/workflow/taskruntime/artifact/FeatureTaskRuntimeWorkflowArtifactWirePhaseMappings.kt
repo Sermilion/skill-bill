@@ -3,7 +3,7 @@ import skillbill.contracts.JsonCodec
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticSignal
 import skillbill.workflow.taskruntime.model.audit.featureTaskRuntimeDiagnosticSignalsFromWire
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidation
 import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeDiagnosticDegradationMeasurement
@@ -65,13 +65,13 @@ fun PhaseHandoffProjectionDeclaration.asWorkflowArtifactEntry(): Any = toArtifac
 
 fun decodePhaseHandoffProjectionDeclarationFromArtifact(
   raw: Any?,
-  foundationValidator: FeatureTaskRuntimeWireArtifactValidator,
+  foundationValidator: FeatureTaskRuntimeWireArtifactValidation,
 ): PhaseHandoffProjectionDeclaration? =
   JsonCodec.anyToStringAnyMap(raw)?.let { PhaseHandoffProjectionDeclaration.fromArtifactMap(it, foundationValidator) }
 
 internal fun decodePhaseHandoffProjectionDeclarationFromArtifact(
   raw: Map<String, Any?>,
-  foundationValidator: FeatureTaskRuntimeWireArtifactValidator,
+  foundationValidator: FeatureTaskRuntimeWireArtifactValidation,
 ): PhaseHandoffProjectionDeclaration = PhaseHandoffProjectionDeclaration.fromArtifactMap(raw, foundationValidator)
 
 fun phaseOutputEnvelopeFromArtifact(raw: Any?): Any? = JsonCodec.anyToStringAnyMap(raw)

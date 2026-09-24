@@ -1,12 +1,12 @@
 package skillbill.application
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.contracts.JsonCodec
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.model.WorkflowStatus
@@ -87,7 +87,11 @@ class DecompositionManifestPayloadProjectionTest {
   ): String =
     JsonCodec.mapToJsonString(
       mapOf(
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+        DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to
+          testDecompositionManifestValidator.encodeManifestWireMap(
+            manifest,
+            DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
+          ),
         "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
         "branch" to mapOf("branch" to "feature/SKILL-51-decomposition"),
       ),

@@ -9,18 +9,16 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewDisposition
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 
 class FeatureTaskRuntimeGoalContinuationArtifactPatcher(
   private val engine: WorkflowEngine,
@@ -69,12 +67,12 @@ internal fun rawReviewResultsFromArtifacts(
   val decoded =
     GoalSubtaskReviewArtifactDecoder.decode(artifacts)
       ?: rawReviewResultError(
-        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
+        DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.label(),
         "must be present whenever raw goal-subtask review results are read.",
       )
   if (decoded.state != state) {
     rawReviewResultError(
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
+      DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.label(),
       "changed while reading its durable raw review results.",
     )
   }
@@ -86,7 +84,7 @@ fun rawReviewResultError(
   reason: String,
 ): Nothing =
   throw InvalidGoalSubtaskReviewStateSchemaError(
-    sourceLabel = GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
+    sourceLabel = DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.label(),
     fieldPath = fieldPath,
     reason = reason,
   )
@@ -99,7 +97,9 @@ internal fun continuationPatch(
     continuation == null || continuation == existing -> emptyMap()
     existing == null ->
       mapOf(
-        FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuation.asWorkflowArtifactEntry(),
+        DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.entry(
+          continuation.asWorkflowArtifactEntry(),
+        ),
         "install_sync_result" to
           mapOf(
             SharedPayloadKeys.STATUS to "deferred",
@@ -108,7 +108,12 @@ internal fun continuationPatch(
               "deferred install sync must not block subtask completion",
           ),
       )
-    else -> mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuation.asWorkflowArtifactEntry())
+    else ->
+      mapOf(
+        DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.entry(
+          continuation.asWorkflowArtifactEntry(),
+        ),
+      )
   }
 
 fun FeatureTaskRuntimeGoalContinuationArtifact?.compatibleWith(
@@ -156,18 +161,19 @@ internal fun reviewStatePatch(
     "Goal-subtask review baseline is required when opening a child workflow; " +
       "refusing to create an unpinned review scope."
   }
-  if (GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY in artifacts) {
+  if (DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_RESULTS.contains(artifacts)) {
     rawReviewResultError(
-      GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY,
+      DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_RESULTS.label(),
       "must be absent before the goal-subtask review state exists.",
     )
   }
   return mapOf(
-    GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to
+    DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(
       GoalSubtaskReviewState.initial(
         reviewBaseSha = baseline.reviewBaseSha,
         baselineUntrackedPaths = baseline.baselineUntrackedPaths,
         codeReviewMode = continuation.codeReviewMode,
       ).toPersistenceWire(),
+    ),
   )
 }

@@ -16,15 +16,19 @@ import skillbill.engine.featuretask.runloop.observability.continuation
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunInvariantsStore
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunPreparation
 import skillbill.engine.featuretask.runner.reviewBaseline
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.model.WorkflowFamily
+import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.model.WorkflowStatus
@@ -33,18 +37,66 @@ import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSe
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.VALIDATE
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+private val GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.label()
+private val FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.label()
+private val FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION.label()
+
 class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
   private val workflowId = "wftr-skill176-adopt-1"
   private val baselineSha = "a".repeat(40)
+
+  @Test
+  fun `engine artifact patch rejects malformed payload before persistence`() {
+    val harness = seedHarness(preContractContinuationMap())
+    val before = requireNotNull(harness.repository.getFeatureTaskRuntimeWorkflow(workflowId))
+    val persistence =
+      FeatureTaskRuntimeWorkflowPersistence(
+        RuntimeFakeDatabaseSessionFactory(harness.repository),
+        object : WorkflowSnapshotValidator {
+          override fun validate(snapshot: skillbill.workflow.engine.model.WorkflowStateSnapshot, slug: String) {
+            DurableWorkflowArtifacts.fromMap(snapshot.artifacts).goalContinuationArtifact()
+          }
+        },
+      )
+
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      persistence.persistArtifactsPatch(
+        harness.repository,
+        before.toSnapshot(),
+        mapOf(
+          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to
+            preContractContinuationMap().plus("subtask_id" to 2.7),
+        ),
+      )
+    }
+
+    assertEquals(before, harness.repository.getFeatureTaskRuntimeWorkflow(workflowId))
+  }
+
+  @Test
+  fun `malformed durable continuation blocks engine preparation instead of becoming no child`() {
+    val harness =
+      seedHarness(
+        continuationMap = preContractContinuationMap().plus("subtask_id" to 2.7),
+      )
+
+    val prepared = harness.preparation.prepare(resumeRequest(validationDepth = ValidationDepth.FULL))
+
+    val blocked = assertIs<FeatureTaskRuntimePreparation.PreparationBlocked>(prepared)
+    assertTrue(blocked.report.blockedReason.contains("malformed"))
+    assertTrue(blocked.report.blockedReason.contains("subtask_id"))
+  }
 
   @Test
   fun `resume from durable map missing validation_depth adopts supplied depth and records evidence`() {

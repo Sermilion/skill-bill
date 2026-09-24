@@ -142,12 +142,12 @@ internal fun Any?.toStringKeyedArtifactMap(fail: (String) -> Nothing): Map<Strin
     stringKey to value
   } ?: fail("Artifact value must decode to an object.")
 
-internal fun Any?.asExactIntOrNull(): Int? =
+fun Any?.asExactIntOrNull(): Int? =
   asExactLongOrNull()?.let { value ->
     if (value in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) value.toInt() else null
   }
 
-internal fun Any?.asExactLongOrNull(): Long? =
+fun Any?.asExactLongOrNull(): Long? =
   when (this) {
     is Byte -> toLong()
     is Short -> toLong()
@@ -155,6 +155,8 @@ internal fun Any?.asExactLongOrNull(): Long? =
     is Long -> this
     is BigInteger -> runCatching { longValueExact() }.getOrNull()
     is BigDecimal -> runCatching { longValueExact() }.getOrNull()
+    is Double -> runCatching { BigDecimal(toString()).longValueExact() }.getOrNull()
+    is Float -> runCatching { BigDecimal(toString()).longValueExact() }.getOrNull()
     is String -> toLongOrNull()
     else -> null
   }

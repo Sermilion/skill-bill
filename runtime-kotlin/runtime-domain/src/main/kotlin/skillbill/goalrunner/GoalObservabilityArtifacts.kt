@@ -1,15 +1,15 @@
 package skillbill.goalrunner
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.error.shellcontent.InvalidGoalObservabilityEventSchemaError
 import skillbill.goalrunner.model.GoalObservabilityProgressInput
 import skillbill.goalrunner.model.GoalObservabilityRuntimeEventInput
-import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.workflow.goal.model.goalObservabilityHistoryFromArtifacts
-import skillbill.workflow.taskruntime.artifact.validateGoalObservabilityEvent
+import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
 
 object GoalObservabilityArtifacts {
   private data class RequiredProgressFields(
@@ -21,7 +21,7 @@ object GoalObservabilityArtifacts {
 
   fun patchForProgressEvent(
     input: GoalObservabilityProgressInput,
-    validator: GoalObservabilityEventValidator,
+    validator: (Any, String) -> Unit,
   ): Any? =
     eventFrom(input)?.let { event ->
       patchForEvent(
@@ -33,7 +33,7 @@ object GoalObservabilityArtifacts {
 
   fun patchForRuntimeEvent(
     input: GoalObservabilityRuntimeEventInput,
-    validator: GoalObservabilityEventValidator,
+    validator: (Any, String) -> Unit,
   ): Any =
     patchForEvent(
       artifacts = input.artifacts.asGoalWorkflowArtifactMap("goal observability runtime event input"),
@@ -55,13 +55,13 @@ object GoalObservabilityArtifacts {
   private fun patchForEvent(
     artifacts: Map<String, Any?>,
     event: GoalObservabilityEvent,
-    validator: GoalObservabilityEventValidator,
+    validator: (Any, String) -> Unit,
   ): Map<String, Any?> {
     val eventMap = event.toArtifactMap()
-    validator.validateGoalObservabilityEvent(eventMap, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY)
-    val history = goalObservabilityHistoryFromArtifacts(artifacts, validator).append(event).toArtifactList()
+    validator(eventMap, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY)
+    val history = goalObservabilityHistoryFromArtifacts(artifacts).append(event).toArtifactList()
     history.forEachIndexed { index, item ->
-      validator.validateGoalObservabilityEvent(item, "$GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY[$index]")
+      validator(item, "$GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY[$index]")
     }
     return linkedMapOf(
       GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY to eventMap,
@@ -79,7 +79,15 @@ object GoalObservabilityArtifacts {
     val progressEvent = artifacts["progress_event"] as? Map<*, *>
     val continuation = artifacts["goal_continuation"] as? Map<*, *>
     val issueKey = continuation?.get(SharedPayloadKeys.ISSUE_KEY)?.toString()?.takeIf(String::isNotBlank)
-    val subtaskId = continuation?.get(SharedPayloadKeys.SUBTASK_ID).asGoalObservabilityIntOrNull()
+    val subtaskId =
+      continuation?.get(SharedPayloadKeys.SUBTASK_ID)?.let { value ->
+        value.asExactIntOrNull()
+          ?: throw InvalidGoalObservabilityEventSchemaError(
+            "goal observability progress input",
+            SharedPayloadKeys.SUBTASK_ID,
+            "must be an integer.",
+          )
+      }
     val timestamp = progressEvent?.get("timestamp")?.toString()?.takeIf(String::isNotBlank)
     return when {
       progressEvent == null -> null
@@ -112,17 +120,18 @@ object GoalObservabilityArtifacts {
         progressEvent["message"]?.toString()?.takeIf(String::isNotBlank)
           ?: "workflow_status=${input.workflowStatus}; progress_kind=$kind",
       timestamp = timestamp,
-      sequenceNumber = progressEvent["sequence"].asGoalObservabilityIntOrNull() ?: 0,
+      sequenceNumber =
+        progressEvent["sequence"]?.let { value ->
+          value.asExactIntOrNull()
+            ?: throw InvalidGoalObservabilityEventSchemaError(
+              "goal observability progress input",
+              "sequence",
+              "must be an integer.",
+            )
+        } ?: 0,
       changedFileSummary = input.worktreeActivity?.changedFileSummary,
       diffStat = input.worktreeActivity?.diffStat,
     )
   }
 
-  private fun Any?.asGoalObservabilityIntOrNull(): Int? =
-    when (this) {
-      is Int -> this
-      is Number -> toInt()
-      is String -> toIntOrNull()
-      else -> null
-    }
 }

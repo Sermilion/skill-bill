@@ -1,11 +1,10 @@
 package skillbill.infrastructure.sqlite.goalrunner.control
-import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.asGoalRunnerIntOrNull
-import skillbill.goalrunner.goalContinuationTerminalStatus
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.goalrunner.persistence.model.GoalContinuationCandidate
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 
 internal fun List<GoalContinuationCandidate>.authoritativeOutcomesBySubtask(): Map<Int, GoalRunnerStoredOutcome> =
   groupBy { candidate -> candidate.goalContinuation.subtaskId }
@@ -49,22 +48,6 @@ internal fun staleRunningReason(
       "subtask $subtaskId because it was no longer active."
   )
 
-internal fun missingResultPrefixTerminalOutcomeArtifact(
-  output: Any,
-  issueKey: String,
-  subtaskId: Int,
-  workflowId: String,
-): Map<String, Any?>? {
-  val wire = JsonCodec.anyToStringAnyMap(output) ?: return null
-  return (JsonCodec.anyToStringAnyMap(wire["subtask_outcome"]) ?: wire)
-    .takeIf { candidate -> candidate.matchesGoalContinuation(issueKey, subtaskId) }
-    ?.let { candidate ->
-      candidate[SharedPayloadKeys.STATUS]?.toString()?.let(::goalContinuationTerminalStatus)?.let { status ->
-        candidate.toMissingResultPrefixOutcomeArtifact(issueKey, subtaskId, workflowId, status)
-      }
-    }
-}
-
 internal fun Map<String, Any?>.matchesGoalContinuation(
   issueKey: String,
   subtaskId: Int,
@@ -101,10 +84,10 @@ internal fun GoalRunnerTerminalStatus.toGoalContinuationWireStatus(): String = w
 
 internal fun maxHistorySequence(
   artifacts: Map<String, Any?>,
-  historyKey: String,
+  historyFamily: DurableWorkflowArtifactFamily,
   current: Int?,
 ): Int? {
-  val entries = (artifacts[historyKey] as? List<*>).orEmpty()
+  val entries = (historyFamily.value(artifacts) as? List<*>).orEmpty()
   var max = current
   entries.forEach { item ->
     val sequence = (item as? Map<*, *>)?.get("sequence_number").asGoalRunnerIntOrNull()

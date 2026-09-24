@@ -5,7 +5,6 @@ import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.terminalOutcomeFor
 import skillbill.infrastructure.sqlite.goalrunner.control.authoritativeOutcomesBySubtask
-import skillbill.infrastructure.sqlite.goalrunner.control.goalContinuation
 import skillbill.infrastructure.sqlite.goalrunner.control.staleRunningReason
 import skillbill.ports.goalrunner.persistence.model.GoalContinuationCandidate
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerBlockWrite
@@ -17,9 +16,11 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.list
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.goal.GoalObservabilityEventValidator
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuation
 import java.nio.file.Path
 import java.time.Clock
 import java.time.Duration
@@ -28,7 +29,7 @@ import java.time.Instant
 internal class WorkflowGoalRunnerOutcomeReconcile(
   private val engine: WorkflowEngine,
   private val gitOperations: WorkflowGitOperations,
-  private val goalObservabilityEventValidator: GoalObservabilityEventValidator,
+  private val goalObservabilityEventValidator: FeatureTaskRuntimeWireArtifactValidator,
   private val blockWrites: WorkflowGoalRunnerBlockWrites,
   private val terminalPersistence: WorkflowGoalRunnerOutcomeTerminalPersistence,
   private val clock: Clock,
@@ -152,7 +153,7 @@ internal class WorkflowGoalRunnerOutcomeReconcile(
       family.list(workflowStates, Int.MAX_VALUE).mapNotNull { snapshot ->
         engine.snapshotView(family.definition, snapshot)
         val artifacts = snapshot.artifacts
-        val goalContinuation = goalContinuation(artifacts) ?: return@mapNotNull null
+        val goalContinuation = DurableWorkflowArtifacts.fromMap(artifacts).goalContinuation() ?: return@mapNotNull null
         if (goalContinuation.issueKey != issueKey) {
           return@mapNotNull null
         }
@@ -181,7 +182,7 @@ internal class WorkflowGoalRunnerOutcomeReconcile(
   private fun candidateLivenessInstants(candidate: GoalContinuationCandidate): List<Instant> {
     val artifacts = candidate.snapshot.artifacts
     val declared = declaredProgressEventFrom(artifacts)?.timestamp
-    val observed = goalObservabilityLatestEventFromArtifacts(artifacts, goalObservabilityEventValidator)?.timestamp
+    val observed = goalObservabilityLatestEventFromArtifacts(artifacts)?.timestamp
     return listOfNotNull(declared, observed, candidate.snapshot.updatedAt)
   }
 }

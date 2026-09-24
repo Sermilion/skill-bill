@@ -9,7 +9,7 @@ import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildRepairApplyRe
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildWedgeDiagnosis
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import java.nio.file.Path

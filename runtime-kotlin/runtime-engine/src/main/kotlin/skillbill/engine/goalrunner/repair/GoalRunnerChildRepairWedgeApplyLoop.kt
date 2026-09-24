@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.repair
 import skillbill.application.workflow.decomposition.updateGoalParentForBlockedPhaseRetry
-import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.lifecycle.remediation.buildCompletedUpstreamMissingOutputRepair
 import skillbill.engine.featuretask.lifecycle.remediation.diagnoseUnsettledCompletedUpstreamPhaseId
@@ -30,19 +29,18 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.recoverGoalSubtaskReviewBaseline
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.artifact.decodeGoalContinuationArtifactFromArtifact
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import java.nio.file.Path
 import java.time.Clock
 
@@ -312,8 +310,10 @@ internal fun applyUnreachableReviewRepairToState(
       "failure_message" to "Operator goal repair repointed unreachable ${wedgeClass.durableField}.",
       "goal_branch" to context.continuation.goalBranch,
     )
-  val priorRecoveries = (state.artifacts[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY] as? List<*>).orEmpty()
-  val existingRecoveries = (state.patch[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY] as? List<*>) ?: priorRecoveries
+  val priorRecoveries =
+    (DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.value(state.artifacts) as? List<*>).orEmpty()
+  val existingRecoveries =
+    (DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.value(state.patch) as? List<*>) ?: priorRecoveries
   state.patch.putAll(
     FeatureTaskRuntimeWorkflowArtifactPatches.goalReviewBaseRecoveries(existingRecoveries + recoveryEvidence),
   )
@@ -445,8 +445,5 @@ fun childRepairWedgeEvidenceMap(
   )
 
 fun continuationArtifactFromMap(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact? {
-  val raw =
-    JsonCodec.anyToStringAnyMap(artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY])
-      ?: return null
-  return decodeGoalContinuationArtifactFromArtifact(raw)
+  return DurableWorkflowArtifacts.fromMap(artifacts).goalContinuationArtifact()
 }

@@ -2,83 +2,12 @@ package skillbill.application.decomposition
 
 import skillbill.application.decomposition.model.RetryDecompositionManifestProjectionArgs
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.decomposition.DecompositionManifestProjectionFailurePersistence
+import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
+import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
-import skillbill.workflow.decomposition.runtime.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
-import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.model.DurableWorkflowArtifacts
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-import skillbill.workflow.engine.model.WorkflowUpdateInput
-
-internal enum class DecompositionManifestProjectionFailurePersistence {
-  PERSISTED,
-  OWNER_ABSENT,
-}
-
-internal fun persistDecompositionManifestProjectionFailure(
-  engine: WorkflowEngine,
-  unitOfWork: UnitOfWork,
-  workflowId: String,
-  outcome: DecompositionManifestProjectionOutcome.Failed,
-): DecompositionManifestProjectionFailurePersistence {
-  val family = WorkflowFamily.TASK_RUNTIME
-  val existing =
-    family.get(unitOfWork.workflowStates, workflowId)
-      ?: return DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT
-  val updated =
-    engine.updateRecord(
-      family.definition,
-      existing,
-      WorkflowUpdateInput(
-        workflowStatus = existing.workflowStatus,
-        currentStepId = existing.currentStepId,
-        stepUpdates = null,
-        artifactsPatch =
-          WorkflowArtifactPatch.from(
-            mapOf(
-              DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY to
-                DecompositionManifestWriteGuard.failureArtifact(outcome),
-            ),
-          ),
-        sessionId = existing.sessionId.orEmpty(),
-      ),
-    )
-  family.save(unitOfWork.workflowStates, updated)
-  return DecompositionManifestProjectionFailurePersistence.PERSISTED
-}
-
-internal fun clearDecompositionManifestProjectionFailure(
-  engine: WorkflowEngine,
-  unitOfWork: UnitOfWork,
-  workflowId: String,
-): DecompositionManifestProjectionFailurePersistence {
-  val family = WorkflowFamily.TASK_RUNTIME
-  val existing =
-    family.get(unitOfWork.workflowStates, workflowId)
-      ?: return DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT
-  val updated =
-    engine.updateRecord(
-      family.definition,
-      existing,
-      WorkflowUpdateInput(
-        workflowStatus = existing.workflowStatus,
-        currentStepId = existing.currentStepId,
-        stepUpdates = null,
-        artifactsPatch =
-          WorkflowArtifactPatch.from(
-            existing.artifacts.toMutableMap().apply {
-              remove(DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
-            },
-          ),
-        sessionId = existing.sessionId.orEmpty(),
-        replaceArtifacts = true,
-      ),
-    )
-  family.save(unitOfWork.workflowStates, updated)
-  return DecompositionManifestProjectionFailurePersistence.PERSISTED
-}
 
 internal fun retryDecompositionManifestProjectionFromAuthoritativeState(
   args: RetryDecompositionManifestProjectionArgs,

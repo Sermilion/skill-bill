@@ -15,18 +15,17 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.taskruntime.artifact.asTelemetryPayload
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.artifact.validateDeclaration
-import skillbill.workflow.taskruntime.artifact.validateEnvelope
-import skillbill.workflow.taskruntime.artifact.validateMeasurement
-import skillbill.workflow.taskruntime.artifact.validatePersistenceRecord
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.validateDeclaration
+import skillbill.ports.taskruntime.validateEnvelope
+import skillbill.ports.taskruntime.validateMeasurement
+import skillbill.ports.taskruntime.validatePersistenceRecord
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionMeasurement
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeSharedEvidenceMeasurement
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeDeliveredProjectionRecord
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 
 class FeatureTaskRuntimePhaseBriefingRecorder(
   private val database: DatabaseSessionFactory,
@@ -68,10 +67,12 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
           }
       val patch =
         mapOf(
-          FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY to
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS.entry(
             updatedBriefings.mapValues { (_, value) -> value.asBriefingArtifactEntry() },
-          FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY to
+          ),
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS.entry(
             updatedDelivered.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
+          ),
         )
       workflowPersistence.persistArtifactsPatch(unitOfWork.workflowStates, record, patch)
       true

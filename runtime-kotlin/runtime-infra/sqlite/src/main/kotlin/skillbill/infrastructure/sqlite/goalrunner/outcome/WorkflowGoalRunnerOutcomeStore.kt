@@ -1,17 +1,18 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
 import me.tatarka.inject.annotations.Inject
+import skillbill.goalrunner.goalReviewArtifacts
+import skillbill.goalrunner.validatedGoalReviewPasses
 import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.infrastructure.sqlite.goalrunner.control.authoritativeOutcomesBySubtask
-import skillbill.infrastructure.sqlite.goalrunner.control.goalReviewArtifacts
+import skillbill.infrastructure.sqlite.goalrunner.control.goalReviewEmissionEnvelope
 import skillbill.infrastructure.sqlite.goalrunner.control.taskRuntimeRecordOrNull
-import skillbill.infrastructure.sqlite.goalrunner.control.validatedGoalReviewPasses
 import skillbill.infrastructure.sqlite.goalrunner.control.workflowFamilyFor
-import skillbill.infrastructure.sqlite.goalrunner.manifest.clearDecompositionManifestProjectionFailure
-import skillbill.infrastructure.sqlite.goalrunner.manifest.persistDecompositionManifestProjectionFailure
+import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
+import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
@@ -37,17 +38,17 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import java.nio.file.Path
 
 internal data class RecoverMissingResultPrefixTerminalOutcomeArgs(
@@ -308,9 +309,13 @@ internal class WorkflowGoalRunnerReviewBridge(
     database.read { unitOfWork ->
       val record = taskRuntimeRecordOrNull(unitOfWork.workflowStates, workflowId) ?: return@read emptyList()
       val artifacts = record.artifacts
-      if (GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY !in artifacts) return@read emptyList()
+      if (!DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.contains(artifacts)) return@read emptyList()
       val review = goalReviewArtifacts(artifacts) ?: return@read emptyList()
-      validatedGoalReviewPasses(review, phaseOutputValidator, unitOfWork)
+      validatedGoalReviewPasses(
+        review,
+        { rawResult -> goalReviewEmissionEnvelope(rawResult, phaseOutputValidator) },
+        unitOfWork.reviews::fetchFindingVerdicts,
+      )
         .drop(review.state.emittedPassCount)
     }
 
@@ -323,7 +328,11 @@ internal class WorkflowGoalRunnerReviewBridge(
       val artifacts = record.artifacts
       val review = goalReviewArtifacts(artifacts) ?: return@transaction false
       val state = review.state
-      validatedGoalReviewPasses(review, phaseOutputValidator, unitOfWork)
+      validatedGoalReviewPasses(
+        review,
+        { rawResult -> goalReviewEmissionEnvelope(rawResult, phaseOutputValidator) },
+        unitOfWork.reviews::fetchFindingVerdicts,
+      )
       if (passNumber != state.emittedPassCount + 1 || passNumber > state.completedPassCount) {
         return@transaction false
       }
@@ -338,8 +347,9 @@ internal class WorkflowGoalRunnerReviewBridge(
             artifactsPatch =
               WorkflowArtifactPatch.from(
                 mapOf(
-                  GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to
+                  DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(
                     state.acknowledgeSummariesThrough(passNumber).toPersistenceWire(),
+                  ),
                 ),
               ),
             sessionId = record.sessionId.orEmpty(),

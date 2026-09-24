@@ -46,15 +46,13 @@ private fun artifactsMap(artifacts: Any?): Map<String, Any?> =
 
 class FeatureTaskRuntimeWorkflowArtifactMap private constructor(
   private val delegate: Map<String, Any?>,
+  val isObject: Boolean,
 ) : Map<String, Any?> by delegate {
-  internal companion object {
-    fun from(raw: Any?): FeatureTaskRuntimeWorkflowArtifactMap =
-      FeatureTaskRuntimeWorkflowArtifactMap(
-        JsonCodec.anyToStringAnyMap(raw)
-          ?: throw InvalidWorkflowStateSchemaError(
-            "Feature-task-runtime workflow artifact entry must decode to an object.",
-          ),
-      )
+  companion object {
+    fun from(raw: Any?): FeatureTaskRuntimeWorkflowArtifactMap {
+      val map = JsonCodec.anyToStringAnyMap(raw)
+      return FeatureTaskRuntimeWorkflowArtifactMap(map ?: emptyMap(), map != null)
+    }
   }
 }
 

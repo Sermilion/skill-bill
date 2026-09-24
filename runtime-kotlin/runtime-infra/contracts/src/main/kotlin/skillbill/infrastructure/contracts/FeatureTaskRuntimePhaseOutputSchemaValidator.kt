@@ -14,7 +14,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRu
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
 import skillbill.workflow.taskruntime.model.phase.requireAccepted
 import skillbill.workflow.taskruntime.phase.ProsePhaseOutputSynthesizer
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 @Inject
@@ -119,11 +119,6 @@ class FeatureTaskRuntimePhaseOutputSchemaValidator : FeatureTaskRuntimePhaseOutp
   ) {
     validatePhaseOutput(phaseOutputText, sourceLabel).requireAccepted(sourceLabel)
   }
-
-  override fun validateAndReadPhaseOutput(
-    phaseOutputText: String,
-    sourceLabel: String,
-  ): Any = validatePhaseOutput(phaseOutputText, sourceLabel).requireAccepted(sourceLabel).envelopePayload()
 
   override fun normalizePhaseOutput(
     phaseOutputText: String,

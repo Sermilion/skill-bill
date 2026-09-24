@@ -1,5 +1,14 @@
 # Boundary History — runtime-domain
 
+## [2026-09-24] SKILL-372 subtask 2 — Domain-owned artifacts and shared rules
+Areas: runtime-domain, runtime-ports, runtime-engine, runtime-application, runtime-infra-sqlite, runtime-mcp, runtime-cli, runtime-core
+- Added typed artifact-family reads and writes, moved shared workflow rules and validator contracts to their owning boundaries, and preserved wire-compatible encoding.
+- Removed duplicate adapter decoders, raw domain-key reads, forwarding validator extensions, and local integer coercions; malformed payloads now fail at typed seams.
+- Pattern: keep pure artifact projection and coercion in runtime-domain; validate encoded payloads at adapter/application boundaries. reusable
+- Known limitation: package and public-surface cleanup continues in SKILL-372 subtask 3.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-09-24] SKILL-372 subtask 1 — Typed workflow aggregate and strict decode
 Areas: runtime-domain/workflow, runtime-ports/workflow, runtime-engine/workflow, runtime-application/workflow, runtime-infra-sqlite/workflow, runtime-core
 - `WorkflowStateSnapshot` now carries typed steps, artifacts, mode, and `Instant` timestamps; port mapping is the single strict JSON decode/encode seam and preserves stored bytes.

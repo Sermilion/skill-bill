@@ -10,7 +10,7 @@ import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
 import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
 import java.security.MessageDigest
 
-const val FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY: String =
+internal const val FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY: String =
   "feature_task_runtime_checkpoint_identities"
 
 const val FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_LIMIT: Int = 200

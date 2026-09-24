@@ -77,9 +77,9 @@ fun InstallPlan.toInstallPlanContract(): InstallPlanContract = InstallPlanContra
 
 fun validateInstallPlanWireSnapshot(
   plan: InstallPlan,
-  validator: InstallPlanWireValidator,
+  validate: (InstallPlanWireMap) -> Unit,
 ) {
-  validator.validate(buildInstallPlanWireMap(plan))
+  validate(buildInstallPlanWireMap(plan))
 }
 
 private fun agentTargetWireMap(target: InstallAgentTarget): Map<String, Any?> =

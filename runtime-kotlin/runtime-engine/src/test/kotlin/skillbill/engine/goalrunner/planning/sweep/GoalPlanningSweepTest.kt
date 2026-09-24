@@ -88,7 +88,8 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
@@ -97,8 +98,8 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
-import skillbill.workflow.taskruntime.noop.NoopFeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
@@ -1842,7 +1843,7 @@ class GoalPlanningSweepRejectionTest {
         database = database,
         envelopeValidator = NoopGoalPlanningPreparationEnvelopeValidator,
         phaseOutputValidator = outputValidator,
-        planningProjectionValidator = NoopFeatureTaskRuntimeWireArtifactValidator,
+        planningProjectionValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
       )
     val launcher = SweepPlanningLauncher { phase, _, _ -> validPhaseOutcome(phase) }
     val sweep =
@@ -2079,7 +2080,7 @@ class GoalPlanningSweepTimingTest {
       object : FeatureTaskRuntimeWireArtifactValidator {
         override fun validate(
           kind: FeatureTaskRuntimeWireArtifactKind,
-          payload: Any,
+          payload: FeatureTaskRuntimeWorkflowArtifactMap,
           sourceLabel: String,
         ) {
           if (kind == FeatureTaskRuntimeWireArtifactKind.PLANNING_PROJECTION) {
@@ -2825,10 +2826,21 @@ private class FenceAwarePhaseOutputValidator : FeatureTaskRuntimePhaseOutputTest
     phaseOutputText: String,
     sourceLabel: String,
   ) {
-    validateAndReadPhaseOutput(phaseOutputText, sourceLabel)
+    parseAndValidate(phaseOutputText, sourceLabel)
   }
 
-  override fun validateAndReadPhaseOutput(
+  override fun normalizePhaseOutput(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ): NormalizedFeatureTaskRuntimePhaseOutput {
+    val output = parseAndValidate(phaseOutputText, sourceLabel)
+    return NormalizedFeatureTaskRuntimePhaseOutput(
+      canonicalJson = JsonCodec.mapToJsonString(output),
+      envelope = output,
+    )
+  }
+
+  private fun parseAndValidate(
     phaseOutputText: String,
     sourceLabel: String,
   ): Map<String, Any?> {
@@ -3253,7 +3265,7 @@ private fun sharedSweepFixtures(
       database = database,
       envelopeValidator = NoopGoalPlanningPreparationEnvelopeValidator,
       phaseOutputValidator = outputValidator,
-      planningProjectionValidator = NoopFeatureTaskRuntimeWireArtifactValidator,
+      planningProjectionValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
     )
   return SweepFixtures(
     database = database,
@@ -3297,7 +3309,7 @@ private data class SweepHarnessConfig(
   val outputValidator: FeatureTaskRuntimePhaseOutputValidator = FakePhaseOutputValidator(),
   val contextDiscovery: GoalPlanningContextDiscovery = fakeContextDiscovery,
   val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator =
-    NoopFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
   val planningAttemptRecorder: GoalPlanningAttemptRecorder = GoalPlanningAttemptRecorder.NONE,
   val manifestStore: GoalRunnerManifestStore = NoopGoalPlanningManifestStore,
   val planningRejectionRecorder: GoalPlanningRejectionRecorder = GoalPlanningRejectionRecorder.NONE,

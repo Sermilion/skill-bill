@@ -15,7 +15,7 @@ import skillbill.application.review.verification.verificationReviewOutput
 import skillbill.application.runtimepersistence.RuntimeOwnedPersistenceBoundary
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.execution.SpecIntentResolution
 import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.model.ParallelReviewMergedFinding

@@ -8,7 +8,7 @@ import skillbill.install.model.InstallAgentTargetSource
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanSkill
-import skillbill.install.model.InstallPlanWireValidator
+import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.install.model.InstallPlatformPackSnapshot
 import skillbill.install.model.InstallPlatformSkillMaterializationRequest
 import skillbill.install.model.InstallPolicyInput
@@ -34,7 +34,7 @@ internal fun buildInstallPlan(
   val staging = buildInstallStagingIntent(request, draft.skills, platformManifests)
   val plan = draft.toInstallPlan(staging)
 
-  validateInstallPlanWireSnapshot(plan, wireValidator)
+  validateInstallPlanWireSnapshot(plan, wireValidator::validate)
   return plan
 }
 

@@ -96,7 +96,7 @@ class InstallPolicyOwnershipArchitectureTest {
         .readText()
     assertTrue(
       policyText.contains("InstallPlanWireValidator") &&
-        policyText.contains("validateInstallPlanWireSnapshot(plan, validator)"),
+        policyText.contains("validateInstallPlanWireSnapshot(plan)"),
       "InstallPlanPolicy must delegate schema validation to the injected InstallPlanWireValidator port.",
     )
     assertTrue(

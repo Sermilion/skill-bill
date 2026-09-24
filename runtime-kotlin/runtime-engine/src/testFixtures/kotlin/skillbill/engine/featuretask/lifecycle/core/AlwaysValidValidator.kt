@@ -15,11 +15,6 @@ object AlwaysValidValidator : FeatureTaskRuntimePhaseOutputTestValidator() {
     sourceLabel: String,
   ) = Unit
 
-  override fun validateAndReadPhaseOutput(
-    phaseOutputText: String,
-    sourceLabel: String,
-  ): Any = phaseOutputMap(phaseOutputText)
-
   override fun normalizePhaseOutput(
     phaseOutputText: String,
     sourceLabel: String,

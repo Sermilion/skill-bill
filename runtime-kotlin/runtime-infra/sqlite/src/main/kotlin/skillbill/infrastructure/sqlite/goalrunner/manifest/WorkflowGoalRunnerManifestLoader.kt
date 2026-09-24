@@ -1,23 +1,24 @@
 package skillbill.infrastructure.sqlite.goalrunner.manifest
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
-import skillbill.infrastructure.sqlite.decomposition.resolveDecompositionManifest
 import skillbill.infrastructure.sqlite.decomposition.withParentStatus
-import skillbill.infrastructure.sqlite.workflow.decomposition.decompositionRuntime
-import skillbill.infrastructure.sqlite.workflow.decomposition.findDecomposedParentOrCorruptFallback
-import skillbill.infrastructure.sqlite.workflow.decomposition.findDecomposedParentWorkflow
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.infrastructure.sqlite.workflow.decomposition.requireRuntimeModeForEngineWrite
 import skillbill.infrastructure.sqlite.workflow.workflow.generateWorkflowId
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.findDecomposedParentOrCorruptFallback
+import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
+import skillbill.ports.workflow.decomposition.resolveDecompositionManifest
+import skillbill.ports.goalrunner.GoalParentProjectionWriter
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -78,7 +79,7 @@ internal class WorkflowGoalRunnerManifestLoader(
         currentProjectedManifest,
       ) ?: return null
     val snapshot = record.toSnapshot()
-    val manifest = snapshot.decompositionRuntime(decompositionManifestValidator) ?: return null
+    val manifest = snapshot.decompositionRuntime() ?: return null
     return GoalRunnerManifestState(
       parentWorkflowId = snapshot.workflowId,
       dbPath = unitOfWork.dbPath.toString(),
@@ -143,7 +144,7 @@ internal class WorkflowGoalRunnerManifestLoader(
       GoalRunnerManifestState(
         parentWorkflowId = saved.workflowId,
         dbPath = unitOfWork.dbPath.toString(),
-        manifest = saved.decompositionRuntime(decompositionManifestValidator) ?: manifest,
+        manifest = saved.decompositionRuntime() ?: manifest,
         controlState = unitOfWork.goalRunnerControls.controlState(saved.workflowId),
       )
     }

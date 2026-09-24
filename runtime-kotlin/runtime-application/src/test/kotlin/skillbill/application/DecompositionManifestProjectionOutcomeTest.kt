@@ -1,6 +1,5 @@
 package skillbill.application
 
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.contracts.JsonCodec
@@ -8,9 +7,10 @@ import skillbill.contracts.decomposition.DecompositionManifestProjectionOperatio
 import skillbill.model.toPath
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.io.IOException
 import java.nio.file.Files
@@ -119,7 +119,11 @@ class DecompositionManifestProjectionOutcomeTest {
   private fun durableRuntimeArtifactsJson(manifest: DecompositionManifest): String =
     JsonCodec.mapToJsonString(
       mapOf(
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+        DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to
+          testDecompositionManifestValidator.encodeManifestWireMap(
+            manifest,
+            DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
+          ),
       ),
     )
 

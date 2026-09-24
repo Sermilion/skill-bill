@@ -1,13 +1,46 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.goal
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.goalrunner.model.GoalContinuation
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+
+fun DurableWorkflowArtifacts.goalContinuationArtifact(): FeatureTaskRuntimeGoalContinuationArtifact? {
+  if (!containsKey(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY)) return null
+  val raw =
+    JsonCodec.anyToStringAnyMap(this[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY])
+      ?: throw InvalidWorkflowStateSchemaError(
+        "Goal-continuation artifact must decode to an object.",
+      )
+  return FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(raw)
+}
+
+fun DurableWorkflowArtifacts.goalContinuation(): GoalContinuation? =
+  goalContinuationArtifact()?.let { artifact ->
+    GoalContinuation(
+      issueKey = artifact.issueKey,
+      subtaskId = artifact.subtaskId,
+      suppressPr = artifact.suppressPr,
+      goalBranch = artifact.goalBranch,
+    )
+  }
+
+fun DurableWorkflowArtifacts.hasGoalContinuationMarker(): Boolean {
+  if (!containsKey(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY)) return false
+  val raw = JsonCodec.anyToStringAnyMap(this[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY])
+  if (raw?.get("enabled") == true && SharedPayloadKeys.ISSUE_KEY in raw && SharedPayloadKeys.SUBTASK_ID in raw) {
+    return true
+  }
+  return goalContinuationArtifact() != null
+}
 
 data class FeatureTaskRuntimeGoalContinuationArtifact(
   val issueKey: String,
@@ -61,6 +94,9 @@ data class FeatureTaskRuntimeGoalContinuationArtifact(
         )
       }
     }
+
+  fun toWorkflowArtifactPatch(): Map<String, Any?> =
+    mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to toArtifactMap())
 
   companion object {
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact {

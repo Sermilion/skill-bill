@@ -17,21 +17,20 @@ import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.text.sha256HexUtf8
-import skillbill.workflow.goal.GoalPlanningPreparationEnvelopeValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
+import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.taskruntime.validateGoalPlanningPreparationEnvelope
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
-import skillbill.workflow.taskruntime.artifact.validateGoalPlanningPreparationEnvelope
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
-import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 
 @Inject
 class GoalPlanningPreparationCheckpoint(
   private val database: DatabaseSessionFactory,
-  private val envelopeValidator: GoalPlanningPreparationEnvelopeValidator,
+  private val envelopeValidator: FeatureTaskRuntimeWireArtifactValidator,
   private val phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
   planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 ) {
@@ -230,7 +229,7 @@ class GoalPlanningSharedPreplanRefresh(
 }
 
 class GoalPlanningPreparationProjectionGate(
-  private val envelopeValidator: GoalPlanningPreparationEnvelopeValidator,
+  private val envelopeValidator: FeatureTaskRuntimeWireArtifactValidator,
   private val phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
   private val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 ) {

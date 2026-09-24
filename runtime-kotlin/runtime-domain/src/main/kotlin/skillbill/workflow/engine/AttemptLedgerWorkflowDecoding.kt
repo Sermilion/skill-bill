@@ -42,3 +42,11 @@ fun firstUnfinishedStepId(
     } ?: true
   }
 }
+
+internal fun Any?.asLenientIntOrNull(): Int? =
+  when (this) {
+    is Int -> this
+    is Number -> toInt()
+    is String -> toIntOrNull()
+    else -> null
+  }

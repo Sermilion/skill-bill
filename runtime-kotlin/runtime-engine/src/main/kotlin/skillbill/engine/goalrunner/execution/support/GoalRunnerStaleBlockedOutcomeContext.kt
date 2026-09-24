@@ -1,13 +1,14 @@
 package skillbill.engine.goalrunner.execution.support
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeClass
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeFinding
-import skillbill.engine.goalrunner.persist.goalContinuation
 import skillbill.engine.goalrunner.repair.PASSED_CONTINUATION_OUTCOME
 import skillbill.goalrunner.derivedTerminalOutcomeFor
 import skillbill.goalrunner.goalContinuationOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.nonCompleteStoredOutcomeIsCorroborated
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuation
 
 internal data class GoalRunnerStaleBlockedOutcomeContext(
   val record: WorkflowStateSnapshot,
@@ -22,7 +23,7 @@ internal fun diagnoseStaleBlockedOutcome(
   passed: MutableList<String>,
 ) {
   val identity =
-    goalContinuation(context.artifacts)
+    DurableWorkflowArtifacts.fromMap(context.artifacts).goalContinuation()
       ?.takeIf { it.issueKey == context.issueKey && it.subtaskId == context.subtaskId }
   if (identity == null) {
     passed += PASSED_CONTINUATION_OUTCOME

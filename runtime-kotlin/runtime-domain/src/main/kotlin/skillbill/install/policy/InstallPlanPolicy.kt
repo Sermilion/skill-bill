@@ -3,7 +3,7 @@ package skillbill.install.policy
 import skillbill.install.model.InstallAgentTarget
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanDraft
-import skillbill.install.model.InstallPlanWireValidator
+import skillbill.install.model.InstallPlanWireMap
 import skillbill.install.model.InstallPlatformPackDiscoverySnapshot
 import skillbill.install.model.InstallPlatformPackSnapshot
 import skillbill.install.model.InstallPlatformSkillMaterializationPlan
@@ -71,9 +71,9 @@ object InstallPlanPolicy {
 
   fun validateInstallPlanSnapshot(
     plan: InstallPlan,
-    validator: InstallPlanWireValidator,
+    validate: (InstallPlanWireMap) -> Unit,
   ): InstallPolicyValidationResult {
-    validateInstallPlanWireSnapshot(plan, validator)
+    validateInstallPlanWireSnapshot(plan, validate)
     return InstallPolicyValidationResult(InstallPolicyValidationStatus.VALID)
   }
 

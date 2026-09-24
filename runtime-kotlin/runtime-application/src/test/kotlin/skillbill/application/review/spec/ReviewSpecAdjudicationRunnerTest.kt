@@ -6,7 +6,7 @@ import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitLaneDecision
 import skillbill.review.context.model.commit.ReviewCommitLaneDisposition
@@ -353,7 +353,7 @@ class ReviewSpecAdjudicationRunnerTest {
     launcher: GoalRunnerSubtaskLauncher,
     fixture: AdjudicationRequestFixture,
     validator: ReviewContextEnvelopeValidator = ReviewContextEnvelopeValidator { _, _ -> },
-  ) = runner(launcher, validator).run(adjudicationRequest(fixture))
+  ) = runner(launcher).run(adjudicationRequest(fixture))
 
   private fun adjudicationRequest(fixture: AdjudicationRequestFixture) =
     ReviewSpecAdjudicationRunRequest(

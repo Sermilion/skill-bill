@@ -19,7 +19,7 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
-import skillbill.workflow.goal.GoalObservabilityEventValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
@@ -27,6 +27,7 @@ import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
@@ -392,14 +393,14 @@ class WorkflowCliResultMappersTest {
   private fun WorkflowGetResult.Ok.withDecodedGoalObservability(): WorkflowGetResult.Ok =
     copy(
       goalObservability =
-        goalObservabilityLatestEventFromArtifacts(snapshot.artifacts, testGoalObservabilityEventValidator),
+        goalObservabilityLatestEventFromArtifacts(snapshot.artifacts),
     )
 
-  private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
-    object : GoalObservabilityEventValidator {
+  private val testFeatureTaskRuntimeWireArtifactValidator: FeatureTaskRuntimeWireArtifactValidator =
+    object : FeatureTaskRuntimeWireArtifactValidator {
       override fun validate(
         kind: FeatureTaskRuntimeWireArtifactKind,
-        payload: Any,
+        payload: FeatureTaskRuntimeWorkflowArtifactMap,
         sourceLabel: String,
       ) {
         GoalObservabilityEventSchemaValidator.validate(

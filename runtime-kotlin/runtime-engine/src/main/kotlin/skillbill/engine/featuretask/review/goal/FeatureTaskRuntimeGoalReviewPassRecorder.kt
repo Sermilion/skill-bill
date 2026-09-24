@@ -20,10 +20,8 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.ports.workflow.model.WorkflowFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
 import skillbill.workflow.goal.model.GoalSubtaskReviewRevision
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
@@ -55,7 +53,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       patcher.save(
         record,
         unitOfWork.workflowStates,
-        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to reserved.toPersistenceWire()),
+        mapOf(DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(reserved.toPersistenceWire())),
       )
       GoalSubtaskReviewPassReserved(reserved)
     }
@@ -75,7 +73,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       }
       val updated =
         state.copy(
-          reviewInputArtifact = GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY,
+          reviewInputArtifact = DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_INPUT.label(),
           reviewedDeltaDigest =
             if (input.reviewBaseSha == state.reviewBaseSha) {
               input.deltaDigest
@@ -87,8 +85,8 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
         record,
         unitOfWork.workflowStates,
         mapOf(
-          GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire(),
-          GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY to goalReviewInputArtifactMap(input),
+          DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(updated.toPersistenceWire()),
+          DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_INPUT.entry(goalReviewInputArtifactMap(input)),
         ),
       )
       updated
@@ -109,7 +107,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       patcher.save(
         record,
         unitOfWork.workflowStates,
-        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire()),
+        mapOf(DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(updated.toPersistenceWire())),
       )
       updated
     }
@@ -217,8 +215,10 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       loaded.record,
       unitOfWork.workflowStates,
       mapOf(
-        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to completed.toPersistenceWire(),
-        GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to (loaded.previousResults + (passNumber to request.rawReviewResult)),
+        DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(completed.toPersistenceWire()),
+        DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_RESULTS.entry(
+          loaded.previousResults + (passNumber to request.rawReviewResult),
+        ),
       ),
     )
   }

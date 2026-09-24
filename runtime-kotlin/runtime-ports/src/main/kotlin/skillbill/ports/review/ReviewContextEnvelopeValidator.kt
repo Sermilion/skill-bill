@@ -1,6 +1,8 @@
-package skillbill.review.context
+package skillbill.ports.review
 
-fun interface ReviewContextEnvelopeValidator {
+import skillbill.review.context.ReviewContextWireMap
+
+interface ReviewContextEnvelopeValidator {
   fun validate(
     envelope: ReviewContextWireMap,
     sourceLabel: String,
@@ -9,5 +11,5 @@ fun interface ReviewContextEnvelopeValidator {
   fun validateSpecIntentProjection(
     envelope: ReviewContextWireMap,
     sourceLabel: String,
-  ) = Unit
+  )
 }

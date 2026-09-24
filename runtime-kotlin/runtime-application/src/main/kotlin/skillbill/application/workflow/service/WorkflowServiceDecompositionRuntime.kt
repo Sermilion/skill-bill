@@ -1,17 +1,18 @@
 package skillbill.application.workflow.service
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.workflow.decomposition.decompositionRuntime
-import skillbill.application.workflow.decomposition.findDecomposedParentWorkflowForRuntime
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.application.workflow.decomposition.persistParentDecompositionRuntime
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflowForRuntime
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWorkflowProjectionInput
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -43,9 +44,12 @@ internal fun WorkflowFamily.withDecompositionRuntime(args: DecompositionRuntimeW
             artifactsPatch =
               WorkflowArtifactPatch.from(
                 LinkedHashMap(args.input.artifactsPatch.orEmpty()).apply {
-                  put(
-                    DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-                    args.validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+                  DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.putInto(
+                    this,
+                    args.validator.encodeManifestWireMap(
+                      manifest,
+                      DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
+                    ),
                   )
                 },
               ),
@@ -67,7 +71,7 @@ internal fun WorkflowEngine.syncDecompositionParentRuntime(
   unitOfWork: UnitOfWork,
   validator: DecompositionManifestValidator,
 ) {
-  val manifest = updated.decompositionRuntime(validator)
+  val manifest = updated.decompositionRuntime()
   if (family == WorkflowFamily.TASK_RUNTIME && manifest != null) {
     val parent = unitOfWork.workflowStates.findDecomposedParentWorkflowForRuntime(manifest, validator)
     parent?.toSnapshot()

@@ -1,5 +1,7 @@
-package skillbill.workflow.decomposition
+package skillbill.ports.workflow.decomposition
 
+import skillbill.workflow.decomposition.decodeDecompositionManifestWireMap
+import skillbill.workflow.decomposition.encodeDecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 
@@ -8,14 +10,14 @@ fun DecompositionManifestValidator.decodeManifest(
   sourceLabel: String,
 ): DecompositionManifest {
   validate(wireMap, sourceLabel)
-  return DecompositionManifestWireCodec.decode(wireMap, sourceLabel)
+  return decodeDecompositionManifestWireMap(wireMap, sourceLabel)
 }
 
 fun DecompositionManifestValidator.encodeManifestWireMap(
   manifest: DecompositionManifest,
   sourceLabel: String = "<in-memory>",
 ): DecompositionManifestWireMap {
-  val wireMap = DecompositionManifestWireMap.from(DecompositionManifestWireCodec.encode(manifest))
+  val wireMap = encodeDecompositionManifestWireMap(manifest)
   validate(wireMap, sourceLabel)
   return wireMap
 }

@@ -7,7 +7,7 @@ import skillbill.infrastructure.skills.install.runtime.InstallOperations
 import skillbill.install.model.InstallApplyResult
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanRequest
-import skillbill.install.model.InstallPlanWireValidator
+import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.model.EnvironmentContext
 import skillbill.model.toPath
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort

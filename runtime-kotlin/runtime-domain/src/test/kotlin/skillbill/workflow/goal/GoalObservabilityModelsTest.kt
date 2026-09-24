@@ -4,14 +4,24 @@ import skillbill.error.shellcontent.InvalidGoalObservabilityEventSchemaError
 import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
+import skillbill.goalrunner.GoalObservabilityArtifacts
+import skillbill.goalrunner.goalObservabilityHistory
+import skillbill.goalrunner.goalObservabilityLatestEvent
+import skillbill.goalrunner.goalProgressHistory
+import skillbill.goalrunner.goalProgressLatestEvent
+import skillbill.goalrunner.model.GoalObservabilityProgressInput
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_HISTORY_LIMIT
+import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.goal.model.GoalObservabilityHistory
 import skillbill.workflow.goal.model.GoalObservabilityRecordKind
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalProgressOutcome
 import skillbill.workflow.goal.model.goalObservabilityEventFromArtifact
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -64,14 +74,25 @@ class GoalObservabilityModelsTest {
       goalObservabilityEventFromArtifact(
         raw = malformed,
         sourceLabel = "goal_observability_latest_event",
-        validator =
-          object : GoalObservabilityEventValidator {
-            override fun validate(
-              kind: FeatureTaskRuntimeWireArtifactKind,
-              payload: Any,
-              sourceLabel: String,
-            ) = Unit
-          },
+      )
+    }
+  }
+
+  @Test
+  fun `goal observability progress rejects fractional durable sequence numbers`() {
+    assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+      GoalObservabilityArtifacts.patchForProgressEvent(
+        GoalObservabilityProgressInput(
+          artifacts =
+            mapOf(
+              "goal_continuation" to mapOf("issue_key" to "SKILL-372", "subtask_id" to 1),
+              "progress_event" to mapOf("timestamp" to "2026-06-01T00:00:00Z", "sequence" to 2.7),
+            ),
+          workflowId = "wf-372",
+          workflowStatus = "running",
+          currentStepId = "implement",
+        ),
+        { _, _ -> },
       )
     }
   }
@@ -91,17 +112,47 @@ class GoalObservabilityModelsTest {
       goalObservabilityEventFromArtifact(
         raw = event(1).toArtifactMap(),
         sourceLabel = "goal_observability_latest_event",
-        validator =
-          object : GoalObservabilityEventValidator {
-            override fun validate(
-              kind: FeatureTaskRuntimeWireArtifactKind,
-              payload: Any,
-              sourceLabel: String,
-            ) = Unit
-          },
       )
 
     assertEquals(Instant.parse("2026-06-01T00:00:00Z"), decoded.timestamp)
+  }
+
+  @Test
+  fun `goal observability accessors preserve latest event and bounded history`() {
+    val latest = event(2).toArtifactMap()
+    val artifacts =
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(
+          GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY to latest,
+          GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY to listOf(event(1).toArtifactMap(), latest),
+        ),
+      )
+
+    assertEquals(event(2), artifacts.goalObservabilityLatestEvent())
+    assertEquals(listOf(event(1), event(2)), artifacts.goalObservabilityHistory().events)
+  }
+
+  @Test
+  fun `goal progress accessors preserve latest event and history`() {
+    val progress =
+      GoalProgressEvent(
+        eventKind = GoalProgressEventKind.PHASE_COMPLETED,
+        workflowId = "wf-372",
+        workflowPhase = "implement",
+        processAlive = false,
+        sequenceNumber = 2,
+        timestamp = "2026-06-01T00:00:00Z",
+      )
+    val artifacts =
+      DurableWorkflowArtifacts.fromMap(
+        mapOf(
+          GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY to progress.toPersistenceWire(),
+          GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY to listOf(progress.toPersistenceWire()),
+        ),
+      )
+
+    assertEquals(progress, artifacts.goalProgressLatestEvent())
+    assertEquals(listOf(progress), artifacts.goalProgressHistory())
   }
 
   private fun event(

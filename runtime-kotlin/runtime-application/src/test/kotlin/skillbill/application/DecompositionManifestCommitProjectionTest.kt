@@ -1,14 +1,13 @@
 package skillbill.application
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.DecompositionManifestProjectionFailurePersistence
 import skillbill.application.decomposition.DecompositionManifestWriteGuard
 import skillbill.application.decomposition.DecompositionManifestWriter
-import skillbill.application.decomposition.clearDecompositionManifestProjectionFailure
+import skillbill.ports.workflow.decomposition.DecompositionManifestProjectionFailurePersistence
+import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
 import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
-import skillbill.application.decomposition.loadDecompositionManifest
-import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
-import skillbill.application.workflow.decomposition.decompositionRuntime
+import skillbill.ports.workflow.decomposition.loadDecompositionManifest
+import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
@@ -26,15 +25,15 @@ import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifes
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
-import skillbill.workflow.decomposition.runtime.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
@@ -322,7 +321,7 @@ class DecompositionManifestCommitProjectionTest {
     setup.failure.enabled = true
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
     val parent = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId))
-    assertContains(parent.artifactsJson, DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
+    assertContains(parent.artifactsJson, DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label())
   }
 
   @Test
@@ -340,7 +339,7 @@ class DecompositionManifestCommitProjectionTest {
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
     val parentBefore = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId))
     val childWorkflowId =
-      parentBefore.toSnapshot().decompositionRuntime(testDecompositionManifestValidator)
+      parentBefore.toSnapshot().decompositionRuntime()
         ?.subtasks
         ?.single()
         ?.workflowId
@@ -348,7 +347,7 @@ class DecompositionManifestCommitProjectionTest {
     setup.failure.enabled = true
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, childWorkflowId)
     val parent = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId))
-    assertContains(parent.artifactsJson, DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
+    assertContains(parent.artifactsJson, DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label())
   }
 
   @Test
@@ -444,7 +443,7 @@ class DecompositionManifestCommitProjectionTest {
     assertIs<WorkflowUpdateResult.Ok>(committedResult)
     val afterFailure = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId))
     assertContains(afterFailure.artifactsJson, "projection_probe")
-    assertContains(afterFailure.artifactsJson, DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
+    assertContains(afterFailure.artifactsJson, DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label())
     assertEquals("implement", afterFailure.currentStepId)
     assertEquals(manifestBeforeFailure, Files.readString(manifestPath))
     assertEquals(childrenBeforeFailure, workflows.countGoalChildIdentities("SKILL-51"))
@@ -455,7 +454,9 @@ class DecompositionManifestCommitProjectionTest {
     assertEquals(written.result.manifest, loadDecompositionManifest(manifestPath))
     val afterRetry = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId))
     assertContains(afterRetry.artifactsJson, "projection_probe")
-    assertTrue(DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY !in afterRetry.artifactsJson)
+    assertTrue(
+      DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label() !in afterRetry.artifactsJson,
+    )
     assertEquals(afterFailure.currentStepId, afterRetry.currentStepId)
     assertEquals(afterFailure.workflowStatus, afterRetry.workflowStatus)
     assertEquals(afterFailure.stepsJson, afterRetry.stepsJson)
@@ -481,7 +482,7 @@ class DecompositionManifestCommitProjectionTest {
       )
     val childWorkflowId =
       parentBeforeFailure.toSnapshot()
-        .decompositionRuntime(testDecompositionManifestValidator)
+        .decompositionRuntime()
         ?.subtasks
         ?.single()
         ?.workflowId
@@ -495,7 +496,10 @@ class DecompositionManifestCommitProjectionTest {
       requireNotNull(
         setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
       )
-    assertContains(parentAfterFailure.artifactsJson, DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
+    assertContains(
+      parentAfterFailure.artifactsJson,
+      DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label(),
+    )
 
     setup.failure.enabled = false
     val retryOutcome = setup.service.retryDecompositionManifestProjection(setup.opened.workflowId)
@@ -505,7 +509,9 @@ class DecompositionManifestCommitProjectionTest {
         setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
       )
     val childAfterRetry = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(childWorkflowId))
-    assertTrue(DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY !in parentAfterRetry.artifactsJson)
+    assertTrue(
+      DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label() !in parentAfterRetry.artifactsJson,
+    )
     assertEquals(childBeforeFailure.currentStepId, childAfterRetry.currentStepId)
     assertEquals(childBeforeFailure.workflowStatus, childAfterRetry.workflowStatus)
     assertEquals(childrenBeforeFailure, setup.workflows.countGoalChildIdentities("SKILL-51"))
@@ -551,7 +557,7 @@ class DecompositionManifestCommitProjectionTest {
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = DecompositionManifestWriter(),
         repositoryRoot = RepositoryRoot(repoRoot),
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         runtimeDiagnostics = NoopRuntimeDiagnostics,
         clock = Clock.systemUTC(),
       )
@@ -605,7 +611,11 @@ class DecompositionManifestCommitProjectionTest {
   ): String =
     JsonCodec.mapToJsonString(
       mapOf(
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+        DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to
+          testDecompositionManifestValidator.encodeManifestWireMap(
+            manifest,
+            DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
+          ),
         "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
         "goal_continuation" to
           mapOf(
