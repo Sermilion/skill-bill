@@ -353,8 +353,12 @@ class McpRuntimeTest {
         context = context,
       )
 
-    assertTrue((defaultResult["skill_path"] as String).startsWith("$invocationRoot/"))
-    assertTrue((explicitResult["skill_path"] as String).startsWith("$explicitRoot/"))
+    assertTrue(
+      Path.of(defaultResult["skill_path"] as String).startsWith(invocationRoot.toRealPath()),
+    )
+    assertTrue(
+      Path.of(explicitResult["skill_path"] as String).startsWith(explicitRoot.toRealPath()),
+    )
   }
 
   @Test

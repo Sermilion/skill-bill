@@ -70,8 +70,14 @@ class CliScaffoldRuntimeTest {
 
     assertEquals(0, defaultResult.exitCode, defaultResult.stderr)
     assertEquals(0, explicitResult.exitCode, explicitResult.stderr)
-    assertTrue(parseJsonObject(defaultResult.stdout).stringValue("skill_path").startsWith("$invocationRoot/"))
-    assertTrue(parseJsonObject(explicitResult.stdout).stringValue("skill_path").startsWith("$explicitRoot/"))
+    assertTrue(
+      Path.of(parseJsonObject(defaultResult.stdout).stringValue("skill_path"))
+        .startsWith(invocationRoot.toRealPath()),
+    )
+    assertTrue(
+      Path.of(parseJsonObject(explicitResult.stdout).stringValue("skill_path"))
+        .startsWith(explicitRoot.toRealPath()),
+    )
   }
 
   @Test
