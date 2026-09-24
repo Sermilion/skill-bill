@@ -10,6 +10,7 @@ const val INSTALL_ID_ENVIRONMENT_KEY: String = "SKILL_BILL_INSTALL_ID"
 const val TELEMETRY_BATCH_SIZE_ENVIRONMENT_KEY: String = "SKILL_BILL_TELEMETRY_BATCH_SIZE"
 internal const val DEFAULT_TELEMETRY_PROXY_URL: String = "https://skill-bill-telemetry-proxy.skillbill.workers.dev"
 const val DEFAULT_TELEMETRY_BATCH_SIZE: Int = 50
+const val RESERVED_TEST_INSTALL_ID: String = "test-install-id"
 const val TELEMETRY_PROXY_CONTRACT_VERSION: String = "2"
 
 val telemetryLevels: List<String> = listOf("off", "anonymous", "full")

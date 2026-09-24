@@ -761,8 +761,14 @@ $defs:
         type: boolean
       spec_summary:
         type: string
+      # Null whenever `duration_seconds_availability` is not `measured`: a
+      # reconciler-closed (`stale`) run never observed its end.
       duration_seconds:
-        type: integer
+        type:
+          - integer
+          - "null"
+      duration_seconds_availability:
+        $ref: "#/$defs/telemetryMeasurementAvailabilityEnum"
 
   featureVerifyWorkflowContinueEvent:
     type: object

@@ -112,3 +112,12 @@ internal fun completedSyncResult(
     pendingEvents = pendingEvents,
     syncContext = syncContext,
   )
+
+internal fun reservedTestIdentitySyncResult(syncContext: SyncContext): SyncResult =
+  syncResult(
+    status = TelemetrySyncStatus.REFUSED,
+    syncedEvents = 0,
+    pendingEvents = syncContext.pendingEvents,
+    syncContext = syncContext,
+    message = "The reserved test install id never syncs to the hosted relay. Configure a custom proxy URL.",
+  )

@@ -97,10 +97,10 @@ internal object McpToolRegistry {
         inputSchema = projectedInputSchemas.getValue(name),
         handler = McpToolDispatcher.handlerFor(name),
         normalize =
-          if (name == McpToolPayloadKeys.QUALITY_CHECK_FINISHED) {
-            McpToolDispatcher::normalizeQualityCheckFinished
-          } else {
-            null
+          when (name) {
+            McpToolPayloadKeys.QUALITY_CHECK_FINISHED -> McpToolDispatcher::normalizeQualityCheckFinished
+            McpToolPayloadKeys.FEATURE_VERIFY_FINISHED -> McpToolDispatcher::normalizeFeatureVerifyFinished
+            else -> null
           },
       )
     }

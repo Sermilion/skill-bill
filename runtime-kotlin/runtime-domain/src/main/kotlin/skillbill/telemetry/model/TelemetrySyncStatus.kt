@@ -4,6 +4,7 @@ enum class TelemetrySyncStatus(val wireValue: String) {
   FAILED("failed"),
   DISABLED("disabled"),
   UNCONFIGURED("unconfigured"),
+  REFUSED("refused"),
   NOOP("noop"),
   SYNCED("synced"),
   ;

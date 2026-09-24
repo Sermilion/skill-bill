@@ -2,7 +2,6 @@ package skillbill.contracts.experiment
 
 object ExperimentTelemetryPayloadKeys {
   const val TELEMETRY_LEVEL: String = "telemetry_level"
-  const val EXPERIMENT_COMPLETED_EVENT: String = "experiment.completed"
   const val PAIR_ID: String = "pair_id"
   const val COHORT: String = "cohort"
   const val METRICS: String = "metrics"

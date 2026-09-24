@@ -5,6 +5,7 @@ import skillbill.application.learning.learningAppliedSessionWire
 import skillbill.application.learning.learningEntryDto
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
 import skillbill.infrastructure.sqlite.review.stage.and.addLearning
@@ -99,7 +100,7 @@ class ReviewStatsRuntimeTest {
     val (_, connection) = tempDbConnection("review-category-severity-cross-tab")
     connection.use {
       TelemetryOutboxStore(connection, version = "test-runtime-version").enqueue(
-        "skillbill_review_finished",
+        TelemetryOutboxEvent.REVIEW_FINISHED,
         JsonCodec.mapToJsonString(
           mapOf(
             "review_run_id" to "rvw-cross-tab",
@@ -166,7 +167,7 @@ class ReviewStatsRuntimeTest {
     val (_, connection) = tempDbConnection("review-health-detail-outcomes")
     connection.use {
       TelemetryOutboxStore(connection, version = "test-runtime-version").enqueue(
-        "skillbill_review_finished",
+        TelemetryOutboxEvent.REVIEW_FINISHED,
         JsonCodec.mapToJsonString(
           mapOf(
             "review_run_id" to "rvw-detail-outcomes",
@@ -750,7 +751,7 @@ private fun insertFeatureVerifySession(connection: Connection) {
     val (_, connection) = tempDbConnection("review-contract-mapper-cross-tab")
     connection.use {
       TelemetryOutboxStore(connection, version = "test-runtime-version").enqueue(
-        "skillbill_review_finished",
+        TelemetryOutboxEvent.REVIEW_FINISHED,
         JsonCodec.mapToJsonString(
           mapOf(
             "review_run_id" to "rvw-contract-mapper",

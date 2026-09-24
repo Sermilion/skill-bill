@@ -103,6 +103,17 @@ internal object McpToolDispatcher {
     return envelope
   }
 
+  internal fun normalizeFeatureVerifyFinished(arguments: Map<String, Any?>): Map<String, Any?> {
+    if (LifecycleTelemetryPayloadKeys.DURATION_SECONDS_AVAILABILITY in arguments) {
+      throw InvalidMcpToolArgumentError(
+        McpToolPayloadKeys.FEATURE_VERIFY_FINISHED,
+        LifecycleTelemetryPayloadKeys.DURATION_SECONDS_AVAILABILITY,
+        "is runtime-owned",
+      )
+    }
+    return arguments
+  }
+
   internal fun normalizeQualityCheckFinished(arguments: Map<String, Any?>): Map<String, Any?> {
     RUNTIME_OWNED_QUALITY_CHECK_KEYS.firstOrNull(arguments::containsKey)?.let { key ->
       throw InvalidMcpToolArgumentError(McpToolPayloadKeys.QUALITY_CHECK_FINISHED, key, "is runtime-owned")

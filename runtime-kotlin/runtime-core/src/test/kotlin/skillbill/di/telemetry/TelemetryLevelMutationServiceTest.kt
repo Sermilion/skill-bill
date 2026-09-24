@@ -5,6 +5,7 @@ import skillbill.application.telemetry.lifecycle.LifecycleTelemetryService
 import skillbill.application.telemetry.model.FeatureTaskRuntimeStartedRequest
 import skillbill.application.telemetry.service.TelemetryLevelMutationService
 import skillbill.application.telemetry.settings.DefaultTelemetrySettingsProvider
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.host.FileTelemetryConfigStore
 import skillbill.model.EnvironmentContext
 import skillbill.ports.db.DatabaseSessionFactory
@@ -333,14 +334,14 @@ private class MutationTelemetryOutboxRepository(
   private val rows: MutableList<TelemetryOutboxRecord>,
 ) : TelemetryOutboxRepository {
   override fun enqueue(
-    eventName: String,
+    event: TelemetryOutboxEvent,
     payloadJson: String,
   ): Long {
     val id = (rows.maxOfOrNull(TelemetryOutboxRecord::id) ?: 0L) + 1
     rows +=
       TelemetryOutboxRecord(
         id = id,
-        eventName = eventName,
+        eventName = event.wireValue,
         payloadJson = payloadJson,
         createdAt = "2026-04-24 00:00:00",
         syncedAt = null,

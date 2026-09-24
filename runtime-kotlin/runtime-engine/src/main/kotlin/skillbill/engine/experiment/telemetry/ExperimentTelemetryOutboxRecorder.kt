@@ -2,11 +2,12 @@ package skillbill.engine.experiment.telemetry
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.experiment.ExperimentTelemetryPayloadKeys
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.ports.telemetry.transport.TelemetryConfigStore
 
 fun interface ExperimentTelemetryOutboxSink {
   fun enqueue(
-    eventName: String,
+    event: TelemetryOutboxEvent,
     payloadJson: String,
   )
 }
@@ -36,7 +37,7 @@ class ExperimentTelemetryOutboxRecorder(
         metrics = metrics,
       ) ?: return false
     outbox.enqueue(
-      ExperimentTelemetryPayloadKeys.EXPERIMENT_COMPLETED_EVENT,
+      TelemetryOutboxEvent.EXPERIMENT_COMPLETED,
       JsonCodec.mapToJsonString(payload),
     )
     return true

@@ -1,5 +1,6 @@
 package skillbill.application.telemetry.service
 
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -23,13 +24,17 @@ import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.telemetry.RESERVED_TEST_INSTALL_ID
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryConfigDocument
+import skillbill.telemetry.model.TelemetryDeliveryOutcome
 import skillbill.telemetry.model.TelemetryDeliveryReport
 import skillbill.telemetry.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
+import skillbill.telemetry.model.TelemetrySyncStatus
+import skillbill.telemetry.telemetryProxyUrl
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
@@ -97,19 +102,84 @@ class TelemetryAutoSyncDiagnosticTest {
     assertTrue(diagnostics.warnings.count { it.first == TELEMETRY_BACKGROUND_SYNC_FAILURE_SIGNATURE } >= 2)
   }
 
+  @Test
+  fun `the reserved test install id never reaches the hosted relay from sync or auto sync`() {
+    val diagnostics = RecordingDiagnostics()
+    val relay = RecordingTelemetryRelay()
+    val service =
+      reservedIdentityService(
+        diagnostics,
+        settingsProvider = EnabledSettingsProvider(installId = RESERVED_TEST_INSTALL_ID, customProxyUrl = null),
+        telemetryClient = relay,
+      )
+
+    val manual = service.sync()
+    service.autoSync()
+
+    assertEquals(0, relay.sentBatches, "Test fixtures must not upload to the production relay.")
+    assertEquals(TelemetrySyncStatus.REFUSED.wireValue, manual.result.syncStatus)
+    assertEquals(
+      2,
+      diagnostics.warnings.count { it.first == TELEMETRY_RESERVED_TEST_IDENTITY_REFUSAL },
+      diagnostics.warnings.toString(),
+    )
+  }
+
+  @Test
+  fun `the reserved test install id still delivers to a custom proxy`() {
+    val relay = RecordingTelemetryRelay()
+    val service =
+      reservedIdentityService(
+        RecordingDiagnostics(),
+        settingsProvider = EnabledSettingsProvider(installId = RESERVED_TEST_INSTALL_ID),
+        telemetryClient = relay,
+      )
+
+    service.sync()
+
+    assertTrue(relay.sentBatches > 0, "A local sink is how delivery tests keep exercising the drain.")
+    assertEquals(
+      setOf("https://telemetry.example.dev/ingest"),
+      relay.deliveredUrls.toSet(),
+      "The reserved test install id delivers only to the configured custom proxy.",
+    )
+  }
+
   private fun telemetryService(
     diagnostics: RuntimeDiagnostics,
     failingEnqueue: Boolean,
     reconciliationFailure: Throwable? = null,
     interruptSignal: InterruptSignalPort = NoopInterruptSignalPort,
+  ): TelemetryService =
+    telemetryService(
+      diagnostics = diagnostics,
+      database = DiagnosticDatabaseSessionFactory(PendingOutbox(failingEnqueue), reconciliationFailure),
+      interruptSignal = interruptSignal,
+    )
+
+  private fun reservedIdentityService(
+    diagnostics: RuntimeDiagnostics,
+    settingsProvider: TelemetrySettingsProvider,
+    telemetryClient: TelemetryClient,
+  ): TelemetryService =
+    telemetryService(
+      diagnostics = diagnostics,
+      database = DiagnosticDatabaseSessionFactory(PendingOutbox(failingEnqueue = false)),
+      settingsProvider = settingsProvider,
+      telemetryClient = telemetryClient,
+    )
+
+  private fun telemetryService(
+    diagnostics: RuntimeDiagnostics,
+    database: DatabaseSessionFactory,
+    interruptSignal: InterruptSignalPort = NoopInterruptSignalPort,
+    settingsProvider: TelemetrySettingsProvider = EnabledSettingsProvider(),
+    telemetryClient: TelemetryClient = FailingTelemetryRelay(),
   ): TelemetryService {
-    val outbox = PendingOutbox(failingEnqueue)
-    val database = DiagnosticDatabaseSessionFactory(outbox, reconciliationFailure)
-    val settingsProvider = EnabledSettingsProvider()
     return TelemetryService(
       database = database,
       settingsProvider = settingsProvider,
-      telemetryClient = FailingTelemetryRelay(),
+      telemetryClient = telemetryClient,
       clock = Clock.fixed(Instant.parse("2026-09-15T10:00:00Z"), ZoneOffset.UTC),
       levelMutationService =
         TelemetryLevelMutationService(
@@ -153,15 +223,38 @@ private class FailingTelemetryRelay : TelemetryClient {
   ): TelemetryRemoteStatsResult = error("unexpected")
 }
 
-private class EnabledSettingsProvider : TelemetrySettingsProvider {
+private class RecordingTelemetryRelay : TelemetryClient {
+  val deliveredUrls = mutableListOf<String>()
+  val sentBatches: Int get() = deliveredUrls.size
+
+  override fun sendBatch(
+    settings: TelemetrySettings,
+    rows: List<TelemetryOutboxRecord>,
+  ): TelemetryDeliveryReport {
+    deliveredUrls += settings.proxyUrl
+    return TelemetryDeliveryReport(TelemetryDeliveryOutcome.ACCEPTED, "")
+  }
+
+  override fun fetchProxyCapabilities(settings: TelemetrySettings): TelemetryProxyCapabilities = error("unexpected")
+
+  override fun fetchRemoteStats(
+    settings: TelemetrySettings,
+    request: RemoteStatsRequest,
+  ): TelemetryRemoteStatsResult = error("unexpected")
+}
+
+private class EnabledSettingsProvider(
+  private val installId: String = "install",
+  private val customProxyUrl: String? = "https://telemetry.example.dev/ingest",
+) : TelemetrySettingsProvider {
   override fun load(materialize: Boolean): TelemetrySettings =
     TelemetrySettings(
       configPath = Files.createTempFile("auto-sync", ".json").toFileLocation(),
       level = "anonymous",
       enabled = true,
-      installId = "install",
-      proxyUrl = "https://telemetry.example.dev/ingest",
-      customProxyUrl = "https://telemetry.example.dev/ingest",
+      installId = installId,
+      proxyUrl = telemetryProxyUrl(customProxyUrl.orEmpty()).first,
+      customProxyUrl = customProxyUrl,
       batchSize = 50,
     )
 }
@@ -190,10 +283,10 @@ private class PendingOutbox(
   private val failingEnqueue: Boolean,
 ) : TelemetryOutboxRepository {
   override fun enqueue(
-    eventName: String,
+    event: TelemetryOutboxEvent,
     payloadJson: String,
   ): Long {
-    if (failingEnqueue && eventName == RUNTIME_EXCEPTION_EVENT) {
+    if (failingEnqueue && event == TelemetryOutboxEvent.RUNTIME_EXCEPTION) {
       error("outbox unavailable")
     }
     return 1L

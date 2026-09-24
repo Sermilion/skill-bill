@@ -1,6 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "test": "node --test worker.test.mjs"
+    "test": "node --test worker.test.mjs",
+    "check-deployed": "node check-deployed-relay.mjs"
   }
 }

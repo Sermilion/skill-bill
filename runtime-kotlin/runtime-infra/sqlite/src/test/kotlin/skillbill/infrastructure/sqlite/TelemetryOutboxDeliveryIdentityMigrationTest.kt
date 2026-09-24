@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite
 
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxDeliveryIdentityMigration
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
@@ -16,9 +17,9 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
     val dbPath = newDatabase()
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
-      store.enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"i":1}""")
-      store.enqueue(eventName = "skillbill_review_finished", payloadJson = """{"i":2}""")
-      val synced = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"i":3}""")
+      store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = """{"i":1}""")
+      store.enqueue(event = TelemetryOutboxEvent.REVIEW_FINISHED, payloadJson = """{"i":2}""")
+      val synced = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = """{"i":3}""")
       store.markSynced(id = synced, syncedAt = "2026-09-01 00:00:00")
       stripIdentities(connection)
 
@@ -42,7 +43,7 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
     val minted =
       DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
         val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
-        store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+        store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
         store.listPending().single().eventUuid
       }
     assertTrue(minted.isNotBlank(), "Enqueue must mint an identity in the same write.")
@@ -67,8 +68,8 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
     val dbPath = newDatabase()
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
-      store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
-      store.enqueue(eventName = "skillbill_review_finished", payloadJson = "{}")
+      store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
+      store.enqueue(event = TelemetryOutboxEvent.REVIEW_FINISHED, payloadJson = "{}")
 
       assertEquals(2, store.clear())
       TelemetryOutboxDeliveryIdentityMigration.apply(connection)
@@ -82,7 +83,7 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
     val dbPath = newDatabase()
     return DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       TelemetryOutboxStore(connection, version = "test-runtime-version").enqueue(
-        eventName = "skillbill_goal_finished",
+        event = TelemetryOutboxEvent.GOAL_FINISHED,
         payloadJson = "{}",
       )
       stripIdentities(connection)

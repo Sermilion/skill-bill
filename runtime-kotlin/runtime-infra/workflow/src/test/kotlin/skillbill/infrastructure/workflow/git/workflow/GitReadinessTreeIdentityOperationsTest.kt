@@ -48,6 +48,23 @@ class GitReadinessTreeIdentityOperationsTest {
   }
 
   @Test
+  fun `linked worktree resolves source_tree_sha from its index outside the worktree root`() {
+    val mainRoot = Files.createTempDirectory("skillbill-readiness-main")
+    git(mainRoot, "init")
+    git(mainRoot, "config", "user.email", "skill-bill@example.test")
+    git(mainRoot, "config", "user.name", "Skill Bill")
+    Files.writeString(mainRoot.resolve("source.kt"), "source\n")
+    git(mainRoot, "add", ".")
+    git(mainRoot, "commit", "-m", "initial")
+    val worktreeRoot = Files.createTempDirectory("skillbill-readiness-linked").resolve("linked")
+    git(mainRoot, "worktree", "add", "-b", "feature", worktreeRoot.toString())
+
+    val result = GitReadinessTreeIdentityOperations.computeSourceTreeSha(worktreeRoot, "wf")
+
+    assertTrue(result is WorkflowGitOperationResult.Ok && !result.value.isNullOrBlank(), "$result")
+  }
+
+  @Test
   fun `stale base ref diagnostic carries captured versus current base and head`() {
     val evidence =
       FeatureTaskRuntimeReadinessEvidence(

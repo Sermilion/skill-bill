@@ -7,7 +7,7 @@ import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.telemetry.model.TelemetrySettings
 
-internal fun telemetryProxyBatchPayload(
+fun telemetryProxyBatchPayload(
   settings: TelemetrySettings,
   rows: List<TelemetryOutboxRecord>,
 ): TelemetryProxyBatchPayload =
@@ -19,6 +19,7 @@ internal fun telemetryProxyBatchPayload(
           distinctId = settings.installId,
           properties = telemetryProperties(row, settings.installId),
           timestamp = row.createdAt,
+          eventIdentity = row.eventUuid.ifBlank { null },
         )
       },
   )

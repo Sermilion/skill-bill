@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite.review.stage.telemetry
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.review.stage.runtime.ReviewRuntime
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
@@ -106,7 +107,7 @@ internal fun finalizeReviewFinishedTelemetry(
       enqueueTelemetryEvent(
         connection,
         runtimeVersion,
-        "skillbill_review_finished",
+        TelemetryOutboxEvent.REVIEW_FINISHED,
         request.payload,
         request.telemetryEnabled,
       )
@@ -127,13 +128,13 @@ internal data class ReviewFinishedTelemetryRequest(
 internal fun enqueueTelemetryEvent(
   connection: Connection,
   runtimeVersion: String,
-  eventName: String,
+  event: TelemetryOutboxEvent,
   payload: ReviewFinishedTelemetry,
   enabled: Boolean,
 ) {
   if (enabled) {
     TelemetryOutboxStore(connection, runtimeVersion).enqueue(
-      eventName,
+      event,
       JsonCodec.mapToJsonString(payload.toReviewFinishedTelemetryPayload().toPayload()),
     )
   }

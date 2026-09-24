@@ -1,8 +1,8 @@
 package skillbill.application
 
 import skillbill.application.telemetry.service.REDACTED_ERROR_MESSAGE
-import skillbill.application.telemetry.service.RUNTIME_EXCEPTION_EVENT
 import skillbill.application.telemetry.service.enqueueRuntimeException
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
@@ -22,7 +22,7 @@ class RuntimeExceptionTelemetryTest {
     enqueueRuntimeException(outbox, "my_tool", RuntimeException("something went wrong"), "full")
 
     assertEquals(1, captured.size)
-    assertEquals(RUNTIME_EXCEPTION_EVENT, captured[0].first)
+    assertEquals(TelemetryOutboxEvent.RUNTIME_EXCEPTION.wireValue, captured[0].first)
   }
 
   @Test
@@ -112,10 +112,10 @@ class RuntimeExceptionTelemetryTest {
   private fun capturingOutbox(captured: MutableList<Pair<String, String>>): TelemetryOutboxRepository =
     object : TelemetryOutboxRepository {
       override fun enqueue(
-        eventName: String,
+        event: TelemetryOutboxEvent,
         payloadJson: String,
       ): Long {
-        captured.add(eventName to payloadJson)
+        captured.add(event.wireValue to payloadJson)
         return captured.size.toLong()
       }
 

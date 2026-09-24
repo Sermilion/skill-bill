@@ -89,6 +89,9 @@ internal object McpInputSchemaProjection {
       envelopeKeys += LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT_AVAILABILITY
       envelopeKeys += LifecycleTelemetryPayloadKeys.STALE_REASON
     }
+    if (toolName == McpToolPayloadKeys.FEATURE_VERIFY_FINISHED) {
+      envelopeKeys += LifecycleTelemetryPayloadKeys.DURATION_SECONDS_AVAILABILITY
+    }
     return envelopeKeys
   }
 

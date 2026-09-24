@@ -15,6 +15,11 @@ import kotlin.coroutines.cancellation.CancellationException
 object TelemetrySyncRuntime {
   fun disabledSync(settings: TelemetrySettings): SyncResult = disabledSyncResult(settings)
 
+  fun reservedTestIdentitySync(
+    settings: TelemetrySettings,
+    outboxRepository: TelemetryOutboxRepository,
+  ): SyncResult = reservedTestIdentitySyncResult(syncContext(settings, outboxRepository.pendingCount()))
+
   fun syncTelemetry(
     settings: TelemetrySettings,
     outboxRepository: TelemetryOutboxRepository,

@@ -11,6 +11,7 @@ import skillbill.application.telemetry.settings.telemetryMutationResult
 import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime
 import skillbill.application.telemetry.sync.syncResult
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -23,13 +24,19 @@ import skillbill.ports.telemetry.transport.TelemetryClient
 import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.telemetry.model.RemoteStatsRequest
+import skillbill.telemetry.model.SyncResult
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
+import skillbill.telemetry.model.TelemetrySettings
 import skillbill.telemetry.model.TelemetrySyncStatus
+import skillbill.telemetry.targetsHostedRelayWithReservedTestIdentity
 import java.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
 
 internal const val TELEMETRY_BACKGROUND_SYNC_FAILURE_SIGNATURE = "telemetry background sync failed"
+internal const val TELEMETRY_RESERVED_TEST_IDENTITY_REFUSAL =
+  "skillbill telemetry: record_kind=refusal; seam=telemetry_sync; value_used=skipped; " +
+    "value_expected=hosted_relay_delivery; cause=reserved_test_install_id"
 
 @Inject
 class TelemetryService(
@@ -69,6 +76,8 @@ class TelemetryService(
     val result =
       if (!settings.enabled) {
         TelemetrySyncRuntime.disabledSync(settings)
+      } else if (settings.targetsHostedRelayWithReservedTestIdentity()) {
+        refuseReservedTestIdentitySync(settings)
       } else {
         reconcileBeforeSync(
           TelemetryReconciliationRequest(level = settings.level, cadenceSeconds = 0L, now = clock.instant()),
@@ -90,6 +99,10 @@ class TelemetryService(
   fun autoSync() {
     val settings = telemetrySettingsOrNull(settingsProvider, diagnostics)
     if (settings == null || !settings.enabled || !database.databaseExists()) return
+    if (settings.targetsHostedRelayWithReservedTestIdentity()) {
+      refuseReservedTestIdentitySync(settings)
+      return
+    }
     reconcileBeforeSync(TelemetryReconciliationRequest(level = settings.level, now = clock.instant()))
     try {
       val result =
@@ -108,6 +121,11 @@ class TelemetryService(
     } catch (interrupted: InterruptedException) {
       rethrowTelemetryInterrupted(interrupted, interruptSignal)
     }
+  }
+
+  private fun refuseReservedTestIdentitySync(settings: TelemetrySettings): SyncResult {
+    diagnostics.warning(TELEMETRY_RESERVED_TEST_IDENTITY_REFUSAL)
+    return TelemetrySyncRuntime.reservedTestIdentitySync(settings, sessionTelemetryOutboxRepository(database))
   }
 
   private fun recordBackgroundSyncFailure(cause: Throwable?) {
@@ -223,9 +241,9 @@ private fun rethrowTelemetryInterrupted(
 private fun sessionTelemetryOutboxRepository(database: DatabaseSessionFactory): TelemetryOutboxRepository =
   object : TelemetryOutboxRepository {
     override fun enqueue(
-      eventName: String,
+      event: TelemetryOutboxEvent,
       payloadJson: String,
-    ): Long = database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.enqueue(eventName, payloadJson) }
+    ): Long = database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.enqueue(event, payloadJson) }
 
     override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
       database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.claimPending(request) }

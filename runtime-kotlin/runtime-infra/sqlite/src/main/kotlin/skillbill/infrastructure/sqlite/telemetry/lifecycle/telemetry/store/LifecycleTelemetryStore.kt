@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store
 
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.enqueueTelemetry
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature.LifecycleTelemetryFeatureTaskSessionAdapter
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature.LifecycleTelemetryFeatureVerifySessionAdapter
@@ -59,7 +60,7 @@ internal class LifecycleTelemetryPrDescriptionSessionAdapter(
     enqueueTelemetry(
       connection,
       runtimeVersion,
-      "skillbill_pr_description_generated",
+      TelemetryOutboxEvent.PR_DESCRIPTION_GENERATED,
       prDescriptionPayload(record, level),
     )
   }

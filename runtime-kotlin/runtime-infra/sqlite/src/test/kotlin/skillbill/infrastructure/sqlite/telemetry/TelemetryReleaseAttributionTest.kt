@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.telemetry
 
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.infrastructure.sqlite.telemetryOutboxOnConnection
 import java.nio.file.Files
@@ -16,7 +17,7 @@ class TelemetryReleaseAttributionTest {
   fun `an event is uploaded with the version that was running when it was enqueued`() {
     withOutboxDatabase { connection ->
       telemetryOutboxOnConnection(connection, ENQUEUE_TIME_VERSION)
-        .enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"name":"ok"}""")
+        .enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = """{"name":"ok"}""")
 
       val uploadTimeStore = telemetryOutboxOnConnection(connection, UPLOAD_TIME_VERSION)
       val pending = uploadTimeStore.listPending()

@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite.review.stats.health
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
 import skillbill.tempDbConnection
 import java.sql.Connection
@@ -13,14 +14,14 @@ class ReviewHealthDeliveryGrainTest {
     val (_, connection) = tempDbConnection("review-health-delivery-grain")
     connection.use {
       val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
-      val retried = store.enqueue("skillbill_review_finished", reviewPayload("rvw-1", findings = 2))
+      val retried = store.enqueue(TelemetryOutboxEvent.REVIEW_FINISHED, reviewPayload("rvw-1", findings = 2))
       connection.setDeliveryAttempts(retried, attempts = 3)
       connection.setDeliveryAttempts(
-        store.enqueue("skillbill_review_finished", reviewPayload("rvw-2", findings = 1)),
+        store.enqueue(TelemetryOutboxEvent.REVIEW_FINISHED, reviewPayload("rvw-2", findings = 1)),
         attempts = 1,
       )
       connection.setDeliveryAttempts(
-        store.enqueue("skillbill_review_finished", reviewPayload("rvw-2", findings = 1)),
+        store.enqueue(TelemetryOutboxEvent.REVIEW_FINISHED, reviewPayload("rvw-2", findings = 1)),
         attempts = 1,
       )
 
@@ -52,8 +53,8 @@ class ReviewHealthDeliveryGrainTest {
     val (_, connection) = tempDbConnection("review-health-unknown-identity")
     connection.use {
       val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
-      store.enqueue("skillbill_review_finished", reviewPayload("rvw-1", findings = 1))
-      val legacy = store.enqueue("skillbill_review_finished", reviewPayload(reviewRunId = "", findings = 1))
+      store.enqueue(TelemetryOutboxEvent.REVIEW_FINISHED, reviewPayload("rvw-1", findings = 1))
+      val legacy = store.enqueue(TelemetryOutboxEvent.REVIEW_FINISHED, reviewPayload(reviewRunId = "", findings = 1))
       connection.clearDeliveryIdentity(legacy)
 
       val grain = buildReviewHealthStats(connection, reviewRunId = null).reviewDeliveryGrain

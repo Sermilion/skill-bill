@@ -5,9 +5,9 @@ import skillbill.application.learning.model.AddLearningInput
 import skillbill.application.review.service.ReviewService
 import skillbill.application.review.snapshot.HARNESS_ORIGIN_UNAVAILABLE
 import skillbill.application.review.snapshot.harnessOrigin
-import skillbill.application.telemetry.service.RUNTIME_EXCEPTION_EVENT
 import skillbill.application.telemetry.service.TelemetryLevelMutationService
 import skillbill.application.telemetry.service.TelemetryService
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.error.learning.InvalidLearningSourceError
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.learnings.model.LearningScope
@@ -415,7 +415,7 @@ class ApplicationPersistencePortTest {
     service.autoSync()
 
     assertEquals("transaction", database.calls.first())
-    assertEquals(listOf(RUNTIME_EXCEPTION_EVENT), outboxRepository.enqueuedEventNames)
+    assertEquals(listOf(TelemetryOutboxEvent.RUNTIME_EXCEPTION.wireValue), outboxRepository.enqueuedEventNames)
     assertEquals(listOf(1L, 2L), client.sentBatchIds.flatten())
   }
 

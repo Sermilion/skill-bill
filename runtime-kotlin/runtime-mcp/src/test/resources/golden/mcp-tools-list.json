@@ -233,7 +233,10 @@
             "type": "string"
           },
           "duration_seconds": {
-            "type": "integer"
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         }
       }

@@ -13,6 +13,7 @@ import com.networknt.schema.ValidationMessage
 import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.telemetry.LifecycleSessionCompletion
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import java.io.IOException
 import java.util.Locale
@@ -125,7 +126,7 @@ internal object TelemetryEventSchemaValidator {
     resolvedEventName: String?,
   ) {
     validateQualityCheckFailureCountCoherence(envelope, resolvedEventName)
-    if (resolvedEventName != "skillbill_review_finished") return
+    if (resolvedEventName != TelemetryOutboxEvent.REVIEW_FINISHED.wireValue) return
     val platformSlug = envelope["platform_slug"] as? String
     val reviewPlatform = envelope["review_platform"] as? String
     val detectedStack = envelope["detected_stack"] as? String

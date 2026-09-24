@@ -4,6 +4,7 @@ import skillbill.SAMPLE_REVIEW
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.di.core.SkillBillVersion
 import skillbill.infrastructure.sqlite.withLifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
@@ -249,10 +250,10 @@ internal fun telemetryStatusStdout(
   writeTelemetryConfig(tempDir, level = level, proxyUrl = TELEMETRY_FIXTURE_PROXY_URL)
   withTelemetryOutboxStore(tempDir, dbPath) { store ->
     if (priorSync) {
-      val syncedId = store.enqueue("skillbill_goal_finished", """{"seed":"delivered"}""")
+      val syncedId = store.enqueue(TelemetryOutboxEvent.GOAL_FINISHED, """{"seed":"delivered"}""")
       store.markSynced(id = syncedId, syncedAt = "2026-09-01 00:00:00")
     }
-    repeat(pendingEvents) { index -> store.enqueue("skillbill_review_finished", """{"seed":$index}""") }
+    repeat(pendingEvents) { index -> store.enqueue(TelemetryOutboxEvent.REVIEW_FINISHED, """{"seed":$index}""") }
   }
   val arguments =
     listOf("--db", dbPath.toString(), "telemetry", "status") + if (json) listOf("--format", "json") else emptyList()
