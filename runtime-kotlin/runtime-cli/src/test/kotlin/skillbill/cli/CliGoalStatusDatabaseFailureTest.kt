@@ -11,7 +11,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class CliGoalStatusDatabaseFailureTest {
@@ -75,10 +74,10 @@ class CliGoalStatusDatabaseFailureTest {
         fixture.context(launcher = UnusedStatusAgentRunLauncher),
       )
 
-    assertEquals(1, result.exitCode, result.stdout)
-    assertFalse(result.stdout.contains("org.sqlite"), result.stdout)
-    assertFalse(result.stdout.lines().any { it.trimStart().startsWith("at ") }, result.stdout)
-    assertContains(result.stdout, unopenable.toAbsolutePath().normalize().toString())
+    assertEquals(1, result.exitCode, result.stderr)
+    assertFalse(result.stderr.contains("org.sqlite"), result.stderr)
+    assertFalse(result.stderr.lines().any { it.trimStart().startsWith("at ") }, result.stderr)
+    assertContains(result.stderr, unopenable.toAbsolutePath().normalize().toString())
   }
 
   @Test
@@ -86,29 +85,23 @@ class CliGoalStatusDatabaseFailureTest {
     val fixture = goalFixture(subtaskCount = 1)
     val missingSource = fixture.tempDir.resolve("absent-skill")
 
-    val thrown =
-      runCatching {
-        CliRuntime.run(
-          listOf(
-            "install",
-            "link-skill",
-            "--source",
-            missingSource.toString(),
-            "--target-dir",
-            fixture.tempDir.resolve("agent/skills").toString(),
-            "--agent",
-            "codex",
-          ),
-          fixture.context(launcher = UnusedStatusAgentRunLauncher).copy(environment = emptyMap()),
-        )
-      }
-
-    val error =
-      assertNotNull(
-        thrown.exceptionOrNull(),
-        "the new database catch swallowed an unrelated failure instead of letting it propagate",
+    val result =
+      CliRuntime.run(
+        listOf(
+          "install",
+          "link-skill",
+          "--source",
+          missingSource.toString(),
+          "--target-dir",
+          fixture.tempDir.resolve("agent/skills").toString(),
+          "--agent",
+          "codex",
+        ),
+        fixture.context(launcher = UnusedStatusAgentRunLauncher).copy(environment = emptyMap()),
       )
-    val rendered = error.toString()
+
+    assertEquals(1, result.exitCode, result.stderr)
+    val rendered = result.stderr
     assertFalse(
       rendered.contains("Database open failed") || rendered.contains("Database read failed"),
       "the new database catch reclassified an unrelated failure: $rendered",

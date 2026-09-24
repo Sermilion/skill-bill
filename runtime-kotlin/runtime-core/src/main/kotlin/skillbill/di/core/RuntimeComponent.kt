@@ -21,6 +21,7 @@ import skillbill.application.updatecheck.SkillBillUpdateService
 import skillbill.application.updatecheck.UpdateCheckService
 import skillbill.application.work.WorkListService
 import skillbill.application.workflow.service.WorkflowService
+import skillbill.di.experiment.RuntimeExperimentGoalProvides
 import skillbill.di.experiment.RuntimeExperimentProvides
 import skillbill.di.experiment.RuntimeExperimentTelemetryProvides
 import skillbill.di.featurespec.RuntimeFeatureSpecProvides
@@ -110,6 +111,7 @@ abstract class RuntimeComponent(
     RuntimeScaffoldValidationProvides,
     RuntimeInstallerProvides,
     RuntimeExperimentProvides,
+    RuntimeExperimentGoalProvides,
     RuntimeExperimentTelemetryProvides,
     RuntimeDiagnosticsProvides {
   private val resolvedRuntimeContext: RuntimeContext by lazy {

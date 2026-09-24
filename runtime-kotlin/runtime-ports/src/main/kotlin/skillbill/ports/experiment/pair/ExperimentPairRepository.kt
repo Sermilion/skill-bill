@@ -1,14 +1,15 @@
 package skillbill.ports.experiment.pair
 
 import skillbill.ports.experiment.pair.model.ExperimentObservationImport
+import skillbill.ports.experiment.pair.model.ExperimentPairPayload
 
 interface ExperimentPairRepository {
-  fun loadPairPayload(pairId: String): Pair<String, Map<String, Any?>>?
+  fun loadPairPayload(pairId: String): Pair<String, ExperimentPairPayload>?
 
   fun upsertPairRecord(
     pairId: String,
     executionMode: String,
-    payload: Map<String, Any?>,
+    payload: ExperimentPairPayload,
   )
 
   fun insertObservationIfAbsent(observation: ExperimentObservationImport): Boolean
@@ -17,12 +18,12 @@ interface ExperimentPairRepository {
 
   fun saveReport(
     pairId: String,
-    reportPayload: Map<String, Any?>,
+    reportPayload: ExperimentPairPayload,
   ) = Unit
 
-  fun loadReport(pairId: String): Map<String, Any?>? = null
+  fun loadReport(pairId: String): ExperimentPairPayload? = null
 
-  fun listReports(): List<Map<String, Any?>> = emptyList()
+  fun listReports(): List<ExperimentPairPayload> = emptyList()
 
   fun acquireLease(
     pairId: String,

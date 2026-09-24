@@ -21,6 +21,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorization
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerPausePersistenceResult
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
@@ -36,6 +37,7 @@ internal class GoalRunnerControlCoordinator(
   internal val database: DatabaseSessionFactory,
   internal val decompositionManifestValidator: DecompositionManifestValidator,
   internal val clock: Clock,
+  internal val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
   internal val saveProjection: (UnitOfWork, GoalRunnerManifestState) -> SavedManifestProjection,
 ) {
   fun controlState(parentWorkflowId: String): GoalRunnerControlState =
@@ -364,7 +366,7 @@ internal fun GoalRunnerControlCoordinator.requestPauseByIssueKey(
       ) ?: return@transaction null
     val existing = unitOfWork.goalRunnerControls.controlState(parent.workflowId)
     if (repoRoot != null) {
-      val identity = goalRepositoryIdentity(repoRoot)
+      val identity = repositoryEnclosingRootPort.repositoryIdentity(repoRoot)
       if (existing.repositoryIdentity != identity) {
         unitOfWork.goalRunnerControls.persistControlState(
           parent.workflowId,

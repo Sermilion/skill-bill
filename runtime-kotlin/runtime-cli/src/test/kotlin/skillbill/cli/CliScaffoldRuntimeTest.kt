@@ -37,6 +37,52 @@ class CliScaffoldRuntimeTest {
   }
 
   @Test
+  fun `cli scaffold uses explicit repo root and invocation root as the shared defaults`() {
+    val invocationRoot = Files.createTempDirectory("skillbill-cli-scaffold-invocation-root")
+    val explicitRoot = Files.createTempDirectory("skillbill-cli-scaffold-explicit-root")
+    val payload =
+      """
+      {"scaffold_payload_version":"1.0","kind":"horizontal","name":"bill-repo-root-parity"}
+      """.trimIndent()
+
+    val defaultResult =
+      CliRuntime.run(
+        listOf("new-skill", "--payload", "-", "--dry-run", "--format", "json"),
+        CliRuntimeContext(
+          repositoryRoot = invocationRoot,
+          userHome = invocationRoot,
+          stdinText = payload,
+        ),
+      )
+    val explicitResult =
+      CliRuntime.run(
+        listOf("new-skill", "--payload", "-", "--dry-run", "--format", "json"),
+        CliRuntimeContext(
+          repositoryRoot = invocationRoot,
+          userHome = invocationRoot,
+          stdinText =
+            payload.replace(
+              "\"kind\":\"horizontal\"",
+              "\"kind\":\"horizontal\",\"repo_root\":\"$explicitRoot\"",
+            ),
+        ),
+      )
+
+    assertEquals(0, defaultResult.exitCode, defaultResult.stderr)
+    assertEquals(0, explicitResult.exitCode, explicitResult.stderr)
+    val defaultSkillPath = Path.of(parseJsonObject(defaultResult.stdout).stringValue("skill_path"))
+    val explicitSkillPath = Path.of(parseJsonObject(explicitResult.stdout).stringValue("skill_path"))
+    assertTrue(
+      pathIsUnderRoot(defaultSkillPath, invocationRoot),
+      "default skill path $defaultSkillPath was not under $invocationRoot",
+    )
+    assertTrue(
+      pathIsUnderRoot(explicitSkillPath, explicitRoot),
+      "explicit skill path $explicitSkillPath was not under $explicitRoot",
+    )
+  }
+
+  @Test
   fun `dash body input preserves authored line endings`() {
     val body = "first\r\nsecond\r\n"
 
@@ -681,6 +727,21 @@ private fun scaffoldResult(
   val result = CliRuntime.run(arguments, context)
   assertEquals(0, result.exitCode, result.stdout)
   return result
+}
+
+private fun pathIsUnderRoot(
+  path: Path,
+  root: Path,
+): Boolean {
+  val normalizedPath = path.toAbsolutePath().normalize()
+  var existingAncestor = normalizedPath
+  while (!Files.exists(existingAncestor)) {
+    existingAncestor = existingAncestor.parent ?: return false
+  }
+  val canonicalAncestor = existingAncestor.toRealPath()
+  val canonicalPath =
+    canonicalAncestor.resolve(existingAncestor.relativize(normalizedPath)).normalize()
+  return canonicalPath.startsWith(root.toRealPath())
 }
 
 private fun parseJsonObject(rawJson: String): JsonObject {

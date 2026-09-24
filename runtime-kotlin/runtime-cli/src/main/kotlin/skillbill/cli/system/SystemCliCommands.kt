@@ -21,8 +21,10 @@ import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliExecutionResult
+import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.system.UpdateCheckContract
 
 @Inject
 class VersionCommand(
@@ -49,7 +51,7 @@ class UpdateCheckCommand(
 
   override fun run() {
     val result = service.check(includePrereleases)
-    if (format.wireName == "json") {
+    if (format == CliFormat.JSON) {
       state.complete(result.toPayload(), format, exitCode = 0)
     } else {
       state.completeText(result.toText(), result.toPayload(), exitCode = 0)
@@ -82,7 +84,7 @@ class UpdateCommand(
         environment = inputs.environment,
       )
     val result = updateService.run(request)
-    val wireStatus = result.status.toWireStatus()
+    val wireStatus = result.status.wireValue
     val mergedPayload =
       buildMap {
         putAll(result.plan.toPayload(wireStatus))
@@ -91,23 +93,13 @@ class UpdateCommand(
         result.updateCheck?.let { put("update_check", it.toPayload()) }
         result.reason?.let { put("reason", it) }
       }
-    if (format.wireName == "json") {
+    if (format == CliFormat.JSON) {
       state.complete(mergedPayload, format, exitCode = result.exitCode)
     } else {
       state.completeText(result.toText(mergedPayload), mergedPayload, exitCode = result.exitCode)
     }
   }
 }
-
-private fun UpdateRunStatus.toWireStatus(): String =
-  when (this) {
-    UpdateRunStatus.COMPLETED -> "completed"
-    UpdateRunStatus.FAILED -> "failed"
-    UpdateRunStatus.DRY_RUN -> "dry_run"
-    UpdateRunStatus.SKIPPED -> "skipped"
-    UpdateRunStatus.CHECK_FAILED -> "check_failed"
-    UpdateRunStatus.DOWNLOAD_FAILED -> "failed"
-  }
 
 private fun UpdateRunPlan.toPayload(status: String): Map<String, Any?> =
   linkedMapOf(
@@ -218,12 +210,12 @@ private fun UpdateCheckResult.toText(): String =
   }
 
 private fun UpdateCheckResult.toPayload(): Map<String, Any?> =
-  linkedMapOf(
-    SharedPayloadKeys.STATUS to status.wireName,
-    "installed_version" to installedVersion,
-    "latest_version" to latestVersion,
-    "release_url" to releaseUrl,
-    "recommended_install_command" to recommendedInstallCommand,
-    "reason" to reason,
-    "release_notes" to releaseNotes,
-  )
+  UpdateCheckContract(
+    status = status.wireName,
+    installedVersion = installedVersion,
+    latestVersion = latestVersion,
+    releaseUrl = releaseUrl,
+    recommendedInstallCommand = recommendedInstallCommand,
+    reason = reason,
+    releaseNotes = releaseNotes,
+  ).toPayload()

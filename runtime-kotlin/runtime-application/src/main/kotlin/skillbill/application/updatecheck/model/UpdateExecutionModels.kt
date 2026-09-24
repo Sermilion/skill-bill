@@ -9,6 +9,20 @@ enum class UpdateRunStatus {
   SKIPPED,
   CHECK_FAILED,
   DOWNLOAD_FAILED,
+
+  ;
+
+  val wireValue: String
+    get() =
+      when (this) {
+        COMPLETED -> "completed"
+        FAILED,
+        DOWNLOAD_FAILED,
+        -> "failed"
+        DRY_RUN -> "dry_run"
+        SKIPPED -> "skipped"
+        CHECK_FAILED -> "check_failed"
+      }
 }
 
 data class UpdateRunRequest(

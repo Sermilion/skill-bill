@@ -92,7 +92,7 @@ class CliGoalRuntimeExecutionTest {
         fixture.context(launcher = launcher),
       )
     assertEquals(1, denied.exitCode, denied.stdout)
-    assertContains(denied.stdout, "Hard reset requires explicit confirmation")
+    assertContains(denied.stderr, "Hard reset requires explicit confirmation")
 
     val confirmed =
       CliRuntime.run(

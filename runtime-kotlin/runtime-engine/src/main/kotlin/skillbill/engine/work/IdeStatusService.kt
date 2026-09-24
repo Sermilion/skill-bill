@@ -18,6 +18,7 @@ import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.system.CheckedOutBranchSource
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.work.model.WorkItemKind
+import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import skillbill.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
 import java.time.Clock
@@ -86,7 +87,7 @@ class IdeStatusService(
     }
   }
 
-  fun toWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> = ideStatusValidator.toWireMap(snapshot)
+  fun toWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> = ideStatusValidator.toWirePayload(snapshot).toPayload()
 
   private fun scopeToBranch(
     candidates: List<IdeStatusCandidate>,
@@ -188,7 +189,10 @@ internal fun resolveRepositoryIdentity(
       ?: return IdeStatusRepositoryResolution.Invalid("Path is not inside a Git repository: $repoRootArg")
   val canonicalGitRoot = repositoryEnclosingRootPort.canonicalPath(gitRoot)
   val identity = goalRepositoryIdentity(canonicalGitRoot, repositoryEnclosingRootPort)
-  return if (identity.isBlank() || !identity.startsWith("repo-root-realpath-v1:")) {
+  return if (
+    identity.isBlank() ||
+    !identity.startsWith(FeatureTaskExecutionIdentityPolicy.REPOSITORY_IDENTITY_PREFIX)
+  ) {
     IdeStatusRepositoryResolution.Missing(
       "Could not form canonical repository identity for: $repoRootArg",
     )

@@ -2,17 +2,17 @@ package skillbill.cli.install.apply
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.ports.install.model.NativeAgentLinkOutcome
 import java.nio.file.Path
 
-private const val GOAL_CONTINUATION_ENV = "SKILL_BILL_GOAL_CONTINUATION"
 private const val GOAL_CONTINUATION_INSTALL_REFUSAL_EXIT_CODE = 64
 
 internal fun CliRunState.refuseInstallMutationDuringGoalContinuation(
   inputs: CliRunInputs,
   commandName: String,
 ): Boolean {
-  if (inputs.environment[GOAL_CONTINUATION_ENV] != "1") {
+  if (inputs.environment[FeatureTaskRuntimeGoalContinuationLaunchTokens.GOAL_CONTINUATION_ENV] != "1") {
     return false
   }
   val message =

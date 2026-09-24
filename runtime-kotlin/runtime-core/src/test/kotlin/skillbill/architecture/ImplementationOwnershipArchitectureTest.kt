@@ -2,7 +2,6 @@ package skillbill.architecture
 
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.extension
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.readText
 import kotlin.test.Test
@@ -83,9 +82,9 @@ class ImplementationOwnershipArchitectureTest {
     val forbiddenPackages =
       forbiddenSourcePackages(
         listOf(
-          "runtime-core/src/main/kotlin",
-          "runtime-cli/src/main/kotlin",
-          "runtime-mcp/src/main/kotlin",
+          moduleRelativePath("runtime-core", "src/main/kotlin"),
+          moduleRelativePath("runtime-cli", "src/main/kotlin"),
+          moduleRelativePath("runtime-mcp", "src/main/kotlin"),
           moduleRelativePath("runtime-infra:http", "src/main/kotlin"),
           moduleRelativePath("runtime-infra:sqlite", "src/main/kotlin"),
         ),
@@ -101,7 +100,7 @@ class ImplementationOwnershipArchitectureTest {
 
     val violations =
       movedPackageRoots
-        .flatMap(::kotlinFilesUnder)
+        .flatMap(::kotlinFilesUnderWithArchitectureAsserts)
         .flatMap { sourceFile ->
           sourceFile.importsForbiddenBy(forbiddenPackages).map { forbiddenImport ->
             "${runtimeRoot.relativize(sourceFile)} imports $forbiddenImport"
@@ -122,7 +121,7 @@ class ImplementationOwnershipArchitectureTest {
     val runtimeCoreBuild = runtimeRoot.resolve("runtime-kotlin/runtime-core/build.gradle.kts").readText()
     assertNoRuntimeCorePublicProjectEdges(runtimeCoreBuild)
 
-    val runtimeCoreSourceFiles = kotlinFilesUnder(runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin"))
+    val runtimeCoreSourceFiles = kotlinFilesUnderWithArchitectureAsserts(moduleMainKotlinRoot("runtime-core"))
     val runtimeCorePackages = runtimeCoreSourceFiles.mapNotNull(::packageName).toSet()
     assertTrue(
       runtimeCorePackages.all { sourcePackage ->
@@ -164,7 +163,7 @@ class ImplementationOwnershipArchitectureTest {
         "skillbill.skillremove",
         "skillbill.workflow",
       )
-    return kotlinFilesUnder(runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin"))
+    return kotlinFilesUnderWithArchitectureAsserts(moduleMainKotlinRoot("runtime-core"))
       .flatMap { sourceFile ->
         sourceFile.readText().lineSequence()
           .mapNotNull { line -> line.trim().removePrefix("import ").takeIf { line.trim().startsWith("import ") } }
@@ -181,10 +180,10 @@ class ImplementationOwnershipArchitectureTest {
 
   @Test
   fun `runtime core imports concrete infrastructure only from composition files`() {
-    val runtimeCoreSourceFiles = kotlinFilesUnder(runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin"))
-    val diDir = runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di")
+    val runtimeCoreSourceFiles = kotlinFilesUnderWithArchitectureAsserts(moduleMainKotlinRoot("runtime-core"))
+    val diDir = moduleMainKotlinRoot("runtime-core").resolve("skillbill/di")
     val compositionFiles =
-      kotlinFilesUnder(diDir)
+      kotlinFilesUnderWithArchitectureAsserts(diDir)
         .filter { path ->
           val name = path.fileName.toString()
           name == "RuntimeComponent.kt" ||
@@ -283,7 +282,7 @@ class ImplementationOwnershipArchitectureTest {
 
     val violations =
       layerRules.flatMap { (sourceRoot, forbiddenPrefixes) ->
-        kotlinFilesUnder(runtimeRoot.resolve(sourceRoot)).flatMap { sourceFile ->
+        kotlinFilesUnderWithArchitectureAsserts(runtimeRoot.resolve(sourceRoot)).flatMap { sourceFile ->
           sourceFile.importsForbiddenBy(forbiddenPrefixes.toSet()).map { forbiddenImport ->
             "${runtimeRoot.relativize(sourceFile)} imports $forbiddenImport"
           }
@@ -371,7 +370,7 @@ class ImplementationOwnershipArchitectureTest {
         "RuntimeScaffoldValidationProvides.kt",
         "RuntimeDiagnosticsProvides.kt",
       ).joinToString("\n") { fileName ->
-        kotlinFilesUnder(runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di"))
+        kotlinFilesUnderWithArchitectureAsserts(moduleMainKotlinRoot("runtime-core").resolve("skillbill/di"))
           .single { path -> path.fileName.toString() == fileName }
           .readText()
       }
@@ -416,7 +415,7 @@ class ImplementationOwnershipArchitectureTest {
     val violations =
       adapterSourceRoots
         .map { sourceRoot -> runtimeRoot.resolve(sourceRoot) }
-        .flatMap(::kotlinFilesUnder)
+        .flatMap(::kotlinFilesUnderWithArchitectureAsserts)
         .flatMap { sourceFile ->
           sourceFile.runtimeImplementationImports().map { importedName ->
             "${runtimeRoot.relativize(sourceFile)} imports $importedName"
@@ -449,7 +448,7 @@ class ImplementationOwnershipArchitectureTest {
 
     val violations =
       policySourceRoots
-        .flatMap(::kotlinFilesUnder)
+        .flatMap(::kotlinFilesUnderWithArchitectureAsserts)
         .filter { sourceFile -> isPolicyOrScaffoldApplicationFile(sourceFile) }
         .flatMap { sourceFile ->
           sourceFile.readText().lineSequence()
@@ -704,19 +703,10 @@ class ImplementationOwnershipArchitectureTest {
   private fun forbiddenSourcePackages(moduleSourceRoots: List<String>): Set<String> =
     moduleSourceRoots
       .map { sourceRoot -> runtimeRoot.resolve(sourceRoot) }
-      .flatMap(::kotlinFilesUnder)
+      .flatMap(::kotlinFilesUnderWithArchitectureAsserts)
       .mapNotNull { sourceFile -> packageName(sourceFile) }
       .filterNot { packageName -> packageName == "skillbill" }
       .toSet()
-
-  private fun kotlinFilesUnder(root: Path): List<Path> {
-    if (!Files.exists(root)) return emptyList()
-    return Files.walk(root).use { paths ->
-      paths
-        .filter { path -> path.isRegularFile() && path.extension == "kt" }
-        .toList()
-    }
-  }
 
   private fun packageName(sourceFile: Path): String? =
     sourceFile.readText().lineSequence()

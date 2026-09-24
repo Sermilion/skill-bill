@@ -116,7 +116,7 @@ class CliBillMonitorSkillRuntimeTest {
       )
 
     assertEquals(1, result.exitCode)
-    assertContains(result.stdout, "Monitor requires a non-blank issue key")
+    assertContains(result.stderr, "Monitor requires a non-blank issue key")
     assertTrue(launcher.childLaunches.isEmpty())
   }
 

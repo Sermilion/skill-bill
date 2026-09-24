@@ -17,7 +17,6 @@ import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
 import skillbill.application.review.parallel.runner.ParallelCodeReviewRunner
 import skillbill.application.review.service.RequestedReviewMode
-import skillbill.application.review.stats.toReviewAccountingPayload
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.cli.kernel.agent.invokingAgentResolutionHelp
 import skillbill.cli.kernel.agent.requireInvokingAgentId
@@ -25,9 +24,9 @@ import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
-import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.ReviewAggregationIntegrityError
 import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.workflow.goal.model.toReviewAccountingBoundedJson
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
 
@@ -262,7 +261,7 @@ private fun writeParallelReviewResult(
       result.accountingSummary?.let { summary ->
         appendLine()
         append("# Review accounting — ")
-        append(JsonCodec.mapToJsonString(summary.toReviewAccountingPayload()))
+        append(summary.toReviewAccountingBoundedJson())
       }
     }
   state.completeText(output, emptyMap(), exitCode = exitCode)

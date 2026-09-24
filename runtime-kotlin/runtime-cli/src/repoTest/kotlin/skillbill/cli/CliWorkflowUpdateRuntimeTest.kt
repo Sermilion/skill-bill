@@ -120,7 +120,7 @@ class CliWorkflowUpdateRuntimeTest {
         )
 
       assertEquals(1, rejected.exitCode, rejected.stdout)
-      assertContains(rejected.stdout, "--step-updates must be a JSON array of objects.")
+      assertContains(rejected.stderr, "--step-updates must be a JSON array of objects.")
       val after =
         runJson(
           "--db",

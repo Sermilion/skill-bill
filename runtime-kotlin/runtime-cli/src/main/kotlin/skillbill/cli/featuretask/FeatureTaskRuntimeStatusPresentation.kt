@@ -73,60 +73,76 @@ internal fun FeatureTaskRuntimePhaseStatus.toRuntimePhaseStatusCliMap(): Map<Str
     "finished" to finished,
   )
 
-internal fun Map<String, Any?>.runtimeStatusExitCode(): Int = if (this[SharedPayloadKeys.STATUS] == "ok") 0 else 1
+internal fun runtimeStatusExitCode(projection: FeatureTaskRuntimeStatusProjection?): Int =
+  if (projection != null) 0 else 1
 
-internal fun runtimeStatusText(payload: Map<String, Any?>): String =
+internal fun runtimeStatusText(
+  projection: FeatureTaskRuntimeStatusProjection?,
+  workflowId: String,
+): String =
   buildString {
-    appendLine("feature-task-runtime: ${payload[SharedPayloadKeys.WORKFLOW_ID]}")
-    appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
-    appendLine("feature_size: ${payload["feature_size"] ?: "unknown"}")
-    appendLine("complete: ${payload["complete_count"]}")
-    appendLine("pending: ${payload["pending_count"]}")
-    appendLine("blocked: ${payload["blocked_count"]}")
-    appendLine("current_phase: ${payload["current_phase"] ?: "none"}")
-    appendLine("resolved_branch: ${payload["resolved_branch"] ?: "none"}")
-    appendLine("finalizing_agent: ${payload["finalizing_agent_id"] ?: "none"}")
-    appendRuntimeValidationGateEvidence(payload)
-    (payload["degraded_diagnostic"] as? Map<*, *>)?.let { degraded ->
-      appendLine("degraded_diagnostic_count: ${degraded["count"]}")
-      appendLine("degraded_diagnostic_failure_class: ${degraded["failure_class"]}")
-      appendLine("degraded_diagnostic_phase: ${degraded[SharedPayloadKeys.PHASE_ID]}")
-      appendLine("degraded_diagnostic_attempt: ${degraded["attempt"]}")
-    }
-    (payload["decompose_terminal"] as? Map<*, *>)?.let { terminal ->
-      appendLine("decomposition_reason: ${terminal["reason"]}")
-      appendLine("subtask_count: ${terminal["subtask_count"]}")
-      appendLine("parent_spec_path: ${terminal["parent_spec_path"]}")
-      appendLine("decomposition_manifest_path: ${terminal["decomposition_manifest_path"]}")
-      (terminal["subtask_spec_paths"] as? List<*>).orEmpty().forEach { appendLine("subtask_spec_path: $it") }
-      appendLine("guidance: ${terminal["guidance"]}")
-    }
-    (payload["phases"] as? List<*>).orEmpty().forEach { rawPhase ->
-      val phase = rawPhase as? Map<*, *> ?: return@forEach
+    appendLine("feature-task-runtime: ${projection?.workflowId ?: workflowId}")
+    appendLine("status: ${projection.statusText()}")
+    appendLine("feature_size: ${projection?.featureSize ?: "unknown"}")
+    appendLine("complete: ${projection?.completeCount ?: 0}")
+    appendLine("pending: ${projection?.pendingCount ?: 0}")
+    appendLine("blocked: ${projection?.blockedCount ?: 0}")
+    appendLine("current_phase: ${projection?.currentPhaseId ?: "none"}")
+    appendLine("resolved_branch: ${projection?.resolvedBranch ?: "none"}")
+    appendLine("finalizing_agent: ${projection?.finalizingAgentId ?: "none"}")
+    appendValidationGateStatus(projection)
+    appendDegradedDiagnostic(projection)
+    appendDecompositionTerminal(projection)
+    appendPhaseStatuses(projection)
+  }
+
+private fun FeatureTaskRuntimeStatusProjection?.statusText(): String = if (this == null) "not_found" else "ok"
+
+private fun StringBuilder.appendValidationGateStatus(projection: FeatureTaskRuntimeStatusProjection?) {
+  projection?.validationGateExecutionEvidence?.let { evidence ->
+    appendLine("validation_gate_status: ${evidence.validationStatus}")
+    appendLine("validation_gate_checks: ${evidence.checks.joinToString(",")}")
+    appendLine("validation_gate_run_count: ${evidence.gateRunCount}")
+    evidence.gateRuns.forEach { run ->
       appendLine(
-        "phase: id=${phase[SharedPayloadKeys.PHASE_ID]} " +
-          "status=${phase[SharedPayloadKeys.STATUS]} " +
-          "attempt=${phase["attempt_count"]} " +
-          "agent=${phase["resolved_agent_id"] ?: "none"} " +
-          "origin=${phase["execution_origin"] ?: "none"} " +
-          "finished=${phase["finished"]}",
+        "validation_gate_run: cache_mode=${run.cacheMode.wireValue} " +
+          "outcome=${run.outcome.wireValue} " +
+          "executed_work_units=${run.executedWorkUnits} " +
+          "checks=${run.executedChecks.joinToString(",")}",
       )
     }
   }
+}
 
-private fun StringBuilder.appendRuntimeValidationGateEvidence(payload: Map<String, Any?>) {
-  val checks = payload[ValidationEvidencePayloadKeys.CHECKS] as? List<*> ?: return
-  appendLine("validation_gate_status: ${payload[ValidationEvidencePayloadKeys.VALIDATION_STATUS]}")
-  appendLine("validation_gate_checks: ${checks.joinToString(",")}")
-  appendLine("validation_gate_run_count: ${payload[ValidationEvidencePayloadKeys.GATE_RUN_COUNT]}")
-  (payload[ValidationEvidencePayloadKeys.GATE_RUNS] as? List<*>).orEmpty().forEach { rawRun ->
-    val run = rawRun as? Map<*, *> ?: return@forEach
-    val runChecks = (run[ValidationEvidencePayloadKeys.EXECUTED_CHECKS] as? List<*>).orEmpty()
+private fun StringBuilder.appendDegradedDiagnostic(projection: FeatureTaskRuntimeStatusProjection?) {
+  projection?.degradedDiagnostic?.let { degraded ->
+    appendLine("degraded_diagnostic_count: ${degraded.count}")
+    appendLine("degraded_diagnostic_failure_class: ${degraded.failureClass}")
+    appendLine("degraded_diagnostic_phase: ${degraded.phaseId}")
+    appendLine("degraded_diagnostic_attempt: ${degraded.attempt}")
+  }
+}
+
+private fun StringBuilder.appendDecompositionTerminal(projection: FeatureTaskRuntimeStatusProjection?) {
+  projection?.decomposeTerminal?.let { terminal ->
+    appendLine("decomposition_reason: ${terminal.reason}")
+    appendLine("subtask_count: ${terminal.subtaskCount}")
+    appendLine("parent_spec_path: ${terminal.parentSpecPath}")
+    appendLine("decomposition_manifest_path: ${terminal.decompositionManifestPath}")
+    terminal.subtaskSpecPaths.forEach { appendLine("subtask_spec_path: $it") }
+    appendLine("guidance: $DECOMPOSE_GUIDANCE")
+  }
+}
+
+private fun StringBuilder.appendPhaseStatuses(projection: FeatureTaskRuntimeStatusProjection?) {
+  projection?.phases.orEmpty().forEach { phase ->
     appendLine(
-      "validation_gate_run: cache_mode=${run[ValidationEvidencePayloadKeys.CACHE_MODE]} " +
-        "outcome=${run[ValidationEvidencePayloadKeys.OUTCOME]} " +
-        "executed_work_units=${run[ValidationEvidencePayloadKeys.EXECUTED_WORK_UNITS]} " +
-        "checks=${runChecks.joinToString(",")}",
+      "phase: id=${phase.phaseId} " +
+        "status=${phase.status} " +
+        "attempt=${phase.attemptCount} " +
+        "agent=${phase.resolvedAgentId ?: "none"} " +
+        "origin=${phase.executionOrigin ?: "none"} " +
+        "finished=${phase.finished}",
     )
   }
 }

@@ -264,6 +264,7 @@ class CliGoalWatchRuntimeTest {
   @Test
   fun `goal watch accepts zero refresh bound and stops when goal is not found`() {
     val fixture = goalFixture(subtaskCount = 1)
+    val liveOutput = StringBuilder()
 
     val watch =
       CliRuntime.run(
@@ -278,13 +279,16 @@ class CliGoalWatchRuntimeTest {
           "--max-refreshes",
           "0",
         ),
-        fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+        fixture.context(
+          launcher = NoopGoalTestAgentRunLauncher,
+          liveStdout = { liveOutput.append(it) },
+        ),
       )
 
     assertEquals(1, watch.exitCode, watch.stdout)
     assertEquals(1, watch.payload?.get("refresh_count"))
     assertEquals("not_found", watch.payload?.get("stop_reason"))
-    assertContains(watch.stdout, "watch_refresh: index=1 status=not_found")
+    assertContains(liveOutput.toString(), "watch_refresh: index=1 status=not_found")
   }
 
   @Test
@@ -305,8 +309,8 @@ class CliGoalWatchRuntimeTest {
         fixture.context(launcher = NoopGoalTestAgentRunLauncher),
       )
 
-    assertEquals(1, watch.exitCode, watch.stdout)
-    assertContains(watch.stdout, "--max-refreshes must be non-negative")
+    assertEquals(1, watch.exitCode, watch.stderr)
+    assertContains(watch.stderr, "--max-refreshes must be non-negative")
   }
 
   @Test

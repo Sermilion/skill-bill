@@ -1,24 +1,26 @@
 package skillbill.ports.experiment.pair
 
+import skillbill.ports.experiment.pair.model.ExperimentPairPayload as ExperimentPairPayloadModel
 import skillbill.ports.experiment.pair.model.ExperimentPairPersistedState as ExperimentPairPersistedStateModel
 
 typealias ExperimentPairPersistedState = ExperimentPairPersistedStateModel
+typealias ExperimentPairPayload = ExperimentPairPayloadModel
 
 interface ExperimentPairOwnerPort {
   fun load(pairId: String): ExperimentPairPersistedState?
 
   fun save(state: ExperimentPairPersistedState)
 
-  fun importObservation(payload: Map<String, Any?>): Boolean
+  fun importObservation(payload: ExperimentPairPayload): Boolean
 
   fun saveReport(
     pairId: String,
-    reportPayload: Map<String, Any?>,
+    reportPayload: ExperimentPairPayload,
   ) = Unit
 
-  fun loadReport(pairId: String): Map<String, Any?>? = null
+  fun loadReport(pairId: String): ExperimentPairPayload? = null
 
-  fun listReports(): List<Map<String, Any?>> = emptyList()
+  fun listReports(): List<ExperimentPairPayload> = emptyList()
 
   fun acquireLease(
     pairId: String,

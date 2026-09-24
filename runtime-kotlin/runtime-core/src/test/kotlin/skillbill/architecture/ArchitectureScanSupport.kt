@@ -22,7 +22,11 @@ object ArchitectureScanSupport {
   data class LineCeilingExemption(val relativePath: String, val reason: String)
 
   fun kotlinFilesUnder(root: Path): List<Path> {
-    if (!Files.exists(root)) return emptyList()
+    if (!Files.isDirectory(root)) {
+      error(
+        "Missing architecture scan root: ${scanRootLabel(root)}",
+      )
+    }
     return Files.walk(root).use { paths ->
       paths
         .filter { path ->
@@ -1000,7 +1004,11 @@ object ArchitectureScanSupport {
   private val KOTLIN_SOURCE_EXTENSIONS: Set<String> = setOf("kt", "kts")
 
   fun authoredKotlinSourcesUnder(root: Path): List<Path> {
-    if (!Files.exists(root)) return emptyList()
+    if (!Files.isDirectory(root)) {
+      error(
+        "Missing architecture scan root: ${scanRootLabel(root)}",
+      )
+    }
     return Files.walk(root).use { paths ->
       paths
         .filter { path ->
@@ -1009,6 +1017,15 @@ object ArchitectureScanSupport {
             !isGeneratedOrBuildPath(path)
         }
         .toList()
+    }
+  }
+
+  private fun scanRootLabel(root: Path): String {
+    val normalized = root.toAbsolutePath().normalize()
+    return if (normalized.startsWith(runtimeRoot)) {
+      runtimeRoot.relativize(normalized).toString().replace('\\', '/')
+    } else {
+      normalized.toString().replace('\\', '/')
     }
   }
 

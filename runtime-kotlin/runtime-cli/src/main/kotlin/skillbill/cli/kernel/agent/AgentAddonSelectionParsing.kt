@@ -4,20 +4,33 @@ import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 
 internal fun parseAgentAddonSelection(raw: String?): AgentAddonSelection {
   if (raw == null) return AgentAddonSelection()
   val root =
     JsonCodec.parseObjectOrNull(raw)
-      ?: invalidAgentAddonSelection("--agent-addon-selection-json must be a JSON object.")
+      ?: invalidAgentAddonSelection(
+        "${FeatureTaskRuntimeGoalContinuationLaunchTokens.AGENT_ADDON_SELECTION_JSON_FLAG} must be a JSON object.",
+      )
   val map =
     JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(root))
-      ?: invalidAgentAddonSelection("--agent-addon-selection-json must decode to an object.")
-  if (map.keys != setOf("contract_version", "entries") || map[SharedPayloadKeys.CONTRACT_VERSION] != "0.1") {
+      ?: invalidAgentAddonSelection(
+        "${FeatureTaskRuntimeGoalContinuationLaunchTokens.AGENT_ADDON_SELECTION_JSON_FLAG} must decode to an object.",
+      )
+  if (
+    map.keys !=
+    setOf(
+      SharedPayloadKeys.CONTRACT_VERSION,
+      FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ENTRIES,
+    ) ||
+    map[SharedPayloadKeys.CONTRACT_VERSION] != "0.1"
+  ) {
     invalidAgentAddonSelection("Agent add-on selection must contain only contract_version=0.1 and entries.")
   }
   val entries =
-    map["entries"] as? List<*>
+    map[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ENTRIES] as? List<*>
       ?: invalidAgentAddonSelection("Agent add-on selection entries must be an ordered array.")
   return try {
     AgentAddonSelection(
@@ -25,19 +38,24 @@ internal fun parseAgentAddonSelection(raw: String?): AgentAddonSelection {
         val entry =
           JsonCodec.anyToStringAnyMap(valueEntry)
             ?: invalidAgentAddonSelection("Agent add-on selection entry $index must be an object.")
-        val persistedKeys = setOf("slug", "source_identity", "content_sha256")
-        if (!entry.keys.containsAll(persistedKeys) || entry.keys.any { it !in persistedKeys + "description" }) {
+        val persistedKeys =
+          setOf(
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
+            FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
+          )
+        if (!entry.keys.containsAll(persistedKeys) || entry.keys.any { it !in persistedKeys }) {
           invalidAgentAddonSelection("Agent add-on selection entry $index has unsupported or missing fields.")
         }
         PersistedAgentAddonSelectionEntry(
           slug =
-            entry["slug"] as? String
+            entry[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG] as? String
               ?: invalidAgentAddonSelection("Entry $index slug is required."),
           sourceIdentity =
-            entry["source_identity"] as? String
+            entry[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY] as? String
               ?: invalidAgentAddonSelection("Entry $index source_identity is required."),
           contentSha256 =
-            entry["content_sha256"] as? String
+            entry[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256] as? String
               ?: invalidAgentAddonSelection("Entry $index content_sha256 is required."),
         )
       },

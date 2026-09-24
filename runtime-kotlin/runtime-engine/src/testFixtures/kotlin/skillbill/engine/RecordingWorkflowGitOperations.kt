@@ -19,7 +19,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
-import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityPayloadCodec
+import skillbill.ports.workflow.gitops.readiness.encodeReadinessTreeIdentityPayload
 import skillbill.ports.workflow.gitops.worktree.LinkedWorktreeAddRequest
 import skillbill.ports.workflow.gitops.worktree.LinkedWorktreeRemoveRequest
 import skillbill.ports.workflow.gitops.worktree.WorkflowGitLinkedWorktreeOperations
@@ -398,7 +398,7 @@ class RecordingWorkflowGitOperations(
       ): WorkflowGitOperationResult =
         WorkflowGitOperationResult.Ok(
           value =
-            ReadinessTreeIdentityPayloadCodec.encode(
+            encodeReadinessTreeIdentityPayload(
               readinessTreeIdentity.copy(headSha = headCommitShaValue.ifBlank { readinessTreeIdentity.headSha }),
             ),
         )

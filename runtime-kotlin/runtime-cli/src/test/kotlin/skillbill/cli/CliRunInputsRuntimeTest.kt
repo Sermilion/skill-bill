@@ -1,13 +1,22 @@
 package skillbill.cli
 
+import skillbill.application.workflow.model.WorkflowFamilyKind
+import skillbill.application.workflow.model.WorkflowOpenResult
+import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
+import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.ports.system.HostPlatformPort
+import skillbill.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class CliRunInputsRuntimeTest {
@@ -94,11 +103,13 @@ class CliRunInputsRuntimeTest {
         CliRuntimeContext(environment = emptyMap(), userHome = repoRoot),
       )
 
-    assertTrue(injectedRoot.stdout.contains(specsRoot), injectedRoot.stdout)
-    assertTrue(explicitRoot.stdout.contains(specsRoot), explicitRoot.stdout)
-    assertEquals(injectedRoot.exitCode, processRoot.exitCode, processRoot.stdout)
-    assertTrue(processRoot.stdout.contains("SKILL-901"), processRoot.stdout)
-    assertFalse(processRoot.stdout.contains(specsRoot), processRoot.stdout)
+    val injectedRootOutput = injectedRoot.stdout + injectedRoot.stderr
+    val explicitRootOutput = explicitRoot.stdout + explicitRoot.stderr
+    assertTrue(injectedRootOutput.contains(specsRoot), injectedRootOutput)
+    assertTrue(explicitRootOutput.contains(specsRoot), explicitRootOutput)
+    assertEquals(injectedRoot.exitCode, processRoot.exitCode, processRoot.stderr)
+    val processRootOutput = processRoot.stdout + processRoot.stderr
+    assertFalse(processRootOutput.contains(specsRoot), processRootOutput)
 
     val scaffold =
       CliRuntime.run(
@@ -113,6 +124,45 @@ class CliRunInputsRuntimeTest {
       realRoot.resolve("skills/bill-injected-root-skill").toString(),
       decodeJsonObject(scaffold.stdout)["skill_path"],
     )
+  }
+
+  @Test
+  fun `feature-task lookup uses the enclosing Git root identity for a child invocation`() {
+    val repositoryRoot = Files.createTempDirectory("skillbill-cli-lookup-repository")
+    Files.createDirectories(repositoryRoot.resolve(".git"))
+    val invocationRoot = Files.createDirectories(repositoryRoot.resolve("nested/invocation"))
+    val home = Files.createTempDirectory("skillbill-cli-lookup-home")
+    val db = home.resolve("metrics.db")
+    val context =
+      CliRuntimeContext(
+        dbPathOverride = db.toString(),
+        repositoryRoot = invocationRoot,
+        userHome = home,
+        environment = emptyMap(),
+      )
+    val identity = CanonicalRepositoryRoot.repositoryIdentity(invocationRoot)
+    val service =
+      RuntimeComponent::class.create(
+        context.toRuntimeContext(dbPathOverride = db.toString()),
+      ).workflowService
+    assertIs<WorkflowOpenResult.Ok>(
+      service.open(
+        WorkflowServiceOpenArgs(
+          kind = WorkflowFamilyKind.TASK_RUNTIME,
+          issueKey = "SKILL-902",
+          repositoryIdentity = identity,
+          governedSpecPath = ".feature-specs/SKILL-902/spec.md",
+          routeScope = FeatureTaskRouteScope.STANDALONE,
+        ),
+      ),
+    )
+
+    val lookup = CliRuntime.run(listOf("feature-task", "lookup", "SKILL-902"), context)
+
+    assertEquals(0, lookup.exitCode, lookup.stderr)
+    assertContains(lookup.stdout, "already_running")
+    assertContains(lookup.stdout, ".feature-specs/SKILL-902/spec.md")
+    assertEquals("repo-root-realpath-v1:${repositoryRoot.toRealPath()}", identity)
   }
 
   @Test

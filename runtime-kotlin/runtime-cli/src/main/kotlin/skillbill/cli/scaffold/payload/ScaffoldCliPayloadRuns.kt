@@ -1,20 +1,21 @@
 package skillbill.cli.scaffold.payload
-import skillbill.application.install.ExternalAddonOverlayService
+
+import kotlinx.serialization.json.JsonObject
+import skillbill.application.scaffold.decodeScaffoldPayloadObject
+import skillbill.application.scaffold.model.ScaffoldInvocationArgs
+import skillbill.application.scaffold.runScaffoldInvocation
 import skillbill.cli.kernel.cli.CliOutput
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliFormat
-import skillbill.cli.model.CliRunInputs
 import skillbill.cli.scaffold.commands.CreateAndFillArgs
 import skillbill.cli.scaffold.commands.NativeScaffoldPayloadPathArgs
 import skillbill.cli.scaffold.commands.NativeScaffoldRunArgs
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.core.SkillBillRuntimeException
-import skillbill.install.model.ExternalAddonSource
-import skillbill.ports.repository.toFileLocation
 import skillbill.ports.scaffold.ScaffoldGateway
 import skillbill.ports.scaffold.model.ScaffoldRenderResult
-import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import java.nio.file.Path
 
 internal fun runNativeScaffoldPayload(args: NativeScaffoldPayloadPathArgs): CliExecutionResult {
@@ -33,42 +34,65 @@ internal fun runNativeScaffoldPayload(
   payload: Map<String, *>,
   run: NativeScaffoldRunArgs,
 ): CliExecutionResult {
+  val payloadText =
+    try {
+      JsonCodec.mapToJsonString(payload.mapValues { (_, value) -> value })
+    } catch (error: SkillBillRuntimeException) {
+      return errorResult(error.message.orEmpty(), run.format)
+    }
+  val payloadObject =
+    try {
+      decodeScaffoldPayloadObject(payloadText)
+    } catch (error: IllegalArgumentException) {
+      return errorResult(error.message.orEmpty(), run.format)
+    }
+  return runNativeScaffoldPayload(payloadObject, run)
+}
+
+internal fun runNativeScaffoldPayload(
+  payload: JsonObject,
+  run: NativeScaffoldRunArgs,
+): CliExecutionResult {
   val dryRun = run.dryRun
   val format = run.format
   val inputs = run.inputs
   val scaffoldGateway = run.scaffoldGateway
-  val externalAddonOverlayService = run.externalAddonOverlayService
-  val sessionId = generateScaffoldSessionId(run.clock)
-  val payloadWithRepoRoot =
-    if ((payload["repo_root"] as? String).isNullOrBlank()) {
-      payload + ("repo_root" to findRepoRoot(inputs.repositoryRoot).toString())
-    } else {
-      payload
-    }
-  val typedPayload: Map<String, Any?> = payloadWithRepoRoot.mapValues { (_, value) -> value }
-  val result =
+  val outcome =
     try {
-      val request = parseScaffoldCommandRequest(typedPayload)
-      val scaffoldResult = scaffoldGateway.scaffold(request, dryRun = dryRun)
-      registerExternalAddonSourceAfterSuccess(request, dryRun, inputs, externalAddonOverlayService)
-      scaffoldResult
+      runScaffoldInvocation(
+        scaffoldGateway,
+        ScaffoldInvocationArgs(
+          payload = payload,
+          invocationRepositoryRoot = inputs.repositoryRoot,
+          dryRun = dryRun,
+          registerExternalSources = true,
+          externalAddonOverlayService = run.externalAddonOverlayService,
+          userHome = inputs.userHome,
+          environment = inputs.environment,
+          clock = run.clock,
+        ),
+      )
     } catch (error: SkillBillRuntimeException) {
       return errorResult(error.message.orEmpty(), format)
     }
+  val result = outcome.scaffoldResult
   val created = result.run { createdFiles }.map { path -> path.toString() }
   val presentation =
-    mapOf(
-      SharedPayloadKeys.STATUS to "ok",
-      "session_id" to sessionId,
-      "skill_path" to result.skillPath.toString(),
-      "dry_run" to dryRun,
-      "created_files" to created,
-      "manifest_edits" to result.manifestEdits.map { path -> path.toString() },
-      "manifest_edit_previews" to result.manifestPreviews.mapKeys { (path, _) -> path.toString() },
-      "notes" to result.notes,
-    )
+    buildMap {
+      put(SharedPayloadKeys.STATUS, if (outcome.registrationFailure == null) "ok" else "partial")
+      put("session_id", outcome.sessionId)
+      put("skill_path", result.skillPath.toString())
+      put("dry_run", dryRun)
+      put("created_files", created)
+      put("manifest_edits", result.manifestEdits.map { path -> path.toString() })
+      put("manifest_edit_previews", result.manifestPreviews.mapKeys { (path, _) -> path.toString() })
+      put("notes", result.notes)
+      outcome.registrationFailure?.let { failure ->
+        put("registration_error", failure)
+      }
+    }
   return CliExecutionResult(
-    exitCode = 0,
+    exitCode = if (outcome.registrationFailure == null) 0 else 1,
     stdout = CliOutput.emit(presentation, format),
     payload = presentation,
   )
@@ -113,25 +137,6 @@ internal fun createAndFillResult(args: CreateAndFillArgs): CliExecutionResult {
         ),
       )
   }
-}
-
-internal const val SCAFFOLD_SESSION_SUFFIX_LENGTH = 4
-
-internal fun registerExternalAddonSourceAfterSuccess(
-  request: ScaffoldCommandRequest,
-  dryRun: Boolean,
-  inputs: CliRunInputs,
-  externalAddonOverlayService: ExternalAddonOverlayService?,
-) {
-  if (externalAddonOverlayService == null) return
-  if (dryRun) return
-  val addOn = request as? ScaffoldCommandRequest.AddOn ?: return
-  val sourcePath = addOn.addonLocationPath?.takeIf(String::isNotBlank) ?: return
-  externalAddonOverlayService.registerSource(
-    home = inputs.userHome,
-    source = ExternalAddonSource(Path.of(sourcePath).toFileLocation(), addOn.platform),
-    environment = inputs.environment,
-  )
 }
 
 internal fun errorResult(

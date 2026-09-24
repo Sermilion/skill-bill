@@ -1,23 +1,41 @@
 package skillbill.cli.featuretask
 
 import com.github.ajalt.clikt.core.UsageError
+import skillbill.application.workflow.model.FeatureTaskGovernedSpecPathResult
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenFeatureTaskArgs
 import skillbill.application.workflow.persist.openFeatureTask
+import skillbill.application.workflow.resolveFeatureTaskGovernedSpecPath
 import skillbill.application.workflow.service.WorkflowService
 import skillbill.cli.model.CliRunInputs
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEventSink
+import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
+
+internal fun RepositoryEnclosingRootPort.governedSpecPathForCli(
+  repositoryRoot: Path,
+  specPath: Path,
+): String =
+  when (
+    val result = resolveFeatureTaskGovernedSpecPath(this, repositoryRoot, specPath)
+  ) {
+    is FeatureTaskGovernedSpecPathResult.Ok -> result.relativePath
+    is FeatureTaskGovernedSpecPathResult.OutsideRepository ->
+      throw UsageError("Governed spec path must remain inside repository '${result.repositoryRoot}'.")
+    FeatureTaskGovernedSpecPathResult.InvalidGovernedPath ->
+      throw UsageError("Governed spec path must be Markdown beneath .feature-specs/.")
+  }
 
 internal fun WorkflowService.openRuntimeWorkflowId(
   issueKey: String?,
   specPath: String,
   repoRoot: Path,
   routeScope: FeatureTaskRouteScope,
+  repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 ): String =
   when (
     val opened =
@@ -27,8 +45,9 @@ internal fun WorkflowService.openRuntimeWorkflowId(
           sessionId = "",
           currentStepId = null,
           issueKey = requireNotNull(issueKey),
-          repositoryIdentity = repositoryIdentity(repoRoot),
-          governedSpecPath = governedSpecPath(repoRoot, Path.of(specPath)),
+          repositoryIdentity = repositoryEnclosingRootPort.repositoryIdentity(repoRoot),
+          governedSpecPath =
+            repositoryEnclosingRootPort.governedSpecPathForCli(repoRoot, Path.of(specPath)),
           routeScope = routeScope,
         ),
       )
@@ -39,35 +58,6 @@ internal fun WorkflowService.openRuntimeWorkflowId(
     )
   }
 
-internal fun repositoryIdentity(start: Path): String {
-  return "repo-root-realpath-v1:${canonicalGitRoot(start)}"
-}
-
-internal fun canonicalGitRoot(start: Path): Path {
-  val resolvedStart = start.toAbsolutePath().normalize().toRealPath()
-  var candidate = resolvedStart
-  while (!candidate.resolve(".git").toFile().exists()) {
-    candidate = candidate.parent ?: return resolvedStart
-  }
-  return candidate.toRealPath()
-}
-
-internal fun governedSpecPath(
-  repositoryRoot: Path,
-  specPath: Path,
-): String {
-  val root = canonicalGitRoot(repositoryRoot)
-  val resolved = (if (specPath.isAbsolute) specPath else root.resolve(specPath)).normalize().toRealPath()
-  if (!resolved.startsWith(root)) {
-    throw UsageError("Governed spec path must remain inside repository '$root'.")
-  }
-  val relative = root.relativize(resolved).joinToString("/") { it.toString() }
-  if (!relative.startsWith(".feature-specs/") || !relative.endsWith(".md")) {
-    throw UsageError("Governed spec path must be Markdown beneath .feature-specs/.")
-  }
-  return relative
-}
-
 internal data class VerifyRuntimeResumeArgs(
   val lookupService: FeatureTaskContinuationLookupService,
   val workflowId: String,
@@ -75,6 +65,7 @@ internal data class VerifyRuntimeResumeArgs(
   val specPath: String,
   val repoRoot: Path,
   val goalChild: Boolean,
+  val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 )
 
 internal fun runtimeRunEventSink(

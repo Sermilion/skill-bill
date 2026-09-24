@@ -36,8 +36,8 @@ class CliGoalPurgeCommandTest {
         ),
         fixture.context(launcher = GoalFixtureAgentRunLauncher(fixture)),
       )
-    assertEquals(1, denied.exitCode, denied.stdout)
-    assertContains(denied.stdout, "Goal purge requires explicit confirmation")
+    assertEquals(1, denied.exitCode, denied.stderr)
+    assertContains(denied.stderr, "Goal purge requires explicit confirmation")
     assertEquals(beforeWorkflowCount, workflowCount(fixture))
     assertEquals(beforeParentSpec, Files.readString(fixture.parentSpec))
     assertEquals(beforeManifest, Files.readString(manifestPath))

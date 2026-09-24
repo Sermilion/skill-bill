@@ -15,4 +15,5 @@ object FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys {
   const val ADDON_SLUG: String = "slug"
   const val ADDON_SOURCE_IDENTITY: String = "source_identity"
   const val ADDON_CONTENT_SHA256: String = "content_sha256"
+  const val ENTRIES: String = "entries"
 }

@@ -1,5 +1,6 @@
 package skillbill.architecture
 
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -12,9 +13,9 @@ class RuntimeEngineInboundApiTest {
       engineInboundApiViolations(
         consumerSourceRoots =
           listOf(
-            "runtime-application/src/main/kotlin",
-            "runtime-cli/src/main/kotlin",
-            "runtime-mcp/src/main/kotlin",
+            moduleMainKotlinRootRelative("runtime-application"),
+            moduleMainKotlinRootRelative("runtime-cli"),
+            moduleMainKotlinRootRelative("runtime-mcp"),
           ),
         allowedTypes = PINNED_ENGINE_INBOUND_API_TYPES,
       )
@@ -26,24 +27,65 @@ class RuntimeEngineInboundApiTest {
   }
 
   @Test
+  fun `pinned engine inbound api entries name existing engine declarations`() {
+    val declarations =
+      kotlinFilesUnderWithArchitectureAsserts(moduleMainKotlinRoot("runtime-engine"))
+        .flatMap { path ->
+          val source = Files.readString(path)
+          val packageName = ArchitectureScanSupport.declaredPackage(source).orEmpty()
+          TOP_LEVEL_DECLARATION.findAll(source).map { match ->
+            "$packageName.${match.groupValues[1]}"
+          }.toList()
+        }
+        .toSet()
+    assertEquals(
+      emptyList(),
+      PINNED_ENGINE_INBOUND_API_TYPES.filterNot(declarations::contains).sorted(),
+      "Every pinned inbound API entry must name an existing engine declaration.",
+    )
+  }
+
+  @Test
   fun `engine inbound api scanner rejects synthetic unpinned engine type reference`() {
+    val root = Files.createTempDirectory("engine-inbound-api-fixture")
+    val sourceRoot = root.resolve("runtime-cli/src/main/kotlin")
+    Files.createDirectories(sourceRoot.resolve("skillbill/cli/fixture"))
+    val sourceFile = sourceRoot.resolve("skillbill/cli/fixture/SyntheticLeak.kt")
+    Files.writeString(
+      sourceFile,
+      """
+      package skillbill.cli.fixture
+
+      import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunnerPolicies
+
+      class SyntheticLeak(private val policies: FeatureTaskRuntimeRunnerPolicies)
+      """.trimIndent(),
+    )
     val violation =
-      engineInboundApiViolationMessage(
-        relativePath = "runtime-cli/src/main/kotlin/skillbill/cli/featuretask/SyntheticLeak.kt",
-        referencedType = "skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunnerPolicies",
+      engineInboundApiViolations(
+        consumerSourceRoots = listOf(sourceRoot.toString()),
         allowedTypes = PINNED_ENGINE_INBOUND_API_TYPES,
-      )
+      ).singleOrNull()
     assertNotNull(
       violation,
       "Regression if an unpinned engine type reference is not reported.",
     )
     assertTrue(
-      violation.contains("FeatureTaskRuntimeRunnerPolicies"),
+      violation.contains("FeatureTaskRuntimeRunnerPolicies") &&
+        violation.contains("SyntheticLeak.kt") &&
+        violation.contains(sourceRoot.toString()),
       "Violation must name the unpinned engine type.",
     )
   }
 
   internal companion object {
+    val TOP_LEVEL_DECLARATION =
+      Regex(
+        """(?m)^\s*(?:(?:public|private|protected|internal|abstract|sealed|data|enum|value|open|""" +
+          """final|inline|suspend|operator|infix|tailrec|const|expect|actual|fun)\s+)*""" +
+          """(?:class|object|interface|typealias|fun|val|var)\s+([A-Za-z_][A-Za-z0-9_]*)\b""",
+      )
+
     val PINNED_ENGINE_INBOUND_API_TYPES: Set<String> =
       setOf(
         "skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService",
@@ -75,9 +117,10 @@ class RuntimeEngineInboundApiTest {
         "skillbill.engine.featuretask.model.core.FeatureTaskRuntimeSubtaskOutcome",
         "skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint",
         "skillbill.engine.goalrunner.GoalOperatorDecisionService",
-        "skillbill.engine.goalrunner.GoalPreflightService",
+        "skillbill.engine.goalrunner.preflight.GoalPreflightService",
+        "skillbill.engine.goalrunner.model.GoalPreflightGateBlock",
         "skillbill.engine.goalrunner.GoalRunner",
-        "skillbill.engine.goalrunner.GoalRunnerStatusService",
+        "skillbill.engine.goalrunner.status.GoalRunnerStatusService",
         "skillbill.engine.goalrunner.goalRepositoryIdentity",
         "skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService",
         "skillbill.engine.goalrunner.model.DEFAULT_GOAL_PLANNING_BUDGET",

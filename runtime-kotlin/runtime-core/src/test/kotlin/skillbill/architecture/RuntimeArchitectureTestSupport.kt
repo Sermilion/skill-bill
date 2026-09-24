@@ -16,6 +16,16 @@ internal val runtimeArchitectureSourceRoots: List<Path> =
       )
     }
 
+internal fun kotlinFilesUnderWithArchitectureAsserts(root: Path): List<Path> {
+  val files = ArchitectureScanSupport.kotlinFilesUnder(root)
+  assertArchitectureScanRootContributedFiles(root, files)
+  return files
+}
+
+internal fun rawMapViolationsUnder(root: Path): List<String> =
+  kotlinFilesUnderWithArchitectureAsserts(root)
+    .flatMap { path -> findRawMapViolations(sourceFile(path)) }
+
 internal fun engineInboundApiViolations(
   consumerSourceRoots: List<String>,
   allowedTypes: Set<String>,
@@ -23,25 +33,20 @@ internal fun engineInboundApiViolations(
   val violations = mutableListOf<String>()
   consumerSourceRoots.forEach { relativeRoot ->
     val root = runtimeArchitectureRoot.resolve(relativeRoot)
-    if (!Files.isDirectory(root)) return@forEach
-    Files.walk(root).use { paths ->
-      paths
-        .filter { path -> Files.isRegularFile(path) && path.toString().endsWith(".kt") }
-        .forEach { path ->
-          val relativePath = runtimeArchitectureRoot.relativize(path).toString()
-          val source = Files.readString(path)
-          source.lineSequence()
-            .flatMap { line ->
-              Regex("""skillbill\.engine\.[A-Za-z0-9_.]+""")
-                .findAll(line)
-                .map { it.value }
-                .filter { reference -> reference !in allowedTypes }
-                .mapNotNull { reference ->
-                  engineInboundApiViolationMessage(relativePath, reference, allowedTypes)
-                }
+    val sourceFiles = kotlinFilesUnderWithArchitectureAsserts(root)
+    sourceFiles.forEach { path ->
+      val relativePath = architecturePathLabel(path)
+      val source = Files.readString(path)
+      source.lineSequence()
+        .flatMap { line ->
+          Regex("""skillbill\.engine\.[A-Za-z0-9_.]+""")
+            .findAll(line)
+            .map { it.value }
+            .mapNotNull { reference ->
+              engineInboundApiViolationMessage(relativePath, reference, allowedTypes)
             }
-            .forEach { violation -> violations += violation }
         }
+        .forEach { violation -> violations += violation }
     }
   }
   return violations.distinct().sorted()
@@ -59,22 +64,15 @@ internal fun engineInboundApiViolationMessage(
   }
 
 internal fun mainPackageRootsForModule(moduleName: String): Set<String> {
-  val root =
-    runtimeArchitectureRoot.resolve(
-      "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/src/main/kotlin",
-    )
-  if (!Files.isDirectory(root)) return emptySet()
-  return Files.walk(root).use { paths ->
-    paths.filter { path -> Files.isRegularFile(path) && path.toString().endsWith(".kt") }
-      .map { path ->
-        val source = Files.readString(path)
-        RuntimeArchitectureScanConstants.packagePattern.find(source)?.groupValues?.get(1).orEmpty()
-      }
-      .filter(String::isNotBlank)
-      .map(::mainPackageRootForPackageName)
-      .toList()
-      .toSet()
-  }
+  val root = moduleMainKotlinRoot(moduleName)
+  return kotlinFilesUnderWithArchitectureAsserts(root)
+    .map { path ->
+      val source = Files.readString(path)
+      RuntimeArchitectureScanConstants.packagePattern.find(source)?.groupValues?.get(1).orEmpty()
+    }
+    .filter(String::isNotBlank)
+    .map(::mainPackageRootForPackageName)
+    .toSet()
 }
 
 internal fun mainPackageRootForPackageName(packageName: String): String {
@@ -114,8 +112,50 @@ internal fun assertRegularFiles(
     if (present) {
       assertTrue(Files.isRegularFile(path), "Missing infra-fs-owned validator: $relative")
     } else {
+      val normalized = relative.replace('\\', '/')
+      val mainKotlinMarker = "/src/main/kotlin/"
+      if (mainKotlinMarker in normalized) {
+        val mainKotlinRoot =
+          runtimeArchitectureRoot.resolve(
+            normalized.substringBefore(mainKotlinMarker) + mainKotlinMarker.removeSuffix("/"),
+          )
+        assertTrue(
+          Files.isDirectory(mainKotlinRoot),
+          "Cannot assert absence under missing main source root: " +
+            runtimeArchitectureRoot.relativize(mainKotlinRoot),
+        )
+      }
       assertTrue(!Files.exists(path), "Legacy contract/domain validator shim must stay absent: $relative")
     }
+  }
+}
+
+internal fun moduleMainKotlinRoot(moduleName: String): Path =
+  runtimeArchitectureRoot.resolve(
+    "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/src/main/kotlin",
+  )
+
+internal fun moduleMainKotlinRootRelative(moduleName: String): String =
+  "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/src/main/kotlin"
+
+internal fun assertArchitectureScanRootContributedFiles(
+  root: Path,
+  files: List<Path>,
+) {
+  assertTrue(
+    Files.isDirectory(root),
+    "Missing architecture scan root: ${runtimeArchitectureRoot.relativize(root)}",
+  )
+  assertTrue(
+    files.isNotEmpty(),
+    "Architecture scan root must contribute at least one .kt file: " +
+      runtimeArchitectureRoot.relativize(root),
+  )
+  files.forEach { file ->
+    assertTrue(
+      file.normalize().startsWith(root.normalize()),
+      "Architecture scan read $file outside root $root",
+    )
   }
 }
 
@@ -385,15 +425,15 @@ private data class RawMapDeclarationContext(
 )
 
 private fun isBoundaryCarrierRawMapDeclaration(context: RawMapDeclarationContext): Boolean {
-  if (context.relativePath.contains("runtime-ports/src/main/kotlin/")) {
-    return false
-  }
   if (
     rawMapDeclarationModifiers(context.trimmed)
       .any { modifier -> modifier in setOf("private", "protected", "internal") } ||
     context.tracker.insideNonPublicScope
   ) {
     return true
+  }
+  if (context.relativePath.replace('\\', '/').contains("runtime-ports/src/main/kotlin/")) {
+    return false
   }
   val enclosingName = context.tracker.enclosingStack.lastOrNull().orEmpty()
   val namedCarrier =
@@ -712,34 +752,40 @@ internal fun innerLayerTestSourceFiles(): List<SourceFile> =
     .flatMap { sourceRoot -> sourceFilesIn(sourceRoot) }
 
 internal fun mainSourceRoots(moduleName: String): List<Path> {
+  if (moduleName == "runtime-infra") return emptyList()
   val sourceRoot =
     runtimeArchitectureRoot
       .resolve(RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName))
       .resolve("src")
-  if (!Files.isDirectory(sourceRoot)) return emptyList()
-  return Files.list(sourceRoot).use { stream ->
-    stream
-      .filter(Files::isDirectory)
-      .filter { path -> path.fileName.toString() == "main" || path.fileName.toString().endsWith("Main") }
-      .map { path -> path.resolve("kotlin") }
-      .filter(Files::isDirectory)
-      .toList()
-      .sorted()
+  if (!Files.isDirectory(sourceRoot)) {
+    error(
+      "Missing module source root: ${runtimeArchitectureRoot.relativize(sourceRoot)}",
+    )
   }
+  val roots =
+    Files.list(sourceRoot).use { stream ->
+      stream
+        .filter(Files::isDirectory)
+        .filter { path -> path.fileName.toString() == "main" || path.fileName.toString().endsWith("Main") }
+        .map { path -> path.resolve("kotlin") }
+        .filter(Files::isDirectory)
+        .toList()
+        .sorted()
+    }
+  if (roots.isEmpty()) {
+    error("Missing module main Kotlin source root: ${runtimeArchitectureRoot.relativize(sourceRoot)}")
+  }
+  roots.forEach(::kotlinFilesUnderWithArchitectureAsserts)
+  return roots
 }
 
 internal fun sourceFilesIn(sourceRoot: Path): List<SourceFile> =
-  Files.walk(sourceRoot).use { stream ->
-    stream
-      .filter { path -> Files.isRegularFile(path) && path.fileName.toString().endsWith(".kt") }
-      .map(::sourceFile)
-      .toList()
-  }
+  kotlinFilesUnderWithArchitectureAsserts(sourceRoot).map(::sourceFile)
 
 internal fun sourceFile(path: Path): SourceFile {
   val source = Files.readString(path)
   return SourceFile(
-    relativePath = runtimeArchitectureRoot.relativize(path).toString().replace('\\', '/'),
+    relativePath = architecturePathLabel(path),
     packageName = RuntimeArchitectureScanConstants.packagePattern.find(source)?.groupValues?.get(1).orEmpty(),
     imports =
       RuntimeArchitectureScanConstants.importPattern.findAll(source)
@@ -747,6 +793,15 @@ internal fun sourceFile(path: Path): SourceFile {
         .toList(),
     source = source,
   )
+}
+
+internal fun architecturePathLabel(path: Path): String {
+  val normalized = path.toAbsolutePath().normalize()
+  return if (normalized.startsWith(runtimeArchitectureRoot)) {
+    runtimeArchitectureRoot.relativize(normalized).toString().replace('\\', '/')
+  } else {
+    normalized.toString().replace('\\', '/')
+  }
 }
 
 internal fun sourcePath(relativePath: String): Path =

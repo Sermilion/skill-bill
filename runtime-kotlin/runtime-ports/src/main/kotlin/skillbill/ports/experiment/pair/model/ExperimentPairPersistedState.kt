@@ -9,5 +9,5 @@ data class ExperimentPairPersistedState(
   val selectedNames: List<String>,
   val armOrder: List<ExperimentArmId>,
   val randomSeed: String,
-  val pairPayload: Map<String, Any?>,
+  val pairPayload: ExperimentPairPayload,
 )

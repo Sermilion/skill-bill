@@ -121,6 +121,29 @@ class RuntimeArchitectureDocumentationTest {
   }
 
   @Test
+  fun `architecture document states the module scan-root convention and missing-root failure`() {
+    val architecture = Files.readString(runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
+
+    assertContains(architecture, "ArchitectureScanSupport.runtimeRoot")
+    assertContains(architecture, "RuntimeModuleCatalog.runtimeKotlinModuleDirectory")
+    assertContains(architecture, "`runtime-kotlin/<module>/src/main/kotlin/`")
+    assertContains(architecture, "Missing named roots fail the scan")
+    listOf(
+      "engineInboundApiViolations",
+      "mainPackageRootsForModule",
+      "ArchitectureScanSupport.kotlinFilesUnder",
+      "ArchitectureScanSupport.authoredKotlinSourcesUnder",
+      "ownership",
+      "install-policy",
+      "enforcement-hardening",
+      "ports-declaration",
+      "port-null-object",
+      "contract-import",
+      "skills-import",
+    ).forEach { scanner -> assertContains(architecture, scanner) }
+  }
+
+  @Test
   fun `architecture document records the typed scaffold gateway and adapter map inventory`() {
     val architecture = Files.readString(runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
     val scaffoldSection =

@@ -1,4 +1,5 @@
 package skillbill.cli.scaffold.commands
+import kotlinx.serialization.json.JsonObject
 import skillbill.application.install.ExternalAddonOverlayService
 import skillbill.application.scaffold.InstallAgentService
 import skillbill.cli.kernel.cli.CliRunState
@@ -33,7 +34,7 @@ internal data class ScaffoldWizardArgs(
 internal data class NativeScaffoldPayloadPathArgs(
   val payloadPath: String?,
   val run: NativeScaffoldRunArgs,
-  val transform: (Map<String, *>) -> Map<String, *> = { it },
+  val transform: (JsonObject) -> JsonObject = { it },
 )
 
 internal data class CreateAndFillContentArgs(

@@ -1,3 +1,31 @@
+## [2026-09-23] SKILL-371 — single owners for cross-adapter contracts (subtask 3)
+Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-application, runtime-contracts, runtime-engine, runtime-infra, runtime-mcp, orchestration/shell-content-contract
+- Repository identity now comes from the canonical enclosing-root port; governed spec-path resolution and the goal-child launch tokens have single owners outside the CLI.
+- Scaffold payload decoding and invocation ownership moved to runtime-application; CLI opts into external-source registration while MCP preserves explicit `repo_root` and does not register.
+- reusable PATTERN: keep adapters limited to argument translation and `UsageError` wording; centralize shared wire tokens, identity derivation, and scaffold side effects at their owning boundary.
+- Known limitations: child-repository identity parity, launcher/CLI field coverage, CLI/MCP `repo_root` parity, and partial-registration coverage remain follow-up test seams.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-09-23] SKILL-371 — one CLI process output contract (subtask 2)
+Areas: runtime-kotlin/runtime-cli/{core,experiment,featuretask,goal,kernel,workflow}, runtime-contracts/shellcontent, runtime-engine/{experiment/report,goalrunner/experiment}, runtime-ports/{experiment/navigation,experiment/pair}
+- Centralized CLI completion and failure mapping through `CliRunState`, `CliExecutionResult`, and `Main`; typed failures now settle stderr and exit status without command-level duplication.
+- Typed goal/feature-task presenters and exit-code models preserve text/JSON parity; experiment navigation/reporting now owns spec validation and typed absent-pair failures.
+- reusable PATTERN: keep command output as settled payloads and route cross-command failure/format policy through one runtime boundary.
+- Removed redundant command groups and continuation mappings while retaining the deprecated feature-task alias with its stderr notice.
+- Known limitation: remaining task-1 cleanup for path exception mapping, diagnostics, and all echo removal is outside this subtask.
+Feature flag: N/A
+Acceptance criteria: 10/10 implemented
+
+## [2026-09-23] SKILL-371 — restore architecture guard enforcement (subtask 1)
+Areas: runtime-cli, runtime-core/architecture, runtime-application, runtime-domain, runtime-engine, runtime-infra, runtime-ports, runtime-kotlin/ARCHITECTURE.md
+- Restored module-root scanning with missing-root failures and non-empty visit assertions; refreshed the pinned engine inbound surface to `goalrunner.status` and `goalrunner.preflight`.
+- Removed public raw-map exposure from accounting and IDE-status boundaries while preserving rendered and persisted wire bytes; kept serialization at its owning adapter boundaries.
+- Documented the scan-root convention and verified scanner coverage through architecture tests.
+- reusable PATTERN: resolve module source roots through the runtime-kotlin module directory, assert read coverage in each guard, and keep raw-map serialization private at adapter boundaries.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-16] SKILL-348 — authoritative CLI invocation inputs and output (subtask 2)
 Areas: runtime-cli/{core,kernel,model,featuretask,workflow,codereview,scaffold,config,install,review}, runtime-application/diagnostics
 - `CliRunState` now marks explicit text, raw-byte, and empty completions; `Main` and `CliRuntime` no longer append root help or a synthetic newline after settled raw or empty results.

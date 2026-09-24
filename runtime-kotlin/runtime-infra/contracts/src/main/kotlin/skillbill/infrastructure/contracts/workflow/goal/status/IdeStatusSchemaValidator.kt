@@ -3,6 +3,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
 import me.tatarka.inject.annotations.Inject
+import skillbill.contracts.JsonPayloadContract
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.workflow.identity.status.IDE_STATUS_CONTRACT_VERSION
@@ -25,6 +26,12 @@ import java.util.logging.Logger
 private val ideStatusLog: Logger =
   Logger.getLogger("skillbill.contracts.workflow.IdeStatusSchemaValidator")
 
+private class IdeStatusPayload(
+  private val payload: Map<String, Any?>,
+) : JsonPayloadContract {
+  override fun toPayload(): Map<String, Any?> = payload
+}
+
 @Inject
 class IdeStatusSchemaValidator : IdeStatusValidator {
   override fun validate(
@@ -34,7 +41,8 @@ class IdeStatusSchemaValidator : IdeStatusValidator {
     validate(ideStatusSchemaWireMap(snapshot), sourceLabel)
   }
 
-  override fun toWireMap(snapshot: IdeStatusSnapshot): Map<String, Any?> = ideStatusSchemaWireMap(snapshot)
+  override fun toWirePayload(snapshot: IdeStatusSnapshot): JsonPayloadContract =
+    IdeStatusPayload(ideStatusSchemaWireMap(snapshot))
 
   fun validate(
     snapshot: Map<String, Any?>,
@@ -205,7 +213,7 @@ private fun problemWireMap(problem: IdeStatusProblem): Map<String, Any?> =
   buildMap {
     put("code", problem.code.wireValue)
     put("message", problem.message)
-    problem.details?.asWireEntries()?.takeIf { it.isNotEmpty() }?.let { put("details", it) }
+    problem.details?.asWirePayload()?.toPayload()?.takeIf { it.isNotEmpty() }?.let { put("details", it) }
   }
 
 private fun ideStatusPlanningWireMap(planning: IdeStatusPlanning): Map<String, Any?> =

@@ -35,6 +35,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
+import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.review.repository.ReviewRepository
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
@@ -279,8 +280,9 @@ private object TestGoalActivityStampDatabase : DatabaseSessionFactory {
 internal fun testDefaultGoalPlanningSweep(
   checkpointBoundaries: GoalPlanningSweepCheckpointBoundaries,
   launchBoundaries: GoalPlanningSweepLaunchBoundaries,
+  repositoryEnclosingRootPort: RepositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
 ): DefaultGoalPlanningSweep =
-  DefaultGoalPlanningSweep(checkpointBoundaries, launchBoundaries, TestRepositoryEnclosingRoot)
+  DefaultGoalPlanningSweep(checkpointBoundaries, launchBoundaries, repositoryEnclosingRootPort)
 
 internal data class GoalPlanningSweepPortsParams(
   val checkpoint: GoalPlanningPreparationCheckpoint,
@@ -295,6 +297,7 @@ internal data class GoalPlanningSweepPortsParams(
   val planningRejectionRecorder: GoalPlanningRejectionRecorder = GoalPlanningRejectionRecorder.NONE,
   val timingPort: RuntimeTimingPort = NoopRuntimeTimingPort,
   val fanOutPort: BoundedWorkFanOutPort = SequentialBoundedWorkFanOutPort,
+  val repositoryEnclosingRootPort: RepositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
   val burstSchedule: GoalPlanningBurstSchedule =
     GoalPlanningBurstSchedule(
       planFanOutCap = GoalPlanningBurstSchedule.DEFAULT_PLAN_FAN_OUT_CAP,
@@ -325,6 +328,7 @@ internal fun testGoalPlanningSweepPorts(params: GoalPlanningSweepPortsParams): D
       burstSchedule = params.burstSchedule,
       refreshLiveness = params.refreshLiveness,
     ),
+    repositoryEnclosingRootPort = params.repositoryEnclosingRootPort,
   )
 
 internal fun testGoalPlanningContextDiscovery(

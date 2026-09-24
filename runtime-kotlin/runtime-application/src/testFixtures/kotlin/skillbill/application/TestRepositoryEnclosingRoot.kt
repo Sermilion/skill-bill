@@ -1,6 +1,7 @@
 package skillbill.application
 
 import skillbill.ports.repository.RepositoryEnclosingRootPort
+import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -25,5 +26,8 @@ object TestRepositoryEnclosingRoot : RepositoryEnclosingRootPort {
       null
     }
 
-  override fun repositoryIdentity(repoRoot: Path): String = "repo-root-realpath-v1:${canonicalPath(repoRoot)}"
+  override fun repositoryIdentity(repoRoot: Path): String {
+    val gitRoot = canonicalPath(enclosingRepositoryRoot(repoRoot))
+    return FeatureTaskExecutionIdentityPolicy.REPOSITORY_IDENTITY_PREFIX + gitRoot
+  }
 }

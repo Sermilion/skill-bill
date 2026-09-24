@@ -20,6 +20,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.experiment.ExperimentPreflightPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCandidate
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.model.GoalPreflightGateBlock
@@ -55,7 +56,7 @@ class GoalPreflightCommand(
     help = "Agent to use for child subtask runs instead of the invoking agent.",
   )
   private val codeReviewMode by option(
-    "--code-review-mode",
+    FeatureTaskRuntimeGoalContinuationLaunchTokens.CODE_REVIEW_MODE_FLAG,
     help = "Review mode: inline (default) or auto.",
   )
   private val agentAddonSlugs by option(

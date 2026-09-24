@@ -12,6 +12,7 @@ import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
+import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -34,6 +35,7 @@ class GoalRunnerManifestProjectionDependencies(
   val decompositionManifestWriter: DecompositionManifestProjectionWriter,
   val repositoryRoot: RepositoryRoot,
   val planningHydrator: GoalChildPlanningHydratorPort,
+  val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 )
 
 internal class GoalRunnerOutcomeValidationDependencies(
@@ -71,6 +73,7 @@ internal interface RuntimeGoalRunnerStoreProvides {
       projection.decompositionManifestWriter,
       projection.repositoryRoot,
       projection.planningHydrator,
+      projection.repositoryEnclosingRootPort,
     )
 
   @Provides @JvmSynthetic
@@ -93,12 +96,14 @@ internal interface RuntimeGoalRunnerStoreProvides {
     decompositionManifestWriter: DecompositionManifestProjectionWriter,
     repositoryRoot: RepositoryRoot,
     planningHydrator: GoalChildPlanningHydratorPort,
+    repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
   ): GoalRunnerManifestProjectionDependencies =
     GoalRunnerManifestProjectionDependencies(
       clock,
       decompositionManifestWriter,
       repositoryRoot,
       planningHydrator,
+      repositoryEnclosingRootPort,
     )
 
   @Provides @JvmSynthetic

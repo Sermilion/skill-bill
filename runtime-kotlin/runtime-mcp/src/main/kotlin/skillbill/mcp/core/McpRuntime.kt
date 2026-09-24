@@ -172,6 +172,7 @@ internal object McpRuntime {
       status = result.status.wireName,
       installedVersion = result.installedVersion,
       latestVersion = result.latestVersion,
+      releaseUrl = result.releaseUrl,
       recommendedInstallCommand = result.recommendedInstallCommand,
       reason = result.reason,
       releaseNotes = result.releaseNotes,

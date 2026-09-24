@@ -1,5 +1,7 @@
 package skillbill.cli.model
 
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.model.EnvironmentContext
 import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
@@ -7,6 +9,7 @@ import skillbill.model.TransportContext
 import skillbill.model.WorkflowOpsContext
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
 import skillbill.ports.process.InstallerProcessPort
 import skillbill.ports.process.InstallerScriptFetchPort
@@ -23,6 +26,7 @@ data class CliRuntimeContext(
   val environment: Map<String, String> = EnvironmentContext.UnspecifiedEnvironment,
   val userHome: Path = EnvironmentContext.UnspecifiedUserHome,
   val requester: RemoteTransportPort? = null,
+  val runtimeDiagnostics: RuntimeDiagnostics? = null,
   val workflowGitOperations: WorkflowGitOperations? = null,
   val agentRunLauncher: AgentRunLauncher? = null,
   val goalPullRequestPort: GoalPullRequestPort? = null,
@@ -33,6 +37,7 @@ data class CliRuntimeContext(
   val installerProcessPort: InstallerProcessPort? = null,
   val installerScriptFetchPort: InstallerScriptFetchPort? = null,
   val repositoryRoot: Path? = null,
+  val featureTaskRuntimeRunOverride: ((FeatureTaskRuntimeRunRequest) -> FeatureTaskRuntimeRunReport)? = null,
   val liveStdout: (String) -> Unit = {},
   val liveStderr: (String) -> Unit = {},
 ) {
@@ -54,6 +59,7 @@ data class CliRuntimeContext(
       callbacks =
         OptionalCallbacks(
           agentRunLauncher = agentRunLauncher,
+          runtimeDiagnostics = runtimeDiagnostics,
           goalPullRequestPort = goalPullRequestPort,
           executableLookup = executableLookup,
           reviewNativeAgentPreflight = reviewNativeAgentPreflight,

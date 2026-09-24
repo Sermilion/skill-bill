@@ -1,19 +1,11 @@
 package skillbill.architecture
 
 import java.nio.file.Files
-import java.nio.file.Path
-import kotlin.io.path.extension
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class PortsDeclarationArchitectureTest {
-  private val runtimeRoot: Path =
-    Path.of("").toAbsolutePath().normalize().let { workingDir ->
-      if (workingDir.fileName.toString().startsWith("runtime-")) workingDir.parent else workingDir
-    }
-
-  private val portsMainRoot: Path =
-    runtimeRoot.resolve("runtime-kotlin/runtime-ports/src/main/kotlin")
+  private val portsMainRoot = moduleMainKotlinRoot("runtime-ports")
 
   @Test
   fun `runtime-ports main source has no forbidden top-level objects classes casts or interface throw defaults`() {
@@ -70,20 +62,19 @@ class PortsDeclarationArchitectureTest {
     )
   }
 
-  private fun scanPortsMainSource(): List<String> =
-    buildList {
-      if (!Files.isDirectory(portsMainRoot)) return@buildList
-      Files.walk(portsMainRoot).use { paths ->
-        paths.filter { Files.isRegularFile(it) && it.extension == "kt" }.forEach { path ->
-          val source = Files.readString(path)
-          val fileName = portsMainRoot.relativize(path).toString()
-          addAll(topLevelObjectViolations(fileName, source))
-          addAll(forbiddenTopLevelClassViolations(fileName, source))
-          addAll(thisAsCastViolations(fileName, source))
-          addAll(interfaceDefaultBodyViolations(fileName, source))
-        }
+  private fun scanPortsMainSource(): List<String> {
+    val sourceFiles = kotlinFilesUnderWithArchitectureAsserts(portsMainRoot)
+    return buildList {
+      sourceFiles.forEach { path ->
+        val source = Files.readString(path)
+        val fileName = portsMainRoot.relativize(path).toString()
+        addAll(topLevelObjectViolations(fileName, source))
+        addAll(forbiddenTopLevelClassViolations(fileName, source))
+        addAll(thisAsCastViolations(fileName, source))
+        addAll(interfaceDefaultBodyViolations(fileName, source))
       }
     }.sorted()
+  }
 
   private fun topLevelObjectViolations(
     fileName: String,
@@ -91,7 +82,12 @@ class PortsDeclarationArchitectureTest {
   ): List<String> =
     source.lineSequence()
       .map { it.trim() }
-      .filter { line -> line.startsWith("object ") || line.startsWith("internal object ") }
+      .filter { line ->
+        Regex(
+          """(?:(?:public|private|protected|internal)\s+)?(?<!data\s)object\s+[A-Za-z_][A-Za-z0-9_]*\b""",
+        )
+          .containsMatchIn(line)
+      }
       .map { line -> "$fileName: $line" }
       .toList()
 
@@ -140,7 +136,12 @@ class PortsDeclarationArchitectureTest {
         .map { it.groupValues[1] }
         .toList()
     return interfaceBlocks.flatMap { body ->
-      if (body.contains("error(") || body.contains("throw ")) {
+      if (
+        Regex(
+          """\bfun\s+\w+\s*\([^)]*\)[^={]*(?:=[^{]*\b(?:error|throw)\s*\(|\{[^}]*\b(?:error|throw)\b)""",
+          RegexOption.DOT_MATCHES_ALL,
+        ).containsMatchIn(body)
+      ) {
         listOf("$fileName: interface default body uses error or throw")
       } else {
         emptyList()
@@ -162,14 +163,14 @@ class PortsDeclarationArchitectureTest {
 
   private fun matchingBrace(
     source: String,
-    openingBrace: Int,
+    openIndex: Int,
   ): Int? {
     var depth = 0
-    for (index in openingBrace until source.length) {
+    for (index in openIndex until source.length) {
       when (source[index]) {
-        '{' -> depth += 1
+        '{' -> depth++
         '}' -> {
-          depth -= 1
+          depth--
           if (depth == 0) return index
         }
       }

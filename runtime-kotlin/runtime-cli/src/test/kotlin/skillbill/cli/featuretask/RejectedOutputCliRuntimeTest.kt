@@ -4,7 +4,6 @@ import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 import java.nio.file.Files
@@ -14,7 +13,6 @@ import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 
 class RejectedOutputCliRuntimeTest {
@@ -119,31 +117,29 @@ class RejectedOutputCliRuntimeTest {
     val db = home.resolve("metrics.db")
     recordDiagnostics(home, db, "wf-turns", reason = "invalid", repairTurns = listOf(1, 2))
 
-    val error =
-      assertFailsWith<RejectedOutputDiagnosticError.Retrieval> {
-        CliRuntime.run(
-          listOf(
-            "--db",
-            db.toString(),
-            "feature-task",
-            "rejected-output",
-            "--workflow",
-            "wf-turns",
-            "--phase",
-            "implement",
-            "--attempt",
-            "1",
-            "--raw-output",
-          ),
-          CliRuntimeContext(userHome = home, environment = emptyMap()),
-        )
-      }
+    val result =
+      CliRuntime.run(
+        listOf(
+          "--db",
+          db.toString(),
+          "feature-task",
+          "rejected-output",
+          "--workflow",
+          "wf-turns",
+          "--phase",
+          "implement",
+          "--attempt",
+          "1",
+          "--raw-output",
+        ),
+        CliRuntimeContext(userHome = home, environment = emptyMap()),
+      )
 
     assertEquals(
       "Rejected output diagnostic retrieval failed: raw output requires a selector resolving to exactly one " +
         "diagnostic; an attempt that ran a validation-gate repair cycle holds one per repair turn, " +
         "so add --repair-turn (the metadata listing prints each turn)",
-      error.message,
+      result.stderr,
     )
   }
 

@@ -36,7 +36,7 @@ fun WorkflowGitOperations.resolveReadinessTreeIdentity(
 ): ReadinessTreeIdentity? {
   val result = resolveReadinessTreeIdentityPayload(repoRoot, baseBranch, workflowId)
   if (result !is WorkflowGitOperationResult.Ok) return null
-  return ReadinessTreeIdentityPayloadCodec.decode(result.value.orEmpty())
+  return decodeReadinessTreeIdentityPayload(result.value.orEmpty())
 }
 
 fun WorkflowGitOperations.readinessChangedPathsAgainstBase(
@@ -44,19 +44,17 @@ fun WorkflowGitOperations.readinessChangedPathsAgainstBase(
   baseBranch: String,
 ): WorkflowGitOperationResult = readinessTreeIdentityOperations.changedPathsAgainstBase(repoRoot, baseBranch)
 
-object ReadinessTreeIdentityPayloadCodec {
-  private const val IDENTITY_PART_COUNT = 3
+private const val IDENTITY_PART_COUNT = 3
 
-  fun encode(identity: ReadinessTreeIdentity): String =
-    listOf(identity.sourceTreeSha, identity.baseRefSha, identity.headSha).joinToString("\u0000")
+fun encodeReadinessTreeIdentityPayload(identity: ReadinessTreeIdentity): String =
+  listOf(identity.sourceTreeSha, identity.baseRefSha, identity.headSha).joinToString("\u0000")
 
-  fun decode(payload: String): ReadinessTreeIdentity? {
-    val parts = payload.split('\u0000')
-    if (parts.size != IDENTITY_PART_COUNT) return null
-    val sourceTreeSha = parts[0].trim()
-    val baseRefSha = parts[1].trim()
-    val headSha = parts[2].trim()
-    if (sourceTreeSha.isBlank() || baseRefSha.isBlank() || headSha.isBlank()) return null
-    return ReadinessTreeIdentity(sourceTreeSha, baseRefSha, headSha)
-  }
+fun decodeReadinessTreeIdentityPayload(payload: String): ReadinessTreeIdentity? {
+  val parts = payload.split('\u0000')
+  if (parts.size != IDENTITY_PART_COUNT) return null
+  val sourceTreeSha = parts[0].trim()
+  val baseRefSha = parts[1].trim()
+  val headSha = parts[2].trim()
+  if (sourceTreeSha.isBlank() || baseRefSha.isBlank() || headSha.isBlank()) return null
+  return ReadinessTreeIdentity(sourceTreeSha, baseRefSha, headSha)
 }

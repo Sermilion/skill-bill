@@ -1,17 +1,10 @@
 package skillbill.architecture
 
 import java.nio.file.Files
-import java.nio.file.Path
-import kotlin.io.path.extension
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class RuntimeContractModuleImportRulesTest {
-  private val runtimeRoot: Path =
-    Path.of("").toAbsolutePath().normalize().let { workingDir ->
-      if (workingDir.fileName.toString().startsWith("runtime-")) workingDir.parent else workingDir
-    }
-
   @Test
   fun `runtime-domain imports no serialization or filesystem library`() {
     assertEquals(
@@ -58,14 +51,9 @@ class RuntimeContractModuleImportRulesTest {
     module: String,
     forbiddenPrefixes: List<String>,
   ): List<String> {
-    val root =
-      runtimeRoot.resolve(
-        "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(module)}/src/main",
-      )
-    if (!Files.isDirectory(root)) return emptyList()
-    return Files.walk(root).use { paths ->
-      paths.filter { Files.isRegularFile(it) && it.extension == "kt" }.toList()
-    }.flatMap { path ->
+    val root = moduleMainKotlinRoot(module)
+    val sourceFiles = kotlinFilesUnderWithArchitectureAsserts(root)
+    return sourceFiles.flatMap { path ->
       forbiddenImportsIn(path.fileName.toString(), Files.readString(path), forbiddenPrefixes)
     }.sorted()
   }

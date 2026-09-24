@@ -16,7 +16,7 @@ class CliCodeReviewDriverRuntimeTest {
       )
 
     assertEquals(1, result.exitCode)
-    assertContains(result.stdout, "agent2")
+    assertContains(result.stderr, "agent2")
   }
 
   @Test
@@ -28,6 +28,6 @@ class CliCodeReviewDriverRuntimeTest {
       )
 
     assertEquals(1, result.exitCode)
-    assertContains(result.stdout, "model2")
+    assertContains(result.stderr, "model2")
   }
 }

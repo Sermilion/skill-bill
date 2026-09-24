@@ -37,6 +37,8 @@ import skillbill.mcp.shared.McpRuntimeLifecycle
 import skillbill.mcp.shared.services
 import skillbill.mcp.workflow.McpWorkflowOpenArgs
 import skillbill.mcp.workflow.McpWorkflowRuntime
+import skillbill.ports.telemetry.model.RemoteTransportResponse
+import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -122,6 +124,48 @@ class McpRuntimeTest {
     assertEquals(
       decodeJsonObject(cliResult.stdout),
       McpRuntime.doctor(McpRuntimeContext(environment = env, userHome = tempDir)),
+    )
+  }
+
+  @Test
+  fun `update check cli and mcp expose the same contract fields`() {
+    val tempDir = Files.createTempDirectory("skillbill-mcp-update-check")
+    val environment = disabledTelemetryEnvironment(tempDir)
+    val requester =
+      RemoteTransportPort { _, _, _, _ ->
+        RemoteTransportResponse(
+          200,
+          """[{"tag_name":"v99.0.0","prerelease":false,"draft":false,"html_url":"https://example.test/v99.0.0"}]""",
+        )
+      }
+    val cli =
+      CliRuntime.run(
+        listOf("update-check", "--format", "json"),
+        CliRuntimeContext(environment = environment, userHome = tempDir, requester = requester),
+      )
+    val mcp =
+      McpRuntime.updateCheck(
+        McpRuntimeContext(
+          environment = environment,
+          userHome = tempDir,
+          requester = requester,
+        ),
+      )
+
+    assertEquals(0, cli.exitCode, cli.stdout)
+    assertEquals(cli.payload, mcp)
+    assertEquals("https://example.test/v99.0.0", mcp["release_url"])
+    assertEquals(
+      setOf(
+        "status",
+        "installed_version",
+        "latest_version",
+        "release_url",
+        "recommended_install_command",
+        "reason",
+        "release_notes",
+      ),
+      mcp.keys,
     )
   }
 
@@ -282,6 +326,43 @@ class McpRuntimeTest {
     assertEquals(standaloneSkillPath, orchestrated["skill_path"])
     assertTrue("skill_path" in orchestrated)
     assertTrue("notes" in orchestrated)
+  }
+
+  @Test
+  fun `mcp scaffold uses explicit repo root and invocation root as the shared defaults`() {
+    val invocationRoot = Files.createTempDirectory("skillbill-mcp-scaffold-invocation-root")
+    val explicitRoot = Files.createTempDirectory("skillbill-mcp-scaffold-explicit-root")
+    val context =
+      McpRuntimeContext(
+        environment = disabledTelemetryEnvironment(invocationRoot),
+        userHome = invocationRoot,
+        repositoryRoot = invocationRoot,
+      )
+    val basePayload =
+      mapOf(
+        "scaffold_payload_version" to "1.0",
+        "kind" to "horizontal",
+        "name" to "bill-mcp-repo-root-parity",
+      )
+
+    val defaultResult = McpRuntime.newSkillScaffold(basePayload, dryRun = true, context = context)
+    val explicitResult =
+      McpRuntime.newSkillScaffold(
+        basePayload + ("repo_root" to explicitRoot.toString()),
+        dryRun = true,
+        context = context,
+      )
+
+    val defaultSkillPath = Path.of(defaultResult["skill_path"] as String)
+    val explicitSkillPath = Path.of(explicitResult["skill_path"] as String)
+    assertTrue(
+      pathIsUnderRoot(defaultSkillPath, invocationRoot),
+      "default skill path $defaultSkillPath was not under $invocationRoot",
+    )
+    assertTrue(
+      pathIsUnderRoot(explicitSkillPath, explicitRoot),
+      "explicit skill path $explicitSkillPath was not under $explicitRoot",
+    )
   }
 
   @Test
@@ -1296,6 +1377,21 @@ private fun goldenJson(
     expected = expected.replace(placeholder, value)
   }
   return expected
+}
+
+private fun pathIsUnderRoot(
+  path: Path,
+  root: Path,
+): Boolean {
+  val normalizedPath = path.toAbsolutePath().normalize()
+  var existingAncestor = normalizedPath
+  while (!Files.exists(existingAncestor)) {
+    existingAncestor = existingAncestor.parent ?: return false
+  }
+  val canonicalAncestor = existingAncestor.toRealPath()
+  val canonicalPath =
+    canonicalAncestor.resolve(existingAncestor.relativize(normalizedPath)).normalize()
+  return canonicalPath.startsWith(root.toRealPath())
 }
 
 private fun assertGoldenPayload(

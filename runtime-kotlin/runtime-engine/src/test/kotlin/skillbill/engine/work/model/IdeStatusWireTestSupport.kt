@@ -85,7 +85,10 @@ private fun MutableMap<String, Any?>.putActivityFields(snapshot: IdeStatusSnapsh
 }
 
 private fun IdeStatusProblem.toWireMap(): Map<String, Any?> =
-  mapOf("code" to code.wireValue, "message" to message).plusIfNotNull("details", details?.asWireEntries())
+  mapOf("code" to code.wireValue, "message" to message).plusIfNotNull(
+    "details",
+    details?.asWirePayload()?.toPayload(),
+  )
 
 private fun Map<String, Any?>.plusIfNotNull(
   key: String,

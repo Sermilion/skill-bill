@@ -21,7 +21,7 @@ class RuntimeDiagnosticsBestEffortGuardArchitectureTest {
         "skillbill/engine/diagnostics/RuntimeDiagnosticsBestEffortWarning.kt",
       )
     val violations =
-      ArchitectureScanSupport.kotlinFilesUnder(engineRoot)
+      kotlinFilesUnderWithArchitectureAsserts(engineRoot)
         .filter { path -> path != owner && guardPattern.containsMatchIn(path.readText()) }
         .map { path -> engineRoot.relativize(path).toString() }
     assertEquals(emptyList(), violations, violations.joinToString("\n"))
@@ -36,7 +36,7 @@ class GoalRunnerAgentOutputScannerArchitectureTest {
         "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner",
       )
     val violations =
-      ArchitectureScanSupport.kotlinFilesUnder(engineGoalRunnerRoot).filter { path ->
+      kotlinFilesUnderWithArchitectureAsserts(engineGoalRunnerRoot).filter { path ->
         path.readText().contains("fun topLevelJsonObjectCandidates")
       }.map { path -> engineGoalRunnerRoot.relativize(path).toString() }
     assertEquals(emptyList(), violations)
@@ -51,7 +51,7 @@ class GoalRunnerAgentOutputScannerArchitectureTest {
       )
     val matches =
       roots.flatMap { root ->
-        ArchitectureScanSupport.kotlinFilesUnder(root).filter { path ->
+        kotlinFilesUnderWithArchitectureAsserts(root).filter { path ->
           path.readText().contains("fun topLevelJsonObjectCandidates")
         }.map { path -> root.relativize(path).toString() }
       }
@@ -67,7 +67,7 @@ class RuntimeApplicationSharedEngineEdgeArchitectureTest {
   fun `application main references only pinned engine inbound api types`() {
     val violations =
       engineInboundApiViolations(
-        consumerSourceRoots = listOf("runtime-application/src/main/kotlin"),
+        consumerSourceRoots = listOf(moduleMainKotlinRootRelative("runtime-application")),
         allowedTypes = RuntimeEngineInboundApiTest.PINNED_ENGINE_INBOUND_API_TYPES,
       )
     assertEquals(emptyList(), violations, violations.joinToString("\n"))
@@ -89,7 +89,7 @@ class RuntimeEnginePublicTopLevelDeclarationArchitectureTest {
         "skillbill.engine.work.model",
       )
     val violations =
-      ArchitectureScanSupport.kotlinFilesUnder(engineMain).flatMap { path ->
+      kotlinFilesUnderWithArchitectureAsserts(engineMain).flatMap { path ->
         val source = path.readText()
         val packageName = ArchitectureScanSupport.declaredPackage(source).orEmpty()
         if (modelPackagePrefixes.any { prefix -> packageName == prefix || packageName.startsWith("$prefix.") }) {

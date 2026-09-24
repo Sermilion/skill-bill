@@ -70,12 +70,12 @@ class ReviewAccountingDurableRedactionTest {
 
     assertEquals(
       recorder.parentPrompts.sumOf { it.toByteArray().size.toLong() },
-      requireNotNull(aggregate(payload))["launch_bytes"],
+      requireNotNull(aggregate(payload))["launch_bytes"].toString().toLong(),
       "Launch bytes measure exactly the prompts the lanes were given.",
     )
     assertEquals(
       recorder.parentPrompts.size * toolOutputBody.toByteArray().size.toLong(),
-      requireNotNull(aggregate(payload))["result_bytes"],
+      requireNotNull(aggregate(payload))["result_bytes"].toString().toLong(),
     )
     assertNoSentinels(payload.toString())
   }

@@ -1,5 +1,7 @@
 package skillbill.mcp.scaffold
 
+import skillbill.application.scaffold.decodeScaffoldCommandRequest
+import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.error.shellcontent.RetiredScaffoldKindError
 import skillbill.error.shellcontent.ScaffoldPayloadVersionMismatchError
@@ -11,6 +13,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+
+private fun parseMcpScaffoldCommandRequest(payload: Map<String, Any?>): ScaffoldCommandRequest =
+  decodeScaffoldCommandRequest(JsonCodec.mapToJsonString(payload))
 
 class McpScaffoldCommandRequestParserTest {
   @Test

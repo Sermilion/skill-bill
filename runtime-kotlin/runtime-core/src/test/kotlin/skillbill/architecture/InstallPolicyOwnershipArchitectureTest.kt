@@ -1,9 +1,6 @@
 package skillbill.architecture
 
-import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.extension
-import kotlin.io.path.isRegularFile
 import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,7 +34,7 @@ class InstallPolicyOwnershipArchitectureTest {
       runtimeRoot.resolve(
         "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/policy",
       )
-    val policyFiles = kotlinFilesUnder(policyRoot)
+    val policyFiles = kotlinFilesUnderWithArchitectureAsserts(policyRoot)
     assertTrue(policyFiles.isNotEmpty(), "Install policy package must exist in runtime-domain.")
 
     val forbiddenImportPattern = installPolicyForbiddenImportPattern()
@@ -262,27 +259,14 @@ class InstallPolicyOwnershipArchitectureTest {
         """(InstallPlanPolicy|InstallPlanner|InstallPlanValidator|InstallPlanSchemaValidator)\b""",
     )
 
-  private fun kotlinFilesUnder(root: Path): List<Path> {
-    if (!Files.exists(root)) return emptyList()
-    return Files.walk(root).use { paths ->
-      paths
-        .filter { path -> path.isRegularFile() && path.extension == "kt" }
-        .toList()
-    }
-  }
-
   private fun adapterKotlinFiles(): List<Path> =
     listOf(
-      runtimeRoot.resolve("runtime-kotlin/runtime-cli/src/main/kotlin"),
-      runtimeRoot.resolve("runtime-kotlin/runtime-mcp/src/main/kotlin"),
-      runtimeRoot.resolve("$infraSkillsModule/src/main/kotlin"),
-      runtimeRoot.resolve(
-        "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath("runtime-infra:http")}/src/main/kotlin",
-      ),
-      runtimeRoot.resolve(
-        "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath("runtime-infra:sqlite")}/src/main/kotlin",
-      ),
-    ).flatMap(::kotlinFilesUnder)
+      moduleMainKotlinRoot("runtime-cli"),
+      moduleMainKotlinRoot("runtime-mcp"),
+      moduleMainKotlinRoot("runtime-infra:skills"),
+      moduleMainKotlinRoot("runtime-infra:http"),
+      moduleMainKotlinRoot("runtime-infra:sqlite"),
+    ).flatMap(::kotlinFilesUnderWithArchitectureAsserts)
 
   private fun Path.toSlashPath(): String = toString().replace('\\', '/')
 }

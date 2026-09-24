@@ -21,7 +21,10 @@ import kotlin.time.TimeSource
 
 internal interface RuntimeDiagnosticsProvides {
   @Provides @JvmSynthetic
-  fun runtimeDiagnostics(adapter: JdkRuntimeDiagnostics): RuntimeDiagnostics = adapter
+  fun runtimeDiagnostics(
+    callbacks: OptionalCallbacks,
+    adapter: JdkRuntimeDiagnostics,
+  ): RuntimeDiagnostics = callbacks.runtimeDiagnostics ?: adapter
 
   @Provides @JvmSynthetic
   fun runtimeTimingPort(

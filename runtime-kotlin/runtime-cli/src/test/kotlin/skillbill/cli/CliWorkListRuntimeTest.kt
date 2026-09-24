@@ -98,7 +98,7 @@ class CliWorkListRuntimeTest {
     assertEquals("2026-05-01T12:00:00.000003Z", second["started_at"])
     assertEquals(listOf(runtime), limitedWork.map { (it as Map<*, *>)["workflow_id"] })
     assertFalse(invalidLimit.exitCode == 0)
-    assertContains(invalidLimit.stdout, "--limit must be a positive integer.")
+    assertContains(invalidLimit.stderr, "--limit must be a positive integer.")
   }
 
   @Test

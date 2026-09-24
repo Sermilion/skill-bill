@@ -121,8 +121,9 @@ removable.
   `addon-manifest.yaml` there with bare pointer targets. `~` is expanded and
   relative paths resolve against `repo_root`. The platform pack must still
   exist so the scaffolder can validate/default `consumer_skill_dirs`.
-- `repo_root` — absolute path override used by tests. Defaults to the
-  current working directory.
+- `repo_root` — optional absolute path override. When present, scaffolding uses
+  this path. When omitted, scaffolding uses the invocation repository root (the
+  CLI or MCP caller's resolved repository root, not a layout walk).
 - `subagent_specialists` — list of specialist subagent names to scaffold
   alongside an orchestrator skill. Each name must match
   `^[a-z][a-z0-9-]*$`, be non-empty, and unique within the list. Honored

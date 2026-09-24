@@ -267,7 +267,7 @@ class CliRuntimeReviewLearningsTest {
     val editWithoutFields =
       CliRuntime.run(listOf("--db", dbPath.toString(), "learnings", "edit", "--id", "1", "--format", "json"))
     assertEquals(1, editWithoutFields.exitCode)
-    assertContains(editWithoutFields.stdout, "Learning edit requires at least one field")
+    assertContains(editWithoutFields.stderr, "Learning edit requires at least one field")
 
     val deletePayload = runJson("--db", dbPath.toString(), "learnings", "delete", "--id", "1", "--format", "json")
     assertEquals(1, deletePayload["deleted_learning_id"])

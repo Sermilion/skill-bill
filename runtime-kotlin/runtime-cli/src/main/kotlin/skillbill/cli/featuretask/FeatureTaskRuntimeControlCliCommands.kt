@@ -15,6 +15,7 @@ import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.kernel.payload.toPayload
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCandidate
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
@@ -36,12 +37,19 @@ class FeatureTaskLookupCommand(
     "--repo-root",
     help = "Path within the Git worktree. Defaults to the invocation repository root.",
   )
-  private val workflowId by option("--workflow-id", help = "Explicit matching workflow selection.")
+  private val workflowId by option(
+    FeatureTaskRuntimeGoalContinuationLaunchTokens.WORKFLOW_ID_FLAG,
+    help = "Explicit matching workflow selection.",
+  )
   private val format by formatOption()
 
   override fun run() {
     val result =
-      lookupService.lookup(issueKey, repositoryIdentity(resolveCliRepositoryRoot(repoRoot, inputs)), workflowId)
+      lookupService.lookup(
+        issueKey,
+        inputs.repositoryEnclosingRootPort.repositoryIdentity(resolveCliRepositoryRoot(repoRoot, inputs)),
+        workflowId,
+      )
     val payload = result.toCliPayload()
     state.complete(payload, format, if (result is FeatureTaskContinuationLookupResult.Ambiguous) 2 else 0)
   }
@@ -113,7 +121,11 @@ class FeatureTaskRuntimeStatusCommand(
         FeatureTaskRuntimeStatusRequest(workflowId = workflowId),
       )
     val payload = projection.toRuntimeStatusCliMap(workflowId)
-    state.completeText(runtimeStatusText(payload), payload, exitCode = payload.runtimeStatusExitCode())
+    state.completeText(
+      runtimeStatusText(projection, workflowId),
+      payload,
+      exitCode = runtimeStatusExitCode(projection),
+    )
   }
 }
 
@@ -122,7 +134,7 @@ class FeatureTaskRuntimeResumeCommand(
   private val deps: FeatureTaskRuntimeRunDependencies,
   private val lookupService: FeatureTaskContinuationLookupService,
 ) : FeatureTaskRuntimePhaseAgentCommand(
-    "resume",
+    FeatureTaskRuntimeGoalContinuationLaunchTokens.RESUME_SUBCOMMAND,
     "Resume a feature-task run against an existing workflow id.",
   ) {
   private val workflowId by argument(help = "Existing runtime workflow id to resume.")
@@ -140,6 +152,7 @@ class FeatureTaskRuntimeResumeCommand(
         specPath = specPath,
         repoRoot = prepared.repoRoot,
         goalChild = goalParentIssueKey != null,
+        repositoryEnclosingRootPort = deps.inputs.repositoryEnclosingRootPort,
       ),
     )
     executeRuntimeRun(
@@ -215,8 +228,9 @@ class FeatureTaskRuntimeRepairIdentityCommand(
         RepairFeatureTaskRuntimeIdentityArgs(
           workflowId = workflowId,
           issueKey = issueKey,
-          repositoryIdentity = repositoryIdentity(root),
-          governedSpecPath = governedSpecPath(root, Path.of(specPath)),
+          repositoryIdentity = inputs.repositoryEnclosingRootPort.repositoryIdentity(root),
+          governedSpecPath =
+            inputs.repositoryEnclosingRootPort.governedSpecPathForCli(root, Path.of(specPath)),
           reason = reason,
         ),
       )

@@ -20,6 +20,7 @@ import skillbill.review.model.ReviewRunLane
 import skillbill.review.model.ReviewStageDegradationMeasurement
 import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewSummary
+import skillbill.workflow.goal.model.toReviewAccountingBoundedJson
 import java.sql.Connection
 
 internal fun upsertReviewAccounting(
@@ -39,9 +40,7 @@ internal fun upsertReviewAccounting(
     statement.bindAll(
       record.reviewId,
       record.packetDigest,
-      JsonCodec.mapToJsonString(
-        encodeReviewAccountingBoundedPayload(record.summary),
-      ),
+      record.summary.toReviewAccountingBoundedJson(),
     )
     statement.executeUpdate()
   }

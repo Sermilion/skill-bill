@@ -122,15 +122,18 @@ internal fun gatherSharedContext(
     )
   val parentSpecHash = sha256HexUtf8(parentSpec)
   val decompositionManifestHash = goalPlanningImmutableDecompositionHash(state.manifest)
-  val repositoryIdentity = "repo-root-realpath-v1:$canonicalRepository"
+  val repositoryIdentity = sweep.repositoryEnclosingRootPort.repositoryIdentity(request.repoRoot)
   val planningPacket =
     recoveredPacket?.let(GoalPlanningSharedContextPacket::migrate)
       ?: sweep.createPlanningPacket(
-        state,
-        canonicalRepository,
-        parentSpecGoverningPath,
-        parentSpec,
-        decomposition,
+        PlanningPacketInputs(
+          state = state,
+          canonicalRepository = canonicalRepository,
+          parentSpecGoverningPath = parentSpecGoverningPath,
+          parentSpec = parentSpec,
+          decomposition = decomposition,
+          repositoryIdentity = repositoryIdentity,
+        ),
       )
   GoalPlanningSharedContextPacket.validate(
     packet = planningPacket,
@@ -158,30 +161,33 @@ internal fun gatherSharedContext(
   )
 }
 
-private fun DefaultGoalPlanningSweep.createPlanningPacket(
-  state: GoalRunnerManifestState,
-  canonicalRepository: Path,
-  parentSpecGoverningPath: String,
-  parentSpec: String,
-  decomposition: String,
-): Map<String, Any?> {
-  val discovered = contextDiscovery.loadPlanningContext(canonicalRepository)
+private data class PlanningPacketInputs(
+  val state: GoalRunnerManifestState,
+  val canonicalRepository: Path,
+  val parentSpecGoverningPath: String,
+  val parentSpec: String,
+  val decomposition: String,
+  val repositoryIdentity: String,
+)
+
+private fun DefaultGoalPlanningSweep.createPlanningPacket(inputs: PlanningPacketInputs): Map<String, Any?> {
+  val discovered = contextDiscovery.loadPlanningContext(inputs.canonicalRepository)
   val packet =
     linkedMapOf<String, Any?>(
       GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION to GoalPlanningSharedContextPacket.VERSION,
-      GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY to
-        "repo-root-realpath-v1:$canonicalRepository",
-      GoalPlanningSharedContextPacketPayloadKeys.NORMALIZED_ISSUE_KEY to state.manifest.issueKey.trim().uppercase(),
-      DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecGoverningPath,
+      GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY to inputs.repositoryIdentity,
+      GoalPlanningSharedContextPacketPayloadKeys.NORMALIZED_ISSUE_KEY to
+        inputs.state.manifest.issueKey.trim().uppercase(),
+      DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to inputs.parentSpecGoverningPath,
       GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC to
-        parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+        inputs.parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
       GoalPlanningSharedContextPacketPayloadKeys.DECOMPOSITION_MANIFEST to
-        decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+        inputs.decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
       GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY to GoalPlanningSharedContextPacket.catalog(discovered),
       GoalPlanningSharedContextPacketPayloadKeys.VALIDATION_GUIDANCE to
         discovered.validationGuidance.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
       GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS to
-        GoalPlanningSharedContextPacket.orderedSubtasks(state.manifest.subtasks),
+        GoalPlanningSharedContextPacket.orderedSubtasks(inputs.state.manifest.subtasks),
     )
   return packet + (
     GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256 to

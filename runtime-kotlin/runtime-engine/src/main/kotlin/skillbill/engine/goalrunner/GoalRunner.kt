@@ -40,6 +40,13 @@ class GoalRunner(
   private val executionCoordinator = runBoundaries.executionCoordinator
 
   fun run(request: GoalRunnerRunRequest): GoalRunnerRunReport {
+    if (request.experimentsParameter != null) {
+      return requireNotNull(runBoundaries.experimentPairCoordinator).run(request)
+    }
+    return runWithoutExperiments(request)
+  }
+
+  private fun runWithoutExperiments(request: GoalRunnerRunRequest): GoalRunnerRunReport {
     val loadedState =
       manifestStore.loadByIssueKey(request.issueKey, request.repoRoot)
         ?: return unknownGoal(request.issueKey)

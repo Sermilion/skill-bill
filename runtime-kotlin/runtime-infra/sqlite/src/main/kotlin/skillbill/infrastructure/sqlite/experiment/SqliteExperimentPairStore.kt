@@ -8,12 +8,13 @@ import skillbill.error.shellcontent.ExperimentIsolationCapabilityRefusalError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.ports.experiment.pair.ExperimentPairRepository
 import skillbill.ports.experiment.pair.model.ExperimentObservationImport
+import skillbill.ports.experiment.pair.model.ExperimentPairPayload
 import java.sql.Connection
 
 internal class SqliteExperimentPairStore(
   private val connection: Connection,
 ) : ExperimentPairRepository {
-  override fun loadPairPayload(pairId: String): Pair<String, Map<String, Any?>>? =
+  override fun loadPairPayload(pairId: String): Pair<String, ExperimentPairPayload>? =
     connection.prepareStatement(
       """
       SELECT pair_id, execution_mode, selected_experiment_names_json, arm_order_json,
@@ -37,7 +38,7 @@ internal class SqliteExperimentPairStore(
         map[ExperimentPairPayloadKeys.DELIVERY_STATUS] = rows.getString("delivery_status")
         map[ExperimentPairPayloadKeys.ARM_OUTCOMES] = loadArmOutcomes(pairId)
         map[ExperimentPairPayloadKeys.OBSERVATION_LEDGER] = loadObservationLedger(pairId)
-        mode to map
+        mode to ExperimentPairPayload(map)
       }
     }
 
@@ -105,18 +106,19 @@ internal class SqliteExperimentPairStore(
   override fun upsertPairRecord(
     pairId: String,
     executionMode: String,
-    payload: Map<String, Any?>,
+    payload: ExperimentPairPayload,
   ) {
+    val payloadMap = payload.toMap()
     val namesJson =
       JsonCodec.mapToJsonString(
         mapOf(
           ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES to
-            payload[ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES],
+            payloadMap[ExperimentPairPayloadKeys.SELECTED_EXPERIMENT_NAMES],
         ),
       )
     val armOrderJson =
       JsonCodec.mapToJsonString(
-        mapOf(ExperimentPairPayloadKeys.ARM_ORDER to payload[ExperimentPairPayloadKeys.ARM_ORDER]),
+        mapOf(ExperimentPairPayloadKeys.ARM_ORDER to payloadMap[ExperimentPairPayloadKeys.ARM_ORDER]),
       )
     connection.prepareStatement(
       """
@@ -142,15 +144,15 @@ internal class SqliteExperimentPairStore(
         executionMode,
         namesJson,
         armOrderJson,
-        payload[ExperimentPairPayloadKeys.RANDOM_SEED]?.toString(),
-        payload[ExperimentPairPayloadKeys.DELIVERY_ARM]?.toString() ?: "control",
-        payload[ExperimentPairPayloadKeys.PAIR_STATUS]?.toString() ?: "pending",
-        JsonCodec.mapToJsonString(payload),
-        payload[ExperimentPairPayloadKeys.DELIVERY_STATUS]?.toString() ?: "deferred",
+        payloadMap[ExperimentPairPayloadKeys.RANDOM_SEED]?.toString(),
+        payloadMap[ExperimentPairPayloadKeys.DELIVERY_ARM]?.toString() ?: "control",
+        payloadMap[ExperimentPairPayloadKeys.PAIR_STATUS]?.toString() ?: "pending",
+        JsonCodec.mapToJsonString(payloadMap),
+        payloadMap[ExperimentPairPayloadKeys.DELIVERY_STATUS]?.toString() ?: "deferred",
       )
       statement.executeUpdate()
     }
-    persistArmOutcomes(pairId, payload)
+    persistArmOutcomes(pairId, payloadMap)
   }
 
   private fun persistArmOutcomes(
@@ -264,7 +266,7 @@ internal class SqliteExperimentPairStore(
 
   override fun saveReport(
     pairId: String,
-    reportPayload: Map<String, Any?>,
+    reportPayload: ExperimentPairPayload,
   ) {
     connection.prepareStatement(
       """
@@ -275,29 +277,29 @@ internal class SqliteExperimentPairStore(
         updated_at = CURRENT_TIMESTAMP
       """.trimIndent(),
     ).use { statement ->
-      statement.bindAll(pairId, JsonCodec.mapToJsonString(reportPayload))
+      statement.bindAll(pairId, JsonCodec.mapToJsonString(reportPayload.toMap()))
       statement.executeUpdate()
     }
   }
 
-  override fun loadReport(pairId: String): Map<String, Any?>? =
+  override fun loadReport(pairId: String): ExperimentPairPayload? =
     connection.prepareStatement(
       "SELECT report_json FROM experiment_reports WHERE pair_id = ?",
     ).use { statement ->
       statement.bindAll(pairId)
       statement.executeQuery().use { rows ->
         if (!rows.next()) return null
-        jsonObjectMap(rows.getString("report_json"))
+        ExperimentPairPayload(jsonObjectMap(rows.getString("report_json")))
       }
     }
 
-  override fun listReports(): List<Map<String, Any?>> =
+  override fun listReports(): List<ExperimentPairPayload> =
     connection.prepareStatement(
       "SELECT report_json FROM experiment_reports ORDER BY updated_at, pair_id",
     ).use { statement ->
       statement.executeQuery().use { rows ->
         buildList {
-          while (rows.next()) add(jsonObjectMap(rows.getString("report_json")))
+          while (rows.next()) add(ExperimentPairPayload(jsonObjectMap(rows.getString("report_json"))))
         }
       }
     }
@@ -342,3 +344,8 @@ internal class SqliteExperimentPairStore(
     return JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(element)).orEmpty()
   }
 }
+
+private fun ExperimentPairPayload.toMap(): Map<String, Any?> =
+  JsonCodec.anyToStringAnyMap(
+    JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(toJson()))),
+  ) ?: error("Experiment pair payload must decode to an object.")

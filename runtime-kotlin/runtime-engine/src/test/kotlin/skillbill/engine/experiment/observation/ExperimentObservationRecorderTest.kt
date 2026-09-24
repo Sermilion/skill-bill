@@ -1,6 +1,8 @@
 package skillbill.engine.experiment.observation
 
+import skillbill.contracts.JsonCodec
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
+import skillbill.ports.experiment.pair.ExperimentPairPayload
 import skillbill.ports.experiment.pair.ExperimentPairPersistedState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -9,7 +11,7 @@ import kotlin.test.assertTrue
 class ExperimentObservationRecorderTest {
   @Test
   fun `records attempts setup usage and cost without converting unavailable values to zero`() {
-    var imported: Map<String, Any?>? = null
+    var imported: ExperimentPairPayload? = null
     val recorder =
       ExperimentObservationRecorder(
         object : ExperimentPairOwnerPort {
@@ -17,7 +19,7 @@ class ExperimentObservationRecorderTest {
 
           override fun save(state: ExperimentPairPersistedState) = Unit
 
-          override fun importObservation(payload: Map<String, Any?>): Boolean {
+          override fun importObservation(payload: ExperimentPairPayload): Boolean {
             imported = payload
             return true
           }
@@ -54,7 +56,7 @@ class ExperimentObservationRecorderTest {
       ),
     )
 
-    val measurements = imported!!["measurements"] as List<*>
+    val measurements = imported!!.toMap()["measurements"] as List<*>
     assertEquals(4, measurements.size)
     assertEquals(
       "unavailable_incomplete",
@@ -63,3 +65,8 @@ class ExperimentObservationRecorderTest {
     assertEquals(null, (measurements[2] as Map<*, *>)["quantity"])
   }
 }
+
+private fun ExperimentPairPayload.toMap(): Map<String, Any?> =
+  JsonCodec.anyToStringAnyMap(
+    JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(toJson()))),
+  ) ?: error("Experiment pair payload must decode to an object.")

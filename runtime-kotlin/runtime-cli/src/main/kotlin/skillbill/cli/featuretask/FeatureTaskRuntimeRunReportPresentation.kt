@@ -3,7 +3,6 @@ package skillbill.cli.featuretask
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeSubtaskOutcome
-import skillbill.workflow.model.DecompositionStatus
 
 internal fun FeatureTaskRuntimeRunReport.toRuntimeRunCliMap(): Map<String, Any?> =
   when (this) {
@@ -78,42 +77,75 @@ internal fun Map<String, Any?>.withSubtaskOutcome(outcome: FeatureTaskRuntimeSub
     }
   }
 
-internal fun Map<String, Any?>.runtimeRunExitCode(): Int = if (isTerminalSuccessStatus()) 0 else 1
-
-internal fun Map<String, Any?>.isTerminalSuccessStatus(): Boolean =
-  this[SharedPayloadKeys.STATUS] in setOf(DecompositionStatus.COMPLETE.wireValue, "decomposed")
-
-internal fun runtimeRunText(payload: Map<String, Any?>): String =
-  buildString {
-    appendLine("feature-task-runtime: ${payload[SharedPayloadKeys.ISSUE_KEY]}")
-    appendLine("workflow_id: ${payload[SharedPayloadKeys.WORKFLOW_ID]}")
-    appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
-    appendLine("feature_size: ${payload["feature_size"]}")
-    appendLine("resolved_branch: ${payload["resolved_branch"] ?: "none"}")
-    appendLine("completed_phases: ${(payload["completed_phases"] as? List<*>).orEmpty().joinToString()}")
-    payload["last_incomplete_phase"]?.let { appendLine("last_incomplete_phase: $it") }
-    payload["blocked_reason"]?.let { appendLine("blocked_reason: $it") }
-    (payload["subtask_outcome"] as? Map<*, *>)?.let { outcome -> appendSubtaskOutcome(outcome) }
-    payload["reason"]?.let { appendLine("decomposition_reason: $it") }
-    payload["subtask_count"]?.let { appendLine("subtask_count: $it") }
-    payload["parent_spec_path"]?.let { appendLine("parent_spec_path: $it") }
-    payload["decomposition_manifest_path"]?.let { appendLine("decomposition_manifest_path: $it") }
-    (payload["subtask_spec_paths"] as? List<*>).orEmpty().forEach { appendLine("subtask_spec_path: $it") }
-    payload["guidance"]?.let { appendLine("guidance: $it") }
+internal fun FeatureTaskRuntimeRunReport.runtimeRunExitCode(): Int =
+  when (this) {
+    is FeatureTaskRuntimeRunReport.Completed,
+    is FeatureTaskRuntimeRunReport.Decomposed,
+    -> 0
+    is FeatureTaskRuntimeRunReport.Blocked,
+    is FeatureTaskRuntimeRunReport.Paused,
+    -> 1
   }
 
-internal fun StringBuilder.appendSubtaskOutcome(outcome: Map<*, *>) {
+internal fun runtimeRunText(report: FeatureTaskRuntimeRunReport): String =
+  buildString {
+    appendLine("feature-task-runtime: ${report.issueKey}")
+    appendLine("workflow_id: ${report.workflowId}")
+    appendLine("status: ${report.statusWireValue()}")
+    appendLine("feature_size: ${report.featureSize}")
+    appendLine("resolved_branch: ${report.resolvedBranch ?: "none"}")
+    appendLine("completed_phases: ${report.completedPhaseIds().joinToString()}")
+    when (report) {
+      is FeatureTaskRuntimeRunReport.Blocked -> {
+        appendLine("last_incomplete_phase: ${report.lastIncompletePhase}")
+        appendLine("blocked_reason: ${report.blockedReason}")
+        report.subtaskOutcome?.let { appendSubtaskOutcome(it) }
+      }
+      is FeatureTaskRuntimeRunReport.Paused -> {
+        report.subtaskOutcome?.let { appendSubtaskOutcome(it) }
+      }
+      is FeatureTaskRuntimeRunReport.Decomposed -> {
+        appendLine("decomposition_reason: ${report.reason}")
+        appendLine("subtask_count: ${report.subtaskSpecPaths.size}")
+        appendLine("parent_spec_path: ${report.parentSpecPath}")
+        appendLine("decomposition_manifest_path: ${report.decompositionManifestPath}")
+        report.subtaskSpecPaths.forEach { appendLine("subtask_spec_path: $it") }
+        appendLine("guidance: $DECOMPOSE_GUIDANCE")
+      }
+      is FeatureTaskRuntimeRunReport.Completed -> {
+        report.subtaskOutcome?.let { appendSubtaskOutcome(it) }
+      }
+    }
+  }
+
+private fun FeatureTaskRuntimeRunReport.statusWireValue(): String =
+  when (this) {
+    is FeatureTaskRuntimeRunReport.Completed -> "complete"
+    is FeatureTaskRuntimeRunReport.Blocked -> "blocked"
+    is FeatureTaskRuntimeRunReport.Paused -> "paused"
+    is FeatureTaskRuntimeRunReport.Decomposed -> "decomposed"
+  }
+
+private fun FeatureTaskRuntimeRunReport.completedPhaseIds(): List<String> =
+  when (this) {
+    is FeatureTaskRuntimeRunReport.Completed -> completedPhaseIds
+    is FeatureTaskRuntimeRunReport.Blocked -> completedPhaseIds
+    is FeatureTaskRuntimeRunReport.Paused -> completedPhaseIds
+    is FeatureTaskRuntimeRunReport.Decomposed -> completedPhaseIds
+  }
+
+private fun StringBuilder.appendSubtaskOutcome(outcome: FeatureTaskRuntimeSubtaskOutcome) {
   appendLine("subtask_outcome:")
-  appendLine("  issue_key: ${outcome[SharedPayloadKeys.ISSUE_KEY]}")
-  appendLine("  subtask_id: ${outcome[SharedPayloadKeys.SUBTASK_ID]}")
-  appendLine("  status: ${outcome[SharedPayloadKeys.STATUS]}")
-  appendLine("  commit_sha: ${outcome["commit_sha"] ?: "none"}")
-  appendLine("  workflow_id: ${outcome[SharedPayloadKeys.WORKFLOW_ID]}")
-  appendLine("  last_resumable_step: ${outcome["last_resumable_step"]}")
-  outcome["finalizing_agent_id"]?.let { appendLine("  finalizing_agent_id: $it") }
-  (outcome["participating_agent_ids"] as? List<*>)?.takeIf { it.isNotEmpty() }
+  appendLine("  issue_key: ${outcome.issueKey}")
+  appendLine("  subtask_id: ${outcome.subtaskId}")
+  appendLine("  status: ${outcome.status.wireValue}")
+  appendLine("  commit_sha: ${outcome.commitSha ?: "none"}")
+  appendLine("  workflow_id: ${outcome.workflowId}")
+  appendLine("  last_resumable_step: ${outcome.lastResumableStep}")
+  outcome.finalizingAgentId?.let { appendLine("  finalizing_agent_id: $it") }
+  outcome.participatingAgentIds.takeIf { it.isNotEmpty() }
     ?.let { appendLine("  participating_agent_ids: ${it.joinToString()}") }
-  outcome["blocked_reason"]?.let { appendLine("  blocked_reason: $it") }
+  outcome.blockedReason?.let { appendLine("  blocked_reason: $it") }
 }
 
 internal const val DECOMPOSE_GUIDANCE: String =

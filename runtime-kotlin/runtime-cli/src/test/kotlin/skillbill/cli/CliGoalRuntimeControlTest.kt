@@ -123,8 +123,8 @@ class CliGoalRuntimeControlTest {
         missingFixture.goalCommand(extra = listOf("--stop-after-subtask")),
         missingFixture.context(launcher = GoalFixtureAgentRunLauncher(missingFixture)),
       )
-    assertEquals(1, missing.exitCode, missing.stdout)
-    assertContains(missing.stdout, "option --stop-after-subtask requires a value")
+    assertEquals(1, missing.exitCode, missing.stderr)
+    assertContains(missing.stderr, "option --stop-after-subtask requires a value")
 
     val zeroFixture = goalFixture(subtaskCount = 1)
     val zero =
@@ -132,8 +132,8 @@ class CliGoalRuntimeControlTest {
         zeroFixture.goalCommand(extra = listOf("--stop-after-subtask", "0")),
         zeroFixture.context(launcher = GoalFixtureAgentRunLauncher(zeroFixture)),
       )
-    assertEquals(1, zero.exitCode, zero.stdout)
-    assertContains(zero.stdout, "--stop-after-subtask must be a positive integer")
+    assertEquals(1, zero.exitCode, zero.stderr)
+    assertContains(zero.stderr, "--stop-after-subtask must be a positive integer")
 
     val unknownFixture = goalFixture(subtaskCount = 1)
     val unknown =
@@ -141,8 +141,8 @@ class CliGoalRuntimeControlTest {
         unknownFixture.goalCommand(extra = listOf("--stop-after-subtask", "99")),
         unknownFixture.context(launcher = GoalFixtureAgentRunLauncher(unknownFixture)),
       )
-    assertEquals(1, unknown.exitCode, unknown.stdout)
-    assertContains(unknown.stdout, "has no subtask '99'")
+    assertEquals(1, unknown.exitCode, unknown.stderr)
+    assertContains(unknown.stderr, "has no subtask '99'")
   }
 
   @Test

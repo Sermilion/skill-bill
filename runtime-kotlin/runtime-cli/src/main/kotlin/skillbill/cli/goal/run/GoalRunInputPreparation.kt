@@ -6,6 +6,7 @@ import skillbill.cli.kernel.agent.parseAgentAddonSelection
 import skillbill.cli.kernel.agent.refuseUnavailableAgentLaunchers
 import skillbill.cli.kernel.agent.requireInvokingAgentId
 import skillbill.cli.kernel.agent.requireSupportedOptionalAgentId
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.model.toPath
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest
 
@@ -19,7 +20,8 @@ internal fun validateGoalRunInputs(args: GoalRunInputValidationArgs) {
       args.stopAfterSubtask != null && args.stopAfterSubtask <= 0 ->
         "--stop-after-subtask must be a positive integer."
       args.agentAddonSlugs.isNotEmpty() && args.agentAddonSelectionJson != null ->
-        "Use either --agent-addon or --agent-addon-selection-json, not both."
+        "Use either --agent-addon or " +
+          "${FeatureTaskRuntimeGoalContinuationLaunchTokens.AGENT_ADDON_SELECTION_JSON_FLAG}, not both."
       else -> null
     }
   if (usageError != null) throw UsageError(usageError)

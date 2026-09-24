@@ -12,6 +12,7 @@ import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 
 @Inject
 class UninstallCommand(
@@ -90,7 +91,7 @@ class UninstallCommand(
   }
 }
 
-private const val GOAL_CONTINUATION_ENV = "SKILL_BILL_GOAL_CONTINUATION"
+private val GOAL_CONTINUATION_ENV = FeatureTaskRuntimeGoalContinuationLaunchTokens.GOAL_CONTINUATION_ENV
 private const val GOAL_CONTINUATION_REFUSAL_EXIT_CODE = 64
 
 private fun UninstallPlan.toPayload(

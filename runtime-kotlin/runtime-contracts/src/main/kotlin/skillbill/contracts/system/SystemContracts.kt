@@ -43,6 +43,7 @@ data class UpdateCheckContract(
   val status: String,
   val installedVersion: String? = null,
   val latestVersion: String? = null,
+  val releaseUrl: String? = null,
   val recommendedInstallCommand: String? = null,
   val reason: String? = null,
   val releaseNotes: String? = null,
@@ -52,6 +53,7 @@ data class UpdateCheckContract(
       put(SharedPayloadKeys.STATUS, status)
       put(UpdateCheckPayloadKeys.INSTALLED_VERSION, installedVersion)
       put(UpdateCheckPayloadKeys.LATEST_VERSION, latestVersion)
+      put(UpdateCheckPayloadKeys.RELEASE_URL, releaseUrl)
       put(UpdateCheckPayloadKeys.RECOMMENDED_INSTALL_COMMAND, recommendedInstallCommand)
       put(UpdateCheckPayloadKeys.REASON, reason)
       put(UpdateCheckPayloadKeys.RELEASE_NOTES, releaseNotes)

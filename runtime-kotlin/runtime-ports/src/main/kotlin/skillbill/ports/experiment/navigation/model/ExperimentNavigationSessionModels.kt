@@ -39,6 +39,18 @@ data class ExperimentNavigationSessionResult(
   val restrictedBaseline: Boolean = false,
 )
 
+data class ExperimentNavigationRunRequest(
+  val name: String,
+  val repoRoot: Path,
+  val revision: String,
+  val specPath: Path,
+) {
+  init {
+    require(name.isNotBlank()) { "name is required." }
+    require(revision.isNotBlank()) { "revision is required." }
+  }
+}
+
 data class ExperimentNavigationReadReceipt(
   val path: String,
   val purpose: String,

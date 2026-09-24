@@ -5,6 +5,7 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.options.validate
+import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.work.WorkListService
@@ -35,13 +36,14 @@ class WorkListCommand(
   private val service: WorkListService,
   private val state: CliRunState,
 ) : DocumentedCliCommand("list", "List persisted feature-task, feature-verify, and feature-goal work.") {
-  private val format by option("--format", help = "Output format.").default("table")
+  private val format by option("--format", help = "Output format.")
+    .choice("table", "json")
+    .default("table")
   private val limit by option("--limit", help = "Maximum number of rows.").int().validate {
     require(it > 0) { "--limit must be a positive integer." }
   }
 
   override fun run() {
-    require(format == "table" || format == "json") { "--format must be one of: table, json." }
     val result = service.list(limit = limit)
     val payload = result.toPayload()
     if (format == "json") {
@@ -64,10 +66,11 @@ class WorkStatusCommand(
     "--repo-root",
     help = "Repository root to resolve canonical repo-root-realpath-v1 identity.",
   ).required()
-  private val format by option("--format", help = "Output format.").default("json")
+  private val format by option("--format", help = "Output format.")
+    .choice("json")
+    .default("json")
 
   override fun run() {
-    require(format == "json") { "--format must be json for work status." }
     val result =
       service.status(
         IdeStatusRequest(
