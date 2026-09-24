@@ -4,7 +4,7 @@ import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.review.core.InvalidGoalTelemetryRowError
 import skillbill.infrastructure.sqlite.review.stats.ReviewStatsRuntime
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.telemetry.model.GoalFinishedRecord

@@ -35,8 +35,6 @@ internal fun collectRepoValidationIssues(
     runCatching { discoverRepoNativeAgentSourceEntries(root) }
       .onFailure { error -> issues += "native agent sources: ${describeDiscoveryFailure(error)}" }
       .getOrDefault(emptyList())
-  // Supporting-file, pointer, drift, and addon rules all read skill classes; a manifest that fails to load makes
-  // those rules unanswerable, so report it once and stop instead of aborting mid-run or validating against none.
   skillClassDiscoveryFailure(root)?.let { error ->
     issues += "$SKILL_CLASSES_DIR: ${describeDiscoveryFailure(error)}"
     return RepoValidationCollected(

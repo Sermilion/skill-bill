@@ -2,11 +2,11 @@ package skillbill.infrastructure.skills.externaladdon
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.core.ExternalPlatformPackOverlayError
-import skillbill.infrastructure.skills.install.nativeagent.install.native.sourceKind
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.declaredSkillRelativeDirs
+import skillbill.infrastructure.skills.scaffold.platformpack.sourceKind
 import skillbill.install.model.ExternalAddonSource
 import skillbill.model.toPath
 import skillbill.ports.install.addon.ExternalAddonOverlayPort

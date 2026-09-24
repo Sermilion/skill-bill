@@ -1,7 +1,7 @@
 package skillbill.infrastructure.skills.install.apply
 
 import skillbill.infrastructure.skills.install.plan.platformSkills
-import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
+import skillbill.infrastructure.skills.install.staging.installedSkillsCacheRoot
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
 import skillbill.install.model.InstallPlan

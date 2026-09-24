@@ -2,7 +2,7 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.infrastructure.sqlite.core.schema.DatabasePaths
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.GoalPlanningPreparationStore
 import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.GoalRunnerControlStore
 import skillbill.ports.diagnostics.RuntimeDiagnostics

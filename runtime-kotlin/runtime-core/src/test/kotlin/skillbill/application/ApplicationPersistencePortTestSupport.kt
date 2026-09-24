@@ -28,8 +28,8 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.error.shellcontent.MissingCompositionLayerError
+import skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.infrastructure.contracts.workflow.decomposition.DecompositionManifestSchemaValidator
-import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore
 import skillbill.learnings.model.CreateLearningRequest

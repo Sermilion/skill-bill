@@ -7,7 +7,7 @@ import skillbill.contracts.experiment.ExperimentObservationPayloadKeys
 import skillbill.contracts.experiment.ExperimentPairPayloadKeys
 import skillbill.error.shellcontent.ExperimentIsolationCapabilityRefusalError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.runtime.namesJson
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.namesJson
 import skillbill.ports.experiment.pair.ExperimentPairRepository
 import skillbill.ports.experiment.pair.model.ExperimentObservationImport
 import skillbill.ports.experiment.pair.model.ExperimentPairPayload

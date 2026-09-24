@@ -4,7 +4,7 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.host.process.BoundedExternalProcessOutput
 import skillbill.infrastructure.host.process.BoundedExternalProcessRequest
 import skillbill.infrastructure.host.process.BoundedExternalProcessRunner
-import skillbill.infrastructure.workflow.review.specialists.checkpoint.checkpointFileIdentity
+import skillbill.infrastructure.workflow.review.specialists.checkpointFileIdentity
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import java.io.IOException

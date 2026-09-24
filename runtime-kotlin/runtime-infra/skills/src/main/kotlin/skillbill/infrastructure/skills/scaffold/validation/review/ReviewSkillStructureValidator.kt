@@ -2,9 +2,9 @@ package skillbill.infrastructure.skills.scaffold.validation.review
 
 import skillbill.error.shellcontent.InvalidManifestSchemaError
 import skillbill.error.shellcontent.InvalidReviewSkillStructureError
-import skillbill.infrastructure.skills.install.plan.packRootsBySlug
 import skillbill.infrastructure.skills.nativeagent.composition.NATIVE_AGENT_BUNDLE_FILE
 import skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentBundle
+import skillbill.infrastructure.skills.scaffold.platformpack.packRootsBySlug
 import skillbill.model.toPath
 import skillbill.ports.workflow.list
 import skillbill.scaffold.model.PlatformManifest

@@ -3,6 +3,7 @@ package skillbill.infrastructure.sqlite.review.stage
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.infrastructure.sqlite.SQLiteReviewRunCompletenessRepository
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
+import skillbill.infrastructure.sqlite.tempDbConnection
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewSeverity
 import skillbill.review.model.ReviewClaimVerdict
@@ -16,7 +17,6 @@ import skillbill.review.model.ReviewSpecProjectionReference
 import skillbill.review.model.ReviewStage
 import skillbill.review.model.ReviewStageBoundary
 import skillbill.review.model.ReviewStageReached
-import skillbill.tempDbConnection
 import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals

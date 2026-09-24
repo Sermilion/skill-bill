@@ -1,20 +1,20 @@
 package skillbill.infrastructure.sqlite.review.stats
 
-import skillbill.SAMPLE_REVIEW
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.contracts.telemetry.TelemetryOutboxEvent
+import skillbill.infrastructure.sqlite.SAMPLE_REVIEW
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
-import skillbill.infrastructure.sqlite.learning.testLearningAppliedSessionWire
-import skillbill.infrastructure.sqlite.learning.testLearningEntryDto
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
-import skillbill.infrastructure.sqlite.review.stage.and.addLearning
-import skillbill.infrastructure.sqlite.review.stage.runtime.TriageRuntime
-import skillbill.infrastructure.sqlite.review.stats.workflow.phaseOutcomeCounts
+import skillbill.infrastructure.sqlite.review.stage.TriageRuntime
+import skillbill.infrastructure.sqlite.review.stage.addLearning
 import skillbill.infrastructure.sqlite.reviewSessionId
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.listJson
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.listJson
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.tempDbConnection
+import skillbill.infrastructure.sqlite.testLearningAppliedSessionWire
+import skillbill.infrastructure.sqlite.testLearningEntryDto
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.LearningSourceValidation
@@ -27,7 +27,6 @@ import skillbill.review.model.ImportedReview
 import skillbill.review.parsing.ReviewParser
 import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
-import skillbill.tempDbConnection
 import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertEquals

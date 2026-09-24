@@ -1,7 +1,7 @@
 package skillbill.infrastructure.skills.scaffold
 
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
+import skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine

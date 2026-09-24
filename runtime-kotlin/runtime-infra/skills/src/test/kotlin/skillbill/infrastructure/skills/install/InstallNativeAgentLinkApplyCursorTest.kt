@@ -2,9 +2,9 @@ package skillbill.infrastructure.skills.install
 
 import org.junit.jupiter.api.Assumptions
 import skillbill.infrastructure.skills.install.apply.currentNativeAgentApplyCacheRoot
-import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentResult
-import skillbill.infrastructure.skills.install.nativeagent.install.native.installNativeAgentFile
+import skillbill.infrastructure.skills.install.nativeagent.InstallNativeAgentResult
 import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgentLinkInventory
+import skillbill.infrastructure.skills.install.nativeagent.link.installNativeAgentFile
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.AgentTarget

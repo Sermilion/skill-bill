@@ -1,11 +1,11 @@
 package skillbill.infrastructure.skills.install.apply
 
-import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentOperations
-import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOutcome
-import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOverrides
-import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest
-import skillbill.infrastructure.skills.install.nativeagent.install.native.effectivePackRootsForInstall
-import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
+import skillbill.infrastructure.skills.install.nativeagent.link.InstallNativeAgentOperations
+import skillbill.infrastructure.skills.install.nativeagent.link.NativeAgentLinkOutcome
+import skillbill.infrastructure.skills.install.nativeagent.link.NativeAgentLinkOverrides
+import skillbill.infrastructure.skills.install.nativeagent.link.NativeAgentLinkRequest
+import skillbill.infrastructure.skills.install.nativeagent.link.effectivePackRootsForInstall
+import skillbill.infrastructure.skills.install.staging.installedSkillsCacheRoot
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader

@@ -2,8 +2,8 @@ package skillbill.infrastructure.skills.install.plan
 
 import skillbill.error.shellcontent.InvalidInternalSkillClassificationError
 import skillbill.infrastructure.host.jvm.rollbackDeleteIfExists
-import skillbill.infrastructure.skills.install.staging.staging.StagedSymlinkTargetInput
-import skillbill.infrastructure.skills.install.staging.staging.resolveStagedSymlinkTarget
+import skillbill.infrastructure.skills.install.staging.StagedSymlinkTargetInput
+import skillbill.infrastructure.skills.install.staging.resolveStagedSymlinkTarget
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.AgentTarget

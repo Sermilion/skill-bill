@@ -5,10 +5,10 @@ import skillbill.error.shellcontent.InvalidFallbackCapabilityError
 import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
 import skillbill.error.shellcontent.InvalidReviewSkillStructureError
 import skillbill.error.shellcontent.MissingContentFileError
-import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
-import skillbill.infrastructure.skills.install.staging.staging.authoredFilesFor
-import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
-import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
+import skillbill.infrastructure.skills.install.staging.applicablePointers
+import skillbill.infrastructure.skills.install.staging.authoredFilesFor
+import skillbill.infrastructure.skills.install.staging.content.computeInstallContentHash
+import skillbill.infrastructure.skills.install.staging.generatedSupportPointersFor
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget

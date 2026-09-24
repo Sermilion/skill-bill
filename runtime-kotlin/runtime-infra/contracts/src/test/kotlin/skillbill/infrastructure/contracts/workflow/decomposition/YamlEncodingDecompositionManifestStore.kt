@@ -5,7 +5,6 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 
-// Validator tests exercise manifest emission only; every file operation stays unavailable.
 internal class YamlEncodingDecompositionManifestStore :
   DecompositionManifestStore by UnavailableDecompositionManifestStore {
   private val yamlMapper = YAMLMapper()

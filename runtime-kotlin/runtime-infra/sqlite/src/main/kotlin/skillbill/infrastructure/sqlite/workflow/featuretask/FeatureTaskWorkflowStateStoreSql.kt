@@ -6,7 +6,7 @@ import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaErr
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.core.ops.sqliteDiagnostics
-import skillbill.infrastructure.sqlite.workflow.workflow.MINIMUM_OWNER_TOKEN_LENGTH
+import skillbill.infrastructure.sqlite.workflow.MINIMUM_OWNER_TOKEN_LENGTH
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.workflow.model.FeatureTaskExecutionIdentity

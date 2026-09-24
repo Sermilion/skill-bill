@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.nativeagent
 
-import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentPlatformPackLoader
+import skillbill.infrastructure.skills.nativeagent.platformpack.InstallNativeAgentPlatformPackLoader
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPlatformPackLoader
 
 internal object FileSystemNativeAgentPlatformPackLoader :

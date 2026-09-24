@@ -3,7 +3,7 @@ package skillbill.infrastructure.sqlite.core.schema
 import org.sqlite.SQLiteConfig
 import skillbill.error.core.DatabaseAccessError
 import skillbill.error.core.DatabaseAccessOperation
-import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
+import skillbill.infrastructure.sqlite.core.migration.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.ops.InternalSqliteDiagnostics
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.nio.file.Files

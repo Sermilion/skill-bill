@@ -2,12 +2,12 @@ package skillbill.infrastructure.skills.nativeagent
 
 import skillbill.config.model.RepoLocalConfig
 import skillbill.infrastructure.host.FileSystemRepoLocalConfig
-import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentPlatformPackLoader
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionContext
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionTarget
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentSource
 import skillbill.infrastructure.skills.nativeagent.composition.composeNativeAgentSource
 import skillbill.infrastructure.skills.nativeagent.composition.resolveNativeAgentCompositionTarget
+import skillbill.infrastructure.skills.nativeagent.platformpack.InstallNativeAgentPlatformPackLoader
 import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoredContentBody
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics

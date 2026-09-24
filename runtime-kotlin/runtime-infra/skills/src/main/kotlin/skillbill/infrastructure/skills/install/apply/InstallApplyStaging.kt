@@ -5,26 +5,28 @@ import skillbill.infrastructure.skills.install.identity.SKILL_CONTENT_IDENTITY_F
 import skillbill.infrastructure.skills.install.identity.installedSkillContentIdentity
 import skillbill.infrastructure.skills.install.identity.requireMatchingSkillContentIdentity
 import skillbill.infrastructure.skills.install.identity.suppliedSkillContentIdentity
-import skillbill.infrastructure.skills.install.staging.staging.ReuseInstallStagingInput
-import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
-import skillbill.infrastructure.skills.install.staging.staging.authoredFilesFor
-import skillbill.infrastructure.skills.install.staging.staging.content.InstallContentHashInputs
-import skillbill.infrastructure.skills.install.staging.staging.content.agentAddonPointersForSkill
-import skillbill.infrastructure.skills.install.staging.staging.content.authoredStagingNames
-import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
-import skillbill.infrastructure.skills.install.staging.staging.content.validateAgentAddonPointerNamespace
-import skillbill.infrastructure.skills.install.staging.staging.installed.StageInstalledSkillInput
-import skillbill.infrastructure.skills.install.staging.staging.installedSkillStagingDir
-import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
-import skillbill.infrastructure.skills.install.staging.staging.isReusableInstallStaging
-import skillbill.infrastructure.skills.install.staging.staging.reuseInstallStaging
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.InternalStagingPreparation
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.PreparedInternalStaging
-import skillbill.infrastructure.skills.install.staging.staging.sidecar.prepareInternalStaging
-import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
-import skillbill.infrastructure.skills.install.staging.staging.support.GeneratedSupportPointer
-import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
+import skillbill.infrastructure.skills.install.staging.GeneratedSupportPointer
+import skillbill.infrastructure.skills.install.staging.InternalStagingPreparation
+import skillbill.infrastructure.skills.install.staging.PreparedInternalStaging
+import skillbill.infrastructure.skills.install.staging.ReuseInstallStagingInput
+import skillbill.infrastructure.skills.install.staging.StageInstalledSkillInput
+import skillbill.infrastructure.skills.install.staging.applicablePointers
+import skillbill.infrastructure.skills.install.staging.authoredFilesFor
+import skillbill.infrastructure.skills.install.staging.content.InstallContentHashInputs
+import skillbill.infrastructure.skills.install.staging.content.agentAddonPointersForSkill
+import skillbill.infrastructure.skills.install.staging.content.authoredStagingNames
+import skillbill.infrastructure.skills.install.staging.content.computeInstallContentHash
+import skillbill.infrastructure.skills.install.staging.content.validateAgentAddonPointerNamespace
+import skillbill.infrastructure.skills.install.staging.generatedSupportPointersFor
+import skillbill.infrastructure.skills.install.staging.installedSkillStagingDir
+import skillbill.infrastructure.skills.install.staging.installedSkillsCacheRoot
+import skillbill.infrastructure.skills.install.staging.isReusableInstallStaging
+import skillbill.infrastructure.skills.install.staging.prepareInternalStaging
+import skillbill.infrastructure.skills.install.staging.reuseInstallStaging
+import skillbill.infrastructure.skills.install.staging.stageInstalledSkill
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
+import skillbill.infrastructure.skills.scaffold.platformpack.selectedPlatformManifests
+import skillbill.infrastructure.skills.scaffold.platformpack.selectedPlatformSlugs
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
@@ -155,7 +157,7 @@ private fun reuseOrFreshPlannedStaging(
         manifests = inputs.platformManifests,
         skillsRoot = plan.request.targetPaths.skillsRoot.toPath(),
         selectedPackSkills = selectedPackSkills,
-        selectedPlatformSlugs = selectedPlatformSlugs(plan, inputs.platformManifests),
+        selectedPlatformSlugs = selectedPlatformSlugs(plan.skills, inputs.platformManifests),
       ),
     )
   val stagedDir = staged.stagingDir.toPath().toAbsolutePath().normalize()
@@ -213,25 +215,6 @@ private fun plannedInternalStaging(
     catalogLoader = inputs.catalogLoader,
   ),
 )
-
-internal fun selectedPlatformManifests(
-  plan: InstallPlan,
-  platformManifests: List<PlatformManifest>,
-): List<PlatformManifest> {
-  val selected = selectedPlatformSlugs(plan, platformManifests)
-  return platformManifests.filter { manifest -> manifest.slug in selected }
-}
-
-private fun selectedPlatformSlugs(
-  plan: InstallPlan,
-  platformManifests: List<PlatformManifest>,
-): Set<String> =
-  plan.skills
-    .filter { skill -> skill.kind == InstallPlanSkillKind.PLATFORM_PACK }
-    .mapNotNull { skill ->
-      platformManifests.firstOrNull { manifest -> skill.sourceDir.startsWith(manifest.packRoot) }?.slug
-    }
-    .toSet()
 
 private fun selectedInternalPackSkills(plan: InstallPlan): List<InstallPlanSkill> =
   plan.skills.filter { skill ->

@@ -1,6 +1,5 @@
 package skillbill.infrastructure.contracts.phaseoutput
 
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.balancedTopLevelObjectSpans
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 import skillbill.infrastructure.contracts.sha256Hex as contentSha256Hex

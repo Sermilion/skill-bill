@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite.core.schema
 
-import skillbill.infrastructure.sqlite.core.migration.column.DatabaseColumnMigrations
+import skillbill.infrastructure.sqlite.core.migration.DatabaseColumnMigrations
 import java.sql.Connection
 
 internal object DatabaseReviewFindingColumnMigrations {

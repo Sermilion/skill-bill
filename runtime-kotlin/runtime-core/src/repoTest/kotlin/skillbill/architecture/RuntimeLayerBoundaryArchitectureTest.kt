@@ -357,8 +357,8 @@ class RuntimeLayerBoundaryArchitectureTest {
         ),
     )
 
-    val sqliteReviewRuntime = sourcePath("skillbill/infrastructure/sqlite/review/stage/runtime/ReviewRuntime.kt")
-    val sqliteTriageRuntime = sourcePath("skillbill/infrastructure/sqlite/review/stage/runtime/TriageRuntime.kt")
+    val sqliteReviewRuntime = sourcePath("skillbill/infrastructure/sqlite/review/stage/ReviewRuntime.kt")
+    val sqliteTriageRuntime = sourcePath("skillbill/infrastructure/sqlite/review/stage/TriageRuntime.kt")
     val sqliteStatsRuntime = sourcePath("skillbill/infrastructure/sqlite/review/stats/ReviewStatsRuntime.kt")
     listOf(sqliteReviewRuntime, sqliteTriageRuntime, sqliteStatsRuntime).forEach { path ->
       assertContains(Files.readString(path), "package skillbill.infrastructure.sqlite.review.")

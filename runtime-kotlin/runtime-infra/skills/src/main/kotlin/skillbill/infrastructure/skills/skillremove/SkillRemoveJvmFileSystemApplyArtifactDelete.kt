@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.skillremove
 
-import skillbill.infrastructure.skills.install.nativeagent.install.native.unlinkProviderAgents
+import skillbill.infrastructure.skills.install.nativeagent.link.unlinkProviderAgents
 import skillbill.infrastructure.skills.scaffold.manifest.removeAddonReferences
 import skillbill.infrastructure.skills.scaffold.manifest.removeCodeReviewArea
 import skillbill.infrastructure.skills.scaffold.manifest.removeDeclaredFilesBaseline

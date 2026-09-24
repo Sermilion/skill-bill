@@ -7,8 +7,8 @@ import skillbill.infrastructure.workflow.featuretask.FileSystemFeatureTaskRuntim
 import skillbill.infrastructure.workflow.filesystem.FileSystemDiffResolver
 import skillbill.infrastructure.workflow.git.standard.GitRepositoryOriginScopeKey
 import skillbill.infrastructure.workflow.review.broker.FileSystemReviewEvidenceBroker
-import skillbill.infrastructure.workflow.review.specialists.system.FileSystemReviewInputSource
-import skillbill.infrastructure.workflow.review.specialists.system.FileSystemReviewSnapshotGateway
+import skillbill.infrastructure.workflow.review.specialists.FileSystemReviewInputSource
+import skillbill.infrastructure.workflow.review.specialists.FileSystemReviewSnapshotGateway
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.repository.RepositoryOriginScopeKeyPort
 import skillbill.ports.review.ReviewContextEnvelopeValidator

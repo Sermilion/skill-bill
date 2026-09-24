@@ -1,10 +1,7 @@
 package skillbill.infrastructure.sqlite.review.stats
 
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
-import skillbill.infrastructure.sqlite.review.stats.workflow.buildGoalStats
-import skillbill.infrastructure.sqlite.review.stats.workflow.goalIdentityAvailability
-import skillbill.infrastructure.sqlite.review.stats.workflow.loadGoalRowsExcludingExperimentArms
-import skillbill.tempDbConnection
+import skillbill.infrastructure.sqlite.tempDbConnection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

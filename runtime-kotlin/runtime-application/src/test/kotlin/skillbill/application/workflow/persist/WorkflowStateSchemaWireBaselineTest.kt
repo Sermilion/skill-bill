@@ -59,7 +59,7 @@ class WorkflowStateSchemaWireBaselineTest {
 private fun compatibilityRepositoryRoot(): Path {
   var current: Path? = Path.of("").toAbsolutePath().normalize()
   while (current != null) {
-    if (Files.isDirectory(current.resolve(".git"))) return current
+    if (Files.exists(current.resolve(".git"))) return current
     current = current.parent
   }
   error("Repository root is not available from the test working directory.")

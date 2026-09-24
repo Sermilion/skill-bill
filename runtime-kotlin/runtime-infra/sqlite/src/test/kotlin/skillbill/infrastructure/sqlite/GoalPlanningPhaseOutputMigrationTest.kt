@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite
 
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
-import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
+import skillbill.infrastructure.sqlite.core.migration.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import java.nio.file.Files
 import java.sql.Connection

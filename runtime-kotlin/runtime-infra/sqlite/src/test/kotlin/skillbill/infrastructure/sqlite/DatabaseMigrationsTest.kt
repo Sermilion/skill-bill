@@ -1,13 +1,13 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.infrastructure.sqlite.core.migration.column.DatabaseColumnMigrations
-import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
+import skillbill.infrastructure.sqlite.core.migration.DatabaseColumnMigrations
+import skillbill.infrastructure.sqlite.core.migration.DatabaseMigrations
+import skillbill.infrastructure.sqlite.core.migration.area.GoalTelemetryMigration
 import skillbill.infrastructure.sqlite.core.ops.attachSqliteDiagnostics
 import skillbill.infrastructure.sqlite.core.ops.inNestedWriteTransaction
 import skillbill.infrastructure.sqlite.core.schema.DatabaseIdentity
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.schema.DatabaseSchema
-import skillbill.infrastructure.sqlite.telemetry.goal.GoalTelemetryMigration
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
 import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.GoalRunnerControlStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance

@@ -1,12 +1,12 @@
 package skillbill.infrastructure.sqlite.telemetry.redaction
 
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.duplicates.incrementDuplicateTerminalFinishedEvents
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.duplicates.lifecycleAlreadyFinished
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.save.TerminalSaveOutcome
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.listJson
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.rowExists
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.toSqlInt
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.TerminalSaveOutcome
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.incrementDuplicateTerminalFinishedEvents
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.lifecycleAlreadyFinished
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.listJson
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.rowExists
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.toSqlInt
 import skillbill.telemetry.model.QualityCheckFinishedRecord
 import skillbill.telemetry.model.QualityCheckStartedRecord
 import java.sql.Connection

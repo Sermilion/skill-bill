@@ -4,7 +4,7 @@ import org.yaml.snakeyaml.Yaml
 import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoringTarget
 import skillbill.infrastructure.skills.scaffold.rendering.canonicalSeverityCloser
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
+import skillbill.infrastructure.skills.scaffold.runtime.service.scaffold
 import skillbill.infrastructure.skills.scaffold.validation.review.ReviewSkillStructureValidator
 import skillbill.scaffold.policy.APPROVED_CODE_REVIEW_AREAS
 import java.nio.file.Files

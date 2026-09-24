@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite
 
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
-import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateStore
+import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.WorkflowSnapshotValidator

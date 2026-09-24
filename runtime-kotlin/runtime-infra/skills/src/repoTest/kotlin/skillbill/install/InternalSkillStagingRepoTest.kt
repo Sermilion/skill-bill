@@ -1,7 +1,7 @@
 package skillbill.install
 
-import skillbill.infrastructure.skills.install.staging.staging.installed.StageInstalledSkillInput
-import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
+import skillbill.infrastructure.skills.install.staging.StageInstalledSkillInput
+import skillbill.infrastructure.skills.install.staging.stageInstalledSkill
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.model.toPath

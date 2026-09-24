@@ -6,12 +6,6 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
-/**
- * Discovery inputs used to be read through `runCatching { ... }.getOrDefault(empty)`, so a manifest that failed to
- * parse turned into "no skill classes", "no native agents", "no portable review skills" — and validate passed while
- * silently skipping every rule that depends on that input. Each case here breaks exactly one discovery source and
- * asserts validate names the broken file.
- */
 class RepoValidationDiscoveryFailureTest {
   @Test
   fun `a malformed skill class manifest is named instead of emptying the class list`() {
