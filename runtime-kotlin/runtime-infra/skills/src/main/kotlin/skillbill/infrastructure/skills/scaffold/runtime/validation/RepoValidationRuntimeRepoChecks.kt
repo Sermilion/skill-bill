@@ -7,7 +7,6 @@ import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontm
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.discoverSkillClasses
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.resolveSkillClass
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
 import java.nio.file.Files
 import java.nio.file.Path

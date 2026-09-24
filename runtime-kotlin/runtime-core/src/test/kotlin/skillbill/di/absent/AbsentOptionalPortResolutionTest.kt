@@ -1,14 +1,14 @@
 package skillbill.di.absent
+import skillbill.di.core.OptionalCallbacks
 import skillbill.di.core.RuntimeBootstrapBindings
-import skillbill.di.workflow.RuntimeWorkflowProvides
+import skillbill.di.core.RuntimeContext
+import skillbill.di.core.RuntimeOptionalCallbackProvides
+import skillbill.di.core.TransportContext
+import skillbill.di.core.WorkflowOpsContext
 import skillbill.error.core.UnresolvedRemoteTransportPortError
 import skillbill.infrastructure.http.JdkHttpRequester
 import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
 import skillbill.model.EnvironmentContext
-import skillbill.model.OptionalCallbacks
-import skillbill.model.RuntimeContext
-import skillbill.model.TransportContext
-import skillbill.model.WorkflowOpsContext
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.transport.RemoteTransportPort
 import kotlin.test.Test
@@ -17,7 +17,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertSame
 
 class AbsentOptionalPortResolutionTest {
-  private val provides = object : RuntimeWorkflowProvides {}
+  private val provides = object : RuntimeOptionalCallbackProvides {}
 
   @Test
   fun `an absent requester resolves to the JDK transport`() {

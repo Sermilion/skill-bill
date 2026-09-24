@@ -45,7 +45,7 @@ class RuntimeDatabasePathPlumbingArchitectureTest {
     val allowedContextOwnedField =
       dbOverridePlumbingViolations(
         syntheticSourceFile(
-          "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/model/RuntimeContext.kt",
+          "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/model/EnvironmentContext.kt",
           """
           package skillbill.model
 
@@ -83,7 +83,7 @@ class RuntimeDatabasePathPlumbingArchitectureTest {
       val trimmed = line.trimStart()
       if (
         isPorts &&
-        file.relativePath.endsWith("skillbill/model/RuntimeContext.kt") &&
+        file.relativePath.endsWith("skillbill/model/EnvironmentContext.kt") &&
         trimmed.startsWith("val dbPathOverride")
       ) {
         return@mapIndexedNotNull null

@@ -108,12 +108,6 @@ object PrincipleEnforcementInventory {
 
   val spilloverFileNameExemptions: Set<String> = emptySet()
 
-  val sanctionedCompositionEntrypoints: Set<String> =
-    setOf(
-      "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
-        "skillbill/infrastructure/skills/scaffold/runtime/service/standalone/ScaffoldStandaloneEntrypoint.kt",
-    )
-
   val ambientEnvironmentExemptions: Set<String> =
     setOf(
       "runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/core/Main.kt",
@@ -478,24 +472,23 @@ object PrincipleEnforcementInventory {
       "featureSpecPathResolverPort",
       "featureTaskContinuationLookupService",
       "featureTaskPhaseSettlementService",
-      "featureTaskRuntimePhaseRecorder",
       "featureTaskRuntimeRunInvariantsSource",
       "featureTaskRuntimeRunner",
       "featureTaskRuntimeStatusService",
       "featureTaskRuntimeWorkerCoordinator",
       "goalOperatorDecisionService",
       "goalPlanningLogService",
-      "goalPlanningPreparationCheckpoint",
       "goalPreflightService",
       "goalRunner",
+      "goalRunnerManifestStore",
       "goalRunnerStatusService",
+      "goalRunnerWorkflowOutcomeStore",
       "ideStatusService",
       "installAgentService",
       "installMcpRegistrationPort",
       "installNativeAgentLinkPort",
       "installSelectionPersistencePort",
       "installService",
-      "installedWorkspaceBaselineStatusPort",
       "learningService",
       "lifecycleTelemetryService",
       "parallelCodeReviewRunner",
@@ -516,7 +509,6 @@ object PrincipleEnforcementInventory {
       "telemetryLevelMutator",
       "telemetryService",
       "unaddressedFindingsLedgerService",
-      "uninstallPathsPort",
       "unsupportedScaffoldGateway",
       "workListService",
       "workflowService",

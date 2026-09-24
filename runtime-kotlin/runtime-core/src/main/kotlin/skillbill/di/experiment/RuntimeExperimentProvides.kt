@@ -19,14 +19,14 @@ import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.experiment.validation.ExperimentPayloadValidationPort
 
 internal interface RuntimeExperimentProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun experimentDescriptorCatalog(): ExperimentDescriptorCatalog? = null
 
-  @Provides @JvmSynthetic
+  @Provides
   fun machineExperimentConfigStore(context: EnvironmentContext): MachineExperimentConfigStore =
     FileMachineExperimentConfigStore(context)
 
-  @Provides @JvmSynthetic
+  @Provides
   fun experimentSelectionPort(
     machineConfig: MachineExperimentConfigStore,
     repoLocalConfigPort: RepoLocalConfigPort,
@@ -38,22 +38,22 @@ internal interface RuntimeExperimentProvides {
       descriptorCatalog = descriptorCatalog,
     )
 
-  @Provides @JvmSynthetic
+  @Provides
   fun experimentIsolationCapability(): ExperimentIsolationCapabilityPort = FilesystemExperimentIsolationCapability
 
-  @Provides @JvmSynthetic
+  @Provides
   fun experimentPayloadValidation(): ExperimentPayloadValidationPort = ExperimentPayloadSchemaValidator()
 
-  @Provides @JvmSynthetic
+  @Provides
   fun experimentPairOwner(
     database: DatabaseSessionFactory,
     payloadValidation: ExperimentPayloadValidationPort,
   ): ExperimentPairOwnerPort = SqliteExperimentPairOwnerStore(database, payloadValidation)
 
-  @Provides @JvmSynthetic
+  @Provides
   fun experimentNavigationRunPort(coordinator: ExperimentNavigationPairCoordinator): ExperimentNavigationRunPort =
     coordinator
 
-  @Provides @JvmSynthetic
+  @Provides
   fun experimentPairReportPort(service: ExperimentPairReportService): ExperimentPairReportPort = service
 }

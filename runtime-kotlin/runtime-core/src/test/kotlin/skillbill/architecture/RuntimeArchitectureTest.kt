@@ -416,7 +416,7 @@ class RuntimeArchitectureTest {
   @Test
   fun `runtime context does not depend on infrastructure defaults`() {
     assertNoBannedImports(
-      files = listOf(sourceFile(sourcePath("skillbill/model/RuntimeContext.kt"))),
+      files = listOf(sourceFile(sourcePath("skillbill/di/core/RuntimeContext.kt"))),
       bannedImports = listOf("skillbill.infrastructure"),
     )
   }

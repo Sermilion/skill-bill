@@ -118,7 +118,7 @@ class RuntimeComponentInboundApiArchitectureTest {
       package skillbill.di
 
       internal interface RuntimeExampleProvides {
-        @Provides @JvmSynthetic
+        @Provides
         fun examplePort(adapter: ExampleAdapter): ExamplePort = adapter
 
         fun mixinHelper(): Int = 1
@@ -145,10 +145,10 @@ class RuntimeComponentInboundApiArchitectureTest {
       package skillbill.di
 
       abstract class RuntimeComponent {
-        @Provides @JvmSynthetic
+        @Provides
         fun runtimeContext(): RuntimeContext = resolvedRuntimeContext
 
-        @Provides @RuntimeSingleton @JvmSynthetic
+        @Provides @RuntimeSingleton
         fun databaseSessionFactory(context: EnvironmentContext): DatabaseSessionFactory =
           RuntimeBootstrapBindings.databaseSessionFactory(context)
       }

@@ -16,7 +16,6 @@ class RuntimeCompositionGuardArchitectureTest {
         boundClassNames = boundClasses,
         scanRoots = scanRoots,
         compositionDiRoot = diRoot,
-        sanctionedEntrypoints = PrincipleEnforcementInventory.sanctionedCompositionEntrypoints,
       )
     assertEquals(emptyList(), violations, violations.joinToString("\n"))
   }
@@ -61,22 +60,6 @@ class RuntimeCompositionGuardArchitectureTest {
   }
 
   @Test
-  fun `composition guard ignores sanctioned second entrypoints`() {
-    val violations =
-      ArchitectureScanSupport.directComponentConstructionViolations(
-        boundClassNames = setOf("FileSystemScaffoldRepoValidation", "FileSystemScaffoldSourceLoader"),
-        scanRoots =
-          listOf(
-            "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
-              "skillbill/infrastructure/skills/scaffold/runtime/service/standalone",
-          ),
-        compositionDiRoot = diRoot,
-        sanctionedEntrypoints = PrincipleEnforcementInventory.sanctionedCompositionEntrypoints,
-      )
-    assertEquals(emptyList(), violations)
-  }
-
-  @Test
   fun `bound-class census is non-empty`() {
     assertTrue(boundClasses.isNotEmpty(), "skillbill.di must declare at least one concrete bound class.")
     assertTrue(
@@ -93,7 +76,7 @@ class RuntimeCompositionGuardArchitectureTest {
       package skillbill.di
       import me.tatarka.inject.annotations.Provides
       internal interface RuntimeExampleProvides {
-        @Provides @JvmSynthetic
+        @Provides
         fun bind(implementation: ExampleAdapter): ExamplePort = implementation
       }
       """.trimIndent()
@@ -110,7 +93,7 @@ class RuntimeCompositionGuardArchitectureTest {
       package skillbill.di
       import me.tatarka.inject.annotations.Provides
       internal interface RuntimeWorkflowProvides {
-        @Provides @JvmSynthetic
+        @Provides
         fun gitWorkflowGitOperations(): GitWorkflowGitOperations = GitWorkflowGitOperations()
       }
       """.trimIndent()

@@ -2,7 +2,6 @@
 package skillbill.infrastructure.skills.scaffold.runtime.service
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.policy.platformpack.model.PlatformPackManifestContentRenderRequest
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON

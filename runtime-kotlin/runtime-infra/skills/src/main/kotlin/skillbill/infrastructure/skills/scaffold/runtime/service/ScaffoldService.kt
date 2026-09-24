@@ -5,7 +5,6 @@ import skillbill.infrastructure.host.jvm.resolveUserHome
 import skillbill.infrastructure.skills.scaffold.payload.detectKind
 import skillbill.infrastructure.skills.scaffold.payload.validatePayloadVersion
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.ports.install.platformpack.ExternalPlatformPackSourceConfigPort
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.system.HostPlatformPort

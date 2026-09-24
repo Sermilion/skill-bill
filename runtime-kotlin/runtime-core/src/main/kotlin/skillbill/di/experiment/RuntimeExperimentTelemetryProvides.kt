@@ -11,7 +11,7 @@ import skillbill.ports.experiment.navigation.ExperimentNavigationSessionRunnerPo
 import skillbill.ports.telemetry.transport.TelemetryConfigStore
 
 internal interface RuntimeExperimentTelemetryProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun experimentTelemetryOutboxSink(database: DatabaseSessionFactory): ExperimentTelemetryOutboxSink =
     ExperimentTelemetryOutboxSink { eventName, payloadJson ->
       database.transaction { unitOfWork ->
@@ -19,16 +19,16 @@ internal interface RuntimeExperimentTelemetryProvides {
       }
     }
 
-  @Provides @JvmSynthetic
+  @Provides
   fun experimentTelemetryOutboxRecorder(
     configStore: TelemetryConfigStore,
     sink: ExperimentTelemetryOutboxSink,
   ): ExperimentTelemetryOutboxRecorder = ExperimentTelemetryOutboxRecorder(configStore, sink)
 
-  @Provides @JvmSynthetic
+  @Provides
   fun experimentTelemetryRecorder(recorder: ExperimentTelemetryOutboxRecorder): ExperimentTelemetryRecorder = recorder
 
-  @Provides @JvmSynthetic
+  @Provides
   fun experimentNavigationSessionRunner(): ExperimentNavigationSessionRunnerPort =
     BoundedReadOnlyExperimentNavigationSessionRunner { _ ->
       throw ExperimentIsolationCapabilityRefusalError(

@@ -4,7 +4,6 @@ import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
 import skillbill.application.telemetry.lifecycle.LifecycleTelemetryService
 import skillbill.application.telemetry.service.TelemetryLevelMutationService
 import skillbill.application.telemetry.settings.DefaultTelemetrySettingsProvider
-import skillbill.di.core.SkillBillVersion
 import skillbill.infrastructure.host.FileTelemetryConfigStore
 import skillbill.infrastructure.http.HttpTelemetryClient
 import skillbill.ports.telemetry.transport.TelemetryClient
@@ -13,21 +12,18 @@ import skillbill.ports.telemetry.transport.TelemetryLevelMutator
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 
 internal interface RuntimeTelemetryProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun telemetryConfigStore(store: FileTelemetryConfigStore): TelemetryConfigStore = store
 
-  @Provides @JvmSynthetic
+  @Provides
   fun telemetrySettingsProvider(provider: DefaultTelemetrySettingsProvider): TelemetrySettingsProvider = provider
 
-  @Provides @JvmSynthetic
+  @Provides
   fun telemetryClient(client: HttpTelemetryClient): TelemetryClient = client
 
-  @Provides @JvmSynthetic
+  @Provides
   fun telemetryLevelMutator(service: TelemetryLevelMutationService): TelemetryLevelMutator = service
 
-  @Provides @JvmSynthetic
+  @Provides
   fun goalLifecycleTelemetryEmitter(service: LifecycleTelemetryService): GoalLifecycleTelemetryEmitter = service
-
-  @Provides @JvmSynthetic
-  fun skillBillVersion(): String = SkillBillVersion.VALUE
 }

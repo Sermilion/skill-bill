@@ -5,7 +5,6 @@ import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlat
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.unsupportedCompositionModeReason
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.PRE_SHELL_FAMILIES
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELLED_FAMILIES
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.model.BaselineReviewCatalog
 import skillbill.scaffold.model.BaselineReviewCompositionEdge
 import skillbill.scaffold.model.BaselineReviewLayerSuggestion

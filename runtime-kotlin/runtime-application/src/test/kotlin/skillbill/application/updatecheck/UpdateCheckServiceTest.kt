@@ -3,6 +3,7 @@ package skillbill.application.updatecheck
 import skillbill.application.system.SystemService
 import skillbill.application.updatecheck.model.RECOMMENDED_INSTALL_COMMAND
 import skillbill.application.updatecheck.model.UpdateCheckStatus
+import skillbill.model.RuntimeVersion
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
@@ -193,7 +194,7 @@ private fun systemService(versionValue: String): SystemService =
     TestDatabaseSessionFactory(),
     TestTelemetrySettingsProvider,
     NoopRuntimeDiagnostics,
-    versionValue = versionValue,
+    RuntimeVersion(versionValue),
   )
 
 private class FakeReleaseCatalog(

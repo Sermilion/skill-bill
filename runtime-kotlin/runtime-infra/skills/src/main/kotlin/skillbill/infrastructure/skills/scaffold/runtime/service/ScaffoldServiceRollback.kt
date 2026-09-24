@@ -6,7 +6,6 @@ import skillbill.infrastructure.host.jvm.rollbackDeleteIfExists
 import skillbill.infrastructure.host.jvm.rollbackDeleteRegularFileOrSymlink
 import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
 import skillbill.infrastructure.skills.scaffold.runtime.service.externalpack.rollbackRegisteredExternalPlatformPack
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

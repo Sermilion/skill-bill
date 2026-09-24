@@ -2,7 +2,6 @@
 package skillbill.infrastructure.skills.scaffold.runtime.service
 import skillbill.error.shellcontent.SkillAlreadyExistsError
 import skillbill.infrastructure.skills.scaffold.rendering.renderAddonBody
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_CODE_REVIEW_AREA

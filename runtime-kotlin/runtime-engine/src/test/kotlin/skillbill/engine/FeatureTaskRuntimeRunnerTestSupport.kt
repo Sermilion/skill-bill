@@ -63,7 +63,6 @@ import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.error.core.RejectedOutputDiagnosticError.Absent
 import skillbill.error.core.RejectedOutputDiagnosticError.Conflict
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.featurespec.FeatureSpecPreparationPolicy
 import skillbill.featurespec.model.FeatureSpecPreparationDecision
 import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
@@ -1209,7 +1208,7 @@ private fun noOpDecompositionPlanner(): FeatureTaskRuntimeDecompositionPlanner =
 
 private fun testDecompositionPlanner(): FeatureTaskRuntimeDecompositionPlanner =
   FeatureTaskRuntimeDecompositionPlanner(
-    preparationRuntime = FeatureSpecPreparationRuntime(prepareCore = FeatureSpecPreparationPolicy::prepare),
+    preparationRuntime = FeatureSpecPreparationRuntime(),
     preparationWriter =
       FeatureSpecPreparationWriter(
         decompositionManifestValidator = testDecompositionManifestValidator,

@@ -4,7 +4,6 @@ import skillbill.infrastructure.skills.nativeagent.rendering.discoverRepoNativeA
 import skillbill.infrastructure.skills.nativeagent.validation.validateRepoNativeAgents
 import skillbill.infrastructure.skills.scaffold.platformpack.substanceaudit.PlatformPackSubstanceAudit
 import skillbill.infrastructure.skills.scaffold.pointer.validateGeneratedArtifactGuard
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.infrastructure.skills.scaffold.validation.shape.validateGovernedSkillDrift
 import java.nio.file.Path
 

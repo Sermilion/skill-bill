@@ -1,5 +1,4 @@
 package skillbill.infrastructure.skills.scaffold.runtime.service
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import java.nio.file.Path
 
 internal fun performInstall(

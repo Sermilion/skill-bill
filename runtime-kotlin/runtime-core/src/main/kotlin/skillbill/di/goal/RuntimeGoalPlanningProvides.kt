@@ -1,7 +1,6 @@
 package skillbill.di.goal
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.runtime.RuntimeSingleton
-import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
 import skillbill.engine.goalrunner.execution.core.DefaultGoalRunnerExecutionCoordinator
 import skillbill.engine.goalrunner.execution.core.GoalRunnerExecutionCoordinator
 import skillbill.engine.goalrunner.planning.attempt.DurableGoalPlanningAttemptRecorder
@@ -17,36 +16,33 @@ import skillbill.ports.goalrunner.planning.GoalPlanningBoundaryBodyResolver
 import skillbill.ports.goalrunner.planning.GoalPlanningContextDiscovery
 
 internal interface RuntimeGoalPlanningProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun goalPlanningStatusReasonCoherence(
     adapter: LaunchAlignedGoalPlanningStatusReasonCoherence,
   ): GoalPlanningStatusReasonCoherence = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun goalRunnerExecutionCoordinator(
     coordinator: DefaultGoalRunnerExecutionCoordinator,
   ): GoalRunnerExecutionCoordinator = coordinator
 
-  @Provides @RuntimeSingleton @JvmSynthetic
+  @Provides @RuntimeSingleton
   fun goalPlanningAttemptRecorder(recorder: DurableGoalPlanningAttemptRecorder): GoalPlanningAttemptRecorder = recorder
 
-  @Provides @JvmSynthetic
+  @Provides
   fun goalPlanningRejectionRecorder(recorder: DurableGoalPlanningRejectionRecorder): GoalPlanningRejectionRecorder =
     recorder
 
-  @Provides @JvmSynthetic
+  @Provides
   fun goalPlanningContextDiscovery(adapter: FileSystemGoalPlanningContextDiscovery): GoalPlanningContextDiscovery =
     adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun goalPlanningBoundaryBodyResolver(
     adapter: FileSystemGoalPlanningBoundaryBodyResolver,
-  ): GoalPlanningBoundaryBodyResolver {
-    GoalPlanningDiscoveryExclusions.excludedRoots
-    return adapter
-  }
+  ): GoalPlanningBoundaryBodyResolver = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun goalPlanningBurstSchedule(): GoalPlanningBurstSchedule =
     GoalPlanningBurstSchedule(
       planFanOutCap = GoalPlanningBurstSchedule.DEFAULT_PLAN_FAN_OUT_CAP,

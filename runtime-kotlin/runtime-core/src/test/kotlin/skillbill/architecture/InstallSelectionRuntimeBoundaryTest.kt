@@ -1,13 +1,13 @@
 package skillbill.architecture
 
+import skillbill.di.core.OptionalCallbacks
 import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.RuntimeContext
+import skillbill.di.core.TransportContext
+import skillbill.di.core.WorkflowOpsContext
 import skillbill.di.core.create
 import skillbill.error.shellcontent.MissingInstallSelectionRecordError
 import skillbill.model.EnvironmentContext
-import skillbill.model.OptionalCallbacks
-import skillbill.model.RuntimeContext
-import skillbill.model.TransportContext
-import skillbill.model.WorkflowOpsContext
 import skillbill.ports.install.selection.model.ReadLatestSuccessfulInstallSelectionRequest
 import java.nio.file.Files
 import kotlin.test.Test

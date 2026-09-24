@@ -6,9 +6,9 @@ import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweep
 
 internal interface RuntimeGoalPlanningSweepProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun goalPlanningSweep(sweep: DefaultGoalPlanningSweep): GoalPlanningSweep = sweep
 
-  @Provides @JvmSynthetic
+  @Provides
   fun goalPlanningRefreshLiveness(adapter: ChildAwareGoalPlanningRefreshLiveness): GoalPlanningRefreshLiveness = adapter
 }

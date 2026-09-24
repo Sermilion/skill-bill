@@ -100,18 +100,20 @@ internal fun assertRuntimeCorePublicProjectEdges(
     "If Kotlin-Inject ever requires a" in architecture,
     "ARCHITECTURE.md must reserve the documentation seam for any future generated public edge.",
   )
-  assertEquals(
-    emptyList(),
-    runtimeComponentInternalProviderJvmLeaks(runtimeRoot),
-    "RuntimeComponent internal provider functions must be @JvmSynthetic so concrete adapter " +
-      "signatures do not become Java-visible runtime-core API.",
-  )
 }
 
 private data class RuntimeComponentPublicAbiEdges(
   val projectEdges: Set<String>,
   val unknownTypes: Set<String>,
 )
+
+private val RUNTIME_CORE_COMPOSITION_TYPES =
+  setOf(
+    "RuntimeContext",
+    "TransportContext",
+    "WorkflowOpsContext",
+    "OptionalCallbacks",
+  )
 
 private fun runtimeComponentPublicAbiEdges(runtimeRoot: Path): RuntimeComponentPublicAbiEdges {
   val componentText = runtimeComponentText(runtimeRoot)
@@ -139,19 +141,15 @@ private fun runtimeComponentPublicAbiEdges(runtimeRoot: Path): RuntimeComponentP
   val projectEdges = mutableSetOf<String>()
   val unknownTypes = mutableSetOf<String>()
   publicTypeNames.forEach { typeName ->
+    if (typeName in RUNTIME_CORE_COMPOSITION_TYPES) return@forEach
     when (val importedName = importsBySimpleName[typeName]) {
       null -> unknownTypes += typeName
-      "skillbill.model.RuntimeContext",
-      "skillbill.model.EnvironmentContext",
-      "skillbill.model.TransportContext",
-      "skillbill.model.WorkflowOpsContext",
-      "skillbill.model.OptionalCallbacks",
-      -> projectEdges += ":runtime-ports"
       else ->
         when {
           importedName.startsWith("skillbill.application.") -> projectEdges += ":runtime-application"
           importedName.startsWith("skillbill.engine.") -> projectEdges += ":runtime-engine"
           importedName.startsWith("skillbill.ports.") -> projectEdges += ":runtime-ports"
+          importedName.startsWith("skillbill.model.") -> projectEdges += ":runtime-ports"
           else -> unknownTypes += importedName
         }
     }
@@ -185,14 +183,6 @@ private fun runtimeCoreApiDependencyClosure(
   }
   directEdges.forEach(::visit)
   return visited
-}
-
-private fun runtimeComponentInternalProviderJvmLeaks(runtimeRoot: Path): List<String> {
-  val componentText = runtimeComponentText(runtimeRoot)
-  val providerPattern = Regex("""@Provides\s+(?!@JvmSynthetic\s+)(internal\s+fun\s+[A-Za-z0-9_]+)""")
-  return providerPattern.findAll(componentText)
-    .map { match -> match.groupValues[1] }
-    .toList()
 }
 
 private fun runtimeComponentText(runtimeRoot: Path): String =

@@ -337,9 +337,8 @@ runtime-core
   types live in area-owned `model` packages, including the
   `skillbill.model.FileLocation` value type that carries repo paths through domain
   and port signatures without a `java.nio` dependency.
-- `runtime-ports`: `skillbill.model.RuntimeContext` (one constructor:
-  `EnvironmentContext`, `TransportContext`, `WorkflowOpsContext`, `OptionalCallbacks`),
-  persistence sessions,
+- `runtime-ports`: `skillbill.model.EnvironmentContext`, the
+  `skillbill.model.RuntimeVersion` packaged-version value type, persistence sessions,
   repositories, gateway interfaces, telemetry port interfaces, workflow git
   operations, decomposition-manifest file-store ports, port-owned model types,
   the `skillbill.model.toPath` and `skillbill.ports.repository.toFileLocation` bridges that adapters use to turn
@@ -452,10 +451,15 @@ and `:runtime-infra:sqlite`.
   `RuntimeReviewAddonCatalogProvides`, `RuntimeScaffoldValidationProvides`,
   `RuntimeGoalPlanningSweepProvides`), never by pairing two areas. Each
   `@Provides` is declared once, and `RuntimeBootstrapBindings` holds only the
-  ambient construction seam. The logical service surface is the pinned abstract
-  property set on `RuntimeComponent`; `@Provides` methods (including
-  `@JvmSynthetic` generated parent wiring such as `runtimeContext` and
-  `databaseSessionFactory`) are the integration surface and are not duplicated
+  ambient construction seam. `runtime-core` is the single composition root; the
+  abstract properties on `RuntimeComponent` are the export list that generated
+  Kotlin-Inject child components read, and every accessor has a reader. Providers
+  bind one port to one `@Inject` implementation; there are no parameter-bag
+  classes. The composition inputs `RuntimeContext`, `TransportContext`,
+  `WorkflowOpsContext`, and `OptionalCallbacks` are declared in
+  `skillbill.di.core`, while `EnvironmentContext` stays in `runtime-ports`.
+  `@Provides` methods such as `runtimeContext` and `databaseSessionFactory` are
+  the integration surface and are not duplicated
   in a second signature table. Any other public function on `RuntimeComponent`
   or a `Runtime*Provides` mixin is rejected even when abstract properties are
   unchanged. `RuntimeComponent` memoizes the first
@@ -475,8 +479,10 @@ and `:runtime-infra:sqlite`.
   results share that boundary. When a package has multiple noun families,
   place each family in a child package rather than growing the parent.
 - `skillbill.model`: shared runtime model types that are not owned by a
-  narrower area: `RuntimeContext`, `EnvironmentContext`, `TransportContext`,
-  `WorkflowOpsContext`, `OptionalCallbacks`, and `RepositoryRoot`.
+  narrower area: `EnvironmentContext`, `RepositoryRoot`, and `RuntimeVersion`.
+  The composition inputs `RuntimeContext`, `TransportContext`,
+  `WorkflowOpsContext`, and `OptionalCallbacks` belong to the composition root
+  and live in `skillbill.di.core`.
 - `skillbill.config.*`: repo-local configuration domain models and resolution
   policy owned by `runtime-domain`.
 - `skillbill.ports.*`: port contracts for persistence, install, scaffold,
@@ -707,8 +713,8 @@ and applies `DEFAULT_INSTALLER_PROCESS_DEADLINE_SECONDS` (600s) from the request
 object. Tests inject shorter deadlines through that field; the CLI exposes no
 public timeout flag. Post-failure teardown uses `GIT_PROCESS_CLEANUP_BUDGET_SECONDS`
 (5s), `destroyOwnedProcessTree`, and `DESTROY_WAIT_TIMEOUT_MILLIS` (1s) over the
-owned process handle and its descendants only. `RuntimeInstallerProvides` wires
-production adapters from `RuntimeComponent`; `OptionalCallbacks` supplies test
+owned process handle and its descendants only. `RuntimeOptionalCallbackProvides`
+wires production adapters from `RuntimeComponent`; `OptionalCallbacks` supplies test
 substitutes for both ports.
 
 `SkillBillUninstallService` owns uninstall plan construction and mutation

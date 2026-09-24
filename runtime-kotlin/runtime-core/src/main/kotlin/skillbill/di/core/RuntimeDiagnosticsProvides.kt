@@ -8,7 +8,6 @@ import skillbill.infrastructure.host.JdkRuntimeDiagnostics
 import skillbill.infrastructure.host.JdkRuntimeTimingPort
 import skillbill.infrastructure.host.JdkShutdownHookPort
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
-import skillbill.model.OptionalCallbacks
 import skillbill.ports.concurrency.BoundedWorkFanOutPort
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.process.DaemonThreadPort
@@ -20,37 +19,37 @@ import java.time.Clock
 import kotlin.time.TimeSource
 
 internal interface RuntimeDiagnosticsProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun runtimeDiagnostics(
     callbacks: OptionalCallbacks,
     adapter: JdkRuntimeDiagnostics,
   ): RuntimeDiagnostics = callbacks.runtimeDiagnostics ?: adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun runtimeTimingPort(
     callbacks: OptionalCallbacks,
     adapter: JdkRuntimeTimingPort,
   ): RuntimeTimingPort = callbacks.runtimeTimingPort ?: adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun shutdownHookPort(adapter: JdkShutdownHookPort): ShutdownHookPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun daemonThreadPort(adapter: JdkDaemonThreadPort): DaemonThreadPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun identifierGeneratorPort(adapter: JdkIdentifierGeneratorPort): IdentifierGeneratorPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun boundedWorkFanOutPort(adapter: JdkBoundedWorkFanOutPort): BoundedWorkFanOutPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun hostPlatformPort(callbacks: OptionalCallbacks): HostPlatformPort =
     callbacks.hostPlatformPort ?: JdkHostPlatformPort
 
-  @Provides @JvmSynthetic
+  @Provides
   fun runtimeClock(): Clock = JvmSystemClock
 
-  @Provides @JvmSynthetic
+  @Provides
   fun runtimeTimeSource(): TimeSource = TimeSource.Monotonic
 }

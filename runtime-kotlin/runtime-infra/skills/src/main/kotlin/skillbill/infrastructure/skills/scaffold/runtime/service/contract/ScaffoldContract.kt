@@ -1,7 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.runtime.service.contract
 import skillbill.error.shellcontent.MissingSupportingFileTargetError
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.infrastructure.skills.scaffold.runtime.service.support.featureAddonPointerSpecsFor
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path

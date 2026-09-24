@@ -6,7 +6,6 @@ import skillbill.infrastructure.workflow.review.specialists.review.ClasspathRevi
 import skillbill.infrastructure.workflow.review.specialists.system.FileSystemReviewAttribution
 import skillbill.infrastructure.workflow.review.specialists.system.FileSystemReviewNativeAgentPreflight
 import skillbill.infrastructure.workflow.review.specialists.system.FileSystemReviewRubricResolver
-import skillbill.model.OptionalCallbacks
 import skillbill.ports.review.launch.ReviewLaunchAgentStagingPort
 import skillbill.ports.review.launch.ReviewLaunchIsolationResolver
 import skillbill.ports.review.launch.ReviewNativeAgentPreflightPort
@@ -15,26 +14,25 @@ import skillbill.ports.review.preparation.ReviewRubricResolver
 import skillbill.ports.review.repository.ReviewSpecialistContractProvider
 
 internal interface RuntimeReviewLaunchProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun reviewAttributionPort(adapter: FileSystemReviewAttribution): ReviewAttributionPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun reviewRubricResolver(adapter: FileSystemReviewRubricResolver): ReviewRubricResolver = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun reviewSpecialistContractProvider(
     adapter: ClasspathReviewSpecialistContractProvider,
   ): ReviewSpecialistContractProvider = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun reviewNativeAgentPreflightPort(
-    callbacks: OptionalCallbacks,
     adapter: FileSystemReviewNativeAgentPreflight,
-  ): ReviewNativeAgentPreflightPort = callbacks.reviewNativeAgentPreflight ?: adapter
+  ): ReviewNativeAgentPreflightPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun reviewLaunchAgentStagingPort(adapter: FileSystemReviewLaunchAgentStaging): ReviewLaunchAgentStagingPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun reviewLaunchIsolationResolver(adapter: AgentRunReviewIsolationResolver): ReviewLaunchIsolationResolver = adapter
 }

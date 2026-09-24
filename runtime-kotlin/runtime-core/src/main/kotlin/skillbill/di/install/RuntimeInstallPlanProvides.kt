@@ -22,36 +22,36 @@ import skillbill.ports.skillremove.SkillRemoveFileSystem
 import skillbill.ports.system.UninstallPathsPort
 
 internal interface RuntimeInstallPlanProvides {
-  @Provides @JvmSynthetic
+  @Provides
   fun installPlanningFactsPort(adapter: FileSystemInstallPlanningFacts): InstallPlanningFactsPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installPlatformSkillMaterializationPort(
     adapter: FileSystemInstallPlatformSkillMaterialization,
   ): InstallPlatformSkillMaterializationPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installStagingIntentPort(adapter: FileSystemInstallStagingIntent): InstallStagingIntentPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installApplyExecutionPort(adapter: FileSystemInstallApplyExecution): InstallApplyExecutionPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installSelectionPersistencePort(adapter: FileSystemInstallSelectionPersistence): InstallSelectionPersistencePort =
     adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun installPlanWireValidator(validator: InstallPlanSchemaValidator): InstallPlanWireValidator = validator
 
-  @Provides @JvmSynthetic
+  @Provides
   fun externalAddonOverlayPort(adapter: FileSystemExternalAddonOverlay): ExternalAddonOverlayPort = adapter
 
-  @Provides @JvmSynthetic
+  @Provides
   fun externalAddonSourceConfigPort(store: FileExternalAddonSourceConfigStore): ExternalAddonSourceConfigPort = store
 
-  @Provides @JvmSynthetic
+  @Provides
   fun uninstallPathsPort(gateway: FileSystemUninstallFileSystemGateway): UninstallPathsPort = gateway
 
-  @Provides @JvmSynthetic
+  @Provides
   fun skillRemoveFileSystem(fileSystem: FileSystemSkillRemoveFileSystem): SkillRemoveFileSystem = fileSystem
 }

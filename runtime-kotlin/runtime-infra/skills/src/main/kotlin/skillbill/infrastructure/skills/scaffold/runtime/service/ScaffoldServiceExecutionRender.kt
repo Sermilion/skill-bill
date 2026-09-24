@@ -4,7 +4,6 @@ import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.infrastructure.skills.scaffold.rendering.inferSkillDescription
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 
 internal fun renderAgentAddonManifest(plan: ScaffoldPlan): String =
   buildString {

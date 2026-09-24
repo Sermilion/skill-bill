@@ -7,7 +7,6 @@ import skillbill.infrastructure.skills.scaffold.manifest.appendReadmeCatalogRow
 import skillbill.infrastructure.skills.scaffold.manifest.renderExternalAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.infrastructure.skills.scaffold.rendering.renderNativeAgentBundleStubs
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_CODE_REVIEW_AREA
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_HORIZONTAL

@@ -4,9 +4,6 @@ import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.infrastructure.http.JdkHttpRemoteTransport
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
-import skillbill.model.RepositoryRoot
-import skillbill.model.RuntimeContext
-import skillbill.model.TransportContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.repository.RepositoryEnclosingRootPort
@@ -52,8 +49,6 @@ internal object RuntimeBootstrapBindings {
       transport = resolvedTransport,
     )
   }
-
-  fun repositoryRoot(context: EnvironmentContext): RepositoryRoot = RepositoryRoot(context.repositoryRoot)
 
   fun remoteTransportPort(context: TransportContext): RemoteTransportPort =
     context.requester ?: throw UnresolvedRemoteTransportPortError()

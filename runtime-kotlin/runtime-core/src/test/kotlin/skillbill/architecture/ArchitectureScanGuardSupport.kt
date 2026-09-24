@@ -665,7 +665,6 @@ fun ArchitectureScanSupport.directComponentConstructionViolations(
   boundClassNames: Set<String>,
   scanRoots: List<String>,
   compositionDiRoot: String,
-  sanctionedEntrypoints: Set<String> = emptySet(),
 ): List<String> {
   if (boundClassNames.isEmpty()) return emptyList()
   val violations = mutableListOf<String>()
@@ -673,7 +672,6 @@ fun ArchitectureScanSupport.directComponentConstructionViolations(
     kotlinFilesUnder(runtimeRoot.resolve(scanRoot)).forEach { sourceFile ->
       val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
       if (relativePath.startsWith(compositionDiRoot)) return@forEach
-      if (relativePath in sanctionedEntrypoints) return@forEach
       violations +=
         constructionViolationsForBoundClasses(
           relativePath,

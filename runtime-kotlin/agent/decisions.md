@@ -4,6 +4,54 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-24] runtime-core is the only composition root
+
+`RuntimeComponent`'s abstract accessors are the export list for the generated
+Kotlin-Inject child components (`InjectCliComponent`, `InjectMcpComponent`). An
+accessor with no generated or handwritten reader is dead export surface, so
+`goalPlanningPreparationCheckpoint`, `uninstallPathsPort`,
+`installedWorkspaceBaselineStatusPort`, and `featureTaskRuntimePhaseRecorder`
+were removed while their bindings stayed. `PrincipleEnforcementInventory`
+.`runtimeComponentInboundApi` is the pinned list.
+
+`@JvmSynthetic` is gone from runtime-core, along with the
+`runtimeComponentInternalProviderJvmLeaks` rule that required it. The annotation
+hid provider signatures from Java callers that do not exist: runtime-cli and
+runtime-mcp are Kotlin, and the generated components address providers through
+Kotlin metadata. The SKILL-350 public-callable classifier stays; it is the rule
+that actually keeps adapter types off runtime-core's inbound API.
+
+The scaffold standalone harness (`ScaffoldStandaloneEntrypoint.kt`) moved from
+runtime-infra/skills `src/main` to `src/test`. It constructed component-bound
+adapters directly, which made it a second composition root that the guard had
+to exempt. Only the scaffold test and repoTest suites ever called it, and
+repoTest already carries the test output on its classpath, so the move costs
+nothing and deletes the exemption list.
+
+Composition inputs (`RuntimeContext`, `TransportContext`, `WorkflowOpsContext`,
+`OptionalCallbacks`) now live in `skillbill.di.core`, because only the
+composition root constructs or reads them. `EnvironmentContext` stays in
+runtime-ports: adapters bind it. Keeping the four in `skillbill.di.core` means
+no other `skillbill.di.<area>` package may import `skillbill.di.core` without
+re-creating a package cycle, so the providers that read `OptionalCallbacks` or
+`RuntimeContext` are collected in `RuntimeOptionalCallbackProvides` and
+`RuntimeComponent` rather than left in `di.goal`, `di.install`, `di.review`, and
+`di.experiment`. `runtime-core-package-cycle-baseline.txt` is now empty.
+
+The packaged version is the typed `skillbill.model.RuntimeVersion`, not a
+`String` binding: a graph keyed on `String` collides with any other string a
+future provider needs. `SkillBillVersion.VALUE` remains the single read of the
+packaged resource, keeping its missing-resource substitution record.
+
+`WorkflowGoalRunnerOutcomeStoreDependencies` stays as an infra-owned `@Inject`
+class. It is already constructor-injected, and flattening it is SKILL-376's to
+own.
+
+The experiment goal-runner factory is composition-owned: it creates a second
+`RuntimeComponent`, which only the composition root may do.
+`ExperimentGoalRunnerPort` stays in runtime-engine, where
+`ExperimentPairCoordinator` reads it.
+
 ## [2026-09-22] Build-logic declares one plugin classpath; modules keep ksp
 
 `build-logic:convention` declares the Kotlin, Spotless, Detekt, and Badass

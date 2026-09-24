@@ -1,3 +1,17 @@
+## [2026-09-24] SKILL-373 subtask 1 — Composition root simplification
+Areas: runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/{core,experiment,featurespec,featuretask,goal,install,review,scaffold,telemetry,workflow}, runtime-core tests (architecture, di, application), runtime-ports/skillbill/model, runtime-engine/{featuretask/prepare,goalrunner/experiment}, runtime-cli, runtime-mcp, runtime-application, runtime-infra/skills scaffold, runtime-kotlin/ARCHITECTURE.md
+- `RuntimeGoalRunnerStoreProvides` declares no class; both goal-runner stores are `@Inject` bindings exposed as `RuntimeComponent` accessors, and the generated CLI/MCP components reference no `skillbill.infrastructure` type.
+- Composition input types (`RuntimeContext`, `TransportContext`, `WorkflowOpsContext`, `OptionalCallbacks`) moved from `skillbill.model` into runtime-core `skillbill.di.core`; `skillbill.model.RuntimeContext` and friends no longer exist anywhere.
+- Pattern: every provider that reads a composition input is collected into one internal `RuntimeOptionalCallbackProvides` in `di.core`, so no `di.<area>` package imports another `di` package and the package-cycle baseline stays empty. reusable
+- `runtime-core-package-cycle-baseline.txt` is now 0 bytes (was `core|telemetry` and `core|workflow`); `@JvmSynthetic` is gone from runtime-core main together with the rule that required it.
+- `ScaffoldStandaloneEntrypoint` moved out of every `src/main` into `runtime-infra/skills/src/test`; the composition guard keeps no exemption list, and no production classpath widened.
+- Removed four `RuntimeComponent` accessors with no generated or handwritten reader (phase recorder, goal-planning preparation checkpoint, installed-workspace baseline status, uninstall paths), so the accessor set equals the child-component export set.
+- Deviation: `ExperimentGoalRunnerFactory` is declared in `di.core` rather than `di.experiment` — declaring it in the area package forced either an internal type on a public `@Provides` or a `di.experiment -> di.core` cycle.
+- `RuntimeImplementationImportRules` now allowlists the runtime-core-owned composition types and maps `skillbill.model.*` to `:runtime-ports`, keeping the documented ABI closure unchanged.
+- Known limitations: `WorkflowGoalRunnerOutcomeStoreDependencies` stays in runtime-infra/sqlite (removal belongs to SKILL-376); AC-2 and AC-8 depend on regenerated KSP readers, first proven at the validate gate.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-09-22] SKILL-368 subtask 2 — Governed resources typed task and Java guard ownership
 Areas: runtime-kotlin/build-logic/convention, runtime-kotlin/runtime-infra/{contracts,workflow,host}, install.sh, uninstall.sh, docs/code-principles.md
 - `GovernedResourceCopy` is a typed task with one `@OutputFile` per entry (36 contracts entries share one destination directory, so `@OutputDirectory` would overlap); the extension and plugin wire only main `processResources`, with no `afterEvaluate` and no `processTestResources`. reusable
