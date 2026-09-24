@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stage
+
 import skillbill.SAMPLE_REVIEW
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
@@ -11,8 +12,8 @@ import skillbill.infrastructure.sqlite.review.stats.ReviewStatsRuntime
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
 import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
+import skillbill.review.context.model.claim.ReviewClaimVerdictAdmission
 import skillbill.review.context.model.launch.ReviewSpecAdjudicationAdmission
-import skillbill.review.context.model.review.ReviewClaimVerdictAdmission
 import skillbill.review.model.FeedbackRequest
 import skillbill.review.model.FeedbackTelemetryOptions
 import skillbill.review.model.ImportedReview
@@ -188,7 +189,7 @@ class ReviewStageTelemetryTest {
       )
       emitDegradations(it, "rvw-unsettled")
       val unsettledReasons =
-        TelemetryOutboxStore(it).listPending(null)
+        TelemetryOutboxStore(it, version = "test-runtime-version").listPending(null)
           .filter { record -> record.eventName == REVIEW_STAGE_DEGRADATION_EVENT_NAME }
           .mapNotNull { record ->
             val payload =
@@ -225,14 +226,14 @@ class ReviewStageTelemetryTest {
       setExecutionMode(it, review.reviewRunId, "delegated")
       seedMixedVerdicts(it, review.reviewRunId)
       val legacyRestampId =
-        TelemetryOutboxStore(it).enqueue(
+        TelemetryOutboxStore(it, version = "test-runtime-version").enqueue(
           REVIEW_STAGE_DEGRADATION_EVENT_NAME,
           JsonCodec.mapToJsonString(
             mapOf(SharedPayloadKeys.CONTRACT_VERSION to REVIEW_FINISHED_LEGACY_CONTRACT_VERSION),
           ),
         )
       it.installLegacyRestampProbe(legacyRestampId)
-      TelemetryOutboxStore(it).enqueue(
+      TelemetryOutboxStore(it, version = "test-runtime-version").enqueue(
         "skillbill_review_finished",
         JsonCodec.mapToJsonString(
           mapOf(
@@ -251,7 +252,7 @@ class ReviewStageTelemetryTest {
       assertEquals(1, snapshot.stageMetrics?.verification?.confirmed)
       assertEquals("delegated", snapshot.stageMetrics?.resolvedTier)
       val storedAfterRead =
-        TelemetryOutboxStore(it).listPending(null).single {
+        TelemetryOutboxStore(it, version = "test-runtime-version").listPending(null).single {
           it.eventName == "skillbill_review_finished"
         }
       val storedAfterReadPayload = telemetryOutboxPayload(storedAfterRead.payloadJson)
@@ -264,7 +265,7 @@ class ReviewStageTelemetryTest {
   fun `legacy finished payload with an unknown review_run_id is quarantined instead of crashing stats`() {
     val (_, connection) = tempDbConnection("stage-legacy-unknown-run")
     connection.use {
-      TelemetryOutboxStore(it).enqueue(
+      TelemetryOutboxStore(it, version = "test-runtime-version").enqueue(
         "skillbill_review_finished",
         JsonCodec.mapToJsonString(
           mapOf(
@@ -279,7 +280,7 @@ class ReviewStageTelemetryTest {
       assertEquals(1, snapshot.health.malformedReviewPayloadRecords)
       applyLegacyTelemetryLedgerMigration(it)
       val leftover =
-        TelemetryOutboxStore(it).listPending(null).single { record ->
+        TelemetryOutboxStore(it, version = "test-runtime-version").listPending(null).single { record ->
           record.eventName == "skillbill_review_finished"
         }
       val leftoverPayload =
@@ -288,7 +289,7 @@ class ReviewStageTelemetryTest {
           ?: emptyMap()
       assertEquals(REVIEW_FINISHED_LEGACY_CONTRACT_VERSION, leftoverPayload["contract_version"])
       assertTrue(
-        TelemetryOutboxStore(it).listPending(null).none { record ->
+        TelemetryOutboxStore(it, version = "test-runtime-version").listPending(null).none { record ->
           record.eventName == REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME
         },
       )
@@ -351,7 +352,7 @@ class ReviewStageTelemetryTest {
     reviewRunId: String,
   ) {
     val repository = SQLiteReviewRunCompletenessRepository(connection, Clock.systemUTC())
-    val store = LifecycleTelemetryStore(connection)
+    val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
     ReviewStageDegradationSelection.select(
       ReviewStageDegradationSelectionRequest(
         reviewRunId = reviewRunId,
@@ -384,7 +385,7 @@ class ReviewStageTelemetryTest {
     }
 
   private fun degradationReasons(connection: Connection): List<String> =
-    TelemetryOutboxStore(connection).listPending(null)
+    TelemetryOutboxStore(connection, version = "test-runtime-version").listPending(null)
       .filter { it.eventName == REVIEW_STAGE_DEGRADATION_EVENT_NAME }
       .map { record ->
         Regex(""""reason"\s*:\s*"([^"]+)"""").find(record.payloadJson)?.groupValues?.get(1).orEmpty()
@@ -499,6 +500,7 @@ class ReviewStageTelemetryTest {
           note = "",
         ),
       telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "anonymous"),
+      runtimeVersion = "test-runtime-version",
     )
     TriageRuntime.recordFeedbackWithoutTransaction(
       connection = connection,
@@ -510,6 +512,7 @@ class ReviewStageTelemetryTest {
           note = "Intentional wording",
         ),
       telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "anonymous"),
+      runtimeVersion = "test-runtime-version",
     )
     return review
   }
@@ -547,14 +550,14 @@ class ReviewStageTelemetryTest {
   ) {
     applyLegacyTelemetryLedgerMigration(connection)
     val restamped =
-      TelemetryOutboxStore(connection).listPending(null).single { record ->
+      TelemetryOutboxStore(connection, version = "test-runtime-version").listPending(null).single { record ->
         record.id == legacyRestampId
       }
     val restampedPayload = telemetryOutboxPayload(restamped.payloadJson)
     assertEquals(REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION, restampedPayload[SharedPayloadKeys.CONTRACT_VERSION])
     assertEquals(1, restampUpdateCount(connection))
     val rewritten =
-      TelemetryOutboxStore(connection).listPending(null).single {
+      TelemetryOutboxStore(connection, version = "test-runtime-version").listPending(null).single {
         it.eventName == "skillbill_review_finished"
       }
     val payload = telemetryOutboxPayload(rewritten.payloadJson)
@@ -562,7 +565,7 @@ class ReviewStageTelemetryTest {
     assertEquals(1, payload.nestedInt("verification", "claim_verdict", "confirmed"))
     assertEquals("delegated", payload["resolved_tier"])
     val companion =
-      TelemetryOutboxStore(connection).listPending(null).single { record ->
+      TelemetryOutboxStore(connection, version = "test-runtime-version").listPending(null).single { record ->
         record.eventName == REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME
       }
     val companionPayload = telemetryOutboxPayload(companion.payloadJson)
@@ -574,7 +577,7 @@ class ReviewStageTelemetryTest {
     applyLegacyTelemetryLedgerMigration(connection, forcePending = false)
     assertEquals(
       1,
-      TelemetryOutboxStore(connection).listPending(null).count { record ->
+      TelemetryOutboxStore(connection, version = "test-runtime-version").listPending(null).count { record ->
         record.eventName == REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME
       },
     )

@@ -1,7 +1,7 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyStatus
+import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -25,7 +25,7 @@ class InternalSkillCompanionInstallApplyTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
     val first = applyInstallForTest(plan)
@@ -53,7 +53,7 @@ class InternalSkillCompanionInstallApplyTest : InstallApplyTestSupport() {
     Files.writeString(internalSkillDir.resolve("review-guidelines.md"), "governed review rubric\n")
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
       )
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(plan).status)
     Files.writeString(fixture.repoRoot.resolve("skills/bill-code-review/review-guidelines.md"), "parent content\n")

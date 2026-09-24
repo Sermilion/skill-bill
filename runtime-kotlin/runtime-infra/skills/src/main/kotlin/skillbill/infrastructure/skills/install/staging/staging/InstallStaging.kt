@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install.staging.staging
+
 import skillbill.error.core.InvalidInstallStagingError
 import skillbill.error.core.SkillBillRuntimeException
 import skillbill.error.shellcontent.ShellContentContractException

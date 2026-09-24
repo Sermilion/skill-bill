@@ -1,7 +1,8 @@
 package skillbill.review.model
-import skillbill.review.attribution.UNRESOLVED_ATTRIBUTION
 
-enum class CanonicalScope(val wireValue: String) {
+const val UNRESOLVED_ATTRIBUTION: String = "unresolved"
+
+internal enum class CanonicalScope(val wireValue: String) {
   WORKING_TREE("working_tree"),
   STAGED("staged"),
   COMMIT_RANGE("commit_range"),

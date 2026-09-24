@@ -1,15 +1,17 @@
 package skillbill.workflow.taskruntime.model.phase
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_CONTRACT_VERSION
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputStructuralRepair
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputStructuralRepairSource
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.review.context.model.execution.SHA256_HEX
+import skillbill.workflow.model.persistence.artifact.DurableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.toStringKeyedArtifactMap
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
 
-const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_VERSION: String =
+internal const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_VERSION: String =
   FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_CONTRACT_VERSION
 
 enum class FeatureTaskRuntimePhaseOutputFormat(val wireValue: String) {

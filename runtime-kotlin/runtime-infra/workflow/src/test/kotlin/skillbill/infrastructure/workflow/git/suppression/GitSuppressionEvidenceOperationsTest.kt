@@ -1,5 +1,7 @@
 package skillbill.infrastructure.workflow.git.suppression
+
 import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
+import skillbill.infrastructure.workflow.git.workflow.git
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import java.nio.file.Files
 import java.nio.file.Path

@@ -1,5 +1,6 @@
 
 package skillbill.review.parallel
+
 import skillbill.review.model.ParallelReviewFindingRejectionReason
 import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewFindingCitation

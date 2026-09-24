@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.checkpoint
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
@@ -7,6 +8,7 @@ import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeCheckpointIden
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
+import skillbill.infrastructure.contracts.review.MAX_REPORTED_VIOLATIONS
 import skillbill.infrastructure.contracts.workflow.issue.inlineIssueKeySchemaRefs
 
 object FeatureTaskRuntimeCheckpointIdentitySchemaValidator {

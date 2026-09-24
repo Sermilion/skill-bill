@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.model.audit
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError

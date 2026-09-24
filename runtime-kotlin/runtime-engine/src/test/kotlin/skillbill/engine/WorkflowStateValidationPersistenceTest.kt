@@ -28,24 +28,38 @@ class WorkflowStateValidationPersistenceTest {
   @Test
   fun `sqlite updates reject definition-invalid input and direct schema-invalid saves without changing storage`() {
     val root = Files.createTempDirectory("workflow-strict-writes")
-    val database = SQLiteDatabaseSessionFactory(
-      EnvironmentContext(dbPathOverride = root.resolve("state.db").toString(), environment = emptyMap(), userHome = root),
-      Clock.fixed(Instant.parse("2026-06-02T10:00:00Z"), ZoneOffset.UTC),
-      NoopRuntimeDiagnostics,
-      WorkflowStateSchemaValidator(),
-    )
+    val database =
+      SQLiteDatabaseSessionFactory(
+        EnvironmentContext(
+          dbPathOverride = root.resolve("state.db").toString(),
+          environment = emptyMap(),
+          userHome = root,
+        ),
+        Clock.fixed(Instant.parse("2026-06-02T10:00:00Z"), ZoneOffset.UTC),
+        NoopRuntimeDiagnostics,
+        WorkflowStateSchemaValidator(),
+        "test-runtime-version",
+      )
     database.transaction { unit ->
-      unit.workflowStates.saveFeatureVerifyWorkflow(engine.openRecord(definition, "wfv-strict", "", "gather_diff").toRecord())
+      unit.workflowStates.saveFeatureVerifyWorkflow(
+        engine.openRecord(definition, "wfv-strict", "", "gather_diff").toRecord(),
+      )
     }
     val before = database.read { assertNotNull(it.workflowStates.getFeatureVerifyWorkflow("wfv-strict")) }
     val valid = WorkflowUpdateInput(WorkflowStatus.RUNNING, "gather_diff", null, null, "")
-    val invalidInputs = listOf(
-      valid.copy(currentStepId = "undeclared"),
-      valid.copy(workflowStatus = WorkflowStatus.BLOCKED),
-      valid.copy(stepUpdates = WorkflowStepUpdates.from(listOf(
-        mapOf("step_id" to "undeclared", "status" to "running", "attempt_count" to 1),
-      ))),
-    )
+    val invalidInputs =
+      listOf(
+        valid.copy(currentStepId = "undeclared"),
+        valid.copy(workflowStatus = WorkflowStatus.BLOCKED),
+        valid.copy(
+          stepUpdates =
+            WorkflowStepUpdates.from(
+              listOf(
+                mapOf("step_id" to "undeclared", "status" to "running", "attempt_count" to 1),
+              ),
+            ),
+        ),
+      )
     invalidInputs.forEach { input ->
       assertFailsWith<InvalidWorkflowStateSchemaError> {
         database.transaction { unit ->
@@ -56,14 +70,15 @@ class WorkflowStateValidationPersistenceTest {
       }
       assertEquals(before, database.read { it.workflowStates.getFeatureVerifyWorkflow("wfv-strict") })
     }
-    val invalidRows = listOf(
-      before.copy(contractVersion = "999"),
-      before.copy(currentStepId = "undeclared"),
-      before.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue),
-      before.copy(artifactsJson = "{"),
-      before.copy(stepsJson = """[{"step_id":"gather_diff","status":"running","attempt_count":-1}]"""),
-      before.copy(stepsJson = """[{"step_id":"gather_diff","status":"running","attempt_count":1,"rogue":true}]"""),
-    )
+    val invalidRows =
+      listOf(
+        before.copy(contractVersion = "999"),
+        before.copy(currentStepId = "undeclared"),
+        before.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue),
+        before.copy(artifactsJson = "{"),
+        before.copy(stepsJson = """[{"step_id":"gather_diff","status":"running","attempt_count":-1}]"""),
+        before.copy(stepsJson = """[{"step_id":"gather_diff","status":"running","attempt_count":1,"rogue":true}]"""),
+      )
     invalidRows.forEach { invalid ->
       assertFailsWith<InvalidWorkflowStateSchemaError> {
         database.transaction { it.workflowStates.saveFeatureVerifyWorkflow(invalid) }

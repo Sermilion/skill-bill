@@ -1,10 +1,10 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyIssueKind
 import skillbill.install.model.InstallApplyStatus
 import skillbill.install.model.InstallTelemetryApplyStatus
 import skillbill.install.model.InstallTelemetryLevel
+import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.telemetry.model.TelemetryLevelMutationResult
@@ -26,7 +26,7 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           telemetryLevel = InstallTelemetryLevel.FULL,
         ),
       )
@@ -53,7 +53,7 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           telemetryLevel = InstallTelemetryLevel.FULL,
         ),
       )
@@ -84,7 +84,7 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           telemetryLevel = InstallTelemetryLevel.OFF,
         ),
       )
@@ -110,7 +110,7 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           telemetryLevel = InstallTelemetryLevel.OFF,
         ),
       )
@@ -134,7 +134,7 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           telemetryLevel = InstallTelemetryLevel.OFF,
         ),
       )
@@ -157,7 +157,7 @@ class InstallApplyTelemetryTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           telemetryLevel = InstallTelemetryLevel.FULL,
         ),
       )

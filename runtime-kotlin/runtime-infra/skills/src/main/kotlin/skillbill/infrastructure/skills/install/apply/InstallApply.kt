@@ -1,8 +1,8 @@
 package skillbill.infrastructure.skills.install.apply
-
 import skillbill.error.shellcontent.SkillContentIdentityMismatchError
 import skillbill.infrastructure.skills.install.plan.discoverPlatformManifests
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
+import skillbill.infrastructure.skills.scaffold.platformpack.substanceaudit.FAILURE
 import skillbill.install.model.InstallAppliedSkill
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind

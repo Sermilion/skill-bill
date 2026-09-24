@@ -1,11 +1,12 @@
 package skillbill.review.parallel
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
+
 import skillbill.review.model.ParallelReviewFindingRejection
 import skillbill.review.model.ParallelReviewFindingRejectionReason
 import skillbill.review.model.ParallelReviewParseResult
 import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ParallelReviewSeverity
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
+import skillbill.review.model.requireRepositoryRelativePath
 
 object ParallelReviewFindingParser {
   const val PARALLEL_REVIEW_FINDING_ID_MIN: Int = 0

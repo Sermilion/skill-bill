@@ -1,9 +1,10 @@
 package skillbill.engine.goalrunner.review
+
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
-import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 
 object ReviewRawOutputFallbackValidator : FeatureTaskRuntimePhaseOutputValidator {
   override fun validatePhaseOutput(

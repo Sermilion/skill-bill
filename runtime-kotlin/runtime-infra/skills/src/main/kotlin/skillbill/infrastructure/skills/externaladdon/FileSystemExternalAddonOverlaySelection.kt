@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.externaladdon
+
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
 import skillbill.error.core.ExternalAddonOverlayError

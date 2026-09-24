@@ -2,11 +2,32 @@ package skillbill.scaffold.policy.scaffold
 
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.error.shellcontent.RetiredScaffoldKindError
+import skillbill.error.shellcontent.UnknownSkillKindError
+import skillbill.scaffold.model.SkillKind
+import skillbill.scaffold.policy.ACTIVE_CREATION_SKILL_KINDS
+import skillbill.scaffold.policy.SKILL_KIND_ADD_ON
+import skillbill.scaffold.policy.SKILL_KIND_AGENT_ADDON
+import skillbill.scaffold.policy.SKILL_KIND_CODE_REVIEW_AREA
+import skillbill.scaffold.policy.SKILL_KIND_HORIZONTAL
+import skillbill.scaffold.policy.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
+import skillbill.scaffold.policy.SKILL_KIND_PLATFORM_PACK
+import skillbill.scaffold.policy.parseBaselineLayerPayload
+import skillbill.scaffold.policy.rejectRetiredPartialScaffoldKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class ScaffoldPayloadPolicyTest {
+  @Test
+  fun `skill kind wire values round trip and reject unknown values`() {
+    SkillKind.entries.forEach { kind ->
+      assertEquals(kind, SkillKind.fromWire(kind.wireValue))
+    }
+    assertFailsWith<UnknownSkillKindError> {
+      SkillKind.fromWire("not-a-skill-kind")
+    }
+  }
+
   @Test
   fun `active creation kinds exclude retired partial scaffold kinds`() {
     assertEquals(

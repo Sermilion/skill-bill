@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.decomposition
+
 import java.nio.file.Path
 
 internal data class DecompositionManifestBundleEntry(val target: Path, val staged: Path, val sha256: String)

@@ -1,5 +1,9 @@
 package skillbill.infrastructure.contracts.workflow.decomposition
 
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml
+import skillbill.application.decomposition.executionModel
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore
@@ -14,6 +18,7 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionStackBranch
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.decomposition.runtime.invalidManifest
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

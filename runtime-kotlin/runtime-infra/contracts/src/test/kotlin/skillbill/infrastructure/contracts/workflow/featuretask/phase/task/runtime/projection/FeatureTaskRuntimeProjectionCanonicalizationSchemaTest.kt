@@ -1,5 +1,6 @@
 
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.projection
+
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.FeatureTaskRuntimePlanningProjectionSchemaValidator
 import kotlin.test.Test

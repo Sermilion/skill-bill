@@ -10,19 +10,19 @@ import skillbill.model.toPath
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.loadDecompositionManifest
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWorkflowProjectionInput
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionPlanManifestInput
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestPlan
-import skillbill.workflow.decomposition.runtime.invalidManifest
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
+import skillbill.workflow.decomposition.runtime.invalidManifest
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.io.IOException
@@ -179,7 +179,7 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
       )
     val manifestPath = request.manifestPath()
     val existing =
-      runtimeManifestFromArtifacts(input.existingArtifacts, input.validator)
+      runtimeManifestFromArtifacts(input.existingArtifacts)
         ?: loadManifestOrNull(manifestPath, input.validator, input.fileStore)
     return request.toManifest()
       .assertExecutionModelCanReplace(existing, manifestPath)
@@ -198,7 +198,7 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
           runtimeUpdate.artifactsPatch?.let(::putAll)
         },
       )
-    val runtime = runtimeManifestFromArtifacts(artifacts, validator)
+    val runtime = runtimeManifestFromArtifacts(artifacts)
     val manifestPath =
       manifestPathFromArtifacts(
         repoRoot = repoRoot,
@@ -310,7 +310,7 @@ private fun invalidParentSpecManifestLoad(
   )
 }
 
-private fun DecompositionManifestWriteRequest.manifestPath(): Path =
+internal fun DecompositionManifestWriteRequest.manifestPath(): Path =
   decompositionManifestPath(
     repoRoot,
     parentSpecPath,
@@ -322,10 +322,8 @@ private fun DecompositionManifestWriteRequest.manifestPath(): Path =
 private fun DecompositionManifest.manifestPath(repoRoot: Path): Path =
   decompositionManifestPath(repoRoot, Path.of(parentSpecPath), subtasks.map { it.specPath })
 
-private fun runtimeManifestFromArtifacts(
-  artifacts: DurableWorkflowArtifacts,
-  validator: DecompositionManifestValidator,
-): DecompositionManifest? = artifacts.decompositionRuntime()
+private fun runtimeManifestFromArtifacts(artifacts: DurableWorkflowArtifacts): DecompositionManifest? =
+  artifacts.decompositionRuntime()
 
 private fun writeProjection(
   repoRoot: Path,
@@ -334,7 +332,13 @@ private fun writeProjection(
   manifestPath: Path = manifest.manifestPath(repoRoot),
   fileStore: DecompositionManifestStore,
 ): DecompositionManifestWriteResult {
-  val encoded = encodeValidatedDecompositionManifestYaml(manifest.gitTrackedProjection(), validator, fileStore)
+  val encoded =
+    encodeValidatedDecompositionManifestYaml(
+      manifest.gitTrackedProjection(),
+      validator,
+      fileStore,
+      sourceLabel = "decomposition_runtime",
+    )
   writeDecompositionManifestText(manifestPath, encoded.yamlText, fileStore)
   val loaded = loadValidatedDecompositionManifest(manifestPath, fileStore, validator)
   return DecompositionManifestWriteResult(

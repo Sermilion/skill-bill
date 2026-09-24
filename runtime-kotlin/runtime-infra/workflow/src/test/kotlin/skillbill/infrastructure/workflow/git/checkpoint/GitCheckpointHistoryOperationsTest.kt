@@ -1,7 +1,11 @@
 package skillbill.infrastructure.workflow.git.checkpoint
+
 import skillbill.infrastructure.workflow.git.scoped.GIT_NUL
+import skillbill.infrastructure.workflow.git.workflow.git
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.infrastructure.workflow.process.runGitProcess
+import skillbill.ports.workflow.gitops.amendHeadCommit
+import skillbill.ports.workflow.gitops.headCommitMessage
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Files
 import java.nio.file.Path

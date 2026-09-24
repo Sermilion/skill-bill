@@ -17,10 +17,10 @@ import skillbill.review.context.model.hunk.ReviewRevision
 import skillbill.review.context.model.launch.GovernedReviewLaunch
 import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.context.model.packet.ReviewLaneBundleSegmentation
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ParallelReviewSeverity
 import skillbill.review.model.ReviewLaneResolutionState.RESOLVED
+import skillbill.review.model.ReviewLaneReviewDisposition
 import skillbill.review.model.ReviewRunLane
 import skillbill.review.parsing.ReviewRunLaneResolver
 import kotlin.test.Test

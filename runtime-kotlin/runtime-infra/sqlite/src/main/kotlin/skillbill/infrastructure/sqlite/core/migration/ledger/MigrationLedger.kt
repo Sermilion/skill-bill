@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.migration.ledger
+
 import skillbill.infrastructure.sqlite.core.migration.DatabaseMigration
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import java.sql.Connection

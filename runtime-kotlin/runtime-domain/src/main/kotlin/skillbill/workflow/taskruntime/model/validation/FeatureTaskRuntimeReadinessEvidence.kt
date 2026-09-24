@@ -3,7 +3,7 @@ package skillbill.workflow.taskruntime.model.validation
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.evidence.ReadinessEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError
-import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 internal const val FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_ARTIFACT_KEY: String =
   "feature_task_runtime_readiness_evidence"
@@ -249,4 +249,3 @@ data class FeatureTaskRuntimeReadinessEvidence(
     ): Nothing = throw InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError(sourceLabel, reason)
   }
 }
-

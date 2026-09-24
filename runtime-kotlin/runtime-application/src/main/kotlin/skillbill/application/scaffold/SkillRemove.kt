@@ -1,16 +1,16 @@
 package skillbill.application.scaffold
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.domain.skillremove.SkillBillRollbackException
-import skillbill.domain.skillremove.TargetValidation
-import skillbill.domain.skillremove.model.SkillRemovalPreview
-import skillbill.domain.skillremove.model.SkillRemovalRefusalReason
-import skillbill.domain.skillremove.model.SkillRemovalRequest
-import skillbill.domain.skillremove.model.SkillRemovalResult
-import skillbill.domain.skillremove.model.SkillRemovalTarget
-import skillbill.domain.skillremove.refuseSkillRemoval
 import skillbill.error.core.SkillBillRuntimeException
 import skillbill.ports.skillremove.SkillRemoveFileSystem
+import skillbill.skillremove.SkillBillRollbackException
+import skillbill.skillremove.TargetValidation
+import skillbill.skillremove.model.SkillRemovalPreview
+import skillbill.skillremove.model.SkillRemovalRefusalReason
+import skillbill.skillremove.model.SkillRemovalRequest
+import skillbill.skillremove.model.SkillRemovalResult
+import skillbill.skillremove.model.SkillRemovalTarget
+import skillbill.skillremove.refuseSkillRemoval
 import java.nio.file.Paths
 import kotlin.coroutines.cancellation.CancellationException
 

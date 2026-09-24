@@ -7,16 +7,18 @@ import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.goalrunner.model.normalizedUnaddressedFindingCategory
 import skillbill.goalrunner.model.normalizedUnaddressedFindingSeverity
 import skillbill.goalrunner.subtaskreview.model.GoalSubtaskReviewOutputOutcome
+import skillbill.goalrunner.subtaskreview.model.RejectedVerificationFindingsResult
 import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFinding
 import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
-import skillbill.review.finding.ReviewFindingActionability
 import skillbill.review.model.ReviewFindingVerdict
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_PASS_VERDICTS
-import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
-import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
-import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.taskruntime.model.repair.task.withStableFindingRefs
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+import skillbill.review.parsing.ReviewFindingActionability
+import skillbill.workflow.model.goalreview.GOAL_SUBTASK_REVIEW_PASS_VERDICTS
+import skillbill.workflow.model.goalreview.GoalSubtaskBlockerDisposition
+import skillbill.workflow.model.goalreview.GoalSubtaskCommitFocusedAccounting
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.model.goalreview.blocksAdvance
+import skillbill.workflow.model.goalreview.withStableFindingRefs
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 
 object GoalSubtaskReviewSummaryReducer {
   internal const val REJECTED_VERIFICATION_REASON_MAX_UTF8_BYTES: Int =
@@ -179,10 +181,10 @@ fun GoalSubtaskReviewSummaryReducer.verificationBoundaryFindingPaths(
   finding: StructuredGoalReviewFinding,
 ): List<String> = GoalSubtaskReviewStructuredFindingsParse.verificationBoundaryFindingPaths(finding)
 
-fun GoalSubtaskReviewSummaryReducer.rejectedVerificationReasonTruncationRecord(findingId: String): String =
+internal fun GoalSubtaskReviewSummaryReducer.rejectedVerificationReasonTruncationRecord(findingId: String): String =
   GoalSubtaskReviewVerificationRejection.rejectedVerificationReasonTruncationRecord(findingId)
 
-fun reviewPassVerdict(
+private fun reviewPassVerdict(
   output: Any,
   findings: List<GoalSubtaskReviewCompactFinding>,
   advanceBlockingCount: Int,

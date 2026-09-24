@@ -1,5 +1,9 @@
 package skillbill.engine.goalrunner.execution.core
+
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.engine.goalrunner.execution.support.toPullRequestRequest
+import skillbill.engine.goalrunner.manifest
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask

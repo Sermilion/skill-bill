@@ -8,11 +8,7 @@ import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
 import skillbill.di.core.RuntimeComponent
-import skillbill.di.core.create
 import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
-import skillbill.infrastructure.sqlite.SqliteTestDatabasePaths
-import skillbill.infrastructure.sqlite.sqliteSessionFactoryForTests
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
@@ -34,11 +30,13 @@ import skillbill.install.model.McpRegistrationIntent
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.RuntimeDistributionInputs
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkApplyOutcome
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkFallbackState
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
+import skillbill.install.policy.selectedPlatformSlugs
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Files
 import java.nio.file.Path
@@ -765,7 +763,7 @@ private fun invalidCliInstallPlan(fixture: InstallPlanApplyFixture): InstallPlan
 
 private fun codexInstallTarget(fixture: InstallPlanApplyFixture): InstallAgentTarget =
   InstallAgentTarget(
-    agent = InstallAgent.CODEX,
+    agent = SupportedAgent.CODEX,
     path = fixture.home.resolve("manual-targets/codex").toFileLocation(),
     source = InstallAgentTargetSource.MANUAL,
   )
@@ -780,7 +778,7 @@ private fun invalidCliInstallRequest(
     agentSelection =
       InstallAgentSelection(
         mode = InstallAgentSelectionMode.MANUAL,
-        manualAgents = setOf(InstallAgent.CODEX),
+        manualAgents = setOf(SupportedAgent.CODEX),
       ),
     platformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.NONE),
     telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
@@ -831,7 +829,7 @@ private fun invalidMcpRegistrationIntent(): McpRegistrationIntent =
   McpRegistrationIntent(
     register = true,
     runtimeMcpBin = Path.of("").toFileLocation(),
-    agents = listOf(InstallAgent.CODEX),
+    agents = listOf(SupportedAgent.CODEX),
   )
 
 private fun minimalApplyResult(plan: InstallPlan): InstallApplyResult =

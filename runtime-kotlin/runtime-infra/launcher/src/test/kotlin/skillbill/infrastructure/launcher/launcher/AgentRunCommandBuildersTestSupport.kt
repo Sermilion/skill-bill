@@ -5,7 +5,7 @@ import skillbill.contracts.review.GovernedReviewEvidenceContracts
 import skillbill.error.shellcontent.GovernedReviewLaunchCapabilityError
 import skillbill.infrastructure.launcher.agentrun.AgentRunCommand
 import skillbill.infrastructure.launcher.agentrun.AgentRunCommandBuilder
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.review.evidence.ReviewEvidenceBroker
@@ -42,9 +42,9 @@ internal fun assertGovernedReviewLaunch(
     built.command.toString(),
   )
   when (builder.agent) {
-    InstallAgent.CLAUDE -> assertClaudeGovernedLaunch(built.command)
-    InstallAgent.CODEX -> assertCodexGovernedLaunch(built.command)
-    InstallAgent.CURSOR -> assertCursorGovernedLaunch(built, governed, rawFilesystemTools)
+    SupportedAgent.CLAUDE -> assertClaudeGovernedLaunch(built.command)
+    SupportedAgent.CODEX -> assertCodexGovernedLaunch(built.command)
+    SupportedAgent.CURSOR -> assertCursorGovernedLaunch(built, governed, rawFilesystemTools)
     else -> error("unexpected provider ${builder.agent.id}")
   }
 }

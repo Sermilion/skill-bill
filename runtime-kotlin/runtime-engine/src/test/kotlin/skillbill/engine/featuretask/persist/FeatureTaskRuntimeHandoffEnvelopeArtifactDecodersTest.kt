@@ -1,7 +1,8 @@
 package skillbill.engine.featuretask.persist
+
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePersistenceSchemaError
-import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.taskruntime.model.core.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith

@@ -1,17 +1,19 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.goal
+
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.model.GoalContinuation
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.model.ValidationDepth
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 
 fun DurableWorkflowArtifacts.goalContinuationArtifact(): FeatureTaskRuntimeGoalContinuationArtifact? {
   if (!containsKey(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY)) return null
@@ -33,7 +35,7 @@ fun DurableWorkflowArtifacts.goalContinuation(): GoalContinuation? =
     )
   }
 
-fun DurableWorkflowArtifacts.hasGoalContinuationMarker(): Boolean {
+internal fun DurableWorkflowArtifacts.hasGoalContinuationMarker(): Boolean {
   if (!containsKey(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY)) return false
   val raw = JsonCodec.anyToStringAnyMap(this[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY])
   if (raw?.get("enabled") == true && SharedPayloadKeys.ISSUE_KEY in raw && SharedPayloadKeys.SUBTASK_ID in raw) {

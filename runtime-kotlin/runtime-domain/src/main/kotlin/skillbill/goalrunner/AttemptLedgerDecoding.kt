@@ -1,14 +1,16 @@
 package skillbill.goalrunner
+
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.goalrunner.model.GoalRunnerProgressEvent
-import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
-import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
-import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
+import skillbill.workflow.model.goalreview.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressOutcome
+import skillbill.workflow.model.goalreview.asGoalWorkflowArtifactMap
+import skillbill.workflow.model.persistence.artifact.DurableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.toStringKeyedArtifactMap
 import skillbill.workflow.time.parsePersistedInstant
 
 fun progressEventFrom(artifacts: Any): GoalRunnerProgressEvent? {

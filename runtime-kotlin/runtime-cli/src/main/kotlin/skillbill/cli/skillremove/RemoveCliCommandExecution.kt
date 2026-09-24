@@ -5,12 +5,12 @@ import skillbill.cli.kernel.cli.CliOutput
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliFormat
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.domain.skillremove.SkillRemovalRefusedException
-import skillbill.domain.skillremove.SkillRemoveErrorSanitizer
-import skillbill.domain.skillremove.model.SkillRemovalRefusalReason
-import skillbill.domain.skillremove.model.SkillRemovalRequest
-import skillbill.domain.skillremove.model.SkillRemovalResult
-import skillbill.domain.skillremove.model.SkillRemovalTarget
+import skillbill.skillremove.SkillRemovalRefusedException
+import skillbill.skillremove.SkillRemoveErrorSanitizer
+import skillbill.skillremove.model.SkillRemovalRefusalReason
+import skillbill.skillremove.model.SkillRemovalRequest
+import skillbill.skillremove.model.SkillRemovalResult
+import skillbill.skillremove.model.SkillRemovalTarget
 import java.nio.file.Path
 
 internal fun executeRemoveCommand(request: RemoveCommandExecutionRequest): CliExecutionResult {

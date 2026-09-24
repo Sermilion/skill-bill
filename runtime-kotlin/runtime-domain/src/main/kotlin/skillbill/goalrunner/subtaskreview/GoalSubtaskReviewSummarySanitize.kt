@@ -1,8 +1,8 @@
 package skillbill.goalrunner.subtaskreview
 
-import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewCompactFinding
 
-object GoalSubtaskReviewSummarySanitize {
+internal object GoalSubtaskReviewSummarySanitize {
   private const val MAX_TEXT_LENGTH: Int = 180
   private val pathLikeToken = Regex("(?:[A-Za-z]:)?(?:[/\\\\][^\\s:|]+)+|(?:[A-Za-z0-9_.-]+[/\\\\])+[A-Za-z0-9_.-]+")
   private val hunk = Regex("@@[^@]+@@")

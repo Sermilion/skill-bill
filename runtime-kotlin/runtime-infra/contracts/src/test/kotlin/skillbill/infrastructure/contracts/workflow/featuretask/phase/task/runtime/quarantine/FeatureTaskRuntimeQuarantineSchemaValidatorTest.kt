@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.quarantine
+
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeQuarantineSchemaError
 import kotlin.test.Test
 import kotlin.test.assertFailsWith

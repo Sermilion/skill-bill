@@ -1,7 +1,7 @@
 package skillbill.infrastructure.workflow.goalplanning
 
 import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
+import skillbill.review.model.requireRepositoryRelativePath
 import java.nio.file.Files
 import java.nio.file.Path
 

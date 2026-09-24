@@ -7,10 +7,10 @@ import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperatio
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.scaffold.overlayPort
 import skillbill.install.model.ExternalAddonSource
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyResult
 import skillbill.install.model.InstallApplyStatus
 import skillbill.install.model.InstallPlanRequest
+import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
 import skillbill.ports.install.addon.ExternalAddonOverlayPort
 import skillbill.ports.install.addon.model.ExternalAddonOverlayRequest
@@ -242,6 +242,6 @@ class InstallExternalAddonOverlayIntegrationTest : InstallApplyTestSupport() {
   private fun ApplyFixture.request(selectedPlatforms: Set<String>): InstallPlanRequest =
     request(
       selectedPlatforms = selectedPlatforms,
-      agents = setOf(InstallAgent.CODEX),
+      agents = setOf(SupportedAgent.CODEX),
     )
 }

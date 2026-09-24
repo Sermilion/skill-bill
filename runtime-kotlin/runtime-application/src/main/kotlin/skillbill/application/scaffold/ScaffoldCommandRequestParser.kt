@@ -1,4 +1,5 @@
 package skillbill.application.scaffold
+
 import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.contracts.scaffold.wire.requireString
 import skillbill.contracts.scaffold.wire.requireStringOrDefault

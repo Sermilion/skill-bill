@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.persist
+
 import skillbill.contracts.JsonCodec
 import skillbill.engine.goalrunner.InMemoryGoalManifestStore
 import skillbill.engine.goalrunner.RecordingOutcomeStore

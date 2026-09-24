@@ -11,5 +11,4 @@ fun WorkflowStateSnapshot.decompositionRuntime(): DecompositionManifest? = artif
 fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
   JsonCodec.anyToStringAnyMap(artifacts["plan"])?.get(DecompositionPlanningPayloadKeys.MODE) == "decompose"
 
-fun WorkflowStateSnapshot.isGoalContinuationChildWorkflow(): Boolean =
-  artifacts.hasGoalContinuationMarker()
+fun WorkflowStateSnapshot.isGoalContinuationChildWorkflow(): Boolean = artifacts.hasGoalContinuationMarker()

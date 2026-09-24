@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.telemetry.redaction
+
 import skillbill.contracts.JsonCodec
+import skillbill.infrastructure.sqlite.core.ops.StaleSessionReconciliationPolicy
 import skillbill.infrastructure.sqlite.core.ops.reconcileStaleTelemetrySessions
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
@@ -88,7 +90,7 @@ class TelemetryAnonymousRedactionTest {
         connection,
         Clock.systemUTC(),
         level = "anonymous",
-        goalIssueAbandonmentDays = 14L,
+        policy = StaleSessionReconciliationPolicy(goalIssueAbandonmentDays = 14L),
       )
 
       val payload =
@@ -121,7 +123,7 @@ class TelemetryAnonymousRedactionTest {
   fun `correlation ids derived from the issue key are redacted at anonymous and raw at full`() {
     listOf("anonymous", "full").forEach { level ->
       withConnection { connection ->
-        val store = LifecycleTelemetryStore(connection)
+        val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
         store.goalSubtaskFinished(
           GoalSubtaskFinishedRecord(
             issueKey = ISSUE_KEY,
@@ -168,7 +170,7 @@ class TelemetryAnonymousRedactionTest {
     connection: Connection,
     level: String,
   ) {
-    val store = LifecycleTelemetryStore(connection)
+    val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
     store.goalStarted(startedRecord("wf-1", parentWorkflowId = "parent-1"), level)
     store.goalSubtaskFinished(
       GoalSubtaskFinishedRecord(

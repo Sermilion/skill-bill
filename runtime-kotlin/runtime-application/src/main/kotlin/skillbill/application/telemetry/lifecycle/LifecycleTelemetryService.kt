@@ -1,4 +1,5 @@
 package skillbill.application.telemetry.lifecycle
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.model.FeatureTaskRuntimeFinishedRequest
 import skillbill.application.telemetry.model.FeatureTaskRuntimeStartedRequest

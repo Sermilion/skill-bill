@@ -21,6 +21,22 @@ object ArchitectureScanSupport {
 
   data class LineCeilingExemption(val relativePath: String, val reason: String)
 
+  data class PublicDeclaration(
+    val qualifiedName: String,
+    val relativePath: String,
+    val module: String,
+    val name: String,
+  )
+
+  private fun scanRootLabel(root: Path): String {
+    val normalized = root.toAbsolutePath().normalize()
+    return if (normalized.startsWith(runtimeRoot)) {
+      runtimeRoot.relativize(normalized).toString().replace('\\', '/')
+    } else {
+      normalized.toString().replace('\\', '/')
+    }
+  }
+
   fun kotlinFilesUnder(root: Path): List<Path> {
     if (!Files.isDirectory(root)) {
       error(
@@ -484,6 +500,14 @@ object ArchitectureScanSupport {
       """^\s*((?:(?:public|internal|private|protected|abstract|sealed|open|final|data|enum|value|fun)\s+)*)""" +
         """(?:class|object|interface|fun)\s+([A-Za-z_][A-Za-z0-9_]*)\b""",
     )
+  private val TOP_LEVEL_PUBLIC_DECLARATION_PATTERN =
+    Regex(
+      """^\s*(?!(?:(?:private|internal|protected)\s))""" +
+        """(?:(?:public|abstract|sealed|open|final|data|enum|value|inline|operator|infix|suspend|override|lateinit|""" +
+        """const|annotation|inner|companion|external|tailrec|expect|actual|fun)\s+)*""" +
+        """(?:class|object|interface|fun|val|var|typealias)\s+""" +
+        """(?:[A-Za-z_][A-Za-z0-9_]*\.)?([A-Za-z_][A-Za-z0-9_]*)\b""",
+    )
   private val SPILLOVER_NUMBERED_SUFFIX_PATTERN =
     Regex("""(?:Extras\d*|Continued\d*|Helpers\d+|Fns\d+|Support\d+|Misc\d+|(?<![A-Z])[A-Z]\d+)$""")
   private val SPILLOVER_MAIN_SOURCE_SUFFIX_PATTERN =
@@ -504,6 +528,11 @@ object ArchitectureScanSupport {
   private val CAMEL_TOKEN_PATTERN = Regex("""[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|\b)""")
   private val EXTENSION_FUN_PATTERN =
     Regex("""^\s*(?:(?:public|internal|private|protected)\s+)*fun\s+([A-Za-z0-9_.]+)\.""")
+
+  enum class PackageCycleGranularity {
+    FIRST_SEGMENT_MUTUAL_PAIR,
+    EXACT_PACKAGE_SCC,
+  }
 
   data class PackageCycle(val areas: List<String>)
 
@@ -672,28 +701,146 @@ object ArchitectureScanSupport {
   fun packageImportEdges(
     scanRoot: String,
     packagePrefix: String,
+    granularity: PackageCycleGranularity = PackageCycleGranularity.FIRST_SEGMENT_MUTUAL_PAIR,
   ): Map<String, Set<String>> {
+    val sourceFiles = kotlinFilesUnder(runtimeRoot.resolve(scanRoot))
+    val declaredPackages =
+      if (granularity == PackageCycleGranularity.EXACT_PACKAGE_SCC) {
+        sourceFiles.mapNotNull { sourceFile -> declaredPackage(sourceFile.readText()) }.toSet()
+      } else {
+        emptySet()
+      }
     val edges = linkedMapOf<String, MutableSet<String>>()
-    kotlinFilesUnder(runtimeRoot.resolve(scanRoot)).forEach { sourceFile ->
+    sourceFiles.forEach { sourceFile ->
       val source = sourceFile.readText()
       val packageName = declaredPackage(source) ?: return@forEach
       if (!packageName.startsWith(packagePrefix)) return@forEach
-      val area = packageName.removePrefix(packagePrefix).substringBefore('.')
-      if (area.isBlank()) return@forEach
+      val sourceNode =
+        when (granularity) {
+          PackageCycleGranularity.FIRST_SEGMENT_MUTUAL_PAIR ->
+            packageName.removePrefix(packagePrefix).substringBefore('.')
+          PackageCycleGranularity.EXACT_PACKAGE_SCC -> packageName
+        }
+      if (sourceNode.isBlank()) return@forEach
       declaredImports(source)
-        .filter { it.startsWith(packagePrefix) }
-        .map { imported -> imported.removePrefix(packagePrefix).substringBefore('.') }
-        .filter { it.isNotBlank() && it != area }
-        .forEach { importedArea -> edges.getOrPut(area) { mutableSetOf() }.add(importedArea) }
+        .filter { imported -> imported.startsWith(packagePrefix) }
+        .map { imported ->
+          when (granularity) {
+            PackageCycleGranularity.FIRST_SEGMENT_MUTUAL_PAIR ->
+              imported.removePrefix(packagePrefix).substringBefore('.')
+            PackageCycleGranularity.EXACT_PACKAGE_SCC ->
+              declaredPackages
+                .filter { declared -> imported == declared || imported.startsWith("$declared.") }
+                .maxByOrNull(String::length)
+                .orEmpty()
+          }
+        }
+        .filter { importedNode -> importedNode.isNotBlank() && importedNode != sourceNode }
+        .forEach { importedNode -> edges.getOrPut(sourceNode) { mutableSetOf() }.add(importedNode) }
     }
     return edges.mapValues { (_, value) -> value.toSet() }
+  }
+
+  fun modelPackageImportViolations(
+    scanRoot: String,
+    packagePrefix: String,
+  ): List<String> {
+    val sourceFiles = kotlinFilesUnder(runtimeRoot.resolve(scanRoot))
+    val declaredPackages =
+      sourceFiles.mapNotNull { sourceFile -> declaredPackage(sourceFile.readText()) }.toSet()
+    return sourceFiles.flatMap { sourceFile ->
+      val source = sourceFile.readText()
+      val sourcePackage = declaredPackage(source) ?: return@flatMap emptyList()
+      if (!sourcePackage.startsWith(packagePrefix) || !isModelPackage(sourcePackage)) {
+        return@flatMap emptyList()
+      }
+      val owningPackages =
+        declaredImports(source)
+          .filter { imported -> imported.startsWith(packagePrefix) }
+          .mapNotNull { imported ->
+            declaredPackages
+              .filter { declared -> imported == declared || imported.startsWith("$declared.") }
+              .maxByOrNull(String::length)
+          }
+          .filterNot(::isModelPackage)
+          .filterNot { imported ->
+            imported == "skillbill.goalrunner" ||
+              imported == "skillbill.review.context" ||
+              imported == "skillbill.scaffold.policy" ||
+              imported == "skillbill.install.policy" ||
+              imported == "skillbill.workflow.engine" ||
+              imported == "skillbill.workflow.decomposition.runtime" ||
+              imported == "skillbill.workflow.time"
+          }
+          .distinct()
+      owningPackages.map { targetPackage ->
+        "${runtimeRoot.relativize(sourceFile)}: $sourcePackage imports non-model package $targetPackage"
+      }
+    }.sorted()
+  }
+
+  fun publicDomainDeclarationViolations(
+    scanRoot: String,
+    referenceRoot: String,
+    exceptions: Set<String> = setOf("skillbill.workflow.decomposition.runtime.normalizedBlockedReason"),
+  ): List<String> {
+    val declarations =
+      kotlinFilesUnder(runtimeRoot.resolve(scanRoot)).flatMap { sourceFile ->
+        val source = sourceFile.readText()
+        val packageName = declaredPackage(source) ?: return@flatMap emptyList()
+        topLevelPublicDeclarations(source).map { declaration ->
+          PublicDeclaration(
+            qualifiedName = "$packageName.${declaration.name}",
+            relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/'),
+            module = moduleName(sourceFile),
+            name = declaration.name,
+          )
+        }
+      }
+    val referenceSources = kotlinFilesUnder(runtimeRoot.resolve(referenceRoot))
+    val sourceTexts =
+      referenceSources.associateWith { sourceFile ->
+        sourceWithoutCommentsAndStringLiterals(sourceFile.readText())
+      }
+    return declarations.flatMap { declaration ->
+      if (declaration.qualifiedName in exceptions) return@flatMap emptyList()
+      val references =
+        sourceTexts.mapNotNull { (sourceFile, source) ->
+          val count = declarationReferencePattern(declaration.name).findAll(source).count()
+          if (count == 0) {
+            null
+          } else {
+            sourceFile to count
+          }
+        }
+      val referencesAfterDeclaration =
+        references.map { (sourceFile, count) ->
+          val isDeclarationFile =
+            runtimeRoot.relativize(sourceFile).toString().replace('\\', '/') == declaration.relativePath
+          sourceFile to (count - if (isDeclarationFile) 1 else 0)
+        }.filter { (_, count) -> count > 0 }
+      when {
+        referencesAfterDeclaration.isEmpty() ->
+          listOf("${declaration.qualifiedName} is unreferenced")
+        referencesAfterDeclaration.all { (sourceFile, _) ->
+          runtimeRoot.relativize(sourceFile).toString().replace('\\', '/') == declaration.relativePath
+        } ->
+          listOf("${declaration.qualifiedName} is referenced only by ${declaration.relativePath}")
+        referencesAfterDeclaration
+          .map { (sourceFile, _) -> moduleName(sourceFile) }
+          .toSet() == setOf(declaration.module) ->
+          listOf("${declaration.qualifiedName} is referenced only within ${declaration.module}")
+        else -> emptyList()
+      }
+    }.sorted()
   }
 
   fun packageCycles(
     scanRoot: String,
     packagePrefix: String,
+    granularity: PackageCycleGranularity = PackageCycleGranularity.FIRST_SEGMENT_MUTUAL_PAIR,
   ): Set<PackageCycle> =
-    mutualImportCyclesForEdges(packageImportEdges(scanRoot, packagePrefix))
+    packageCyclesForEdges(packageImportEdges(scanRoot, packagePrefix, granularity), granularity)
       .map { cycle -> PackageCycle(cycle) }
       .toSet()
 
@@ -701,21 +848,37 @@ object ArchitectureScanSupport {
     baselineCycles: Set<PackageCycle>,
     scanRoot: String,
     packagePrefix: String,
-  ): List<String> = packageCycleViolationsForEdges(packageImportEdges(scanRoot, packagePrefix), baselineCycles)
+    granularity: PackageCycleGranularity = PackageCycleGranularity.FIRST_SEGMENT_MUTUAL_PAIR,
+  ): List<String> =
+    packageCycleViolationsForEdges(
+      packageImportEdges(scanRoot, packagePrefix, granularity),
+      baselineCycles,
+      granularity,
+    )
 
   fun packageCycleViolationsForEdges(
     edges: Map<String, Set<String>>,
     baselineCycles: Set<PackageCycle>,
+    granularity: PackageCycleGranularity = PackageCycleGranularity.FIRST_SEGMENT_MUTUAL_PAIR,
   ): List<String> {
     val baselineKeys = baselineCycles.map { cycle -> cycle.areas.sorted().joinToString("|") }.toSet()
     val currentKeys =
-      mutualImportCyclesForEdges(edges)
+      packageCyclesForEdges(edges, granularity)
         .map { cycle -> cycle.sorted().joinToString("|") }
         .toSet()
     return (currentKeys - baselineKeys).sorted().map { cycle ->
       "New package cycle not in baseline: ${cycle.replace("|", " <-> ")}"
     }
   }
+
+  private fun packageCyclesForEdges(
+    edges: Map<String, Set<String>>,
+    granularity: PackageCycleGranularity,
+  ): List<List<String>> =
+    when (granularity) {
+      PackageCycleGranularity.FIRST_SEGMENT_MUTUAL_PAIR -> mutualImportCyclesForEdges(edges)
+      PackageCycleGranularity.EXACT_PACKAGE_SCC -> stronglyConnectedComponents(edges)
+    }
 
   private fun mutualImportCyclesForEdges(edges: Map<String, Set<String>>): List<List<String>> {
     val cycles = linkedSetOf<List<String>>()
@@ -728,6 +891,95 @@ object ArchitectureScanSupport {
     }
     return cycles.toList()
   }
+
+  private fun stronglyConnectedComponents(edges: Map<String, Set<String>>): List<List<String>> {
+    var index = 0
+    val indexes = mutableMapOf<String, Int>()
+    val lowLinks = mutableMapOf<String, Int>()
+    val stack = ArrayDeque<String>()
+    val onStack = mutableSetOf<String>()
+    val components = mutableListOf<List<String>>()
+
+    fun visit(node: String) {
+      indexes[node] = index
+      lowLinks[node] = index
+      index++
+      stack.addLast(node)
+      onStack += node
+      edges[node].orEmpty().sorted().forEach { target ->
+        when {
+          target !in indexes -> {
+            visit(target)
+            lowLinks[node] = minOf(lowLinks.getValue(node), lowLinks.getValue(target))
+          }
+          target in onStack -> {
+            lowLinks[node] = minOf(lowLinks.getValue(node), indexes.getValue(target))
+          }
+        }
+      }
+      if (lowLinks.getValue(node) == indexes.getValue(node)) {
+        val componentMembers = mutableListOf<String>()
+        while (true) {
+          val member = stack.removeLast()
+          componentMembers += member
+          if (member == node) break
+        }
+        val component = componentMembers.sorted()
+        onStack.removeAll(component)
+        if (component.size > 1) components += component
+      }
+    }
+
+    (edges.keys + edges.values.flatten()).distinct().sorted().forEach { node ->
+      if (node !in indexes) visit(node)
+    }
+    return components.sortedBy { component -> component.joinToString("|") }
+  }
+
+  private fun isModelPackage(packageName: String): Boolean = packageName.split('.').contains("model")
+
+  private data class TopLevelDeclaration(val name: String)
+
+  private fun topLevelPublicDeclarations(source: String): List<TopLevelDeclaration> {
+    val declarations = mutableListOf<TopLevelDeclaration>()
+    var braceDepth = 0
+    var parenthesisDepth = 0
+    source.lineSequence().forEach { rawLine ->
+      val line = rawLine.withoutCommentText().text
+      if (braceDepth == 0 && parenthesisDepth == 0) {
+        TOP_LEVEL_PUBLIC_DECLARATION_PATTERN.find(line)?.let { match ->
+          declarations += TopLevelDeclaration(match.groupValues[1])
+        }
+      }
+      parenthesisDepth += line.count { character -> character == '(' }
+      parenthesisDepth -= line.count { character -> character == ')' }
+      braceDepth += line.count { character -> character == '{' }
+      braceDepth -= line.count { character -> character == '}' }
+      if (parenthesisDepth < 0) parenthesisDepth = 0
+      if (braceDepth < 0) braceDepth = 0
+    }
+    return declarations
+  }
+
+  private fun moduleName(sourceFile: Path): String =
+    sourceFile.toAbsolutePath().normalize().let { path ->
+      val normalized = path.toString().replace('\\', '/')
+      val runtimeKotlinIndex = normalized.indexOf("/runtime-kotlin/")
+      if (runtimeKotlinIndex == -1) {
+        path.parent.fileName.toString()
+      } else {
+        normalized.substring(runtimeKotlinIndex + "/runtime-kotlin/".length)
+          .substringBefore('/', missingDelimiterValue = "")
+      }
+    }
+
+  private fun declarationReferencePattern(name: String): Regex = Regex("""\b${Regex.escape(name)}\b""")
+
+  private fun sourceWithoutCommentsAndStringLiterals(source: String): String =
+    sourceWithoutStringLiterals(source)
+      .replace(Regex("""(?s)/\*.*?\*/"""), "")
+      .lineSequence()
+      .joinToString("\n") { line -> line.substringBefore("//") }
 
   fun parsePackageCycleBaseline(text: String): Set<PackageCycle> =
     text.lineSequence()
@@ -997,270 +1249,21 @@ object ArchitectureScanSupport {
       else -> "$packageName.$typeName"
     }
 
-  data class AuthoredSuppression(val relativePath: String, val symbol: String, val rule: String)
+  internal typealias AuthoredSuppression = KotlinCommentPolicyScanSupport.AuthoredSuppression
 
-  data class CommentPolicyViolation(val lineNumber: Int, val kind: String)
+  internal typealias CommentPolicyViolation = KotlinCommentPolicyScanSupport.CommentPolicyViolation
 
-  private val KOTLIN_SOURCE_EXTENSIONS: Set<String> = setOf("kt", "kts")
-
-  fun authoredKotlinSourcesUnder(root: Path): List<Path> {
-    if (!Files.isDirectory(root)) {
-      error(
-        "Missing architecture scan root: ${scanRootLabel(root)}",
-      )
-    }
-    return Files.walk(root).use { paths ->
-      paths
-        .filter { path ->
-          path.isRegularFile() &&
-            path.extension in KOTLIN_SOURCE_EXTENSIONS &&
-            !isGeneratedOrBuildPath(path)
-        }
-        .toList()
-    }
-  }
-
-  private fun scanRootLabel(root: Path): String {
-    val normalized = root.toAbsolutePath().normalize()
-    return if (normalized.startsWith(runtimeRoot)) {
-      runtimeRoot.relativize(normalized).toString().replace('\\', '/')
-    } else {
-      normalized.toString().replace('\\', '/')
-    }
-  }
+  fun authoredKotlinSourcesUnder(root: Path): List<Path> =
+    KotlinCommentPolicyScanSupport.authoredKotlinSourcesUnder(root)
 
   fun commentAndInterfaceKdocViolations(
     scanRoots: List<String>,
     exemptRelativePaths: Set<String> = emptySet(),
-  ): List<String> {
-    val violations = mutableListOf<String>()
-    scanRoots.forEach { scanRoot ->
-      authoredKotlinSourcesUnder(runtimeRoot.resolve(scanRoot)).forEach { sourceFile ->
-        val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
-        if (relativePath in exemptRelativePaths) return@forEach
-        val source = sourceFile.readText()
-        collectCommentPolicyViolations(source).forEach { violation ->
-          violations += "$relativePath:${violation.lineNumber}:${violation.kind}"
-        }
-      }
-    }
-    return violations.sorted()
-  }
+  ): List<String> = KotlinCommentPolicyScanSupport.commentAndInterfaceKdocViolations(scanRoots, exemptRelativePaths)
 
   fun lineCommentViolationsIgnoringStringLiterals(source: String): List<Int> =
-    collectCommentPolicyViolations(source)
-      .filter { violation -> violation.kind == "line-comment" }
-      .map { violation -> violation.lineNumber }
+    KotlinCommentPolicyScanSupport.lineCommentViolationsIgnoringStringLiterals(source)
 
   internal fun collectCommentPolicyViolations(source: String): List<CommentPolicyViolation> =
-    CommentPolicyScanner(source).scan()
-
-  private class CommentPolicyScanner(private val source: String) {
-    private val violations = mutableListOf<CommentPolicyViolation>()
-    private var index = 0
-    private var line = 1
-    private val braceKinds = mutableListOf<BraceKind>()
-    private var pendingInterfaceOpen = false
-
-    fun scan(): List<CommentPolicyViolation> {
-      while (index < source.length) {
-        if (!skipLiteralIfPresent() && !recordCommentIfPresent()) {
-          advanceCodeChar()
-        }
-      }
-      return violations
-    }
-
-    private fun skipLiteralIfPresent(): Boolean {
-      if (source.startsWith("\"\"\"", index)) {
-        index = skipTripleQuotedString(source, index + 3)
-        return true
-      }
-      if (source[index] == '"') {
-        index = skipQuotedString(source, index + 1)
-        return true
-      }
-      if (source[index] == '\'') {
-        index = skipCharLiteral(source, index + 1)
-        return true
-      }
-      return false
-    }
-
-    private fun recordCommentIfPresent(): Boolean {
-      if (source.startsWith("//", index)) {
-        violations += CommentPolicyViolation(line, "line-comment")
-        index = skipToEndOfLine(source, index)
-        return true
-      }
-      if (source.startsWith("/**", index)) {
-        val start = index
-        val end = skipBlockComment(source, index)
-        if (!isAllowedKDocSite(source, end, braceKinds.lastOrNull() == BraceKind.INTERFACE)) {
-          violations += CommentPolicyViolation(lineAt(start), "kdoc-outside-interface")
-        }
-        index = end
-        return true
-      }
-      if (source.startsWith("/*", index)) {
-        violations += CommentPolicyViolation(line, "block-comment")
-        index = skipBlockComment(source, index)
-        return true
-      }
-      return false
-    }
-
-    private fun advanceCodeChar() {
-      if (interfaceKeywordAt(source, index)) pendingInterfaceOpen = true
-      if (pendingInterfaceOpen && nonInterfaceDeclarationKeywordAt(source, index)) {
-        pendingInterfaceOpen = false
-      }
-      when (source[index]) {
-        '\n' -> line++
-        '{' -> {
-          braceKinds += if (pendingInterfaceOpen) BraceKind.INTERFACE else BraceKind.OTHER
-          pendingInterfaceOpen = false
-        }
-        '}' -> {
-          if (braceKinds.isNotEmpty()) braceKinds.removeAt(braceKinds.lastIndex)
-          pendingInterfaceOpen = false
-        }
-      }
-      index++
-    }
-
-    private fun lineAt(charIndex: Int): Int {
-      var currentLine = 1
-      var scan = 0
-      while (scan < charIndex && scan < source.length) {
-        if (source[scan] == '\n') currentLine++
-        scan++
-      }
-      return currentLine
-    }
-  }
-
-  private fun isGeneratedOrBuildPath(path: Path): Boolean =
-    path.toString().replace('\\', '/').split('/').any { segment ->
-      segment == "build" || segment == "generated"
-    }
-
-  private fun interfaceKeywordAt(
-    source: String,
-    index: Int,
-  ): Boolean {
-    if (!source.startsWith("interface", index)) return false
-    val before = source.getOrNull(index - 1)
-    if (before != null && (before.isLetterOrDigit() || before == '_')) return false
-    val after = source.getOrNull(index + "interface".length)
-    if (after != null && (after.isLetterOrDigit() || after == '_')) return false
-    return true
-  }
-
-  private fun nonInterfaceDeclarationKeywordAt(
-    source: String,
-    index: Int,
-  ): Boolean =
-    listOf("class", "object", "fun", "val", "var", "typealias").any { keyword ->
-      source.startsWith(keyword, index) &&
-        source.getOrNull(index - 1)?.let { character -> character.isLetterOrDigit() || character == '_' } != true &&
-        source.getOrNull(index + keyword.length)
-          ?.let { character -> character.isLetterOrDigit() || character == '_' } != true
-    }
-
-  private fun isAllowedKDocSite(
-    source: String,
-    afterCommentIndex: Int,
-    insideInterfaceBody: Boolean,
-  ): Boolean {
-    var remainder = source.substring(afterCommentIndex).trimStart()
-    while (remainder.startsWith("@")) {
-      val nextLine = remainder.indexOf('\n').takeIf { lineBreak -> lineBreak != -1 } ?: remainder.length
-      remainder = remainder.substring(nextLine).trimStart()
-    }
-    if (INTERFACE_DECLARATION_PREFIX.containsMatchIn(remainder)) return true
-    if (!insideInterfaceBody) return false
-    return KDOC_INTERFACE_MEMBER_PREFIX.containsMatchIn(remainder)
-  }
-
-  private fun skipToEndOfLine(
-    source: String,
-    from: Int,
-  ): Int {
-    var index = from
-    while (index < source.length && source[index] != '\n') index++
-    return index
-  }
-
-  private fun skipBlockComment(
-    source: String,
-    from: Int,
-  ): Int {
-    val end = source.indexOf("*/", from + 2)
-    return if (end == -1) source.length else end + 2
-  }
-
-  private fun skipQuotedString(
-    source: String,
-    from: Int,
-  ): Int {
-    var index = from
-    while (index < source.length) {
-      when (source[index]) {
-        '\\' -> index += 2
-        '"' -> return index + 1
-        else -> index++
-      }
-    }
-    return index
-  }
-
-  private fun skipTripleQuotedString(
-    source: String,
-    from: Int,
-  ): Int {
-    var index = from
-    while (index < source.length) {
-      if (source.startsWith("\"\"\"", index)) return index + 3
-      if (source[index] == '\\') {
-        index += 2
-        continue
-      }
-      index++
-    }
-    return index
-  }
-
-  private fun skipCharLiteral(
-    source: String,
-    from: Int,
-  ): Int {
-    var index = from
-    while (index < source.length) {
-      when (source[index]) {
-        '\\' -> index += 2
-        '\'' -> return index + 1
-        else -> index++
-      }
-    }
-    return index
-  }
-
-  private enum class BraceKind {
-    INTERFACE,
-    OTHER,
-  }
-
-  private val KDOC_INTERFACE_MEMBER_PREFIX =
-    Regex(
-      """^(?:(?:@[A-Za-z_][A-Za-z0-9_.]*(?:\([^)]*\))?\s+)*)""" +
-        """(?:(?:public|internal|private|protected|override|suspend|abstract|open|lateinit|const|data|enum|""" +
-        """annotation|value|sealed|external|tailrec|expect|actual|infix|operator|companion)\s+)*""" +
-        """(?:fun|val|var|(?:data\s+)?(?:class|object)|interface|typealias)\s+""",
-    )
-  private val INTERFACE_DECLARATION_PREFIX =
-    Regex(
-      """^(?:(?:@[A-Za-z_][A-Za-z0-9_.]*(?:\([^)]*\))?\s+)*)""" +
-        """(?:(?:public|internal|private|protected|sealed|fun)\s+)*interface\s+""",
-    )
+    KotlinCommentPolicyScanSupport.collectCommentPolicyViolations(source)
 }

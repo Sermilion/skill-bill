@@ -10,11 +10,9 @@ import skillbill.error.shellcontent.LegacyProseWorkflowError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.engine.WorkflowEngine
-import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import skillbill.workflow.model.FeatureTaskRouteScope
@@ -27,10 +25,7 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 class FeatureTaskContinuationLookupService(
   private val database: DatabaseSessionFactory,
   private val workflowSnapshotValidator: WorkflowSnapshotValidator,
-  private val decompositionManifestValidator: DecompositionManifestValidator,
 ) {
-  private val engine = WorkflowEngine()
-
   fun claim(candidate: FeatureTaskContinuationCandidate): Boolean =
     database.transaction { unitOfWork ->
       unitOfWork.workflowStates.claimFeatureTaskContinuation(candidate.workflowId, candidate.updatedAt)
@@ -84,7 +79,6 @@ class FeatureTaskContinuationLookupService(
       executeFeatureTaskContinuationLookup(
         query = query,
         unitOfWork = unitOfWork,
-        decompositionManifestValidator = decompositionManifestValidator,
         project = ::project,
         classify = ::classify,
       )

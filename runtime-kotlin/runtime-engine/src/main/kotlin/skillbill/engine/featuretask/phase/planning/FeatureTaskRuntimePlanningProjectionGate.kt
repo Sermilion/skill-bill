@@ -3,10 +3,10 @@ package skillbill.engine.featuretask.phase.planning
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePlanningProjectionContract
 
 internal fun producerProjectionGateReason(

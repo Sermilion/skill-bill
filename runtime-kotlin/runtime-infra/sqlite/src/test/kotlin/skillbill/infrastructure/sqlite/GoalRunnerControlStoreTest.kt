@@ -1,8 +1,7 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.contracts.JsonCodec
-import java.time.Instant
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_STOP
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerControlState
@@ -20,6 +19,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import java.nio.file.Files
 import java.sql.Connection
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -35,17 +35,23 @@ class GoalRunnerControlStoreTest {
       store.persistControlState("parent-spelling", GoalRunnerControlState())
       val heartbeat = "2026-08-02T12:00:10.000+02:00"
       val expiry = "2026-08-02T10:00:40.123456789Z"
-      writeRawControlState(connection, "parent-spelling", """
+      writeRawControlState(
+        connection,
+        "parent-spelling",
+        """
         {"execution_lease":{"generation":1,"owner_token":"owner-token-123456","host_identity":"host",
         "boot_identity":"boot","pid":42,"process_birth_token":"birth",
         "heartbeat_at":"$heartbeat","expires_at":"$expiry"}}
-      """.trimIndent())
+        """.trimIndent(),
+      )
       val decoded = store.controlState("parent-spelling")
       assertEquals(Instant.parse("2026-08-02T10:00:10Z"), decoded.executionLease?.heartbeatAt)
       assertEquals(Instant.parse(expiry), decoded.executionLease?.expiresAt)
       store.persistControlState("parent-spelling", decoded.copy(pauseRequested = true))
       connection.createStatement().use { statement ->
-        statement.executeQuery("SELECT control_state_json FROM goal_runner_controls WHERE parent_workflow_id = 'parent-spelling'").use { rows ->
+        statement.executeQuery(
+          "SELECT control_state_json FROM goal_runner_controls WHERE parent_workflow_id = 'parent-spelling'",
+        ).use { rows ->
           assertTrue(rows.next())
           val raw = requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(rows.getString(1))))
           val lease = requireNotNull(JsonCodec.anyToStringAnyMap(raw["execution_lease"]))
@@ -279,7 +285,10 @@ class GoalRunnerControlStoreTest {
       assertTrue(
         store.heartbeatExecutionLease(
           "parent-lease",
-          lease.copy(heartbeatAt = Instant.parse("2026-08-02T10:00:10Z"), expiresAt = Instant.parse("2026-08-02T10:00:40Z")),
+          lease.copy(
+            heartbeatAt = Instant.parse("2026-08-02T10:00:10Z"),
+            expiresAt = Instant.parse("2026-08-02T10:00:40Z"),
+          ),
         ),
       )
     }
@@ -298,7 +307,11 @@ class GoalRunnerControlStoreTest {
       store.clearControlState("parent-lease")
       assertEquals(
         GoalRunnerControlState(
-          executionLease = lease.copy(heartbeatAt = Instant.parse("2026-08-02T10:00:10Z"), expiresAt = Instant.parse("2026-08-02T10:00:40Z")),
+          executionLease =
+            lease.copy(
+              heartbeatAt = Instant.parse("2026-08-02T10:00:10Z"),
+              expiresAt = Instant.parse("2026-08-02T10:00:40Z"),
+            ),
         ),
         store.controlState("parent-lease"),
       )
@@ -371,7 +384,12 @@ class GoalRunnerControlStoreTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
       assertTrue(store.acquireExecutionLease("parent-clear", lease))
-      assertTrue(store.heartbeatExecutionLease("parent-clear", lease.copy(heartbeatAt = Instant.parse("2026-08-02T10:00:10Z"))))
+      assertTrue(
+        store.heartbeatExecutionLease(
+          "parent-clear",
+          lease.copy(heartbeatAt = Instant.parse("2026-08-02T10:00:10Z")),
+        ),
+      )
       val paused = store.controlState("parent-clear")
       store.persistControlState(
         "parent-clear",
@@ -412,14 +430,34 @@ class GoalRunnerControlStoreTest {
       assertTrue(store.acquireExecutionLease("parent-clock", lease))
       assertEquals(0, store.controlState("parent-clock").activeDurationMs)
 
-      assertTrue(store.heartbeatExecutionLease("parent-clock", lease.copy(heartbeatAt = Instant.parse("2026-08-07T18:22:10Z"))))
-      assertTrue(store.heartbeatExecutionLease("parent-clock", lease.copy(heartbeatAt = Instant.parse("2026-08-07T18:22:20Z"))))
+      assertTrue(
+        store.heartbeatExecutionLease(
+          "parent-clock",
+          lease.copy(heartbeatAt = Instant.parse("2026-08-07T18:22:10Z")),
+        ),
+      )
+      assertTrue(
+        store.heartbeatExecutionLease(
+          "parent-clock",
+          lease.copy(heartbeatAt = Instant.parse("2026-08-07T18:22:20Z")),
+        ),
+      )
       assertEquals(20_000, store.controlState("parent-clock").activeDurationMs)
 
-      assertTrue(store.heartbeatExecutionLease("parent-clock", lease.copy(heartbeatAt = Instant.parse("2026-08-08T06:31:00Z"))))
+      assertTrue(
+        store.heartbeatExecutionLease(
+          "parent-clock",
+          lease.copy(heartbeatAt = Instant.parse("2026-08-08T06:31:00Z")),
+        ),
+      )
       assertEquals(40_000, store.controlState("parent-clock").activeDurationMs)
 
-      assertTrue(store.heartbeatExecutionLease("parent-clock", lease.copy(heartbeatAt = Instant.parse("2026-08-08T06:31:10Z"))))
+      assertTrue(
+        store.heartbeatExecutionLease(
+          "parent-clock",
+          lease.copy(heartbeatAt = Instant.parse("2026-08-08T06:31:10Z")),
+        ),
+      )
       assertEquals(50_000, store.controlState("parent-clock").activeDurationMs)
     }
   }
@@ -442,7 +480,12 @@ class GoalRunnerControlStoreTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
       assertTrue(store.acquireExecutionLease("parent-late", lease))
-      assertTrue(store.heartbeatExecutionLease("parent-late", lease.copy(heartbeatAt = Instant.parse("2026-08-07T18:22:20.001Z"))))
+      assertTrue(
+        store.heartbeatExecutionLease(
+          "parent-late",
+          lease.copy(heartbeatAt = Instant.parse("2026-08-07T18:22:20.001Z")),
+        ),
+      )
       assertEquals(20_000, store.controlState("parent-late").activeDurationMs)
     }
   }
@@ -465,7 +508,12 @@ class GoalRunnerControlStoreTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalRunnerControlStore(connection)
       assertTrue(store.acquireExecutionLease("parent-reacquire", lease))
-      assertTrue(store.heartbeatExecutionLease("parent-reacquire", lease.copy(heartbeatAt = Instant.parse("2026-08-07T18:22:10Z"))))
+      assertTrue(
+        store.heartbeatExecutionLease(
+          "parent-reacquire",
+          lease.copy(heartbeatAt = Instant.parse("2026-08-07T18:22:10Z")),
+        ),
+      )
       assertTrue(store.releaseExecutionLease("parent-reacquire", lease.ownerToken, lease.generation))
 
       val nextDay =
@@ -477,7 +525,12 @@ class GoalRunnerControlStoreTest {
       assertTrue(store.acquireExecutionLease("parent-reacquire", nextDay))
       assertEquals(10_000, store.controlState("parent-reacquire").activeDurationMs)
 
-      assertTrue(store.heartbeatExecutionLease("parent-reacquire", nextDay.copy(heartbeatAt = Instant.parse("2026-08-08T06:31:05Z"))))
+      assertTrue(
+        store.heartbeatExecutionLease(
+          "parent-reacquire",
+          nextDay.copy(heartbeatAt = Instant.parse("2026-08-08T06:31:05Z")),
+        ),
+      )
       assertEquals(15_000, store.controlState("parent-reacquire").activeDurationMs)
     }
   }
@@ -501,7 +554,12 @@ class GoalRunnerControlStoreTest {
       val store = GoalRunnerControlStore(connection)
       store.persistControlState("parent-dual", GoalRunnerControlState(currentSubtaskId = 1))
       assertTrue(store.acquireExecutionLease("parent-dual", lease))
-      assertTrue(store.heartbeatExecutionLease("parent-dual", lease.copy(heartbeatAt = Instant.parse("2026-08-07T18:22:10Z"))))
+      assertTrue(
+        store.heartbeatExecutionLease(
+          "parent-dual",
+          lease.copy(heartbeatAt = Instant.parse("2026-08-07T18:22:10Z")),
+        ),
+      )
       val state = store.controlState("parent-dual")
       assertEquals(10_000, state.activeDurationMs)
       assertEquals(state.activeDurationMs, state.subtaskActiveDurationMs)
@@ -531,7 +589,10 @@ class GoalRunnerControlStoreTest {
       )
       assertTrue(store.acquireExecutionLease("parent-clear-subtask", lease))
       assertTrue(
-        store.heartbeatExecutionLease("parent-clear-subtask", lease.copy(heartbeatAt = Instant.parse("2026-08-02T10:00:10Z"))),
+        store.heartbeatExecutionLease(
+          "parent-clear-subtask",
+          lease.copy(heartbeatAt = Instant.parse("2026-08-02T10:00:10Z")),
+        ),
       )
       store.persistControlState(
         "parent-clear-subtask",

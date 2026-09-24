@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.core
+
 import skillbill.ports.goalrunner.verification.model.GoalVerificationBoundaryDiscovery
 
 data class FeatureTaskRuntimeFindingBoundaryMemoryRequest(

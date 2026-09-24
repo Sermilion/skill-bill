@@ -3,7 +3,7 @@ package skillbill.goalrunner
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY
 import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
-import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
+import skillbill.workflow.model.goalreview.asGoalWorkflowArtifactMap
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -53,7 +53,7 @@ fun summarizeAttemptLedgerFromEntries(entries: Iterable<Map<*, *>>): GoalRunnerA
   )
 }
 
-val BLOCK_STOP_REASONS: Set<String> =
+private val BLOCK_STOP_REASONS: Set<String> =
   setOf(
     "failed",
     "blocked",

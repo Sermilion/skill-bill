@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.workflow
+
 import skillbill.infrastructure.sqlite.workflow.featuretask.FeatureImplementWorkflowStateStore
 import skillbill.infrastructure.sqlite.workflow.featuretask.FeatureTaskExecutionLookupStore
 import skillbill.infrastructure.sqlite.workflow.featuretask.FeatureTaskRuntimeWorkerStore
@@ -13,8 +14,8 @@ import skillbill.ports.workflow.FeatureTaskRuntimeWorkflowStateRepository
 import skillbill.ports.workflow.FeatureTaskWorkflowStateRepository
 import skillbill.ports.workflow.FeatureVerifyWorkflowStateRepository
 import skillbill.ports.workflow.GoalChildWorkflowStateRepository
-import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection
@@ -36,12 +37,18 @@ internal class WorkflowStateStore private constructor(
   FeatureTaskRuntimeWorkerRepository by featureTaskStore,
   FeatureImplementWorkflowStateRepository by FeatureImplementWorkflowStateStore(connection),
   FeatureVerifyWorkflowStateRepository by FeatureVerifyWorkflowStateStore(connection, clock, workflowSnapshotValidator),
-  FeatureTaskRuntimeWorkflowStateRepository by FeatureTaskRuntimeWorkflowStateStore(connection, clock, workflowSnapshotValidator) {
+  FeatureTaskRuntimeWorkflowStateRepository by
+  FeatureTaskRuntimeWorkflowStateStore(connection, clock, workflowSnapshotValidator) {
   constructor(
     connection: Connection,
     clock: Clock,
     workflowSnapshotValidator: WorkflowSnapshotValidator,
-  ) : this(connection, clock, workflowSnapshotValidator, FeatureTaskWorkflowStateStore(connection, clock, workflowSnapshotValidator))
+  ) : this(
+    connection,
+    clock,
+    workflowSnapshotValidator,
+    FeatureTaskWorkflowStateStore(connection, clock, workflowSnapshotValidator),
+  )
 }
 
 internal class FeatureTaskWorkflowStateStore(

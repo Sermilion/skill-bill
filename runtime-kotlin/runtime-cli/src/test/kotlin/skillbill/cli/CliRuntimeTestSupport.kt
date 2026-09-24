@@ -5,8 +5,6 @@ import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
 import skillbill.di.core.SkillBillVersion
-import skillbill.infrastructure.sqlite.withLifecycleTelemetryStore
-import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.process.InstallerProcessPort
 import skillbill.ports.process.InstallerScriptFetchPort
 import skillbill.ports.process.model.InstallerProcessRequest

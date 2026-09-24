@@ -1,4 +1,5 @@
 package skillbill.ports.telemetry.transport
+
 import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.telemetryLevels
 import skillbill.telemetry.withTelemetryLevel

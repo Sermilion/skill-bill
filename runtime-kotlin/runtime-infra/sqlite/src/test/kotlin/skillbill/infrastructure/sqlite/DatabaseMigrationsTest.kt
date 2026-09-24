@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.infrastructure.sqlite.core.migration.column.DatabaseColumnMigrations
 import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.ops.attachSqliteDiagnostics
@@ -15,6 +14,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import java.nio.file.Files
 import java.sql.DriverManager
 import java.sql.SQLException
@@ -1115,7 +1115,7 @@ class DatabaseMigrationsReviewAttributionTest {
         "AC-009: no finding may be left without its review_runs parent.",
       )
 
-      val store = TelemetryOutboxStore(connection)
+      val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
       val pendingIds = store.listPending(null).map(TelemetryOutboxRecord::id)
       pendingIds.forEach { id -> store.markSynced(id = id, syncedAt = "2026-09-01 00:00:00") }
       assertTrue(store.listPending(null).isEmpty(), "The outbox must drain fully after marking every row synced.")

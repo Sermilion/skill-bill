@@ -20,11 +20,11 @@ import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewFindingCitationDiagnosticKeys
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
-import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
-import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeReviewPassSequence
+import skillbill.workflow.model.goalreview.GoalSubtaskBlockerDisposition
+import skillbill.workflow.model.goalreview.GoalSubtaskCommitFocusedAccounting
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
-import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewPassSequence
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import java.nio.file.Path
 import java.time.Clock
 import java.time.LocalDateTime

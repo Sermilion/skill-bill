@@ -1,4 +1,5 @@
 package skillbill.ports.review.preparation
+
 import skillbill.review.plan.model.ReviewLaunchPlan
 
 interface ReviewAttributionPort {

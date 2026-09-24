@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.review.finding
+
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFindingBoundaryMemorySection
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeading
 import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance

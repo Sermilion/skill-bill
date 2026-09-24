@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.outbox
+
 import java.sql.Connection
 
 internal object TelemetryOutboxLastErrorMigration {

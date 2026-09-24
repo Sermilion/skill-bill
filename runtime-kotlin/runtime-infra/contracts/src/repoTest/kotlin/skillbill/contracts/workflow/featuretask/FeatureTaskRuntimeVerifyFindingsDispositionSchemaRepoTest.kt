@@ -1,4 +1,5 @@
 package skillbill.contracts.workflow.featuretask
+
 import org.yaml.snakeyaml.Yaml
 import skillbill.contracts.goalplanning.GoalVerificationBoundaryCaps
 import skillbill.testing.repoRootFromTest

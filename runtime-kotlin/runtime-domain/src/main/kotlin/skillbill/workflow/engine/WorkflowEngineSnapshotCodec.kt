@@ -8,7 +8,7 @@ import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 internal fun snapshotViewFrom(record: WorkflowStateSnapshot): WorkflowSnapshotView =
   WorkflowSnapshotView(
@@ -26,7 +26,10 @@ internal fun snapshotViewFrom(record: WorkflowStateSnapshot): WorkflowSnapshotVi
     finishedAt = record.finishedAt?.toString().orEmpty(),
   )
 
-internal fun defaultSteps(definition: WorkflowDefinition, initialStepId: String): List<WorkflowStepState> {
+internal fun defaultSteps(
+  definition: WorkflowDefinition,
+  initialStepId: String,
+): List<WorkflowStepState> {
   var seenInitial = false
   return definition.stepIds.map { stepId ->
     when {
@@ -49,14 +52,18 @@ internal fun mergeStepUpdates(
   if (stepUpdates == null) return existingSteps
   val byStepId = existingSteps.associateByTo(LinkedHashMap(), WorkflowStepState::stepId)
   stepUpdates.forEach { update ->
-    val stepId = update[SharedPayloadKeys.STEP_ID] as? String
-      ?: invalidWorkflowStep("step_updates.step_id must be a non-empty string.")
-    val statusWire = update[SharedPayloadKeys.STATUS] as? String
-      ?: invalidWorkflowStep("step_updates.status must be a non-empty string.")
-    val status = WorkflowStepStatus.fromWire(statusWire)
-      ?: invalidWorkflowStep("step_updates.status has unsupported value '$statusWire'.")
-    val attempts = update[WorkflowWirePayloadKeys.ATTEMPT_COUNT].asExactIntOrNull()
-      ?: invalidWorkflowStep("step_updates.attempt_count must be an integer >= 0.")
+    val stepId =
+      update[SharedPayloadKeys.STEP_ID] as? String
+        ?: invalidWorkflowStep("step_updates.step_id must be a non-empty string.")
+    val statusWire =
+      update[SharedPayloadKeys.STATUS] as? String
+        ?: invalidWorkflowStep("step_updates.status must be a non-empty string.")
+    val status =
+      WorkflowStepStatus.fromWire(statusWire)
+        ?: invalidWorkflowStep("step_updates.status has unsupported value '$statusWire'.")
+    val attempts =
+      update[WorkflowWirePayloadKeys.ATTEMPT_COUNT].asExactIntOrNull()
+        ?: invalidWorkflowStep("step_updates.attempt_count must be an integer >= 0.")
     if (attempts < 0) invalidWorkflowStep("step_updates.attempt_count must be an integer >= 0.")
     byStepId[stepId] = WorkflowStepState(stepId, status, attempts)
   }

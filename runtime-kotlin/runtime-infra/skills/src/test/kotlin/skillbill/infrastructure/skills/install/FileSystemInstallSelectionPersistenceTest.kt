@@ -4,12 +4,12 @@ import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.MalformedInstallSelectionRecordError
 import skillbill.error.shellcontent.MissingInstallSelectionRecordError
 import skillbill.error.shellcontent.UnreadableInstallSelectionRecordError
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallTelemetryLevel
 import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.SharedInstallSelection
+import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
 import skillbill.ports.install.selection.model.ReadLatestSuccessfulInstallSelectionRequest
 import skillbill.ports.install.selection.model.WriteLatestSuccessfulInstallSelectionRequest
@@ -29,7 +29,7 @@ class FileSystemInstallSelectionPersistenceTest {
     val store = FileSystemInstallSelectionPersistence()
     val selection =
       SharedInstallSelection(
-        selectedAgents = setOf(InstallAgent.CODEX, InstallAgent.CLAUDE),
+        selectedAgents = setOf(SupportedAgent.CODEX, SupportedAgent.CLAUDE),
         platformPackSelection =
           PlatformPackSelection(
             mode = PlatformPackSelectionMode.SELECTED,
@@ -80,7 +80,7 @@ class FileSystemInstallSelectionPersistenceTest {
 
     val selection = store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home)).selection
 
-    assertEquals(setOf(InstallAgent.CLAUDE, InstallAgent.CODEX), selection.selectedAgents)
+    assertEquals(setOf(SupportedAgent.CLAUDE, SupportedAgent.CODEX), selection.selectedAgents)
     assertEquals(PlatformPackSelectionMode.SELECTED, selection.platformPackSelection.mode)
     assertEquals(setOf("kmp", "kotlin"), selection.platformPackSelection.selectedSlugs)
     assertEquals(InstallTelemetryLevel.FULL, selection.telemetryLevel)
@@ -121,7 +121,7 @@ class FileSystemInstallSelectionPersistenceTest {
     val store = FileSystemInstallSelectionPersistence()
     val selection =
       selection(
-        selectedAgents = setOf(InstallAgent.CURSOR),
+        selectedAgents = setOf(SupportedAgent.CURSOR),
         platformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.ALL),
       )
 
@@ -146,7 +146,7 @@ class FileSystemInstallSelectionPersistenceTest {
     val store = FileSystemInstallSelectionPersistence()
     val initialSelection =
       selection(
-        selectedAgents = setOf(InstallAgent.CLAUDE),
+        selectedAgents = setOf(SupportedAgent.CLAUDE),
         telemetryLevel = InstallTelemetryLevel.FULL,
         mcpRegistrationChoice =
           McpRegistrationChoice(
@@ -156,7 +156,7 @@ class FileSystemInstallSelectionPersistenceTest {
       )
     val latestSelection =
       selection(
-        selectedAgents = setOf(InstallAgent.CODEX),
+        selectedAgents = setOf(SupportedAgent.CODEX),
         platformPackSelection =
           PlatformPackSelection(
             mode = PlatformPackSelectionMode.SELECTED,
@@ -183,7 +183,7 @@ class FileSystemInstallSelectionPersistenceTest {
   fun `write rejects platform selections that read parser would reject`() {
     val home = Files.createTempDirectory("skillbill-install-selection-write-invariants")
     val store = FileSystemInstallSelectionPersistence()
-    val validSelection = selection(selectedAgents = setOf(InstallAgent.CLAUDE))
+    val validSelection = selection(selectedAgents = setOf(SupportedAgent.CLAUDE))
     store.writeLatestSuccessfulSelection(
       WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = validSelection),
     )
@@ -223,13 +223,13 @@ class FileSystemInstallSelectionPersistenceTest {
       mapOf(
         "manual single-agent opt out" to
           selection(
-            selectedAgents = setOf(InstallAgent.CODEX),
+            selectedAgents = setOf(SupportedAgent.CODEX),
             telemetryLevel = InstallTelemetryLevel.OFF,
             mcpRegistrationChoice = McpRegistrationChoice(register = false, runtimeMcpBin = null),
           ),
         "detected multi-agent registration" to
           selection(
-            selectedAgents = setOf(InstallAgent.CLAUDE, InstallAgent.CURSOR),
+            selectedAgents = setOf(SupportedAgent.CLAUDE, SupportedAgent.CURSOR),
             platformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.ALL),
             telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
             mcpRegistrationChoice =
@@ -270,7 +270,7 @@ class FileSystemInstallSelectionPersistenceTest {
     val store = FileSystemInstallSelectionPersistence()
     val selection =
       selection(
-        selectedAgents = setOf(InstallAgent.CURSOR, InstallAgent.CLAUDE),
+        selectedAgents = setOf(SupportedAgent.CURSOR, SupportedAgent.CLAUDE),
         platformPackSelection =
           PlatformPackSelection(
             mode = PlatformPackSelectionMode.SELECTED,
@@ -291,7 +291,7 @@ class FileSystemInstallSelectionPersistenceTest {
 
     assertFalse(Files.exists(home.resolve(".cursor")))
     assertEquals(selection, replayed)
-    assertContains(replayed.selectedAgents, InstallAgent.CURSOR)
+    assertContains(replayed.selectedAgents, SupportedAgent.CURSOR)
     assertContains(Files.readString(home.resolve(".skill-bill/install-selection.json")), "cursor")
   }
 
@@ -342,7 +342,7 @@ class FileSystemInstallSelectionPersistenceTest {
   fun `oversized install selection write fails without replacing previous record`() {
     val home = Files.createTempDirectory("skillbill-install-selection-oversized-write")
     val store = FileSystemInstallSelectionPersistence()
-    val previousSelection = selection(selectedAgents = setOf(InstallAgent.CLAUDE))
+    val previousSelection = selection(selectedAgents = setOf(SupportedAgent.CLAUDE))
     store.writeLatestSuccessfulSelection(
       WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = previousSelection),
     )
@@ -431,7 +431,7 @@ class FileSystemInstallSelectionPersistenceTest {
   }
 
   private fun selection(
-    selectedAgents: Set<InstallAgent> = setOf(InstallAgent.CODEX),
+    selectedAgents: Set<SupportedAgent> = setOf(SupportedAgent.CODEX),
     platformPackSelection: PlatformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.NONE),
     telemetryLevel: InstallTelemetryLevel = InstallTelemetryLevel.ANONYMOUS,
     mcpRegistrationChoice: McpRegistrationChoice = McpRegistrationChoice(register = false),

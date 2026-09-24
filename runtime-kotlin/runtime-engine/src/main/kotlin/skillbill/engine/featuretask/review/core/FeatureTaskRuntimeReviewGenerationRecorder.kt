@@ -14,12 +14,12 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.review.model.ReviewFindingVerdict
-import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
+import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 

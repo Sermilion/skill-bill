@@ -1,11 +1,10 @@
 package skillbill.workflow.taskruntime.noop
 
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 
-object AcceptingFeatureTaskRuntimeWireArtifactValidator : FeatureTaskRuntimeWireArtifactValidator {
-  override fun validate(
+object AcceptingFeatureTaskRuntimeWireArtifactValidator {
+  fun validate(
     kind: FeatureTaskRuntimeWireArtifactKind,
     payload: FeatureTaskRuntimeWorkflowArtifactMap,
     sourceLabel: String,

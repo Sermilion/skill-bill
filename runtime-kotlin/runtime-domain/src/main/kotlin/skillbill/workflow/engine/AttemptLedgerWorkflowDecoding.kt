@@ -31,7 +31,7 @@ fun blockedStepId(
     ?: requestedStepId.takeIf(String::isNotBlank)
     ?: "preplan"
 
-fun firstUnfinishedStepId(
+private fun firstUnfinishedStepId(
   steps: List<WorkflowStepState>,
   definitionStepIds: List<String>,
 ): String? {

@@ -6,6 +6,7 @@ import skillbill.error.shellcontent.InvalidSkillContentIdentityError
 import skillbill.error.shellcontent.SkillContentIdentityMismatchError
 import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.infrastructure.skills.scaffold.validation.shape.parseSkillFrontmatter
+import skillbill.review.parsing.requireMatch
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.LinkOption

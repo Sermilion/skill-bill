@@ -1,5 +1,8 @@
 package skillbill.engine.goalrunner.experiment
+
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.branchName
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.experiment.EXPERIMENT_PAIR_CONTRACT_VERSION
 import skillbill.contracts.experiment.ExperimentPairPayloadKeys
@@ -16,6 +19,7 @@ import skillbill.engine.featuretask.lifecycle.subtask.DirtyPaths
 import skillbill.engine.featuretask.lifecycle.subtask.DirtyPathsError
 import skillbill.engine.featuretask.lifecycle.subtask.dirtyImplementationPaths
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
+import skillbill.engine.goalrunner.status.completed
 import skillbill.error.shellcontent.ExperimentDirtySourceRefusalError
 import skillbill.error.shellcontent.ExperimentIsolationCapabilityRefusalError
 import skillbill.experiment.model.ExperimentArmId
@@ -24,6 +28,7 @@ import skillbill.goalrunner.model.GoalPullRequestStatus
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.goalrunner.model.GoalRunnerStopReport
+import skillbill.goalrunner.terminalStatus
 import skillbill.ports.experiment.isolation.ExperimentArmIsolationContext
 import skillbill.ports.experiment.isolation.ExperimentArmStatePaths
 import skillbill.ports.experiment.isolation.ExperimentIsolationCapabilityPort

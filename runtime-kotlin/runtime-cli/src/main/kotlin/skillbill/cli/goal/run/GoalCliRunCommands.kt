@@ -1,4 +1,5 @@
 package skillbill.cli.goal.run
+
 import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.flag
@@ -32,8 +33,8 @@ import skillbill.engine.goalrunner.planning.model.GoalPlanningLogAttempt
 import skillbill.engine.goalrunner.planning.model.GoalPlanningLogRequest
 import skillbill.engine.goalrunner.preflight.GoalPreflightService
 import skillbill.goalrunner.model.UnaddressedFindingsLedger
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairLedger
 import skillbill.workflow.taskruntime.artifact.projectionWireMap
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 
 @Inject

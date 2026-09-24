@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.execution.core
 
+import skillbill.engine.featuretask.validation.coordinator
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_STOP
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerControlState
@@ -757,7 +758,7 @@ private object FakeIdentifierGeneratorPort : IdentifierGeneratorPort {
   override fun randomToken(): String = "test-owner-token"
 }
 
-private fun fixedClock(): Clock = Clock.fixed(Instant.parse("2026-08-02T10:00:00Z"), ZoneOffset.UTC)
+internal fun fixedClock(): Clock = Clock.fixed(Instant.parse("2026-08-02T10:00:00Z"), ZoneOffset.UTC)
 
 private fun recentBirthToken(): String = Instant.parse("2026-08-02T09:59:59Z").toEpochMilli().toString()
 
@@ -765,7 +766,7 @@ private fun staleBirthToken(): String = Instant.parse("2026-08-02T09:54:00Z").to
 
 private const val EXPIRED_LEASE_EXPIRES_AT = "2026-08-02T09:59:30Z"
 
-private fun lease(
+internal fun lease(
   generation: Long,
   ownerToken: String,
   pid: Long = 100,

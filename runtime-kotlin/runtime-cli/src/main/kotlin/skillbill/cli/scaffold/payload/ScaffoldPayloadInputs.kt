@@ -1,4 +1,5 @@
 package skillbill.cli.scaffold.payload
+
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -7,6 +8,7 @@ import kotlinx.serialization.json.put
 import skillbill.application.scaffold.decodeScaffoldPayloadObject
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.scaffold.commands.NewAddonPayloadArgs
+import skillbill.scaffold.model.SkillKind
 import java.nio.file.Path
 
 internal fun createAndFillContentPayload(
@@ -28,7 +30,7 @@ internal fun createAndFillScaffoldPayload(
   state: CliRunState,
 ): JsonObject {
   val kind = scaffoldPayload["kind"]?.jsonPrimitive?.contentOrNull.orEmpty()
-  require(kind !in setOf("platform-pack", "add-on")) {
+  require(kind !in setOf(SkillKind.PLATFORM_PACK.wireValue, SkillKind.ADD_ON.wireValue)) {
     "create-and-fill can only scaffold one content-managed skill; kind '$kind' is not supported."
   }
   return JsonObject(scaffoldPayload + createAndFillContentPayload(body, bodyFile, state))
@@ -37,7 +39,7 @@ internal fun createAndFillScaffoldPayload(
 internal fun newAddonPayload(args: NewAddonPayloadArgs): Map<String, Any> =
   buildMap {
     put("scaffold_payload_version", "1.0")
-    put("kind", "add-on")
+    put("kind", SkillKind.ADD_ON.wireValue)
     put("platform", args.platform.orEmpty())
     put("name", args.name.orEmpty())
     (args.body ?: args.bodyFile?.let { path -> readCliTextFile(path, args.state) })

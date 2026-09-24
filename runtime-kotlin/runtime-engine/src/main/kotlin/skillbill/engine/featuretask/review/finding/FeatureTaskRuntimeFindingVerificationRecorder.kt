@@ -115,7 +115,8 @@ class FeatureTaskRuntimeFindingVerificationRecorder(
       val headings =
         FeatureTaskRuntimeVerificationBoundaryHeadingProvenance.parseList(
           headingsRaw,
-          "${DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_BOUNDARY_SELECTION.label()}.$findingId",
+          "${DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_BOUNDARY_SELECTION.label()}" +
+            ".$findingId",
         )
       findingId to headings
     }.toMap()

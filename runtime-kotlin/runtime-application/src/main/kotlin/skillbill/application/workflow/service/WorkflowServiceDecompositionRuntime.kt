@@ -1,15 +1,15 @@
 package skillbill.application.workflow.service
-import skillbill.workflow.decomposition.runtime.decompositionRuntime
+
 import skillbill.application.workflow.decomposition.persistParentDecompositionRuntime
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflowForRuntime
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWorkflowProjectionInput
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
-import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -73,7 +73,7 @@ internal fun WorkflowEngine.syncDecompositionParentRuntime(
 ) {
   val manifest = updated.decompositionRuntime()
   if (family == WorkflowFamily.TASK_RUNTIME && manifest != null) {
-    val parent = unitOfWork.workflowStates.findDecomposedParentWorkflowForRuntime(manifest, validator)
+    val parent = unitOfWork.workflowStates.findDecomposedParentWorkflowForRuntime(manifest)
     parent?.toSnapshot()
       ?.takeUnless { it.workflowId == workflowId }
       ?.let { p -> persistParentDecompositionRuntime(p, manifest, unitOfWork, validator) }

@@ -1,26 +1,27 @@
 package skillbill.workflow.taskruntime.feature
-import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+
 import skillbill.contracts.JsonCodec
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
-import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeRequiredArtifactPresenceResolver
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-import java.time.Instant
 
 class FeatureTaskRuntimeResumeGateTest {
   private val engine = WorkflowEngine()
@@ -230,7 +231,10 @@ class FeatureTaskRuntimeResumeGateTest {
       workflowStatus = workflowStatus,
       currentStepId = currentStepId,
       steps = decodeSteps(stepsJson),
-      artifacts = DurableWorkflowArtifacts.fromMap(decodeArtifacts(phaseRecordsArtifactsJson(phaseRecordStatuses, phaseRecordOutputs))),
+      artifacts =
+        DurableWorkflowArtifacts.fromMap(
+          decodeArtifacts(phaseRecordsArtifactsJson(phaseRecordStatuses, phaseRecordOutputs)),
+        ),
       startedAt = Instant.parse("2026-06-18T10:00:00Z"),
       updatedAt = Instant.parse("2026-06-18T10:05:00Z"),
       finishedAt = null,
@@ -296,5 +300,4 @@ class FeatureTaskRuntimeResumeGateTest {
 
   private fun jsonStringLiteral(value: String): String =
     value.replace("\\", "\\\\").replace("\"", "\\\"").let { """"$it"""" }
-
 }

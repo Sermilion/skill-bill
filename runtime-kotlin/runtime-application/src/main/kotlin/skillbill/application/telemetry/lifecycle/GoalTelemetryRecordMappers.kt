@@ -1,4 +1,5 @@
 package skillbill.application.telemetry.lifecycle
+
 import skillbill.application.telemetry.model.GoalFinishedRequest
 import skillbill.application.telemetry.model.GoalIssueFinishedRequest
 import skillbill.application.telemetry.model.GoalStartedRequest

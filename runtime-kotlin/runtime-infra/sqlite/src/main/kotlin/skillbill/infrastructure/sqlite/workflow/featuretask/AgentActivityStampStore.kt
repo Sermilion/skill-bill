@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.featuretask
+
 import skillbill.idestatus.model.AgentActivityLabel
 import skillbill.idestatus.model.AgentActivityStamp
 import skillbill.infrastructure.sqlite.core.ops.bindAll

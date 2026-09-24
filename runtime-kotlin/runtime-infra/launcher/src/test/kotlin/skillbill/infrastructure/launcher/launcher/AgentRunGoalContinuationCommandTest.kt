@@ -5,12 +5,12 @@ import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.experiment.model.ExperimentArmId
 import skillbill.infrastructure.launcher.agentrun.headlessAgentRunAdapters
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import java.nio.file.Path
 import kotlin.test.Test
@@ -25,7 +25,7 @@ class AgentRunGoalContinuationCommandTest {
   @Test
   fun `ordinary phase worker does not receive goal continuation marker`() {
     val runner = RecordingAgentRunProcessRunner()
-    requireNotNull(adapters(runner)[InstallAgent.CODEX]).launch(
+    requireNotNull(adapters(runner)[SupportedAgent.CODEX]).launch(
       skillRunRequest(goalContinuation = null).copy(promptOverride = "Run the implementation phase."),
     )
 
@@ -36,10 +36,10 @@ class AgentRunGoalContinuationCommandTest {
   fun `goal-continuation child with no child workflow id runs skill-bill feature-task run directly`() {
     val runner = RecordingAgentRunProcessRunner()
     val outcome =
-      requireNotNull(adapters(runner)[InstallAgent.CLAUDE])
+      requireNotNull(adapters(runner)[SupportedAgent.CLAUDE])
         .launch(skillRunRequest())
 
-    assertEquals(InstallAgent.CLAUDE, outcome.agent)
+    assertEquals(SupportedAgent.CLAUDE, outcome.agent)
     val request = runner.requests.single()
     assertEquals(
       listOf(
@@ -82,7 +82,7 @@ class AgentRunGoalContinuationCommandTest {
   @Test
   fun `goal-continuation child with existing child workflow id runs feature-task resume`() {
     val runner = RecordingAgentRunProcessRunner()
-    requireNotNull(adapters(runner)[InstallAgent.CLAUDE]).launch(
+    requireNotNull(adapters(runner)[SupportedAgent.CLAUDE]).launch(
       skillRunRequest(goalContinuation = goalContinuationContext(childWorkflowId = "wfl-child-runtime")),
     )
 
@@ -125,7 +125,7 @@ class AgentRunGoalContinuationCommandTest {
   @Test
   fun `goal-continuation child with assigned workflow id and no child runs feature-task run with workflow-id`() {
     val runner = RecordingAgentRunProcessRunner()
-    requireNotNull(adapters(runner)[InstallAgent.CLAUDE]).launch(
+    requireNotNull(adapters(runner)[SupportedAgent.CLAUDE]).launch(
       skillRunRequest(
         goalContinuation = goalContinuationContext(childWorkflowId = null, assignedWorkflowId = "wfl-assigned"),
       ),
@@ -146,7 +146,7 @@ class AgentRunGoalContinuationCommandTest {
   fun `every agent goal-continuation child spawns skill-bill feature-task and never the skill`() {
     val runner = RecordingAgentRunProcessRunner()
 
-    listOf(InstallAgent.CLAUDE, InstallAgent.CODEX, InstallAgent.JUNIE, InstallAgent.CURSOR).forEach { agent ->
+    listOf(SupportedAgent.CLAUDE, SupportedAgent.CODEX, SupportedAgent.JUNIE, SupportedAgent.CURSOR).forEach { agent ->
       requireNotNull(adapters(runner)[agent]).launch(skillRunRequest())
     }
 
@@ -173,7 +173,7 @@ class AgentRunGoalContinuationCommandTest {
   @Test
   fun `goal-continuation child always carries suppress-pr`() {
     val runner = RecordingAgentRunProcessRunner()
-    requireNotNull(adapters(runner)[InstallAgent.CODEX])
+    requireNotNull(adapters(runner)[SupportedAgent.CODEX])
       .launch(skillRunRequest())
 
     assertContains(runner.requests.single().command, "--suppress-pr")
@@ -182,7 +182,7 @@ class AgentRunGoalContinuationCommandTest {
   @Test
   fun `goal-continuation wrapper never receives model or effort flags`() {
     val runner = RecordingAgentRunProcessRunner()
-    requireNotNull(adapters(runner)[InstallAgent.CODEX]).launch(
+    requireNotNull(adapters(runner)[SupportedAgent.CODEX]).launch(
       skillRunRequest().copy(modelOverride = "gpt-sol", effortOverride = "high"),
     )
 
@@ -230,10 +230,10 @@ class AgentRunGoalContinuationCommandTest {
   fun `cursor goal-continuation child with no child workflow id runs skill-bill feature-task run directly`() {
     val runner = RecordingAgentRunProcessRunner()
     val outcome =
-      requireNotNull(adapters(runner)[InstallAgent.CURSOR])
+      requireNotNull(adapters(runner)[SupportedAgent.CURSOR])
         .launch(skillRunRequest())
 
-    assertEquals(InstallAgent.CURSOR, outcome.agent)
+    assertEquals(SupportedAgent.CURSOR, outcome.agent)
     val request = runner.requests.single()
     assertEquals(
       listOf(
@@ -274,7 +274,7 @@ class AgentRunGoalContinuationCommandTest {
   @Test
   fun `cursor goal-continuation child with existing child workflow id runs feature-task resume`() {
     val runner = RecordingAgentRunProcessRunner()
-    requireNotNull(adapters(runner)[InstallAgent.CURSOR]).launch(
+    requireNotNull(adapters(runner)[SupportedAgent.CURSOR]).launch(
       skillRunRequest(goalContinuation = goalContinuationContext(childWorkflowId = "wfl-child-runtime")),
     )
 
@@ -316,7 +316,7 @@ class AgentRunGoalContinuationCommandTest {
   @Test
   fun `cursor goal-continuation child with assigned workflow id and no child runs feature-task run with workflow-id`() {
     val runner = RecordingAgentRunProcessRunner()
-    requireNotNull(adapters(runner)[InstallAgent.CURSOR]).launch(
+    requireNotNull(adapters(runner)[SupportedAgent.CURSOR]).launch(
       skillRunRequest(
         goalContinuation = goalContinuationContext(childWorkflowId = null, assignedWorkflowId = "wfl-assigned"),
       ),
@@ -338,7 +338,7 @@ class AgentRunGoalContinuationCommandTest {
   @Test
   fun `goal-continuation builder stamps full validation depth in environment only`() {
     val runner = RecordingAgentRunProcessRunner()
-    val adapter = requireNotNull(adapters(runner)[InstallAgent.CLAUDE])
+    val adapter = requireNotNull(adapters(runner)[SupportedAgent.CLAUDE])
 
     adapter.launch(
       skillRunRequest(goalContinuation = goalContinuationContext().copy(validationDepth = ValidationDepth.FULL)),
@@ -356,7 +356,7 @@ class AgentRunGoalContinuationCommandTest {
       goalContinuationContext(childWorkflowId = null, assignedWorkflowId = "wfl-assigned"),
     ).forEach { continuation ->
       val runner = RecordingAgentRunProcessRunner()
-      requireNotNull(adapters(runner)[InstallAgent.CLAUDE]).launch(
+      requireNotNull(adapters(runner)[SupportedAgent.CLAUDE]).launch(
         skillRunRequest(goalContinuation = fullyPopulated(continuation)),
       )
 

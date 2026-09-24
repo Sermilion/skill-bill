@@ -1,5 +1,6 @@
 package skillbill.scaffold
 
+import skillbill.ports.workflow.list
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test

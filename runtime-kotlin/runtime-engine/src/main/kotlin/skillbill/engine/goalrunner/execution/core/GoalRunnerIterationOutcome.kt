@@ -28,6 +28,7 @@ import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.engine.goalrunner.persist.GoalRunnerBackwardEdge
 import skillbill.engine.goalrunner.persist.GoalRunnerLedgerContext
 import skillbill.engine.goalrunner.persist.StoppedLedgerContextValues
+import skillbill.engine.goalrunner.status.completed
 import skillbill.engine.goalrunner.status.isRecoverableValidationBlock
 import skillbill.engine.goalrunner.status.stopped
 import skillbill.engine.goalrunner.status.supervisionEvent
@@ -44,6 +45,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.engine.blockedStepId
 import skillbill.workflow.model.decompositionStatus
 import java.time.Clock
 

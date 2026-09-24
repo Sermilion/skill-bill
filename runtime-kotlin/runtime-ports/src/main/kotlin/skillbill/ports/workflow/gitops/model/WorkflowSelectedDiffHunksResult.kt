@@ -1,6 +1,6 @@
 package skillbill.ports.workflow.gitops.model
 
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
 
 data class WorkflowSelectedDiffHunksRequest(
   val paths: List<String>,

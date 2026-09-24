@@ -162,6 +162,9 @@ class RuntimeComponentInvocationSnapshotTest {
   }
 
   private object NoOpWorkflowSnapshotValidator : WorkflowSnapshotValidator {
-    override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+    override fun validate(
+      snapshot: WorkflowStateSnapshot,
+      slug: String,
+    ) = Unit
   }
 }

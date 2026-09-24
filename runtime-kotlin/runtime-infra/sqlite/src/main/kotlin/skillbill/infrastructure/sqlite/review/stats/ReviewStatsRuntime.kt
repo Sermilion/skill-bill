@@ -1,10 +1,12 @@
 package skillbill.infrastructure.sqlite.review.stats
+
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.review.stage.aggregateReviewStageMetrics
 import skillbill.infrastructure.sqlite.review.stage.finished.reviewFinishedPayload
 import skillbill.infrastructure.sqlite.review.stage.lane.queryReviewLaneEffectiveness
 import skillbill.infrastructure.sqlite.review.stage.runtime.ReviewRuntime
 import skillbill.infrastructure.sqlite.review.stage.stageMetricsByResolvedTier
+import skillbill.infrastructure.sqlite.review.stage.telemetry.ReviewFinishedTelemetryRequest
 import skillbill.infrastructure.sqlite.review.stage.telemetry.ensureReviewFinishedTimestamp
 import skillbill.infrastructure.sqlite.review.stage.telemetry.finalizeReviewFinishedTelemetry
 import skillbill.infrastructure.sqlite.review.stage.telemetry.resolveTelemetryState
@@ -102,11 +104,10 @@ internal object ReviewStatsRuntime {
   fun updateReviewFinishedTelemetryState(
     connection: Connection,
     reviewRunId: String,
-    enabled: Boolean? = null,
-    level: String? = null,
-    routedSkillPlatformSlugs: Map<String, String> = emptyMap(),
+    request: ReviewFinishedTelemetryUpdateRequest = ReviewFinishedTelemetryUpdateRequest(),
+    runtimeVersion: String,
   ): ReviewFinishedTelemetry? {
-    val telemetryState = resolveTelemetryState(enabled, level)
+    val telemetryState = resolveTelemetryState(request.enabled, request.level)
     var reviewSummary = ReviewRuntime.fetchReviewSummary(connection, reviewRunId)
     val findingRows = queryLatestFindingOutcomes(connection, reviewRunId)
     val alreadyEmitted =
@@ -124,18 +125,28 @@ internal object ReviewStatsRuntime {
           reviewSummary = reviewSummary,
           findingRows = findingRows,
           level = telemetryState.level,
-          routedSkillPlatformSlugs = routedSkillPlatformSlugs,
+          routedSkillPlatformSlugs = request.routedSkillPlatformSlugs,
         )
       finalizeReviewFinishedTelemetry(
         connection = connection,
-        reviewRunId = reviewRunId,
-        reviewSummary = reviewSummary,
-        payload = payload,
-        telemetryEnabled = telemetryState.enabled,
+        runtimeVersion = runtimeVersion,
+        request =
+          ReviewFinishedTelemetryRequest(
+            reviewRunId = reviewRunId,
+            reviewSummary = reviewSummary,
+            payload = payload,
+            telemetryEnabled = telemetryState.enabled,
+          ),
       )
     }
   }
 }
+
+internal data class ReviewFinishedTelemetryUpdateRequest(
+  val enabled: Boolean? = null,
+  val level: String? = null,
+  val routedSkillPlatformSlugs: Map<String, String> = emptyMap(),
+)
 
 internal data class ReviewFinishedPayloadBuildRequest(
   internal val connection: Connection,

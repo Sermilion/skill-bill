@@ -4,6 +4,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.contracts.install.InstallPlanContract
 import skillbill.contracts.install.InstallPlanPayloadKeys
+import skillbill.install.policy.selectedPlatformSlugs
 
 class InstallPlanWireMap private constructor(
   private val delegate: Map<String, Any?>,
@@ -54,7 +55,7 @@ fun buildInstallPlanWireMap(plan: InstallPlan): InstallPlanWireMap =
         linkedMapOf(
           InstallPlanPayloadKeys.REGISTER to plan.mcpRegistrationIntent.register,
           InstallPlanPayloadKeys.RUNTIME_MCP_BIN to plan.mcpRegistrationIntent.runtimeMcpBin?.toString(),
-          InstallPlanPayloadKeys.AGENTS to plan.mcpRegistrationIntent.agents.map(InstallAgent::id),
+          InstallPlanPayloadKeys.AGENTS to plan.mcpRegistrationIntent.agents.map(SupportedAgent::id),
         ),
       InstallPlanPayloadKeys.RUNTIME_DISTRIBUTION to
         linkedMapOf(

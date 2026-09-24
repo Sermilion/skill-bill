@@ -1,4 +1,5 @@
 package skillbill.ports.goalrunner.runner.model
+
 import skillbill.goalrunner.model.GoalAttemptLedgerEntry
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
 import skillbill.goalrunner.model.GoalRunnerControlState
@@ -7,8 +8,8 @@ import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.workflow.decomposition.model.DecompositionManifest
-import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.GoalProgressEvent
 import java.nio.file.Path
 
 data class GoalRunnerManifestState(

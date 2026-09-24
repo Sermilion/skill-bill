@@ -1,37 +1,36 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
-import skillbill.ports.goalrunner.GoalParentProjectionWriter
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.GoalRunnerQualityGateSelectionResolver
 import skillbill.infrastructure.sqlite.goalrunner.manifest.mergeConcurrentGoalProgress
-import skillbill.workflow.decomposition.runtime.decompositionRuntime
-import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.infrastructure.sqlite.workflow.decomposition.requireRuntimeModeForEngineWrite
+import skillbill.ports.goalrunner.GoalParentProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.ValidationDepth
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 import java.nio.file.Path
@@ -45,7 +44,6 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
   private val engine: WorkflowEngine,
   private val planningHydrator: GoalChildPlanningHydratorPort,
   private val parentProjection: GoalParentProjectionWriter,
-  private val decompositionManifestValidator: DecompositionManifestValidator,
 ) {
   fun saveInTransaction(
     unitOfWork: UnitOfWork,
@@ -178,7 +176,6 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
       unitOfWork.workflowStates.getFeatureTaskWorkflow(state.parentWorkflowId)
         ?: unitOfWork.workflowStates.findDecomposedParentWorkflow(
           state.manifest.issueKey,
-          decompositionManifestValidator,
         )
         ?: error("Unknown decomposed parent workflow '${state.parentWorkflowId}'.")
     existingRecord.requireRuntimeModeForEngineWrite()

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stage.telemetry
+
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.review.stage.runtime.ReviewRuntime
@@ -86,36 +87,52 @@ internal fun ensureTerminalReviewState(
 
 internal fun finalizeReviewFinishedTelemetry(
   connection: Connection,
-  reviewRunId: String,
-  reviewSummary: ReviewSummary,
-  payload: ReviewFinishedTelemetry,
-  telemetryEnabled: Boolean,
+  runtimeVersion: String,
+  request: ReviewFinishedTelemetryRequest,
 ): ReviewFinishedTelemetry? =
   when {
-    reviewSummary.orchestratedRun -> payload
-    !reviewSummary.reviewFinishedEventEmittedAt.isNullOrEmpty() -> {
-      if (telemetryEnabled) {
-        updatePendingReviewFinishedEvent(connection, reviewSummary.reviewSessionId.orEmpty(), payload)
+    request.reviewSummary.orchestratedRun -> request.payload
+    !request.reviewSummary.reviewFinishedEventEmittedAt.isNullOrEmpty() -> {
+      if (request.telemetryEnabled) {
+        updatePendingReviewFinishedEvent(
+          connection,
+          request.reviewSummary.reviewSessionId.orEmpty(),
+          request.payload,
+        )
       }
-      payload
+      request.payload
     }
     else -> {
-      enqueueTelemetryEvent(connection, "skillbill_review_finished", payload, telemetryEnabled)
-      if (telemetryEnabled) {
-        markReviewFinishedEventEmitted(connection, reviewRunId)
+      enqueueTelemetryEvent(
+        connection,
+        runtimeVersion,
+        "skillbill_review_finished",
+        request.payload,
+        request.telemetryEnabled,
+      )
+      if (request.telemetryEnabled) {
+        markReviewFinishedEventEmitted(connection, request.reviewRunId)
       }
-      payload
+      request.payload
     }
   }
 
+internal data class ReviewFinishedTelemetryRequest(
+  val reviewRunId: String,
+  val reviewSummary: ReviewSummary,
+  val payload: ReviewFinishedTelemetry,
+  val telemetryEnabled: Boolean,
+)
+
 internal fun enqueueTelemetryEvent(
   connection: Connection,
+  runtimeVersion: String,
   eventName: String,
   payload: ReviewFinishedTelemetry,
   enabled: Boolean,
 ) {
   if (enabled) {
-    TelemetryOutboxStore(connection).enqueue(
+    TelemetryOutboxStore(connection, runtimeVersion).enqueue(
       eventName,
       JsonCodec.mapToJsonString(payload.toReviewFinishedTelemetryPayload().toPayload()),
     )

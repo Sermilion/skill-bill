@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats.recorded
+
 import skillbill.SAMPLE_REVIEW
 import skillbill.goalrunner.model.ReviewFindingOutcome
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
@@ -56,6 +57,7 @@ class LoopRecordedOutcomeStatsTest {
             note = "Operator overrode the loop.",
           ),
         telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "off"),
+        runtimeVersion = "test-runtime-version",
       )
 
       val stats = summarizeFindingRows(queryLatestFindingOutcomes(connection, review.reviewRunId))

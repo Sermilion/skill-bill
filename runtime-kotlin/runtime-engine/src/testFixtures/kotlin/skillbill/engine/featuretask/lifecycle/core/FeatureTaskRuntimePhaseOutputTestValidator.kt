@@ -1,8 +1,9 @@
 package skillbill.engine.featuretask.lifecycle.core
+
 import skillbill.contracts.JsonCodec
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
-import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 
 abstract class FeatureTaskRuntimePhaseOutputTestValidator : FeatureTaskRuntimePhaseOutputValidator {
   override fun validatePhaseOutput(

@@ -4,6 +4,7 @@ import skillbill.ports.install.baseline.model.ReadBaselineManifestRequest
 import skillbill.ports.install.baseline.model.ReadBaselineManifestResult
 import skillbill.ports.install.baseline.model.WriteBaselineManifestRequest
 import skillbill.ports.install.baseline.model.WriteBaselineManifestResult
+import skillbill.ports.install.selection.InstallSelectionPersistencePort
 
 /**
  * SKILL-76 Subtask 2: durable baseline-manifest read/write port. Mirrors

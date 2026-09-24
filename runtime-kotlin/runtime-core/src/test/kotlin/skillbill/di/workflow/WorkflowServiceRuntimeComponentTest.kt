@@ -1,4 +1,5 @@
-package skillbill.di.workflow
+package skillbill.application
+
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.application.workflow.model.WorkflowUpdateResult.Ok
@@ -17,6 +18,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import skillbill.application.workflow.model.WorkflowOpenResult.Ok as WorkflowOpenResultOk
+import skillbill.application.workflow.model.WorkflowUpdateResult.Ok as Ok
 
 class WorkflowServiceRuntimeComponentTest {
   @Test

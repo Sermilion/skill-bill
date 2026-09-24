@@ -1,11 +1,11 @@
 package skillbill.ports.agentrun
 
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
-import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.ValidationDepth
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -63,7 +63,7 @@ class AgentRunLauncherModelsTest {
   fun `launch facts do not allow terminal process status on timeout or spawn failure`() {
     assertFailsWith<IllegalArgumentException> {
       AgentRunLaunchFacts(
-        agent = InstallAgent.CODEX,
+        agent = SupportedAgent.CODEX,
         exitStatus = 1,
         stdout = "",
         stderr = "timeout",
@@ -73,7 +73,7 @@ class AgentRunLauncherModelsTest {
     }
     assertFailsWith<IllegalArgumentException> {
       AgentRunLaunchFacts(
-        agent = InstallAgent.CODEX,
+        agent = SupportedAgent.CODEX,
         exitStatus = 1,
         stdout = "",
         stderr = "spawn failed",

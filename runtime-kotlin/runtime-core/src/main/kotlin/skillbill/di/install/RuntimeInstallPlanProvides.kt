@@ -1,4 +1,5 @@
 package skillbill.di.install
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator
 import skillbill.infrastructure.skills.externaladdon.FileExternalAddonSourceConfigStore

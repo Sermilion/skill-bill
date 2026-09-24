@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.issue
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.issuekey.ISSUE_KEY_SCHEMA_ID

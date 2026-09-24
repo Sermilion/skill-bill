@@ -214,7 +214,7 @@ class ImplementationOwnershipArchitectureTest {
       )
     val mustNotBeDetectedAsForbidden =
       listOf(
-        "import skillbill.scaffold.policy.scaffold.X",
+        "import skillbill.scaffold.policy.X",
         "import skillbill.scaffold.model.Y",
         "import skillbill.ports.scaffold.foo.Bar",
         "import java.nio.file.Path",

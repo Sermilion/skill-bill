@@ -14,7 +14,6 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.workflow.payload.WorkflowArtifactKeys
 import skillbill.di.core.RuntimeComponent
-import skillbill.di.core.create
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import java.nio.file.Files

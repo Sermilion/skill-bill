@@ -1,4 +1,5 @@
 package skillbill.engine.experiment.report
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.experiment.EXPERIMENT_REPORT_CONTRACT_VERSION
 import skillbill.contracts.experiment.ExperimentObservationPayloadKeys
@@ -6,6 +7,7 @@ import skillbill.contracts.experiment.ExperimentPairPayloadKeys
 import skillbill.contracts.experiment.ExperimentReportPayloadKeys
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.experiment.model.ExperimentExecutionMode
+import skillbill.goalrunner.terminalStatus
 
 object ExperimentReportProjector {
   private val sourceFingerprintKeys =

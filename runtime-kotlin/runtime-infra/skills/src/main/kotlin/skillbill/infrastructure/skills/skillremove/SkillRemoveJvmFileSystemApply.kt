@@ -1,15 +1,15 @@
 package skillbill.infrastructure.skills.skillremove
 
-import skillbill.domain.skillremove.SkillBillRollbackException
-import skillbill.domain.skillremove.model.AgentSymlinkProvider
-import skillbill.domain.skillremove.model.AppliedCascade
-import skillbill.domain.skillremove.model.SkillRemovalPreview
-import skillbill.domain.skillremove.model.SkillRemovalRequest
-import skillbill.domain.skillremove.model.SkillRemovalTarget
 import skillbill.infrastructure.host.jvm.rollbackDeletePathEntry
 import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
 import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentOperations
 import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest
+import skillbill.install.model.SupportedAgent
+import skillbill.skillremove.SkillBillRollbackException
+import skillbill.skillremove.model.AppliedCascade
+import skillbill.skillremove.model.SkillRemovalPreview
+import skillbill.skillremove.model.SkillRemovalRequest
+import skillbill.skillremove.model.SkillRemovalTarget
 import java.io.IOException
 import java.nio.file.FileVisitResult
 import java.nio.file.FileVisitResult.CONTINUE
@@ -50,12 +50,12 @@ internal class SkillRemoveJvmFileSystemApply(
     )
   }
 
-  fun providerUnlink(provider: AgentSymlinkProvider): (NativeAgentLinkRequest) -> List<Path> =
+  fun providerUnlink(provider: SupportedAgent): (NativeAgentLinkRequest) -> List<Path> =
     when (provider) {
-      AgentSymlinkProvider.CLAUDE -> InstallNativeAgentOperations::unlinkClaudeAgents
-      AgentSymlinkProvider.CODEX -> InstallNativeAgentOperations::unlinkCodexAgents
-      AgentSymlinkProvider.JUNIE -> InstallNativeAgentOperations::unlinkJunieAgents
-      AgentSymlinkProvider.CURSOR -> InstallNativeAgentOperations::unlinkCursorAgents
+      SupportedAgent.CLAUDE -> InstallNativeAgentOperations::unlinkClaudeAgents
+      SupportedAgent.CODEX -> InstallNativeAgentOperations::unlinkCodexAgents
+      SupportedAgent.JUNIE -> InstallNativeAgentOperations::unlinkJunieAgents
+      SupportedAgent.CURSOR -> InstallNativeAgentOperations::unlinkCursorAgents
     }
 
   fun unlinkProviderAgents(request: SkillRemovalRequest): List<Path> {
@@ -81,7 +81,7 @@ internal class SkillRemoveJvmFileSystemApply(
       )
     val unlinked = mutableListOf<Path>()
     val failures = mutableListOf<UnlinkFailure>()
-    AgentSymlinkProvider.entries.forEach { provider ->
+    SupportedAgent.entries.forEach { provider ->
       try {
         unlinked += providerUnlink(provider)(baseRequest)
       } catch (cancellation: CancellationException) {
@@ -101,7 +101,7 @@ internal class SkillRemoveJvmFileSystemApply(
   }
 
   private data class UnlinkFailure(
-    val provider: AgentSymlinkProvider,
+    val provider: SupportedAgent,
     val message: String,
   )
 

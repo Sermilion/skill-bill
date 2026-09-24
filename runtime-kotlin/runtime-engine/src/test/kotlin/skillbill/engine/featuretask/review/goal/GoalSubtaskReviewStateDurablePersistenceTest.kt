@@ -1,13 +1,12 @@
 package skillbill.engine.featuretask.review.goal
 
-import java.time.Instant
 import skillbill.contracts.JsonCodec
+import skillbill.engine.disposition
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.lifecycle.continuation.reconcileRemediationBaseCoherence
 import skillbill.engine.featuretask.lifecycle.continuation.reviewState
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskGitIntegrationDatabase
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskGitIntegrationWorkflowRepository
-import skillbill.engine.featuretask.lifecycle.core.featureTaskGitIntegrationSnapshotValidator
 import skillbill.engine.featuretask.lifecycle.remediation.featureTaskRuntimeParseRepairReceiptOrNull
 import skillbill.engine.featuretask.model.review.GoalSubtaskReviewInputBlocked
 import skillbill.engine.featuretask.model.review.GoalSubtaskReviewInputReady
@@ -16,6 +15,7 @@ import skillbill.engine.featuretask.model.review.GoalSubtaskReviewPassInFlight
 import skillbill.engine.featuretask.model.subtask.RemediationBaseBlocked
 import skillbill.engine.featuretask.model.subtask.RemediationBaseCoherent
 import skillbill.engine.featuretask.runloop.observability.paused
+import skillbill.engine.goalrunner.status.completed
 import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
@@ -31,28 +31,29 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULT_ARTIFACT_PREFIX
-import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
-import skillbill.workflow.goal.model.GoalSubtaskBlockerDispositionVerdict
-import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.goal.model.GoalSubtaskReviewDisposition
-import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairOutcome
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceiptEntry
+import skillbill.workflow.model.goalreview.GOAL_SUBTASK_REVIEW_RESULT_ARTIFACT_PREFIX
+import skillbill.workflow.model.goalreview.GoalSubtaskBlockerDisposition
+import skillbill.workflow.model.goalreview.GoalSubtaskBlockerDispositionVerdict
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewDisposition
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewPassResult
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
+import skillbill.workflow.model.goalreview.REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES
+import skillbill.workflow.model.goalreview.upsertRepairReceipt
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.artifact.asCheckpointIdentitiesArtifactEntry
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairOutcome
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceiptEntry
-import skillbill.workflow.taskruntime.model.repair.task.REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES
-import skillbill.workflow.taskruntime.model.repair.task.upsertRepairReceipt
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -150,7 +151,6 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
     repository.saveFeatureTaskRuntimeWorkflow(seeded)
     return FeatureTaskRuntimeGoalContinuationRecorder(
       FeatureTaskGitIntegrationDatabase(repository),
-      featureTaskGitIntegrationSnapshotValidator,
       NoopRuntimeDiagnostics,
       Clock.systemUTC(),
     )

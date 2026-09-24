@@ -1,9 +1,10 @@
 package skillbill.review.context.model.launch
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
+
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.hunk.ReviewDependencyAllowlist
 import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.model.ParallelReviewMergedFinding
+import skillbill.review.model.requireRepositoryRelativePath
 
 data class ReviewCitedRegion(
   val path: String,

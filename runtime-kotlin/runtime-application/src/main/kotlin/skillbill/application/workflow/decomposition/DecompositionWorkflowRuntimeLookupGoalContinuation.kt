@@ -1,9 +1,9 @@
 package skillbill.application.workflow.decomposition
+
 import skillbill.application.continuation.model.GoalContinuationCandidate
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.WorkflowStatus
@@ -15,10 +15,9 @@ private val GOAL_TERMINAL_MANIFEST_STATUSES = setOf(DecompositionStatus.COMPLETE
 fun WorkflowStateRepository.goalContinuationFor(
   issueKey: String,
   repositoryIdentity: String,
-  validator: DecompositionManifestValidator,
 ): GoalContinuationCandidate? {
   val record =
-    findDecomposedParentWorkflow(issueKey, validator)
+    findDecomposedParentWorkflow(issueKey)
       ?.takeIf { it.workflowStatus.workflowStatus() !in IMPLEMENT_TERMINAL_STATUSES }
       ?: return null
   val manifest =

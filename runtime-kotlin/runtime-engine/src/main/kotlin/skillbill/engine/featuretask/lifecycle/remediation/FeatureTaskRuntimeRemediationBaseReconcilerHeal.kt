@@ -3,7 +3,6 @@ package skillbill.engine.featuretask.lifecycle.remediation
 import skillbill.engine.featuretask.lifecycle.continuation.reviewStateFromArtifacts
 import skillbill.engine.featuretask.model.subtask.PersistHealedRemediationBaseRequest
 import skillbill.engine.featuretask.model.subtask.ResolvedReviewFixCheckpoint
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRequest
@@ -12,7 +11,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.recoverGoalSubtaskReviewBaseline
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 import java.nio.file.Path
 

@@ -1,8 +1,10 @@
 package skillbill.infrastructure.skills.install
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceRoots
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceSide
 import skillbill.infrastructure.skills.install.reconcile.enumerateSkills
+import skillbill.infrastructure.skills.install.reconcile.skillRelativePath
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.ports.install.baseline.BaselineManifestPersistencePort
 import skillbill.ports.install.baseline.InstalledWorkspaceBaselineStatusPort

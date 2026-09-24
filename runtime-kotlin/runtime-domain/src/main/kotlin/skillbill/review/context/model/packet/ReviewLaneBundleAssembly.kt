@@ -1,4 +1,5 @@
 package skillbill.review.context.model.packet
+
 import skillbill.review.context.model.commit.ReviewAssignment
 import skillbill.review.context.model.execution.SHA256_HEX
 import skillbill.review.context.model.execution.canonicalFieldList
@@ -7,6 +8,8 @@ import skillbill.review.context.model.hunk.REVIEW_BUNDLE_SEGMENT_ID_PAD_WIDTH
 import skillbill.review.context.model.hunk.REVIEW_MIN_ORDER_INDEX
 import skillbill.review.context.model.hunk.REVIEW_MIN_SEGMENT_MEASURED_BYTES
 import skillbill.review.context.model.hunk.ReviewChangedHunk
+import skillbill.review.model.ReviewLaneReviewDisposition
+import skillbill.workflow.taskruntime.model.repair.sha256Hex
 import java.security.MessageDigest
 
 data class ReviewLaneAssembledEntry(
@@ -141,18 +144,6 @@ data class ReviewLaneBundleSegmentation(
   }
 }
 
-enum class ReviewLaneReviewDisposition {
-  COMPLETE,
-  INCOMPLETE,
-  ;
-
-  val wireValue: String get() = name.lowercase()
-
-  companion object {
-    fun fromWire(value: String): ReviewLaneReviewDisposition? = entries.firstOrNull { it.wireValue == value }
-  }
-}
-
 data class ReviewLaneSegmentAccounting(
   val segmentId: String,
   val measuredBytes: Long,
@@ -255,7 +246,9 @@ fun segmentAssembledBundle(
   return ReviewLaneBundleSegmentation(segments, unreviewable, maxLaneLaunchBytes)
 }
 
-fun ReviewLaneBundleSegmentation.toCompletionState(bundleCompositionDigest: String): ReviewLaneCompletionState =
+internal fun ReviewLaneBundleSegmentation.toCompletionState(
+  bundleCompositionDigest: String,
+): ReviewLaneCompletionState =
   if (incomplete) {
     ReviewLaneCompletionState(
       disposition = ReviewLaneReviewDisposition.INCOMPLETE,
@@ -280,7 +273,7 @@ fun ReviewLaneBundleSegmentation.toCompletionState(bundleCompositionDigest: Stri
     )
   }
 
-fun ReviewLaneBundleSegment.toAccounting(): ReviewLaneSegmentAccounting =
+internal fun ReviewLaneBundleSegment.toAccounting(): ReviewLaneSegmentAccounting =
   ReviewLaneSegmentAccounting(
     segmentId = segmentId,
     measuredBytes = measuredBytes,
@@ -310,7 +303,7 @@ fun ReviewLaneCompletionState.withBrokerEvidenceRefusal(brokerDeniedUnits: List<
 
 private const val BROKER_EVIDENCE_REFUSAL_SEGMENT_ID = "seg-evidence-refused"
 
-const val LANE_RUN_OUTCOME_DIMENSION: String = "lane_run_outcome"
+internal const val LANE_RUN_OUTCOME_DIMENSION: String = "lane_run_outcome"
 
 fun ReviewLaneCompletionState.asFailedLaneRun(assignedUnits: List<String>): ReviewLaneCompletionState =
   if (disposition == ReviewLaneReviewDisposition.INCOMPLETE) {

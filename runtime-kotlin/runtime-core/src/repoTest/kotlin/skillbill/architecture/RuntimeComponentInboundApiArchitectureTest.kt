@@ -61,7 +61,6 @@ class RuntimeComponentInboundApiArchitectureTest {
   fun `abstract property scanner reports added abstract properties across modifier forms`() {
     val source =
       """
-      package skillbill.di
 
       abstract class RuntimeComponent {
         abstract val goalRunner: GoalRunner
@@ -90,7 +89,6 @@ class RuntimeComponentInboundApiArchitectureTest {
   fun `public callable scanner fails when RuntimeComponent adds a helper with unchanged abstract properties`() {
     val source =
       """
-      package skillbill.di
 
       abstract class RuntimeComponent {
         abstract val goalRunner: GoalRunner
@@ -115,7 +113,6 @@ class RuntimeComponentInboundApiArchitectureTest {
   fun `public callable scanner fails when a provider mixin adds a helper`() {
     val source =
       """
-      package skillbill.di
 
       internal interface RuntimeExampleProvides {
         @Provides
@@ -142,7 +139,6 @@ class RuntimeComponentInboundApiArchitectureTest {
   fun `public callable scanner allows only Provides methods including runtimeContext and databaseSessionFactory`() {
     val source =
       """
-      package skillbill.di
 
       abstract class RuntimeComponent {
         @Provides

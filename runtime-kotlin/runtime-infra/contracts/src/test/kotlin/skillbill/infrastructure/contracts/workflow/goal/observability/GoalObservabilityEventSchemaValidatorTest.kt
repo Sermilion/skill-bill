@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.goal.observability
+
 import skillbill.contracts.workflow.goal.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidGoalObservabilityEventSchemaError
 import kotlin.test.Test

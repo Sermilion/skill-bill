@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.featuretask
+import skillbill.infrastructure.sqlite.workflow.workflow.FeatureTaskWorkflowUpsertRequest
 import skillbill.infrastructure.sqlite.workflow.workflow.defaultContractVersion
 import skillbill.infrastructure.sqlite.workflow.workflow.defaultImplementationSkill
 import skillbill.infrastructure.sqlite.workflow.workflow.getFeatureTaskWorkflowRowAsMode
@@ -20,14 +21,17 @@ internal class FeatureTaskRuntimeWorkflowStateStore(
   override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
     connection.upsertFeatureTaskWorkflowRow(
       row = row,
-      mode = FeatureTaskWorkflowMode.RUNTIME,
-      implementationSkill =
-        row.implementationSkill.orEmpty().ifBlank {
-          FeatureTaskWorkflowMode.RUNTIME.defaultImplementationSkill
-        },
-      defaultContractVersion = FeatureTaskWorkflowMode.RUNTIME.defaultContractVersion,
-      clock = clock,
-      workflowSnapshotValidator = workflowSnapshotValidator,
+      request =
+        FeatureTaskWorkflowUpsertRequest(
+          mode = FeatureTaskWorkflowMode.RUNTIME,
+          implementationSkill =
+            row.implementationSkill.orEmpty().ifBlank {
+              FeatureTaskWorkflowMode.RUNTIME.defaultImplementationSkill
+            },
+          defaultContractVersion = FeatureTaskWorkflowMode.RUNTIME.defaultContractVersion,
+          clock = clock,
+          workflowSnapshotValidator = workflowSnapshotValidator,
+        ),
     )
   }
 

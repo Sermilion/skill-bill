@@ -1,5 +1,7 @@
-package skillbill.di.core
+package skillbill.di.runtime
 
+import skillbill.di.core.RuntimeComponent
+import skillbill.di.core.create
 import skillbill.infrastructure.sqlite.SqliteTestDatabasePaths
 import skillbill.model.EnvironmentContext
 import java.nio.file.Files

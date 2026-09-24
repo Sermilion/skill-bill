@@ -1,9 +1,9 @@
 package skillbill.infrastructure.sqlite.workflow.workflow
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.isTerminal
@@ -90,15 +90,11 @@ internal fun Connection.upsertWorkflowRow(
 
 internal fun Connection.upsertFeatureTaskWorkflowRow(
   row: WorkflowStateRecord,
-  mode: FeatureTaskWorkflowMode,
-  implementationSkill: String,
-  defaultContractVersion: String,
-  clock: Clock,
-  workflowSnapshotValidator: WorkflowSnapshotValidator,
+  request: FeatureTaskWorkflowUpsertRequest,
 ) {
-  workflowSnapshotValidator.validate(row.toSnapshot(), row.workflowName)
+  request.workflowSnapshotValidator.validate(row.toSnapshot(), row.workflowName)
   val transitionTimestamp = nextStateEnteredAtSql("feature_task_workflows")
-  val insertionTimestamp = row.startedAt.orInsertionTimestamp(clock)
+  val insertionTimestamp = row.startedAt.orInsertionTimestamp(request.clock)
   prepareStatement(
     """
     INSERT INTO feature_task_workflows (
@@ -134,14 +130,26 @@ internal fun Connection.upsertFeatureTaskWorkflowRow(
       implementation_skill = excluded.implementation_skill
     """.trimIndent(),
   ).use { statement ->
-    statement.bindFeatureTaskWorkflowRow(row, mode, implementationSkill, defaultContractVersion, insertionTimestamp)
+    statement.bindFeatureTaskWorkflowRow(
+      row,
+      request.mode,
+      request.implementationSkill,
+      request.defaultContractVersion,
+      insertionTimestamp,
+    )
     statement.executeUpdate()
   }
 }
 
-internal fun Connection.terminalizeLegacyProseFeatureTaskWorkflowRow(
-  row: WorkflowStateRecord,
-) {
+internal data class FeatureTaskWorkflowUpsertRequest(
+  val mode: FeatureTaskWorkflowMode,
+  val implementationSkill: String,
+  val defaultContractVersion: String,
+  val clock: Clock,
+  val workflowSnapshotValidator: WorkflowSnapshotValidator,
+)
+
+internal fun Connection.terminalizeLegacyProseFeatureTaskWorkflowRow(row: WorkflowStateRecord) {
   val transitionTimestamp = nextStateEnteredAtSql("feature_task_workflows")
   prepareStatement(
     """

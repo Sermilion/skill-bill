@@ -1,9 +1,7 @@
 package skillbill.infrastructure.skills.install.apply
-
 import skillbill.infrastructure.host.jvm.resolveEnvironmentMap
 import skillbill.infrastructure.host.resolveTelemetryConfigPath
 import skillbill.install.model.ClaudeMcpProfileFailure
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
 import skillbill.install.model.InstallPlan
@@ -13,6 +11,7 @@ import skillbill.install.model.McpMutationResult
 import skillbill.install.model.McpProfileOutcome
 import skillbill.install.model.McpRegistrationApplyOutcome
 import skillbill.install.model.McpRegistrationApplyStatus
+import skillbill.install.model.SupportedAgent
 import skillbill.model.EnvironmentContext
 import skillbill.model.toPath
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
@@ -184,7 +183,7 @@ private fun telemetryOutcomeMessage(
   }
 
 private fun registerMcpAgent(
-  agent: InstallAgent,
+  agent: SupportedAgent,
   runtimeMcpBin: Path,
   plan: InstallPlan,
   warnings: MutableList<InstallApplyIssue>,
@@ -233,7 +232,7 @@ private fun mcpRegistrationMessage(result: McpMutationResult): String {
 }
 
 private fun failedMcpRegistrationOutcome(
-  agent: InstallAgent,
+  agent: SupportedAgent,
   message: String,
   warnings: MutableList<InstallApplyIssue>,
   error: Throwable? = null,

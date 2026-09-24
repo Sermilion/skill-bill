@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.review.goal
+
 import skillbill.contracts.JsonCodec
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import kotlin.test.Test

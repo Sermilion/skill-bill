@@ -14,7 +14,6 @@ import skillbill.engine.featuretask.model.subtask.RemediationReconciliationApply
 import skillbill.engine.featuretask.model.subtask.RemediationReconciliationBlocked
 import skillbill.engine.featuretask.model.subtask.RemediationReconciliationCoherent
 import skillbill.engine.featuretask.model.subtask.RemediationReconciliationHeal
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeCheckpointIdentityVersionError
 import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory

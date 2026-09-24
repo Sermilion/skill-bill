@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.file
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.core.ExternalAddonConfigError
 import skillbill.infrastructure.host.readTelemetryConfigFile
@@ -8,6 +9,7 @@ import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigResult
 import skillbill.ports.repository.toFileLocation
+import skillbill.scaffold.model.SkillKind
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -46,8 +48,8 @@ class FileExternalAgentAddonSourceConfigStore : ExternalAgentAddonSourceConfigPo
         ?: invalidConfig(configPath, "$CONFIG_KEY[$index]", "must be a mapping")
     val kind = (map["kind"] as? String)?.trim()
     if (kind == null && map.containsKey("platform")) return null
-    if (kind == "platform-pack") return null
-    if (kind != "agent-addon") {
+    if (kind == SkillKind.PLATFORM_PACK.wireValue) return null
+    if (kind != SkillKind.AGENT_ADDON.wireValue) {
       invalidConfig(
         configPath,
         "$CONFIG_KEY[$index].kind",

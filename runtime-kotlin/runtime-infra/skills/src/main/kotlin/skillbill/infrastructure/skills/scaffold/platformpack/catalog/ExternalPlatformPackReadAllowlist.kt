@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.catalog
+
 import skillbill.error.core.ExternalPlatformPackConfigError
 import skillbill.error.shellcontent.MissingContentFileError
 import skillbill.model.toPath

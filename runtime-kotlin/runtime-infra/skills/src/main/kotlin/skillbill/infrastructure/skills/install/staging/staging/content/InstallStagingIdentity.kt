@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install.staging.staging.content
+
 import skillbill.agentaddon.model.AgentAddonConsumer
 import skillbill.error.shellcontent.AgentAddonPointerCollisionError
 import skillbill.infrastructure.skills.agentaddon.AgentAddonDeliveryResolver

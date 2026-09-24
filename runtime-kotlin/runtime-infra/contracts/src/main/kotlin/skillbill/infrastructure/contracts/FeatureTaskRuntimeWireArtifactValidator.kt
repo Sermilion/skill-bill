@@ -13,9 +13,9 @@ import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtim
 import skillbill.infrastructure.contracts.workflow.goal.observability.GoalObservabilityEventSchemaValidator
 import skillbill.infrastructure.contracts.workflow.goal.planning.GoalPlanningPreparationSchemaValidator
 import skillbill.infrastructure.contracts.workflow.goal.progress.GoalProgressEventSchemaValidator
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 
 @Inject
 class FeatureTaskRuntimeWireArtifactValidator : FeatureTaskRuntimeWireArtifactValidator {

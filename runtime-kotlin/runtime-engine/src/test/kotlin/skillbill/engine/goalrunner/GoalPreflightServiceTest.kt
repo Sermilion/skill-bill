@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner
+
 import skillbill.agentaddon.model.AgentAddonConsumer
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
@@ -8,6 +9,9 @@ import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.TestRepositoryEnclosingRoot
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.parentSpecPath
+import skillbill.application.decomposition.specSource
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.engine.decomposition.encodeDecompositionManifestYaml
@@ -361,7 +365,6 @@ class GoalPreflightServiceTest {
         FeatureTaskContinuationLookupService(
           database,
           testWorkflowSnapshotValidator,
-          testDecompositionManifestValidator,
         ),
       manifestStore = TestManifestStore(manifestState, persistedReviewPolicy),
       agentAddonSelectionPort = TestAgentAddonSelectionPort,

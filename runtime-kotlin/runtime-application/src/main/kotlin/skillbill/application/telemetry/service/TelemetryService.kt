@@ -1,4 +1,5 @@
 package skillbill.application.telemetry.service
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.model.TelemetryMutationResult
 import skillbill.application.telemetry.model.TelemetryOutboxStatusSnapshot

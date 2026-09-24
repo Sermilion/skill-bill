@@ -1,4 +1,5 @@
 package skillbill.scaffold
+
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentSource
 import skillbill.infrastructure.skills.nativeagent.composition.renderNativeAgentSource
 import skillbill.infrastructure.skills.nativeagent.testNativeAgentCompositionContext

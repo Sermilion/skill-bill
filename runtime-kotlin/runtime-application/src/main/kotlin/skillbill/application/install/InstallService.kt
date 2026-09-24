@@ -6,7 +6,6 @@ import skillbill.install.model.InstallApplyResult
 import skillbill.install.model.InstallApplyStatus
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanRequest
-import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.install.model.InstallPlatformPackDiscoverySnapshot
 import skillbill.install.model.InstallPlatformSkillMaterializationRequest
 import skillbill.install.model.InstallReconcileApplyOutcome
@@ -15,7 +14,9 @@ import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.ReconciliationPlan
 import skillbill.install.model.SharedInstallSelection
 import skillbill.install.policy.InstallPlanPolicy
+import skillbill.install.policy.selectedPlatformSlugs
 import skillbill.model.toPath
+import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.ports.install.apply.InstallApplyExecutionPort
 import skillbill.ports.install.apply.model.InstallApplyExecutionRequest
 import skillbill.ports.install.baseline.BaselineManifestPersistencePort

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats.health
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
@@ -72,8 +73,10 @@ private fun migrateLegacyReviewFinishedRow(
   if (reviewRunId.isBlank() || !reviewRunRowExists(connection, reviewRunId)) return
   val rewritten = regenerateReviewFinishedPayload(connection, payload, reviewRunId)
   rewriteOutboxPayload(connection, outboxId, rewritten)
+  val runtimeVersion = persistedRuntimeVersion(connection)
   enqueueTelemetry(
     connection,
+    runtimeVersion,
     REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME,
     linkedMapOf(
       SqliteLifecycleTelemetryMaterializationPayloadKeys.EVENT_NAME to REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME,
@@ -86,6 +89,16 @@ private fun migrateLegacyReviewFinishedRow(
     ),
   )
 }
+
+private fun persistedRuntimeVersion(connection: Connection): String =
+  connection.createStatement().use { statement ->
+    statement.executeQuery(
+      "SELECT skill_bill_version FROM telemetry_outbox WHERE skill_bill_version IS NOT NULL " +
+        "ORDER BY id DESC LIMIT 1",
+    ).use { resultSet ->
+      if (resultSet.next()) resultSet.getString(1).orEmpty().ifBlank { "unknown" } else "unknown"
+    }
+  }
 
 private fun isLegacyReviewFinished(payload: Map<String, Any?>): Boolean {
   val version = payload[SharedPayloadKeys.CONTRACT_VERSION]?.toString()

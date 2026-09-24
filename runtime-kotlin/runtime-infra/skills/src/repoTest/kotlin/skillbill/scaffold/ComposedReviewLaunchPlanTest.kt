@@ -4,9 +4,10 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.infrastructure.skills.nativeagent.discovery.discoverNativeAgentSourceEntries
 import skillbill.infrastructure.skills.nativeagent.testComposeNativeAgentSource
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
+import skillbill.infrastructure.skills.scaffold.validation.review.headings
 import skillbill.review.context.model.packet.ReviewPacketConsumerContract
 import skillbill.review.plan.ReviewLaunchPlanPolicy
-import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
+import skillbill.scaffold.policy.APPROVED_CODE_REVIEW_AREAS
 import skillbill.testing.HARBOR_ADDON_SLUG
 import skillbill.testing.HARBOR_ARCHITECTURE_WORKER
 import skillbill.testing.HARBOR_ENTRYPOINT_MARKER

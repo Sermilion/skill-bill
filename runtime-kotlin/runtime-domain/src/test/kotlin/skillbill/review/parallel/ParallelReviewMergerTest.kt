@@ -1,5 +1,6 @@
 
 package skillbill.review.parallel
+
 import skillbill.review.model.ParallelReviewLaneResult
 import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ParallelReviewSeverity

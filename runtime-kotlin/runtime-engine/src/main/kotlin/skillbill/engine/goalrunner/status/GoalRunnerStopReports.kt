@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.status
+
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.execution.core.StoppedReportArgs
 import skillbill.goalrunner.model.GoalPullRequestStatus

@@ -1,7 +1,7 @@
 package skillbill.infrastructure.launcher.agentrun
 
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
 import java.nio.file.Path
@@ -12,11 +12,11 @@ internal class JunieAgentRunCommandBuilder(
     GovernedReviewLaunchCapability(
       governedOnlyTooling = false,
       mcpIsolation = false,
-      configFormat = McpRegistrationOperations.configFormatFor(InstallAgent.JUNIE),
+      configFormat = McpRegistrationOperations.configFormatFor(SupportedAgent.JUNIE),
     ),
   private val databasePath: Path? = null,
 ) : AgentRunCommandBuilder {
-  override val agent: InstallAgent = InstallAgent.JUNIE
+  override val agent: SupportedAgent = SupportedAgent.JUNIE
   override val reviewIsolation: ReviewLaunchIsolationStrategy = ReviewLaunchIsolationStrategy.FRESH_PROCESS
 
   override fun build(request: SkillRunRequest): AgentRunCommand {
@@ -29,7 +29,7 @@ internal class JunieAgentRunCommandBuilder(
             "junie cannot honor a model/effort directive; " +
               "remove its execution_matrix entry or --phase-model assignment."
           }
-          add(InstallAgent.JUNIE.wireValue)
+          add(SupportedAgent.JUNIE.wireValue)
           add("--project")
           add(request.repoRoot.toString())
           add("--output-format")

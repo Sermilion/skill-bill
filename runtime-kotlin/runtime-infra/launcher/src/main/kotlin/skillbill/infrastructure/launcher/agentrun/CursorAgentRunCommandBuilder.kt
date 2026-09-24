@@ -2,7 +2,7 @@ package skillbill.infrastructure.launcher.agentrun
 
 import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
 import java.nio.file.Path
@@ -12,11 +12,11 @@ internal class CursorAgentRunCommandBuilder(
     GovernedReviewLaunchCapability(
       governedOnlyTooling = true,
       mcpIsolation = true,
-      configFormat = McpRegistrationOperations.configFormatFor(InstallAgent.CURSOR),
+      configFormat = McpRegistrationOperations.configFormatFor(SupportedAgent.CURSOR),
     ),
   private val databasePath: Path? = null,
 ) : AgentRunCommandBuilder {
-  override val agent: InstallAgent = InstallAgent.CURSOR
+  override val agent: SupportedAgent = SupportedAgent.CURSOR
   override val outputDecoder: AgentRunOutputDecoder = AgentRunOutputDecoder.CURSOR_STREAM_JSON
   override val reviewIsolation: ReviewLaunchIsolationStrategy = ReviewLaunchIsolationStrategy.FRESH_PROCESS
 

@@ -1,4 +1,5 @@
 package skillbill.cli.scaffold.commands
+
 import kotlinx.serialization.json.JsonObject
 import skillbill.application.install.ExternalAddonOverlayService
 import skillbill.application.scaffold.InstallAgentService

@@ -1,5 +1,6 @@
 package skillbill.di.core
-import skillbill.goalrunner.DurableDecodeSubstitutionObservations
+
+import skillbill.goalrunner.model.DurableDecodeSubstitutionObservations
 import java.io.InputStream
 import java.util.Properties
 

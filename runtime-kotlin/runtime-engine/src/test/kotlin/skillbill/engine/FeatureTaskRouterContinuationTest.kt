@@ -1,4 +1,5 @@
 package skillbill.engine
+
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.testDecompositionManifestValidator
@@ -14,6 +15,7 @@ import skillbill.application.workflow.persist.openFeatureTask
 import skillbill.application.workflow.service.WorkflowService
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
@@ -21,7 +23,6 @@ import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.model.WorkflowStatus
 import java.time.Clock
 import kotlin.test.Test
@@ -54,7 +55,6 @@ class FeatureTaskRouterContinuationTest {
       FeatureTaskContinuationLookupService(
         database,
         testWorkflowSnapshotValidator,
-        testDecompositionManifestValidator,
       )
     val opened =
       assertIs<WorkflowOpenResult.Ok>(

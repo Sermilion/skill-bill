@@ -1,4 +1,5 @@
 package skillbill.cli.scaffold.commands
+
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple

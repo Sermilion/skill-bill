@@ -1,6 +1,5 @@
 package skillbill.review.model
 
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

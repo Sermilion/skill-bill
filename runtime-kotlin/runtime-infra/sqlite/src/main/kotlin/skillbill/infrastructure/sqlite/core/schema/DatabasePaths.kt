@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.schema
+
 import skillbill.error.core.UnresolvedEnvironmentContextFieldError
 import skillbill.model.EnvironmentContext
 import java.nio.file.Path

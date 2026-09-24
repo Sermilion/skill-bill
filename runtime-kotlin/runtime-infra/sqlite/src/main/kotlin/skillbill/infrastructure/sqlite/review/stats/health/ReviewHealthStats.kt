@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats.health
+
 import skillbill.infrastructure.sqlite.review.stats.average
 import skillbill.infrastructure.sqlite.review.stats.median
 import skillbill.infrastructure.sqlite.review.stats.p90

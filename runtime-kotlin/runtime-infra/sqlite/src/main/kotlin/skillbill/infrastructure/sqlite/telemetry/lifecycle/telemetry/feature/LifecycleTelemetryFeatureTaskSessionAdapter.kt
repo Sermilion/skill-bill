@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature
+
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.emitFeatureTaskRuntimeFinished
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.emitFeatureTaskRuntimeStarted
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.runtime.saveFeatureTaskRuntimeFinished
@@ -11,13 +12,14 @@ import java.sql.Connection
 
 internal class LifecycleTelemetryFeatureTaskSessionAdapter(
   private val connection: Connection,
+  private val runtimeVersion: String,
 ) : FeatureTaskRuntimeLifecycleTelemetryRepository {
   override fun featureTaskRuntimeStarted(
     record: FeatureTaskRuntimeStartedRecord,
     level: String,
   ) {
     saveFeatureTaskRuntimeStarted(connection, record)
-    emitFeatureTaskRuntimeStarted(connection, record.sessionId, level)
+    emitFeatureTaskRuntimeStarted(connection, runtimeVersion, record.sessionId, level)
   }
 
   override fun featureTaskRuntimeFinished(
@@ -25,7 +27,7 @@ internal class LifecycleTelemetryFeatureTaskSessionAdapter(
     level: String,
   ) {
     if (saveFeatureTaskRuntimeFinished(connection, record) == TerminalSaveOutcome.FIRST_TERMINAL) {
-      emitFeatureTaskRuntimeFinished(connection, record.sessionId, level)
+      emitFeatureTaskRuntimeFinished(connection, runtimeVersion, record.sessionId, level)
     }
   }
 }

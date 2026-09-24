@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.status
+
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.testWorkflowSnapshotValidator
@@ -32,8 +33,8 @@ import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
 import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.goalreview.GoalObservabilityFileDiffStat
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path

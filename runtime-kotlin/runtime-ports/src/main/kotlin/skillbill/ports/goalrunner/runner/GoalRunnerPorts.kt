@@ -20,8 +20,8 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanOptions
 import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanWriteResult
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewPassResult
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import java.nio.file.Path
 
 interface GoalRunnerManifestQueries {

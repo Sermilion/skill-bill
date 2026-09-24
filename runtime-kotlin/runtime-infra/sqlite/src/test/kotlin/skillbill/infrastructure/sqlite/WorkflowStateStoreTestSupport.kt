@@ -19,9 +19,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-internal val testWorkflowSnapshotValidator = object : WorkflowSnapshotValidator {
-  override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
-}
+internal val testWorkflowSnapshotValidator =
+  object : WorkflowSnapshotValidator {
+    override fun validate(
+      snapshot: WorkflowStateSnapshot,
+      slug: String,
+    ) = Unit
+  }
 
 internal fun assertRuntimeAndVerifyStateTransitions(
   store: WorkflowStateStore,
@@ -80,7 +84,8 @@ internal fun prepareConcurrentWorkflowTransitions(
   initial: WorkflowStateRow,
 ) {
   DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-    WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator).saveFeatureTaskRuntimeWorkflow(initial)
+    WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
+      .saveFeatureTaskRuntimeWorkflow(initial)
     connection.createStatement().use { statement ->
       statement.execute("CREATE TABLE workflow_transition_log (state_entered_at TEXT NOT NULL)")
       statement.execute(

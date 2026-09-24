@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats.health
+
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
 import skillbill.tempDbConnection
@@ -11,7 +12,7 @@ class ReviewHealthDeliveryGrainTest {
   fun `a retried delivery and a re-emitted review each stay at their own grain`() {
     val (_, connection) = tempDbConnection("review-health-delivery-grain")
     connection.use {
-      val store = TelemetryOutboxStore(connection)
+      val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
       val retried = store.enqueue("skillbill_review_finished", reviewPayload("rvw-1", findings = 2))
       connection.setDeliveryAttempts(retried, attempts = 3)
       connection.setDeliveryAttempts(
@@ -50,7 +51,7 @@ class ReviewHealthDeliveryGrainTest {
   fun `a row that predates the delivery identity column is reported unattributable, not as its own event`() {
     val (_, connection) = tempDbConnection("review-health-unknown-identity")
     connection.use {
-      val store = TelemetryOutboxStore(connection)
+      val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
       store.enqueue("skillbill_review_finished", reviewPayload("rvw-1", findings = 1))
       val legacy = store.enqueue("skillbill_review_finished", reviewPayload(reviewRunId = "", findings = 1))
       connection.clearDeliveryIdentity(legacy)

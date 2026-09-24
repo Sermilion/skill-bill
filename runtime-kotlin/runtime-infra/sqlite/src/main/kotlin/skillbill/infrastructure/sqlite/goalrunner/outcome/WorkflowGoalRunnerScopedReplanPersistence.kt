@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
+
 import skillbill.goalrunner.planning.cascadeEligiblePlanSubtaskIds
 import skillbill.infrastructure.sqlite.decomposition.withParentStatus
 import skillbill.infrastructure.sqlite.goalrunner.manifest.WorkflowGoalRunnerManifestProjectionPersistence

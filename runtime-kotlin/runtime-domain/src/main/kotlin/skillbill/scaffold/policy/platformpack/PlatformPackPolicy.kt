@@ -1,7 +1,7 @@
 package skillbill.scaffold.policy.platformpack
 
 import skillbill.model.FileLocation
-import skillbill.scaffold.policy.scaffold.sharedContractNote
+import skillbill.scaffold.policy.sharedContractNote
 
 fun platformPackNotes(
   platform: String,

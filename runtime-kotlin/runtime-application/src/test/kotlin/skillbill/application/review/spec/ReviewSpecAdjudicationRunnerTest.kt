@@ -1,8 +1,11 @@
 package skillbill.application.review.spec
+
 import skillbill.application.review.model.ReviewDelegatedStageLaunch
 import skillbill.application.review.model.ReviewSpecAdjudicationRunRequest
+import skillbill.application.review.parallel.runner.finding
+import skillbill.application.runner
 import skillbill.application.testHarnessClock
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
@@ -353,7 +356,7 @@ class ReviewSpecAdjudicationRunnerTest {
     launcher: GoalRunnerSubtaskLauncher,
     fixture: AdjudicationRequestFixture,
     validator: ReviewContextEnvelopeValidator = ReviewContextEnvelopeValidator { _, _ -> },
-  ) = runner(launcher).run(adjudicationRequest(fixture))
+  ) = runner(launcher, validator).run(adjudicationRequest(fixture))
 
   private fun adjudicationRequest(fixture: AdjudicationRequestFixture) =
     ReviewSpecAdjudicationRunRequest(
@@ -379,7 +382,7 @@ class ReviewSpecAdjudicationRunnerTest {
     request: GoalRunnerSubtaskLaunchRequest,
     stdout: String,
   ) = AgentRunLaunchFacts(
-    agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+    agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
     exitStatus = 0,
     stdout = stdout,
     stderr = "",

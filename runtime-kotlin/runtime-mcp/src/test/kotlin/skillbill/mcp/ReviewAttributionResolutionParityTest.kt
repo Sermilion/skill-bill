@@ -3,6 +3,7 @@ package skillbill.mcp
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.mcp.core.McpRuntime
+import skillbill.mcp.core.importReview
 import skillbill.mcp.shared.McpRuntimeContext
 import skillbill.review.attribution.canonicalPlatformSlugs
 import skillbill.review.attribution.resolveCanonicalRoutedSkill

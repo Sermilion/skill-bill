@@ -1,1 +1,0 @@
-package skillbill.infrastructure.sqlite.goalrunner.manifest

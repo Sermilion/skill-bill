@@ -1,12 +1,14 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.runner
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.workflow.WorkflowTimestampPayloadKeys
-import skillbill.goalrunner.model.parseExecutionLeaseInstant
-import java.time.Instant
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
+import skillbill.goalrunner.model.parseExecutionLeaseInstant
+import skillbill.infrastructure.sqlite.goalrunner.control.executionLease
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
+import java.time.Instant
 
 internal fun GoalRunnerReviewPolicy.toArtifactMap(): Map<String, Any?> =
   buildMap {
@@ -41,8 +43,10 @@ internal fun GoalRunnerExecutionLease.toArtifactMap(source: Map<*, *>? = null): 
     "boot_identity" to bootIdentity,
     "pid" to pid,
     "process_birth_token" to processBirthToken,
-    WorkflowTimestampPayloadKeys.HEARTBEAT_AT to leaseTimestamp(heartbeatAt, source, WorkflowTimestampPayloadKeys.HEARTBEAT_AT),
-    WorkflowTimestampPayloadKeys.EXPIRES_AT to leaseTimestamp(expiresAt, source, WorkflowTimestampPayloadKeys.EXPIRES_AT),
+    WorkflowTimestampPayloadKeys.HEARTBEAT_AT to
+      leaseTimestamp(heartbeatAt, source, WorkflowTimestampPayloadKeys.HEARTBEAT_AT),
+    WorkflowTimestampPayloadKeys.EXPIRES_AT to
+      leaseTimestamp(expiresAt, source, WorkflowTimestampPayloadKeys.EXPIRES_AT),
   )
 
 internal fun GoalRunnerControlState.toArtifactMap(source: Map<String, Any?>? = null): Map<String, Any?> =
@@ -69,7 +73,11 @@ internal fun GoalRunnerControlState.toArtifactMap(source: Map<String, Any?>? = n
       pendingCausingLoopEntryBySubtask.entries.associate { (k, v) -> k.toString() to v },
   )
 
-private fun leaseTimestamp(value: Instant, source: Map<*, *>?, field: String): String {
+private fun leaseTimestamp(
+  value: Instant,
+  source: Map<*, *>?,
+  field: String,
+): String {
   val original = source?.get(field) as? String ?: return value.toString()
   return if (parseExecutionLeaseInstant(field, original) == value) original else value.toString()
 }

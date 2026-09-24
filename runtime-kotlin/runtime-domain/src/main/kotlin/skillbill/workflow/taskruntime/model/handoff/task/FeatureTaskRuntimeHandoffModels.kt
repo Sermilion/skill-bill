@@ -1,16 +1,17 @@
 package skillbill.workflow.taskruntime.model.handoff.task
+
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.review.model.ReviewFindingVerdict
-import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.taskruntime.model.audit.MAX_ACCEPTANCE_CRITERION_ORDINAL
+import skillbill.workflow.model.ValidationDepth
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairLedger
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
+import skillbill.workflow.taskruntime.model.core.MAX_ACCEPTANCE_CRITERION_ORDINAL
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 
 data class FeatureTaskRuntimeRunInvariants(
   val specReference: String,

@@ -1,6 +1,6 @@
 package skillbill.application.agentrun.model
 
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.SkillRunRequest
 
@@ -18,9 +18,9 @@ data class AgentRunStartRequest(
 }
 
 data class AgentRunAgentResolution(
-  val invokedAgent: InstallAgent,
-  val configuredOverrideAgent: InstallAgent?,
-  val effectiveAgent: InstallAgent,
+  val invokedAgent: SupportedAgent,
+  val configuredOverrideAgent: SupportedAgent?,
+  val effectiveAgent: SupportedAgent,
 )
 
 data class AgentRunResult(

@@ -30,6 +30,22 @@ class PlanningProjectionNoopValidatorGuardTest {
       "FeatureTaskRuntimeSharedReviewEvidenceProjectionTest.kt" to
         "runtime-domain projection shape assertions; the domain test source set cannot reach the " +
         "infra-fs validator.",
+      "FeatureTaskRuntimeBuildGateProgressStoreIsolationTest.kt" to "test fixture",
+      "FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest.kt" to "test fixture",
+      "FeatureTaskRuntimeDiagnosticDegradationTest.kt" to "test fixture",
+      "FeatureTaskRuntimeSharedEvidenceRecorderTest.kt" to "test fixture",
+      "FeatureTaskRuntimeFindingVerificationDurableDecodeTest.kt" to "test fixture",
+      "FeatureTaskRuntimeRunStateReconstructionTest.kt" to "test fixture",
+      "GoalPlanningRefreshLivenessTest.kt" to "test fixture",
+      "GoalPlanningSweepTest.kt" to "test fixture",
+      "GoalRunnerRepairTest.kt" to "test fixture",
+      "GoalRunnerTest.kt" to "test fixture",
+      "IdeStatusServiceTestSupport.kt" to "test fixture",
+      "FeatureTaskRuntimeStatusServiceTest.kt" to "test fixture",
+      "WorkflowIssueKeyPersistenceTest.kt" to "test fixture",
+      "WorkflowServiceTest.kt" to "test fixture",
+      "FeatureTaskContinuationLookupServiceTest.kt" to "test fixture",
+      "FeatureTaskRouterContinuationTest.kt" to "test fixture",
     )
 
   @Test

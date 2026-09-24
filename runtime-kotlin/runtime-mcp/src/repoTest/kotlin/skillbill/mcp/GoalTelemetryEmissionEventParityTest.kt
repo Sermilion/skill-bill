@@ -2,6 +2,7 @@ package skillbill.mcp
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
+import skillbill.application.decomposition.branchName
 import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.mcp.core.McpToolRegistry

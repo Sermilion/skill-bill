@@ -1,4 +1,5 @@
 package skillbill.cli.kernel.cli
+
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

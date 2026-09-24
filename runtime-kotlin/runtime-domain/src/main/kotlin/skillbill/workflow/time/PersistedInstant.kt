@@ -5,17 +5,19 @@ import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
-fun parsePersistedInstant(value: String): Instant = try {
-  Instant.parse(value)
-} catch (_: RuntimeException) {
+fun parsePersistedInstant(value: String): Instant =
   try {
-    OffsetDateTime.parse(value).toInstant()
-  } catch (_: RuntimeException) {
+    Instant.parse(value)
+  } catch (_: DateTimeParseException) {
     try {
-      LocalDateTime.parse(value.replace(' ', 'T'), DateTimeFormatter.ISO_LOCAL_DATE_TIME).toInstant(ZoneOffset.UTC)
-    } catch (error: RuntimeException) {
-      throw IllegalArgumentException("Timestamp is not a supported persisted instant.", error)
+      OffsetDateTime.parse(value).toInstant()
+    } catch (_: DateTimeParseException) {
+      try {
+        LocalDateTime.parse(value.replace(' ', 'T'), DateTimeFormatter.ISO_LOCAL_DATE_TIME).toInstant(ZoneOffset.UTC)
+      } catch (error: DateTimeParseException) {
+        throw IllegalArgumentException("Timestamp is not a supported persisted instant.", error)
+      }
     }
   }
-}

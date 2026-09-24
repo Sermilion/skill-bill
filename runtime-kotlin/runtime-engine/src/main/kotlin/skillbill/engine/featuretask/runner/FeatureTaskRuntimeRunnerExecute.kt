@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.runner
 
+import skillbill.application.decomposition.specSource
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.lifecycle.continuation.agentAttributionFromPhaseState
 import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
@@ -17,8 +18,8 @@ import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunO
 import skillbill.engine.featuretask.runloop.observability.emitFeatureTaskRuntimeEventSafely
 import skillbill.ports.workflow.gitops.buildGoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch

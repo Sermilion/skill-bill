@@ -1,11 +1,11 @@
 package skillbill.ports.skillremove
 
-import skillbill.domain.skillremove.model.AgentSymlinkUnlink
-import skillbill.domain.skillremove.model.AppliedCascade
-import skillbill.domain.skillremove.model.ManifestEdit
-import skillbill.domain.skillremove.model.ReadmeCatalogEdit
-import skillbill.domain.skillremove.model.SkillRemovalPreview
-import skillbill.domain.skillremove.model.SkillRemovalRequest
+import skillbill.skillremove.model.AgentSymlinkUnlink
+import skillbill.skillremove.model.AppliedCascade
+import skillbill.skillremove.model.ManifestEdit
+import skillbill.skillremove.model.ReadmeCatalogEdit
+import skillbill.skillremove.model.SkillRemovalPreview
+import skillbill.skillremove.model.SkillRemovalRequest
 
 interface SkillRemoveFileSystem {
   fun resolveCascadeFilesystemPaths(

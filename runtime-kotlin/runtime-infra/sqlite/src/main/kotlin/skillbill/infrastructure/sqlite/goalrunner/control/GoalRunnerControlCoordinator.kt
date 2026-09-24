@@ -12,8 +12,6 @@ import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.infrastructure.sqlite.goalrunner.manifest.SavedManifestProjection
 import skillbill.infrastructure.sqlite.goalrunner.manifest.mergeConcurrentGoalProgress
-import skillbill.workflow.decomposition.runtime.decompositionRuntime
-import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.runner.model.GoalRunnerCompletionPersistenceResult
@@ -23,9 +21,11 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerPausePersistenceResult
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.FeatureTaskWorkflowMode
@@ -65,7 +65,7 @@ internal class GoalRunnerControlCoordinator(
     expectedOwnerToken: String?,
   ): Boolean =
     database.transaction { unitOfWork ->
-      reconcileControlStateForManifest(unitOfWork, parentWorkflowId, decompositionManifestValidator)
+      reconcileControlStateForManifest(unitOfWork, parentWorkflowId)
       unitOfWork.goalRunnerControls.acquireExecutionLease(parentWorkflowId, lease, expectedOwnerToken)
     }
 
@@ -74,7 +74,7 @@ internal class GoalRunnerControlCoordinator(
     lease: GoalRunnerExecutionLease,
   ): Boolean =
     database.transaction { unitOfWork ->
-      reconcileControlStateForManifest(unitOfWork, parentWorkflowId, decompositionManifestValidator)
+      reconcileControlStateForManifest(unitOfWork, parentWorkflowId)
       unitOfWork.goalRunnerControls.heartbeatExecutionLease(parentWorkflowId, lease)
     }
 
@@ -193,7 +193,6 @@ internal class GoalRunnerControlCoordinator(
 internal fun reconcileControlStateForManifest(
   unitOfWork: UnitOfWork,
   parentWorkflowId: String,
-  validator: DecompositionManifestValidator,
 ) {
   val parent = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId) ?: return
   val manifest = parent.decompositionRuntime() ?: return
@@ -362,7 +361,6 @@ internal fun GoalRunnerControlCoordinator.requestPauseByIssueKey(
     val parent =
       unitOfWork.workflowStates.findDecomposedParentWorkflow(
         issueKey,
-        decompositionManifestValidator,
       ) ?: return@transaction null
     val existing = unitOfWork.goalRunnerControls.controlState(parent.workflowId)
     if (repoRoot != null) {

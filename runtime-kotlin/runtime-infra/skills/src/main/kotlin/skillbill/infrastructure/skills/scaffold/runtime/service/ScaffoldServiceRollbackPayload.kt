@@ -1,5 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.runtime.service
+
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.host.jvm.resolveUserHome

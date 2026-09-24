@@ -1,10 +1,11 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentLinkStatus
 import skillbill.install.model.InstallApplyIssueKind
 import skillbill.install.model.InstallApplyStatus
+import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
+import skillbill.ports.workflow.list
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -21,7 +22,7 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
     applyInstallForTest(selectedPlatformPlan)
@@ -41,7 +42,7 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     val baseOnlyReplacementPlan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           replaceExistingSkillBillLinks = true,
         ),
       )
@@ -72,7 +73,7 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           replaceExistingSkillBillLinks = true,
         ),
       )
@@ -90,7 +91,7 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
         .links
     assertTrue(
       billCodeReviewLinks.any { link ->
-        link.agent == InstallAgent.CODEX && link.status == InstallAgentLinkStatus.CREATED
+        link.agent == SupportedAgent.CODEX && link.status == InstallAgentLinkStatus.CREATED
       },
     )
   }
@@ -108,7 +109,7 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           replaceExistingSkillBillLinks = true,
         ),
       )
@@ -147,7 +148,7 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           replaceExistingSkillBillLinks = true,
         ),
       )
@@ -203,7 +204,7 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           replaceExistingSkillBillLinks = true,
         ),
       )
@@ -222,7 +223,7 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     assertTrue(
       result.failures.any { failure ->
         failure.kind == InstallApplyIssueKind.SKILL_LINK_FAILED &&
-          failure.agent == InstallAgent.CODEX &&
+          failure.agent == SupportedAgent.CODEX &&
           failure.path?.toPath() == targetDir &&
           failure.message.contains("Nul character")
       },

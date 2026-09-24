@@ -19,9 +19,11 @@ import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudge
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.LaunchResult
 import skillbill.error.core.SkillBillRuntimeException
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
@@ -30,8 +32,6 @@ import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhas
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
-import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 
 internal data class RemediationCheckpointCommit(val commitSha: String, val parentSha: String?)
 

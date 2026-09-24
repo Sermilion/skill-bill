@@ -1,4 +1,5 @@
 package skillbill.cli.install.apply
+
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
@@ -8,7 +9,6 @@ import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.formatOption
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
@@ -20,6 +20,7 @@ import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.RuntimeDistributionInputs
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
@@ -44,7 +45,7 @@ abstract class InstallRequestCommand(
     .default("detected")
   private val agents by option(
     "--agent",
-    help = "Manual agent to include. Repeat for ${InstallAgent.supportedIds.joinToString(", ")}.",
+    help = "Manual agent to include. Repeat for ${SupportedAgent.supportedIds.joinToString(", ")}.",
   ).multiple()
   private val agentTargets by option(
     "--agent-target",
@@ -112,7 +113,7 @@ abstract class InstallRequestCommand(
   protected fun toRequest(inputs: CliRunInputs): InstallPlanRequest {
     val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, inputs)
     val explicitTargets = parseAgentTargets(agentTargets)
-    val manualAgents = agents.map(InstallAgent::fromId).toSet()
+    val manualAgents = agents.map(SupportedAgent::fromId).toSet()
     return InstallPlanRequest(
       repoRoot = resolvedRepoRoot.toFileLocation(),
       home = inputs.userHome.toFileLocation(),
@@ -165,7 +166,7 @@ abstract class InstallRequestCommand(
   }
 
   private fun selectedAgentMode(
-    manualAgents: Set<InstallAgent>,
+    manualAgents: Set<SupportedAgent>,
     explicitTargets: List<InstallAgentTarget>,
   ): InstallAgentSelectionMode =
     if (
@@ -219,7 +220,7 @@ private fun parseAgentTargets(rawTargets: List<String>): List<InstallAgentTarget
       "--agent-target must use agent=path form."
     }
     InstallAgentTarget(
-      agent = InstallAgent.fromId(parts[0]),
+      agent = SupportedAgent.fromId(parts[0]),
       path = Path.of(parts[1]).toFileLocation(),
       source = InstallAgentTargetSource.MANUAL,
     )

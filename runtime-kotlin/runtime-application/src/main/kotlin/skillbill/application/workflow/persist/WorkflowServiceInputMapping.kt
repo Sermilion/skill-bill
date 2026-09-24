@@ -1,4 +1,7 @@
 package skillbill.application.workflow.persist
+
+import skillbill.application.decomposition.mergedArtifacts
+import skillbill.application.telemetry.lifecycle.random
 import skillbill.application.workflow.model.PersistOpenedWorkflowArgs
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
@@ -18,6 +21,7 @@ import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.model.GoalObservabilityProgressInput
 import skillbill.goalrunner.model.GoalObservabilityWorktreeActivity
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.validateGoalObservabilityEvent
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -33,12 +37,22 @@ import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Clock
 import java.time.ZoneOffset
 import kotlin.random.Random
+
+internal data class WorkflowPersistenceContext(
+  val dbPath: String,
+  val repositoryCheckpointIdentity: () -> String = { "" },
+)
+
+internal data class ProjectionLaunchRequest(
+  val stepId: String,
+  val producerIteration: Int,
+  val repositoryCheckpointIdentity: () -> String = { "" },
+)
 
 internal fun incompleteFeatureTaskIdentityError(args: WorkflowServiceOpenArgs): WorkflowOpenResult.Error? {
   val hasIdentityCoordinates = args.repositoryIdentity != null || args.governedSpecPath != null
@@ -91,9 +105,11 @@ internal fun persistOpenedWorkflow(args: PersistOpenedWorkflowArgs): WorkflowOpe
         engine,
         family.definition,
         engine.snapshotView(family.definition, saved),
-        stepId,
-        currentStep?.attemptCount ?: 0,
-        args.repositoryCheckpointIdentity,
+        ProjectionLaunchRequest(
+          stepId = stepId,
+          producerIteration = currentStep?.attemptCount ?: 0,
+          repositoryCheckpointIdentity = args.repositoryCheckpointIdentity,
+        ),
       )
     WorkflowOpenResult.Ok(
       workflowId = saved.workflowId,
@@ -189,14 +205,13 @@ internal fun buildUpdateOk(
   definition: WorkflowDefinition,
   updated: WorkflowStateSnapshot,
   effectiveInput: WorkflowUpdateInput,
-  dbPath: String,
-  repositoryCheckpointIdentity: () -> String = { "" },
+  persistenceContext: WorkflowPersistenceContext,
 ): WorkflowUpdateResult.Ok {
   val snapshot = engine.snapshotView(definition, updated)
   val currentStep = snapshot.steps.firstOrNull { it.stepId == snapshot.currentStepId }
   return WorkflowUpdateResult.Ok(
     workflowId = updated.workflowId,
-    dbPath = dbPath,
+    dbPath = persistenceContext.dbPath,
     acknowledgement =
       engine.updateAcknowledgementView(
         snapshot = snapshot,
@@ -207,9 +222,11 @@ internal fun buildUpdateOk(
         engine,
         definition,
         snapshot,
-        snapshot.currentStepId,
-        currentStep?.attemptCount ?: 0,
-        repositoryCheckpointIdentity,
+        ProjectionLaunchRequest(
+          stepId = snapshot.currentStepId,
+          producerIteration = currentStep?.attemptCount ?: 0,
+          repositoryCheckpointIdentity = persistenceContext.repositoryCheckpointIdentity,
+        ),
       ),
   )
 }
@@ -218,10 +235,8 @@ internal fun launchProjectionIfReady(
   engine: WorkflowEngine,
   definition: WorkflowDefinition,
   snapshot: WorkflowSnapshotView,
-  stepId: String,
-  producerIteration: Int,
-  repositoryCheckpointIdentity: () -> String = { "" },
-) = definition.inputProjectionsByStep[stepId]
+  request: ProjectionLaunchRequest,
+) = definition.inputProjectionsByStep[request.stepId]
   ?.takeIf { declaration ->
     declaration.requiredArtifactKeys.all { artifactKey ->
       DurableWorkflowArtifactFamily.RUNTIME_REPOSITORY_EVIDENCE.contains(snapshot.artifacts) ||
@@ -232,9 +247,9 @@ internal fun launchProjectionIfReady(
     engine.launchProjection(
       definition,
       snapshot,
-      stepId,
-      producerIteration,
-      repositoryCheckpointIdentity(),
+      request.stepId,
+      request.producerIteration,
+      request.repositoryCheckpointIdentity(),
     )
   }
 

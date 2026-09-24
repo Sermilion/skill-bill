@@ -1,6 +1,7 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.goal
+
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
 
 data class FeatureTaskRuntimeGoalContinuationFieldAdoption(
   val field: String,

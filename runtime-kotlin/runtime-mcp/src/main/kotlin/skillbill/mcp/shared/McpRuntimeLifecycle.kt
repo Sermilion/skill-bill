@@ -5,6 +5,12 @@ import skillbill.application.telemetry.model.FeatureVerifyStartedRequest
 import skillbill.application.telemetry.model.PrDescriptionGeneratedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
+import skillbill.mcp.core.telemetryRemoteStats
+import skillbill.mcp.lifecycle.featureVerifyFinished
+import skillbill.mcp.lifecycle.featureVerifyStarted
+import skillbill.mcp.lifecycle.prDescriptionGenerated
+import skillbill.mcp.lifecycle.qualityCheckFinished
+import skillbill.mcp.lifecycle.qualityCheckStarted
 import skillbill.mcp.telemetry.toMcpMap
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.telemetry.model.RemoteStatsRequest

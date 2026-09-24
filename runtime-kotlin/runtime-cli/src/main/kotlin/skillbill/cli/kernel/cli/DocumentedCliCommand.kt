@@ -1,4 +1,5 @@
 package skillbill.cli.kernel.cli
+
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.core.NoOpCliktCommand

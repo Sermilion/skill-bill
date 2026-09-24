@@ -1,4 +1,5 @@
 package skillbill.di.telemetry
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
 import skillbill.application.telemetry.lifecycle.LifecycleTelemetryService

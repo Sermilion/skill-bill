@@ -1,9 +1,11 @@
 package skillbill.workflow.taskruntime.artifact
+
 import skillbill.contracts.JsonCodec
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticSignal
 import skillbill.workflow.taskruntime.model.audit.featureTaskRuntimeDiagnosticSignalsFromWire
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidation
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeDiagnosticDegradationMeasurement
@@ -14,7 +16,6 @@ import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRu
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.toArtifactMap
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.phase.featureTaskRuntimeDecomposePlanOutcomeOrNull
-import skillbill.workflow.taskruntime.model.phase.featureTaskRuntimeIsDecompositionPackage
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 
 fun FeatureTaskRuntimeFindingVerificationDisposition.asWorkflowArtifactEntry(): Any = toArtifactMap()
@@ -47,14 +48,6 @@ internal fun decodePhaseOutputRepairEvidenceFromArtifact(
 
 fun FeatureTaskRuntimeVerificationBoundaryHeadingProvenance.asWorkflowArtifactEntry(): Any = toArtifactMap()
 
-fun decodeVerificationBoundaryHeadingProvenanceFromArtifact(
-  raw: Any?,
-  path: String,
-): FeatureTaskRuntimeVerificationBoundaryHeadingProvenance? =
-  JsonCodec.anyToStringAnyMap(raw)?.let {
-    FeatureTaskRuntimeVerificationBoundaryHeadingProvenance.fromArtifactMap(it, path)
-  }
-
 internal fun decodeVerificationBoundaryHeadingProvenanceFromArtifact(
   raw: Map<String, Any?>,
   path: String,
@@ -63,24 +56,13 @@ internal fun decodeVerificationBoundaryHeadingProvenanceFromArtifact(
 
 fun PhaseHandoffProjectionDeclaration.asWorkflowArtifactEntry(): Any = toArtifactMap()
 
-fun decodePhaseHandoffProjectionDeclarationFromArtifact(
-  raw: Any?,
-  foundationValidator: FeatureTaskRuntimeWireArtifactValidation,
-): PhaseHandoffProjectionDeclaration? =
-  JsonCodec.anyToStringAnyMap(raw)?.let { PhaseHandoffProjectionDeclaration.fromArtifactMap(it, foundationValidator) }
-
 internal fun decodePhaseHandoffProjectionDeclarationFromArtifact(
   raw: Map<String, Any?>,
   foundationValidator: FeatureTaskRuntimeWireArtifactValidation,
 ): PhaseHandoffProjectionDeclaration = PhaseHandoffProjectionDeclaration.fromArtifactMap(raw, foundationValidator)
 
-fun phaseOutputEnvelopeFromArtifact(raw: Any?): Any? = JsonCodec.anyToStringAnyMap(raw)
-
 fun NormalizedFeatureTaskRuntimePhaseOutput.envelopeWireMap(): FeatureTaskRuntimeWorkflowArtifactMap =
   FeatureTaskRuntimeWorkflowArtifactMap.from(envelopePayload())
-
-fun isDecompositionPackagePhaseOutput(phaseOutput: Any?): Boolean =
-  JsonCodec.anyToStringAnyMap(phaseOutput)?.let { featureTaskRuntimeIsDecompositionPackage(it) } == true
 
 fun decomposePlanOutcomeFromPhaseOutput(
   phaseOutput: Any?,

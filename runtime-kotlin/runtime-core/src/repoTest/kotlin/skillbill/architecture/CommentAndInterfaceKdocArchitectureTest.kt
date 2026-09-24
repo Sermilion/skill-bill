@@ -24,7 +24,6 @@ class CommentAndInterfaceKdocArchitectureTest {
   fun `line comment scanner ignores slashes inside string literals`() {
     val fixture =
       """
-      package example
 
       class Holder {
         val payload = "http://example.com/path // not a comment"
@@ -41,7 +40,6 @@ class CommentAndInterfaceKdocArchitectureTest {
   fun `line comment outside literals fails the violation collector`() {
     val fixture =
       """
-      package example
 
       class Dirty {
         fun x() = 1 // forbidden
@@ -59,7 +57,6 @@ class CommentAndInterfaceKdocArchitectureTest {
   fun `class level KDoc fails the violation collector`() {
     val fixture =
       """
-      package example
 
       /**
        * Not on an interface.
@@ -78,7 +75,6 @@ class CommentAndInterfaceKdocArchitectureTest {
   fun `function level KDoc fails the violation collector`() {
     val fixture =
       """
-      package example
 
       /** Not on an interface member. */
       fun dirty() = 1
@@ -95,7 +91,6 @@ class CommentAndInterfaceKdocArchitectureTest {
   fun `interface member KDoc passes the violation collector`() {
     val fixture =
       """
-      package example
 
       interface Port {
         /**
@@ -115,7 +110,6 @@ class CommentAndInterfaceKdocArchitectureTest {
   fun `nested class member KDoc fails the violation collector`() {
     val fixture =
       """
-      package example
 
       interface Container {
         class Nested {
@@ -136,7 +130,6 @@ class CommentAndInterfaceKdocArchitectureTest {
   fun `KDoc in a top-level property initializer fails after a bodyless interface`() {
     val fixture =
       """
-      package example
 
       interface Marker
 
@@ -157,7 +150,6 @@ class CommentAndInterfaceKdocArchitectureTest {
   fun `sealed interface KDoc passes the violation collector`() {
     val fixture =
       """
-      package example
 
       /** Contract surface. */
       sealed interface Port
@@ -173,7 +165,6 @@ class CommentAndInterfaceKdocArchitectureTest {
   fun `nested annotation KDoc passes the violation collector`() {
     val fixture =
       """
-      package example
 
       interface Container {
         /** Nested contract type. */
@@ -191,7 +182,6 @@ class CommentAndInterfaceKdocArchitectureTest {
   fun `non KDoc block comment fails the violation collector`() {
     val fixture =
       """
-      package example
 
       class Dirty {
         /* block */
@@ -217,7 +207,6 @@ class CommentAndInterfaceKdocArchitectureTest {
           Files.writeString(
             path,
             """
-            package example
 
             class Dirty {
               fun x() = 1 // forbidden if scanned

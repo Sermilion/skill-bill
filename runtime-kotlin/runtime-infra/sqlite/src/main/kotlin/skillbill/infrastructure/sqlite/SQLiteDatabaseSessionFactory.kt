@@ -28,6 +28,7 @@ class SQLiteDatabaseSessionFactory(
   private val clock: Clock,
   private val diagnostics: RuntimeDiagnostics,
   private val workflowSnapshotValidator: WorkflowSnapshotValidator,
+  private val runtimeVersion: String,
 ) : DatabaseSessionFactory {
   private val resolvedContext = requireResolvedEnvironmentContext(context)
   private val resolvedPath by lazy {
@@ -109,7 +110,7 @@ class SQLiteDatabaseSessionFactory(
     }
 
   private fun unitOfWork(openDb: OpenDatabase): SQLiteUnitOfWork =
-    SQLiteUnitOfWork(openDb.connection, openDb.dbPath, clock, diagnostics, workflowSnapshotValidator)
+    SQLiteUnitOfWork(openDb.connection, openDb.dbPath, clock, diagnostics, workflowSnapshotValidator, runtimeVersion)
 
   private fun <T> withWriteDatabase(block: (OpenDatabase) -> T): T {
     val dbPath = resolveDbPath()

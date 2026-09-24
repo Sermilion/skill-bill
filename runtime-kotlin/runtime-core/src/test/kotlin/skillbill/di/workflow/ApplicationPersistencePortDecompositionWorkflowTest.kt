@@ -1,4 +1,6 @@
-package skillbill.di.workflow
+package skillbill.application
+
+import skillbill.application.decomposition.executionModel
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowGetResult

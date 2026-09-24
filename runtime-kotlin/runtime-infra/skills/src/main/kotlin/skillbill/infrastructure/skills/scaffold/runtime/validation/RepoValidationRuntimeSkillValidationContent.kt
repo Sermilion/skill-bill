@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.runtime.validation
+
 import skillbill.infrastructure.skills.scaffold.authoring.InternalSkillDeclaration
 import skillbill.infrastructure.skills.scaffold.authoring.internalSkillClassificationViolations
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter

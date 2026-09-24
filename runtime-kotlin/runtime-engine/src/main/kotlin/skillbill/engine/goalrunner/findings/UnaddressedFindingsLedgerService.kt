@@ -2,7 +2,6 @@ package skillbill.engine.goalrunner.findings
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.error.shellcontent.InvalidUnaddressedFindingsLedgerSchemaError
 import skillbill.error.shellcontent.UnaddressedFindingsLedgerAbsentError
 import skillbill.goalrunner.model.UNADDRESSED_FINDING_CATEGORIES
@@ -14,8 +13,8 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
-import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairLedger
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 
 @Inject

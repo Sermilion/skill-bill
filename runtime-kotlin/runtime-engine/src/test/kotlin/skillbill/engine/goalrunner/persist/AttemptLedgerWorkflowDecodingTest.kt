@@ -80,7 +80,10 @@ class AttemptLedgerWorkflowDecodingTest {
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "validate",
       steps = listOf(WorkflowStepState("validate", WorkflowStepStatus.RUNNING, 1)),
-      artifacts = DurableWorkflowArtifacts.fromMap(requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(artifactsJson)))),
+      artifacts =
+        DurableWorkflowArtifacts.fromMap(
+          requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(artifactsJson))),
+        ),
       startedAt = Instant.parse("2026-06-02T10:00:00Z"),
       updatedAt = Instant.parse("2026-06-02T10:00:01Z"),
       finishedAt = null,

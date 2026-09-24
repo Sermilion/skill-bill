@@ -11,4 +11,3 @@ internal fun encodeDecompositionManifestYaml(
   fileStore: DecompositionManifestStore,
   sourceLabel: String = "<in-memory>",
 ): String = encodeValidatedDecompositionManifestYaml(manifest, validator, fileStore, sourceLabel).yamlText
-

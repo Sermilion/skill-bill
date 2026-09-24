@@ -5,17 +5,16 @@ import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCa
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupQuery
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
 import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
+import skillbill.goalrunner.model.GoalContinuation
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import skillbill.workflow.model.FeatureTaskRouteScope
 
 fun executeFeatureTaskContinuationLookup(
   query: FeatureTaskContinuationLookupQuery,
   unitOfWork: UnitOfWork,
-  decompositionManifestValidator: DecompositionManifestValidator,
   project: (
     FeatureTaskWorkflowCandidate,
     FeatureTaskRuntimeWorkerOwnership?,
@@ -78,6 +77,5 @@ fun executeFeatureTaskContinuationLookup(
   return unitOfWork.workflowStates.goalContinuationFor(
     normalizedIssueKey,
     query.repositoryIdentity,
-    decompositionManifestValidator,
   )?.let(FeatureTaskContinuationLookupResult::GoalContinuation) ?: classified
 }

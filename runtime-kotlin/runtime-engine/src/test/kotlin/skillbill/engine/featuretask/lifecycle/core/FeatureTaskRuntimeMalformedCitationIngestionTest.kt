@@ -2,6 +2,7 @@ package skillbill.engine.featuretask.lifecycle.core
 
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.application.review.model.ParallelReviewLaneStatus
+import skillbill.engine.envelope
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewCycleContext
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewEnvelope
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
@@ -13,7 +14,7 @@ import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewSeverity
 import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewFindingCitationDiagnostic
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

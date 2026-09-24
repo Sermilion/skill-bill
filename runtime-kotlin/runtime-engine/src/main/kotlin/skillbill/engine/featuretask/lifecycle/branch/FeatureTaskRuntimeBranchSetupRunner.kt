@@ -1,10 +1,12 @@
 package skillbill.engine.featuretask.lifecycle.branch
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.decomposition.baseBranch
 import skillbill.engine.featuretask.lifecycle.subtask.decide
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
+import skillbill.engine.goalrunner.execution.support.protectedBranchName
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.captureGoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -234,7 +236,7 @@ private data class Established(val branch: String) : FeatureTaskRuntimeBranchSet
   override val blockedReason: String? get() = null
 }
 
-private data class Blocked(val reason: String) : FeatureTaskRuntimeBranchSetupOutcome {
+internal data class Blocked(val reason: String) : FeatureTaskRuntimeBranchSetupOutcome {
   override val establishedBranch: String? get() = null
   override val blockedReason: String get() = reason
 }

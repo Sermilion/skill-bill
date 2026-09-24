@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature
+
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.emitFeatureVerifyFinished
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.emitFeatureVerifyStarted
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.save.TerminalSaveOutcome
@@ -11,13 +12,14 @@ import java.sql.Connection
 
 internal class LifecycleTelemetryFeatureVerifySessionAdapter(
   private val connection: Connection,
+  private val runtimeVersion: String,
 ) : FeatureVerifyLifecycleTelemetryRepository {
   override fun featureVerifyStarted(
     record: FeatureVerifyStartedRecord,
     level: String,
   ) {
     saveFeatureVerifyStarted(connection, record)
-    emitFeatureVerifyStarted(connection, record.sessionId, level)
+    emitFeatureVerifyStarted(connection, runtimeVersion, record.sessionId, level)
   }
 
   override fun featureVerifyFinished(
@@ -25,7 +27,7 @@ internal class LifecycleTelemetryFeatureVerifySessionAdapter(
     level: String,
   ) {
     if (saveFeatureVerifyFinished(connection, record) == TerminalSaveOutcome.FIRST_TERMINAL) {
-      emitFeatureVerifyFinished(connection, record.sessionId, level)
+      emitFeatureVerifyFinished(connection, runtimeVersion, record.sessionId, level)
     }
   }
 }

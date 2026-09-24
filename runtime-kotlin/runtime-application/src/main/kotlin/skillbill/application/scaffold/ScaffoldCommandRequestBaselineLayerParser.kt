@@ -1,4 +1,5 @@
 package skillbill.application.scaffold
+
 import skillbill.contracts.scaffold.wire.optionalList
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.scaffold.model.CodeReviewBaselineLayer

@@ -1,7 +1,7 @@
 package skillbill.infrastructure.workflow.feature
+
 import skillbill.infrastructure.workflow.featuretask.FileSystemFeatureTaskRuntimeSharedEvidenceStore
 import skillbill.infrastructure.workflow.featuretask.artifactDir
-import skillbill.infrastructure.workflow.featuretask.storePath
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceDeriver
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceDerivation
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceRequest

@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.planning
+
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.parallel.runner.PARALLEL_REVIEW_HEAD_REVISION
 import skillbill.application.reviewevidence.model.DiffResolutionException

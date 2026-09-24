@@ -15,7 +15,7 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
   fun `legacy pending rows get an identity once and every unsynced row survives`() {
     val dbPath = newDatabase()
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val store = TelemetryOutboxStore(connection)
+      val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
       store.enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"i":1}""")
       store.enqueue(eventName = "skillbill_review_finished", payloadJson = """{"i":2}""")
       val synced = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"i":3}""")
@@ -41,7 +41,7 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
     val dbPath = newDatabase()
     val minted =
       DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-        val store = TelemetryOutboxStore(connection)
+        val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
         store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
         store.listPending().single().eventUuid
       }
@@ -49,7 +49,7 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
 
     val afterRestart =
       DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-        TelemetryOutboxStore(connection).listPending().single().eventUuid
+        TelemetryOutboxStore(connection, version = "test-runtime-version").listPending().single().eventUuid
       }
 
     assertEquals(minted, afterRestart, "A restart must not re-mint a pending row's identity.")
@@ -66,7 +66,7 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
   fun `a cleared queue leaves nothing for the migration to reconstruct`() {
     val dbPath = newDatabase()
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val store = TelemetryOutboxStore(connection)
+      val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
       store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
       store.enqueue(eventName = "skillbill_review_finished", payloadJson = "{}")
 
@@ -81,7 +81,10 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
   private fun backfilledIdentity(): String {
     val dbPath = newDatabase()
     return DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      TelemetryOutboxStore(connection).enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      TelemetryOutboxStore(connection, version = "test-runtime-version").enqueue(
+        eventName = "skillbill_goal_finished",
+        payloadJson = "{}",
+      )
       stripIdentities(connection)
       TelemetryOutboxDeliveryIdentityMigration.apply(connection)
       identities(connection).values.single()

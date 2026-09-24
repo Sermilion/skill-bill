@@ -1,4 +1,5 @@
 package skillbill.cli.install.nativeagent
+
 import me.tatarka.inject.annotations.Inject
 
 @Inject

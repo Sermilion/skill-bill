@@ -1,6 +1,8 @@
 package skillbill.cli
+
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
+import skillbill.engine.goalrunner.status.completed
 import skillbill.engine.work.model.IdeStatusFreshness
 import skillbill.engine.work.model.IdeStatusLifecycleState
 import skillbill.engine.work.model.IdeStatusPlanning
@@ -9,8 +11,6 @@ import skillbill.engine.work.model.IdeStatusSnapshot
 import skillbill.engine.work.model.IdeStatusStep
 import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.goalrunner.model.GoalPlanningStatusState
-import skillbill.infrastructure.contracts.workflow.goal.status.IdeStatusSchemaValidator
-import skillbill.infrastructure.sqlite.ensureTestDatabase
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant

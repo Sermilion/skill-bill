@@ -16,7 +16,7 @@ import skillbill.engine.featuretask.runner.reviewBaseline
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.orLegacyValidate
@@ -295,7 +295,7 @@ private fun hasGoalContinuation(
   request: FeatureTaskRuntimeRunRequest,
 ): Boolean = initial != null || request.goalContinuation != null
 
-private fun selectedReviewMode(
+internal fun selectedReviewMode(
   request: FeatureTaskRuntimeRunRequest,
   continuation: FeatureTaskRuntimeGoalContinuationArtifact?,
 ): CodeReviewExecutionMode =

@@ -2,6 +2,7 @@ package skillbill.mcp.featuretask
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementAcknowledgment
 import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementBlockRequest
 import skillbill.engine.featuretask.model.phase.FeatureTaskPhaseSettlementCompleteRequest

@@ -4,11 +4,11 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.idestatus.model.WorktreeEditSummary
 import skillbill.workflow.decomposition.model.DecompositionManifest
-import skillbill.workflow.goal.model.GoalObservabilityDiffStat
-import skillbill.workflow.goal.model.GoalObservabilityEvent
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.GoalObservabilityDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilityEvent
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
 

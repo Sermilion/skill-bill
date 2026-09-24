@@ -1,4 +1,5 @@
 package skillbill.review.attribution
+
 import skillbill.review.model.NormalizedStackLabel
 
 fun normalizeRoutedSkill(rawValue: String?): String {

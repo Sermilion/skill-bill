@@ -1,11 +1,12 @@
 package skillbill.infrastructure.skills.skillremove
 
-import skillbill.domain.skillremove.model.AgentSymlinkUnlink
-import skillbill.domain.skillremove.model.ManifestEdit
-import skillbill.domain.skillremove.model.ReadmeCatalogEdit
-import skillbill.domain.skillremove.model.ReadmeCatalogEditKind
-import skillbill.domain.skillremove.model.SkillRemovalRequest
-import skillbill.domain.skillremove.model.SkillRemovalTarget
+import skillbill.ports.workflow.list
+import skillbill.skillremove.model.AgentSymlinkUnlink
+import skillbill.skillremove.model.ManifestEdit
+import skillbill.skillremove.model.ReadmeCatalogEdit
+import skillbill.skillremove.model.ReadmeCatalogEditKind
+import skillbill.skillremove.model.SkillRemovalRequest
+import skillbill.skillremove.model.SkillRemovalTarget
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path

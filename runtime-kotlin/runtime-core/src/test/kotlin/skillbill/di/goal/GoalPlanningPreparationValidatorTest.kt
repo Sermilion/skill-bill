@@ -7,7 +7,6 @@ import skillbill.engine.goalplanning.GoalPlanningPreparationValidator
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimePhaseOutputSchemaValidator
-import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
@@ -16,12 +15,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactSchemaValidator
 
 class GoalPlanningPreparationValidatorTest {
   private val validator =
     GoalPlanningPreparationValidator(
       FeatureTaskRuntimePhaseOutputSchemaValidator(),
-      FeatureTaskRuntimeWireArtifactValidator(),
+      FeatureTaskRuntimeWireArtifactSchemaValidator(),
     )
 
   @Test

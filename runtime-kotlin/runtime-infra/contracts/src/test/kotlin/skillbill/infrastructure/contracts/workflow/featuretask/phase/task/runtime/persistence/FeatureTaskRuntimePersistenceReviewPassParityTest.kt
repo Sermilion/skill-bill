@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.persistence
+
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePersistenceSchemaError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.infrastructure.contracts.workflow.featuretask.handoff.FeatureTaskRuntimePersistenceSchemaValidator

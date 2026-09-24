@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.featuretask
+
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
 import skillbill.infrastructure.sqlite.core.ops.degradedValuePreview
 import skillbill.infrastructure.sqlite.core.ops.recordDegradedValue

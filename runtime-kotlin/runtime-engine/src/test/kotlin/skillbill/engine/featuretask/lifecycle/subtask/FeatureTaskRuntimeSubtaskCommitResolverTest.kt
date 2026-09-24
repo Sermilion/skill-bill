@@ -1,10 +1,11 @@
 package skillbill.engine.featuretask.lifecycle.subtask
+
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskCommitIdentity
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-private const val ISSUE = "SKILL-190"
+internal const val ISSUE = "SKILL-190"
 private const val HEAD_SHA = "1111111111111111111111111111111111111111"
 private const val OTHER_SHA = "2222222222222222222222222222222222222222"
 

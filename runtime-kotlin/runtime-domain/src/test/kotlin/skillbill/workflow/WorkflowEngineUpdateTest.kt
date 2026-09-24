@@ -22,15 +22,16 @@ class WorkflowEngineUpdateTest {
 
   @Test
   fun `update rejects undeclared steps disallowed statuses duplicates and invalid attempts`() {
-    val invalid = listOf(
-      input.copy(currentStepId = "not-declared"),
-      input.copy(workflowStatus = WorkflowStatus.BLOCKED),
-      input.copy(stepUpdates = updates("not-declared", "running", 1)),
-      input.copy(stepUpdates = updates("gather_diff", "unknown", 1)),
-      input.copy(stepUpdates = updates("gather_diff", "running", -1)),
-      input.copy(stepUpdates = updates("gather_diff", "running", 1.5)),
-      input.copy(stepUpdates = WorkflowStepUpdates.from(listOf(step(), step()))),
-    )
+    val invalid =
+      listOf(
+        input.copy(currentStepId = "not-declared"),
+        input.copy(workflowStatus = WorkflowStatus.BLOCKED),
+        input.copy(stepUpdates = updates("not-declared", "running", 1)),
+        input.copy(stepUpdates = updates("gather_diff", "unknown", 1)),
+        input.copy(stepUpdates = updates("gather_diff", "running", -1)),
+        input.copy(stepUpdates = updates("gather_diff", "running", 1.5)),
+        input.copy(stepUpdates = WorkflowStepUpdates.from(listOf(step(), step()))),
+      )
     invalid.forEach { update ->
       assertFailsWith<InvalidWorkflowStateSchemaError> { engine.updateRecord(definition, initial, update) }
     }
@@ -56,14 +57,24 @@ class WorkflowEngineUpdateTest {
 
   @Test
   fun `step updates keep definition order and artifact replacement removes old keys`() {
-    val first = engine.updateRecord(definition, initial, input.copy(
-      artifactsPatch = WorkflowArtifactPatch.from(linkedMapOf("first" to 1, "second" to 2)),
-    ))
-    val updated = engine.updateRecord(definition, first, input.copy(
-      stepUpdates = updates("gather_diff", "completed", 2),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf("only" to 3)),
-      replaceArtifacts = true,
-    ))
+    val first =
+      engine.updateRecord(
+        definition,
+        initial,
+        input.copy(
+          artifactsPatch = WorkflowArtifactPatch.from(linkedMapOf("first" to 1, "second" to 2)),
+        ),
+      )
+    val updated =
+      engine.updateRecord(
+        definition,
+        first,
+        input.copy(
+          stepUpdates = updates("gather_diff", "completed", 2),
+          artifactsPatch = WorkflowArtifactPatch.from(mapOf("only" to 3)),
+          replaceArtifacts = true,
+        ),
+      )
     assertEquals(definition.stepIds, updated.steps.map { it.stepId })
     assertEquals(WorkflowStepStatus.COMPLETED, updated.steps.single { it.stepId == "gather_diff" }.status)
     assertEquals(2, updated.steps.single { it.stepId == "gather_diff" }.attemptCount)
@@ -71,9 +82,15 @@ class WorkflowEngineUpdateTest {
     assertEquals(mapOf("first" to 1, "second" to 2), first.artifacts.toMap())
   }
 
-  private fun step(id: String = "gather_diff", status: String = "running", attempts: Number = 1) =
-    mapOf("step_id" to id, "status" to status, "attempt_count" to attempts)
+  private fun step(
+    id: String = "gather_diff",
+    status: String = "running",
+    attempts: Number = 1,
+  ) = mapOf("step_id" to id, "status" to status, "attempt_count" to attempts)
 
-  private fun updates(id: String, status: String, attempts: Number) =
-    WorkflowStepUpdates.from(listOf(step(id, status, attempts)))
+  private fun updates(
+    id: String,
+    status: String,
+    attempts: Number,
+  ) = WorkflowStepUpdates.from(listOf(step(id, status, attempts)))
 }

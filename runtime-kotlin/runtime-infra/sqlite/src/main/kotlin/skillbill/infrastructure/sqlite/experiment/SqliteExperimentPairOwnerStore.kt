@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.experiment
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.experiment.ExperimentObservationPayloadKeys

@@ -159,7 +159,7 @@ class TelemetryOutboxStaleSettlementTest {
   private fun withOutbox(block: (Connection, TelemetryOutboxStore) -> Unit) {
     val dbPath = Files.createTempDirectory("telemetry-stale-settlement").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      block(connection, TelemetryOutboxStore(connection))
+      block(connection, TelemetryOutboxStore(connection, version = "test-runtime-version"))
     }
   }
 }

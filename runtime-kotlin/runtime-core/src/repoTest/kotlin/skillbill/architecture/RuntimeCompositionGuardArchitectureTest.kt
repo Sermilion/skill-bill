@@ -25,7 +25,6 @@ class RuntimeCompositionGuardArchitectureTest {
     val boundClasses =
       ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
         """
-        import me.tatarka.inject.annotations.Provides
         @Provides
         fun bindStore(store: FileTelemetryConfigStore): FileTelemetryConfigStore = store
         @Provides
@@ -38,8 +37,6 @@ class RuntimeCompositionGuardArchitectureTest {
         relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
         source =
           """
-          package skillbill.example
-          import skillbill.infrastructure.host.FileTelemetryConfigStore
           class Example {
             fun leak() {
               FileTelemetryConfigStore(context)
@@ -73,8 +70,6 @@ class RuntimeCompositionGuardArchitectureTest {
   fun `bound-class census includes renamed provider parameter types`() {
     val source =
       """
-      package skillbill.di
-      import me.tatarka.inject.annotations.Provides
       internal interface RuntimeExampleProvides {
         @Provides
         fun bind(implementation: ExampleAdapter): ExamplePort = implementation
@@ -90,8 +85,6 @@ class RuntimeCompositionGuardArchitectureTest {
   fun `bound-class census includes explicit Provides constructions`() {
     val source =
       """
-      package skillbill.di
-      import me.tatarka.inject.annotations.Provides
       internal interface RuntimeWorkflowProvides {
         @Provides
         fun gitWorkflowGitOperations(): GitWorkflowGitOperations = GitWorkflowGitOperations()
@@ -108,7 +101,6 @@ class RuntimeCompositionGuardArchitectureTest {
     val boundClasses =
       ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
         """
-        import me.tatarka.inject.annotations.Provides
         @Provides
         fun bind(store: FileTelemetryConfigStore): FileTelemetryConfigStore = store
         """.trimIndent(),
@@ -119,8 +111,6 @@ class RuntimeCompositionGuardArchitectureTest {
         relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
         source =
           """
-          package skillbill.example
-          import skillbill.infrastructure.host.FileTelemetryConfigStore as StoreAlias
           class Example {
             fun leak() {
               StoreAlias(context)
@@ -142,8 +132,6 @@ class RuntimeCompositionGuardArchitectureTest {
     val boundClasses =
       ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
         """
-        import me.tatarka.inject.annotations.Provides
-        import skillbill.infrastructure.host.FileTelemetryConfigStore as StoreAlias
         @Provides
         fun bind(store: StoreAlias): TelemetryConfigStore = store
         """.trimIndent(),
@@ -154,8 +142,6 @@ class RuntimeCompositionGuardArchitectureTest {
         relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
         source =
           """
-          package skillbill.example
-          import skillbill.infrastructure.host.FileTelemetryConfigStore
           class Example {
             fun leak() {
               FileTelemetryConfigStore(context)
@@ -184,7 +170,6 @@ class RuntimeCompositionGuardArchitectureTest {
         relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
         source =
           """
-          package skillbill.example
           fun FileTelemetryConfigStore() = Unit
           val message = "FileTelemetryConfigStore(context)"
           // FileTelemetryConfigStore(ignored)
@@ -201,7 +186,6 @@ class RuntimeCompositionGuardArchitectureTest {
         relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
         source =
           """
-          package skillbill.example
           /*
             FileTelemetryConfigStore(ignored)
           */

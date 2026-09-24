@@ -62,4 +62,3 @@ fun GoalRunnerWorkerSubtaskRequest.toPersistenceWire(): Map<String, Any?> =
     "depends_on_subtask_ids" to dependsOnSubtaskIds,
     "requires_operator_confirmation" to requiresOperatorConfirmation,
   ).filterValues { value -> value != null }
-

@@ -1,6 +1,13 @@
 package skillbill.infrastructure.workflow.git.scoped
+
+import skillbill.infrastructure.workflow.git.workflow.git
 import skillbill.infrastructure.workflow.process.runGitCommand
+import skillbill.ports.workflow.gitops.captureIndexState
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.pathContentIdentities
+import skillbill.ports.workflow.gitops.restoreIndexState
+import skillbill.ports.workflow.gitops.stagePaths
+import skillbill.ports.workflow.gitops.stagedPaths
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories

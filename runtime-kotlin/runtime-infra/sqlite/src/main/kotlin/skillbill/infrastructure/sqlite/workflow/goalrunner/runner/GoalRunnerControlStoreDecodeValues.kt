@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.runner
+
 import skillbill.contracts.JsonCodec
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import java.math.BigDecimal

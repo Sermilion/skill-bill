@@ -16,26 +16,26 @@ data class AgentLauncherCli(
   }
 }
 
-val AGENT_LAUNCHER_CLIS: Map<InstallAgent, AgentLauncherCli> =
+val AGENT_LAUNCHER_CLIS: Map<SupportedAgent, AgentLauncherCli> =
   mapOf(
-    InstallAgent.CLAUDE to
+    SupportedAgent.CLAUDE to
       AgentLauncherCli(
-        executables = listOf(InstallAgent.CLAUDE.wireValue),
+        executables = listOf(SupportedAgent.CLAUDE.wireValue),
         installHint = "install Claude Code (https://docs.claude.com/en/docs/claude-code/setup)",
       ),
-    InstallAgent.CODEX to
+    SupportedAgent.CODEX to
       AgentLauncherCli(
-        executables = listOf(InstallAgent.CODEX.wireValue),
+        executables = listOf(SupportedAgent.CODEX.wireValue),
         installHint = "install the Codex CLI (npm install -g @openai/codex)",
       ),
-    InstallAgent.JUNIE to
+    SupportedAgent.JUNIE to
       AgentLauncherCli(
-        executables = listOf(InstallAgent.JUNIE.wireValue),
+        executables = listOf(SupportedAgent.JUNIE.wireValue),
         installHint = "install the Junie CLI from JetBrains",
       ),
-    InstallAgent.CURSOR to
+    SupportedAgent.CURSOR to
       AgentLauncherCli(
-        executables = listOf("agent", "${InstallAgent.CURSOR.wireValue}-agent"),
+        executables = listOf("agent", "${SupportedAgent.CURSOR.wireValue}-agent"),
         installHint = "install the Cursor Agent CLI (curl https://cursor.com/install -fsS | bash)",
       ),
   )
@@ -45,14 +45,14 @@ fun unavailableAgentLauncherReason(
   onPath: (String) -> Boolean,
 ): String? {
   val normalized = agentId?.trim()?.lowercase()?.takeIf(String::isNotBlank) ?: return null
-  val agent = InstallAgent.entries.firstOrNull { candidate -> candidate.wireValue == normalized }
+  val agent = SupportedAgent.entries.firstOrNull { candidate -> candidate.wireValue == normalized }
   val launcher = agent?.let(AGENT_LAUNCHER_CLIS::get) ?: return null
   if (launcher.executables.any(onPath)) return null
   return agentLauncherUnavailableMessage(agent, launcher.executables.first(), launcher.installHint)
 }
 
 fun agentLauncherUnavailableMessage(
-  agent: InstallAgent,
+  agent: SupportedAgent,
   executable: String,
   installHint: String,
 ): String =
@@ -60,11 +60,11 @@ fun agentLauncherUnavailableMessage(
     "Having the ${agent.wireValue} editor or its home directory installed is not enough — the headless CLI is a " +
     "separate install. Either $installHint, or relaunch with a different --agent."
 
-val MODEL_DIRECTIVE_CAPABLE_AGENTS: Set<InstallAgent> =
+val MODEL_DIRECTIVE_CAPABLE_AGENTS: Set<SupportedAgent> =
   setOf(
-    InstallAgent.CLAUDE,
-    InstallAgent.CODEX,
-    InstallAgent.CURSOR,
+    SupportedAgent.CLAUDE,
+    SupportedAgent.CODEX,
+    SupportedAgent.CURSOR,
   )
 
 fun supportsModelDirective(agentId: String?): Boolean {
@@ -76,19 +76,19 @@ fun supportsModelDirective(agentId: String?): Boolean {
 object InvokingAgentContextResolver {
   val INVOKING_AGENT_CONTEXT_SIGNALS: List<InvokingAgentContextSignal> =
     listOf(
-      InvokingAgentContextSignal(InstallAgent.CLAUDE, listOf("CLAUDECODE", "CLAUDE_CODE", "CLAUDE_CODE_ENTRYPOINT")),
-      InvokingAgentContextSignal(InstallAgent.CODEX, listOf("CODEX_SANDBOX", "CODEX_SANDBOX_ENV")),
-      InvokingAgentContextSignal(InstallAgent.CURSOR, listOf("CURSOR_AGENT", "CURSOR_INVOKED_AS")),
+      InvokingAgentContextSignal(SupportedAgent.CLAUDE, listOf("CLAUDECODE", "CLAUDE_CODE", "CLAUDE_CODE_ENTRYPOINT")),
+      InvokingAgentContextSignal(SupportedAgent.CODEX, listOf("CODEX_SANDBOX", "CODEX_SANDBOX_ENV")),
+      InvokingAgentContextSignal(SupportedAgent.CURSOR, listOf("CURSOR_AGENT", "CURSOR_INVOKED_AS")),
     )
 
-  fun detect(environment: Map<String, String>): InstallAgent? =
+  fun detect(environment: Map<String, String>): SupportedAgent? =
     INVOKING_AGENT_CONTEXT_SIGNALS
       .firstOrNull { signal -> signal.markerKeys.any { key -> environment[key]?.isNotBlank() == true } }
       ?.agent
 }
 
 data class InvokingAgentContextSignal(
-  val agent: InstallAgent,
+  val agent: SupportedAgent,
   val markerKeys: List<String>,
 ) {
   init {
@@ -109,12 +109,12 @@ enum class InstallAgentTargetSource {
 
 data class InstallAgentSelection(
   val mode: InstallAgentSelectionMode,
-  val manualAgents: Set<InstallAgent> = emptySet(),
+  val manualAgents: Set<SupportedAgent> = emptySet(),
   val detectedTargets: List<InstallAgentTarget> = emptyList(),
 )
 
 data class InstallAgentTarget(
-  val agent: InstallAgent,
+  val agent: SupportedAgent,
   val path: FileLocation,
   val source: InstallAgentTargetSource,
 )

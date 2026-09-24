@@ -1,5 +1,4 @@
 package skillbill.infrastructure.skills.skillremove
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.model.EnvironmentContext
 import skillbill.ports.skillremove.SkillRemoveFileSystem

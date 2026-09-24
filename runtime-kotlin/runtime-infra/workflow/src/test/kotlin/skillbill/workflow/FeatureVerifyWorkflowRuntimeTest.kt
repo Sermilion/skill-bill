@@ -1,21 +1,21 @@
 package skillbill.workflow
-import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
+
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowContinueDecisionOverrides
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
-import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.test.assertFailsWith
-import java.time.Instant
+import kotlin.test.assertTrue
 
 class FeatureVerifyWorkflowRuntimeTest {
   private val definition = FeatureVerifyWorkflowDefinition.definition
-  private val validator = WorkflowStateSchemaValidator()
   private val engine = WorkflowEngine()
 
   @Test
@@ -87,7 +87,12 @@ class FeatureVerifyWorkflowRuntimeTest {
         ),
       )
 
-    val decision = engine.continueDecision(definition, record)
+    val decision =
+      engine.continueDecision(
+        definition,
+        record,
+        overrides = WorkflowContinueDecisionOverrides(repositoryCheckpointIdentity = "abc123"),
+      )
 
     assertEquals("reopened", decision.view.continueStatus.wireValue)
     assertEquals(
@@ -123,9 +128,10 @@ class FeatureVerifyWorkflowRuntimeTest {
     assertEquals(WorkflowStatus.PENDING, engine.updateRecord(definition, existing, pending).workflowStatus)
     assertEquals(WorkflowStatus.ABANDONED, engine.updateRecord(definition, existing, abandoned).workflowStatus)
     assertEquals("recover", engine.resumeView(definition, completedAs("abandoned")).resumeMode.wireValue)
-    val failure = assertFailsWith<InvalidWorkflowStateSchemaError> {
-      engine.updateRecord(definition, existing, pending.copy(workflowStatus = WorkflowStatus.BLOCKED))
-    }
+    val failure =
+      assertFailsWith<InvalidWorkflowStateSchemaError> {
+        engine.updateRecord(definition, existing, pending.copy(workflowStatus = WorkflowStatus.BLOCKED))
+      }
     assertEquals(
       "Invalid workflow_status 'blocked'. Allowed: pending, running, completed, failed, abandoned",
       failure.message,

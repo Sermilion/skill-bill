@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.lifecycle.subtask
 
+import skillbill.application.decomposition.baseBranch
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys

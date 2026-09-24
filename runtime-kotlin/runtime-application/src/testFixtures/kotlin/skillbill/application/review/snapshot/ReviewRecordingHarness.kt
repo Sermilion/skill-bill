@@ -24,7 +24,7 @@ import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionMa
 import skillbill.infrastructure.workflow.filesystem.FileSystemDiffResolver
 import skillbill.infrastructure.workflow.review.broker.FileSystemReviewEvidenceBroker
 import skillbill.infrastructure.workflow.review.specialists.review.ClasspathReviewSpecialistContractProvider
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.learnings.model.LearningRecord
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
@@ -43,6 +43,7 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.repository.RepositoryOriginScopeKeyPort
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.evidence.ReviewEvidenceBroker
 import skillbill.ports.review.evidence.ReviewEvidenceBrokerFactory
@@ -65,7 +66,7 @@ import skillbill.ports.scaffold.model.PilotedPlatformPackProjection
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
-import skillbill.ports.review.ReviewContextEnvelopeValidator
+import skillbill.review.context.ReviewContextWireMap
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.review.context.model.packet.LANE_EVIDENCE_BYTES_DIMENSION
@@ -98,7 +99,6 @@ import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import skillbill.telemetry.model.PrDescriptionGeneratedRecord
 import skillbill.telemetry.model.QualityCheckFinishedRecord
 import skillbill.telemetry.model.QualityCheckStartedRecord
-import skillbill.workflow.engine.model.ReviewContextWireMap
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeDiagnosticDegradationMeasurement
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionMeasurement
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRejectionMeasurement
@@ -192,7 +192,7 @@ fun reviewHarness(
       config.parentLaunch?.invoke(request)?.let { return@GoalRunnerSubtaskLauncher it }
       val response = config.response(request)
       AgentRunLaunchFacts(
-        agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+        agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
         exitStatus =
           if (response.timedOut || response.spawnFailed || response.interrupted) {
             null

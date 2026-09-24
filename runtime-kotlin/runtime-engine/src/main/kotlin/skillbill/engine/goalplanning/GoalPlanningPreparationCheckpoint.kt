@@ -3,6 +3,7 @@ package skillbill.engine.goalplanning
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.goalrunner.planning.hydration.expectedProvenance
 import skillbill.engine.planningprojection.producerProjectionGateReason
 import skillbill.engine.planningprojection.requireValidPlanningProjection
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
@@ -16,16 +17,16 @@ import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
-import skillbill.text.sha256HexUtf8
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
-import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.validateGoalPlanningPreparationEnvelope
+import skillbill.text.sha256HexUtf8
+import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
+import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
 
 @Inject
 class GoalPlanningPreparationCheckpoint(

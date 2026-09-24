@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
+
 import skillbill.goalrunner.STALENESS_EVIDENCE_WINDOW
 import skillbill.goalrunner.declaredProgressEventFrom
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
@@ -17,9 +18,8 @@ import skillbill.ports.workflow.list
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuation
 import java.nio.file.Path
 import java.time.Clock
@@ -29,7 +29,6 @@ import java.time.Instant
 internal class WorkflowGoalRunnerOutcomeReconcile(
   private val engine: WorkflowEngine,
   private val gitOperations: WorkflowGitOperations,
-  private val goalObservabilityEventValidator: FeatureTaskRuntimeWireArtifactValidator,
   private val blockWrites: WorkflowGoalRunnerBlockWrites,
   private val terminalPersistence: WorkflowGoalRunnerOutcomeTerminalPersistence,
   private val clock: Clock,

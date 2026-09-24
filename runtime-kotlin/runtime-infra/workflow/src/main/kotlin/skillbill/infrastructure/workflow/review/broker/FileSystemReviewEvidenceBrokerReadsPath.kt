@@ -1,12 +1,13 @@
 package skillbill.infrastructure.workflow.review.broker
+
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.infrastructure.host.jvm.pathContainedIn
 import skillbill.infrastructure.host.jvm.requirePathContainedIn
 import skillbill.ports.review.model.ReviewEvidenceResult
 import skillbill.review.context.model.execution.ForbiddenReviewOperation
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.hunk.ReviewBudgetOutcome
+import skillbill.review.model.requireRepositoryRelativePath
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path

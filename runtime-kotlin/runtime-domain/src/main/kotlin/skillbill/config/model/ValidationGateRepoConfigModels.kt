@@ -1,7 +1,7 @@
 package skillbill.config.model
 
-const val VALIDATION_GATE_KEY: String = "validation_gate"
-const val GRADLE_WRAPPER_KEY: String = "gradle_wrapper"
+private const val VALIDATION_GATE_KEY: String = "validation_gate"
+private const val GRADLE_WRAPPER_KEY: String = "gradle_wrapper"
 
 data class ValidationGateRepoConfig(
   val gradleWrapper: String? = null,
@@ -28,7 +28,7 @@ fun parseValidationGateRepoConfig(raw: Any?): ValidationGateRepoConfigParse =
     failure.invalid
   }
 
-fun parseGradleWrapperPath(raw: String?): String? {
+internal fun parseGradleWrapperPath(raw: String?): String? {
   val trimmed = raw?.trim().orEmpty()
   if (trimmed.isEmpty()) return null
   val withForwardSlashes = trimmed.replace('\\', '/')

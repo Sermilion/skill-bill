@@ -26,7 +26,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "fixture/Owner.kt",
           """
-          package fixture
 
           enum class Owner(val wireValue: String) {
             READY("ready"),
@@ -47,9 +46,7 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "fixture/Consumer.kt",
           """
-          package fixture
 
-          import fixture.Owner as AliasOwner
 
           fun consume(value: AliasOwner) = value.wireValue
           fun subset(): Set<AliasOwner> = setOf(AliasOwner.READY)
@@ -73,7 +70,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "fixture/Owner.kt",
           """
-          package fixture
 
           enum class Owner(val wireValue: String) {
             READY("ready"),
@@ -83,7 +79,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "unrelated/Labels.kt",
           """
-          package unrelated
 
           val labels = setOf("ready")
           """.trimIndent(),
@@ -91,9 +86,7 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "consumer/Decoder.kt",
           """
-          package consumer
 
-          import fixture.Owner
 
           fun decode(value: Owner) = value.wireValue
           val labels = setOf("ready")
@@ -112,7 +105,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "taskruntime/model/persistence/task/runtime/goal/FeatureTaskRuntimeGoalContinuationArtifactKeys.kt",
           """
-          package fixture
 
           object FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys {
             const val SUPPRESS_PR: String = "suppress_pr"
@@ -122,7 +114,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "taskruntime/model/persistence/task/runtime/goal/FeatureTaskRuntimeGoalContinuationArtifact.kt",
           """
-          package fixture
 
           fun read(raw: Map<String, Any?>) = raw["suppress_pr"]
           """.trimIndent(),
@@ -148,7 +139,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "infrastructure/sqlite/telemetry/TelemetryKeys.kt",
           """
-          package fixture
 
           object TelemetryPayloadKeys {
             const val SESSION_ID: String = "session_id"
@@ -158,7 +148,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "infrastructure/sqlite/telemetry/TelemetryReader.kt",
           """
-          package fixture
 
           fun read(payload: Map<String, Any?>) = payload["session_id"]
           """.trimIndent(),
@@ -184,7 +173,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "infrastructure/http/TelemetryProxyPayloadKeys.kt",
           """
-          package fixture
 
           object TelemetryProxyPayloadKeys {
             const val SUPPORTS_STATS: String = "supports_stats"
@@ -194,7 +182,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "infrastructure/http/HttpTelemetryResultMappers.kt",
           """
-          package fixture
 
           fun read(payload: Map<String, Any?>) = payload["supports_stats"]
           """.trimIndent(),
@@ -222,7 +209,6 @@ class WireVocabularyArchitectureTest {
             syntheticSourceFile(
               "workflow/decomposition/ManifestKeys.kt",
               """
-              package fixture
 
               object ManifestKeys {
                 const val STATUS: String = "status"
@@ -256,7 +242,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "fixture/ManifestKeys.kt",
           """
-          package fixture
 
           object ManifestKeys {
             const val STATUS: String = "status"
@@ -273,7 +258,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "workflow/decomposition/ForeignConsumer.kt",
           """
-          package fixture
 
           fun read(payload: Map<String, Any?>) = payload["status"]
           """.trimIndent(),
@@ -299,7 +283,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "fixture/ManifestKeys.kt",
           """
-          package fixture
 
           object ManifestKeys {
             const val STATUS: String = "status"
@@ -321,7 +304,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "workflow/decomposition/Codec.kt",
           """
-          package fixture
 
           fun keyed(payload: Map<String, Any?>) = payload[ManifestKeys.STATUS]
           fun extensionValues(produced: Map<String, Any?>) = produced["custom_phase_output"]
@@ -348,7 +330,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "fixture/Owner.kt",
           """
-          package fixture
 
           enum class Owner(val wireValue: String) {
             FIRST("ready"),
@@ -371,7 +352,6 @@ class WireVocabularyArchitectureTest {
         syntheticSourceFile(
           "fixture/Consumer.kt",
           """
-          package fixture
 
           @SerialName("status")
           val annotated = "value"

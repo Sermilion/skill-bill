@@ -1,12 +1,13 @@
 package skillbill.infrastructure.sqlite.goalrunner.control
+
 import skillbill.goalrunner.model.GOAL_ACTIVE_HEARTBEAT_GAP_LIMIT_MS
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.goalrunner.model.parseExecutionLeaseInstant
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
-import java.time.Instant
 import java.time.Duration
+import java.time.Instant
 
 fun GoalRunnerControlRepository.executionLease(parentWorkflowId: String): GoalRunnerExecutionLease? =
   controlState(parentWorkflowId).executionLease

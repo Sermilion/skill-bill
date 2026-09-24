@@ -1,5 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
+
 import skillbill.error.shellcontent.MissingManifestError
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.infrastructure.skills.scaffold.validation.review.ReviewSkillStructureValidator

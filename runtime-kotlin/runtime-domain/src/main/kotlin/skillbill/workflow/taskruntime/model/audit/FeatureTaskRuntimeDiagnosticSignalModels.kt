@@ -1,30 +1,15 @@
 package skillbill.workflow.taskruntime.model.audit
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDiagnosticFailureClass
 
 internal const val FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY: String =
   "feature_task_runtime_diagnostic_signals"
 
-const val FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_LIMIT: Int = 32
-
-enum class FeatureTaskRuntimeDiagnosticFailureClass(val wireValue: String) {
-  CONFLICT("conflict"),
-  PERMISSION("permission"),
-  CORRUPT("corrupt"),
-  SCHEMA("schema"),
-  PERSISTENCE("persistence"),
-  ;
-
-  companion object {
-    fun fromWire(raw: String): FeatureTaskRuntimeDiagnosticFailureClass =
-      entries.firstOrNull { it.wireValue == raw }
-        ?: throw InvalidWorkflowStateSchemaError(
-          "Feature-task-runtime diagnostic failure class '$raw' is not a declared class.",
-        )
-  }
-}
+private const val FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_LIMIT: Int = 32
 
 data class FeatureTaskRuntimeDiagnosticSignal(
   val operation: String,

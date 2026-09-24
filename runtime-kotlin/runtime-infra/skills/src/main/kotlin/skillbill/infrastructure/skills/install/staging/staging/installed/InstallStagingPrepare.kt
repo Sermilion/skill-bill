@@ -1,5 +1,7 @@
 package skillbill.infrastructure.skills.install.staging.staging.installed
+
 import skillbill.infrastructure.skills.agentaddon.AgentAddonPointer
+import skillbill.infrastructure.skills.install.apply.selectedPlatformManifests
 import skillbill.infrastructure.skills.install.identity.SKILL_CONTENT_IDENTITY_FILENAME
 import skillbill.infrastructure.skills.install.identity.SkillContentIdentity
 import skillbill.infrastructure.skills.install.identity.routeInstalledSkillBody
@@ -25,6 +27,7 @@ import skillbill.infrastructure.skills.scaffold.authoring.AuthoringTarget
 import skillbill.infrastructure.skills.scaffold.authoring.resolveTarget
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.install.model.RenderedSkill
+import skillbill.review.parsing.requireMatch
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.nio.file.Files

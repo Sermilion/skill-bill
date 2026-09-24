@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite
 
 import skillbill.error.core.RejectedOutputDiagnosticError
+import skillbill.infrastructure.sqlite.core.schema.databasePath
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.io.IOException

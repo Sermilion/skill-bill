@@ -1,5 +1,4 @@
 package skillbill.infrastructure.host
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.time.RuntimeTimingPort
 import skillbill.ports.time.model.RuntimeWaitResult

@@ -16,12 +16,12 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.process.ReleaseCatalogPort
 import skillbill.ports.process.model.ReleaseCatalogResult
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.ports.review.ReviewContextEnvelopeValidator
+import skillbill.review.context.ReviewContextWireMap
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.telemetry.model.TelemetrySettings
-import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

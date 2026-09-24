@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.model.repair
+
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairBudget
 
 data class CorrectiveRepairDiagnosticLocator(

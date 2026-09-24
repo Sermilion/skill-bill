@@ -1,6 +1,8 @@
 package skillbill.engine
+
 import skillbill.application.testHarnessClock
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeWorkerCoordinator
+import skillbill.engine.featuretask.validation.coordinator
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
@@ -311,7 +313,7 @@ private fun unownedRuntimeRow(updatedAt: String) =
     mode = FeatureTaskWorkflowMode.RUNTIME,
   )
 
-private fun ownership(
+internal fun ownership(
   expiresAt: String = "2999-01-01T00:00:30Z",
   ownerToken: String = "old-owner-token-0001",
   generation: Long = 1,

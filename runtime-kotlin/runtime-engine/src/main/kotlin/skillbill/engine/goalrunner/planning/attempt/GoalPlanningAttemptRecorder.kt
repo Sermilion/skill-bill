@@ -5,7 +5,7 @@ import skillbill.application.runtime.RuntimeSingleton
 import skillbill.engine.goalrunner.planning.model.GoalPlanningAttemptRecord
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
-import skillbill.workflow.goal.model.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEvent
 import java.time.Clock
 
 fun interface GoalPlanningAttemptRecorder {

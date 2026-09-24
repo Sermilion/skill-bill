@@ -7,7 +7,7 @@ import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations
 import skillbill.install.model.AGENT_LAUNCHER_CLIS
 import skillbill.install.model.AgentLauncherCli
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
 import skillbill.review.context.model.launch.ReviewConversationIsolation
@@ -28,7 +28,7 @@ internal data class AgentRunCommand(
 )
 
 internal interface AgentRunCommandBuilder {
-  val agent: InstallAgent
+  val agent: SupportedAgent
   val outputDecoder: AgentRunOutputDecoder get() = AgentRunOutputDecoder.PLAIN
   val reviewIsolation: ReviewLaunchIsolationStrategy get() = ReviewLaunchIsolationStrategy.UNSUPPORTED
   val governedReviewLaunchCapability: GovernedReviewLaunchCapability
@@ -147,11 +147,11 @@ internal class ClaudeAgentRunCommandBuilder(
     GovernedReviewLaunchCapability(
       governedOnlyTooling = true,
       mcpIsolation = true,
-      configFormat = McpRegistrationOperations.configFormatFor(InstallAgent.CLAUDE),
+      configFormat = McpRegistrationOperations.configFormatFor(SupportedAgent.CLAUDE),
     ),
   private val databasePath: Path? = null,
 ) : AgentRunCommandBuilder {
-  override val agent: InstallAgent = InstallAgent.CLAUDE
+  override val agent: SupportedAgent = SupportedAgent.CLAUDE
   override val outputDecoder: AgentRunOutputDecoder = AgentRunOutputDecoder.CLAUDE_JSON
   override val reviewIsolation: ReviewLaunchIsolationStrategy = ReviewLaunchIsolationStrategy.FRESH_PROCESS
 
@@ -162,7 +162,7 @@ internal class ClaudeAgentRunCommandBuilder(
     return goalContinuationCommand(request, agent, databasePath) ?: AgentRunCommand(
       command =
         buildList {
-          add(InstallAgent.CLAUDE.wireValue)
+          add(SupportedAgent.CLAUDE.wireValue)
           add("--print")
           add("--output-format")
 
@@ -215,11 +215,11 @@ internal class CodexAgentRunCommandBuilder(
     GovernedReviewLaunchCapability(
       governedOnlyTooling = true,
       mcpIsolation = true,
-      configFormat = McpRegistrationOperations.configFormatFor(InstallAgent.CODEX),
+      configFormat = McpRegistrationOperations.configFormatFor(SupportedAgent.CODEX),
     ),
   private val databasePath: Path? = null,
 ) : AgentRunCommandBuilder {
-  override val agent: InstallAgent = InstallAgent.CODEX
+  override val agent: SupportedAgent = SupportedAgent.CODEX
   override val outputDecoder: AgentRunOutputDecoder = AgentRunOutputDecoder.CODEX_JSONL
   override val reviewIsolation: ReviewLaunchIsolationStrategy =
     ReviewLaunchIsolationStrategy.CODEX_NATIVE_FORK_TURNS_NONE
@@ -230,7 +230,7 @@ internal class CodexAgentRunCommandBuilder(
     return goalContinuationCommand(request, agent, databasePath) ?: AgentRunCommand(
       command =
         buildList {
-          add(InstallAgent.CODEX.wireValue)
+          add(SupportedAgent.CODEX.wireValue)
           add("exec")
           add("--json")
           add("--cd")

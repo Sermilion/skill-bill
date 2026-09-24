@@ -4,6 +4,7 @@ import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.RecordingSpecScratchStore
 import skillbill.application.RecordingSpecStatusWriter
 import skillbill.application.TestDecompositionManifestStore
+import skillbill.application.decomposition.baseBranch
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.application.review.spec.SpecIntentProjectionExtractor
@@ -68,7 +69,7 @@ import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.infrastructure.workflow.github.GitHubPullRequestCheckDiscovery
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningBoundaryBodyResolver
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningContextDiscovery
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.config.RepoLocalConfigPort
@@ -98,9 +99,12 @@ import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSpecStatusWriter
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.NoopFeatureTaskRuntimeHeartbeat
 import skillbill.ports.taskruntime.NoopFeatureTaskRuntimeWorkerSupervisor
@@ -119,6 +123,7 @@ import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.ports.work.EmptyWorkListRepository
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
@@ -130,7 +135,6 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.specscratch.SpecScratchStore
-import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.accounting.ReviewBudgetKind
 import skillbill.review.context.model.hunk.ReviewContextBudgetExceeded
 import skillbill.review.context.model.hunk.ReviewContextBudgetExceededException
@@ -150,18 +154,17 @@ import skillbill.scaffold.model.ValidationGateExecutedWorkSignal
 import skillbill.scaffold.model.ValidationGateFindingsFormat.JUNIT_XML
 import skillbill.scaffold.model.ValidationGateFindingsLocator
 import skillbill.telemetry.model.TelemetrySettings
-import skillbill.ports.workflow.WorkflowSnapshotValidator
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
@@ -174,12 +177,9 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode.CACHE_ELIGIBLE
 import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome.FAILED
 import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome.PASSED
-import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.lang.Boolean.TYPE
 import java.lang.reflect.Method
@@ -858,7 +858,6 @@ private fun harnessGoalContinuationRecorder(
 ): FeatureTaskRuntimeGoalContinuationRecorder =
   FeatureTaskRuntimeGoalContinuationRecorder(
     database,
-    NoopWorkflowSnapshotValidator,
     NoopRuntimeDiagnostics,
     Clock.systemUTC(),
   )
@@ -870,7 +869,6 @@ private fun harnessWorkflowParts(database: RuntimeFakeDatabaseSessionFactory): R
     decomposeTerminalRecorder =
       FeatureTaskRuntimeDecomposeTerminalRecorder(
         database,
-        NoopWorkflowSnapshotValidator,
         testHarnessClock,
       ),
     runInvariantsStore =
@@ -1192,7 +1190,7 @@ private fun testDecompositionPlanner(): FeatureTaskRuntimeDecompositionPlanner =
 
 internal fun facts(stdout: String): AgentRunLaunchOutcome =
   AgentRunLaunchFacts(
-    agent = InstallAgent.CLAUDE,
+    agent = SupportedAgent.CLAUDE,
     exitStatus = 0,
     stdout = stdout,
     stderr = "",
@@ -1802,7 +1800,7 @@ internal val WRITER_INVALID_DECOMPOSE_PLAN_OUTPUT: String =
 
 internal fun spawnFailedFacts(): AgentRunLaunchOutcome =
   AgentRunLaunchFacts(
-    agent = InstallAgent.CLAUDE,
+    agent = SupportedAgent.CLAUDE,
     exitStatus = null,
     stdout = "",
     stderr = "spawn failed",
@@ -1922,7 +1920,7 @@ private fun FeatureTaskRuntimePhaseRecorder.recordPhaseStateForTest(
     ),
   )
 
-private object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
+internal object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
   override fun validate(
     snapshot: WorkflowStateSnapshot,
     slug: String,

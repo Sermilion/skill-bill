@@ -2,7 +2,6 @@ package skillbill.install.policy
 
 import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
 import skillbill.error.shellcontent.MissingBaselinePlatformSelectionError
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentDefaultTarget
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
@@ -12,7 +11,6 @@ import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.install.model.InstallPlanWireMap
-import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.install.model.InstallPlatformPackDiscoverySnapshot
 import skillbill.install.model.InstallPlatformPackSnapshot
 import skillbill.install.model.InstallPlatformSkillMaterializationRequest
@@ -26,6 +24,7 @@ import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.RuntimeDistributionInputs
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
@@ -48,14 +47,14 @@ class InstallPlanPolicyTest {
             agentSelection =
               InstallAgentSelection(
                 mode = InstallAgentSelectionMode.MANUAL,
-                manualAgents = setOf(InstallAgent.CODEX, InstallAgent.CLAUDE),
+                manualAgents = setOf(SupportedAgent.CODEX, SupportedAgent.CLAUDE),
               ),
             targetPaths =
               targetPaths(
                 agentTargets =
                   listOf(
                     InstallAgentTarget(
-                      agent = InstallAgent.CLAUDE,
+                      agent = SupportedAgent.CLAUDE,
                       path = path("/manual/claude"),
                       source = InstallAgentTargetSource.DETECTED,
                     ),
@@ -71,16 +70,16 @@ class InstallPlanPolicyTest {
 
     val draft = InstallPlanPolicy.buildPlanDraft(input)
 
-    assertEquals(listOf(InstallAgent.CLAUDE, InstallAgent.CODEX), draft.agents.map(InstallAgentTarget::agent))
+    assertEquals(listOf(SupportedAgent.CLAUDE, SupportedAgent.CODEX), draft.agents.map(InstallAgentTarget::agent))
     assertEquals(
       listOf(InstallAgentTargetSource.MANUAL, InstallAgentTargetSource.MANUAL),
       draft.agents.map { it.source },
     )
-    assertEquals(path("/manual/claude"), draft.agents.first { it.agent == InstallAgent.CLAUDE }.path)
-    assertEquals(path("/home/.codex/skills"), draft.agents.first { it.agent == InstallAgent.CODEX }.path)
+    assertEquals(path("/manual/claude"), draft.agents.first { it.agent == SupportedAgent.CLAUDE }.path)
+    assertEquals(path("/home/.codex/skills"), draft.agents.first { it.agent == SupportedAgent.CODEX }.path)
     assertEquals(listOf("kotlin"), draft.selectedPlatformSlugs)
     assertEquals(listOf("bill-code-review", "bill-kotlin-code-review"), draft.skills.map(InstallPlanSkill::name))
-    assertEquals(listOf(InstallAgent.CLAUDE, InstallAgent.CODEX), draft.mcpRegistrationIntent.agents)
+    assertEquals(listOf(SupportedAgent.CLAUDE, SupportedAgent.CODEX), draft.mcpRegistrationIntent.agents)
     assertEquals(input.request.targetPaths.copy(agentTargets = draft.agents), draft.installationTargetPaths)
   }
 
@@ -96,7 +95,7 @@ class InstallPlanPolicyTest {
                 detectedTargets =
                   listOf(
                     InstallAgentTarget(
-                      agent = InstallAgent.CURSOR,
+                      agent = SupportedAgent.CURSOR,
                       path = path("/detected/cursor"),
                       source = InstallAgentTargetSource.MANUAL,
                     ),
@@ -106,7 +105,7 @@ class InstallPlanPolicyTest {
         detectedAgentTargets =
           listOf(
             InstallAgentTarget(
-              agent = InstallAgent.CODEX,
+              agent = SupportedAgent.CODEX,
               path = path("/detected/codex"),
               source = InstallAgentTargetSource.DETECTED,
             ),
@@ -115,7 +114,7 @@ class InstallPlanPolicyTest {
 
     val draft = InstallPlanPolicy.buildPlanDraft(input)
 
-    assertEquals(listOf(InstallAgent.CURSOR), draft.agents.map(InstallAgentTarget::agent))
+    assertEquals(listOf(SupportedAgent.CURSOR), draft.agents.map(InstallAgentTarget::agent))
     assertEquals(listOf(InstallAgentTargetSource.DETECTED), draft.agents.map { target -> target.source })
     assertEquals(path("/detected/cursor"), draft.agents.single().path)
   }
@@ -144,7 +143,7 @@ class InstallPlanPolicyTest {
                 agentSelection =
                   InstallAgentSelection(
                     mode = InstallAgentSelectionMode.DETECTED,
-                    manualAgents = setOf(InstallAgent.CODEX),
+                    manualAgents = setOf(SupportedAgent.CODEX),
                   ),
               ),
           ),
@@ -164,7 +163,7 @@ class InstallPlanPolicyTest {
                 agentSelection =
                   InstallAgentSelection(
                     mode = InstallAgentSelectionMode.MANUAL,
-                    manualAgents = setOf(InstallAgent.CODEX),
+                    manualAgents = setOf(SupportedAgent.CODEX),
                   ),
               ),
             defaultAgentTargets = emptyList(),
@@ -346,28 +345,20 @@ class InstallPlanPolicyTest {
       )
 
     var capturedWireMap: Map<String, Any?>? = null
-    val recordingValidator =
-      object : InstallPlanWireValidator {
-        override fun validate(plan: InstallPlanWireMap) {
-          capturedWireMap = plan
-        }
-      }
-    val result = InstallPlanPolicy.validateInstallPlanSnapshot(plan, recordingValidator::validate)
+    val recordingValidator: (InstallPlanWireMap) -> Unit = { capturedWireMap = it }
+    val result = InstallPlanPolicy.validateInstallPlanSnapshot(plan, recordingValidator)
     assertEquals(InstallPolicyValidationStatus.VALID, result.status)
     assertEquals("planned", capturedWireMap?.get("status"))
 
-    val loudFailValidator =
-      object : InstallPlanWireValidator {
-        override fun validate(plan: InstallPlanWireMap) {
-          throw InvalidInstallPlanSchemaError(
-            fieldPath = "mcp_registration.runtime_mcp_bin",
-            reason = "must be a non-empty string when register is true.",
-          )
-        }
-      }
+    val loudFailValidator: (InstallPlanWireMap) -> Unit = {
+      throw InvalidInstallPlanSchemaError(
+        fieldPath = "mcp_registration.runtime_mcp_bin",
+        reason = "must be a non-empty string when register is true.",
+      )
+    }
     val error =
       assertFailsWith<InvalidInstallPlanSchemaError> {
-        InstallPlanPolicy.validateInstallPlanSnapshot(plan, loudFailValidator::validate)
+        InstallPlanPolicy.validateInstallPlanSnapshot(plan, loudFailValidator)
       }
     assertContains(error.message.orEmpty(), "mcp_registration.runtime_mcp_bin")
   }
@@ -513,17 +504,17 @@ class InstallPlanPolicyTest {
 
   private fun defaultAgentTargets(): List<InstallAgentDefaultTarget> =
     listOf(
-      InstallAgentDefaultTarget(InstallAgent.CLAUDE, path("/home/.claude/skills")),
-      InstallAgentDefaultTarget(InstallAgent.CODEX, path("/home/.codex/skills")),
-      InstallAgentDefaultTarget(InstallAgent.JUNIE, path("/home/.junie/skills")),
-      InstallAgentDefaultTarget(InstallAgent.CURSOR, path("/home/.cursor/skills")),
+      InstallAgentDefaultTarget(SupportedAgent.CLAUDE, path("/home/.claude/skills")),
+      InstallAgentDefaultTarget(SupportedAgent.CODEX, path("/home/.codex/skills")),
+      InstallAgentDefaultTarget(SupportedAgent.JUNIE, path("/home/.junie/skills")),
+      InstallAgentDefaultTarget(SupportedAgent.CURSOR, path("/home/.cursor/skills")),
     )
 
   private fun request(
     agentSelection: InstallAgentSelection =
       InstallAgentSelection(
         mode = InstallAgentSelectionMode.MANUAL,
-        manualAgents = setOf(InstallAgent.CODEX),
+        manualAgents = setOf(SupportedAgent.CODEX),
       ),
     platformPackSelection: PlatformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.NONE),
     targetPaths: InstallationTargetPaths = targetPaths(),

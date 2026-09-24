@@ -1,4 +1,5 @@
 package skillbill.cli.scaffold.wizard
+
 import skillbill.application.scaffold.InstallAgentService
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliExecutionResult
@@ -9,6 +10,7 @@ import skillbill.cli.scaffold.payload.errorResult
 import skillbill.cli.scaffold.payload.runNativeScaffoldPayload
 import skillbill.error.core.SkillBillRuntimeException
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
+import skillbill.scaffold.model.SkillKind
 
 internal fun runNativeScaffoldWizard(args: ScaffoldWizardArgs): CliExecutionResult {
   val run = args.run
@@ -58,7 +60,8 @@ internal fun collectAssistedScaffoldWizardPayload(
       "agent-backed generation needs a structured scaffold output contract.\n",
   )
   return when (kind) {
-    "platform-pack" -> assistedPlatformPackWizardPayload(state, inputs, scaffoldCatalogGateway.platformPackPresets())
+    SkillKind.PLATFORM_PACK.wireValue ->
+      assistedPlatformPackWizardPayload(state, inputs, scaffoldCatalogGateway.platformPackPresets())
     else -> throw IllegalArgumentException(
       "Assisted mode currently supports platform-pack scaffolds. Use the normal wizard for kind '$kind'.",
     )
@@ -75,10 +78,11 @@ internal fun collectScaffoldWizardPayload(
       "Kind: 1 horizontal, 2 platform-pack, 3 add-on, 4 agent-addon\n\n",
   )
   return when (val kind = normalizeWizardKind(promptRequired(state, inputs, "Kind"))) {
-    "horizontal" -> horizontalWizardPayload(state, inputs)
-    "platform-pack" -> platformPackWizardPayload(state, inputs, scaffoldCatalogGateway.platformPackPresets())
-    "add-on" -> addOnWizardPayload(state, inputs)
-    "agent-addon" -> agentAddonWizardPayload(state, inputs)
+    SkillKind.HORIZONTAL.wireValue -> horizontalWizardPayload(state, inputs)
+    SkillKind.PLATFORM_PACK.wireValue ->
+      platformPackWizardPayload(state, inputs, scaffoldCatalogGateway.platformPackPresets())
+    SkillKind.ADD_ON.wireValue -> addOnWizardPayload(state, inputs)
+    SkillKind.AGENT_ADDON.wireValue -> agentAddonWizardPayload(state, inputs)
     else -> throw IllegalArgumentException("Unsupported scaffold wizard kind '$kind'.")
   }
 }
@@ -88,7 +92,7 @@ internal fun horizontalWizardPayload(
   inputs: CliRunInputs,
 ): Map<String, Any?> =
   buildMap {
-    putScaffoldBase("horizontal")
+    putScaffoldBase(SkillKind.HORIZONTAL.wireValue)
     put("name", normalizeBillSkillName(promptRequired(state, inputs, "Skill name")))
     promptOptional(state, inputs, "Description").ifNotBlank { description -> put("description", description) }
   }

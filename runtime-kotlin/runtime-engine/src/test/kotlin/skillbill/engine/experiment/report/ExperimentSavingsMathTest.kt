@@ -1,4 +1,5 @@
 package skillbill.engine.experiment.report
+
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import kotlin.test.Test
 import kotlin.test.assertEquals

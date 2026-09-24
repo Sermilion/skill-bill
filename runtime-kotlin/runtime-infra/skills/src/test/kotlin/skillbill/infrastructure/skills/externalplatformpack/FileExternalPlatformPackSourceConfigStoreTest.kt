@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.externalplatformpack
+
 import org.junit.jupiter.api.io.TempDir
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.config.ExternalPlatformPackConfigKeys

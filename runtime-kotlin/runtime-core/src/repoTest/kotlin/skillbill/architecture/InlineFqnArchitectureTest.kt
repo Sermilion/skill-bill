@@ -23,7 +23,6 @@ class InlineFqnArchitectureTest {
   fun `inline FQN scanner fires on synthetic java time fixture and ignores keep-list controls`() {
     val violatingFixture =
       """
-      package example
 
       class Clock {
         fun now() = java.time.Instant.now()
@@ -37,9 +36,7 @@ class InlineFqnArchitectureTest {
 
     val keepListFixture =
       """
-      package example
 
-      import java.time.Instant
 
       interface Clean {
         /**

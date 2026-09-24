@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.schema
+
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.identity.task.FEATURE_TASK_EXECUTION_IDENTITY_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.task.FeatureTaskExecutionIdentitySchemaPaths

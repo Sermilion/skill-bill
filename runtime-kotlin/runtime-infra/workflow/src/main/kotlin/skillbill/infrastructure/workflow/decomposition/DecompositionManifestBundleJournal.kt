@@ -1,9 +1,11 @@
 package skillbill.infrastructure.workflow.decomposition
+
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.decomposition.BUNDLE_JOURNAL_CONTRACT_VERSION
 import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.host.jvm.atomicWriteString
+import skillbill.infrastructure.workflow.review.broker.digest
 import skillbill.ports.system.HostPlatformPort
 import java.nio.channels.FileChannel
 import java.nio.file.Files

@@ -5,7 +5,6 @@ import skillbill.infrastructure.skills.install.nativeagent.install.native.Instal
 import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest
 import skillbill.infrastructure.skills.install.runtime.InstallOperations
 import skillbill.infrastructure.skills.nativeagent.support.CLAUDE_CONFIG_DIR_ENV
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentLinkStatus
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
@@ -15,7 +14,9 @@ import skillbill.install.model.NativeAgentApplyStatus
 import skillbill.install.model.NativeAgentProviderId
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode.SELECTED
+import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
+import skillbill.ports.workflow.list
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -36,13 +37,13 @@ class InstallApplyClaudeMultiRootTest : InstallApplyTestSupport() {
   }
 
   private fun claudeMultiRootRequest(fixture: ApplyFixture) =
-    fixture.request(agents = setOf(InstallAgent.CLAUDE))
+    fixture.request(agents = setOf(SupportedAgent.CLAUDE))
       .let { base ->
         base.copy(
           agentSelection =
             InstallAgentSelection(
               mode = InstallAgentSelectionMode.MANUAL,
-              manualAgents = setOf(InstallAgent.CLAUDE),
+              manualAgents = setOf(SupportedAgent.CLAUDE),
             ),
           targetPaths = base.targetPaths.copy(agentTargets = emptyList()),
         )
@@ -113,7 +114,7 @@ class InstallApplyClaudeMultiRootTest : InstallApplyTestSupport() {
       )
     }
 
-    val claudeMcpOutcomes = result.mcpRegistrationOutcomes.filter { it.agent == InstallAgent.CLAUDE }
+    val claudeMcpOutcomes = result.mcpRegistrationOutcomes.filter { it.agent == SupportedAgent.CLAUDE }
     assertTrue(claudeMcpOutcomes.isNotEmpty(), "claude MCP registration must be attempted")
     claudeMcpOutcomes.forEach { outcome ->
       assertEquals(McpRegistrationApplyStatus.SUCCESS, outcome.status, "claude MCP registration must succeed")

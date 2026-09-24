@@ -1,8 +1,8 @@
 package skillbill.infrastructure.skills.skillremove
 
-import skillbill.domain.skillremove.model.SkillRemovalRequest
-import skillbill.domain.skillremove.model.SkillRemovalTarget
 import skillbill.infrastructure.host.jvm.resolveUserHome
+import skillbill.skillremove.model.SkillRemovalRequest
+import skillbill.skillremove.model.SkillRemovalTarget
 import java.nio.file.Path
 
 internal fun skillRemoveRepoRoot(request: SkillRemovalRequest): Path =

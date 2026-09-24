@@ -1,4 +1,5 @@
 package skillbill.review.context.model.hunk
+
 import skillbill.review.context.model.accounting.ReviewBudgetKind
 import skillbill.review.context.model.commit.ReviewAssignment
 import skillbill.review.context.model.execution.SHA256_HEX
@@ -6,11 +7,6 @@ import skillbill.review.context.model.execution.sha256
 import skillbill.review.context.model.packet.ReviewContextPacket
 
 const val REVIEW_CONTEXT_BUDGET_EXCEEDED: String = "review_context_budget_exceeded"
-const val REVIEW_ROUTING_ANALYSIS_PAIRS_BUDGET: String = "routing_analysis_pairs"
-
-const val REVIEW_ROUTING_ANALYSIS_BYTES_BUDGET: String = "routing_analysis_bytes"
-
-const val REVIEW_SPEC_INTENT_PROJECTION_BUDGET: String = "spec_intent_projection"
 
 data class ReviewContextBudgetPolicy(
   val maxParentPacketBytes: Long = 524_288,

@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.core
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.runtime.RuntimeSingleton
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError

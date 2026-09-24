@@ -505,7 +505,24 @@ private val SUPPRESSION_SCAN_ROOTS: List<String> =
     "runtime-kotlin/build-logic",
   )
 
-fun ArchitectureScanSupport.authoredSuppressions(
+fun ArchitectureScanSupport.parseSuppressionAllowList(decisionsMarkdown: String): Set<Triple<String, String, String>> {
+  val sectionStart = decisionsMarkdown.indexOf("Compiler suppression allow-list")
+  if (sectionStart < 0) return emptySet()
+  val tableBody = decisionsMarkdown.substring(sectionStart)
+  val rows = mutableSetOf<Triple<String, String, String>>()
+  TABLE_ROW_PATTERN.findAll(tableBody).forEach { match ->
+    val path = match.groupValues[1].trim()
+    val symbol = match.groupValues[2].trim()
+    val rule = match.groupValues[3].trim()
+    if (path == "path" || path.startsWith("-")) return@forEach
+    if (path.isNotBlank() && symbol.isNotBlank() && rule.isNotBlank()) {
+      rows += Triple(path, symbol, rule)
+    }
+  }
+  return rows
+}
+
+internal fun ArchitectureScanSupport.authoredSuppressions(
   scanRoots: List<String> = SUPPRESSION_SCAN_ROOTS,
 ): List<AuthoredSuppressionSite> =
   scanRoots.flatMap { scanRoot ->
@@ -518,17 +535,17 @@ fun ArchitectureScanSupport.authoredSuppressions(
       }
   }
 
-fun ArchitectureScanSupport.authoredSuppressionsFromFile(
+internal fun ArchitectureScanSupport.authoredSuppressionsFromFile(
   relativePath: String,
   source: String,
 ): List<AuthoredSuppressionSite> = AuthoredSuppressionScanner.scan(relativePath, source.lineSequence())
 
-fun ArchitectureScanSupport.authoredSuppressionsInSource(
+internal fun ArchitectureScanSupport.authoredSuppressionsInSource(
   relativePath: String,
   source: String,
 ): List<AuthoredSuppressionSite> = AuthoredSuppressionScanner.scan(relativePath, source.lineSequence())
 
-fun ArchitectureScanSupport.suppressionViolations(
+internal fun ArchitectureScanSupport.suppressionViolations(
   suppressions: List<AuthoredSuppressionSite>,
   allowList: Set<Triple<String, String, String>>,
 ): List<String> =

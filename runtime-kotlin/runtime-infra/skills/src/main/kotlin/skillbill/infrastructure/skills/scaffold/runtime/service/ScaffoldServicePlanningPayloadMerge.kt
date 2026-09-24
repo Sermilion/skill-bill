@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.runtime.service
+
 import skillbill.agentaddon.model.AgentAddonConsumer
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.core.InvalidAgentAddonAgentIdError
@@ -10,11 +11,11 @@ import skillbill.infrastructure.skills.scaffold.payload.requireStringListPayload
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.PRE_SHELL_FAMILIES
 import skillbill.install.model.SupportedAgent
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
-import skillbill.scaffold.policy.scaffold.model.OptionalSubagents
-import skillbill.scaffold.policy.scaffold.model.PlatformPackDefaults
+import skillbill.scaffold.policy.SKILL_KIND_ADD_ON
+import skillbill.scaffold.policy.SKILL_KIND_AGENT_ADDON
+import skillbill.scaffold.policy.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
+import skillbill.scaffold.policy.model.OptionalSubagents
+import skillbill.scaffold.policy.model.PlatformPackDefaults
 import java.nio.file.Files
 import java.nio.file.Path
 import skillbill.infrastructure.skills.scaffold.payload.rejectLeafSubagentSpecialists as policyRejectLeafSubagentSpecialists

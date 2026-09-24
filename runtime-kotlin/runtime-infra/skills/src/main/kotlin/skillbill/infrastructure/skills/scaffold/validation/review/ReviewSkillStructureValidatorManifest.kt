@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.validation.review
+
 import java.nio.file.Path
 
 internal object ReviewSkillStructureValidatorManifest {

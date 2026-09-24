@@ -4,13 +4,13 @@ import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.goalrunner.subtaskreview.recordedVerdicts
 import skillbill.review.model.ReviewFindingVerdict
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
-import skillbill.workflow.goal.model.GoalSubtaskReviewArtifacts
-import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.model.goalreview.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewPassResult
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.GoalSubtaskReviewArtifactDecoder
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.GoalSubtaskReviewArtifacts
 
-fun DurableWorkflowArtifacts.goalSubtaskReviewArtifacts(): GoalSubtaskReviewArtifacts? =
+internal fun DurableWorkflowArtifacts.goalSubtaskReviewArtifacts(): GoalSubtaskReviewArtifacts? =
   GoalSubtaskReviewArtifactDecoder.decode(this)
 
 fun goalReviewArtifacts(artifacts: Map<String, Any?>): GoalSubtaskReviewArtifacts? =

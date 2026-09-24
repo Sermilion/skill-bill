@@ -1,8 +1,9 @@
 package skillbill.engine
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
+import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import kotlin.test.Test
@@ -293,7 +294,7 @@ class FeatureTaskRuntimeAuditAcListRetryTest {
     interrupted: Boolean = false,
   ): AgentRunLaunchFacts =
     AgentRunLaunchFacts(
-      agent = InstallAgent.CLAUDE,
+      agent = SupportedAgent.CLAUDE,
       exitStatus = exitStatus,
       stdout = stdout,
       stderr = "",

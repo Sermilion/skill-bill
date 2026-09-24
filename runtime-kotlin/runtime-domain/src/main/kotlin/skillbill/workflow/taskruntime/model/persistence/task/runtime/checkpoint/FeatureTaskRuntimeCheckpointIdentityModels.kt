@@ -1,19 +1,21 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeCheckpointIdentityVersionError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.model.goalreview.appendBoundedHistoryBySequence
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
 import java.security.MessageDigest
 
 internal const val FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY: String =
   "feature_task_runtime_checkpoint_identities"
 
-const val FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_LIMIT: Int = 200
+internal const val FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_LIMIT: Int = 200
 
 private const val OWNED_PATH_DIGEST_DELIMITER: Char = '\u0000'
 

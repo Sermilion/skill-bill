@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stage.and
+
 import skillbill.SAMPLE_REVIEW
 import skillbill.application.learning.learningAppliedSessionWire
 import skillbill.application.learning.learningEntryDto
@@ -10,18 +11,19 @@ import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
 import skillbill.infrastructure.sqlite.review.stage.finished.fetchSessionLearnings
 import skillbill.infrastructure.sqlite.review.stage.runtime.ReviewRuntime
 import skillbill.infrastructure.sqlite.review.stage.runtime.TriageRuntime
+import skillbill.infrastructure.sqlite.reviewSessionId
 import skillbill.learnings.LearningsRuntime
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.LearningSourceValidation
 import skillbill.learnings.model.RejectedLearningSourceOutcome
-import skillbill.review.finding.TriageDecisionParser
 import skillbill.review.model.FeedbackRequest
 import skillbill.review.model.FeedbackTelemetryOptions
 import skillbill.review.model.ImportedReview
 import skillbill.review.model.NumberedFinding
 import skillbill.review.model.ReviewFinishedTelemetry
 import skillbill.review.parsing.ReviewParser
+import skillbill.review.parsing.TriageDecisionParser
 import skillbill.tempDbConnection
 import java.sql.Connection
 import kotlin.test.Test
@@ -201,6 +203,7 @@ private fun rejectFinding(
         note = note,
       ),
     telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "anonymous"),
+    runtimeVersion = "test-runtime-version",
   )
 
 internal fun addLearning(

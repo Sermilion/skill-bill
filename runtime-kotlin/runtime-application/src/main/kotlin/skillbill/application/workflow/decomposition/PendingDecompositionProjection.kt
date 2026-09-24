@@ -1,12 +1,12 @@
 package skillbill.application.workflow.decomposition
+
 import skillbill.application.workflow.service.ContinuationStepResult
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflowForRuntime
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.decomposition.runtime.isGoalContinuationChildWorkflow
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 
 internal data class PendingDecompositionProjection(
@@ -26,11 +26,10 @@ internal fun ContinuationStepResult.withPendingProjection(
 internal fun resolveDecompositionProjectionOwner(
   record: WorkflowStateSnapshot,
   unitOfWork: UnitOfWork,
-  validator: DecompositionManifestValidator,
 ): String? {
   val manifest = record.decompositionRuntime() ?: return null
   return if (record.isGoalContinuationChildWorkflow()) {
-    unitOfWork.workflowStates.findDecomposedParentWorkflowForRuntime(manifest, validator)
+    unitOfWork.workflowStates.findDecomposedParentWorkflowForRuntime(manifest)
       ?.workflowId
       ?: goalContinuationParentWorkflowId(record.artifacts)
   } else {

@@ -189,7 +189,7 @@ class UpdateCheckServiceTest {
     )
 }
 
-private fun systemService(versionValue: String): SystemService =
+internal fun systemService(versionValue: String): SystemService =
   SystemService(
     TestDatabaseSessionFactory(),
     TestTelemetrySettingsProvider,

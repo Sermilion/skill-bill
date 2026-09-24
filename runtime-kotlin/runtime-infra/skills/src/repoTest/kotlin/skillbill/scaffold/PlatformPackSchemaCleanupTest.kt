@@ -19,7 +19,6 @@ import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatform
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.PlatformPackSchemaPaths
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.PlatformPackSchemaValidator
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import java.nio.file.Path

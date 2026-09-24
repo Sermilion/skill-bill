@@ -1,4 +1,5 @@
 package skillbill.cli.goal.control
+
 import skillbill.cli.goal.core.appendGoalResetSubtaskLines
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.goalrunner.GoalRunnerResetPayloadKeys

@@ -1,4 +1,5 @@
 package skillbill.application.review.verification
+
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.parallel.ParallelReviewFindingParser
 

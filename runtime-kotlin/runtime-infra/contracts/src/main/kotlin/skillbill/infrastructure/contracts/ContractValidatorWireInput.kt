@@ -18,8 +18,8 @@ import skillbill.error.shellcontent.InvalidGoalObservabilityEventSchemaError
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.error.shellcontent.ShellContentContractException
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 
 internal fun requireValidatorWireMap(
   payload: Any,

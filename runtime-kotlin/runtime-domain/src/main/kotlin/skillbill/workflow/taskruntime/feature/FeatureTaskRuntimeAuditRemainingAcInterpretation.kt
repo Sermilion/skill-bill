@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.feature
+
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeAuditRemainingAcResult
 
 object FeatureTaskRuntimeAuditRemainingAcInterpretation {

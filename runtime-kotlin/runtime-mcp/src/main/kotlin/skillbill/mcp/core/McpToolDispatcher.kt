@@ -19,6 +19,7 @@ import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.McpRuntimeLifecycle
 import skillbill.mcp.shared.boolean
 import skillbill.mcp.shared.componentForLegacyContext
+import skillbill.mcp.shared.map
 import skillbill.mcp.shared.optionalString
 import skillbill.mcp.shared.string
 import skillbill.mcp.shared.stringList
@@ -32,7 +33,7 @@ import skillbill.mcp.workflow.workflowOpen
 import skillbill.mcp.workflow.workflowResume
 import skillbill.mcp.workflow.workflowUpdate
 import skillbill.telemetry.model.RemoteStatsRequest
-import skillbill.mcp.shared.map as argumentMap
+
 internal typealias McpToolHandler = (Map<String, Any?>, McpComponent) -> Map<String, Any?>
 
 internal object McpToolDispatcher {
@@ -268,7 +269,7 @@ internal fun newSkillScaffold(
   component: McpComponent,
 ): Map<String, Any?> =
   McpRuntime.newSkillScaffold(
-    payload = arguments.argumentMap(McpToolPayloadKeys.PAYLOAD),
+    payload = arguments.map(McpToolPayloadKeys.PAYLOAD),
     dryRun = arguments.boolean(McpToolPayloadKeys.DRY_RUN),
     orchestrated = arguments.boolean(McpToolPayloadKeys.ORCHESTRATED),
     component = component,

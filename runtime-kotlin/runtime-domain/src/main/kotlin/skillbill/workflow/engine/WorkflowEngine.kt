@@ -2,8 +2,10 @@ package skillbill.workflow.engine
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowContinueDecision
+import skillbill.workflow.engine.model.WorkflowContinueDecisionOverrides
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowInputProjection
 import skillbill.workflow.engine.model.WorkflowResumeView
@@ -13,12 +15,10 @@ import skillbill.workflow.engine.model.WorkflowSummaryView
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
-import skillbill.workflow.model.WorkflowContinueStatus
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowResumeMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.model.FeatureTaskWorkflowMode
 
 class WorkflowEngine {
   fun openRecord(
@@ -82,6 +82,9 @@ class WorkflowEngine {
     definition: WorkflowDefinition,
     record: WorkflowStateSnapshot,
   ): WorkflowSnapshotView {
+    check(record.workflowName == definition.workflowName) {
+      "Workflow snapshot '${record.workflowId}' belongs to '${record.workflowName}', not '${definition.workflowName}'."
+    }
     return snapshotViewFrom(record)
   }
 
@@ -89,6 +92,9 @@ class WorkflowEngine {
     definition: WorkflowDefinition,
     record: WorkflowStateSnapshot,
   ): WorkflowSummaryView {
+    check(record.workflowName == definition.workflowName) {
+      "Workflow summary '${record.workflowId}' belongs to '${record.workflowName}', not '${definition.workflowName}'."
+    }
     return WorkflowSummaryView(
       workflowId = record.workflowId,
       sessionId = record.sessionId,
@@ -177,9 +183,7 @@ class WorkflowEngine {
     definition: WorkflowDefinition,
     record: WorkflowStateSnapshot,
     sessionSummary: WorkflowContinueSessionSummary = WorkflowContinueSessionSummary.EMPTY,
-    continueStatusOverride: WorkflowContinueStatus? = null,
-    workflowStatusBeforeContinueOverride: WorkflowStatus? = null,
-    resolvedRepositoryCheckpointIdentity: String = "",
+    overrides: WorkflowContinueDecisionOverrides = WorkflowContinueDecisionOverrides(),
   ): WorkflowContinueDecision {
     val resume = resumeView(definition, record)
     val snapshot = resume.snapshot
@@ -187,8 +191,9 @@ class WorkflowEngine {
     val attemptCount = currentStep?.attemptCount ?: 0
     val nextAttemptCount = maxOf(attemptCount + 1, 1)
     val actualContinueStatus = continueStatusFor(snapshot, resume, currentStep)
-    val continueStatus = continueStatusOverride ?: actualContinueStatus
-    val workflowStatusBeforeContinue = workflowStatusBeforeContinueOverride ?: snapshot.workflowStatus
+    val continueStatus = overrides.continueStatus ?: actualContinueStatus
+    val workflowStatusBeforeContinue =
+      overrides.workflowStatusBeforeContinue ?: snapshot.workflowStatus
     return buildContinueDecision(
       BuildContinueDecisionRequest(
         context =
@@ -203,7 +208,7 @@ class WorkflowEngine {
                 snapshot,
                 resume.resumeStepId,
                 attemptCount,
-                resolvedRepositoryCheckpointIdentity,
+                overrides.repositoryCheckpointIdentity,
               ),
           ),
         continueStatus = continueStatus,
@@ -239,5 +244,4 @@ class WorkflowEngine {
     producerIteration: Int,
   ): WorkflowInputProjection? =
     launchProjection(definition, snapshotView(definition, record), stepId, producerIteration)
-
 }

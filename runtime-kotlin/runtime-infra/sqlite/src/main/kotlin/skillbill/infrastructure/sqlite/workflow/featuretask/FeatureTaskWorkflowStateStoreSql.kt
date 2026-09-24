@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.featuretask
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.task.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError

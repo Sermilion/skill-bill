@@ -1,17 +1,17 @@
 package skillbill.ports.workflow.model
 
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.session.FeatureImplementSessionSummaryContract
 import skillbill.contracts.workflow.session.FeatureVerifySessionSummaryContract
 import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.engine.model.WorkflowStepState
-import skillbill.workflow.engine.model.DurableWorkflowArtifacts
-import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.contracts.JsonCodec
-import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.error.core.MalformedJsonTextError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepState
+import skillbill.workflow.model.WorkflowStepStatus
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.time.Instant
@@ -20,6 +20,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
+import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoField
 
 fun WorkflowStateRecord.toSnapshot(): WorkflowStateSnapshot =
@@ -51,7 +52,8 @@ fun WorkflowStateSnapshot.mapToRecord(source: WorkflowStateRecord? = null): Work
     workflowStatus = workflowStatus.wireValue,
     currentStepId = currentStepId,
     stepsJson = source?.takeIf { sourceSnapshot?.steps == steps }?.stepsJson ?: stepsJson,
-    artifactsJson = source?.takeIf { sourceSnapshot?.artifacts?.toMap() == persistedArtifacts }?.artifactsJson ?: artifactsJson,
+    artifactsJson =
+      source?.takeIf { sourceSnapshot?.artifacts?.toMap() == persistedArtifacts }?.artifactsJson ?: artifactsJson,
     startedAt = encodeInstant(startedAt, source?.startedAt),
     updatedAt = encodeInstant(updatedAt, source?.updatedAt),
     finishedAt = encodeInstant(finishedAt, source?.finishedAt),
@@ -64,32 +66,54 @@ fun WorkflowStateSnapshot.mapToRecord(source: WorkflowStateRecord? = null): Work
 }
 
 private fun decodeSteps(raw: String): List<WorkflowStepState> {
-  val root = parseJson(raw, "steps") as? List<*>
-    ?: throw InvalidWorkflowStateSchemaError("Workflow state steps must decode to a JSON array.")
-  return root.mapIndexed { index, entry ->
-    val item = JsonCodec.anyToStringAnyMap(entry)
-      ?: throw InvalidWorkflowStateSchemaError("Workflow state steps[$index] must decode to a JSON object.")
-    val allowedKeys = setOf(SharedPayloadKeys.STEP_ID, SharedPayloadKeys.STATUS, WorkflowWirePayloadKeys.ATTEMPT_COUNT)
-    if (item.keys.any { it !in allowedKeys }) {
-      throw InvalidWorkflowStateSchemaError("Workflow state steps[$index] contains an unknown field.")
-    }
-    val stepId = item[SharedPayloadKeys.STEP_ID] as? String
-      ?: throw InvalidWorkflowStateSchemaError("Workflow state steps[$index].step_id must decode to a string.")
-    val statusValue = item[SharedPayloadKeys.STATUS] as? String
-      ?: throw InvalidWorkflowStateSchemaError("Workflow state steps[$index].status must decode to a string.")
-    val status = WorkflowStepStatus.fromWire(statusValue)
-      ?: throw InvalidWorkflowStateSchemaError("Workflow state steps[$index].status has unsupported value '$statusValue'.")
-    val attempts = item[WorkflowWirePayloadKeys.ATTEMPT_COUNT].toExactIntOrNull()
-      ?: throw InvalidWorkflowStateSchemaError("Workflow state steps[$index].attempt_count must decode to an integer.")
-    WorkflowStepState(stepId, status, attempts)
-  }
+  val root =
+    parseJson(raw, "steps") as? List<*>
+      ?: throw InvalidWorkflowStateSchemaError("Workflow state steps must decode to a JSON array.")
+  return root.mapIndexed(::decodeStep)
 }
+
+private fun decodeStep(
+  index: Int,
+  entry: Any?,
+): WorkflowStepState {
+  val item = JsonCodec.anyToStringAnyMap(entry) ?: invalidStep(index, "must decode to a JSON object.")
+  val allowedKeys =
+    setOf(SharedPayloadKeys.STEP_ID, SharedPayloadKeys.STATUS, WorkflowWirePayloadKeys.ATTEMPT_COUNT)
+  if (item.keys.any { it !in allowedKeys }) {
+    invalidStep(index, "contains an unknown field.")
+  }
+  val stepId =
+    item[SharedPayloadKeys.STEP_ID] as? String
+      ?: invalidStep(index, "step_id must decode to a string.")
+  val statusValue =
+    item[SharedPayloadKeys.STATUS] as? String
+      ?: invalidStep(index, "status must decode to a string.")
+  val status =
+    WorkflowStepStatus.fromWire(statusValue)
+      ?: invalidStep(index, "status has unsupported value '$statusValue'.")
+  val attempts =
+    if (WorkflowWirePayloadKeys.ATTEMPT_COUNT in item) {
+      item[WorkflowWirePayloadKeys.ATTEMPT_COUNT].toExactIntOrNull()
+        ?: invalidStep(index, "attempt_count must decode to an integer.")
+    } else {
+      0
+    }
+  return WorkflowStepState(stepId, status, attempts)
+}
+
+private fun invalidStep(
+  index: Int,
+  reason: String,
+): Nothing = throw InvalidWorkflowStateSchemaError("Workflow state steps[$index] $reason")
 
 private fun decodeObject(raw: String): Map<String, Any?> =
   JsonCodec.anyToStringAnyMap(parseJson(raw, "artifacts"))
     ?: throw InvalidWorkflowStateSchemaError("Workflow state artifacts must decode to a JSON object.")
 
-private fun parseJson(raw: String, field: String): Any? =
+private fun parseJson(
+  raw: String,
+  field: String,
+): Any? =
   try {
     JsonCodec.parseValue(raw)
   } catch (error: MalformedJsonTextError) {
@@ -97,29 +121,40 @@ private fun parseJson(raw: String, field: String): Any? =
   }
 
 private fun encodeSteps(steps: List<WorkflowStepState>): String =
-  JsonCodec.valueToJsonString(steps.map { step -> linkedMapOf(
-    SharedPayloadKeys.STEP_ID to step.stepId,
-    SharedPayloadKeys.STATUS to step.status.wireValue,
-    WorkflowWirePayloadKeys.ATTEMPT_COUNT to step.attemptCount,
-  ) })
+  JsonCodec.valueToJsonString(
+    steps.map { step ->
+      linkedMapOf(
+        SharedPayloadKeys.STEP_ID to step.stepId,
+        SharedPayloadKeys.STATUS to step.status.wireValue,
+        WorkflowWirePayloadKeys.ATTEMPT_COUNT to step.attemptCount,
+      )
+    },
+  )
 
-private fun decodeInstant(raw: String?, field: String): Instant? = raw?.takeIf(String::isNotBlank)?.let {
-  try {
-    Instant.parse(it)
-  } catch (_: RuntimeException) {
+private fun decodeInstant(
+  raw: String?,
+  field: String,
+): Instant? =
+  raw?.takeIf(String::isNotBlank)?.let {
     try {
-      OffsetDateTime.parse(it).toInstant()
-    } catch (_: RuntimeException) {
+      Instant.parse(it)
+    } catch (_: DateTimeParseException) {
       try {
-        LocalDateTime.parse(it, DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss")).toInstant(ZoneOffset.UTC)
-      } catch (error: RuntimeException) {
-        throw InvalidWorkflowStateSchemaError("Workflow state $field contains an invalid timestamp.", error)
+        OffsetDateTime.parse(it).toInstant()
+      } catch (_: DateTimeParseException) {
+        try {
+          LocalDateTime.parse(it, DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss")).toInstant(ZoneOffset.UTC)
+        } catch (error: DateTimeParseException) {
+          throw InvalidWorkflowStateSchemaError("Workflow state $field contains an invalid timestamp.", error)
+        }
       }
     }
   }
-}
 
-private fun encodeInstant(value: Instant?, source: String?): String? =
+private fun encodeInstant(
+  value: Instant?,
+  source: String?,
+): String? =
   if (value == null) {
     source?.takeIf(String::isBlank)
   } else {
@@ -151,16 +186,17 @@ private fun formatChangedInstant(
   return DateTimeFormatter.ISO_INSTANT.format(value)
 }
 
-private fun Any?.toExactIntOrNull(): Int? = when (this) {
-  is Byte -> toInt()
-  is Short -> toInt()
-  is Int -> this
-  is Long -> takeIf { it in Int.MIN_VALUE..Int.MAX_VALUE }?.toInt()
-  is BigInteger -> runCatching { intValueExact() }.getOrNull()
-  is BigDecimal -> runCatching { intValueExact() }.getOrNull()
-  is String -> toIntOrNull()
-  else -> null
-}
+private fun Any?.toExactIntOrNull(): Int? =
+  when (this) {
+    is Byte -> toInt()
+    is Short -> toInt()
+    is Int -> this
+    is Long -> takeIf { it in Int.MIN_VALUE..Int.MAX_VALUE }?.toInt()
+    is BigInteger -> runCatching { intValueExact() }.getOrNull()
+    is BigDecimal -> runCatching { intValueExact() }.getOrNull()
+    is String -> toIntOrNull()
+    else -> null
+  }
 
 fun FeatureImplementSessionSummary.toContract(): FeatureImplementSessionSummaryContract =
   FeatureImplementSessionSummaryContract(

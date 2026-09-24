@@ -4,14 +4,6 @@ plugins {
   `java-test-fixtures`
 }
 
-tasks.named<ProcessResources>("processResources") {
-  val skillBillVersion = project.version.toString()
-  inputs.property("skillBillVersion", skillBillVersion)
-  filesMatching("skillbill/version.properties") {
-    expand("skillBillVersion" to skillBillVersion)
-  }
-}
-
 dependencies {
   implementation(project(":runtime-domain"))
   implementation(project(":runtime-ports"))

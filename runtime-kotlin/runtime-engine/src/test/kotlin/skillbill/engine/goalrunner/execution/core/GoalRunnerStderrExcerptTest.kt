@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.execution.core
+
 import skillbill.application.agentoutput.agentFailureExcerpt
 import kotlin.test.Test
 import kotlin.test.assertEquals

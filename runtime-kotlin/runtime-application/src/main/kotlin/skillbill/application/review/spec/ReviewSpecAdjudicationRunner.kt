@@ -1,4 +1,5 @@
 package skillbill.application.review.spec
+
 import skillbill.application.review.model.ReviewSpecAdjudicationOutcome
 import skillbill.application.review.model.ReviewSpecAdjudicationRunRequest
 import skillbill.application.review.packet.toAdjudicationLaunchEnvelope

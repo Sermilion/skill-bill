@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask.model.subtask
 
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 
 sealed interface RemediationBaseCoherenceResult
 

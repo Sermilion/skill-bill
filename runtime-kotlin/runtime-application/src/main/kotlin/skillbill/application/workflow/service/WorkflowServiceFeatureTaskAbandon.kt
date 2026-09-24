@@ -1,5 +1,7 @@
 package skillbill.application.workflow.service
+
 import skillbill.application.workflow.model.WorkflowUpdateResult
+import skillbill.application.workflow.persist.WorkflowPersistenceContext
 import skillbill.application.workflow.persist.buildUpdateOk
 import skillbill.contracts.JsonCodec
 import skillbill.error.core.MalformedJsonTextError
@@ -63,8 +65,10 @@ internal class WorkflowServiceFeatureTaskAbandon(
       family.definition,
       updated,
       input,
-      unitOfWork.dbPath.toString(),
-      repositoryCheckpointIdentity,
+      WorkflowPersistenceContext(
+        dbPath = unitOfWork.dbPath.toString(),
+        repositoryCheckpointIdentity = repositoryCheckpointIdentity,
+      ),
     )
   }
 

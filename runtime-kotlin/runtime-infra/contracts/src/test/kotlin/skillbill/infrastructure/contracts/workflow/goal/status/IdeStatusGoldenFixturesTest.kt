@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.goal.status
+
 import skillbill.contracts.workflow.identity.status.IDE_STATUS_CONTRACT_VERSION
 import kotlin.test.Test
 

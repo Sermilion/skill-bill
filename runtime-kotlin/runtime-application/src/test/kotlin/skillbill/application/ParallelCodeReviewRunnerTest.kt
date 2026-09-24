@@ -9,6 +9,7 @@ import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
 import skillbill.application.review.parallel.runner.ParallelCodeReviewRunner
+import skillbill.application.review.parallel.runner.finding
 import skillbill.application.review.snapshot.RecordedWorkerResponse
 import skillbill.application.review.snapshot.ReviewHarnessConfig
 import skillbill.application.review.snapshot.ReviewRecorder
@@ -22,12 +23,14 @@ import skillbill.application.review.snapshot.simulateGovernedEvidenceReads
 import skillbill.application.review.snapshot.sparseReviewPack
 import skillbill.application.review.spec.SpecIntentProjectionExtractor
 import skillbill.application.review.spec.SpecIntentProjectionResolver
+import skillbill.application.review.spec.resolver
 import skillbill.application.review.verification.ReviewClaimVerificationRunner
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.config.model.RepoLocalConfig
 import skillbill.error.shellcontent.MissingInstalledNativeAgentError
-import skillbill.install.model.InstallAgent
+import skillbill.goalrunner.terminalStatus
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
@@ -40,6 +43,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.evidence.ReviewEvidenceBroker
 import skillbill.ports.review.evidence.ReviewEvidenceBrokerFactory
@@ -61,7 +65,7 @@ import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.scaffold.model.PilotedPlatformPackProjection
 import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
-import skillbill.ports.review.ReviewContextEnvelopeValidator
+import skillbill.review.context.ReviewContextWireMap
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.review.context.model.packet.ReviewExpansionRecord
@@ -90,7 +94,6 @@ import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import skillbill.telemetry.model.PrDescriptionGeneratedRecord
 import skillbill.telemetry.model.QualityCheckFinishedRecord
 import skillbill.telemetry.model.QualityCheckStartedRecord
-import skillbill.workflow.engine.model.ReviewContextWireMap
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeDiagnosticDegradationMeasurement
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionMeasurement
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRejectionMeasurement
@@ -232,7 +235,7 @@ class ParallelCodeReviewRunnerTest {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
         AgentRunLaunchFacts(
-          agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+          agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
           exitStatus = 0,
           stdout = blockedOutput,
           stderr = "",
@@ -257,7 +260,7 @@ class ParallelCodeReviewRunnerTest {
     createStagedFile(tempDir)
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
-        val agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
+        val agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
         AgentRunLaunchFacts(
           agent = agent,
           exitStatus = null,
@@ -284,7 +287,7 @@ class ParallelCodeReviewRunnerTest {
     createStagedFile(tempDir)
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
-        val agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
+        val agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
         AgentRunLaunchFacts(
           agent = agent,
           exitStatus = null,
@@ -504,7 +507,7 @@ class ParallelCodeReviewRunnerTest {
       GoalRunnerSubtaskLauncher { request ->
         simulateGovernedEvidenceReads(request.skillRunRequest)
         AgentRunLaunchFacts(
-          agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+          agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
           exitStatus = 0,
           stdout = "- [F-001] Major | High | path=\"A.kt\" | line=1 | Inline finding",
           stderr = "",
@@ -536,7 +539,7 @@ class ParallelCodeReviewRunnerTest {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
         UnsupportedAgentRunLaunch(
-          agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+          agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
           reason = "not configured for this repo",
         )
       }
@@ -601,7 +604,7 @@ class ParallelCodeReviewRunnerTest {
     val testingRubric = "testing specialist rubric"
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
-        val agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
+        val agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
         val prompt = request.skillRunRequest.promptOverride.orEmpty()
         if (prompt.contains(architectureRubric)) {
           AgentRunLaunchFacts(
@@ -1073,7 +1076,7 @@ class ParallelCodeReviewRunnerFailureTest {
   fun `lane1 interrupted produces lane1Success false`() {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
-        val agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
+        val agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
         AgentRunLaunchFacts(
           agent = agent,
           exitStatus = null,
@@ -1096,7 +1099,7 @@ class ParallelCodeReviewRunnerFailureTest {
   fun `failed lane findings are excluded from merge result`() {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
-        val agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
+        val agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
         AgentRunLaunchFacts(
           agent = agent,
           exitStatus = null,
@@ -1136,7 +1139,7 @@ class ParallelCodeReviewRunnerFailureTest {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
         AgentRunLaunchFacts(
-          agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+          agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
           exitStatus = null,
           stdout = "",
           stderr = "",
@@ -1159,7 +1162,7 @@ class ParallelCodeReviewRunnerFailureTest {
   fun `UnsupportedAgentRunLaunch produces failed lane outcome`() {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
-        val agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
+        val agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
         if (request.invokedAgentId == "claude") {
           UnsupportedAgentRunLaunch(agent = agent, reason = "not configured for this repo")
         } else {
@@ -1186,7 +1189,7 @@ class ParallelCodeReviewRunnerFailureTest {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
         AgentRunLaunchFacts(
-          agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+          agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
           exitStatus = 1,
           stdout = "",
           stderr = "Error: command failed with detail",
@@ -1325,7 +1328,7 @@ class ParallelCodeReviewRunnerFailureTest {
         ParallelSubtaskLauncher(
           outcome =
             AgentRunLaunchFacts(
-              agent = InstallAgent.fromNormalizedId("claude", label = "agentId"),
+              agent = SupportedAgent.fromNormalizedId("claude", label = "agentId"),
               exitStatus = 0,
               stdout = "[F-001] Major | High | path=\"src/Main.kt\" | line=3 | Transaction is not rolled back.",
               stderr = "",
@@ -1784,7 +1787,7 @@ private fun alwaysSuccessLauncher(stdout: String = "NO_FINDINGS") =
   GoalRunnerSubtaskLauncher { request ->
     simulateGovernedEvidenceReads(request.skillRunRequest)
     AgentRunLaunchFacts(
-      agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+      agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
       exitStatus = 0,
       stdout = stdout,
       stderr = "",
@@ -1917,7 +1920,7 @@ private class ParallelSubtaskLauncher(
     requests += request
     simulateGovernedEvidenceReads(request.skillRunRequest)
     return outcome ?: AgentRunLaunchFacts(
-      agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+      agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
       exitStatus = 0,
       stdout = "NO_FINDINGS",
       stderr = "",

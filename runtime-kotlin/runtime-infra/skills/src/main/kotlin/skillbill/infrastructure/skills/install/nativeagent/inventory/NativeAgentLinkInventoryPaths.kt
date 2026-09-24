@@ -1,6 +1,8 @@
 package skillbill.infrastructure.skills.install.nativeagent.inventory
+
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.SupportedAgent
+import skillbill.ports.workflow.list
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path

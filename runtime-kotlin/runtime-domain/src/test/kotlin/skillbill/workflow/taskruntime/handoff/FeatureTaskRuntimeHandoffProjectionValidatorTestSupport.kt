@@ -1,5 +1,6 @@
 package skillbill.workflow.taskruntime.handoff
-import skillbill.workflow.goal.model.ValidationDepth
+
+import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.BUILD
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.VALIDATE

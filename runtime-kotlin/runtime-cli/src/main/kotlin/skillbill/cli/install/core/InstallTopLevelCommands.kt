@@ -1,4 +1,5 @@
 package skillbill.cli.install.core
+
 import com.github.ajalt.clikt.core.subcommands
 import me.tatarka.inject.annotations.Inject
 import skillbill.cli.kernel.cli.DocumentedNoOpCliCommand

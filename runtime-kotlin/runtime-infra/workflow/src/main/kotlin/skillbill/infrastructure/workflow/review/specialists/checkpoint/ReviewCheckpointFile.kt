@@ -1,7 +1,8 @@
 package skillbill.infrastructure.workflow.review.specialists.checkpoint
+
 import skillbill.infrastructure.workflow.review.broker.checkpointDigest
 import skillbill.ports.review.model.ReviewCheckpointFileIdentity
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
+import skillbill.review.model.requireRepositoryRelativePath
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.NoSuchFileException

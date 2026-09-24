@@ -1,5 +1,4 @@
 package skillbill.infrastructure.skills.scaffold.catalog
-
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.declaredCodeReviewSkillNames
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.unsupportedCompositionModeReason
@@ -14,9 +13,9 @@ import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.CodeReviewCompositionMode
 import skillbill.scaffold.model.CodeReviewCompositionScope
 import skillbill.scaffold.model.PlatformManifest
-import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
-import skillbill.scaffold.policy.scaffold.PLATFORM_PACK_PRESETS
-import skillbill.scaffold.policy.scaffold.SCAFFOLD_PAYLOAD_VERSION
+import skillbill.scaffold.policy.APPROVED_CODE_REVIEW_AREAS
+import skillbill.scaffold.policy.PLATFORM_PACK_PRESETS
+import skillbill.scaffold.policy.SCAFFOLD_PAYLOAD_VERSION
 import java.nio.file.Path
 
 object ScaffoldCatalog {

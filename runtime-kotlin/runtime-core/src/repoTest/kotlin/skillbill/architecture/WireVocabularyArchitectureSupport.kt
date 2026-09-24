@@ -1,4 +1,5 @@
 package skillbill.architecture
+
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 
 private val wireVocabularyEnumPattern = Regex("""enum\s+class\s+([A-Za-z0-9_]+)([^\{]*)\{""")

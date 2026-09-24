@@ -9,6 +9,7 @@ import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.nativeagent.rendering.discoverRepoNativeAgentSourceEntries
 import skillbill.infrastructure.skills.nativeagent.rendering.discoverRepoNativeAgentSources
 import skillbill.infrastructure.skills.nativeagent.validation.validateRepoNativeAgents
+import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

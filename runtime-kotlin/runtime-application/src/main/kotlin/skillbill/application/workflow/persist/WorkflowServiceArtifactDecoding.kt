@@ -1,4 +1,5 @@
 package skillbill.application.workflow.persist
+
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.taskruntime.artifact.phaseLedger
 import skillbill.workflow.taskruntime.artifact.phaseRecords
@@ -10,6 +11,5 @@ internal fun decodeFeatureTaskRuntimePhaseRecords(
 ): Map<String, FeatureTaskRuntimePhaseRecord> = artifacts.phaseRecords()
 
 internal object FeatureTaskRuntimePhaseLedgerDecoder {
-  fun decode(artifacts: DurableWorkflowArtifacts): List<FeatureTaskRuntimePhaseLedgerEntry> =
-    artifacts.phaseLedger()
+  fun decode(artifacts: DurableWorkflowArtifacts): List<FeatureTaskRuntimePhaseLedgerEntry> = artifacts.phaseLedger()
 }

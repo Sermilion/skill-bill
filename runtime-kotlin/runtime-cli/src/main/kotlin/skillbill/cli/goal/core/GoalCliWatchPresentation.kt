@@ -1,4 +1,5 @@
 package skillbill.cli.goal.core
+
 import skillbill.cli.goal.status.appendDiffStatusLines
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
 

@@ -1,7 +1,8 @@
 package skillbill.di.workflow
 
 import skillbill.application.decomposition.DecompositionManifestWriter
-import skillbill.ports.workflow.decomposition.loadDecompositionManifest
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.executionModel
 import skillbill.application.review.service.ReviewService
 import skillbill.application.review.snapshot.HARNESS_ORIGIN_UNAVAILABLE
 import skillbill.application.telemetry.model.GoalFinishedRequest
@@ -18,6 +19,7 @@ import skillbill.application.workflow.service.WorkflowService
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
@@ -25,7 +27,6 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.error.shellcontent.MissingCompositionLayerError
-import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.infrastructure.contracts.workflow.decomposition.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
@@ -68,6 +69,7 @@ import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.WorkflowStatsRepository
+import skillbill.ports.workflow.decomposition.loadDecompositionManifest
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -103,9 +105,9 @@ import skillbill.telemetry.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
@@ -121,7 +123,6 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHando
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionMeasurement
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeSharedEvidenceMeasurement
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeHandoffPromptVisibility
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
@@ -134,6 +135,7 @@ import java.time.Clock
 import kotlin.test.assertEquals
 import java.lang.Double.TYPE as DoubleTYPE
 import java.lang.Long.TYPE as LongTYPE
+import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactSchemaValidator
 
 internal fun <T> noopPort(type: Class<T>): T {
   @Suppress("UNCHECKED_CAST")
@@ -1382,8 +1384,8 @@ internal fun testPhaseRecorder(database: DatabaseSessionFactory) =
   featureTaskRuntimePhaseRecorder(
     database,
     WorkflowStateSchemaValidator(),
-    FeatureTaskRuntimeWireArtifactValidator(),
-    FeatureTaskRuntimeWireArtifactValidator(),
+    FeatureTaskRuntimeWireArtifactSchemaValidator(),
+    FeatureTaskRuntimeWireArtifactSchemaValidator(),
     Clock.systemUTC(),
     NoopRuntimeDiagnostics,
   )

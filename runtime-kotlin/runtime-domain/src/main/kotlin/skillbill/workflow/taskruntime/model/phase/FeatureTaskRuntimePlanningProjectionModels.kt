@@ -1,5 +1,6 @@
 
 package skillbill.workflow.taskruntime.model.phase
+
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeCompactReferenceKind
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionField
@@ -16,9 +17,9 @@ object FeatureTaskRuntimePlanningProjectionContract {
   fun producedProjectionKindFor(phaseId: String): String? = producedProjectionKindsByPhaseId[phaseId]
 }
 
-const val FEATURE_TASK_RUNTIME_PROJECTION_LIST_MAX_COUNT: Int = 128
+internal const val FEATURE_TASK_RUNTIME_PROJECTION_LIST_MAX_COUNT: Int = 128
 
-const val FEATURE_TASK_RUNTIME_CHANGED_PATH_MAX_COUNT: Int = 512
+internal const val FEATURE_TASK_RUNTIME_CHANGED_PATH_MAX_COUNT: Int = 512
 
 data class FeatureTaskRuntimeSharedReviewEvidenceReference(
   val storePath: String,

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats.workflow
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys

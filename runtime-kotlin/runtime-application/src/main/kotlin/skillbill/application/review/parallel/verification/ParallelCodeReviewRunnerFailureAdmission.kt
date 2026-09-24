@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.verification
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.agentoutput.agentFailureExcerpt
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
@@ -9,15 +10,16 @@ import skillbill.application.review.parallel.runner.PARALLEL_REVIEW_REGISTER_ABS
 import skillbill.application.review.parallel.runner.PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH
 import skillbill.application.review.parallel.runner.ParallelCodeReviewInlineParentLaunch
 import skillbill.application.review.parallel.runner.ParallelCodeReviewSoftRegisterAdmission
+import skillbill.goalrunner.terminalStatus
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.review.model.ParallelReviewLaneOutcome
 import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.review.context.model.accounting.ReviewAccountingTerminalOutcome
 import skillbill.review.context.model.hunk.ReviewRegisterParseSeamException
 import skillbill.review.context.model.packet.ReviewLaneAssembledBundle
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.model.ParallelReviewParseResult
 import skillbill.review.model.ParallelReviewRawFinding
+import skillbill.review.model.ReviewLaneReviewDisposition
 import skillbill.review.parallel.ParallelReviewFindingParser
 import kotlin.coroutines.cancellation.CancellationException
 

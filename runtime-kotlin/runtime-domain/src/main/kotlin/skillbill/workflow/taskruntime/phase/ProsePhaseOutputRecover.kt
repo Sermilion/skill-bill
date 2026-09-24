@@ -1,7 +1,8 @@
 package skillbill.workflow.taskruntime.phase
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 
 internal object ProsePhaseOutputRecover {
   private val LEGACY_VALUE_KEYS: List<String> =

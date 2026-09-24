@@ -1,5 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.manifest
+
 import java.nio.file.Path
 
 object ReadmeCatalogEdits {

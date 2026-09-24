@@ -138,7 +138,13 @@ internal fun syntheticSourceFile(
 ): SourceFile =
   SourceFile(
     relativePath = relativePath,
-    packageName = RuntimeArchitectureScanConstants.packagePattern.find(source)?.groupValues?.get(1).orEmpty(),
+    packageName =
+      RuntimeArchitectureScanConstants.packagePattern.find(source)?.groupValues?.get(1)
+        ?: relativePath
+          .substringBeforeLast('/')
+          .removePrefix("src/main/kotlin/")
+          .replace('/', '.')
+          .let { path -> if (path.startsWith("skillbill.")) path else "skillbill.$path" },
     imports =
       RuntimeArchitectureScanConstants.importPattern.findAll(source)
         .map { it.groupValues[1].substringBefore(" as ") }
@@ -212,7 +218,6 @@ internal fun containsReturnTypeSeparator(text: String): Boolean = "):" in text |
 
 internal fun rawMapViolationFixtureSource(): String =
   """
-  package skillbill.application
 
   typealias AnyMapAlias = Map<String, Any>
   typealias HashMapAlias = HashMap<String, Any?>

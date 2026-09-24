@@ -19,7 +19,7 @@ private fun collectionItemCount(value: Any?): Int =
     else -> 1
   }
 
-object WorkflowInputProjectionSelector {
+internal object WorkflowInputProjectionSelector {
   fun select(
     definition: WorkflowDefinition,
     snapshot: WorkflowSnapshotView,

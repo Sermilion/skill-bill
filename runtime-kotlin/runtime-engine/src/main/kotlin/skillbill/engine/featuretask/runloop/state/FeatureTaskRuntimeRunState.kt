@@ -5,11 +5,14 @@ import skillbill.engine.featuretask.runloop.core.ReconstructFixLoopBudgetBasesAr
 import skillbill.engine.featuretask.runloop.observability.paused
 import skillbill.engine.featuretask.runner.BRANCH_SETUP_AGENT_ID
 import skillbill.engine.featuretask.runner.invalidateLegacyPlanWithoutPreplan
+import skillbill.engine.goalrunner.status.completed
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
@@ -17,8 +20,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewFinding
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
-import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 class FeatureTaskRuntimeRunState(

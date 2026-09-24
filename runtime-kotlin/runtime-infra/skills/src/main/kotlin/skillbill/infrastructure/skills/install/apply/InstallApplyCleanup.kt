@@ -2,11 +2,11 @@ package skillbill.infrastructure.skills.install.apply
 
 import skillbill.infrastructure.skills.install.plan.platformSkills
 import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanSkill
+import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.PlatformManifest
@@ -48,7 +48,7 @@ private data class InstallCleanupContext(
 )
 
 private fun cleanupOneTarget(
-  agent: InstallAgent,
+  agent: SupportedAgent,
   targetDir: Path,
   cleanupContext: InstallCleanupContext,
   failures: MutableList<InstallApplyIssue>,
@@ -75,10 +75,10 @@ private fun cleanupOneTarget(
 }
 
 private fun legacyClaudeCommandsDir(
-  agent: InstallAgent,
+  agent: SupportedAgent,
   targetDir: Path,
 ): Path? =
-  if (agent == InstallAgent.CLAUDE && targetDir.fileName?.toString() == "skills") {
+  if (agent == SupportedAgent.CLAUDE && targetDir.fileName?.toString() == "skills") {
     targetDir.resolveSibling("commands")
   } else {
     null

@@ -1,6 +1,5 @@
 package skillbill.install.policy
 
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
 import skillbill.install.model.InstallAgentTargetSource
@@ -9,6 +8,7 @@ import skillbill.install.model.InstallPlatformPackSnapshot
 import skillbill.install.model.InstallPolicyInput
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
+import skillbill.install.model.SupportedAgent
 
 internal fun resolveAgentTargets(input: InstallPolicyInput): List<InstallAgentTarget> =
   when (input.request.agentSelection.mode) {
@@ -28,7 +28,7 @@ internal fun resolveManualTargets(input: InstallPolicyInput): List<InstallAgentT
     input.request.agentSelection.manualAgents
       .ifEmpty { explicitTargets.keys }
   return manualAgents
-    .sortedBy(InstallAgent::id)
+    .sortedBy(SupportedAgent::id)
     .flatMap { agent ->
       explicitTargets[agent]?.map { target -> target.copy(source = InstallAgentTargetSource.MANUAL) }
         ?: (defaultTargets[agent] ?: error("Manual agent '${agent.id}' has no explicit or default target path."))
@@ -42,7 +42,7 @@ internal fun resolveManualTargets(input: InstallPolicyInput): List<InstallAgentT
     }
 }
 
-internal fun selectedPlatformSlugs(input: InstallPolicyInput): List<String> {
+fun selectedPlatformSlugs(input: InstallPolicyInput): List<String> {
   val explicitlySelected =
     selectedPlatformSlugs(
       selection = input.request.platformPackSelection,
@@ -85,7 +85,7 @@ internal fun expandRequiredComposedPacks(
   return platformPacks.map(InstallPlatformPackDiscoverySnapshot::slug).filter(selected::contains)
 }
 
-internal fun selectedPlatformSlugs(
+fun selectedPlatformSlugs(
   selection: PlatformPackSelection,
   discoveredSlugs: List<String>,
 ): List<String> =

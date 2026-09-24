@@ -2,7 +2,6 @@ package skillbill.cli.scaffold.wizard
 
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliRunInputs
-import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals

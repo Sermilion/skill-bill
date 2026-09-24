@@ -1,5 +1,6 @@
 package skillbill.infrastructure.skills.install.plan
 
+import skillbill.infrastructure.skills.install.apply.selectedPlatformManifests
 import skillbill.infrastructure.skills.install.identity.SKILL_CONTENT_IDENTITY_FILENAME
 import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
 import skillbill.infrastructure.skills.install.staging.staging.authoredFilesFor

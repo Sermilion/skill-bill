@@ -1,4 +1,5 @@
 package skillbill.contracts.workflow.session
+
 import skillbill.contracts.JsonPayloadContract
 
 object WorkflowSessionSummaryPayloadKeys {

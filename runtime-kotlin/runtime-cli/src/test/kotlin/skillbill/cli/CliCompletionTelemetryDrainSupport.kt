@@ -2,7 +2,6 @@ package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.infrastructure.sqlite.ensureTestDatabase
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.DriverManager

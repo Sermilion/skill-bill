@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.schema
+
 import java.nio.file.Path
 
 internal class DatabaseWriteReadinessGate(

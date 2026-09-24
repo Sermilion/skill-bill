@@ -38,7 +38,10 @@ class WorkflowStateStoreTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val validator =
         object : WorkflowSnapshotValidator {
-          override fun validate(snapshot: WorkflowStateSnapshot, slug: String) {
+          override fun validate(
+            snapshot: WorkflowStateSnapshot,
+            slug: String,
+          ) {
             if (DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.contains(snapshot.artifacts)) {
               snapshot.artifacts.goalContinuationArtifact()
             }
@@ -54,7 +57,9 @@ class WorkflowStateStoreTest {
           FeatureTaskWorkflowMode.RUNTIME,
         ).copy(
           artifactsJson =
-            """{"${DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.label()}":{"issue_key":"SKILL-372","subtask_id":2.7,"suppress_pr":true,"goal_branch":"feat/SKILL-372","code_review_mode":"inline"}}""",
+            """{"${DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.label()}":{""" +
+              """"issue_key":"SKILL-372","subtask_id":2.7,"suppress_pr":true,""" +
+              """"goal_branch":"feat/SKILL-372","code_review_mode":"inline"}}""",
         )
 
       assertFailsWith<InvalidWorkflowStateSchemaError> {
@@ -567,9 +572,10 @@ class WorkflowStateStoreLifecycleTest {
             check(start.await(5, TimeUnit.SECONDS)) { "Concurrent transition start timed out." }
             DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
               connection.createStatement().use { it.execute("PRAGMA busy_timeout = 5000") }
-              WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator).saveFeatureTaskRuntimeWorkflow(
-                initial.copy(workflowStatus = status, currentStepId = "plan"),
-              )
+              WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
+                .saveFeatureTaskRuntimeWorkflow(
+                  initial.copy(workflowStatus = status, currentStepId = "plan"),
+                )
             }
           }
         }

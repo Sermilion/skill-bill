@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.schema
+
 import skillbill.infrastructure.sqlite.workflow.featuretask.FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION
 import skillbill.review.model.FindingOutcomeType
 

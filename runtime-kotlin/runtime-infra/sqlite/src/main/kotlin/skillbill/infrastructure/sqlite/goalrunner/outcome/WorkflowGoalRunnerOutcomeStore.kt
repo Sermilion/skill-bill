@@ -1,18 +1,18 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.goalrunner.goalReviewArtifacts
-import skillbill.goalrunner.validatedGoalReviewPasses
 import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
+import skillbill.goalrunner.validatedGoalReviewPasses
 import skillbill.infrastructure.sqlite.goalrunner.control.authoritativeOutcomesBySubtask
 import skillbill.infrastructure.sqlite.goalrunner.control.goalReviewEmissionEnvelope
 import skillbill.infrastructure.sqlite.goalrunner.control.taskRuntimeRecordOrNull
 import skillbill.infrastructure.sqlite.goalrunner.control.workflowFamilyFor
-import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
-import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
+import skillbill.infrastructure.sqlite.review.stage.fetchFindingVerdicts
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
@@ -32,23 +32,25 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerLedgerSequenceWatermark
 import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
+import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewPassResult
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import java.nio.file.Path
 
 internal data class RecoverMissingResultPrefixTerminalOutcomeArgs(
@@ -93,7 +95,6 @@ class WorkflowGoalRunnerOutcomeStore
       WorkflowGoalRunnerOutcomeReconcile(
         engine,
         gitOperations,
-        goalObservabilityEventValidator,
         blockWrites,
         terminalPersistence,
         clock,

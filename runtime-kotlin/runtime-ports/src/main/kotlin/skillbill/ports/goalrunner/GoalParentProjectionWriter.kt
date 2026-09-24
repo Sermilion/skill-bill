@@ -1,12 +1,11 @@
 package skillbill.ports.goalrunner
 
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
-import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
-import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.decomposition.runtime.goalParentArtifactProjection

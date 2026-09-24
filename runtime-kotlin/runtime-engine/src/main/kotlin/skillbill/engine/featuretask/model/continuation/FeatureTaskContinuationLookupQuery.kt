@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.continuation
+
 import skillbill.workflow.model.FeatureTaskRouteScope
 
 data class FeatureTaskContinuationLookupQuery(

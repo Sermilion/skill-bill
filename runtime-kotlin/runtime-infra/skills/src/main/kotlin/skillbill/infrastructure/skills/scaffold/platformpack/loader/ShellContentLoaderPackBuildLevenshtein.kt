@@ -1,5 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
+
 import skillbill.error.shellcontent.InvalidManifestSchemaError
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.PlatformPackSchemaValidator
 import java.nio.file.Path

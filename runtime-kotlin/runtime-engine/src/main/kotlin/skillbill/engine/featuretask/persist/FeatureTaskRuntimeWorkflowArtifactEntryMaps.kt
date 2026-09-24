@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.persist
+
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 

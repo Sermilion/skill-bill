@@ -1,4 +1,5 @@
 package skillbill.config.model
+
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 
 enum class SpecType(

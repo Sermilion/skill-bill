@@ -37,7 +37,7 @@ class TelemetryOutboxDrainClaimClockTest {
     repository.seed(id = 1L)
     repository.seed(id = 2L)
 
-    syncTelemetry(
+    TelemetrySyncRuntime.syncTelemetry(
       settings,
       repository,
       AcceptingTelemetryRelay(),

@@ -1,9 +1,9 @@
 package skillbill.infrastructure.skills.scaffold.payload
 
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
-import skillbill.scaffold.policy.scaffold.ORCHESTRATOR_KINDS_FOR_SUBAGENTS
-import skillbill.scaffold.policy.scaffold.SUBAGENT_NAME_PATTERN
-import skillbill.scaffold.policy.scaffold.model.OptionalSubagents
+import skillbill.scaffold.policy.ORCHESTRATOR_KINDS_FOR_SUBAGENTS
+import skillbill.scaffold.policy.SUBAGENT_NAME_PATTERN
+import skillbill.scaffold.policy.model.OptionalSubagents
 
 internal fun optionalSpecialistSubagents(
   payload: Map<String, Any?>,

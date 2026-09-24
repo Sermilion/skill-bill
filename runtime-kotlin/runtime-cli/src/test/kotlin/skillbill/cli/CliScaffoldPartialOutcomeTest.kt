@@ -6,7 +6,6 @@ import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.scaffold.commands.NativeScaffoldRunArgs
 import skillbill.cli.scaffold.payload.runNativeScaffoldPayload
-import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.model.FileLocation
 import skillbill.ports.install.addon.ExternalAddonOverlayPort
 import skillbill.ports.install.addon.ExternalAddonSourceConfigPort

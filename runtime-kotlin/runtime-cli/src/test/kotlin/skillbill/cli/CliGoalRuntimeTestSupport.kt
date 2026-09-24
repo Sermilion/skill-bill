@@ -2,11 +2,11 @@ package skillbill.cli
 
 import kotlinx.serialization.json.JsonElement
 import skillbill.cli.model.CliRuntimeContext
+import skillbill.cli.workflow.parseArtifactsPatch
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.task.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
-import skillbill.infrastructure.sqlite.ensureTestDatabase
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
@@ -33,10 +33,10 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
-import skillbill.workflow.goal.model.GoalObservabilityDiffStat
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.GoalObservabilityDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunk
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.DriverManager
@@ -421,7 +421,7 @@ internal class GoalFixtureAgentRunLauncher(
       completeSubtaskWorkflow(workflowId, subtaskId, Path.of(selectedDbPath))
     }
     return AgentRunLaunchFacts(
-      agent = InstallAgent.CODEX,
+      agent = SupportedAgent.CODEX,
       exitStatus = 0,
       stdout = "captured child $subtaskId",
       stderr = "",
@@ -437,7 +437,7 @@ internal class GoalFixtureAgentRunLauncher(
         ?.groupValues?.get(1)
         ?: "preplan"
     return AgentRunLaunchFacts(
-      agent = InstallAgent.CODEX,
+      agent = SupportedAgent.CODEX,
       exitStatus = 0,
       stdout = phasePlanningPayload(phaseId),
       stderr = "",

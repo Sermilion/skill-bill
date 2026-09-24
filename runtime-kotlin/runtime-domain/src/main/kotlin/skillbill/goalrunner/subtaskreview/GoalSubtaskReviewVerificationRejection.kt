@@ -9,11 +9,12 @@ import skillbill.goalrunner.model.UNADDRESSED_FINDING_REJECTED_DISPOSITION
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.goalrunner.model.normalizedUnaddressedFindingCategory
 import skillbill.goalrunner.model.normalizedUnaddressedFindingSeverity
+import skillbill.goalrunner.subtaskreview.model.RejectedVerificationFindingsResult
 import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.text.Utf8Text
 
-object GoalSubtaskReviewVerificationRejection {
+internal object GoalSubtaskReviewVerificationRejection {
   internal const val REJECTED_VERIFICATION_REASON_MAX_UTF8_BYTES: Int = 280
 
   internal fun rejectedVerificationFindings(

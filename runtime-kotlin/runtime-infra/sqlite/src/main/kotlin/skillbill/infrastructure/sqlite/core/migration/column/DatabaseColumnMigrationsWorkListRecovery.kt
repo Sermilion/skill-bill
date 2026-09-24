@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.migration.column
+
 import java.sql.Connection
 
 internal object DatabaseColumnMigrationsWorkListRecovery {

@@ -1,4 +1,6 @@
 package skillbill.infrastructure.skills.install.staging.staging.support
+
+import skillbill.infrastructure.skills.install.apply.selectedPlatformManifests
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.requireSupportingFileTarget
 import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
 import skillbill.scaffold.model.PlatformManifest

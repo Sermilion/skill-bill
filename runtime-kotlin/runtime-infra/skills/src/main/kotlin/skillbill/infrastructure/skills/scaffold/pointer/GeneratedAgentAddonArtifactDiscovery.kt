@@ -1,6 +1,7 @@
 package skillbill.infrastructure.skills.scaffold.pointer
 
 import skillbill.install.model.SupportedAgent
+import skillbill.ports.workflow.list
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path

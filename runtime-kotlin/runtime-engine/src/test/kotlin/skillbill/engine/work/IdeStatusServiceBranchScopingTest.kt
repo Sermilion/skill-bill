@@ -1,5 +1,6 @@
 package skillbill.engine.work
 
+import skillbill.engine.goalrunner.manifest
 import skillbill.engine.work.model.IdeStatusCurrentPhaseExecutionKind
 import skillbill.engine.work.model.IdeStatusFreshness
 import skillbill.engine.work.model.IdeStatusLifecycleState

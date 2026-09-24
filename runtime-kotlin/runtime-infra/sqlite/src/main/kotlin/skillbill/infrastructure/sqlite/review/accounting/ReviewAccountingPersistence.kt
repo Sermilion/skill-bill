@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.accounting
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
@@ -20,7 +21,7 @@ import skillbill.review.model.ReviewRunLane
 import skillbill.review.model.ReviewStageDegradationMeasurement
 import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewSummary
-import skillbill.workflow.goal.model.toReviewAccountingBoundedJson
+import skillbill.workflow.model.goalreview.toReviewAccountingBoundedJson
 import java.sql.Connection
 
 internal fun upsertReviewAccounting(
@@ -49,6 +50,7 @@ internal fun upsertReviewAccounting(
 internal fun loadReviewAccounting(
   connection: Connection,
   reviewId: String,
+  runtimeVersion: String,
 ): ReviewAccountingRecord? =
   connection.prepareStatement(
     "SELECT packet_digest, bounded_payload_json FROM review_accounting WHERE review_id = ?",
@@ -65,11 +67,11 @@ internal fun loadReviewAccounting(
         declaredVersion != REVIEW_CONTEXT_CONTRACT_VERSION &&
         declaredVersion != LEGACY_REVIEW_CONTEXT_CONTRACT_VERSION
       ) {
-        quarantineReviewAccounting(connection, reviewId, declaredVersion)
+        quarantineReviewAccounting(connection, runtimeVersion, reviewId, declaredVersion)
         return@use null
       }
       if (payloadCarriesLegacyEvidenceUnreviewableSegment(payload)) {
-        quarantineReviewAccounting(connection, reviewId, declaredVersion)
+        quarantineReviewAccounting(connection, runtimeVersion, reviewId, declaredVersion)
         return@use null
       }
       ReviewAccountingRecord(
@@ -86,10 +88,11 @@ private const val LEGACY_REVIEW_CONTEXT_CONTRACT_VERSION: String = "2.1"
 
 private fun quarantineReviewAccounting(
   connection: Connection,
+  runtimeVersion: String,
   reviewId: String,
   declaredVersion: String?,
 ) {
-  LifecycleTelemetryStore(connection).reviewStageDegradation(
+  LifecycleTelemetryStore(connection, runtimeVersion).reviewStageDegradation(
     ReviewStageDegradationMeasurement(
       reviewRunId = reviewId,
       seam = ACCOUNTING_LOAD_SEAM,

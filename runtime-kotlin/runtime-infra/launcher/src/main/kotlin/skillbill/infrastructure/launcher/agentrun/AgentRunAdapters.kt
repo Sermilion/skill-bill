@@ -12,7 +12,7 @@ import skillbill.infrastructure.launcher.process.launch.AgentRunProcessTimingFie
 import skillbill.infrastructure.launcher.process.support.launcherSha256Hex
 import skillbill.infrastructure.launcher.review.CursorReviewStreamMalformedError
 import skillbill.install.model.AgentLauncherCli
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.agentLauncherUnavailableMessage
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
@@ -20,7 +20,7 @@ import skillbill.ports.agentrun.model.SkillRunRequest
 import java.nio.file.Path
 
 internal interface AgentRunAdapter {
-  val agent: InstallAgent
+  val agent: SupportedAgent
 
   fun launch(request: SkillRunRequest): AgentRunLaunchFacts
 }
@@ -32,7 +32,7 @@ internal sealed interface LauncherResolution {
 }
 
 internal class ProcessAgentRunAdapter(
-  override val agent: InstallAgent,
+  override val agent: SupportedAgent,
   private val commandBuilder: AgentRunCommandBuilder,
   private val processRunner: AgentRunProcessRunner,
   private val executableLookup: ExecutableLookup = PathExecutableLookup(),
@@ -177,7 +177,7 @@ internal class ProcessAgentRunAdapter(
   )
 
   private fun childSessionId(
-    agent: InstallAgent,
+    agent: SupportedAgent,
     request: SkillRunRequest,
     workingDirectory: Path,
   ): String =
@@ -280,7 +280,7 @@ internal fun headlessAgentRunAdapters(
   processRunner: AgentRunProcessRunner,
   executableLookup: ExecutableLookup = PathExecutableLookup(),
   databasePath: Path? = null,
-): Map<InstallAgent, AgentRunAdapter> =
+): Map<SupportedAgent, AgentRunAdapter> =
   listOf(
     ClaudeAgentRunCommandBuilder(databasePath = databasePath),
     CodexAgentRunCommandBuilder(databasePath = databasePath),

@@ -2,6 +2,7 @@ package skillbill.architecture
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
+import skillbill.application.decomposition.repoRelativePath
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
 import skillbill.contracts.experiment.ExperimentDescriptorSchemaPaths

@@ -1,4 +1,5 @@
 package skillbill.review.context.model.hunk
+
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 
 object ReviewEvidenceLimits {

@@ -1,5 +1,7 @@
 package skillbill.infrastructure.skills.scaffold.validation.shape
+
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.REQUIRED_GOVERNED_SECTIONS
+import skillbill.infrastructure.skills.scaffold.validation.review.headings
 import java.nio.file.Path
 
 internal fun validateSkillMdFrontmatter(

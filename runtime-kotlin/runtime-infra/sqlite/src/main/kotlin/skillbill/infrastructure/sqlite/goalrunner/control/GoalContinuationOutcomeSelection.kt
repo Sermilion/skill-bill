@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.goalrunner.control
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.asGoalRunnerIntOrNull
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome

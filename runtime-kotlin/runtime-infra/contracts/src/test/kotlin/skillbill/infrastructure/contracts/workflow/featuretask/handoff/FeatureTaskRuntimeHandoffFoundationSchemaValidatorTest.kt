@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.handoff
+
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePersistenceSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
 import kotlin.test.Test

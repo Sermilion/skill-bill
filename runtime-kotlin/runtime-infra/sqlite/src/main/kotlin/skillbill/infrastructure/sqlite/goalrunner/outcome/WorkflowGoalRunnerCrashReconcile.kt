@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
+
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.goalrunner.persistence.model.CrashReconcileExpiredWorkerRequest

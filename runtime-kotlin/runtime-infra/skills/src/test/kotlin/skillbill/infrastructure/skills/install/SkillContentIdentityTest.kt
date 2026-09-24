@@ -4,6 +4,7 @@ import skillbill.error.shellcontent.SkillContentIdentityMismatchError
 import skillbill.infrastructure.skills.install.identity.SKILL_CONTENT_IDENTITY_FILENAME
 import skillbill.infrastructure.skills.install.identity.SkillContentIdentity
 import skillbill.infrastructure.skills.install.identity.routeInstalledSkillBody
+import skillbill.review.parsing.requireMatch
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains

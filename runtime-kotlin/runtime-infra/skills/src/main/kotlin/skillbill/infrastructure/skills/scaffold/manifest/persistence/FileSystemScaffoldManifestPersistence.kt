@@ -1,9 +1,11 @@
 package skillbill.infrastructure.skills.scaffold.manifest.persistence
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
 import skillbill.infrastructure.skills.scaffold.manifest.appendCodeReviewArea
 import skillbill.infrastructure.skills.scaffold.manifest.appendGovernedAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.manifest.renderGovernedAddonManifestRegistration
+import skillbill.infrastructure.skills.scaffold.runtime.service.areaFocus
 import skillbill.ports.scaffold.manifest.ScaffoldManifestPersistencePort
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestAppendCodeReviewAreaRequest
 import skillbill.ports.scaffold.manifest.model.ScaffoldManifestReadResult

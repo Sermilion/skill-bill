@@ -2,7 +2,7 @@ package skillbill.infrastructure.skills.install
 
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations
 import skillbill.infrastructure.skills.install.runtime.InstallOperations
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
 import java.nio.file.Files
 import kotlin.test.Test
@@ -74,7 +74,7 @@ class CursorAgentPathAndDetectionTest {
 
     assertEquals(
       home.resolve(".cursor/mcp.json"),
-      McpRegistrationOperations.configPathFor(InstallAgent.CURSOR, home),
+      McpRegistrationOperations.configPathFor(SupportedAgent.CURSOR, home),
     )
   }
 }

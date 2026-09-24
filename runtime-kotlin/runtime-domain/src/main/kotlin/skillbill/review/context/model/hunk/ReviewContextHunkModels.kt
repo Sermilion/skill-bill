@@ -1,8 +1,9 @@
 package skillbill.review.context.model.hunk
+
 import skillbill.review.context.model.execution.SHA256_HEX
 import skillbill.review.context.model.execution.canonicalFields
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.execution.sha256
+import skillbill.review.model.requireRepositoryRelativePath
 
 data class ReviewHunkEvidenceLocator(
   val storePath: String,

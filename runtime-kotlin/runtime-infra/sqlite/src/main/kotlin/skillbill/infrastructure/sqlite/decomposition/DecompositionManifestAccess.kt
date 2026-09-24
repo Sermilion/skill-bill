@@ -1,19 +1,14 @@
 package skillbill.infrastructure.sqlite.decomposition
 
-import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.ports.workflow.decomposition.loadDecompositionManifest
-import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestFileCandidate
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.runtime.model.LoadedDecompositionManifest
 import skillbill.ports.workflow.decomposition.runtime.model.ValidatedDecompositionManifestYaml
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.requireAccepted
-import skillbill.workflow.decomposition.runtime.isActiveGoalRuntime
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
-import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 
 internal fun loadValidatedDecompositionManifest(
@@ -83,33 +78,3 @@ internal fun Any?.asStringAnyMapOrNull(): Map<String, Any?>? =
     val stringKey = key as? String ?: return null
     stringKey to value
   }
-
-private fun matchedManifest(
-  path: Path,
-  normalizedIssueKey: String,
-  fileStore: DecompositionManifestStore,
-  validator: DecompositionManifestValidator,
-  recoverPending: Boolean,
-): DecompositionManifest {
-  val manifest =
-    try {
-      loadDecompositionManifest(path, fileStore, validator, recoverPending)
-    } catch (error: NoSuchFileException) {
-      throw InvalidDecompositionManifestSchemaError(
-        sourceLabel = path.toString(),
-        reason = "manifest disappeared during read; the decomposition bundle is incomplete.",
-        failureCode = "incomplete_bundle",
-        cause = error,
-      )
-    }
-  if (manifest.issueKey != normalizedIssueKey) {
-    throw InvalidDecompositionManifestSchemaError(
-      sourceLabel = path.toString(),
-      reason =
-        "manifest issue_key '${manifest.issueKey}' does not match the requested issue key " +
-          "'$normalizedIssueKey'.",
-      failureCode = "issue_key_mismatch",
-    )
-  }
-  return manifest
-}

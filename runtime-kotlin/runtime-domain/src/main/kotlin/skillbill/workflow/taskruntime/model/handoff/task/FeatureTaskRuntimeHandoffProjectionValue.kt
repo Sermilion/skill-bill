@@ -1,5 +1,7 @@
 package skillbill.workflow.taskruntime.model.handoff.task
+
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.workflow.taskruntime.model.core.unrecognizedHandoffWireValue
 
 internal val REPOSITORY_CHECKPOINT_FIELD: String
   get() = FeatureTaskRuntimeCompactReferenceKind.REPOSITORY_CHECKPOINT.wireValue

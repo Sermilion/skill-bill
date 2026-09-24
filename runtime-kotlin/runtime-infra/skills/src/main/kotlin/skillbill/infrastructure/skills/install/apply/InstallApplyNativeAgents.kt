@@ -9,7 +9,6 @@ import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCa
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyIssue
 import skillbill.install.model.InstallApplyIssueKind
 import skillbill.install.model.InstallPlan
@@ -17,6 +16,7 @@ import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.NativeAgentApplyOutcome
 import skillbill.install.model.NativeAgentApplyStatus
 import skillbill.install.model.NativeAgentProviderId
+import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Path
@@ -161,7 +161,7 @@ private fun failedNativeAgentOutcome(
 }
 
 private data class NativeAgentInstaller(
-  val agent: InstallAgent,
+  val agent: SupportedAgent,
   val provider: NativeAgentProviderId,
   val link: (NativeAgentLinkRequest) -> NativeAgentLinkOutcome,
   val unlink: (NativeAgentLinkRequest) -> List<Path>,
@@ -224,28 +224,28 @@ private val nativeAgentInstallers: List<NativeAgentInstaller> =
     when (provider) {
       NativeAgentProvider.Claude ->
         NativeAgentInstaller(
-          agent = InstallAgent.CLAUDE,
+          agent = SupportedAgent.CLAUDE,
           provider = NativeAgentProviderId.CLAUDE,
           link = InstallNativeAgentOperations::linkClaudeAgents,
           unlink = InstallNativeAgentOperations::unlinkClaudeAgents,
         )
       NativeAgentProvider.Codex ->
         NativeAgentInstaller(
-          agent = InstallAgent.CODEX,
+          agent = SupportedAgent.CODEX,
           provider = NativeAgentProviderId.CODEX,
           link = InstallNativeAgentOperations::linkCodexAgents,
           unlink = InstallNativeAgentOperations::unlinkCodexAgents,
         )
       NativeAgentProvider.Junie ->
         NativeAgentInstaller(
-          agent = InstallAgent.JUNIE,
+          agent = SupportedAgent.JUNIE,
           provider = NativeAgentProviderId.JUNIE,
           link = InstallNativeAgentOperations::linkJunieAgents,
           unlink = InstallNativeAgentOperations::unlinkJunieAgents,
         )
       NativeAgentProvider.Cursor ->
         NativeAgentInstaller(
-          agent = InstallAgent.CURSOR,
+          agent = SupportedAgent.CURSOR,
           provider = NativeAgentProviderId.CURSOR,
           link = InstallNativeAgentOperations::linkCursorAgents,
           unlink = InstallNativeAgentOperations::unlinkCursorAgents,

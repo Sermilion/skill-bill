@@ -1,4 +1,5 @@
 package skillbill.review.context.model.launch
+
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.review.context.model.accounting.ReviewBudgetKind
 import skillbill.review.context.model.commit.ReviewAssignment
@@ -14,10 +15,10 @@ import skillbill.review.context.model.packet.ReviewLaneAssembledEntry
 import skillbill.review.context.model.packet.ReviewLaneBundleSegment
 import skillbill.review.context.model.packet.ReviewLaneBundleSegmentation
 import skillbill.review.context.model.packet.ReviewLaneCompletionState
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.context.model.packet.ReviewPacketConsumerContract
 import skillbill.review.context.model.packet.segmentAssembledBundle
 import skillbill.review.context.model.packet.toCompletionState
+import skillbill.review.model.ReviewLaneReviewDisposition
 
 enum class ReviewConversationIsolation { FRESH }
 

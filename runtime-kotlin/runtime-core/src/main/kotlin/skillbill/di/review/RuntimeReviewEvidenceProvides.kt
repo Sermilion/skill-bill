@@ -1,4 +1,5 @@
 package skillbill.di.review
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.infrastructure.contracts.review.ReviewContextSchemaValidator
 import skillbill.infrastructure.launcher.review.UnixSocketGovernedReviewEvidenceEndpointBinder
@@ -10,13 +11,13 @@ import skillbill.infrastructure.workflow.review.specialists.system.FileSystemRev
 import skillbill.infrastructure.workflow.review.specialists.system.FileSystemReviewSnapshotGateway
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.repository.RepositoryOriginScopeKeyPort
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.evidence.ReviewEvidenceBrokerFactory
 import skillbill.ports.review.evidence.ReviewSnapshotGateway
 import skillbill.ports.review.preparation.ReviewInputSource
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
-import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.model.ParallelReviewParseResult
 import skillbill.review.parallel.ParallelReviewFindingParser
 

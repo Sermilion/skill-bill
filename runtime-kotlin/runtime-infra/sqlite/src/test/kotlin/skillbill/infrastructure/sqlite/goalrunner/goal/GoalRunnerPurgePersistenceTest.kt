@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.goalrunner.goal
+
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.goalChildIdentity
 import skillbill.infrastructure.sqlite.goalChildWorkflow

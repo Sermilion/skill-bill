@@ -1,11 +1,12 @@
 package skillbill.infrastructure.skills.install
+
 import skillbill.contracts.JsonCodec
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallTelemetryLevel
 import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.SharedInstallSelection
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Path
 
@@ -25,7 +26,7 @@ private fun Map<String, Any?>.toInstallSelection(path: Path): SharedInstallSelec
   requireExactKeys(path, keys, INSTALL_SELECTION_KEYS, "root")
   requireContractVersion(path, requireString(path, "contract_version"))
   return SharedInstallSelection(
-    selectedAgents = requireStringList(path, "selected_agents").mapTo(mutableSetOf(), InstallAgent::fromId),
+    selectedAgents = requireStringList(path, "selected_agents").mapTo(mutableSetOf(), SupportedAgent::fromId),
     platformPackSelection = requireObject(path, "platform_pack_selection").toPlatformPackSelection(path),
     telemetryLevel = requireTelemetryLevel(path, requireString(path, "telemetry_level")),
     mcpRegistrationChoice = requireObject(path, "mcp_registration").toMcpRegistrationChoice(path),

@@ -7,9 +7,9 @@ import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.mapToRecord
 import skillbill.ports.workflow.model.toContinueSessionSummary
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.ports.workflow.model.mapToRecord
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskWorkflowMode

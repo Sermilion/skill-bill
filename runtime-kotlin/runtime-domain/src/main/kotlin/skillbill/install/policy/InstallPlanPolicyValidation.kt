@@ -1,7 +1,6 @@
 package skillbill.install.policy
 
 import skillbill.error.shellcontent.MissingBaselinePlatformSelectionError
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
 import skillbill.install.model.InstallPlanRequest
@@ -11,6 +10,7 @@ import skillbill.install.model.InstallPlatformPackDiscoverySnapshot
 import skillbill.install.model.InstallPlatformPackSnapshot
 import skillbill.install.model.InstallPolicyInput
 import skillbill.install.model.PlatformPackSelectionMode
+import skillbill.install.model.SupportedAgent
 
 internal fun validateAgentSelection(input: InstallPolicyInput) {
   val selection = input.request.agentSelection
@@ -18,7 +18,7 @@ internal fun validateAgentSelection(input: InstallPolicyInput) {
     InstallAgentSelectionMode.DETECTED -> {
       require(selection.manualAgents.isEmpty()) {
         "Detected agent selection must not include manual agents: " +
-          selection.manualAgents.map(InstallAgent::id).sorted().joinToString(", ") + "."
+          selection.manualAgents.map(SupportedAgent::id).sorted().joinToString(", ") + "."
       }
     }
     InstallAgentSelectionMode.MANUAL -> {
@@ -50,7 +50,7 @@ internal fun validateAgentSelection(input: InstallPolicyInput) {
     val missingTargets = selection.manualAgents - explicitAgents - defaultAgents
     require(missingTargets.isEmpty()) {
       "Manual agent selection has no explicit or default target path for agent(s): " +
-        missingTargets.map(InstallAgent::id).sorted().joinToString(", ") + "."
+        missingTargets.map(SupportedAgent::id).sorted().joinToString(", ") + "."
     }
   }
 }

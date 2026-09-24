@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.planning
+
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
@@ -7,7 +8,7 @@ import skillbill.application.review.parallel.runner.ParallelCodeReviewStackDetec
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.review.plan.ReviewStackRouting
 import skillbill.review.plan.model.ReviewRoutingChangedFile
 import java.nio.file.Path
@@ -15,16 +16,16 @@ import java.nio.file.Path
 internal fun ParallelCodeReviewRunnerPlanning.resolveAgent(
   agentId: String,
   label: String,
-): InstallAgent {
+): SupportedAgent {
   if (agentId.isBlank()) {
     throw UsageValidationException(
-      "Option $label is required. Supported agents: ${InstallAgent.supportedIds.joinToString()}.",
+      "Option $label is required. Supported agents: ${SupportedAgent.supportedIds.joinToString()}.",
     )
   }
-  return runCatching { InstallAgent.fromNormalizedId(agentId, label = label) }
+  return runCatching { SupportedAgent.fromNormalizedId(agentId, label = label) }
     .getOrElse {
       throw UsageValidationException(
-        "Unsupported agent '$agentId' for $label. Supported agents: ${InstallAgent.supportedIds.joinToString()}.",
+        "Unsupported agent '$agentId' for $label. Supported agents: ${SupportedAgent.supportedIds.joinToString()}.",
       )
     }
 }

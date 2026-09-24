@@ -3,7 +3,7 @@ package skillbill.infrastructure.launcher.launcher
 import skillbill.infrastructure.launcher.agentrun.CursorAgentRunCommandBuilder
 import skillbill.infrastructure.launcher.agentrun.PathExecutableLookup
 import skillbill.infrastructure.launcher.agentrun.ProcessAgentRunAdapter
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.SkillRunRequest
 import java.nio.file.Files
@@ -28,7 +28,7 @@ class AgentLauncherPreflightTest {
 
   private fun cursorAdapter(lookup: ExecutableLookup) =
     ProcessAgentRunAdapter(
-      agent = InstallAgent.CURSOR,
+      agent = SupportedAgent.CURSOR,
       commandBuilder = CursorAgentRunCommandBuilder(),
       processRunner = RecordingAgentRunProcessRunner(),
       executableLookup = lookup,
@@ -39,7 +39,7 @@ class AgentLauncherPreflightTest {
     val runner = RecordingAgentRunProcessRunner()
     val adapter =
       ProcessAgentRunAdapter(
-        agent = InstallAgent.CURSOR,
+        agent = SupportedAgent.CURSOR,
         commandBuilder = CursorAgentRunCommandBuilder(),
         processRunner = runner,
         executableLookup = executablesAvailable(),
@@ -67,7 +67,7 @@ class AgentLauncherPreflightTest {
     val runner = RecordingAgentRunProcessRunner()
     val adapter =
       ProcessAgentRunAdapter(
-        agent = InstallAgent.CURSOR,
+        agent = SupportedAgent.CURSOR,
         commandBuilder = CursorAgentRunCommandBuilder(),
         processRunner = runner,
         executableLookup = executablesAvailable("cursor-agent"),
@@ -85,7 +85,7 @@ class AgentLauncherPreflightTest {
     val runner = RecordingAgentRunProcessRunner()
     val adapter =
       ProcessAgentRunAdapter(
-        agent = InstallAgent.CURSOR,
+        agent = SupportedAgent.CURSOR,
         commandBuilder = CursorAgentRunCommandBuilder(),
         processRunner = runner,
         executableLookup = executablesAvailable("agent", "cursor-agent"),

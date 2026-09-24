@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install.staging.staging
+
 import skillbill.infrastructure.skills.agentaddon.AgentAddonPointer
 import skillbill.infrastructure.skills.install.staging.staging.installed.StageInstalledSkillInput
 import skillbill.infrastructure.skills.install.staging.staging.sidecar.PreparedInternalStaging

@@ -1,4 +1,5 @@
 package skillbill.engine
+
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.phase.briefing.FeatureTaskRuntimePhaseBriefingAssembler

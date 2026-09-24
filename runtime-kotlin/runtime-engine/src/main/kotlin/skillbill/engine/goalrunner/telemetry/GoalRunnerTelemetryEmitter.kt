@@ -23,7 +23,7 @@ class GoalRunnerTelemetryEmitter(
   private val state: GoalRunnerManifestState,
 ) {
   private val segmentStartedAt: Instant = clock.instant()
-  private val segmentWorkflowId: String = "${state.parentWorkflowId}:seg:${segmentStartedAt}"
+  private val segmentWorkflowId: String = "${state.parentWorkflowId}:seg:$segmentStartedAt"
   private val resumed: Boolean = state.manifest.subtasks.any { it.hasStarted() }
 
   private val subtasksTerminalAtSegmentStart: Set<Int> =

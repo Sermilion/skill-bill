@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.model.core
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 

@@ -1,4 +1,5 @@
 package skillbill.application
+
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 import skillbill.ports.taskruntime.validatePlanningProjection

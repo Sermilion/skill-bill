@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.externaladdon
+
 import org.junit.jupiter.api.io.TempDir
 import skillbill.contracts.JsonCodec
 import skillbill.error.core.ExternalAddonConfigError

@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.preflight
 
+import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.ports.repository.RepositoryEnclosingRootPort

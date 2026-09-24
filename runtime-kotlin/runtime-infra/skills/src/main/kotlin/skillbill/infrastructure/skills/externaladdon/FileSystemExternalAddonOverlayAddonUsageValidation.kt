@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.externaladdon
+
 import skillbill.error.core.ExternalAddonOverlayError
 
 internal fun validateAddonUsageEntries(

@@ -1,5 +1,8 @@
 package skillbill.engine.goalrunner.planning.sweep
+
 import skillbill.application.TestRepositoryEnclosingRoot
+import skillbill.application.decomposition.parentSpecPath
+import skillbill.application.decomposition.specSource
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.contracts.JsonCodec
@@ -7,6 +10,9 @@ import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VE
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
 import skillbill.engine.PlanningProjectionFixtures
+import skillbill.engine.disposition
+import skillbill.engine.envelope
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.InMemoryGoalManifestStore
@@ -38,7 +44,7 @@ import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerStopReason
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunOutputSink
@@ -70,7 +76,9 @@ import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
 import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
 import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
@@ -86,10 +94,9 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.goal.model.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
@@ -98,8 +105,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
-import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
@@ -1692,7 +1697,7 @@ class GoalPlanningSweepRejectionTest {
     val harness =
       sweepHarness { _, _, _ ->
         AgentRunLaunchFacts(
-          agent = InstallAgent.CLAUDE,
+          agent = SupportedAgent.CLAUDE,
           exitStatus = 2,
           stdout = "",
           stderr = "boom",
@@ -2600,7 +2605,7 @@ private fun validPhaseOutcome(phase: String): AgentRunLaunchOutcome = launchFact
 
 private fun emptyProviderTurnOutcome(): AgentRunLaunchOutcome =
   AgentRunLaunchFacts(
-    agent = InstallAgent.CLAUDE,
+    agent = SupportedAgent.CLAUDE,
     exitStatus = 0,
     stdout = "",
     stderr = "",
@@ -2613,7 +2618,7 @@ private fun emptyProviderTurnOutcome(): AgentRunLaunchOutcome =
 
 private fun spawnBlockedOutcome(): AgentRunLaunchOutcome =
   AgentRunLaunchFacts(
-    agent = InstallAgent.CLAUDE,
+    agent = SupportedAgent.CLAUDE,
     exitStatus = null,
     stdout = "",
     stderr = "planning agent could not start",
@@ -2622,7 +2627,7 @@ private fun spawnBlockedOutcome(): AgentRunLaunchOutcome =
     spawnFailed = true,
   )
 
-private fun phasePayload(phaseId: String): String =
+internal fun phasePayload(phaseId: String): String =
   """{"contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"$phaseId",""" +
     """"status":"completed","summary":"s","produced_outputs":""" +
     (PlanningProjectionFixtures.producedOutputsOrNull(phaseId) ?: """{"result":"$phaseId"}""") + "}"
@@ -2858,29 +2863,31 @@ private class FenceAwarePhaseOutputValidator : FeatureTaskRuntimePhaseOutputTest
           sourceLabel = sourceLabel,
           reason = "Phase output root must be a single JSON object.",
         )
-    when {
-      output["contract_version"]?.toString() != FEATURE_TASK_RUNTIME_CONTRACT_VERSION ->
-        throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-          sourceLabel = sourceLabel,
-          reason = "contract_version must be '$FEATURE_TASK_RUNTIME_CONTRACT_VERSION'.",
-        )
-      output["phase_id"]?.toString() != sourceLabel ->
-        throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-          sourceLabel = sourceLabel,
-          reason = "phase_id must be '$sourceLabel'.",
-        )
-      output["status"]?.toString() !in setOf("completed", "blocked", "failed") ->
-        throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-          sourceLabel = sourceLabel,
-          reason = "status must be completed, blocked, or failed.",
-        )
-      output["produced_outputs"] !is Map<*, *> || (output["produced_outputs"] as Map<*, *>).isEmpty() ->
-        throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-          sourceLabel = sourceLabel,
-          reason = "produced_outputs must be a non-empty object.",
-        )
-    }
+    validatePhaseOutputFields(output, sourceLabel)
     return output
+  }
+
+  private fun validatePhaseOutputFields(
+    output: Map<String, Any?>,
+    sourceLabel: String,
+  ) {
+    val reason =
+      when {
+        output["contract_version"]?.toString() != FEATURE_TASK_RUNTIME_CONTRACT_VERSION ->
+          "contract_version must be '$FEATURE_TASK_RUNTIME_CONTRACT_VERSION'."
+        output["phase_id"]?.toString() != sourceLabel -> "phase_id must be '$sourceLabel'."
+        output["status"]?.toString() !in setOf("completed", "blocked", "failed") ->
+          "status must be completed, blocked, or failed."
+        output["produced_outputs"] !is Map<*, *> || (output["produced_outputs"] as Map<*, *>).isEmpty() ->
+          "produced_outputs must be a non-empty object."
+        else -> null
+      }
+    if (reason != null) {
+      throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+        sourceLabel = sourceLabel,
+        reason = reason,
+      )
+    }
   }
 
   private fun firstJsonObject(text: String): String? {

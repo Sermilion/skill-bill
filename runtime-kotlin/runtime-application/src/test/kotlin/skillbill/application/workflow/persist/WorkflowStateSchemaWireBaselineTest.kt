@@ -1,8 +1,8 @@
 package skillbill.application.workflow.persist
+
 import skillbill.contracts.JsonCodec
-import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.ports.workflow.toRecord
+import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path

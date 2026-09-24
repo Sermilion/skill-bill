@@ -1,11 +1,10 @@
 package skillbill.infrastructure.skills.scaffold.payload
-
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
-import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
-import skillbill.scaffold.policy.scaffold.PLATFORM_PACK_PRESET_DESCRIPTORS
-import skillbill.scaffold.policy.scaffold.displayNameFromSlug
-import skillbill.scaffold.policy.scaffold.model.PlatformPackDefaults
-import skillbill.scaffold.policy.scaffold.model.PlatformPackSelection
+import skillbill.scaffold.policy.APPROVED_CODE_REVIEW_AREAS
+import skillbill.scaffold.policy.PLATFORM_PACK_PRESET_DESCRIPTORS
+import skillbill.scaffold.policy.displayNameFromSlug
+import skillbill.scaffold.policy.model.PlatformPackDefaults
+import skillbill.scaffold.policy.model.PlatformPackSelection
 
 internal fun resolvePlatformPackSelection(payload: Map<String, Any?>): PlatformPackSelection {
   rejectLegacyPlatformPackSelector(payload, "skeleton_mode")

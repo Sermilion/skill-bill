@@ -1,7 +1,7 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyStatus
+import skillbill.install.model.SupportedAgent
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -14,7 +14,7 @@ class InstallApplyRepoLocalConfigTest : InstallApplyTestSupport() {
   fun `apply scaffolds default repo-local config and anchored gitignore entry`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan = planInstallForTest(fixture.request(agents = setOf(InstallAgent.CODEX)))
+    val plan = planInstallForTest(fixture.request(agents = setOf(SupportedAgent.CODEX)))
 
     val result = applyInstallForTest(plan)
 
@@ -33,7 +33,7 @@ class InstallApplyRepoLocalConfigTest : InstallApplyTestSupport() {
   fun `reapply is idempotent and preserves a user-edited config`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan = planInstallForTest(fixture.request(agents = setOf(InstallAgent.CODEX)))
+    val plan = planInstallForTest(fixture.request(agents = setOf(SupportedAgent.CODEX)))
     applyInstallForTest(plan)
     val configPath = fixture.repoRoot.resolve(".skill-bill/config.yaml")
     val userEdited = "spec_type: linear\ncode_review_parallel_agent: claude\n"
@@ -62,7 +62,7 @@ class InstallApplyRepoLocalConfigTest : InstallApplyTestSupport() {
     Files.createDirectories(fixture.home.resolve(".codex"))
     val gitignorePath = fixture.repoRoot.resolve(".gitignore")
     Files.writeString(gitignorePath, "build/\n*.log\n")
-    val plan = planInstallForTest(fixture.request(agents = setOf(InstallAgent.CODEX)))
+    val plan = planInstallForTest(fixture.request(agents = setOf(SupportedAgent.CODEX)))
 
     val result = applyInstallForTest(plan)
 

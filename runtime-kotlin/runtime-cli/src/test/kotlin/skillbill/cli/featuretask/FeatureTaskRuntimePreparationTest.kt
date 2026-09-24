@@ -2,7 +2,6 @@ package skillbill.cli.featuretask
 
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains

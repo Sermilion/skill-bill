@@ -1,4 +1,5 @@
 package skillbill.ports.telemetry.lifecycle
+
 import skillbill.telemetry.model.PrDescriptionGeneratedRecord
 
 interface PrDescriptionLifecycleTelemetryRepository {

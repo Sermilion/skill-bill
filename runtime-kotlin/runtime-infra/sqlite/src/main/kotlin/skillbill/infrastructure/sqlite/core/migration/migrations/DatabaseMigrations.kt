@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.migration.migrations
+
 import skillbill.error.core.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.core.migration.DatabaseMigration
 import skillbill.infrastructure.sqlite.core.migration.databaseMigrations

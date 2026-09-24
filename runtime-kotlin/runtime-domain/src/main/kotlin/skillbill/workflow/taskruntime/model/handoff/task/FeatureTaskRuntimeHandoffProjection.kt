@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.model.handoff.task
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys

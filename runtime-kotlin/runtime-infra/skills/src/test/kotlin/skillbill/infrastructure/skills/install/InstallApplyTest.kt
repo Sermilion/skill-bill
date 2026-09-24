@@ -1,6 +1,5 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentLinkStatus
 import skillbill.install.model.InstallApplyIssueKind
 import skillbill.install.model.InstallApplyStatus
@@ -13,6 +12,7 @@ import skillbill.install.model.McpRegistrationApplyStatus
 import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.NativeAgentApplyStatus
 import skillbill.install.model.NativeAgentProviderId
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkFallbackState
 import skillbill.install.model.WindowsSymlinkPreflight
@@ -44,7 +44,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
     assertEquals(InstallTelemetryLevel.ANONYMOUS, result.telemetryLevel)
     assertEquals(InstallTelemetryApplyStatus.SUCCESS, result.telemetryOutcome.status)
     assertTrue(result.mcpRegistrationIntent.register)
-    assertSuccessfulMcpOutcomes(result.mcpRegistrationOutcomes, setOf(InstallAgent.CODEX, InstallAgent.CLAUDE))
+    assertSuccessfulMcpOutcomes(result.mcpRegistrationOutcomes, setOf(SupportedAgent.CODEX, SupportedAgent.CLAUDE))
     val skillsByName = result.skills.associateBy { skill -> skill.skillName }
     assertEquals(
       setOf(
@@ -62,7 +62,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
     result.skills.forEach { skill ->
       assertEquals(InstallSkillStagingStatus.STAGED, skill.staging.status)
       assertStagingUnderHomeCacheAndOutsideSource(fixture, skill.staging.stagingDir?.toPath(), skill.skillName)
-      assertEquals(setOf(InstallAgent.CODEX, InstallAgent.CLAUDE), skill.links.map { link -> link.agent }.toSet())
+      assertEquals(setOf(SupportedAgent.CODEX, SupportedAgent.CLAUDE), skill.links.map { link -> link.agent }.toSet())
       assertTrue(skill.links.all { link -> link.status == InstallAgentLinkStatus.CREATED })
     }
     assertSourceUnchanged(fixture.repoRoot, sourceBefore)
@@ -89,7 +89,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
 
   private fun assertSuccessfulMcpOutcomes(
     outcomes: List<McpRegistrationApplyOutcome>,
-    expectedAgents: Set<InstallAgent>,
+    expectedAgents: Set<SupportedAgent>,
   ) {
     assertEquals(expectedAgents, outcomes.map { outcome -> outcome.agent }.toSet())
     assertTrue(outcomes.all { outcome -> outcome.status == McpRegistrationApplyStatus.SUCCESS })
@@ -106,7 +106,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           mcpRegistrationChoice = McpRegistrationChoice(register = false),
         ),
       )
@@ -114,7 +114,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
     val result = applyInstallForTest(plan)
 
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
-    assertEquals(listOf(InstallAgent.CODEX), result.mcpRegistrationOutcomes.map { outcome -> outcome.agent })
+    assertEquals(listOf(SupportedAgent.CODEX), result.mcpRegistrationOutcomes.map { outcome -> outcome.agent })
     assertTrue(result.mcpRegistrationOutcomes.all { outcome -> outcome.status == McpRegistrationApplyStatus.SKIPPED })
     assertTrue(result.mcpRegistrationOutcomes.all { outcome -> outcome.configPath == null && !outcome.changed })
     assertTrue(result.mcpRegistrationOutcomes.all { outcome -> outcome.message == "MCP registration not requested." })
@@ -131,7 +131,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CURSOR),
+          agents = setOf(SupportedAgent.CURSOR),
         ),
       )
 
@@ -144,7 +144,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
     assertTrue(
       result.warnings.any { warning ->
         warning.kind == InstallApplyIssueKind.MCP_REGISTRATION_FAILED &&
-          warning.agent == InstallAgent.CURSOR
+          warning.agent == SupportedAgent.CURSOR
       },
     )
     assertEquals("{\n  \"theme\": \"cursor\",\n  \"mcpServers\": \n", Files.readString(configPath))
@@ -159,7 +159,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
     applyInstallForTest(plan)
@@ -214,7 +214,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
     assertEquals(InstallTelemetryApplyStatus.SKIPPED, result.telemetryOutcome.status)
     assertEquals("Skipped because install preflight failed.", result.telemetryOutcome.message)
     assertEquals(
-      setOf(InstallAgent.CODEX, InstallAgent.CLAUDE),
+      setOf(SupportedAgent.CODEX, SupportedAgent.CLAUDE),
       result.mcpRegistrationOutcomes.map { outcome -> outcome.agent }.toSet(),
     )
     assertTrue(
@@ -252,7 +252,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
 
@@ -289,7 +289,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
 
@@ -323,7 +323,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
 
@@ -358,7 +358,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
 
@@ -377,7 +377,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
     val tampered =
@@ -405,7 +405,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
     Files.writeString(
@@ -444,7 +444,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
     val unsafePlan =
@@ -489,7 +489,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
 
@@ -503,7 +503,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
         .single { skill -> skill.skillName == "bill-code-review" }
         .links
         .any { link ->
-          link.agent == InstallAgent.CODEX &&
+          link.agent == SupportedAgent.CODEX &&
             link.status == InstallAgentLinkStatus.FAILED &&
             link.message.contains("preserved")
         },
@@ -522,7 +522,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
     val plan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
 
@@ -535,7 +535,7 @@ class InstallApplyTest : InstallApplyTestSupport() {
         .single { skill -> skill.skillName == "bill-code-review" }
         .links
         .any { link ->
-          link.agent == InstallAgent.CODEX &&
+          link.agent == SupportedAgent.CODEX &&
             link.status == InstallAgentLinkStatus.FAILED &&
             link.message.contains("preserved")
         },

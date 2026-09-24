@@ -1,13 +1,14 @@
 package skillbill.config.model
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimePhaseIds
 
 const val COMPACTION_KEY: String = "compaction"
 
-const val DEFAULT_COMPACTION_ENABLED: Boolean = true
-const val DEFAULT_COMPACTION_WINDOW_TOKENS: Int = 400_000
-const val DEFAULT_COMPACTION_TRIGGER_PCT: Int = 70
+private const val DEFAULT_COMPACTION_ENABLED: Boolean = true
+internal const val DEFAULT_COMPACTION_WINDOW_TOKENS: Int = 400_000
+internal const val DEFAULT_COMPACTION_TRIGGER_PCT: Int = 70
 
-const val MIN_COMPACTION_TRIGGER_TOKENS: Int = 200_000
+private const val MIN_COMPACTION_TRIGGER_TOKENS: Int = 200_000
 
 private const val PERCENT_SCALE: Int = 100
 private val VALID_TRIGGER_PCT: IntRange = 1..PERCENT_SCALE
@@ -98,7 +99,7 @@ private fun parsePhases(
         rawDirective,
         "is not a runtime phase.",
       )
-    if (phaseId !in FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds) {
+    if (phaseId !in FeatureTaskRuntimePhaseIds.all) {
       invalidCompaction("$COMPACTION_KEY.$PHASES_KEY.$phaseId", rawDirective, "is not a runtime phase.")
     }
     val path = "$COMPACTION_KEY.$PHASES_KEY.$phaseId"

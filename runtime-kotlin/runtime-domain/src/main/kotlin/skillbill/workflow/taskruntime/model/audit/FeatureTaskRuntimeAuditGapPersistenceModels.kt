@@ -1,11 +1,13 @@
 package skillbill.workflow.taskruntime.model.audit
+
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.taskruntime.model.core.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
 
-enum class FeatureTaskRuntimeAuditGapPauseKind(val wireValue: String) {
+internal enum class FeatureTaskRuntimeAuditGapPauseKind(val wireValue: String) {
   NO_PROGRESS("no_progress"),
   WARN_THRESHOLD("warn_threshold"),
   ;
@@ -15,7 +17,7 @@ enum class FeatureTaskRuntimeAuditGapPauseKind(val wireValue: String) {
   }
 }
 
-data class FeatureTaskRuntimeAuditGapPause(
+internal data class FeatureTaskRuntimeAuditGapPause(
   val pauseKind: FeatureTaskRuntimeAuditGapPauseKind,
   val reason: String,
   val edgeIteration: Int,
@@ -105,7 +107,7 @@ data class FeatureTaskRuntimeAuditGapPause(
   }
 }
 
-data class FeatureTaskRuntimeAuditGapProgress(
+internal data class FeatureTaskRuntimeAuditGapProgress(
   val criterionRefs: Set<String>,
   val repositoryFingerprint: String? = null,
 ) {

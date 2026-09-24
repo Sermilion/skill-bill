@@ -1,4 +1,5 @@
 package skillbill.di.core
+
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.agentrun.AgentRunService
@@ -76,10 +77,10 @@ import skillbill.ports.scaffold.ScaffoldGateway
 import skillbill.ports.scaffold.UnsupportedScaffoldGateway
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.telemetry.transport.RemoteTransportPort
-import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.telemetry.transport.TelemetryConfigStore
 import skillbill.ports.telemetry.transport.TelemetryLevelMutator
 import skillbill.ports.validation.RepoValidationGateway
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import java.time.Clock
 
 @RuntimeSingleton

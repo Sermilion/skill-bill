@@ -7,9 +7,9 @@ import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
 import skillbill.ports.workflow.gitops.worktree.WorkflowGitWorktreeOperations
-import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
-import skillbill.workflow.goal.model.GoalObservabilityDiffStat
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
+import skillbill.workflow.model.goalreview.GoalObservabilityChangedFileSummary
+import skillbill.workflow.model.goalreview.GoalObservabilityDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
 import java.nio.file.Path
 
 internal object NoopWorkflowGitWorktreeOperations : WorkflowGitWorktreeOperations {

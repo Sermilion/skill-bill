@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.subtask
+
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskCommitIdentity
 
 fun normalizeRepoPath(path: String): String = path.trim().removeSurrounding("\"").removePrefix("./")

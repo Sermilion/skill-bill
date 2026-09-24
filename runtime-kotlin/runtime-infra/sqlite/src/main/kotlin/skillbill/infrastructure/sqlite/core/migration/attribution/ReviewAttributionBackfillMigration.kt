@@ -1,14 +1,15 @@
 package skillbill.infrastructure.sqlite.core.migration.attribution
+
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.infrastructure.sqlite.core.migration.column.DatabaseColumnMigrations
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.review.attribution.EXECUTION_MODE_DELEGATED
-import skillbill.review.attribution.UNRESOLVED_ATTRIBUTION
 import skillbill.review.attribution.canonicalPackSkillNames
 import skillbill.review.attribution.canonicalPlatformSlugs
 import skillbill.review.attribution.resolveCanonicalRoutedSkill
 import skillbill.review.attribution.resolveCanonicalScope
 import skillbill.review.attribution.resolveCanonicalStack
+import skillbill.review.model.UNRESOLVED_ATTRIBUTION
 import java.sql.Connection
 
 internal object ReviewAttributionBackfillMigration {

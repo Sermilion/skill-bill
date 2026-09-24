@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.persist
+
 import skillbill.application.testHarnessClock
 import skillbill.engine.goalrunner.InMemoryGoalManifestStore
 import skillbill.engine.goalrunner.RecordingOutcomeStore

@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.review.finding
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFindingBoundaryMemoryRequest
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFindingBoundaryMemorySection

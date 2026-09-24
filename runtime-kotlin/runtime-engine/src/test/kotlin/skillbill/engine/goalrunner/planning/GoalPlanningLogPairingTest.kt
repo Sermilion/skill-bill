@@ -1,9 +1,11 @@
 package skillbill.engine.goalrunner.planning
+
 import skillbill.application.testHarnessClock
 import skillbill.engine.goalrunner.RecordingOutcomeStore
 import skillbill.engine.goalrunner.manifest
 import skillbill.engine.goalrunner.planning.model.GoalPlanningAttemptOutcome
 import skillbill.engine.goalrunner.planning.model.GoalPlanningLogRequest
+import skillbill.engine.goalrunner.status.completed
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
@@ -11,9 +13,9 @@ import skillbill.ports.goalrunner.runner.GoalRunnerManifestStoreDefaults
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressOutcome
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals

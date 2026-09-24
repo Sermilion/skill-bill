@@ -1,6 +1,6 @@
 package skillbill.config.model
 
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -203,7 +203,7 @@ class ExecutionMatrixModelsTest {
   fun `unknown agents stay inert when resolving directives`() {
     val matrix =
       ExecutionMatrix(
-        agents = mapOf(InstallAgent.CLAUDE to mapOf(ExecutionTier.REASONING to PhaseModelDirective("opus"))),
+        agents = mapOf(SupportedAgent.CLAUDE to mapOf(ExecutionTier.REASONING to PhaseModelDirective("opus"))),
       )
 
     assertNull(matrix.directiveFor("unknown", "plan"))

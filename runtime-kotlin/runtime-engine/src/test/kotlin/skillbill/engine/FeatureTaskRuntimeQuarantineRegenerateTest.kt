@@ -1,5 +1,6 @@
 package skillbill.engine
 
+import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeQuarantineEntry

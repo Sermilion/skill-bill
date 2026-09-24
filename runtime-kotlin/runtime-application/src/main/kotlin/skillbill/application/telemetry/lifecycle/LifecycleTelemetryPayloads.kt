@@ -1,4 +1,5 @@
 package skillbill.application.telemetry.lifecycle
+
 import skillbill.application.telemetry.model.FeatureVerifyFinishedRequest
 import skillbill.application.telemetry.model.PrDescriptionGeneratedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest

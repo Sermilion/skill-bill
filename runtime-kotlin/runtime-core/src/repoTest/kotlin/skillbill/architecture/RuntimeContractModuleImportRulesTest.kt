@@ -27,12 +27,8 @@ class RuntimeContractModuleImportRulesTest {
   fun `scanner rejects the imports each module bans and accepts the neighbours it allows`() {
     val source =
       """
-      package skillbill.model
-
       import java.nio.file.Files
       import java.nio.file.Path
-      import java.time.Instant
-      import kotlin.text.Regex
       """.trimIndent()
 
     assertEquals(

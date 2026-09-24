@@ -1,4 +1,5 @@
 package skillbill.application.telemetry.service
+
 import skillbill.contracts.JsonCodec
 import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 

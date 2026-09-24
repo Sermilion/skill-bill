@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.child
+
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.ports.workflow.GoalChildWorkflowStateRepository
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope

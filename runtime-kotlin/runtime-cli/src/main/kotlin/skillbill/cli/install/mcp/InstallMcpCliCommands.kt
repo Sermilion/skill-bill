@@ -1,4 +1,5 @@
 package skillbill.cli.install.mcp
+
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required

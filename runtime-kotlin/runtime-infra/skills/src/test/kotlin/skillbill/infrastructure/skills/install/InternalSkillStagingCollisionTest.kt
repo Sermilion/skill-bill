@@ -20,6 +20,7 @@ import skillbill.infrastructure.skills.scaffold.runtime.validation.RepoValidatio
 import skillbill.install.model.AgentTarget
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.workflow.list
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption

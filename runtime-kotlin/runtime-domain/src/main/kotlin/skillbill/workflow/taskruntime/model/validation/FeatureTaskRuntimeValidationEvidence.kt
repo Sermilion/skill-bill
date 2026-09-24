@@ -1,8 +1,9 @@
 package skillbill.workflow.taskruntime.model.validation
+
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
-import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 private const val MAX_VALIDATION_RESULTS = 50
 
@@ -125,4 +126,3 @@ data class FeatureTaskRuntimeValidationEvidence(
     ): Nothing = throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(sourceLabel, reason)
   }
 }
-

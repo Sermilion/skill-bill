@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.planning.outcome
+
 import skillbill.engine.goalrunner.execution.core.ProduceMissingPlansArgs
 import skillbill.engine.goalrunner.planning.attempt.producePhase
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseContext

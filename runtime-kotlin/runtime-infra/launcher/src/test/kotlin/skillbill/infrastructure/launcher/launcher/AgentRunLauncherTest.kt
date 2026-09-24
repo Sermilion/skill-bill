@@ -11,7 +11,7 @@ import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRequest
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessResult
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRunner
 import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunDeclaredProgressProbe
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.AgentRunProgressEmitter
@@ -19,7 +19,7 @@ import skillbill.ports.agentrun.model.AgentRunProgressProbe
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.review.context.model.launch.ReviewConversationIsolation
-import skillbill.workflow.goal.model.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -117,7 +117,7 @@ class HeadlessAgentRunAdapterTest {
     val adapters = headlessAgentRunAdapters(RecordingAgentRunProcessRunner())
 
     assertEquals(
-      setOf(InstallAgent.CLAUDE, InstallAgent.CODEX, InstallAgent.JUNIE, InstallAgent.CURSOR),
+      setOf(SupportedAgent.CLAUDE, SupportedAgent.CODEX, SupportedAgent.JUNIE, SupportedAgent.CURSOR),
       adapters.keys,
     )
   }
@@ -128,7 +128,7 @@ class HeadlessAgentRunAdapterTest {
     val request = governedReviewRequest()
     val builder = CodexAgentRunCommandBuilder()
 
-    ProcessAgentRunAdapter(InstallAgent.CODEX, builder, runner, ALL_EXECUTABLES_AVAILABLE).launch(request)
+    ProcessAgentRunAdapter(SupportedAgent.CODEX, builder, runner, ALL_EXECUTABLES_AVAILABLE).launch(request)
 
     assertEquals(ReviewConversationIsolation.FRESH, runner.requests.single().conversationIsolation)
     assertTrue(runner.requests.single().command.any { it == "fork_turns=none" })
@@ -139,7 +139,7 @@ class HeadlessAgentRunAdapterTest {
     val runner = RecordingAgentRunProcessRunner()
     val adapters = headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)
 
-    val cursorAdapter = adapters[InstallAgent.CURSOR]
+    val cursorAdapter = adapters[SupportedAgent.CURSOR]
     assertNotNull(cursorAdapter, "cursor must be registered as a headless adapter")
     assertTrue(cursorAdapter is ProcessAgentRunAdapter, "cursor adapter must be ProcessAgentRunAdapter")
 
@@ -191,7 +191,7 @@ class HeadlessAgentRunAdapterTest {
         timeout = 100.milliseconds,
       )
 
-    requireNotNull(adapters[InstallAgent.CURSOR]).launch(request)
+    requireNotNull(adapters[SupportedAgent.CURSOR]).launch(request)
 
     val captured = runner.requests.single()
     assertEquals(100.milliseconds, captured.timeout)
@@ -214,7 +214,7 @@ class HeadlessAgentRunAdapterTest {
       )
     val adapters = headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)
 
-    val outcome = requireNotNull(adapters[InstallAgent.CURSOR]).launch(skillRunRequest())
+    val outcome = requireNotNull(adapters[SupportedAgent.CURSOR]).launch(skillRunRequest())
 
     assertTrue(outcome.interrupted)
     assertFalse(outcome.timedOut)
@@ -231,7 +231,7 @@ class HeadlessAgentRunAdapterTest {
         streamOutputForLiveness = true,
       )
 
-    requireNotNull(adapters[InstallAgent.CURSOR]).launch(request)
+    requireNotNull(adapters[SupportedAgent.CURSOR]).launch(request)
 
     val captured = runner.requests.single()
     assertEquals(AgentRunIdlePolicy.HEARTBEAT_EXTENDED, captured.idlePolicy)

@@ -1,7 +1,5 @@
 package skillbill.infrastructure.sqlite.goalrunner.manifest
-import skillbill.ports.goalrunner.GoalParentProjectionWriter
-import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
-import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalRunnerControlState
@@ -25,6 +23,7 @@ import skillbill.model.RepositoryRoot
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
+import skillbill.ports.goalrunner.GoalParentProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
@@ -38,15 +37,18 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanOptions
 import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanWriteResult
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.repository.RepositoryEnclosingRootPort
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
+import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
+import skillbill.ports.workflow.save
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
-import skillbill.ports.workflow.WorkflowSnapshotValidator
 import java.nio.file.Path
 import java.time.Clock
 
@@ -54,7 +56,7 @@ class WorkflowGoalRunnerManifestStore
   @Inject
   constructor(
     private val database: DatabaseSessionFactory,
-    workflowSnapshotValidator: WorkflowSnapshotValidator,
+    private val workflowSnapshotValidator: WorkflowSnapshotValidator,
     private val decompositionManifestValidator: DecompositionManifestValidator,
     private val decompositionManifestStore: DecompositionManifestStore,
     private val clock: Clock,
@@ -79,14 +81,13 @@ class WorkflowGoalRunnerManifestStore
         database,
         engine,
         parentProjection,
-        decompositionManifestValidator,
+        workflowSnapshotValidator,
       )
     private val childWorkflowPersistence =
       WorkflowGoalRunnerChildWorkflowPersistence(
         engine,
         planningHydrator,
         parentProjection,
-        decompositionManifestValidator,
       )
     private val scopedReplanPersistence = WorkflowGoalRunnerScopedReplanPersistence(projectionPersistence)
     private val controls =

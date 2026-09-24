@@ -1,19 +1,24 @@
 package skillbill.application.review.spec
+
 import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.TestRepositoryEnclosingRoot
+import skillbill.application.decomposition.branchName
 import skillbill.application.review.model.ReviewRubricProjection
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
 import skillbill.application.review.packet.toLaunchEnvelope
 import skillbill.application.review.parallel.planning.ParallelReviewPreparationCompiler
 import skillbill.application.review.parallel.planning.ParallelReviewPreparationInput
 import skillbill.application.review.parallel.planning.PlannedReviewRubric
+import skillbill.application.review.parallel.planning.criteriaReferences
 import skillbill.application.reviewevidence.ResolvedCommitSequence
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.error.shellcontent.UnreadableSpecIntentProjectionError
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.review.ReviewContextEnvelopeValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.review.context.ReviewContextWireMap
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitSource
 import skillbill.review.context.model.commit.ReviewCommitUnit
@@ -25,13 +30,11 @@ import skillbill.review.context.model.execution.SpecIntentResolution
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.launch.GovernedReviewLaunch
 import skillbill.review.plan.model.ReviewLaunchLane
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairEvidence
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperation
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFormat
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationSourceLocation
-import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -438,7 +441,7 @@ private fun extractor() =
     TestDecompositionManifestStore,
   )
 
-private fun resolver(validator: DecompositionManifestValidator = testDecompositionManifestValidator) =
+internal fun resolver(validator: DecompositionManifestValidator = testDecompositionManifestValidator) =
   SpecIntentProjectionResolver(
     TestDecompositionManifestStore,
     validator,

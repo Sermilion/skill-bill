@@ -1,10 +1,11 @@
 package skillbill.infrastructure.contracts.workflow.goal.progress
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.goal.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressOutcome
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 

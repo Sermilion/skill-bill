@@ -1,13 +1,13 @@
 package skillbill.goalrunner
 
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
-import skillbill.workflow.goal.model.GoalObservabilityEvent
-import skillbill.workflow.goal.model.GoalObservabilityHistory
-import skillbill.workflow.goal.model.goalObservabilityHistoryFromArtifacts
-import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
+import skillbill.workflow.model.goalreview.GoalObservabilityEvent
+import skillbill.workflow.model.goalreview.GoalObservabilityHistory
+import skillbill.workflow.model.goalreview.goalObservabilityHistoryFromArtifacts
+import skillbill.workflow.model.goalreview.goalObservabilityLatestEventFromArtifacts
 
-fun DurableWorkflowArtifacts.goalObservabilityLatestEvent(): GoalObservabilityEvent? =
+internal fun DurableWorkflowArtifacts.goalObservabilityLatestEvent(): GoalObservabilityEvent? =
   goalObservabilityLatestEventFromArtifacts(this)
 
-fun DurableWorkflowArtifacts.goalObservabilityHistory(): GoalObservabilityHistory =
+internal fun DurableWorkflowArtifacts.goalObservabilityHistory(): GoalObservabilityHistory =
   goalObservabilityHistoryFromArtifacts(this)

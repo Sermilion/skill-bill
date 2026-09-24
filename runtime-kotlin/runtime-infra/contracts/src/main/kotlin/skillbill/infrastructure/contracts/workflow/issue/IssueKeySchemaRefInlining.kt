@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.issue
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper

@@ -17,7 +17,7 @@ import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.taskruntime.artifact.asTelemetryPayload
-import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDiagnosticFailureClass
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertContains

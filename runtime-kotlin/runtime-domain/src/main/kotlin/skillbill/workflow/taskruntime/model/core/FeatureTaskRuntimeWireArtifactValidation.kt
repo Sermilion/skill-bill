@@ -1,6 +1,9 @@
 package skillbill.workflow.taskruntime.model.core
 
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
-
-typealias FeatureTaskRuntimeWireArtifactValidation =
-  (FeatureTaskRuntimeWireArtifactKind, FeatureTaskRuntimeWorkflowArtifactMap, String) -> Unit
+fun interface FeatureTaskRuntimeWireArtifactValidation {
+  operator fun invoke(
+    kind: FeatureTaskRuntimeWireArtifactKind,
+    artifact: FeatureTaskRuntimeWorkflowArtifactMap,
+    sourceLabel: String,
+  )
+}

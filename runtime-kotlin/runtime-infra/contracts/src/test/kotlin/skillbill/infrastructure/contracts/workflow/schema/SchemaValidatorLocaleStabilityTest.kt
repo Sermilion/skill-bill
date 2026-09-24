@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.schema
+
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.planning.FeatureTaskRuntimePlanningProjectionSchemaValidator

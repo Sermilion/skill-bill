@@ -1,9 +1,10 @@
 package skillbill.workflow.taskruntime.model.handoff.task
-import skillbill.workflow.goal.model.ValidationDepth
+
+import skillbill.workflow.model.ValidationDepth
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairLedger
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 
 data class FeatureTaskRuntimeHandoffAssemblyRequest(
   val declaration: FeatureTaskRuntimePhaseDeclaration,

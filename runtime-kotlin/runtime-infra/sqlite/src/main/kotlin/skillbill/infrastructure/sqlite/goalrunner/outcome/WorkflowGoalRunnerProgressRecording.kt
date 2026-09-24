@@ -27,6 +27,9 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequ
 import skillbill.ports.goalrunner.runner.model.GoalRunnerLedgerSequenceWatermarks
 import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.validateGoalObservabilityEvent
+import skillbill.ports.taskruntime.validateGoalProgressEvent
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.list
@@ -34,19 +37,16 @@ import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.progressToken
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.goal.model.GOAL_PROGRESS_HISTORY_LIMIT
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
-import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.ports.taskruntime.validateGoalProgressEvent
-import skillbill.ports.taskruntime.validateGoalObservabilityEvent
+import skillbill.workflow.model.goalreview.GOAL_PROGRESS_HISTORY_LIMIT
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.appendBoundedHistoryBySequence
+import skillbill.workflow.model.goalreview.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuation
 
 private val PROGRESS_POLL_ARTIFACT_KEYS =
@@ -180,7 +180,7 @@ internal class WorkflowGoalRunnerProgressRecording(
         .mapNotNull { item -> item as? Map<*, *> }
         .mapNotNull { item -> JsonCodec.anyToStringAnyMap(item) }
         .map {
-          map ->
+            map ->
           map.decodeDeclaredGoalProgressEvent(DurableWorkflowArtifactFamily.GOAL_PROGRESS_RUN_HISTORY.label())
         }
     }
@@ -282,12 +282,16 @@ internal class WorkflowGoalRunnerProgressRecording(
           listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
             family.list(unitOfWork.workflowStates, Int.MAX_VALUE).forEach { snapshot ->
               val artifacts = snapshot.artifacts
-              if (DurableWorkflowArtifacts.fromMap(artifacts).goalContinuation()?.issueKey != normalizedIssueKey) return@forEach
+              if (
+                DurableWorkflowArtifacts.fromMap(artifacts).goalContinuation()?.issueKey != normalizedIssueKey
+              ) {
+                return@forEach
+              }
               (DurableWorkflowArtifactFamily.GOAL_ATTEMPT_LEDGER.value(artifacts) as? List<*>)
                 .orEmpty()
                 .forEach { item ->
-                (item as? Map<*, *>)?.let(::add)
-              }
+                  (item as? Map<*, *>)?.let(::add)
+                }
             }
           }
         }

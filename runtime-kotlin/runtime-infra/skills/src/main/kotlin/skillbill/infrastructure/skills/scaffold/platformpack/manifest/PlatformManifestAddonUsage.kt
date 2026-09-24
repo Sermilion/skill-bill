@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.manifest
+
 import skillbill.model.toPath
 import skillbill.review.plan.ReviewAddonSelectionPolicy
 import skillbill.scaffold.model.DeclaredFiles

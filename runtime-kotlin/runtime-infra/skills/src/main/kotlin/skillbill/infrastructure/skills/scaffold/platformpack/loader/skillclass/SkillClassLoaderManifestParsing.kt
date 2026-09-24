@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass
+
 import skillbill.error.shellcontent.ContractVersionMismatchError
 import skillbill.error.shellcontent.InvalidManifestSchemaError
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION

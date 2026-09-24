@@ -1,4 +1,5 @@
 package skillbill.di.scaffold
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.infrastructure.host.FileSystemRepoLocalConfig
 import skillbill.infrastructure.skills.scaffold.FileSystemRepoValidationGateway

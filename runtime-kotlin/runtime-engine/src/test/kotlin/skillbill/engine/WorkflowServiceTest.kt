@@ -3,6 +3,8 @@ package skillbill.engine
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml
 import skillbill.application.decomposition.executionModel
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
@@ -11,9 +13,6 @@ import skillbill.application.testDecompositionManifestWriter
 import skillbill.application.testRepositoryRoot
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.decomposition.alignSubtaskResumeStep
-import skillbill.workflow.decomposition.runtime.decompositionRuntime
-import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
-import skillbill.application.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.application.workflow.decomposition.persistParentDecompositionRuntime
 import skillbill.application.workflow.model.RepairFeatureTaskRuntimeIdentityArgs
 import skillbill.application.workflow.model.WorkflowContinueResult
@@ -37,9 +36,11 @@ import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService
 import skillbill.engine.goalrunner.execution.core.testPhaseRecorder
 import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerManifestStore
 import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerOutcomeStore
+import skillbill.engine.goalrunner.manifest
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
 import skillbill.engine.goalrunner.persist.OutcomeStoreTestArtifactPorts
 import skillbill.engine.goalrunner.status.GoalRunnerStatusService
+import skillbill.engine.goalrunner.status.completed
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
@@ -74,9 +75,15 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanOptions
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
@@ -88,14 +95,13 @@ import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.text.sha256HexUtf8
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
-import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.ports.workflow.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -103,17 +109,13 @@ import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.goal.model.GOAL_PROGRESS_HISTORY_LIMIT
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.GOAL_PROGRESS_HISTORY_LIMIT
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
-import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
@@ -653,27 +655,28 @@ class WorkflowServiceTest {
         clock = Clock.systemUTC(),
       )
 
-    val result = assertIs<WorkflowUpdateResult.Error>(
-      service.update(
-        WorkflowFamilyKind.TASK_RUNTIME,
-        WorkflowUpdateRequest(
-          workflowId = "wftr-update-loud",
-          workflowStatus = WorkflowStatus.RUNNING.wireValue,
-          currentStepId = "preplan",
-          stepUpdates =
-            WorkflowStepUpdates.from(
-              listOf(
-                mapOf("step_id" to "preplan", "status" to "running", "attempt_count" to 1),
+    val result =
+      assertIs<WorkflowUpdateResult.Error>(
+        service.update(
+          WorkflowFamilyKind.TASK_RUNTIME,
+          WorkflowUpdateRequest(
+            workflowId = "wftr-update-loud",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
+            currentStepId = "preplan",
+            stepUpdates =
+              WorkflowStepUpdates.from(
+                listOf(
+                  mapOf("step_id" to "preplan", "status" to "running", "attempt_count" to 1),
+                ),
               ),
-            ),
-          artifactsPatch =
-            WorkflowArtifactPatch.from(
-              mapOf("assessment" to mapOf("ok" to true), "branch" to mapOf("ok" to true)),
-            ),
-          sessionId = "",
+            artifactsPatch =
+              WorkflowArtifactPatch.from(
+                mapOf("assessment" to mapOf("ok" to true), "branch" to mapOf("ok" to true)),
+              ),
+            sessionId = "",
+          ),
         ),
-      ),
-    )
+      )
     assertContains(result.error, "snapshot fails schema validation")
     assertEquals(opened, workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId))
   }
@@ -718,6 +721,8 @@ class WorkflowServiceTest {
                     "issue_key" to "SKILL-61",
                     "subtask_id" to 1,
                     "suppress_pr" to true,
+                    "goal_branch" to "feat/SKILL-61",
+                    "code_review_mode" to "auto",
                   ),
                 "progress_event" to
                   mapOf(
@@ -751,9 +756,13 @@ class WorkflowServiceTest {
   @Test
   fun `corrupt artifacts fail on resume status and goal progress without rewriting the row`() {
     val workflows = InMemoryWorkflowStates()
-    val row = testWorkflowEngine.openRecord(
-      FeatureTaskRuntimePhaseWorkflowDefinition.definition, "wftr-corrupt", "session", "preplan",
-    ).toRecord().copy(artifactsJson = "{")
+    val row =
+      testWorkflowEngine.openRecord(
+        FeatureTaskRuntimePhaseWorkflowDefinition.definition,
+        "wftr-corrupt",
+        "session",
+        "preplan",
+      ).toRecord().copy(artifactsJson = "{")
     workflows.saveFeatureTaskRuntimeWorkflow(row)
     val database = FakeDatabaseSessionFactory(workflows)
     val service = newService(workflows)
@@ -761,7 +770,9 @@ class WorkflowServiceTest {
 
     assertFailsWith<InvalidWorkflowStateSchemaError> { service.resume(WorkflowFamilyKind.TASK_RUNTIME, row.workflowId) }
     assertFailsWith<InvalidWorkflowStateSchemaError> { service.get(WorkflowFamilyKind.TASK_RUNTIME, row.workflowId) }
-    assertFailsWith<InvalidWorkflowStateSchemaError> { service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, row.workflowId) }
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, row.workflowId)
+    }
     assertFailsWith<InvalidWorkflowStateSchemaError> { progress.progress(row.workflowId) }
     assertEquals(row, workflows.getFeatureTaskRuntimeWorkflow(row.workflowId))
   }
@@ -827,7 +838,7 @@ class WorkflowServiceDecomposedParentTest {
       ),
     )
 
-    val selected = workflows.findDecomposedParentWorkflow("SKILL-52.1", testDecompositionManifestValidator)
+    val selected = workflows.findDecomposedParentWorkflow("SKILL-52.1")
 
     assertEquals("wfl-parent", selected?.workflowId)
   }
@@ -848,6 +859,8 @@ class WorkflowServiceDecomposedParentTest {
                   "issue_key" to "SKILL-52.1",
                   "subtask_id" to 1,
                   "suppress_pr" to true,
+                  "goal_branch" to "feat/SKILL-52",
+                  "code_review_mode" to "auto",
                 ),
               DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
                 testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "in_progress")),
@@ -869,7 +882,7 @@ class WorkflowServiceDecomposedParentTest {
       ),
     )
 
-    val selected = workflows.findDecomposedParentWorkflow("SKILL-52.1", testDecompositionManifestValidator)
+    val selected = workflows.findDecomposedParentWorkflow("SKILL-52.1")
 
     assertEquals("wfl-parent", selected?.workflowId)
   }
@@ -904,7 +917,7 @@ class WorkflowServiceDecomposedParentTest {
       ),
     )
 
-    val selected = workflows.findDecomposedParentWorkflow("SKILL-52.1", testDecompositionManifestValidator)
+    val selected = workflows.findDecomposedParentWorkflow("SKILL-52.1")
 
     assertEquals("wfl-active-implementation", selected?.workflowId)
   }
@@ -959,13 +972,12 @@ class WorkflowServiceDecomposedParentTest {
           ),
       )
 
-    val withoutComparison = workflows.findDecomposedParentWorkflow("SKILL-52.1", testDecompositionManifestValidator)
+    val withoutComparison = workflows.findDecomposedParentWorkflow("SKILL-52.1")
     assertEquals("wfl-abandoned-stale", withoutComparison?.workflowId)
 
     val withComparison =
       workflows.findDecomposedParentWorkflow(
         "SKILL-52.1",
-        testDecompositionManifestValidator,
         currentManifest,
       )
     assertEquals(null, withComparison)
@@ -1018,7 +1030,6 @@ class WorkflowServiceDecomposedParentTest {
     val selected =
       workflows.findDecomposedParentWorkflow(
         "SKILL-52.1",
-        testDecompositionManifestValidator,
         currentManifest,
       )
 
@@ -1071,7 +1082,6 @@ class WorkflowServiceDecomposedParentTest {
     val selected =
       workflows.findDecomposedParentWorkflow(
         "SKILL-52.1",
-        testDecompositionManifestValidator,
         currentManifest,
       )
 
@@ -1099,7 +1109,7 @@ class WorkflowServiceDecomposedParentTest {
 
     val error =
       assertFailsWith<IllegalStateException> {
-        workflows.findDecomposedParentWorkflow("SKILL-52.1", testDecompositionManifestValidator)
+        workflows.findDecomposedParentWorkflow("SKILL-52.1")
       }
 
     assertEquals(
@@ -1713,6 +1723,8 @@ class WorkflowGoalStatusProjectionTest {
           "issue_key" to "SKILL-52.1",
           "subtask_id" to 1,
           "suppress_pr" to true,
+          "goal_branch" to "feat/SKILL-52",
+          "code_review_mode" to "auto",
         ),
     )
 
@@ -1930,6 +1942,8 @@ class GoalRunnerCommitShaRecoveryTest {
                   "issue_key" to "SKILL-52.1",
                   "subtask_id" to 1,
                   "suppress_pr" to true,
+                  "goal_branch" to "feat/SKILL-52",
+                  "code_review_mode" to "auto",
                 ),
             ),
           ),
@@ -2032,6 +2046,8 @@ class GoalRunnerCommitShaRecoveryTest {
                     "issue_key" to "SKILL-52.1",
                     "subtask_id" to 1,
                     "suppress_pr" to true,
+                    "goal_branch" to "feat/SKILL-52",
+                    "code_review_mode" to "auto",
                   ),
               ),
             ),
@@ -2071,6 +2087,7 @@ class GoalRunnerCommitShaRecoveryTest {
                   "subtask_id" to 1,
                   "suppress_pr" to true,
                   "goal_branch" to "feat/SKILL-52",
+                  "code_review_mode" to "auto",
                 ),
               "goal_continuation_outcome" to
                 mapOf(
@@ -2119,6 +2136,8 @@ class GoalRunnerCommitShaRecoveryTest {
                     "issue_key" to "SKILL-52.1",
                     "subtask_id" to 1,
                     "suppress_pr" to true,
+                    "goal_branch" to "feat/SKILL-52",
+                    "code_review_mode" to "auto",
                   ),
                 "goal_continuation_outcome" to
                   mapOf(
@@ -2250,6 +2269,8 @@ class WorkflowGoalRunnerOutcomeStoreTest {
                   "issue_key" to "SKILL-52.1",
                   "subtask_id" to 1,
                   "suppress_pr" to true,
+                  "goal_branch" to "feat/SKILL-52",
+                  "code_review_mode" to "auto",
                 ),
               "goal_continuation_outcome" to
                 mapOf(
@@ -2331,6 +2352,8 @@ class WorkflowGoalRunnerReconciliationTest {
                     "issue_key" to "SKILL-52.1",
                     "subtask_id" to 1,
                     "suppress_pr" to true,
+                    "goal_branch" to "feat/SKILL-52",
+                    "code_review_mode" to "auto",
                   ),
               ),
             ),
@@ -2381,6 +2404,8 @@ class WorkflowGoalRunnerReconciliationTest {
                     "issue_key" to "SKILL-52.1",
                     "subtask_id" to 1,
                     "suppress_pr" to true,
+                    "goal_branch" to "feat/SKILL-52",
+                    "code_review_mode" to "auto",
                   ),
               ),
             ),
@@ -2455,6 +2480,8 @@ class WorkflowGoalRunnerReconciliationTest {
                     "issue_key" to "SKILL-52.1",
                     "subtask_id" to 1,
                     "suppress_pr" to true,
+                    "goal_branch" to "feat/SKILL-52",
+                    "code_review_mode" to "auto",
                   ),
               ),
             ),
@@ -2707,6 +2734,8 @@ private fun staleRunningChildRecord(definition: WorkflowDefinition) =
                 "issue_key" to "SKILL-52.1",
                 "subtask_id" to 1,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-52",
+                "code_review_mode" to "auto",
               ),
           ),
         ),
@@ -2736,6 +2765,8 @@ private fun authoritativeCompleteChildRecord(definition: WorkflowDefinition) =
                 "issue_key" to "SKILL-52.1",
                 "subtask_id" to 1,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-52",
+                "code_review_mode" to "auto",
               ),
             "goal_continuation_outcome" to
               mapOf(
@@ -2774,6 +2805,8 @@ private fun blockedSiblingChildRecord(definition: WorkflowDefinition) =
                 "issue_key" to "SKILL-52.1",
                 "subtask_id" to 1,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-52",
+                "code_review_mode" to "auto",
               ),
           ),
         ),
@@ -2803,6 +2836,8 @@ private fun activeRetryChildRecord(definition: WorkflowDefinition) =
                 "issue_key" to "SKILL-52.1",
                 "subtask_id" to 1,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-52",
+                "code_review_mode" to "auto",
               ),
           ),
         ),
@@ -3099,7 +3134,16 @@ class WorkflowGoalRunnerProgressStoreTest {
     workflows.saveFeatureImplementWorkflow(
       workflowRecord(
         "wfl-child",
-        mapOf("goal_continuation" to mapOf("issue_key" to "SKILL-64", "subtask_id" to 1)),
+        mapOf(
+          "goal_continuation" to
+            mapOf(
+              "issue_key" to "SKILL-64",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+              "goal_branch" to "feat/SKILL-64",
+              "code_review_mode" to "auto",
+            ),
+        ),
       ),
     )
     val store =
@@ -3128,7 +3172,16 @@ class WorkflowGoalRunnerProgressStoreTest {
     workflows.saveFeatureImplementWorkflow(
       workflowRecord(
         "wfl-child",
-        mapOf("goal_continuation" to mapOf("issue_key" to "SKILL-64", "subtask_id" to 1)),
+        mapOf(
+          "goal_continuation" to
+            mapOf(
+              "issue_key" to "SKILL-64",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+              "goal_branch" to "feat/SKILL-64",
+              "code_review_mode" to "auto",
+            ),
+        ),
       ),
     )
     val store =

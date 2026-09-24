@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.schema
+
 import skillbill.infrastructure.sqlite.core.migration.column.DatabaseColumnMigrations
 import java.sql.Connection
 

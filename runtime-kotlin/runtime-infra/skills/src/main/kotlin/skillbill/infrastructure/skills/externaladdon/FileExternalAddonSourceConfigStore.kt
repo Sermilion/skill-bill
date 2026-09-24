@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.externaladdon
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.core.ExternalAddonConfigError
 import skillbill.infrastructure.host.readTelemetryConfigFile
@@ -11,6 +12,7 @@ import skillbill.ports.install.addon.model.ExternalAddonSourceConfigRequest
 import skillbill.ports.install.addon.model.ExternalAddonSourceConfigResult
 import skillbill.ports.install.addon.model.ExternalAddonSourceRegistrationRequest
 import skillbill.ports.repository.toFileLocation
+import skillbill.scaffold.model.SkillKind
 import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.model.TelemetryOpenDocument
 import java.nio.file.Files
@@ -99,7 +101,7 @@ class FileExternalAddonSourceConfigStore : ExternalAddonSourceConfigPort {
   ): ExternalAddonSource? {
     val map = requireExternalAddonEntryMap(configPath, index, entry)
     val kind = (map["kind"] as? String)?.trim()
-    if (kind == "agent-addon") return null
+    if (kind == SkillKind.AGENT_ADDON.wireValue) return null
     validateExternalAddonEntryKind(configPath, index, kind)
     val rawPath = requireExternalAddonEntryPath(configPath, index, map)
     val platform = requireExternalAddonEntryPlatform(configPath, index, map)

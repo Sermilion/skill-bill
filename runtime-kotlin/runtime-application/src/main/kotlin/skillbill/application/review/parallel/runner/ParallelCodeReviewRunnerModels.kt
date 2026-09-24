@@ -21,12 +21,12 @@ import skillbill.review.context.model.packet.LANE_EVIDENCE_BYTES_DIMENSION
 import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.context.model.packet.ReviewLaneAssembledBundle
 import skillbill.review.context.model.packet.ReviewLaneCompletionState
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.context.model.packet.asFailedLaneRun
 import skillbill.review.context.model.packet.withBrokerEvidenceRefusal
 import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ReviewCoverageReport
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
+import skillbill.review.model.ReviewLaneReviewDisposition
 import skillbill.review.model.ReviewStageResumeReport
 import skillbill.scaffold.model.PlatformManifest
 

@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.validation
 
+import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairLauncher
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairResult
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentTriageLauncher
@@ -10,7 +11,7 @@ import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult.
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateFindingParseMode
-import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
 import java.util.concurrent.atomic.AtomicInteger

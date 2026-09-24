@@ -10,6 +10,9 @@ import skillbill.contracts.logSchemaLoadFailure
 import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
+import skillbill.infrastructure.contracts.review.formatValidationReason
+import skillbill.infrastructure.contracts.review.offendingValue
+import skillbill.infrastructure.contracts.review.violationOrdering
 import skillbill.install.model.InstallPlanWireMap
 import skillbill.ports.install.InstallPlanWireValidator
 import java.util.logging.Level

@@ -1,5 +1,4 @@
 package skillbill.infrastructure.http
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.RemoteStatsQueryPayload

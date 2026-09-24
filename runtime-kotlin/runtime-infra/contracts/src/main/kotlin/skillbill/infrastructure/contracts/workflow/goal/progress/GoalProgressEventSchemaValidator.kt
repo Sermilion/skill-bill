@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.goal.progress
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
@@ -8,6 +9,9 @@ import skillbill.contracts.workflow.goal.GoalProgressEventSchemaPaths
 import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
+import skillbill.infrastructure.contracts.review.formatValidationReason
+import skillbill.infrastructure.contracts.review.offendingValue
+import skillbill.infrastructure.contracts.review.violationOrdering
 import skillbill.infrastructure.contracts.workflow.goal.observability.extractGoalObservabilityOffendingValue
 import skillbill.infrastructure.contracts.workflow.goal.observability.goalObservabilityDottedFieldPath
 import java.util.logging.Level

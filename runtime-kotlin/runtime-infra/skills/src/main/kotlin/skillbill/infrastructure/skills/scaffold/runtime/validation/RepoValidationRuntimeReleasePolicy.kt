@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.runtime.validation
+
 import java.nio.file.Path
 
 internal object RepoValidationRuntimeReleasePolicy {

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store
+
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.enqueueTelemetry
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature.LifecycleTelemetryFeatureTaskSessionAdapter
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.feature.LifecycleTelemetryFeatureVerifySessionAdapter
@@ -28,27 +29,38 @@ internal class LifecycleTelemetryStore private constructor(
   PrDescriptionLifecycleTelemetryRepository by adapters.prDescriptionSessions,
   GoalLifecycleTelemetryRepository by adapters.goalSessions {
   companion object {
-    operator fun invoke(connection: Connection): LifecycleTelemetryStore =
-      LifecycleTelemetryStore(LifecycleTelemetryStoreAdapters(connection))
+    operator fun invoke(
+      connection: Connection,
+      runtimeVersion: String,
+    ): LifecycleTelemetryStore = LifecycleTelemetryStore(LifecycleTelemetryStoreAdapters(connection, runtimeVersion))
   }
 }
 
-internal class LifecycleTelemetryStoreAdapters(connection: Connection) {
-  val measurements = LifecycleTelemetryMeasurementAdapter(connection)
-  val featureTaskSessions = LifecycleTelemetryFeatureTaskSessionAdapter(connection)
-  val qualityCheckSessions = LifecycleTelemetryQualityCheckSessionAdapter(connection)
-  val featureVerifySessions = LifecycleTelemetryFeatureVerifySessionAdapter(connection)
-  val prDescriptionSessions = LifecycleTelemetryPrDescriptionSessionAdapter(connection)
-  val goalSessions = LifecycleTelemetryGoalSessionAdapter(connection)
+internal class LifecycleTelemetryStoreAdapters(
+  connection: Connection,
+  runtimeVersion: String,
+) {
+  val measurements = LifecycleTelemetryMeasurementAdapter(connection, runtimeVersion)
+  val featureTaskSessions = LifecycleTelemetryFeatureTaskSessionAdapter(connection, runtimeVersion)
+  val qualityCheckSessions = LifecycleTelemetryQualityCheckSessionAdapter(connection, runtimeVersion)
+  val featureVerifySessions = LifecycleTelemetryFeatureVerifySessionAdapter(connection, runtimeVersion)
+  val prDescriptionSessions = LifecycleTelemetryPrDescriptionSessionAdapter(connection, runtimeVersion)
+  val goalSessions = LifecycleTelemetryGoalSessionAdapter(connection, runtimeVersion)
 }
 
 internal class LifecycleTelemetryPrDescriptionSessionAdapter(
   private val connection: Connection,
+  private val runtimeVersion: String,
 ) : PrDescriptionLifecycleTelemetryRepository {
   override fun prDescriptionGenerated(
     record: PrDescriptionGeneratedRecord,
     level: String,
   ) {
-    enqueueTelemetry(connection, "skillbill_pr_description_generated", prDescriptionPayload(record, level))
+    enqueueTelemetry(
+      connection,
+      runtimeVersion,
+      "skillbill_pr_description_generated",
+      prDescriptionPayload(record, level),
+    )
   }
 }

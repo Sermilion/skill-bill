@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.model.repair.task
+
 import skillbill.workflow.taskruntime.model.repair.CorrectiveRepairCapturedResponse
 import skillbill.workflow.taskruntime.model.repair.CorrectiveRepairDiagnosticLocator
 import skillbill.workflow.taskruntime.model.repair.CorrectiveRepairInclusionReason

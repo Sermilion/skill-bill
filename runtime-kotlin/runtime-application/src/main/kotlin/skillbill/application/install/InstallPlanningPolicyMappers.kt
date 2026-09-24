@@ -3,11 +3,11 @@ package skillbill.application.install
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanDraft
 import skillbill.install.model.InstallPlanRequest
-import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.install.model.InstallPlatformPackSnapshot
 import skillbill.install.model.InstallPolicyInput
 import skillbill.install.model.InstallStagingIntent
 import skillbill.install.policy.InstallPlanPolicy
+import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.ports.install.plan.model.InstallPlanningFacts
 
 internal fun InstallPlanningFacts.toPolicyInput(

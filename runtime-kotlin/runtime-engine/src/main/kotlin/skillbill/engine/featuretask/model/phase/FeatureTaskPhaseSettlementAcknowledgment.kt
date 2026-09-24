@@ -1,6 +1,7 @@
 package skillbill.engine.featuretask.model.phase
+
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 
 data class FeatureTaskPhaseSettlementAcknowledgment(
   val status: String,

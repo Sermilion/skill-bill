@@ -1,4 +1,5 @@
 package skillbill.cli.scaffold.commands
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.scaffold.catalog.model.ScaffoldExplainSkill
 import skillbill.ports.scaffold.model.ScaffoldReviewComposition

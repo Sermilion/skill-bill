@@ -1,4 +1,5 @@
 package skillbill.cli.goal.status
+
 import skillbill.cli.goal.run.GOAL_STATUS_DATABASE_UNAVAILABLE
 import skillbill.cli.goal.run.singleLineBounded
 import skillbill.cli.goal.run.toGoalDiffStatCliMap

@@ -1,6 +1,6 @@
 package skillbill.workflow.taskruntime.validation
 
-const val GATE_STDOUT_EXCERPT_MAX_CHARS: Int = 3_000
+private const val GATE_STDOUT_EXCERPT_MAX_CHARS: Int = 3_000
 
 fun unparseableGateFailureMessage(
   gateLabel: String,

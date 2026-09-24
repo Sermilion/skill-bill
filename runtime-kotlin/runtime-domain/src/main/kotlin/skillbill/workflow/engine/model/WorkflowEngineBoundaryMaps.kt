@@ -1,7 +1,5 @@
 package skillbill.workflow.engine.model
 
-import skillbill.review.context.ReviewContextWireMap as ReviewContextWireMapModel
-
 class WorkflowStepUpdates private constructor(
   private val entries: List<Map<String, Any?>>,
 ) {
@@ -80,5 +78,3 @@ class InlineContinuationArtifactValue private constructor(
     fun from(raw: Any?): InlineContinuationArtifactValue = InlineContinuationArtifactValue(raw)
   }
 }
-
-typealias ReviewContextWireMap = ReviewContextWireMapModel

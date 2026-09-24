@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.continuation
 
-import java.time.Instant
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.contracts.JsonCodec
@@ -28,16 +27,19 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.BUILD
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.VALIDATE
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 import java.nio.file.Path
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -64,7 +66,10 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
       FeatureTaskRuntimeWorkflowPersistence(
         RuntimeFakeDatabaseSessionFactory(harness.repository),
         object : WorkflowSnapshotValidator {
-          override fun validate(snapshot: skillbill.workflow.engine.model.WorkflowStateSnapshot, slug: String) {
+          override fun validate(
+            snapshot: skillbill.workflow.engine.model.WorkflowStateSnapshot,
+            slug: String,
+          ) {
             DurableWorkflowArtifacts.fromMap(snapshot.artifacts).goalContinuationArtifact()
           }
         },
@@ -323,7 +328,6 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
     val continuationRecorder =
       FeatureTaskRuntimeGoalContinuationRecorder(
         database,
-        testWorkflowSnapshotValidator,
         NoopRuntimeDiagnostics,
         testHarnessClock,
       )

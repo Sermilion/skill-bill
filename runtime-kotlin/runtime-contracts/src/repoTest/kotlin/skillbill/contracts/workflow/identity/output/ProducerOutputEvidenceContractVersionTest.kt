@@ -1,4 +1,5 @@
 package skillbill.contracts.workflow.identity.output
+
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

@@ -1,5 +1,5 @@
 package skillbill.engine
-import skillbill.application.testWorkflowSnapshotValidator
+
 import skillbill.contracts.JsonCodec
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
@@ -21,10 +21,10 @@ import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
@@ -76,6 +76,8 @@ internal fun blockedContinuationRecord(fixture: BlockedContinuationRecordFixture
           "issue_key" to "SKILL-176.4",
           "subtask_id" to 4,
           "suppress_pr" to true,
+          "goal_branch" to "feat/SKILL-176",
+          "code_review_mode" to "auto",
         ),
       "goal_continuation_outcome" to
         mapOf(
@@ -150,6 +152,8 @@ internal fun completeWithoutShaContinuationRecord(workflowId: String): WorkflowS
                 "issue_key" to "SKILL-176.4",
                 "subtask_id" to 4,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-176",
+                "code_review_mode" to "auto",
               ),
             "goal_continuation_outcome" to
               mapOf(
@@ -194,6 +198,8 @@ internal fun runtimeCandidateRecordNoDeclaredEvent(
                 "issue_key" to "SKILL-87.1",
                 "subtask_id" to 1,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-87",
+                "code_review_mode" to "auto",
               ),
           ),
         ),
@@ -278,6 +284,8 @@ internal fun runtimeCandidateRecord(
                 "issue_key" to "SKILL-87.1",
                 "subtask_id" to 1,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-87",
+                "code_review_mode" to "auto",
               ),
             "goal_progress_latest_event" to declaredEvent.toPersistenceWire(),
           ),
@@ -347,6 +355,8 @@ internal fun tornBlockedReviewRecord(workflowId: String): WorkflowStateRecord {
                 "issue_key" to "SKILL-191",
                 "subtask_id" to 9,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-191",
+                "code_review_mode" to "auto",
               ),
           ),
         ),
@@ -375,6 +385,8 @@ internal fun crashedChildRecord(workflowId: String): WorkflowStateRecord {
                 "issue_key" to "SKILL-87.1",
                 "subtask_id" to 1,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-87",
+                "code_review_mode" to "auto",
               ),
           ),
         ),

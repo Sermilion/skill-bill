@@ -1,4 +1,5 @@
 package skillbill.di.core
+
 import skillbill.error.core.UnresolvedRemoteTransportPortError
 import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.infrastructure.http.JdkHttpRemoteTransport
@@ -60,5 +61,5 @@ internal object RuntimeBootstrapBindings {
     diagnostics: RuntimeDiagnostics,
     workflowSnapshotValidator: WorkflowSnapshotValidator,
   ): DatabaseSessionFactory =
-    SQLiteDatabaseSessionFactory(context, clock, diagnostics, workflowSnapshotValidator)
+    SQLiteDatabaseSessionFactory(context, clock, diagnostics, workflowSnapshotValidator, SkillBillVersion.VALUE)
 }

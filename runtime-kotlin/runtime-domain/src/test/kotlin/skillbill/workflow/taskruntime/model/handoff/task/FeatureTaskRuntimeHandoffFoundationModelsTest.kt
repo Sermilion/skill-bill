@@ -1,10 +1,10 @@
 package skillbill.workflow.taskruntime.model.handoff.task
+
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDelivery
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionShape
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeHandoffPromptVisibility
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.toArtifactMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -132,4 +132,3 @@ class FeatureTaskRuntimeHandoffFoundationModelsTest {
     }
   }
 }
-

@@ -1,10 +1,11 @@
 package skillbill.application.decomposition
 
+import skillbill.application.telemetry.sync.failureDetail
 import skillbill.contracts.decomposition.DecompositionManifestProjectionFailurePayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestProjectionOperations
-import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 
 internal object DecompositionManifestWriteGuard {
   fun requireWritten(
@@ -33,6 +34,5 @@ internal object DecompositionManifestWriteGuard {
   fun projectionOperationLabel(): String =
     DecompositionManifestProjectionOperations.WRITE_PROJECTION_FROM_WORKFLOW_STATE
 
-  fun failureArtifactKey(): String =
-    DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label()
+  fun failureArtifactKey(): String = DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label()
 }

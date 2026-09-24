@@ -1,7 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.substanceaudit
-
 import skillbill.scaffold.model.PlatformManifest
-import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
+import skillbill.scaffold.policy.APPROVED_CODE_REVIEW_AREAS
 import java.nio.file.Path
 import kotlin.io.path.relativeTo
 

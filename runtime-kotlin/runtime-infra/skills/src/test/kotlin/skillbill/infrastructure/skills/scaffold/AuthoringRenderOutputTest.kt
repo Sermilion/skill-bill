@@ -5,7 +5,6 @@ import skillbill.infrastructure.skills.scaffold.authoring.renderWrapper
 import skillbill.infrastructure.skills.scaffold.authoring.resolveTarget
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.pointer.renderPointer
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.testsupport.SnapshotAssertions
 import java.nio.file.Files
 import java.nio.file.Path

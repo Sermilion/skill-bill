@@ -6,7 +6,7 @@ import skillbill.engine.featuretask.validation.model.ValidationGateCycleResult
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleTerminalOutcome
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.validation.model.ValidationGateFinding
-import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
 import kotlin.test.Test
 import kotlin.test.assertEquals

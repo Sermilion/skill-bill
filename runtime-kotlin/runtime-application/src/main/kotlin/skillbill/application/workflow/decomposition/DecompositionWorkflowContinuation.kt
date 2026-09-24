@@ -1,4 +1,5 @@
 package skillbill.application.workflow.decomposition
+
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.workflow.model.AdvanceCompletedSubtasksRequest
 import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
@@ -14,13 +15,12 @@ import skillbill.application.workflow.service.migrateLegacyGoalRunnerControls
 import skillbill.application.workflow.service.missingSubtaskWorkflowResult
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
+import skillbill.goalrunner.commitPushResultArtifact
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.ports.workflow.decomposition.resolveDecompositionManifest
-import skillbill.ports.workflow.decomposition.findDecomposedParentOrCorruptFallback
-import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflowForRuntime
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
-import skillbill.ports.workflow.get
+import skillbill.ports.workflow.decomposition.resolveDecompositionManifest
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -30,15 +30,21 @@ import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionContinuationSelector
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
+import skillbill.workflow.decomposition.runtime.normalizedBlockedReason
+import skillbill.workflow.decomposition.withParentStatus
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.DecompositionStatus
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
 import java.nio.file.Path
 import java.time.Clock
 import kotlin.random.Random
@@ -64,10 +70,11 @@ class DecompositionWorkflowContinuation(
     unitOfWork: UnitOfWork,
     requestedSubtaskId: Int? = null,
   ): ContinuationStepResult {
+    java.io.File("/tmp/decomp-debug").appendText("continue issue=$issueKey requested=$requestedSubtaskId\n")
     val diskManifest = findProjectedManifestByIssueKey(issueKey)
     var parentRecord =
       unitOfWork.workflowStates
-        .findDecomposedParentWorkflow(issueKey, validator, diskManifest)
+        .findDecomposedParentWorkflow(issueKey, diskManifest)
         ?.toSnapshot()
     var manifest = parentRecord?.decompositionRuntime()
     if (parentRecord == null || manifest == null) {
@@ -85,6 +92,9 @@ class DecompositionWorkflowContinuation(
           ),
         )
       } else {
+        java.io.File("/tmp/decomp-debug").appendText(
+          "parent=${parentRecord.workflowId} manifest=${manifest.subtasks.map { it.id to it.status }}\n",
+        )
         unitOfWork.workflowStates.getFeatureTaskWorkflow(parentRecord.workflowId)
           ?.requireRuntimeModeForEngineWrite()
         continueManifest(parentRecord, manifest, unitOfWork, requestedSubtaskId)
@@ -108,9 +118,8 @@ class DecompositionWorkflowContinuation(
   ): WorkflowStateSnapshot {
     val issueKey = normalizeRequiredIssueKey(manifest.issueKey)
     val existingRecord =
-      unitOfWork.workflowStates.findDecomposedParentOrCorruptFallback(
+      unitOfWork.workflowStates.findDecomposedParentWorkflow(
         manifest.issueKey,
-        validator,
         manifest,
       )
     existingRecord?.requireRuntimeModeForEngineWrite()
@@ -167,12 +176,13 @@ class DecompositionWorkflowContinuation(
     unitOfWork: UnitOfWork,
     requestedSubtaskId: Int?,
   ): ContinuationStepResult {
+    val reconciledManifest = reconcileCompletedSubtasks(manifest, unitOfWork)
     val advancement =
       if (requestedSubtaskId == null) {
         engine.advanceCompletedSubtasks(
           AdvanceCompletedSubtasksRequest(
             parentRecord = parentRecord,
-            manifest = manifest,
+            manifest = reconciledManifest,
             unitOfWork = unitOfWork,
             validator = validator,
             gitOperations = gitOperations,
@@ -180,7 +190,7 @@ class DecompositionWorkflowContinuation(
           ),
         )
       } else {
-        AdvancementResult(manifest)
+        AdvancementResult(reconciledManifest)
       }
     if (advancement.error != null) {
       val blocked =
@@ -203,6 +213,82 @@ class DecompositionWorkflowContinuation(
           step
         }
       }
+  }
+
+  private fun reconcileCompletedSubtasks(
+    manifest: DecompositionManifest,
+    unitOfWork: UnitOfWork,
+  ): DecompositionManifest {
+    val reconciled =
+      manifest.copy(
+        subtasks =
+          manifest.subtasks.map { subtask ->
+            val snapshot =
+              subtask.workflowId?.let { workflowId ->
+                WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+              }
+                ?: unitOfWork.workflowStates
+                  .let { repository ->
+                    sequenceOf(
+                      repository.listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, Int.MAX_VALUE),
+                      repository.listFeatureTaskWorkflows(FeatureTaskWorkflowMode.PROSE, Int.MAX_VALUE),
+                    )
+                      .flatten()
+                      .firstOrNull { record ->
+                        record.toSnapshot().artifacts["assessment"]
+                          .let { assessment ->
+                            (assessment as? Map<*, *>)?.get("spec_path")?.toString()
+                          } == subtask.specPath
+                      }
+                      ?.toSnapshot()
+                  }
+                ?: return@map subtask
+            val artifacts = DurableWorkflowArtifacts.fromMap(snapshot.artifacts)
+            val commitPushResult = artifacts.commitPushResultArtifact()
+            val goalContinuation =
+              (artifacts[DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.value(snapshot.artifacts)]
+                as? Map<*, *>)
+            java.io.File("/tmp/decomp-debug").appendText(
+              "state ${snapshot.workflowStatus} ${snapshot.currentStepId} $goalContinuation " +
+                "${snapshot.steps}\n",
+            )
+            val commitPushCompleted =
+              snapshot.steps.any { step ->
+                step.stepId == "commit_push" && step.status == WorkflowStepStatus.COMPLETED
+              }
+            when {
+              snapshot.workflowStatus == WorkflowStatus.COMPLETED ||
+                goalContinuation?.get("suppress_pr") == true &&
+                (snapshot.currentStepId == "pr" || commitPushResult?.commitSha != null) ->
+                subtask.copy(
+                  status = DecompositionStatus.COMPLETE.wireValue,
+                  blockedReason = null,
+                  commitSha = commitPushResult?.commitSha ?: subtask.commitSha,
+                  lastResumableStep = snapshot.currentStepId,
+                )
+              snapshot.workflowStatus == WorkflowStatus.BLOCKED ->
+                subtask.copy(
+                  status = DecompositionStatus.BLOCKED.wireValue,
+                  blockedReason =
+                    normalizedBlockedReason(
+                      reason = snapshot.artifacts["blocked_reason"]?.toString(),
+                      category = "runtime",
+                      fallback = "Workflow step '${snapshot.currentStepId.ifBlank { "unknown" }}' is blocked.",
+                    ),
+                )
+              goalContinuation?.get("suppress_pr") == true &&
+                commitPushCompleted &&
+                commitPushResult?.commitSha == null ->
+                subtask.copy(
+                  status = DecompositionStatus.BLOCKED.wireValue,
+                  blockedReason = "git: Goal-continuation commit_push completed without commit_push_result.commit_sha.",
+                  lastResumableStep = snapshot.currentStepId,
+                )
+              else -> subtask
+            }
+          },
+      ).withParentStatus()
+    return reconciled
   }
 
   private fun selectedContinuation(

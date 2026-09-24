@@ -1,5 +1,4 @@
 package skillbill.infrastructure.http
-
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.process.model.InstallerScriptFetchRequest
 import skillbill.ports.process.model.InstallerScriptFetchResult

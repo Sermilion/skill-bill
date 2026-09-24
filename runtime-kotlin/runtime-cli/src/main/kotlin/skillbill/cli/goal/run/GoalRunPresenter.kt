@@ -1,4 +1,5 @@
 package skillbill.cli.goal.run
+
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.system.RuntimeProvenanceContract

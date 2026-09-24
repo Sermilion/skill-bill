@@ -1,7 +1,8 @@
 package skillbill.engine.featuretask.review.core
+
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.reviewevidence.model.ParallelReviewScope
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
@@ -24,7 +25,7 @@ class FeatureTaskLastCommitReviewDriverTest {
         GoalRunnerSubtaskLauncher { launch ->
           captured += launch
           AgentRunLaunchFacts(
-            agent = InstallAgent.CURSOR,
+            agent = SupportedAgent.CURSOR,
             exitStatus = 0,
             stdout = "reviewed last commit\nverdict: approved",
             stderr = "",
@@ -62,7 +63,7 @@ class FeatureTaskLastCommitReviewDriverTest {
       FeatureTaskLastCommitReviewDriver(
         GoalRunnerSubtaskLauncher {
           AgentRunLaunchFacts(
-            agent = InstallAgent.CURSOR,
+            agent = SupportedAgent.CURSOR,
             exitStatus = 0,
             stdout = "- [F-001] Blocker | High | src/main/App.kt:42 | remaining defect\nverdict: changes_requested",
             stderr = "",
@@ -88,7 +89,7 @@ class FeatureTaskLastCommitReviewDriverTest {
       FeatureTaskLastCommitReviewDriver(
         GoalRunnerSubtaskLauncher {
           AgentRunLaunchFacts(
-            agent = InstallAgent.CURSOR,
+            agent = SupportedAgent.CURSOR,
             exitStatus = null,
             stdout = "",
             stderr = "",
@@ -110,7 +111,7 @@ class FeatureTaskLastCommitReviewDriverTest {
     val driver =
       FeatureTaskLastCommitReviewDriver(
         GoalRunnerSubtaskLauncher {
-          UnsupportedAgentRunLaunch(agent = InstallAgent.CURSOR, reason = "cursor is not installed")
+          UnsupportedAgentRunLaunch(agent = SupportedAgent.CURSOR, reason = "cursor is not installed")
         },
       )
 

@@ -5,7 +5,7 @@ import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 internal fun validateWorkflowOpen(
   definition: WorkflowDefinition,

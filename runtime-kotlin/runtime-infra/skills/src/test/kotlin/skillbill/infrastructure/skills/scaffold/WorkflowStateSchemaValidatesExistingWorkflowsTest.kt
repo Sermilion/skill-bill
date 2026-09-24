@@ -1,10 +1,9 @@
 package skillbill.infrastructure.skills.scaffold
 
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.ports.workflow.toRecord
-import skillbill.ports.workflow.model.toSnapshot
-import java.time.Instant
 import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
+import skillbill.ports.workflow.model.toSnapshot
+import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowStepUpdates
@@ -12,6 +11,7 @@ import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

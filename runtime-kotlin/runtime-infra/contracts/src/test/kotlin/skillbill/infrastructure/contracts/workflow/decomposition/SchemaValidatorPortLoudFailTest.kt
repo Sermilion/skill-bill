@@ -1,5 +1,9 @@
 package skillbill.infrastructure.contracts.workflow.decomposition
 
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml
+import skillbill.application.decomposition.executionModel
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError

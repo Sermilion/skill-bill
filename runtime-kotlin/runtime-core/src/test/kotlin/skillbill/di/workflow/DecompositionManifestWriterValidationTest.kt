@@ -1,18 +1,21 @@
-package skillbill.di.workflow
+package skillbill.application
 
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decompositionPlanningPlan
 import skillbill.application.writeFromWorkflowUpdate
 import skillbill.application.writeIfDecomposed
 import skillbill.application.writeProjectionFromWorkflowState
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.infrastructure.contracts.workflow.decomposition.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore
-import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWorkflowProjectionInput
-import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWorkflowProjectionInput
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.decomposition.runtime.invalidManifest
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.nio.file.Files
 import kotlin.test.Test

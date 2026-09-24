@@ -1,7 +1,8 @@
 package skillbill.workflow.taskruntime.phase.task
+
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeNextPhase
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.validation.shippedTransition
 import kotlin.test.Test
 import kotlin.test.assertContains

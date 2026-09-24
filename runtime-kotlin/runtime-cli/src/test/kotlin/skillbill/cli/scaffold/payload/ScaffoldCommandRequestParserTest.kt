@@ -1,4 +1,5 @@
 package skillbill.cli.scaffold.payload
+
 import skillbill.application.scaffold.decodeScaffoldCommandRequest
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError

@@ -1,7 +1,6 @@
 package skillbill.infrastructure.sqlite
 
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
-import skillbill.infrastructure.sqlite.telemetry.redaction.SkillBillRuntimeVersion
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import java.sql.Connection
@@ -21,5 +20,5 @@ class TelemetryOutboxTestHandle internal constructor(
 
 fun telemetryOutboxOnConnection(
   connection: Connection,
-  version: String = SkillBillRuntimeVersion.VALUE,
+  version: String = "test-runtime-version",
 ): TelemetryOutboxTestHandle = TelemetryOutboxTestHandle(TelemetryOutboxStore(connection, version))

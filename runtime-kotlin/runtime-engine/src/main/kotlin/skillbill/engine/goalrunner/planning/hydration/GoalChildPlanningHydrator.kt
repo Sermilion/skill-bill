@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.planning.hydration
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.engine.featuretask.persist.durationMillis
 import skillbill.engine.featuretask.persist.workflowArtifactEntryMap
 import skillbill.engine.goalrunner.planning.model.GoalChildPlanningHydration
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRecoveryKind
@@ -15,6 +15,8 @@ import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.ports.goalrunner.runner.model.GoalChildPlanningHydrationRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.text.sha256HexUtf8
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -22,7 +24,6 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalPlanningImport
 import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseExecutionOrigin
@@ -31,7 +32,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerE
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
-import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import java.time.Clock
 
 private data class PreparedGoalPlanning(
@@ -457,7 +457,7 @@ private class GoalChildPlanningImportMatcher(
   }
 }
 
-private fun expectedProvenance(request: GoalChildPlanningHydrationRequest): Map<String, Any?> =
+internal fun expectedProvenance(request: GoalChildPlanningHydrationRequest): Map<String, Any?> =
   mapOf(
     "source_kind" to "imported_goal_planning",
     "parent_goal_workflow_id" to request.identity.parentGoalWorkflowId,

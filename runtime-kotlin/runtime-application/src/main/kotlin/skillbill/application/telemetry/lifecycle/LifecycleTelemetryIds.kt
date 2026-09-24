@@ -1,4 +1,5 @@
 package skillbill.application.telemetry.lifecycle
+
 import java.security.SecureRandom
 import java.time.Clock
 import java.time.ZoneOffset
@@ -8,7 +9,7 @@ private const val SESSION_SUFFIX_LENGTH = 4
 
 private val sessionIdTimestampFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")
 private val suffixChars = "abcdefghijklmnopqrstuvwxyz0123456789".toCharArray()
-private val random = SecureRandom()
+internal val random = SecureRandom()
 
 internal fun generateLifecycleSessionId(
   prefix: String,

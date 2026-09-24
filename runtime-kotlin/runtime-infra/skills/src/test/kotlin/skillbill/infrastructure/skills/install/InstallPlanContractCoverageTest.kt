@@ -1,6 +1,5 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
@@ -13,6 +12,7 @@ import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.RuntimeDistributionInputs
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
@@ -88,7 +88,7 @@ class InstallPlanContractCoverageTest {
   fun `manual selected agent plan covers all supported agents and MCP intent`() {
     val fixture = setupPlanFixture()
     val explicitTargets =
-      InstallAgent.entries.map { agent ->
+      SupportedAgent.entries.map { agent ->
         InstallAgentTarget(
           agent = agent,
           path = fixture.home.resolve("manual-targets/${agent.id}").toFileLocation(),
@@ -102,13 +102,13 @@ class InstallPlanContractCoverageTest {
           agentSelection =
             InstallAgentSelection(
               mode = InstallAgentSelectionMode.MANUAL,
-              manualAgents = InstallAgent.entries.toSet(),
+              manualAgents = SupportedAgent.entries.toSet(),
             ),
           targetPaths = fixture.targetPaths(agentTargets = explicitTargets),
         ),
       )
 
-    val expectedAgents = InstallAgent.entries.sortedBy(InstallAgent::id)
+    val expectedAgents = SupportedAgent.entries.sortedBy(SupportedAgent::id)
     assertEquals(expectedAgents, plan.agents.map { target -> target.agent })
     assertEquals(expectedAgents, plan.mcpRegistrationIntent.agents)
     assertTrue(plan.mcpRegistrationIntent.register)
@@ -137,21 +137,21 @@ class InstallPlanContractCoverageTest {
 
     assertEquals(
       listOf(
-        InstallAgent.CLAUDE,
-        InstallAgent.CODEX,
-        InstallAgent.CODEX,
-        InstallAgent.JUNIE,
-        InstallAgent.CURSOR,
+        SupportedAgent.CLAUDE,
+        SupportedAgent.CODEX,
+        SupportedAgent.CODEX,
+        SupportedAgent.JUNIE,
+        SupportedAgent.CURSOR,
       ),
       plan.agents.map { target -> target.agent },
     )
     assertEquals(
       listOf(
-        InstallAgent.CLAUDE,
-        InstallAgent.CODEX,
-        InstallAgent.CODEX,
-        InstallAgent.JUNIE,
-        InstallAgent.CURSOR,
+        SupportedAgent.CLAUDE,
+        SupportedAgent.CODEX,
+        SupportedAgent.CODEX,
+        SupportedAgent.JUNIE,
+        SupportedAgent.CURSOR,
       ),
       plan.mcpRegistrationIntent.agents,
     )
@@ -315,7 +315,7 @@ class InstallPlanContractCoverageTest {
       agentSelection: InstallAgentSelection =
         InstallAgentSelection(
           mode = InstallAgentSelectionMode.MANUAL,
-          manualAgents = setOf(InstallAgent.CODEX),
+          manualAgents = setOf(SupportedAgent.CODEX),
         ),
       platformPackSelection: PlatformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.NONE),
       telemetryLevel: InstallTelemetryLevel = InstallTelemetryLevel.ANONYMOUS,

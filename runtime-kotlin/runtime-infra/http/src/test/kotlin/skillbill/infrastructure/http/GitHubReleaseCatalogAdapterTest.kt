@@ -1,5 +1,4 @@
 package skillbill.infrastructure.http
-
 import skillbill.ports.process.model.ReleaseCatalogEntry
 import skillbill.ports.process.model.ReleaseCatalogResult
 import skillbill.ports.telemetry.model.RemoteTransportResponse

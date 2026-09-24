@@ -499,6 +499,12 @@ and `:runtime-infra:sqlite`.
   `skillbill.workflow.taskruntime.model`: feature-task runtime phase workflow,
   handoff projections, phase records, and taskruntime models owned by
   `runtime-domain`.
+- `skillbill.workflow.model.goalreview` and
+  `skillbill.workflow.model.persistence.artifact`: shared goal-review vocabulary
+  and durable artifact-map access owned by `runtime-domain`. These lower model
+  packages are the common vocabulary below their workflow consumers.
+- `skillbill.review.parsing`: review finding and lane parsing owned by
+  `runtime-domain`; review model types remain under `skillbill.review.model`.
 - `skillbill.workflow.idestatus`: IDE status validation owned by
   `runtime-domain`.
 - `skillbill.workflow.specsource`: spec-source reading owned by
@@ -514,6 +520,12 @@ and `:runtime-infra:sqlite`.
   planning projection use cases owned by `runtime-engine`.
 - `skillbill.experiment`: experiment selection policy owned by `runtime-domain`.
 - `skillbill.experiment.model`: experiment domain models owned by `runtime-domain`.
+
+Package-cycle enforcement uses exact declared-package strongly connected
+components for `runtime-domain`, including nested model packages. Other module
+scan cases retain the existing first-segment mutual-pair algorithm and their
+recorded baselines; the scanner does not infer package nodes from imported
+symbol suffixes.
 
 ### Goal-runner execution lifetime (`DefaultGoalRunnerExecutionCoordinator`)
 
@@ -558,7 +570,9 @@ reads through the production coordinator and recorders.
   install-plan wire-map conversion owned by `runtime-domain`.
 - `skillbill.scaffold.model`: platform manifest, scaffold result, skill-class,
   routing, add-on, and review-composition models owned by `runtime-domain`.
-- `skillbill.domain.skillremove` and `skillbill.domain.skillremove.model`: pure
+- `skillbill.scaffold.policy` and `skillbill.scaffold.policy.model`: pure
+  scaffold policy rules and their policy models owned by `runtime-domain`.
+- `skillbill.skillremove` and `skillbill.skillremove.model`: pure
   skill-remove service, target validation, rollback/refusal types, and removal
   models owned by `runtime-domain`.
 - `skillbill.learnings` and `skillbill.learnings.model`: learning scope/source
@@ -566,6 +580,10 @@ reads through the production coordinator and recorders.
   `runtime-domain`.
 - `skillbill.review` and `skillbill.review.model`: pure review parsing, triage
   decision normalization, and review models owned by `runtime-domain`.
+- `skillbill.review.context.model.claim` and
+  `skillbill.workflow.taskruntime.model.persistence.task.runtime.store`:
+  claim-admission and task-runtime persistence vocabulary owned by
+  `runtime-domain`.
 - `skillbill.telemetry.model`: telemetry settings normalization and lifecycle
   telemetry records owned by `runtime-domain`.
 - `skillbill.application.telemetry`: telemetry sync orchestration, config
@@ -831,7 +849,7 @@ skillbill.cli
 skillbill.config
 skillbill.contracts
 skillbill.di
-skillbill.domain.skillremove
+skillbill.skillremove
 skillbill.engine
 skillbill.error
 skillbill.experiment
@@ -1380,8 +1398,9 @@ and wire serialisation; they do not widen the port surface.
     governed-skill validation seam.
   - Each port has a matching `FileSystem<Capability>` adapter in
     `runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/` that
-    delegates to the existing `skillbill.scaffold.AuthoringOperations`
-    and `skillbill.scaffold.scaffold` IO seams. `FileSystemScaffoldGateway`
+    delegates to the existing
+    `skillbill.infrastructure.skills.scaffold.authoring.AuthoringOperations`
+    IO seams. `FileSystemScaffoldGateway`
     implements the typed `ScaffoldGateway` port.
 - **Adapter-internal raw-map functions** (`Map<String, Any?>` only inside
   `scaffold/`; not part of `ScaffoldGateway`):

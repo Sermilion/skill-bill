@@ -1,7 +1,6 @@
 package skillbill.infrastructure.skills.install
 
 import org.junit.jupiter.api.Assumptions
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
@@ -14,6 +13,7 @@ import skillbill.install.model.NativeAgentProviderId
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.RuntimeDistributionInputs
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
@@ -173,7 +173,7 @@ open class InstallApplyTestSupport {
     }
 
   protected companion object {
-    val allInstallAgents: Set<InstallAgent> = InstallAgent.entries.toSet()
+    val allInstallAgents: Set<SupportedAgent> = SupportedAgent.entries.toSet()
   }
 }
 
@@ -183,7 +183,7 @@ data class ApplyFixture(
 ) {
   fun request(
     selectedPlatforms: Set<String> = emptySet(),
-    agents: Set<InstallAgent> = setOf(InstallAgent.CODEX, InstallAgent.CLAUDE),
+    agents: Set<SupportedAgent> = setOf(SupportedAgent.CODEX, SupportedAgent.CLAUDE),
     telemetryLevel: InstallTelemetryLevel = InstallTelemetryLevel.ANONYMOUS,
     mcpRegistrationChoice: McpRegistrationChoice =
       McpRegistrationChoice(

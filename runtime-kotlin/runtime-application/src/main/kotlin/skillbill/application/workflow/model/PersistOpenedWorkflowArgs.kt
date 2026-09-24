@@ -1,8 +1,8 @@
 package skillbill.application.workflow.model
 
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.WorkflowSnapshotValidator
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 

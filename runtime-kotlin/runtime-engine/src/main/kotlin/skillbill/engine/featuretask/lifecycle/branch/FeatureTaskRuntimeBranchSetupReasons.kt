@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask.lifecycle.branch
+
+import skillbill.application.decomposition.baseBranch
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 val featureTaskRuntimeBranchSetupGuardPhase: String =

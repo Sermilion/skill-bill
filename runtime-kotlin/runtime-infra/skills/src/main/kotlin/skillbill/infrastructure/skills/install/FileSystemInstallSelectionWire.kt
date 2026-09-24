@@ -1,17 +1,18 @@
 package skillbill.infrastructure.skills.install
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.SharedInstallSelection
+import skillbill.install.model.SupportedAgent
 
 internal fun SharedInstallSelection.toInstallSelectionJson(): String = JsonCodec.mapToJsonString(toWireMap())
 
 private fun SharedInstallSelection.toWireMap(): Map<String, Any?> =
   linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to INSTALL_SELECTION_CONTRACT_VERSION,
-    "selected_agents" to selectedAgents.map(InstallAgent::id).sorted(),
+    "selected_agents" to selectedAgents.map(SupportedAgent::id).sorted(),
     "platform_pack_selection" to platformPackSelection.toWireMap(),
     "telemetry_level" to telemetryLevel.id,
     "mcp_registration" to mcpRegistrationChoice.toWireMap(),

@@ -1,5 +1,7 @@
 package skillbill.infrastructure.skills.scaffold.validation.review
+
 import org.yaml.snakeyaml.Yaml
+import skillbill.infrastructure.skills.install.plan.packRootsBySlug
 import skillbill.infrastructure.skills.scaffold.rendering.canonicalSeverityCloser
 import java.nio.file.Files
 import java.nio.file.Path

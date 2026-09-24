@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.commitShaFrom
 import skillbill.goalrunner.goalContinuationOutcome
@@ -14,11 +15,11 @@ import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.save
 import skillbill.ports.workflow.model.toSnapshot
+import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus

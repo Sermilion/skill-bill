@@ -21,6 +21,7 @@ import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationCa
 import skillbill.engine.featuretask.model.continuation.FeatureTaskContinuationLookupResult
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
+import skillbill.goalrunner.model.GoalContinuation
 import java.nio.file.Path
 
 @Inject

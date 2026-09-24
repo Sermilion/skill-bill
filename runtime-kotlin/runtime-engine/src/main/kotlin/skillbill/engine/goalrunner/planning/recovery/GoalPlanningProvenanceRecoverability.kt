@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.planning.recovery
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.goalrunner.planning.context.GoalPlanningSpecCanonicalization

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats.platform
+
 import skillbill.review.attribution.normalizePlatformSlug
 import skillbill.review.attribution.normalizeTelemetrySlug
 

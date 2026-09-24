@@ -1,4 +1,5 @@
 package skillbill.application.review.service
+
 import skillbill.application.review.model.TriageResult
 import skillbill.application.review.model.TriageResultKind
 import skillbill.application.telemetry.settings.feedbackTelemetryOptions
@@ -6,11 +7,11 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.review.repository.ReviewRepository
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
-import skillbill.review.finding.TriageDecisionParser
 import skillbill.review.model.FeedbackRequest
 import skillbill.review.model.NumberedFinding
 import skillbill.review.model.ReviewFinishedTelemetry
 import skillbill.review.model.TriageDecision
+import skillbill.review.parsing.TriageDecisionParser
 
 internal data class TriageReviewRequest(
   val database: DatabaseSessionFactory,

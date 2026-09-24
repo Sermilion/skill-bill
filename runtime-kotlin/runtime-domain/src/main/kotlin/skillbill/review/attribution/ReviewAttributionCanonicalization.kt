@@ -1,11 +1,11 @@
 package skillbill.review.attribution
+
 import skillbill.review.model.CanonicalAttribution
 import skillbill.review.model.CanonicalScope
 import skillbill.review.model.ImportedReview
 import skillbill.review.model.ReviewAttributionResolutionError
 import skillbill.review.model.ReviewExecutionMode
-
-const val UNRESOLVED_ATTRIBUTION: String = "unresolved"
+import skillbill.review.model.UNRESOLVED_ATTRIBUTION
 
 const val EXECUTION_MODE_DELEGATED: String = "delegated"
 

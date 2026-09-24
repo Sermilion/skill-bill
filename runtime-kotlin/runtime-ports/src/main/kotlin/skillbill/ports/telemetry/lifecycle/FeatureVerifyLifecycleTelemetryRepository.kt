@@ -1,4 +1,5 @@
 package skillbill.ports.telemetry.lifecycle
+
 import skillbill.telemetry.model.FeatureVerifyFinishedRecord
 import skillbill.telemetry.model.FeatureVerifyStartedRecord
 

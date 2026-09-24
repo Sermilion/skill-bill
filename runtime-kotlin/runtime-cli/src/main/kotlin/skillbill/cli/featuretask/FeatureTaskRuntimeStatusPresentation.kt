@@ -1,5 +1,7 @@
 package skillbill.cli.featuretask
 
+import skillbill.application.decomposition.decompositionManifestPath
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimePhaseStatus

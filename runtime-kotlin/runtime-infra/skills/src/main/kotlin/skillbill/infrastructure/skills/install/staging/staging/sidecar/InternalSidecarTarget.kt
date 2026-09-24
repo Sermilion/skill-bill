@@ -1,6 +1,8 @@
 package skillbill.infrastructure.skills.install.staging.staging.sidecar
+
 import skillbill.error.shellcontent.InternalSkillSidecarCollisionError
 import skillbill.error.shellcontent.InvalidAuthoredSkillSidecarError
+import skillbill.infrastructure.skills.install.apply.selectedPlatformManifests
 import skillbill.infrastructure.skills.install.staging.staging.AUTHORED_SKILL_CONTENT_FILENAME
 import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
 import skillbill.infrastructure.skills.install.staging.staging.support.GeneratedSupportPointer
@@ -12,6 +14,7 @@ import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPac
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.install.model.InstallPlanSkill
 import skillbill.model.toPath
+import skillbill.ports.workflow.list
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
 import java.nio.file.LinkOption

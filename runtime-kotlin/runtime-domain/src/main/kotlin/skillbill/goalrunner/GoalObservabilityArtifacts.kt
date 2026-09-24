@@ -4,12 +4,12 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidGoalObservabilityEventSchemaError
 import skillbill.goalrunner.model.GoalObservabilityProgressInput
 import skillbill.goalrunner.model.GoalObservabilityRuntimeEventInput
-import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GoalObservabilityEvent
-import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
-import skillbill.workflow.goal.model.goalObservabilityHistoryFromArtifacts
-import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
+import skillbill.workflow.model.goalreview.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY
+import skillbill.workflow.model.goalreview.GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY
+import skillbill.workflow.model.goalreview.GoalObservabilityEvent
+import skillbill.workflow.model.goalreview.asGoalWorkflowArtifactMap
+import skillbill.workflow.model.goalreview.goalObservabilityHistoryFromArtifacts
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 object GoalObservabilityArtifacts {
   private data class RequiredProgressFields(
@@ -133,5 +133,4 @@ object GoalObservabilityArtifacts {
       diffStat = input.worktreeActivity?.diffStat,
     )
   }
-
 }

@@ -1,4 +1,5 @@
 package skillbill.di.goal
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.runtime.RuntimeSingleton
 import skillbill.engine.goalrunner.execution.core.DefaultGoalRunnerExecutionCoordinator

@@ -9,7 +9,6 @@ import skillbill.infrastructure.skills.install.staging.staging.applicablePointer
 import skillbill.infrastructure.skills.install.staging.staging.authoredFilesFor
 import skillbill.infrastructure.skills.install.staging.staging.content.computeInstallContentHash
 import skillbill.infrastructure.skills.install.staging.staging.support.generatedSupportPointersFor
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
@@ -19,6 +18,7 @@ import skillbill.install.model.InstallTelemetryLevel
 import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
@@ -186,14 +186,14 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
           agentSelection =
             InstallAgentSelection(
               mode = InstallAgentSelectionMode.MANUAL,
-              manualAgents = setOf(InstallAgent.CLAUDE, InstallAgent.CODEX),
+              manualAgents = setOf(SupportedAgent.CLAUDE, SupportedAgent.CODEX),
             ),
           targetPaths =
             fixture.targetPaths(
               agentTargets =
                 listOf(
                   InstallAgentTarget(
-                    agent = InstallAgent.CLAUDE,
+                    agent = SupportedAgent.CLAUDE,
                     path = claudeTarget.toFileLocation(),
                     source = InstallAgentTargetSource.MANUAL,
                   ),
@@ -202,13 +202,13 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
         ),
       )
 
-    assertEquals(listOf(InstallAgent.CLAUDE, InstallAgent.CODEX), plan.agents.map { target -> target.agent })
-    assertEquals(claudeTarget, plan.agents.first { target -> target.agent == InstallAgent.CLAUDE }.path.toPath())
+    assertEquals(listOf(SupportedAgent.CLAUDE, SupportedAgent.CODEX), plan.agents.map { target -> target.agent })
+    assertEquals(claudeTarget, plan.agents.first { target -> target.agent == SupportedAgent.CLAUDE }.path.toPath())
     assertEquals(
       fixture.home.resolve(".agents/skills"),
-      plan.agents.first { it.agent == InstallAgent.CODEX }.path.toPath(),
+      plan.agents.first { it.agent == SupportedAgent.CODEX }.path.toPath(),
     )
-    assertEquals(listOf(InstallAgent.CLAUDE, InstallAgent.CODEX), plan.mcpRegistrationIntent.agents)
+    assertEquals(listOf(SupportedAgent.CLAUDE, SupportedAgent.CODEX), plan.mcpRegistrationIntent.agents)
     assertEquals(fixture.runtimeMcpBin, plan.mcpRegistrationIntent.runtimeMcpBin?.toPath())
     assertTrue(plan.mcpRegistrationIntent.register)
     assertEquals(beforeHome, snapshotTree(fixture.home), "planning must not mutate the home tree")
@@ -226,7 +226,7 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
         ),
       )
 
-    assertEquals(listOf(InstallAgent.CODEX, InstallAgent.CODEX), plan.agents.map { target -> target.agent })
+    assertEquals(listOf(SupportedAgent.CODEX, SupportedAgent.CODEX), plan.agents.map { target -> target.agent })
     assertEquals(
       listOf(InstallAgentTargetSource.DETECTED, InstallAgentTargetSource.DETECTED),
       plan.agents.map { target -> target.source },
@@ -246,7 +246,7 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
     Files.createDirectories(fixture.home.resolve(".codex"))
     val detectedTarget =
       InstallAgentTarget(
-        agent = InstallAgent.CLAUDE,
+        agent = SupportedAgent.CLAUDE,
         path = fixture.home.resolve("detected-claude").toFileLocation(),
         source = InstallAgentTargetSource.MANUAL,
       )
@@ -262,7 +262,7 @@ class InstallPlanBuilderTest : InstallPlanBuilderTestSupport() {
         ),
       )
 
-    assertEquals(listOf(InstallAgent.CLAUDE), plan.agents.map { target -> target.agent })
+    assertEquals(listOf(SupportedAgent.CLAUDE), plan.agents.map { target -> target.agent })
     assertEquals(listOf(InstallAgentTargetSource.DETECTED), plan.agents.map { target -> target.source })
     assertEquals(fixture.home.resolve("detected-claude"), plan.agents.single().path.toPath())
     assertEquals(1, plan.agents.size)

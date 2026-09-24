@@ -1,7 +1,7 @@
 package skillbill.engine.featuretask.lifecycle.core
 
 import skillbill.engine.featuretask.persist.stepUpdatesFrom
-import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
+import skillbill.workflow.model.goalreview.GoalSubtaskOperatorDecision
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phaseartifacts.asPendingForOperatorResume
 import kotlin.test.Test

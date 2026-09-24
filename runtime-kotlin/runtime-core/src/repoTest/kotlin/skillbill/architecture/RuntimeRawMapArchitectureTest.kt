@@ -64,12 +64,15 @@ class RuntimeRawMapArchitectureTest {
   @Test
   fun `domain artifact keys stay internal and artifact maps stay behind domain accessors`() {
     val sources = declaredMainSourceFiles()
-    val domainSources = sources.filter { it.relativePath.startsWith("runtime-kotlin/runtime-domain/") }
+    val domainSources =
+      sources.filter { it.relativePath.startsWith("runtime-kotlin/runtime-domain/") }
     val keyPattern =
       Regex("(?s)const\\s+val\\s+([A-Z0-9_]*_ARTIFACT_KEY)\\b[^=]*=\\s*\"([^\"]+)\"")
     val domainKeys =
       domainSources
-        .flatMap { file -> keyPattern.findAll(file.source).map { match -> match.groupValues[1] to match.groupValues[2] }.toList() }
+        .flatMap { file ->
+          keyPattern.findAll(file.source).map { match -> match.groupValues[1] to match.groupValues[2] }.toList()
+        }
     val publicKeyDeclarations =
       domainSources
         .flatMap { file ->
@@ -118,7 +121,6 @@ class RuntimeRawMapArchitectureTest {
     Files.writeString(
       sourceFile,
       """
-      package skillbill.application.fixture
 
       class SyntheticLeak {
         fun payload(): Map<String, Any?> = emptyMap()
@@ -145,7 +147,6 @@ class RuntimeRawMapArchitectureTest {
         imports = emptyList(),
         source =
           """
-          package skillbill.ports.fixture
 
           class FooMap(private val delegate: Map<String, Any?>) : Map<String, Any?> by delegate
           """.trimIndent(),
@@ -153,7 +154,7 @@ class RuntimeRawMapArchitectureTest {
     val violations = findRawMapViolations(fixture)
     assertEquals(
       listOf(
-        "${moduleMainKotlinRootRelative("runtime-ports")}/skillbill/ports/fixture/FooMap.kt:3: " +
+        "${moduleMainKotlinRootRelative("runtime-ports")}/skillbill/ports/fixture/FooMap.kt:2: " +
           "public `FooMap` exposes raw map shape",
       ),
       violations,

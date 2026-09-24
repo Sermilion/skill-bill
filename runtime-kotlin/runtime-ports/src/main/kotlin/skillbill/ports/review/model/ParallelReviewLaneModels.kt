@@ -1,10 +1,10 @@
 package skillbill.ports.review.model
 
 import skillbill.review.context.model.hunk.ReviewBudgetOutcome
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.context.model.packet.ReviewLaneSegmentAccounting
 import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
+import skillbill.review.model.ReviewLaneReviewDisposition
 
 data class ParallelReviewLaneRunResult(
   val lane1: ParallelReviewLaneOutcome,

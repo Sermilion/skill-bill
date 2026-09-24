@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.runner
 
+import skillbill.application.decomposition.specSource
 import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
 import skillbill.engine.featuretask.lifecycle.continuation.reconcileRemediationBaseCoherence
 import skillbill.engine.featuretask.lifecycle.continuation.remediationBaseCoherenceBlockedReport

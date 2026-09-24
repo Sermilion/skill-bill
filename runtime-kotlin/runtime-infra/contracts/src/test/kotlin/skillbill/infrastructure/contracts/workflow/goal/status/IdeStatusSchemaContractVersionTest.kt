@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.goal.status
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.identity.status.GOAL_PLANNING_WAVE_CAP

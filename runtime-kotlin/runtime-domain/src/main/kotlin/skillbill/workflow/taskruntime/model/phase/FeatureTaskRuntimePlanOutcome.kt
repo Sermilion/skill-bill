@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.model.phase
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys

@@ -1,13 +1,13 @@
 package skillbill.ports.workflow.decomposition
 
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
-import skillbill.workflow.decomposition.runtime.hasDecompositionRuntimeArtifact
 import skillbill.workflow.decomposition.runtime.hasDecompositionPlan
+import skillbill.workflow.decomposition.runtime.hasDecompositionRuntimeArtifact
 import skillbill.workflow.decomposition.runtime.isActiveGoalRuntime
 import skillbill.workflow.decomposition.runtime.isGoalContinuationChildWorkflow
 import skillbill.workflow.model.FeatureTaskWorkflowMode
@@ -16,7 +16,6 @@ import skillbill.workflow.model.workflowStatus
 
 fun WorkflowStateRepository.findDecomposedParentOrCorruptFallback(
   issueKey: String,
-  validator: DecompositionManifestValidator,
   currentProjectedManifest: DecompositionManifest?,
 ): WorkflowStateRecord? {
   val normalizedIssueKey = issueKey.trim()
@@ -26,11 +25,11 @@ fun WorkflowStateRepository.findDecomposedParentOrCorruptFallback(
     .filter { row ->
       val snapshot = row.toSnapshot()
       !snapshot.isGoalContinuationChildWorkflow() &&
-        row.issueKey == normalizedIssueKey &&
+        (row.issueKey?.trim() == normalizedIssueKey || snapshot.hasDecompositionPlan()) &&
         (snapshot.hasDecompositionPlan() || snapshot.artifacts.hasDecompositionRuntimeArtifact())
     }
     .forEach { row ->
-      val manifest = row.toSnapshot().artifacts.decompositionRuntime()
+      val manifest = row.decompositionRuntimeOrNull()
       val workflowStatus = row.workflowStatus.workflowStatus()
       when {
         manifest != null &&
@@ -62,6 +61,13 @@ fun WorkflowStateRepository.findDecomposedParentOrCorruptFallback(
   return corruptCandidates.firstOrNull()
 }
 
+private fun WorkflowStateRecord.decompositionRuntimeOrNull(): DecompositionManifest? =
+  try {
+    toSnapshot().artifacts.decompositionRuntime()
+  } catch (_: InvalidWorkflowStateSchemaError) {
+    null
+  }
+
 fun WorkflowStateRepository.listFeatureTaskWorkflowsForParentDiscovery(): List<WorkflowStateRecord> {
   val byId = LinkedHashMap<String, WorkflowStateRecord>()
   listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, Int.MAX_VALUE).forEach { row ->
@@ -75,7 +81,6 @@ fun WorkflowStateRepository.listFeatureTaskWorkflowsForParentDiscovery(): List<W
 
 fun WorkflowStateRepository.findDecomposedParentWorkflow(
   issueKey: String,
-  validator: DecompositionManifestValidator,
   currentProjectedManifest: DecompositionManifest? = null,
 ): WorkflowStateRecord? {
   val normalizedIssueKey = issueKey.trim()
@@ -126,7 +131,6 @@ private fun DecompositionManifest.sameRuntimeIdentity(other: DecompositionManife
 
 fun WorkflowStateRepository.findDecomposedParentWorkflowForRuntime(
   manifest: DecompositionManifest,
-  validator: DecompositionManifestValidator,
 ): WorkflowStateRecord? =
   listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, Int.MAX_VALUE).firstOrNull { row ->
     val snapshot = row.toSnapshot()

@@ -44,7 +44,6 @@ class SuppressionBanArchitectureTest {
   fun `suppression scanner fixture catches banned complexity suppressions`() {
     val complexityFixture =
       """
-      package example
 
       ${"@Suppress(\"TooManyFunctions\")"}
       class Bloated {
@@ -65,7 +64,6 @@ class SuppressionBanArchitectureTest {
   fun `suppression scanner fixture catches unlisted non-complexity suppressions`() {
     val unlistedCastFixture =
       """
-      package example
 
       class Decoder {
         ${"@Suppress(\"UNCHECKED_CAST\")"}
@@ -90,7 +88,6 @@ class SuppressionBanArchitectureTest {
   fun `suppression scanner fixture accepts allow-listed suppressions`() {
     val allowedCastFixture =
       """
-      package example
 
       class Decoder {
         ${"@Suppress(\"UNCHECKED_CAST\")"}

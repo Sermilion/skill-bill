@@ -2,7 +2,6 @@ package skillbill.application
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
-import skillbill.ports.workflow.decomposition.loadDecompositionManifest
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.workflow.payload.WorkflowArtifactKeys
@@ -20,6 +19,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import skillbill.ports.workflow.decomposition.loadDecompositionManifest as loadManifestFromStore
 
 object TestDecompositionManifestStore : DecompositionManifestStore {
   override fun readText(path: Path): String = Files.readString(path)
@@ -105,7 +105,7 @@ private fun decodeArtifacts(raw: String): DurableWorkflowArtifacts =
   )
 
 fun loadDecompositionManifest(path: Path) =
-  skillbill.application.decomposition.loadDecompositionManifest(
+  loadManifestFromStore(
     path,
     TestDecompositionManifestStore,
     testDecompositionManifestValidator,

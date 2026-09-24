@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.execution.core
 
+import skillbill.engine.featuretask.validation.coordinator
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.persist.GoalRunnerLedgerRecorder
 import skillbill.engine.goalrunner.telemetry.GoalRunnerProgressEventEmitter
@@ -15,7 +16,7 @@ import skillbill.ports.process.ShutdownHookRegistration
 import skillbill.ports.taskruntime.FeatureTaskRuntimeHeartbeat
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessIdentity
-import skillbill.workflow.goal.model.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
 import java.lang.reflect.Proxy
 import java.nio.file.Path
 import java.time.Clock

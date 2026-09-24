@@ -1,10 +1,8 @@
 package skillbill.application.decomposition
 
 import skillbill.application.decomposition.model.RetryDecompositionManifestProjectionArgs
-import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.DecompositionManifestProjectionFailurePersistence
 import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
-import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome

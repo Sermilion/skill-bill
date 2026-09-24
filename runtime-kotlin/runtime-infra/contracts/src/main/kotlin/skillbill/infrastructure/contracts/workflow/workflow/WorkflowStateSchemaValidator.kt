@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.workflow
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage

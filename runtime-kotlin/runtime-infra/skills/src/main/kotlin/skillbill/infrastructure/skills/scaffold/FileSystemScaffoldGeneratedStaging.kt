@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.shellcontent.SkillAlreadyExistsError
 import skillbill.infrastructure.host.jvm.rollbackDeleteEmptyDirectory

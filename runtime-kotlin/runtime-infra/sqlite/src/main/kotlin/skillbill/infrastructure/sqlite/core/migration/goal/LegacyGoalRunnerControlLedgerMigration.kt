@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.migration.goal
+
 import skillbill.infrastructure.sqlite.core.ops.recordMigrationNormalization
 import skillbill.infrastructure.sqlite.core.ops.sqliteDiagnostics
 import skillbill.infrastructure.sqlite.goalrunner.control.outOfBandAcceptancesFromLegacyArtifacts

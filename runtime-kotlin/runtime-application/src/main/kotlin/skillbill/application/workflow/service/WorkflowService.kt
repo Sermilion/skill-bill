@@ -1,4 +1,5 @@
 package skillbill.application.workflow.service
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.model.RetryDecompositionManifestProjectionArgs
@@ -7,7 +8,6 @@ import skillbill.application.workflow.decomposition.DecompositionWorkflowContinu
 import skillbill.application.workflow.decomposition.PendingDecompositionProjection
 import skillbill.application.workflow.decomposition.continueExistingWorkflow
 import skillbill.application.workflow.decomposition.resolveDecompositionProjectionOwner
-import skillbill.workflow.decomposition.runtime.isGoalContinuationChildWorkflow
 import skillbill.application.workflow.model.BuildFeatureTaskExecutionIdentityArgs
 import skillbill.application.workflow.model.ContinueExistingWorkflowArgs
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
@@ -24,6 +24,7 @@ import skillbill.application.workflow.model.WorkflowResumeResult
 import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.application.workflow.model.WorkflowUpdateResult
+import skillbill.application.workflow.persist.WorkflowPersistenceContext
 import skillbill.application.workflow.persist.buildFeatureTaskExecutionIdentity
 import skillbill.application.workflow.persist.buildUpdateOk
 import skillbill.application.workflow.persist.generateWorkflowId
@@ -38,10 +39,13 @@ import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.decomposition.DecompositionManifestProjectionFailurePersistence
+import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
 import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
-import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -51,17 +55,15 @@ import skillbill.ports.workflow.list
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.save
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.runtime.isGoalContinuationChildWorkflow
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.goal.model.GoalObservabilityEvent
-import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.goalreview.GoalObservabilityEvent
+import skillbill.workflow.model.goalreview.goalObservabilityLatestEventFromArtifacts
 import java.time.Clock
 import kotlin.random.Random
 
@@ -251,8 +253,10 @@ class WorkflowService(
           family.definition,
           updated,
           effectiveInput,
-          unitOfWork.dbPath.toString(),
-          ::repositoryCheckpointIdentity,
+          WorkflowPersistenceContext(
+            dbPath = unitOfWork.dbPath.toString(),
+            repositoryCheckpointIdentity = ::repositoryCheckpointIdentity,
+          ),
         ),
       pendingProjection = pendingDecompositionProjection(runtimeInput, updated, request, unitOfWork),
     )
@@ -265,7 +269,7 @@ class WorkflowService(
     unitOfWork: UnitOfWork,
   ): PendingDecompositionProjection? {
     if (!runtimeInput.updated) return null
-    val ownerWorkflowId = resolveDecompositionProjectionOwner(updated, unitOfWork, decompositionManifestValidator)
+    val ownerWorkflowId = resolveDecompositionProjectionOwner(updated, unitOfWork)
     if (ownerWorkflowId == null) {
       runtimeDiagnostics.warning(
         "seam=decomposition_projection_settlement value_expected=projection_owner_workflow_id " +
@@ -378,10 +382,11 @@ class WorkflowService(
       WorkflowListResult(
         dbPath = unitOfWork.dbPath.toString(),
         workflowCount = rows.size,
-        workflows = rows.map {
-          workflowSnapshotValidator.validate(it, family.definition.workflowName)
-          engine.summaryView(family.definition, it)
-        },
+        workflows =
+          rows.map {
+            workflowSnapshotValidator.validate(it, family.definition.workflowName)
+            engine.summaryView(family.definition, it)
+          },
       )
     }
 
@@ -495,7 +500,6 @@ class WorkflowService(
       resolveDecompositionProjectionOwner(
         childRecord,
         unitOfWork,
-        decompositionManifestValidator,
       )
     if (ownerWorkflowId == null) {
       runtimeDiagnostics.warning(

@@ -1,11 +1,11 @@
 package skillbill.goalrunner
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
 import skillbill.goalrunner.model.GoalRunnerProgressEvent
-import skillbill.workflow.goal.model.GoalObservabilityEvent
-import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
-import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
+import skillbill.workflow.model.goalreview.GoalObservabilityEvent
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 fun Map<*, *>.toGoalRunnerProgressEventOrNull(): GoalRunnerProgressEvent? {
   val stepId = this[SharedPayloadKeys.STEP_ID]?.toString()?.takeIf(String::isNotBlank)

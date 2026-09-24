@@ -1,7 +1,10 @@
 package skillbill.workflow.taskruntime.model.phase
+
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.scaffold.wire.requireString
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
+import skillbill.scaffold.policy.requireStringList
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 internal fun Map<String, Any?>.requireSubtasks(): List<FeatureTaskRuntimeDecomposeSubtask> {
   val rawSubtasks =

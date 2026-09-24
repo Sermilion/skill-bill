@@ -1,4 +1,5 @@
 package skillbill.di.featurespec
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.infrastructure.workflow.filesystem.FileSystemFeatureSpecPathResolver
 import skillbill.infrastructure.workflow.filesystem.FileSystemSpecScratchStore

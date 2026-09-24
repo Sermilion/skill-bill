@@ -7,6 +7,7 @@ import skillbill.application.review.snapshot.diffForPaths
 import skillbill.application.review.snapshot.harnessRequest
 import skillbill.application.review.snapshot.reviewHarness
 import skillbill.application.review.snapshot.sparseReviewPack
+import skillbill.application.runner
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import kotlin.test.Test
 import kotlin.test.assertEquals

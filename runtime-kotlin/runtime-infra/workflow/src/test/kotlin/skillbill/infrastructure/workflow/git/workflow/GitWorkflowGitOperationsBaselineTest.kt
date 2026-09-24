@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.git.workflow
+
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.runtimePhaseChangedPathsBetweenCommits

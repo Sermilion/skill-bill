@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.redaction
+
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import java.security.SecureRandom
 import java.sql.Connection

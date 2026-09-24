@@ -1,6 +1,7 @@
 package skillbill.engine
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
+import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -266,8 +267,6 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
     const val SIMPLIFIED_IMPLEMENTATION = "fun twice(value: Int) = value shl 1"
     val TEST_SOURCE =
       """
-      import kotlin.test.Test
-      import kotlin.test.assertEquals
 
       class CalculatorTest {
         @Test

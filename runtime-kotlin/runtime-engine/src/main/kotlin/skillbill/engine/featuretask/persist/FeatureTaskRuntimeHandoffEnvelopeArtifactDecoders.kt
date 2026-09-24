@@ -2,14 +2,14 @@ package skillbill.engine.featuretask.persist
 
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
-import skillbill.workflow.taskruntime.phaseartifacts.decodeStrictKeyedArtifactMap
-import skillbill.workflow.taskruntime.phaseartifacts.schemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePersistenceSchemaError
-import skillbill.workflow.taskruntime.artifact.decodeDeliveredProjectionRecordFromArtifact
-import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.taskruntime.artifact.decodeDeliveredProjectionRecordFromArtifact
+import skillbill.workflow.taskruntime.model.core.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeDeliveredProjectionRecord
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phaseartifacts.decodeStrictKeyedArtifactMap
+import skillbill.workflow.taskruntime.phaseartifacts.schemaError
 
 internal fun phaseBriefingsFrom(
   artifacts: Map<String, Any?>,
@@ -74,9 +74,9 @@ internal fun deliveredProjectionHistoryFrom(
     validateEnvelope(
       JsonCodec.anyToStringAnyMap(recordMap["handoff_envelope"])
         ?: schemaError(
-          "Feature-task-runtime artifact '${DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS.label()}' " +
-            "entry must " +
-            "carry a 'handoff_envelope' object.",
+          "Feature-task-runtime artifact '" +
+            "${DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS.label()}' " +
+            "entry must carry a 'handoff_envelope' object.",
         ),
     )
     delivered

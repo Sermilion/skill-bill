@@ -3,21 +3,21 @@ package skillbill.application.decomposition
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.goalrunner.commitPushResultArtifact
 import skillbill.goalrunner.goalContinuationOutcomeArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
+import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.runtime.normalizedBlockedReason
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.decompositionStatus
 import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 import java.nio.file.Path
 
 private val statusTrackedSteps =
@@ -55,8 +55,9 @@ internal fun DecompositionSubtask.withRuntimeFields(
       },
     lastResumableStep = update.currentStepId.takeIf(String::isNotBlank) ?: lastResumableStep,
     finalizingAgentId = terminalOutcome?.finalizingAgentId ?: finalizingAgentId,
-    participatingAgentIds = terminalOutcome?.participatingAgentIds?.takeIf { it.isNotEmpty() }
-      ?: participatingAgentIds,
+    participatingAgentIds =
+      terminalOutcome?.participatingAgentIds?.takeIf { it.isNotEmpty() }
+        ?: participatingAgentIds,
   )
 }
 
@@ -109,7 +110,7 @@ private fun DecompositionManifest.matchingSubtaskId(
   }?.id
 }
 
-private fun mergedArtifacts(update: DecompositionManifestRuntimeUpdate): Map<String, Any?> =
+internal fun mergedArtifacts(update: DecompositionManifestRuntimeUpdate): Map<String, Any?> =
   LinkedHashMap(update.existingArtifacts).apply { update.artifactsPatch?.let(::putAll) }
 
 private fun blockedReasonFrom(

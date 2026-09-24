@@ -1,7 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.continuation
 
-import java.time.Clock
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.runloop.observability.continuation
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
@@ -11,10 +9,11 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
+import java.time.Clock
 
 class FeatureTaskRuntimeGoalContinuationStateRecorder(
   private val database: DatabaseSessionFactory,

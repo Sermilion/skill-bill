@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.git.scoped
+
 import skillbill.infrastructure.workflow.process.GitProcessResult
 import skillbill.infrastructure.workflow.process.gitTimedOutError
 import skillbill.infrastructure.workflow.process.runGitCommand

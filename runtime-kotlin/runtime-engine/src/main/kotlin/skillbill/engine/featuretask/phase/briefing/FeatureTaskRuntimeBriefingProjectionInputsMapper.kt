@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask.phase.briefing
+
+import skillbill.application.decomposition.baseBranch
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeBriefingProjectionInputs
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionInputs
 

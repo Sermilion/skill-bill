@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.phase
+
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.infrastructure.contracts.phaseoutput.PhaseOutputExpectedShape

@@ -5,21 +5,21 @@ import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewIssueCategory
 import skillbill.review.model.ReviewScopeDisposition
 import skillbill.review.model.ReviewSeverityAdjustment
-import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewSeverity
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeReviewSeverity
 
 val UNADDRESSED_FINDING_SEVERITIES: Set<String> =
   FeatureTaskRuntimeReviewSeverity.entries.mapTo(linkedSetOf()) { it.wireValue }
 val UNADDRESSED_FINDING_CATEGORIES: Set<String> = ReviewIssueCategory.entries.mapTo(linkedSetOf()) { it.wireValue }
-val UNADDRESSED_FINDING_DEFAULT_CATEGORY: String = ReviewIssueCategory.OTHER.wireValue
+internal val UNADDRESSED_FINDING_DEFAULT_CATEGORY: String = ReviewIssueCategory.OTHER.wireValue
 
-const val UNADDRESSED_FINDING_DEFAULT_SEVERITY: String = "nit"
+internal const val UNADDRESSED_FINDING_DEFAULT_SEVERITY: String = "nit"
 
 const val UNADDRESSED_FINDING_REJECTED_DISPOSITION: String = "rejected"
 
-fun normalizedUnaddressedFindingCategory(issueCategory: String): String =
+internal fun normalizedUnaddressedFindingCategory(issueCategory: String): String =
   issueCategory.takeIf { it in UNADDRESSED_FINDING_CATEGORIES } ?: UNADDRESSED_FINDING_DEFAULT_CATEGORY
 
-fun normalizedUnaddressedFindingSeverity(severity: String): String =
+internal fun normalizedUnaddressedFindingSeverity(severity: String): String =
   severity.takeIf { it in UNADDRESSED_FINDING_SEVERITIES } ?: UNADDRESSED_FINDING_DEFAULT_SEVERITY
 
 enum class ReviewFindingOutcome(val wireValue: String) {
@@ -39,7 +39,7 @@ enum class ReviewFindingOutcome(val wireValue: String) {
 
 private val identityWhitespace = Regex("\\s+")
 
-fun reviewFindingIdentityKey(
+private fun reviewFindingIdentityKey(
   location: String,
   summary: String,
 ): String = "${normalizedIdentityPart(location)}|${normalizedIdentityPart(summary)}"

@@ -1,4 +1,5 @@
 package skillbill.ports.review.repository
+
 import skillbill.learnings.model.RejectedLearningSourceOutcome
 import skillbill.ports.review.model.ReviewAccountingRecord
 import skillbill.ports.review.model.ReviewRepositoryStatsSnapshot

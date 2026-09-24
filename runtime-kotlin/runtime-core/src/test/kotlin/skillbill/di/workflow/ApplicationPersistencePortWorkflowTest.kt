@@ -1,4 +1,5 @@
-package skillbill.di.workflow
+package skillbill.application
+
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowGetResult
@@ -14,8 +15,8 @@ import skillbill.error.featuretask.InvalidFeatureTaskRuntimeHandoffProjectionCon
 import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus

@@ -15,11 +15,11 @@ import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.ValidatedClasspathYamlNodeRequest
 import skillbill.ports.review.ReviewContextEnvelopeValidator
-import skillbill.workflow.engine.model.ReviewContextWireMap
+import skillbill.review.context.ReviewContextWireMap
 import java.util.logging.Level
 import java.util.logging.Logger
 
-private const val MAX_REPORTED_VIOLATIONS: Int = 4
+internal const val MAX_REPORTED_VIOLATIONS: Int = 4
 
 private val reviewContextLog: Logger =
   Logger.getLogger("skillbill.contracts.review.ReviewContextSchemaValidator")
@@ -224,7 +224,7 @@ private fun buildSchemaDriftLog(
     "violations=${parts.joinToString(", ")} totalViolations=${sorted.size}"
 }
 
-private fun formatValidationReason(
+internal fun formatValidationReason(
   sorted: List<ValidationMessage>,
   instance: JsonNode,
 ): String {
@@ -247,7 +247,7 @@ private fun formatValidationReason(
   }
 }
 
-private val violationOrdering: Comparator<ValidationMessage> =
+internal val violationOrdering: Comparator<ValidationMessage> =
   compareBy(
     { it.instanceLocation?.toString().orEmpty().let { loc -> loc.isBlank() || loc == "$" || loc == "/" } },
     { it.instanceLocation?.toString().orEmpty() },
@@ -259,7 +259,7 @@ private const val MAX_OFFENDING_VALUE_CHARS: Int = 120
 private val REDACTED_FIELD_SEGMENTS: Set<String> =
   setOf("excerpt", "content", "reason", "reachability_reason", "rubric", "specialist_contract", "status")
 
-private fun offendingValue(
+internal fun offendingValue(
   instance: JsonNode,
   instanceLocation: String,
 ): String {
@@ -279,7 +279,7 @@ private fun offendingValue(
   }
 }
 
-private fun dottedFieldPath(instanceLocation: String): String =
+internal fun dottedFieldPath(instanceLocation: String): String =
   when {
     instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
     instanceLocation.startsWith("$.") -> instanceLocation.removePrefix("$.")

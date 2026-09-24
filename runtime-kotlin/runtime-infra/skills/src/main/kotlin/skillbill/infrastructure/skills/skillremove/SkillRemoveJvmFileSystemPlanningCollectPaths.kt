@@ -1,7 +1,8 @@
 package skillbill.infrastructure.skills.skillremove
 
-import skillbill.domain.skillremove.model.ManifestEdit
-import skillbill.domain.skillremove.model.ManifestEditKind
+import skillbill.ports.workflow.list
+import skillbill.skillremove.model.ManifestEdit
+import skillbill.skillremove.model.ManifestEditKind
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path

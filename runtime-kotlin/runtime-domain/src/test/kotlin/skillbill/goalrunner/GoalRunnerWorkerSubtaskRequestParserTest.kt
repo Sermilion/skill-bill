@@ -1,5 +1,6 @@
 package skillbill.goalrunner
 
+import skillbill.goalrunner.model.DurableDecodeSubstitutionObservations
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestRejectionReason
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent

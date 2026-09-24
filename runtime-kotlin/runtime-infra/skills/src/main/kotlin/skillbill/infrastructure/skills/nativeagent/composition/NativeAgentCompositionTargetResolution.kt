@@ -2,6 +2,8 @@ package skillbill.infrastructure.skills.nativeagent.composition
 
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPlatformPack
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPlatformPackLoader
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
+import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.name

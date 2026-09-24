@@ -1,9 +1,10 @@
 package skillbill.engine.featuretask.lifecycle.core
+
 import skillbill.config.model.ExecutionMatrix
 import skillbill.config.model.ExecutionTier
 import skillbill.config.model.PhaseModelDirective
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeModelAssignment
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -59,8 +60,8 @@ class FeatureTaskRuntimeModelResolverTest {
     ExecutionMatrix(
       agents =
         mapOf(
-          InstallAgent.CLAUDE to mapOf(ExecutionTier.REASONING to PhaseModelDirective("claude-opus", "high")),
-          InstallAgent.CODEX to mapOf(ExecutionTier.REASONING to PhaseModelDirective("gpt-sol", "xhigh")),
+          SupportedAgent.CLAUDE to mapOf(ExecutionTier.REASONING to PhaseModelDirective("claude-opus", "high")),
+          SupportedAgent.CODEX to mapOf(ExecutionTier.REASONING to PhaseModelDirective("gpt-sol", "xhigh")),
         ),
     )
 }

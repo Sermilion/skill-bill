@@ -4,7 +4,7 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
-import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
+import skillbill.workflow.model.goalreview.asGoalWorkflowArtifactMap
 
 fun missingResultPrefixTerminalOutcomeArtifact(
   output: Any,

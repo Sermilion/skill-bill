@@ -1,4 +1,5 @@
 package skillbill.ports.review.evidence
+
 import skillbill.review.context.model.hunk.ReviewChangedHunk
 
 fun interface ReviewStoredHunkBodyExtractor {

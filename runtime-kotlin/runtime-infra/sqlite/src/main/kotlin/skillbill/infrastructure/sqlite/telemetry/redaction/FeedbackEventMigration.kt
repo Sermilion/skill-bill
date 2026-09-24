@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.redaction
+
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll

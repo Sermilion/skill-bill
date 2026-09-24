@@ -1,4 +1,5 @@
 package skillbill.application.workflow.service
+
 import skillbill.application.workflow.decomposition.withPendingProjection
 import skillbill.application.workflow.model.GoalContinuationOutcome
 import skillbill.application.workflow.model.WorkflowContinueResult
@@ -8,8 +9,8 @@ import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 
 internal data class ContinuationStepResult(
   val result: WorkflowContinueResult,

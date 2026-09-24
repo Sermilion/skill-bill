@@ -4,7 +4,7 @@ import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewScopeDisposition
 import skillbill.review.model.ReviewSeverityAdjustment
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 
 data class StructuredGoalReviewFinding(
   val severity: String,

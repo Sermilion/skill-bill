@@ -1,4 +1,5 @@
 package skillbill.application.review.spec
+
 import skillbill.contracts.JsonCodec
 import skillbill.review.context.model.execution.SpecIntentProjection
 

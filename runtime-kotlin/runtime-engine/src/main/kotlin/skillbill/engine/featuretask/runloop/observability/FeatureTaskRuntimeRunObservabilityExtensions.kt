@@ -2,8 +2,8 @@ package skillbill.engine.featuretask.runloop.observability
 
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLedgerRequest
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 
 fun FeatureTaskRuntimeRunObservability.fixLoopIteration(
   phaseId: String,

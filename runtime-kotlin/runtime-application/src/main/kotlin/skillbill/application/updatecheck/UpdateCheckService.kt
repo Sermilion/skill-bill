@@ -138,7 +138,7 @@ class UpdateCheckService(
   )
 }
 
-private fun unknown(
+internal fun unknown(
   reason: String,
   installedVersion: String? = null,
 ): UpdateCheckResult =

@@ -1,8 +1,13 @@
 package skillbill.engine.goalrunner.status
+
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.engine.goalrunner.RecordingOutcomeStore
 import skillbill.engine.goalrunner.execution.core.GoalRunnerStatusTestPorts
+import skillbill.engine.goalrunner.execution.core.lease
 import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService
 import skillbill.engine.goalrunner.goalTestPhaseRecorder
+import skillbill.engine.goalrunner.manifest
 import skillbill.engine.goalrunner.model.GoalRunnerStopStatus
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_REQUEST
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_STOP
@@ -290,7 +295,7 @@ class GoalRunnerStopVerbTest {
 
 private fun stopClock(): Clock = Clock.fixed(STOP_NOW, ZoneOffset.UTC)
 
-private fun liveLease() =
+internal fun liveLease() =
   GoalRunnerExecutionLease(
     generation = 1,
     ownerToken = "owner-token-123456",

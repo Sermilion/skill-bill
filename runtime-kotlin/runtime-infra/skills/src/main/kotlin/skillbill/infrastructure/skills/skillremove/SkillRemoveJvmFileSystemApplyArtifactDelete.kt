@@ -1,15 +1,6 @@
 package skillbill.infrastructure.skills.skillremove
 
-import skillbill.domain.skillremove.SkillBillRollbackException
-import skillbill.domain.skillremove.model.AppliedCascade
-import skillbill.domain.skillremove.model.ManifestEdit
-import skillbill.domain.skillremove.model.ManifestEditKind
-import skillbill.domain.skillremove.model.ReadmeCatalogEdit
-import skillbill.domain.skillremove.model.ReadmeCatalogEditKind
-import skillbill.domain.skillremove.model.ReadmeCatalogWarning
-import skillbill.domain.skillremove.model.SkillRemovalPreview
-import skillbill.domain.skillremove.model.SkillRemovalRequest
-import skillbill.domain.skillremove.model.SkillRemovalTarget
+import skillbill.infrastructure.skills.install.nativeagent.install.native.unlinkProviderAgents
 import skillbill.infrastructure.skills.scaffold.manifest.removeAddonReferences
 import skillbill.infrastructure.skills.scaffold.manifest.removeCodeReviewArea
 import skillbill.infrastructure.skills.scaffold.manifest.removeDeclaredFilesBaseline
@@ -18,6 +9,16 @@ import skillbill.infrastructure.skills.scaffold.manifest.removePointersBlockKey
 import skillbill.infrastructure.skills.scaffold.manifest.removeSkillClassPointer
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.ReadmeCatalogEdits
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.ReadmeEditOutcome
+import skillbill.skillremove.SkillBillRollbackException
+import skillbill.skillremove.model.AppliedCascade
+import skillbill.skillremove.model.ManifestEdit
+import skillbill.skillremove.model.ManifestEditKind
+import skillbill.skillremove.model.ReadmeCatalogEdit
+import skillbill.skillremove.model.ReadmeCatalogEditKind
+import skillbill.skillremove.model.ReadmeCatalogWarning
+import skillbill.skillremove.model.SkillRemovalPreview
+import skillbill.skillremove.model.SkillRemovalRequest
+import skillbill.skillremove.model.SkillRemovalTarget
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path

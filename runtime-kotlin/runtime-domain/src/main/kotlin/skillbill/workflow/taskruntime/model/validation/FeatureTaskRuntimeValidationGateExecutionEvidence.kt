@@ -1,8 +1,9 @@
 package skillbill.workflow.taskruntime.model.validation
+
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
-import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 data class FeatureTaskRuntimeValidationGateExecutionEvidence(
   val validationStatus: String,
@@ -189,4 +190,3 @@ data class FeatureTaskRuntimeValidationGateExecutionEvidence(
     ): Nothing = throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(sourceLabel, reason)
   }
 }
-

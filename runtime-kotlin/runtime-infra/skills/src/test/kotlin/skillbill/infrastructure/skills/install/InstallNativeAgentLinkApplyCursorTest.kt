@@ -8,8 +8,8 @@ import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgent
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.AgentTarget
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyStatus
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.repository.toFileLocation
 import skillbill.testing.HARBOR_ARCHITECTURE_WORKER
 import skillbill.testing.HARBOR_COMPANION_NAME
@@ -36,7 +36,7 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     val request =
       fixture.request(
         selectedPlatforms = setOf("kotlin"),
-        agents = setOf(InstallAgent.CODEX, InstallAgent.CURSOR),
+        agents = setOf(SupportedAgent.CODEX, SupportedAgent.CURSOR),
       )
     val first = applyInstallForTest(planInstallForTest(request))
     assertEquals(InstallApplyStatus.SUCCESS, first.status)
@@ -134,7 +134,7 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
 
@@ -155,7 +155,7 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kmp"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
     val first = applyInstallForTest(kmpPlan)
@@ -184,7 +184,7 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     val baseOnlyReplacementPlan =
       planInstallForTest(
         fixture.request(
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
           replaceExistingSkillBillLinks = true,
         ),
       )
@@ -201,7 +201,7 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     Files.createDirectories(fixture.home.resolve(".codex"))
     val firstPlan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kmp"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kmp"), agents = setOf(SupportedAgent.CODEX)),
       )
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(firstPlan).status)
     val cacheRoot =
@@ -215,7 +215,7 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
 
     val replacementPlan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
       )
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(replacementPlan).status)
 
@@ -229,7 +229,7 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     Files.createDirectories(fixture.home.resolve(".codex"))
     val firstPlan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
       )
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(firstPlan).status)
     val catalog =
@@ -247,7 +247,7 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     Files.writeString(inventory, "not-json")
     val replacementPlan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kmp"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kmp"), agents = setOf(SupportedAgent.CODEX)),
       )
 
     val result = applyInstallForTest(replacementPlan)
@@ -268,7 +268,7 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     Files.writeString(sourcePack.resolve("unrelated-custom-file.txt"), "not review runtime content")
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
       )
 
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(plan).status)
@@ -295,7 +295,7 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     Files.createDirectories(fixture.home.resolve(".codex"))
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf(HARBOR_PACK_SLUG), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf(HARBOR_PACK_SLUG), agents = setOf(SupportedAgent.CODEX)),
       )
 
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(plan).status)

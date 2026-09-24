@@ -1,10 +1,11 @@
 package skillbill.workflow.taskruntime.model.validation
-import skillbill.workflow.taskruntime.model.persistence.artifact.asExactIntOrNull
-import skillbill.workflow.taskruntime.model.persistence.artifact.asExactLongOrNull
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
+import skillbill.workflow.model.persistence.artifact.asExactLongOrNull
 
 internal const val FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY: String =
   "feature_task_runtime_validation_gate_progress"

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.runtime
+
 import skillbill.error.shellcontent.InvalidDecompositionManifestBundleJournalError
 import skillbill.infrastructure.workflow.decomposition.DecompositionManifestBundleJournal
 import java.nio.file.Files

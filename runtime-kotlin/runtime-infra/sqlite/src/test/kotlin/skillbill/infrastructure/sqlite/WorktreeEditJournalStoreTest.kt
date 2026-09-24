@@ -2,7 +2,7 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.idestatus.model.WorktreeEditSource
 import skillbill.idestatus.model.WorktreeEditTick
-import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilityFileDiffStat
 import java.nio.file.Files
 import java.time.Instant
 import kotlin.test.Test

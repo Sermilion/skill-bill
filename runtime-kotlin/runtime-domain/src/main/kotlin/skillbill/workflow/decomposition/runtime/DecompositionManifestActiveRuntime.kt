@@ -1,4 +1,5 @@
 package skillbill.workflow.decomposition.runtime
+
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus

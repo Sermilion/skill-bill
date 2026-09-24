@@ -2,7 +2,6 @@ package skillbill.ports.workflow.decomposition
 
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestFileCandidate
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.requireAccepted

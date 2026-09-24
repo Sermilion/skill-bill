@@ -1,7 +1,7 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.substanceaudit
 
-import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
+import skillbill.scaffold.policy.APPROVED_CODE_REVIEW_AREAS
 import skillbill.testing.seedConformingPlatformPack
 import java.nio.file.Files
 import java.nio.file.Path

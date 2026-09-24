@@ -1,8 +1,9 @@
-package skillbill.di.featurespec
+package skillbill.application.featurespec
 
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.ports.workflow.decomposition.loadDecompositionManifest
 import skillbill.di.core.OptionalCallbacks
+import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.di.core.RuntimeComponent
 import skillbill.di.core.RuntimeContext
 import skillbill.di.core.TransportContext

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.featuretask
+
 import skillbill.error.shellcontent.ProseFeatureTaskWorkflowWriteRefusedError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.workflow.workflow.decodeWorkflowStringList

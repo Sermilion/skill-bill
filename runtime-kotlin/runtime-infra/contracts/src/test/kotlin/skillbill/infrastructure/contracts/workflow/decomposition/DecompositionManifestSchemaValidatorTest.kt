@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.decomposition
+
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import kotlin.test.Test
 import kotlin.test.assertContains

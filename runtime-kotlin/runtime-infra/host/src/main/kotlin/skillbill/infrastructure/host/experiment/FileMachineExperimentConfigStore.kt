@@ -4,6 +4,7 @@ import skillbill.config.model.ExperimentAvailabilityPolicy
 import skillbill.error.shellcontent.ExperimentConfigMalformedError
 import skillbill.experiment.model.ExperimentConfigParse
 import skillbill.experiment.model.parseExperimentAvailabilityValue
+import skillbill.infrastructure.host.configPath
 import skillbill.infrastructure.host.readTelemetryConfigFile
 import skillbill.infrastructure.host.resolveTelemetryConfigPath
 import skillbill.infrastructure.host.withProcessDefaults

@@ -1,8 +1,9 @@
 package skillbill.infrastructure.skills.scaffold.runtime.service
+
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.CodeReviewBaselineLayer
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
+import skillbill.scaffold.policy.SKILL_KIND_PLATFORM_PACK
 import java.nio.file.Path
 import skillbill.infrastructure.skills.scaffold.payload.requireStringOrDefaultMap as requireStringOrDefault
 import skillbill.scaffold.policy.platformpack.buildPlatformPackInstallPaths as policyBuildPlatformPackInstallPaths

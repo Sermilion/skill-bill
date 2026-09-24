@@ -1,5 +1,4 @@
 package skillbill.infrastructure.skills.scaffold.adapters
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.declaredSkillRelativeDirs
@@ -8,7 +7,7 @@ import skillbill.ports.scaffold.source.ScaffoldSourceLoaderPort
 import skillbill.ports.scaffold.source.model.ScaffoldPlatformPackLoadRequest
 import skillbill.ports.scaffold.source.model.ScaffoldPlatformPackLoadResult
 import skillbill.scaffold.model.PlatformManifest
-import skillbill.scaffold.policy.scaffold.requireStringList
+import skillbill.scaffold.policy.requireStringList
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path

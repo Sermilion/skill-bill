@@ -1,4 +1,6 @@
 package skillbill.application.workflow.decomposition
+
+import skillbill.application.decomposition.baseBranch
 import skillbill.application.decomposition.executionModel
 import skillbill.application.workflow.model.ContinueExistingWorkflowArgs
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
@@ -9,23 +11,24 @@ import skillbill.application.workflow.service.migrateLegacyGoalRunnerControls
 import skillbill.application.workflow.service.withDecompositionRuntime
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.sessionSummary
 import skillbill.ports.workflow.toRecord
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
-import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.goalParentArtifactProjection
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowContinueDecisionOverrides
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -46,7 +49,10 @@ internal fun WorkflowEngine.continueExistingWorkflow(
       family.definition,
       record,
       sessionSummary,
-      resolvedRepositoryCheckpointIdentity = args.repositoryCheckpointIdentity(),
+      overrides =
+        WorkflowContinueDecisionOverrides(
+          repositoryCheckpointIdentity = args.repositoryCheckpointIdentity(),
+        ),
     )
   var projectionArtifacts: DurableWorkflowArtifacts? = null
   var projectionOwnerWorkflowId: String? = null
@@ -76,7 +82,7 @@ internal fun WorkflowEngine.continueExistingWorkflow(
     record = family.get(unitOfWork.workflowStates, workflowId) ?: reopened
     val reopenValidator = args.validator
     if (family == WorkflowFamily.TASK_RUNTIME && reopenValidator != null) {
-      projectionOwnerWorkflowId = resolveDecompositionProjectionOwner(record, unitOfWork, reopenValidator)
+      projectionOwnerWorkflowId = resolveDecompositionProjectionOwner(record, unitOfWork)
       if (projectionOwnerWorkflowId != null) {
         projectionArtifacts = record.artifacts
       }
@@ -86,9 +92,12 @@ internal fun WorkflowEngine.continueExistingWorkflow(
         family.definition,
         record,
         sessionSummary,
-        continueStatusOverride = originalContinueStatus,
-        workflowStatusBeforeContinueOverride = originalWorkflowStatus,
-        resolvedRepositoryCheckpointIdentity = args.repositoryCheckpointIdentity(),
+        overrides =
+          WorkflowContinueDecisionOverrides(
+            continueStatus = originalContinueStatus,
+            workflowStatusBeforeContinue = originalWorkflowStatus,
+            repositoryCheckpointIdentity = args.repositoryCheckpointIdentity(),
+          ),
       )
   }
   return ContinuationStepResult(

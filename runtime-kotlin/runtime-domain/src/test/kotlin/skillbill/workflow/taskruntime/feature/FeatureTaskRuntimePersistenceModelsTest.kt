@@ -1,43 +1,62 @@
 package skillbill.workflow.taskruntime.feature
+
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION
-import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
-import skillbill.goalrunner.asGoalRunnerIntOrNull
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.FeatureTaskRuntimeCommitPushResultArtifact
-import skillbill.goalrunner.model.FeatureTaskRuntimeGoalContinuationOutcome
-import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.BUILD
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.VALIDATE
-import skillbill.workflow.taskruntime.model.core.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationFieldAdoption
-import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
+import skillbill.goalrunner.asGoalRunnerIntOrNull
 import skillbill.goalrunner.commitPushResultArtifact
 import skillbill.goalrunner.goalContinuationOutcomeArtifact
 import skillbill.goalrunner.goalSubtaskReviewArtifacts
+import skillbill.goalrunner.model.FeatureTaskRuntimeGoalContinuationOutcome
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.decomposition.DecompositionManifestWireCodec
+import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
+import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
+import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.decomposition.runtime.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY
+import skillbill.workflow.decomposition.runtime.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
+import skillbill.workflow.decomposition.runtime.DecompositionManifestProjectionFailureArtifact
+import skillbill.workflow.decomposition.runtime.decompositionManifestProjectionFailure
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
+import skillbill.workflow.decomposition.runtime.goalParentArtifactProjection
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.model.ValidationDepth
+import skillbill.workflow.model.goalreview.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
+import skillbill.workflow.model.goalreview.appendBoundedHistoryBySequence
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.taskruntime.artifact.decomposeTerminal
+import skillbill.workflow.taskruntime.artifact.goalContinuationFieldAdoption
+import skillbill.workflow.taskruntime.artifact.operatorBlockRetry
 import skillbill.workflow.taskruntime.artifact.phaseLedger
 import skillbill.workflow.taskruntime.artifact.phaseRecords
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.artifact.resolvedBranch
+import skillbill.workflow.taskruntime.artifact.reviewGeneration
+import skillbill.workflow.taskruntime.model.core.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.BUILD
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.VALIDATE
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationFieldAdoption
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.featureTaskRuntimeRunInvariantsFromArtifactMap
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.toArtifactMap
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
@@ -47,22 +66,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
-import skillbill.workflow.engine.model.DurableWorkflowArtifacts
-import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.model.DecompositionManifest
-import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
-import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
-import skillbill.workflow.decomposition.runtime.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.workflow.decomposition.runtime.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY
-import skillbill.workflow.decomposition.runtime.decompositionManifestProjectionFailure
-import skillbill.workflow.decomposition.runtime.decompositionRuntime
-import skillbill.workflow.decomposition.runtime.goalParentArtifactProjection
-import skillbill.workflow.taskruntime.artifact.decomposeTerminal
-import skillbill.workflow.taskruntime.artifact.goalContinuationFieldAdoption
-import skillbill.workflow.taskruntime.artifact.operatorBlockRetry
-import skillbill.workflow.taskruntime.artifact.resolvedBranch
-import skillbill.workflow.taskruntime.artifact.reviewGeneration
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.time.Instant
@@ -1264,23 +1267,3 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
     }
   }
 }
-
-private val acceptingDecompositionManifestValidator =
-  object : DecompositionManifestValidator {
-    override fun validate(
-      manifest: DecompositionManifestWireMap,
-      sourceLabel: String,
-    ) = Unit
-
-    override fun validateYamlText(
-      yamlText: String,
-      sourceLabel: String,
-    ): DecompositionManifest =
-      error("YAML validation is not part of this accessor test.")
-
-    override fun validateYamlTextResult(
-      yamlText: String,
-      sourceLabel: String,
-    ): DecompositionManifestValidationResult =
-      error("YAML validation is not part of this accessor test.")
-  }

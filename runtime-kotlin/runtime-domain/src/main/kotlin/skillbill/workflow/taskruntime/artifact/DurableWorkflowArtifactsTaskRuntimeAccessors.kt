@@ -15,23 +15,17 @@ import skillbill.workflow.taskruntime.phaseartifacts.phaseRecordsFrom
 import skillbill.workflow.taskruntime.phaseartifacts.resolvedBranchFrom
 import skillbill.workflow.taskruntime.phaseartifacts.reviewGenerationFrom
 
-fun DurableWorkflowArtifacts.phaseRecords(): Map<String, FeatureTaskRuntimePhaseRecord> =
-  phaseRecordsFrom(this)
+fun DurableWorkflowArtifacts.phaseRecords(): Map<String, FeatureTaskRuntimePhaseRecord> = phaseRecordsFrom(this)
 
-fun DurableWorkflowArtifacts.phaseLedger(): List<FeatureTaskRuntimePhaseLedgerEntry> =
-  phaseLedgerFrom(this)
+fun DurableWorkflowArtifacts.phaseLedger(): List<FeatureTaskRuntimePhaseLedgerEntry> = phaseLedgerFrom(this)
 
-fun DurableWorkflowArtifacts.resolvedBranch(): FeatureTaskRuntimeResolvedBranch? =
-  resolvedBranchFrom(this)
+fun DurableWorkflowArtifacts.resolvedBranch(): FeatureTaskRuntimeResolvedBranch? = resolvedBranchFrom(this)
 
-fun DurableWorkflowArtifacts.reviewGeneration(): Int =
-  reviewGenerationFrom(this)
+fun DurableWorkflowArtifacts.reviewGeneration(): Int = reviewGenerationFrom(this)
 
-fun DurableWorkflowArtifacts.operatorBlockRetry(): FeatureTaskRuntimeOperatorBlockRetry? =
-  operatorBlockRetryFrom(this)
+fun DurableWorkflowArtifacts.operatorBlockRetry(): FeatureTaskRuntimeOperatorBlockRetry? = operatorBlockRetryFrom(this)
 
 fun DurableWorkflowArtifacts.goalContinuationFieldAdoption(): FeatureTaskRuntimeGoalContinuationFieldAdoption? =
   goalContinuationFieldAdoptionFrom(this)
 
-fun DurableWorkflowArtifacts.decomposeTerminal(): FeatureTaskRuntimeDecomposeTerminal? =
-  decomposeTerminalFrom(this)
+fun DurableWorkflowArtifacts.decomposeTerminal(): FeatureTaskRuntimeDecomposeTerminal? = decomposeTerminalFrom(this)

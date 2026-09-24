@@ -1,8 +1,8 @@
 package skillbill.application.workflow.model
 
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.model.WorkflowStateSnapshot

@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.lifecycle.core
+
 import skillbill.contracts.JsonCodec
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult

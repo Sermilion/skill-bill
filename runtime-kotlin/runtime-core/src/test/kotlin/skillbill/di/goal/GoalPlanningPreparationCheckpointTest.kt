@@ -17,8 +17,8 @@ import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.text.sha256HexUtf8
-import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import java.nio.file.Files
 import java.time.Clock
 import kotlin.test.Test
@@ -294,6 +294,7 @@ class GoalPlanningPreparationCheckpointTest {
         Clock.systemUTC(),
         NoOpCheckpointDiagnostics,
         NoOpWorkflowSnapshotValidator,
+        "test-runtime-version",
       )
     val checkpoint =
       GoalPlanningPreparationCheckpoint(
@@ -344,7 +345,10 @@ class GoalPlanningPreparationCheckpointTest {
   }
 
   private object NoOpWorkflowSnapshotValidator : WorkflowSnapshotValidator {
-    override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+    override fun validate(
+      snapshot: WorkflowStateSnapshot,
+      slug: String,
+    ) = Unit
   }
 
   private companion object {

@@ -1,11 +1,12 @@
 package skillbill.engine.goalrunner.persist
+
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+
 fun taskRuntimeRecordOrNull(
   workflowStates: WorkflowStateRepository,
   workflowId: String,

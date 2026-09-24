@@ -64,8 +64,12 @@ class SqliteDegradationDiagnosticsTest {
           Clock.systemUTC(),
           recordingDiagnostics(),
           object : WorkflowSnapshotValidator {
-            override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+            override fun validate(
+              snapshot: WorkflowStateSnapshot,
+              slug: String,
+            ) = Unit
           },
+          "test-runtime-version",
         )
       }
     assertEquals("userHome", error.fieldName)

@@ -13,7 +13,7 @@ class AgentLauncherCliTest {
 
   @Test
   fun `every install agent declares a launcher CLI`() {
-    assertEquals(InstallAgent.entries.toSet(), AGENT_LAUNCHER_CLIS.keys)
+    assertEquals(SupportedAgent.entries.toSet(), AGENT_LAUNCHER_CLIS.keys)
   }
 
   @Test
@@ -43,14 +43,14 @@ class AgentLauncherCliTest {
   fun `copilot is not a supported install agent`() {
     val error =
       assertFailsWith<IllegalArgumentException> {
-        InstallAgent.fromId("copilot")
+        SupportedAgent.fromId("copilot")
       }
     assertContains(error.message.orEmpty(), "Unknown agent 'copilot'")
   }
 
   @Test
   fun `an installed CLI produces no reason`() {
-    InstallAgent.entries.forEach { agent ->
+    SupportedAgent.entries.forEach { agent ->
       assertNull(unavailableAgentLauncherReason(agent.id, everythingInstalled))
     }
   }
