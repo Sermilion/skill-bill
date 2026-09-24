@@ -1,3 +1,15 @@
+## [2026-09-24] SKILL-375 subtask 1: one tool declaration, one call path
+Areas: runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-contracts, runtime-kotlin/runtime-core, orchestration/contracts
+- `McpToolRegistry.tools` is the single ordered `McpTool` list (26 tools, matching `mcp-tools-list.json`); each declaration carries handler, normalizer, runtime-owned argument keys, and advertised enum subset, and `tools/list`, schema projection, envelope validation, and dispatch all read it. reusable
+- One `McpStdioServer.handleLine(line, component)` and one `McpToolDispatcher.dispatch(name, args, component)`; `McpRuntime`, `McpRuntimeLifecycle`, `McpWorkflowRuntime`, `McpComponentAccess` reflection, and every `Any`-typed context overload are gone. Non-client exceptions go through the telemetry capture path; client errors come back as tool errors.
+- Family handler files (`review`, `lifecycle`, `telemetry`, `system`, `workflow`, `featuretask`, `scaffold`) take `(McpToolArguments, McpComponent)` and call services directly; argument-free handlers take only `McpComponent` and the registry adapts them, so no `@Suppress(UNUSED_PARAMETER)` remains. `McpToolArguments` names the tool in every argument error instead of `<unknown>`.
+- Removed the feature-task open/continue surface and the decomposition MCP mappers: the workflow tools are VERIFY-only, and the `Decomposition*` continue arms throw `UnsupportedOperationException`.
+- `McpComponent` exposes only the members main reads, including new `scaffoldGateway` and `resolvedEnvironmentContext` accessors, so handwritten code never reads `runtimeComponent`. Tests moved into family packages that exist in main, repoTest suites included, and drive tools only through `handleLine`.
+- Mapper output keys come from runtime-contracts `*Keys` owners; the schema copy uses the governed-resources DSL; `TelemetryEventSchemaValidator` keeps one `assertIdentity(JsonNode)`.
+- `runtime-mcp-package-cycle-baseline.txt` is now empty: the family split removed the `core`↔`shared` and `lifecycle`↔`shared` cycles, so any new runtime-mcp package cycle fails the guard outright. reusable
+Feature flag: N/A
+Acceptance criteria: 15/15 implemented
+
 ## [2026-09-18] SKILL-357 subtask 2: one input schema projected from the contract
 Areas: runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-application/telemetry, orchestration/contracts, runtime-kotlin
 - Projected every MCP tool's advertised input schema from the YAML `$defs` branch, inlining local refs and removing envelope metadata so validation and `tools/list` share one source.

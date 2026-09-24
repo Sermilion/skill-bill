@@ -11,6 +11,7 @@ object McpToolPayloadKeys {
   const val NOTES: String = "notes"
   const val REPO_ROOT: String = "repo_root"
   const val ENVELOPE: String = "envelope"
+  const val KIND: String = "kind"
   const val PAYLOAD: String = "payload"
   const val REASON: String = "reason"
   const val FINDING_COUNT: String = "finding_count"

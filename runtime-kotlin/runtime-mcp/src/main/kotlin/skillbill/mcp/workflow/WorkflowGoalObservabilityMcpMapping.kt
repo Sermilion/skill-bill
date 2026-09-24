@@ -2,7 +2,7 @@ package skillbill.mcp.workflow
 
 import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.contracts.JsonCodec
-import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
+import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.model.goalreview.GoalObservabilityEvent
@@ -13,27 +13,16 @@ internal fun workflowSnapshotMcpMap(
 ): LinkedHashMap<String, Any?> =
   LinkedHashMap(WorkflowWireProjections.snapshotMap(snapshot).toPayload()).apply {
     goalObservabilitySummary(goalObservability)?.let { summary ->
-      put("goal_observability", summary)
+      put(WorkflowWirePayloadKeys.GOAL_OBSERVABILITY, summary)
     }
     (DurableWorkflowArtifactFamily.GOAL_PROGRESS_LATEST_EVENT.value(snapshot.artifacts) as? Map<*, *>)?.let { event ->
-      put("goal_progress", event)
+      put(WorkflowWirePayloadKeys.GOAL_PROGRESS, event)
     }
     (DurableWorkflowArtifactFamily.GOAL_ATTEMPT_LEDGER.value(snapshot.artifacts) as? List<*>)?.lastOrNull()?.let {
         entry ->
-      put("goal_attempt_ledger_latest", entry)
+      put(WorkflowWirePayloadKeys.GOAL_ATTEMPT_LEDGER_LATEST, entry)
     }
   }
-
-internal fun GoalPlanningStatusSnapshot.toMcpMap(): Map<String, Any?> =
-  linkedMapOf(
-    "state" to state.wireValue,
-    "shared_preplan_prepared" to sharedPreplanPrepared,
-    "planned_subtask_count" to plannedSubtaskCount,
-    "total_subtask_count" to totalSubtaskCount,
-    "current_planning_subtask" to currentPlanningSubtaskId,
-    "planning_wave_subtasks" to planningWaveSubtaskIds,
-    "reason" to reason,
-  )
 
 private fun goalObservabilitySummary(goalObservability: GoalObservabilityEvent?): Map<String, Any?>? =
   goalObservability

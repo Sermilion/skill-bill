@@ -18,9 +18,9 @@ data class McpRuntimeContext(
   val workflowGitOperations: WorkflowGitOperations? = null,
   val repositoryRoot: Path? = null,
 ) {
-  private val component: McpComponent by lazy {
-    McpComponent::class.create(RuntimeComponent::class.create(toRuntimeContext()))
-  }
+  private val runtime: RuntimeComponent by lazy { RuntimeComponent::class.create(toRuntimeContext()) }
+
+  private val component: McpComponent by lazy { McpComponent::class.create(runtime) }
 
   fun toRuntimeContext(stdinText: String? = null): RuntimeContext =
     RuntimeContext(
@@ -37,4 +37,6 @@ data class McpRuntimeContext(
     )
 
   internal fun mcpComponent(): McpComponent = component
+
+  internal fun runtimeComponent(): RuntimeComponent = runtime
 }

@@ -3,7 +3,7 @@
 # This file describes the shape of every telemetry envelope the Skill
 # Bill runtime emits at its MCP tool seams (the `*_started/*_finished`,
 # `*_workflow_*`, and other invocation tools exposed by
-# `McpToolRegistry.toolNames`). It is authored in YAML for human
+# `McpToolRegistry.tools`). It is authored in YAML for human
 # readability and consumed as a JSON Schema (Draft 2020-12) by the
 # Kotlin runtime (`TelemetryEventSchemaValidator` in `runtime-mcp`).
 #
@@ -16,8 +16,8 @@
 #   `McpTelemetrySchemaEnumParityTest` pins YAML enum constraints to
 #   their Kotlin owners and keeps every tool branch registered.
 # - Cross-field "coherence" rules that JSON Schema cannot express
-#   cleanly stay in Kotlin (`McpToolDispatcher` and surrounding parse
-#   seams). Every such rule is named below under
+#   cleanly stay in Kotlin, in `TelemetryEventSchemaValidator`
+#   (`validateCoherence`). Every such rule is named below under
 #   `x-coherence-checks` so the schema document alone fully describes
 #   the contract.
 #
@@ -33,8 +33,10 @@
 #
 # Versioning rule:
 #
-# - `contract_version` is pinned by `TELEMETRY_EVENT_CONTRACT_VERSION`
-#   in `runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/TelemetryEventSchemaPaths.kt`.
+# - `contract_version` is pinned by `TELEMETRY_EVENT_CONTRACT_VERSION` in
+#   `runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/telemetry/TelemetryEventSchemaValidator.kt`,
+#   and this file's on-disk location by `TelemetryEventSchemaPaths` in
+#   `runtime-kotlin/runtime-mcp/src/repoTest/kotlin/skillbill/mcp/telemetry/`.
 # - The parity test `TelemetryEventSchemaContractVersionTest` fails the
 #   build if they diverge. To bump the contract, edit BOTH constants in
 #   the same change.

@@ -1,6 +1,5 @@
 package skillbill.mcp.telemetry
 
-import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
@@ -52,11 +51,6 @@ internal object TelemetryEventSchemaValidator {
       eventName = resolvedEventName,
       reason = reason,
     )
-  }
-
-  fun assertIdentity(yamlText: String) {
-    val yamlNode = YAMLMapper().readTree(yamlText)
-    assertIdentity(yamlNode)
   }
 
   fun assertIdentity(yamlNode: JsonNode) {
@@ -168,66 +162,31 @@ private const val SCHEMA_CLASSPATH_RESOURCE: String =
 private const val SCHEMA_REPO_RELATIVE_PATH: String =
   "orchestration/contracts/telemetry-event-schema.yaml"
 
-private fun loadSchemaDocument(): JsonNode {
-  var failure: Throwable? = null
+private fun loadSchemaDocument(): JsonNode =
   try {
-    val yamlText = readSchemaText()
-    val yamlNode = YAMLMapper().readTree(yamlText)
+    val yamlNode = YAMLMapper().readTree(readSchemaText())
     TelemetryEventSchemaValidator.assertIdentity(yamlNode)
-    return yamlNode
-  } catch (typed: InvalidTelemetryEventSchemaError) {
-    failure = typed
+    yamlNode
   } catch (error: IOException) {
-    failure =
-      InvalidTelemetryEventSchemaError(
-        fieldPath = "",
-        eventName = null,
-        reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
-        cause = error,
-      )
-  } catch (error: JsonProcessingException) {
-    failure =
-      error.let {
-        InvalidTelemetryEventSchemaError(
-          fieldPath = "",
-          eventName = null,
-          reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
-          cause = error,
-        )
-      }
+    throw schemaLoadFailure(error)
   }
-  throw failure
-}
 
-private fun compileSchema(yamlNode: JsonNode): JsonSchema {
-  var failure: Throwable? = null
+private fun compileSchema(yamlNode: JsonNode): JsonSchema =
   try {
     val jsonText = ObjectMapper().writeValueAsString(yamlNode)
-    val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-    return factory.getSchema(jsonText, LOCALE_STABLE_SCHEMA_CONFIG)
-  } catch (typed: InvalidTelemetryEventSchemaError) {
-    failure = typed
+    JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
+      .getSchema(jsonText, LOCALE_STABLE_SCHEMA_CONFIG)
   } catch (error: IOException) {
-    failure =
-      InvalidTelemetryEventSchemaError(
-        fieldPath = "",
-        eventName = null,
-        reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
-        cause = error,
-      )
-  } catch (error: JsonProcessingException) {
-    failure =
-      error.let {
-        InvalidTelemetryEventSchemaError(
-          fieldPath = "",
-          eventName = null,
-          reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
-          cause = error,
-        )
-      }
+    throw schemaLoadFailure(error)
   }
-  throw failure
-}
+
+private fun schemaLoadFailure(error: IOException): InvalidTelemetryEventSchemaError =
+  InvalidTelemetryEventSchemaError(
+    fieldPath = "",
+    eventName = null,
+    reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
+    cause = error,
+  )
 
 private fun readSchemaText(): String {
   TelemetryEventSchemaValidator::class.java.classLoader

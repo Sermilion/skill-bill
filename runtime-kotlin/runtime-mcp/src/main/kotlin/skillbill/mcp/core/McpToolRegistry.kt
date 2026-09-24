@@ -1,109 +1,205 @@
 package skillbill.mcp.core
 
+import skillbill.application.telemetry.validation.featureVerifyCompletionStatuses
+import skillbill.application.telemetry.validation.qualityCheckResults
 import skillbill.contracts.mcp.McpToolPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+import skillbill.mcp.featuretask.featureTaskPhaseBlock
+import skillbill.mcp.featuretask.featureTaskPhaseComplete
+import skillbill.mcp.lifecycle.featureVerifyFinished
+import skillbill.mcp.lifecycle.featureVerifyStarted
+import skillbill.mcp.lifecycle.prDescriptionGenerated
+import skillbill.mcp.lifecycle.qualityCheckFinished
+import skillbill.mcp.lifecycle.qualityCheckStarted
+import skillbill.mcp.review.addLearning
+import skillbill.mcp.review.featureVerifyStats
+import skillbill.mcp.review.goalStats
+import skillbill.mcp.review.importReview
+import skillbill.mcp.review.resolveLearnings
+import skillbill.mcp.review.reviewStats
+import skillbill.mcp.review.triageFindings
+import skillbill.mcp.scaffold.newSkillScaffold
+import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.McpProtocolFramer
+import skillbill.mcp.shared.McpToolArguments
+import skillbill.mcp.system.doctor
+import skillbill.mcp.system.updateCheck
+import skillbill.mcp.telemetry.telemetryProxyCapabilities
+import skillbill.mcp.telemetry.telemetryRemoteStats
+import skillbill.mcp.workflow.workflowContinue
+import skillbill.mcp.workflow.workflowGet
+import skillbill.mcp.workflow.workflowLatest
+import skillbill.mcp.workflow.workflowList
+import skillbill.mcp.workflow.workflowOpen
+import skillbill.mcp.workflow.workflowResume
+import skillbill.mcp.workflow.workflowUpdate
+
+internal typealias McpToolHandler = (McpToolArguments, McpComponent) -> Map<String, Any?>
 
 internal data class McpTool(
   val name: String,
   val description: String,
-  val inputSchema: Map<String, Any?>,
   val handler: McpToolHandler,
   val normalize: ((Map<String, Any?>) -> Map<String, Any?>)? = null,
+  val runtimeOwnedArgumentKeys: Set<String> = emptySet(),
+  val advertisedEnumSubset: Pair<String, List<String>>? = null,
 ) {
   fun toPayload(): Map<String, Any?> =
     linkedMapOf(
       McpProtocolFramer.NAME_KEY to name,
       McpProtocolFramer.DESCRIPTION_KEY to description,
-      McpProtocolFramer.INPUT_SCHEMA_KEY to inputSchema,
+      McpProtocolFramer.INPUT_SCHEMA_KEY to McpInputSchemaProjection.projectedInputSchema(this),
     )
 }
 
-internal typealias McpToolSpec = McpTool
-
 internal object McpToolRegistry {
-  private val orderedToolNames: List<String> =
-    listOf(
-      McpToolPayloadKeys.ADD_LEARNING,
-      "doctor",
-      "feature_task_phase_block",
-      "feature_task_phase_complete",
-      "feature_verify_finished",
-      "feature_verify_stats",
-      "feature_verify_started",
-      "feature_verify_workflow_get",
-      "feature_verify_workflow_latest",
-      "feature_verify_workflow_list",
-      "feature_verify_workflow_continue",
-      "feature_verify_workflow_open",
-      "feature_verify_workflow_resume",
-      "feature_verify_workflow_update",
-      "goal_stats",
-      "import_review",
-      "new_skill_scaffold",
-      "pr_description_generated",
-      McpToolPayloadKeys.QUALITY_CHECK_FINISHED,
-      "quality_check_started",
-      "resolve_learnings",
-      "review_stats",
-      "telemetry_proxy_capabilities",
-      "telemetry_remote_stats",
-      "triage_findings",
-      "update_check",
-    )
-
-  private val toolDescriptions: Map<String, String> =
-    mapOf(
-      McpToolPayloadKeys.ADD_LEARNING to
-        "Create a learning from a rejected review finding after user confirmation.",
-      "doctor" to "Check skill-bill installation health.",
-      "feature_task_phase_block" to
-        "Durable-block a prose feature-task phase (preplan|plan|implement|simplify|audit).",
-      "feature_task_phase_complete" to
-        "Complete a prose feature-task phase (preplan|plan|implement|simplify|audit) via durable settlement.",
-      "feature_verify_finished" to "Record completion of a feature-verify session.",
-      "feature_verify_stats" to "Show aggregate bill-feature-verify metrics.",
-      "feature_verify_started" to "Record start of a feature-verify session.",
-      "feature_verify_workflow_continue" to "Continue durable bill-feature-verify workflow state.",
-      "feature_verify_workflow_get" to "Fetch read-only full durable bill-feature-verify workflow state.",
-      "feature_verify_workflow_latest" to "Fetch the latest bill-feature-verify workflow.",
-      "feature_verify_workflow_list" to "List bill-feature-verify workflows.",
-      "feature_verify_workflow_open" to "Open durable bill-feature-verify workflow state.",
-      "feature_verify_workflow_resume" to "Summarize bill-feature-verify workflow resume state.",
-      "feature_verify_workflow_update" to
-        "Update durable bill-feature-verify workflow state and return a compact acknowledgement.",
-      "goal_stats" to "Show aggregate decomposed-goal runtime metrics.",
-      "import_review" to "Import code review output into the local telemetry store.",
-      "new_skill_scaffold" to "Scaffold a new skill from a validated payload.",
-      "pr_description_generated" to "Record PR description generation telemetry.",
-      McpToolPayloadKeys.QUALITY_CHECK_FINISHED to "Record completion of a quality-check session.",
-      "quality_check_started" to "Record start of a quality-check session.",
-      "resolve_learnings" to "Resolve active learnings for a review context.",
-      "review_stats" to "Show review acceptance metrics.",
-      "telemetry_proxy_capabilities" to "Show configured telemetry proxy capabilities.",
-      "telemetry_remote_stats" to "Fetch aggregate org-wide workflow metrics.",
-      "triage_findings" to "Record triage decisions for imported review findings.",
-      "update_check" to "Check whether the installed skill-bill runtime is up to date.",
-    )
-
-  private val projectedInputSchemas: Map<String, Map<String, Any?>> by lazy {
-    orderedToolNames.associateWith(McpInputSchemaProjection::projectedInputSchema)
-  }
-
   val tools: List<McpTool> =
-    orderedToolNames.map { name ->
+    listOf(
       McpTool(
-        name = name,
-        description = toolDescriptions.getValue(name),
-        inputSchema = projectedInputSchemas.getValue(name),
-        handler = McpToolDispatcher.handlerFor(name),
-        normalize =
-          when (name) {
-            McpToolPayloadKeys.QUALITY_CHECK_FINISHED -> McpToolDispatcher::normalizeQualityCheckFinished
-            McpToolPayloadKeys.FEATURE_VERIFY_FINISHED -> McpToolDispatcher::normalizeFeatureVerifyFinished
-            else -> null
-          },
-      )
-    }
+        name = McpToolPayloadKeys.ADD_LEARNING,
+        description = "Create a learning from a rejected review finding after user confirmation.",
+        handler = ::addLearning,
+      ),
+      McpTool(
+        name = "doctor",
+        description = "Check skill-bill installation health.",
+        handler = { _, component -> doctor(component) },
+      ),
+      McpTool(
+        name = "feature_task_phase_block",
+        description = "Durable-block a prose feature-task phase (preplan|plan|implement|simplify|audit).",
+        handler = ::featureTaskPhaseBlock,
+      ),
+      McpTool(
+        name = "feature_task_phase_complete",
+        description =
+          "Complete a prose feature-task phase (preplan|plan|implement|simplify|audit) via durable settlement.",
+        handler = ::featureTaskPhaseComplete,
+      ),
+      McpTool(
+        name = McpToolPayloadKeys.FEATURE_VERIFY_FINISHED,
+        description = "Record completion of a feature-verify session.",
+        handler = ::featureVerifyFinished,
+        runtimeOwnedArgumentKeys = setOf(LifecycleTelemetryPayloadKeys.DURATION_SECONDS_AVAILABILITY),
+        advertisedEnumSubset = McpToolPayloadKeys.COMPLETION_STATUS to featureVerifyCompletionStatuses,
+      ),
+      McpTool(
+        name = "feature_verify_stats",
+        description = "Show aggregate bill-feature-verify metrics.",
+        handler = { _, component -> featureVerifyStats(component) },
+      ),
+      McpTool(
+        name = "feature_verify_started",
+        description = "Record start of a feature-verify session.",
+        handler = ::featureVerifyStarted,
+      ),
+      McpTool(
+        name = "feature_verify_workflow_get",
+        description = "Fetch read-only full durable bill-feature-verify workflow state.",
+        handler = ::workflowGet,
+      ),
+      McpTool(
+        name = "feature_verify_workflow_latest",
+        description = "Fetch the latest bill-feature-verify workflow.",
+        handler = { _, component -> workflowLatest(component) },
+      ),
+      McpTool(
+        name = "feature_verify_workflow_list",
+        description = "List bill-feature-verify workflows.",
+        handler = ::workflowList,
+      ),
+      McpTool(
+        name = "feature_verify_workflow_continue",
+        description = "Continue durable bill-feature-verify workflow state.",
+        handler = ::workflowContinue,
+      ),
+      McpTool(
+        name = "feature_verify_workflow_open",
+        description = "Open durable bill-feature-verify workflow state.",
+        handler = ::workflowOpen,
+      ),
+      McpTool(
+        name = "feature_verify_workflow_resume",
+        description = "Summarize bill-feature-verify workflow resume state.",
+        handler = ::workflowResume,
+      ),
+      McpTool(
+        name = "feature_verify_workflow_update",
+        description =
+          "Update durable bill-feature-verify workflow state and return a compact acknowledgement.",
+        handler = ::workflowUpdate,
+      ),
+      McpTool(
+        name = "goal_stats",
+        description = "Show aggregate decomposed-goal runtime metrics.",
+        handler = { _, component -> goalStats(component) },
+      ),
+      McpTool(
+        name = "import_review",
+        description = "Import code review output into the local telemetry store.",
+        handler = ::importReview,
+      ),
+      McpTool(
+        name = "new_skill_scaffold",
+        description = "Scaffold a new skill from a validated payload.",
+        handler = ::newSkillScaffold,
+      ),
+      McpTool(
+        name = "pr_description_generated",
+        description = "Record PR description generation telemetry.",
+        handler = ::prDescriptionGenerated,
+      ),
+      McpTool(
+        name = McpToolPayloadKeys.QUALITY_CHECK_FINISHED,
+        description = "Record completion of a quality-check session.",
+        handler = ::qualityCheckFinished,
+        normalize = ::normalizeQualityCheckFinished,
+        runtimeOwnedArgumentKeys =
+          setOf(
+            LifecycleTelemetryPayloadKeys.COMPLETION,
+            LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT_AVAILABILITY,
+            LifecycleTelemetryPayloadKeys.STALE_REASON,
+          ),
+        advertisedEnumSubset = McpToolPayloadKeys.RESULT to qualityCheckResults,
+      ),
+      McpTool(
+        name = "quality_check_started",
+        description = "Record start of a quality-check session.",
+        handler = ::qualityCheckStarted,
+      ),
+      McpTool(
+        name = "resolve_learnings",
+        description = "Resolve active learnings for a review context.",
+        handler = ::resolveLearnings,
+      ),
+      McpTool(
+        name = "review_stats",
+        description = "Show review acceptance metrics.",
+        handler = ::reviewStats,
+      ),
+      McpTool(
+        name = "telemetry_proxy_capabilities",
+        description = "Show configured telemetry proxy capabilities.",
+        handler = { _, component -> telemetryProxyCapabilities(component) },
+      ),
+      McpTool(
+        name = "telemetry_remote_stats",
+        description = "Fetch aggregate org-wide workflow metrics.",
+        handler = ::telemetryRemoteStats,
+      ),
+      McpTool(
+        name = "triage_findings",
+        description = "Record triage decisions for imported review findings.",
+        handler = ::triageFindings,
+      ),
+      McpTool(
+        name = "update_check",
+        description = "Check whether the installed skill-bill runtime is up to date.",
+        handler = { _, component -> updateCheck(component) },
+      ),
+    )
 
-  fun toolNamed(name: String): McpToolSpec? = tools.firstOrNull { it.name == name }
+  private val toolsByName: Map<String, McpTool> = tools.associateBy(McpTool::name)
+
+  fun toolNamed(name: String): McpTool? = toolsByName[name]
 }

@@ -63,4 +63,7 @@ object WorkflowWirePayloadKeys {
   const val GOAL_PROGRESS: String = "goal_progress"
   const val GOAL_ATTEMPT_LEDGER_LATEST: String = "goal_attempt_ledger_latest"
   const val GOAL_CONTINUATION_OUTCOME: String = "goal_continuation_outcome"
+  const val DB_PATH: String = "db_path"
+  const val LAUNCH_PROJECTION: String = "launch_projection"
+  const val READ_ONLY_FULL_STATE_COMMAND: String = "read_only_full_state_command"
 }

@@ -3,57 +3,51 @@ package skillbill.mcp.scaffold
 import skillbill.application.scaffold.model.ScaffoldInvocationArgs
 import skillbill.application.scaffold.runScaffoldInvocation
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.mcp.shared.McpComponent
+import skillbill.mcp.shared.McpToolArguments
 import kotlin.coroutines.cancellation.CancellationException
 
-internal object McpScaffoldRuntime {
-  fun newSkillScaffold(
-    payload: Map<String, Any?>,
-    dryRun: Boolean = false,
-    orchestrated: Boolean = false,
-    component: McpComponent,
-  ): Map<String, Any?> {
-    val runtimeComponent = component.runtimeComponent
-    val resolvedRoot = runtimeComponent.resolvedEnvironmentContext.repositoryRoot
-    val outcome =
-      runCatching {
-        val payloadText = JsonCodec.mapToJsonString(payload)
-        val invocation =
-          runScaffoldInvocation(
-            runtimeComponent.scaffoldGateway,
-            ScaffoldInvocationArgs(
-              payloadText = payloadText,
-              invocationRepositoryRoot = resolvedRoot,
-              dryRun = dryRun,
-              registerExternalSources = false,
-              userHome = runtimeComponent.resolvedEnvironmentContext.userHome,
-              environment = runtimeComponent.resolvedEnvironmentContext.environment,
-              clock = component.clock,
-            ),
-          )
-        scaffoldSuccessMap(
-          sessionId = invocation.sessionId,
-          payload = payload,
-          result = invocation.scaffoldResult,
+internal fun newSkillScaffold(
+  arguments: McpToolArguments,
+  component: McpComponent,
+): Map<String, Any?> {
+  val payload = arguments.map(McpToolPayloadKeys.PAYLOAD)
+  val dryRun = arguments.boolean(McpToolPayloadKeys.DRY_RUN)
+  val orchestrated = arguments.boolean(McpToolPayloadKeys.ORCHESTRATED)
+  val environment = component.resolvedEnvironmentContext
+  return runCatching {
+    val invocation =
+      runScaffoldInvocation(
+        component.scaffoldGateway,
+        ScaffoldInvocationArgs(
+          payloadText = JsonCodec.mapToJsonString(payload),
+          invocationRepositoryRoot = environment.repositoryRoot,
           dryRun = dryRun,
+          registerExternalSources = false,
+          userHome = environment.userHome,
+          environment = environment.environment,
+          clock = component.clock,
+        ),
+      )
+    scaffoldSuccessMap(
+      sessionId = invocation.sessionId,
+      payload = payload,
+      result = invocation.scaffoldResult,
+      dryRun = dryRun,
+      orchestrated = orchestrated,
+    )
+  }.getOrElse { error ->
+    when (error) {
+      is CancellationException -> throw error
+      is Exception ->
+        scaffoldFailureMap(
+          sessionId = "nss-unknown",
+          payload = payload,
           orchestrated = orchestrated,
+          error = error,
         )
-      }
-    val error = outcome.exceptionOrNull()
-    return if (error == null) {
-      outcome.getOrThrow()
-    } else {
-      when (error) {
-        is CancellationException -> throw error
-        is Exception ->
-          scaffoldFailureMap(
-            sessionId = "nss-unknown",
-            payload = payload,
-            orchestrated = orchestrated,
-            error = error,
-          )
-        else -> throw error
-      }
+      else -> throw error
     }
   }
 }

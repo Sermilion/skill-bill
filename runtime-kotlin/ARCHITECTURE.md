@@ -381,6 +381,26 @@ runtime-core
   `RuntimeComponent`. The allow-list is enforced by
   `RuntimeAdapterDependencyAllowlistTest`.
 
+Inside `runtime-mcp` the advertised surface has a single shape. `McpToolRegistry`
+holds one ordered `List<McpTool>`; each entry names the tool once and carries its
+description, handler, optional argument normalizer, runtime-owned argument keys,
+and optional advertised enum subset. `tools/list`, schema projection
+(`McpInputSchemaProjection`), envelope validation, and dispatch all read that one
+list, so a tool name appears only in its declaration. `McpStdioServer.handleLine`
+is the only request entry point and `McpToolDispatcher.dispatch` the only tool
+entry point; both take the `McpComponent` explicitly, so there is no reflective
+component lookup and no `Any`-typed component parameter. Handlers live in
+per-family files (`core`, `review`, `lifecycle`, `telemetry`, `workflow`,
+`featuretask`, `scaffold`, `system`), take `(McpToolArguments, McpComponent)`, and
+call their application service directly through the component rather than through
+a forwarding runtime object. `McpComponent` declares only the services those
+handlers and `Main` read. There is no feature-task open/continue surface and no
+decomposition result mapping: the decomposition arms of
+`WorkflowContinueResult` are unreachable for verify workflows and throw
+`UnsupportedOperationException`. Tests reach tools only through `handleLine` or
+`dispatch`, and test sources live in the same family packages as the main code
+they exercise.
+
 The Gradle module set is:
 
 ```text

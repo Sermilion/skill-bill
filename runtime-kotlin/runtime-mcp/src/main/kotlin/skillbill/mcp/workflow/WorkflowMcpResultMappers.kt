@@ -9,19 +9,25 @@ import skillbill.application.workflow.model.WorkflowResumeResult
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.mcp.McpToolPayloadKeys
+import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 
 internal fun WorkflowContinueResult.toMcpMap(): Map<String, Any?> =
   when (this) {
     is WorkflowContinueResult.Standard -> toStandardMcpMap()
-    is WorkflowContinueResult.DecompositionStandard -> toDecompositionStandardMcpMap()
     is WorkflowContinueResult.UnknownWorkflow -> toUnknownWorkflowMcpMap()
-    is WorkflowContinueResult.DecompositionMissingSubtaskWorkflow -> toDecompositionMissingSubtaskWorkflowMcpMap()
-    is WorkflowContinueResult.DecompositionBlockedSubtask -> toDecompositionBlockedSubtaskMcpMap()
-    is WorkflowContinueResult.DecompositionBlockedBranchStart -> toDecompositionBlockedBranchStartMcpMap()
-    is WorkflowContinueResult.DecompositionDone -> toDecompositionDoneMcpMap()
-    is WorkflowContinueResult.DecompositionSubtaskOutcome -> toDecompositionSubtaskOutcomeMcpMap()
-    is WorkflowContinueResult.DecompositionBlockedGit -> toDecompositionBlockedGitMcpMap()
     is WorkflowContinueResult.Error -> toErrorMcpMap()
+    is WorkflowContinueResult.DecompositionStandard,
+    is WorkflowContinueResult.DecompositionMissingSubtaskWorkflow,
+    is WorkflowContinueResult.DecompositionBlockedSubtask,
+    is WorkflowContinueResult.DecompositionBlockedBranchStart,
+    is WorkflowContinueResult.DecompositionDone,
+    is WorkflowContinueResult.DecompositionSubtaskOutcome,
+    is WorkflowContinueResult.DecompositionBlockedGit,
+    ->
+      throw UnsupportedOperationException(
+        "${this::class.simpleName} is not produced for verify workflows",
+      )
   }
 
 internal fun WorkflowOpenResult.toMcpMap(): Map<String, Any?> =
@@ -29,16 +35,19 @@ internal fun WorkflowOpenResult.toMcpMap(): Map<String, Any?> =
     is WorkflowOpenResult.Ok ->
       workflowSnapshotMcpMap(snapshot, goalObservability).apply {
         launchProjection?.let {
-          put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload())
+          put(
+            WorkflowWirePayloadKeys.LAUNCH_PROJECTION,
+            WorkflowWireProjections.inputProjectionMap(it).toPayload(),
+          )
         }
         put(SharedPayloadKeys.STATUS, "ok")
-        put("db_path", dbPath)
+        put(WorkflowWirePayloadKeys.DB_PATH, dbPath)
       }
     is WorkflowOpenResult.Error ->
       linkedMapOf(
         SharedPayloadKeys.STATUS to "error",
         SharedPayloadKeys.WORKFLOW_ID to workflowId,
-        "error" to error,
+        McpToolPayloadKeys.ERROR to error,
       )
   }
 
@@ -48,23 +57,24 @@ internal fun WorkflowUpdateResult.toMcpMap(): Map<String, Any?> =
       LinkedHashMap(
         WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload(),
       ).apply {
-        launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload()) }
+        launchProjection?.let {
+          put(
+            WorkflowWirePayloadKeys.LAUNCH_PROJECTION,
+            WorkflowWireProjections.inputProjectionMap(it).toPayload(),
+          )
+        }
         put(
-          "read_only_full_state_command",
-          readOnlyFullStateCommand(
-            dbPath,
-            acknowledgement.workflowId,
-            acknowledgement.workflowName,
-          ),
+          WorkflowWirePayloadKeys.READ_ONLY_FULL_STATE_COMMAND,
+          readOnlyFullStateCommand(dbPath, acknowledgement.workflowId),
         )
-        put("db_path", dbPath)
+        put(WorkflowWirePayloadKeys.DB_PATH, dbPath)
       }
     is WorkflowUpdateResult.Error ->
       linkedMapOf<String, Any?>(
         SharedPayloadKeys.STATUS to "error",
         SharedPayloadKeys.WORKFLOW_ID to workflowId,
-        "error" to error,
-      ).apply { dbPath?.let { put("db_path", it) } }
+        McpToolPayloadKeys.ERROR to error,
+      ).apply { dbPath?.let { put(WorkflowWirePayloadKeys.DB_PATH, it) } }
   }
 
 internal fun WorkflowGetResult.toMcpMap(): Map<String, Any?> =
@@ -72,23 +82,23 @@ internal fun WorkflowGetResult.toMcpMap(): Map<String, Any?> =
     is WorkflowGetResult.Ok ->
       workflowSnapshotMcpMap(snapshot, goalObservability).apply {
         put(SharedPayloadKeys.STATUS, "ok")
-        put("db_path", dbPath)
+        put(WorkflowWirePayloadKeys.DB_PATH, dbPath)
       }
     is WorkflowGetResult.Error ->
       linkedMapOf(
         SharedPayloadKeys.STATUS to "error",
         SharedPayloadKeys.WORKFLOW_ID to workflowId,
-        "error" to error,
-        "db_path" to dbPath,
+        McpToolPayloadKeys.ERROR to error,
+        WorkflowWirePayloadKeys.DB_PATH to dbPath,
       )
   }
 
 internal fun WorkflowListResult.toMcpMap(): Map<String, Any?> =
   linkedMapOf(
     SharedPayloadKeys.STATUS to "ok",
-    "db_path" to dbPath,
-    "workflow_count" to workflowCount,
-    "workflows" to workflows.map { WorkflowWireProjections.summaryMap(it).toPayload() },
+    WorkflowWirePayloadKeys.DB_PATH to dbPath,
+    WorkflowWirePayloadKeys.WORKFLOW_COUNT to workflowCount,
+    WorkflowWirePayloadKeys.WORKFLOWS to workflows.map { WorkflowWireProjections.summaryMap(it).toPayload() },
   )
 
 internal fun WorkflowLatestResult.toMcpMap(): Map<String, Any?> =
@@ -96,13 +106,13 @@ internal fun WorkflowLatestResult.toMcpMap(): Map<String, Any?> =
     is WorkflowLatestResult.Ok ->
       LinkedHashMap(WorkflowWireProjections.summaryMap(summary).toPayload()).apply {
         put(SharedPayloadKeys.STATUS, "ok")
-        put("db_path", dbPath)
+        put(WorkflowWirePayloadKeys.DB_PATH, dbPath)
       }
     is WorkflowLatestResult.Error ->
       linkedMapOf(
         SharedPayloadKeys.STATUS to "error",
-        "error" to error,
-        "db_path" to dbPath,
+        McpToolPayloadKeys.ERROR to error,
+        WorkflowWirePayloadKeys.DB_PATH to dbPath,
       )
   }
 
@@ -111,24 +121,22 @@ internal fun WorkflowResumeResult.toMcpMap(): Map<String, Any?> =
     is WorkflowResumeResult.Ok ->
       LinkedHashMap(WorkflowWireProjections.resumeMap(resume).toPayload()).apply {
         put(SharedPayloadKeys.STATUS, "ok")
-        put("db_path", dbPath)
+        put(WorkflowWirePayloadKeys.DB_PATH, dbPath)
       }
     is WorkflowResumeResult.Error ->
       linkedMapOf(
         SharedPayloadKeys.STATUS to "error",
         SharedPayloadKeys.WORKFLOW_ID to workflowId,
-        "error" to error,
-        "db_path" to dbPath,
+        McpToolPayloadKeys.ERROR to error,
+        WorkflowWirePayloadKeys.DB_PATH to dbPath,
       )
   }
 
 internal fun readOnlyFullStateCommand(
   dbPath: String,
   workflowId: String,
-  skillName: String,
 ): String {
-  val workflowCommand = if (skillName == "bill-feature-verify") "verify-workflow" else "workflow"
   val quotedDbPath = "'${dbPath.replace("'", "'\"'\"'")}'"
   val quotedWorkflowId = "'${workflowId.replace("'", "'\"'\"'")}'"
-  return "skill-bill --db $quotedDbPath $workflowCommand show $quotedWorkflowId --format json"
+  return "skill-bill --db $quotedDbPath verify-workflow show $quotedWorkflowId --format json"
 }

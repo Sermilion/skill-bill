@@ -1,112 +1,86 @@
 package skillbill.mcp.workflow
 
 import skillbill.application.workflow.model.WorkflowFamilyKind
+import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.workflow.payload.WorkflowArtifactKeys
-import skillbill.error.core.InvalidMcpToolArgumentError
+import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.mcp.shared.McpComponent
-import skillbill.mcp.shared.componentForLegacyContext
-import skillbill.mcp.shared.int
-import skillbill.mcp.shared.optionalInt
-import skillbill.mcp.shared.optionalListMap
-import skillbill.mcp.shared.optionalMap
-import skillbill.mcp.shared.optionalString
-import skillbill.mcp.shared.string
+import skillbill.mcp.shared.McpToolArguments
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.FeatureTaskRouteScope
+
+private val VERIFY: WorkflowFamilyKind = WorkflowFamilyKind.VERIFY
 
 internal fun workflowOpen(
-  kind: WorkflowFamilyKind,
-  arguments: Map<String, Any?>,
+  arguments: McpToolArguments,
   component: McpComponent,
 ): Map<String, Any?> =
-  McpWorkflowRuntime.open(
-    McpWorkflowOpenArgs(
-      kind = kind,
+  component.workflowService.open(
+    WorkflowServiceOpenArgs(
+      kind = VERIFY,
       sessionId = arguments.string(McpToolPayloadKeys.SESSION_ID),
       currentStepId = arguments.optionalString(McpToolPayloadKeys.CURRENT_STEP_ID),
       issueKey = arguments.optionalString(McpToolPayloadKeys.ISSUE_KEY),
       repositoryIdentity = arguments.optionalString(McpToolPayloadKeys.REPOSITORY_IDENTITY),
       governedSpecPath = arguments.optionalString(McpToolPayloadKeys.GOVERNED_SPEC_PATH),
-      component = component,
+      routeScope = FeatureTaskRouteScope.STANDALONE,
     ),
-  )
+  ).toMcpMap()
 
 internal fun workflowUpdate(
-  kind: WorkflowFamilyKind,
-  arguments: Map<String, Any?>,
+  arguments: McpToolArguments,
   component: McpComponent,
 ): Map<String, Any?> =
-  McpWorkflowRuntime.update(
-    kind = kind,
-    request =
-      arguments.optionalMap(McpToolPayloadKeys.ARTIFACTS_PATCH).let { artifactsPatch ->
-        WorkflowUpdateRequest(
-          workflowId = arguments.string(SharedPayloadKeys.WORKFLOW_ID),
-          workflowStatus = arguments.string(McpToolPayloadKeys.WORKFLOW_STATUS),
-          currentStepId = arguments.string(McpToolPayloadKeys.CURRENT_STEP_ID),
-          stepUpdates = arguments.optionalListMap(McpToolPayloadKeys.STEP_UPDATES)?.let(WorkflowStepUpdates::from),
-          artifactsPatch = artifactsPatch?.let(WorkflowArtifactPatch::from),
-          planningResult =
-            artifactsPatch?.get(WorkflowArtifactKeys.PLAN)
-              ?.let(JsonCodec::anyToStringAnyMap)
-              ?.let { DecompositionPlanningResult.fromWireMap(it, "mcp.artifacts_patch.plan") },
-          sessionId = arguments.string(McpToolPayloadKeys.SESSION_ID),
-        )
-      },
-    component = component,
-  )
+  component.workflowService.update(
+    VERIFY,
+    arguments.optionalMap(McpToolPayloadKeys.ARTIFACTS_PATCH).let { artifactsPatch ->
+      WorkflowUpdateRequest(
+        workflowId = arguments.string(SharedPayloadKeys.WORKFLOW_ID),
+        workflowStatus = arguments.string(McpToolPayloadKeys.WORKFLOW_STATUS),
+        currentStepId = arguments.string(McpToolPayloadKeys.CURRENT_STEP_ID),
+        stepUpdates = arguments.optionalListMap(McpToolPayloadKeys.STEP_UPDATES)?.let(WorkflowStepUpdates::from),
+        artifactsPatch = artifactsPatch?.let(WorkflowArtifactPatch::from),
+        planningResult =
+          artifactsPatch?.get(WorkflowArtifactKeys.PLAN)
+            ?.let(JsonCodec::anyToStringAnyMap)
+            ?.let { DecompositionPlanningResult.fromWireMap(it, "mcp.artifacts_patch.plan") },
+        sessionId = arguments.string(McpToolPayloadKeys.SESSION_ID),
+      )
+    },
+  ).toMcpMap()
 
 internal fun workflowGet(
-  kind: WorkflowFamilyKind,
-  arguments: Map<String, Any?>,
+  arguments: McpToolArguments,
   component: McpComponent,
-): Map<String, Any?> = McpWorkflowRuntime.get(kind, arguments.string(SharedPayloadKeys.WORKFLOW_ID), component)
+): Map<String, Any?> = component.workflowService.get(VERIFY, arguments.string(SharedPayloadKeys.WORKFLOW_ID)).toMcpMap()
 
 internal fun workflowList(
-  kind: WorkflowFamilyKind,
-  arguments: Map<String, Any?>,
+  arguments: McpToolArguments,
   component: McpComponent,
 ): Map<String, Any?> =
-  McpWorkflowRuntime.list(
-    kind,
-    limit = arguments.int("limit", default = 20),
-    component = component,
-  )
+  component.workflowService.list(VERIFY, arguments.int(WorkflowWirePayloadKeys.LIMIT, default = 20)).toMcpMap()
+
+internal fun workflowLatest(component: McpComponent): Map<String, Any?> =
+  component.workflowService.latest(VERIFY).toMcpMap()
 
 internal fun workflowResume(
-  kind: WorkflowFamilyKind,
-  arguments: Map<String, Any?>,
+  arguments: McpToolArguments,
   component: McpComponent,
-): Map<String, Any?> = McpWorkflowRuntime.resume(kind, arguments.string(SharedPayloadKeys.WORKFLOW_ID), component)
+): Map<String, Any?> =
+  component.workflowService.resume(VERIFY, arguments.string(SharedPayloadKeys.WORKFLOW_ID)).toMcpMap()
 
 internal fun workflowContinue(
-  kind: WorkflowFamilyKind,
-  arguments: Map<String, Any?>,
-  context: Any,
-): Map<String, Any?> = workflowContinue(kind, arguments, componentForLegacyContext(context))
-
-internal fun workflowContinue(
-  kind: WorkflowFamilyKind,
-  arguments: Map<String, Any?>,
+  arguments: McpToolArguments,
   component: McpComponent,
-): Map<String, Any?> {
-  val workflowIdOrIssueKey =
-    arguments.optionalString(SharedPayloadKeys.WORKFLOW_ID)
-      ?: arguments.optionalString(McpToolPayloadKeys.ISSUE_KEY)
-      ?: throw InvalidMcpToolArgumentError(
-        "feature_verify_workflow_continue",
-        "workflow_id",
-        "or issue_key is required",
-      )
-  return McpWorkflowRuntime.continueWorkflow(
-    kind,
-    workflowIdOrIssueKey,
-    subtaskId = arguments.optionalInt(SharedPayloadKeys.SUBTASK_ID),
-    component = component,
-  )
-}
+): Map<String, Any?> =
+  component.workflowService.continueWorkflow(
+    VERIFY,
+    arguments.string(SharedPayloadKeys.WORKFLOW_ID),
+    subtaskId = null,
+  ).toMcpMap()
