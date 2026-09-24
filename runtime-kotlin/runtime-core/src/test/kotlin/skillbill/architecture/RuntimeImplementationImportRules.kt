@@ -2,7 +2,6 @@ package skillbill.architecture
 
 import java.nio.file.Path
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 internal fun isRuntimeImplementationImport(importedName: String): Boolean {
   val forbiddenPrefixes =
@@ -53,52 +52,17 @@ internal fun jdbcSqliteConnectionSitesOutsideDatabaseRuntime(sourceRoots: List<P
     }
   }.sorted()
 
-internal fun assertRuntimeCorePublicProjectEdges(
-  runtimeRoot: Path,
-  runtimeCoreBuild: String,
-) {
-  val runtimeCoreApiDependencies =
-    Regex("""api\(project\("(:runtime-[^"]+)"\)\)""")
-      .findAll(runtimeCoreBuild)
-      .map { match -> match.groupValues[1] }
+internal fun assertRuntimeCorePublicProjectEdges(runtimeRoot: Path) {
+  val expectedApiEdges =
+    RuntimeModuleCatalog.moduleEdgeExpectations
+      .getValue("runtime-core")
+      .api
+      .map { moduleName -> ":$moduleName" }
       .toSet()
-  val runtimeComponentPublicAbiEdges = runtimeComponentPublicAbiEdges(runtimeRoot).projectEdges
   assertEquals(
-    runtimeComponentPublicAbiEdges,
-    runtimeCoreApiDependencies,
+    expectedApiEdges,
+    runtimeComponentPublicAbiEdges(runtimeRoot).projectEdges,
     "runtime-core public project edges must exactly match RuntimeComponent's generated public ABI.",
-  )
-  val forbiddenApiDependencies =
-    runtimeCoreApiDependencies
-      .filterNot(setOf(":runtime-application", ":runtime-ports", ":runtime-engine")::contains)
-      .sorted()
-  assertEquals(
-    emptyList(),
-    forbiddenApiDependencies,
-    "runtime-core must not re-export domain, contract, or concrete implementation modules as adapter API.",
-  )
-  assertEquals(
-    setOf(":runtime-application", ":runtime-contracts", ":runtime-domain", ":runtime-engine", ":runtime-ports"),
-    runtimeCoreApiDependencyClosure(runtimeRoot, runtimeCoreApiDependencies),
-    "runtime-core's generated public API closure must stay limited to the documented Kotlin-Inject " +
-      "ABI closure; it must not transitively re-export concrete infrastructure, CLI, or MCP modules.",
-  )
-  val architecture = runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md").toFile().readText()
-  val normalizedArchitecture = architecture.replace(Regex("\\s+"), " ")
-  assertTrue(
-    "publishes only the generated Kotlin-Inject ABI edges" in architecture,
-    "ARCHITECTURE.md must document the narrow runtime-core public dependency policy.",
-  )
-  assertTrue(
-    (
-      "public ABI closure is currently runtime-application, runtime-engine, runtime-ports, " +
-        "runtime-domain, and runtime-contracts"
-    ) in normalizedArchitecture,
-    "ARCHITECTURE.md must document runtime-core's transitive generated public ABI closure.",
-  )
-  assertTrue(
-    "If Kotlin-Inject ever requires a" in architecture,
-    "ARCHITECTURE.md must reserve the documentation seam for any future generated public edge.",
   )
 }
 
@@ -161,28 +125,6 @@ private fun runtimeComponentPublicAbiEdges(runtimeRoot: Path): RuntimeComponentP
       "Unknown or concrete ABI types: ${unknownTypes.sorted()}",
   )
   return RuntimeComponentPublicAbiEdges(projectEdges, unknownTypes)
-}
-
-private fun runtimeCoreApiDependencyClosure(
-  runtimeRoot: Path,
-  directEdges: Set<String>,
-): Set<String> {
-  val visited = mutableSetOf<String>()
-
-  fun visit(module: String) {
-    if (!visited.add(module)) return
-    val buildFile =
-      runtimeRoot.resolve(
-        "runtime-kotlin/${module.removePrefix(":")}/build.gradle.kts",
-      ).toFile()
-    if (!buildFile.isFile) return
-    Regex("""api\(project\("(:runtime-[^"]+)"\)\)""")
-      .findAll(buildFile.readText())
-      .map { match -> match.groupValues[1] }
-      .forEach(::visit)
-  }
-  directEdges.forEach(::visit)
-  return visited
 }
 
 private fun runtimeComponentText(runtimeRoot: Path): String =

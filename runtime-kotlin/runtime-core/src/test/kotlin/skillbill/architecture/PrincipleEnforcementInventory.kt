@@ -1,11 +1,12 @@
 package skillbill.architecture
 
+import kotlin.reflect.KClass
+
 object PrincipleEnforcementInventory {
   const val RUNTIME_APPLICATION_MAIN: String = "runtime-kotlin/runtime-application/src/main/kotlin"
   const val RUNTIME_CLI_MAIN: String = "runtime-kotlin/runtime-cli/src/main/kotlin"
   const val APPLICATION_PACKAGE_PREFIX: String = "skillbill.application."
   const val CLI_PACKAGE_PREFIX: String = "skillbill.cli."
-  const val RUNTIME_CLI_SRC: String = "runtime-kotlin/runtime-cli/src"
   const val SPILLOVER_FILE_NAME_BASELINE: String = "spillover-file-name-baseline.txt"
   const val RUNTIME_COMPONENT_SOURCE: String =
     "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeComponent.kt"
@@ -18,7 +19,7 @@ object PrincipleEnforcementInventory {
     val packageCycleBaseline: String,
     val ambientClockBaseline: String,
     val ambientEnvironmentBaseline: String,
-    val injectDefaultsBaseline: String?,
+    val injectDefaultsBaseline: String,
   )
 
   val moduleArchitectureScanCases: List<ModuleArchitectureScanCase> =
@@ -85,21 +86,11 @@ object PrincipleEnforcementInventory {
   private fun injectDefaultsBaselineForModule(
     moduleName: String,
     baselineStem: String,
-  ): String? =
+  ): String =
     when (moduleName) {
       "runtime-application" -> "inject-constructor-defaults-baseline.txt"
       "runtime-cli" -> "runtime-cli-inject-constructor-defaults-baseline.txt"
-      "runtime-ports",
-      "runtime-infra:host",
-      "runtime-infra:contracts",
-      "runtime-infra:skills",
-      "runtime-infra:launcher",
-      "runtime-infra:workflow",
-      "runtime-infra:http",
-      "runtime-infra:sqlite",
-      "runtime-mcp",
-      -> "$baselineStem-inject-constructor-defaults-baseline.txt"
-      else -> null
+      else -> "$baselineStem-inject-constructor-defaults-baseline.txt"
     }
 
   val cliSharedLeafAreas: Set<String> = setOf("kernel", "model")
@@ -108,62 +99,193 @@ object PrincipleEnforcementInventory {
 
   val spilloverFileNameExemptions: Set<String> = emptySet()
 
+  data class SuppressionAllowListRow(
+    val relativePath: String,
+    val symbol: String,
+    val rule: String,
+    val why: String,
+  )
+
+  val suppressionAllowList: List<SuppressionAllowListRow> =
+    listOf(
+      SuppressionAllowListRow(
+        "runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/externaladdon/" +
+          "FileSystemExternalAddonOverlayApply.kt",
+        "asMutableMap",
+        "UNCHECKED_CAST",
+        "SnakeYAML returns an erased mutable map; ClassCastException guard keeps string-key overlay writes honest",
+      ),
+      SuppressionAllowListRow(
+        "runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/externaladdon/" +
+          "FileSystemExternalAddonOverlayApply.kt",
+        "asMutableList",
+        "UNCHECKED_CAST",
+        "SnakeYAML returns an erased mutable list; ClassCastException guard keeps manifest list overlay writes honest",
+      ),
+      SuppressionAllowListRow(
+        "runtime-application/src/testFixtures/kotlin/skillbill/application/review/snapshot/ReviewRecordingHarness.kt",
+        "recordingDatabase",
+        "UNCHECKED_CAST",
+        "Dynamic ReviewRepository proxy passes typed args through erased invoke; casts mirror the repository contract",
+      ),
+      SuppressionAllowListRow(
+        "runtime-core/src/test/kotlin/skillbill/application/ApplicationPersistencePortTestSupport.kt",
+        "noopPort",
+        "UNCHECKED_CAST",
+        "Dynamic port proxy returns typed facade from erased invoke",
+      ),
+      SuppressionAllowListRow(
+        "runtime-engine/src/test/kotlin/skillbill/engine/FeatureTaskRuntimeRunnerTestSupport.kt",
+        "noopPort",
+        "UNCHECKED_CAST",
+        "Dynamic port proxy returns typed facade from erased invoke",
+      ),
+      SuppressionAllowListRow(
+        "runtime-engine/src/test/kotlin/skillbill/engine/FeatureTaskRuntimeRunnerTestSupport.kt",
+        "recordHarnessFindingVerdicts",
+        "UNCHECKED_CAST",
+        "Dynamic ReviewRepository proxy passes typed verdict list through erased invoke",
+      ),
+      SuppressionAllowListRow(
+        "runtime-application/src/test/kotlin/skillbill/application/ParallelCodeReviewRunnerTest.kt",
+        "RecordingReviewDatabase",
+        "UNCHECKED_CAST",
+        "Dynamic ReviewRepository proxy passes typed args through erased invoke",
+      ),
+    )
+
+  val suppressionAllowListKeys: Set<Triple<String, String, String>> =
+    suppressionAllowList.map { row -> Triple(row.relativePath, row.symbol, row.rule) }.toSet()
+
   val ambientEnvironmentExemptions: Set<String> =
     setOf(
       "runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/core/Main.kt",
       "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/core/RuntimeBootstrapBindings.kt",
     )
 
-  val enforceableRules: List<String> =
+  data class EnforcedRule(val rule: String, val test: KClass<*>)
+
+  val enforceableRules: List<EnforcedRule> =
     listOf(
-      "Wire vocabulary and contract-key declarations must be unique, dynamically indexed, and referenced " +
-        "without local token collections or literal payload-key accesses.",
-      "Package clustering: loose files in a subpackaged area must not belong to a sibling area cluster.",
-      "Production package siblings: non-model packages stay at or below 12 files and model packages at or below " +
-        "20 files, except for the named remainder inventory.",
-      "Production line ceiling: no production Kotlin file may exceed $PRODUCTION_LINE_CEILING lines without an " +
-        "explicit exemption.",
-      "Production logical-type line ceiling: attribute extension files to receiver types and enforce combined totals.",
-      "Package acyclicity: mutual imports among areas under each module package prefix must stay within " +
-        "that module baseline across all declared runtime Gradle modules.",
-      "Ambient clock ban: Instant.now, LocalDateTime.now, LocalDate.now, and Clock.systemUTC require baseline " +
-        "in every module main source root.",
-      "No @Inject constructor defaults: dependency bags and @Inject constructors must not carry default arguments, " +
-        "and runtime-application @Inject constructors must not expose non-private properties.",
-      "Failure wire codes: in-scope FailureWireCode hierarchies must map cases to codes totally and injectively.",
-      "Typed parse boundaries: named untrusted-input decode sites must not report malformation via error, require, or" +
-        "bare throw.",
-      "Inline FQN ban: production and test Kotlin must not use inline fully-qualified references " +
-        "outside the keep-list.",
-      "Convention ownership: module build files must not re-apply Test or toolchain settings " +
-        "owned by configureKotlinJvm.",
-      "Ambient environment ban: System.getenv, System.getProperty, and empty-string Path.of or Paths.get " +
-        "require baseline in every module main source root.",
-      "Command-area isolation: every runtime-cli command area's transitive skillbill.cli import closure must " +
-        "contain only the shared kernel and model leaves, never a sibling area or the composition root.",
-      "Spillover-name ban: no source file in any runtime module, and no main-source file, type, or member " +
-        "declaration, may carry the spillover signature (Extras, Continued, Helpers, Support, Misc, Fns, " +
-        "letter-plus-digit, or bare trailing-digit siblings) outside a named exemption; bare Support, Helpers, " +
-        "Misc, and Extras apply to main sources only.",
-      "Gradle module edges: every module api(project(...)) and implementation(project(...)) set is pinned in " +
-        "RuntimeModuleCatalog.moduleEdgeExpectations and compared to build.gradle.kts independently.",
-      "Port null-object absence: no runtime module main source declares an Unavailable, Noop, Empty, or " +
-        "Unconfigured substitute; a reached absence is a nullable port resolved at the call site and the " +
-        "test-only substitutes live in testFixtures.",
-      "Inward-layer import rules: runtime-ports imports no adapter machinery and runtime-domain imports no " +
-        "serialization or IO library, both asserted as an empty violation list without a baseline.",
-      "Ports declaration guard: runtime-ports main source must not declare top-level objects, non-DTO " +
-        "top-level classes, (this as casts, or interface default bodies that error or throw; " +
-        "PortsDeclarationArchitectureTest proves the scanner on synthetic fixtures.",
-      "Composition-only construction: no main-source site outside skillbill.di may construct a concrete class " +
-        "censused from @Provides parameter types and explicit Provides constructions; import aliases count, " +
-        "comments and string literals are ignored, unrelated same-named functions are skipped, and sanctioned " +
-        "second entrypoints are named explicitly.",
-      "RuntimeComponent composition surface: abstract service properties are pinned separately from @Provides " +
-        "generated wiring; any other public function on RuntimeComponent or a Runtime*Provides mixin fails " +
-        "even when the abstract property set is unchanged.",
-      "Comment and KDoc policy: authored Kotlin under inlineFqnScanRoots must contain no // line comments, " +
-        "no non-KDoc block comments, and no KDoc except on interfaces and their members.",
+      EnforcedRule(
+        "Wire vocabulary and contract-key declarations are unique, dynamically indexed, and referenced " +
+          "without local token collections or literal payload-key accesses.",
+        WireVocabularyArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Package clustering: loose files in a subpackaged area do not belong to a sibling area cluster.",
+        PackageClusteringArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Production package siblings: non-model packages stay at or below 12 files and model packages at or " +
+          "below 20 files, except for the named remainder inventory.",
+        PackageSiblingCountArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Production line ceiling: no production Kotlin file exceeds $PRODUCTION_LINE_CEILING lines without an " +
+          "explicit exemption.",
+        ProductionFileLineCeilingArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Production logical-type line ceiling: extension files are attributed to receiver types and the " +
+          "combined total is enforced.",
+        ProductionLogicalTypeLineCeilingArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Package acyclicity: mutual imports among areas under each module package prefix stay within that " +
+          "module baseline across all declared runtime Gradle modules.",
+        ApplicationPackageAcyclicityArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Ambient clock ban: Instant.now, LocalDateTime.now, LocalDate.now, OffsetDateTime.now, " +
+          "ZonedDateTime.now, Clock.systemUTC, and JvmSystemClock.instant require a baseline row in every " +
+          "module main source root.",
+        RuntimeApplicationAmbientClockArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "No @Inject constructor defaults: @Inject constructors carry no default arguments in any module main " +
+          "source root, and runtime-application @Inject constructors expose no non-private properties.",
+        InjectConstructorDefaultsArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Failure wire codes: in-scope FailureWireCode hierarchies map cases to codes totally and injectively.",
+        FailureCodeTotalityArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Typed parse boundaries: named untrusted-input decode sites do not report malformation via error, " +
+          "require, or bare throw.",
+        TypedParseBoundaryArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Inline FQN ban: production and test Kotlin use no inline fully-qualified references outside the " +
+          "keep-list.",
+        InlineFqnArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Convention ownership: module build files do not re-apply Test or toolchain settings owned by " +
+          "configureKotlinJvm.",
+        ConventionReapplicationArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Ambient environment ban: System.getenv, System.getProperty, and empty-string Path.of or Paths.get " +
+          "require a baseline row in every module main source root.",
+        AmbientEnvironmentArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Command-area isolation: every runtime-cli command area's transitive skillbill.cli import closure " +
+          "contains only the shared kernel and model leaves, never a sibling area or the composition root.",
+        RuntimeCliAreaIsolationArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Spillover-name ban: no source file in any runtime module, and no main-source file, type, or member " +
+          "declaration, carries the spillover signature (Extras, Continued, Helpers, Support, Misc, Fns, " +
+          "letter-plus-digit, or bare trailing-digit siblings) outside a named exemption; bare Support, " +
+          "Helpers, Misc, and Extras apply to main sources only.",
+        RuntimeSpilloverFileNameArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Gradle module edges: every module api(project(...)) and implementation(project(...)) set matches " +
+          "RuntimeModuleCatalog.moduleEdgeExpectations.",
+        RuntimeCoreCompositionOnlyTest::class,
+      ),
+      EnforcedRule(
+        "Port null-object absence: no runtime module main source declares an Unavailable, Noop, Empty, or " +
+          "Unconfigured substitute; a reached absence is a nullable port resolved at the call site and the " +
+          "test-only substitutes live in testFixtures.",
+        PortNullObjectAbsenceArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Inward-layer import rules: runtime-ports imports no adapter machinery and runtime-domain imports no " +
+          "serialization or IO library, both asserted as an empty violation list without a baseline.",
+        RuntimeContractModuleImportRulesTest::class,
+      ),
+      EnforcedRule(
+        "Ports declaration guard: runtime-ports main source declares no top-level objects, no non-DTO " +
+          "top-level classes, no (this as casts, and no interface default bodies that error or throw.",
+        PortsDeclarationArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Composition-only construction: no main-source site outside skillbill.di constructs a concrete class " +
+          "censused from @Provides parameter types and explicit Provides constructions; import aliases count, " +
+          "comments and string literals are ignored, and unrelated same-named functions are skipped.",
+        RuntimeCompositionGuardArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "RuntimeComponent composition surface: abstract service properties are pinned separately from " +
+          "@Provides generated wiring; any other public function on RuntimeComponent or a Runtime*Provides " +
+          "mixin fails even when the abstract property set is unchanged.",
+        RuntimeComponentInboundApiArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Comment and KDoc policy: authored Kotlin under inlineFqnScanRoots contains no // line comments, no " +
+          "non-KDoc block comments, and no KDoc except on interfaces and their members.",
+        CommentAndInterfaceKdocArchitectureTest::class,
+      ),
+      EnforcedRule(
+        "Compiler suppression allow-list: every authored @Suppress matches a suppressionAllowList row and " +
+          "complexity-rule suppressions are never permitted.",
+        SuppressionBanArchitectureTest::class,
+      ),
     )
 
   val parseBoundarySites: List<ArchitectureScanSupport.ParseBoundarySite> =
@@ -454,8 +576,7 @@ object PrincipleEnforcementInventory {
         "intentional domain vocabulary.",
       "Deeper noun-family relatedness inside a single area cluster — only cross-area loose-file " +
         "buckets are mechanically provable.",
-      "Open harness and capability vocabulary keys when subtask 3 left them open — recorded in " +
-        "agent/decisions.md instead of an enum gate.",
+      "Open harness and capability vocabulary keys — reviewed by hand instead of an enum gate.",
     )
 
   const val PRODUCTION_LINE_CEILING: Int = 1200

@@ -247,13 +247,6 @@ class RuntimeLayerBoundaryArchitectureTest {
 
   @Test
   fun `application domain and ports use Path only as an inert value type`() {
-    val architecture = Files.readString(runtimeArchitectureRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
-    assertContains(architecture, "`java.nio.file.Path` is allowed")
-    assertContains(architecture, "only as an inert value type")
-    assertContains(architecture, "home-directory expansion")
-    assertContains(architecture, "`System.getenv`")
-    assertContains(architecture, "`System.getProperty`")
-
     val boundaryFiles =
       sourceFiles()
         .filter { file ->

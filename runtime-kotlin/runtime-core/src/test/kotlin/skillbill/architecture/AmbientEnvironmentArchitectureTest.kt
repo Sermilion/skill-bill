@@ -1,89 +1,35 @@
 package skillbill.architecture
 
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class AmbientEnvironmentArchitectureTest {
   @Test
-  fun `runtime-cli ambient environment sites equal the recorded census`() {
-    val baseline =
-      ArchitectureScanSupport.parseStringSetBaseline(
-        ArchitectureBaselineSupport.readBaseline("runtime-cli-ambient-environment-baseline.txt"),
-      )
-    val current =
-      ArchitectureScanSupport.ambientEnvironmentCallSites(PrincipleEnforcementInventory.RUNTIME_CLI_MAIN)
-        .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
-        .toSet()
-    assertEquals(
-      baseline,
-      current,
-      "Re-record runtime-cli-ambient-environment-baseline.txt with RECORD_ARCHITECTURE_BASELINES=1.",
+  fun `every declared module matches its ambient environment baseline`() {
+    val drift = ArchitectureScanSupport.ambientEnvironmentDrift()
+    assertEquals(emptyList(), drift, drift.joinToString("\n"))
+  }
+
+  @Test
+  fun `ambient environment rule reports a violation placed in runtime-engine`() {
+    val root = Files.createTempDirectory("skillbill-ambient-environment-rejection")
+    seedModuleScanTreeWithEngineViolation(
+      root,
+      """
+      package skillbill.engine
+
+      val home = System.getenv("HOME")
+      """.trimIndent(),
     )
-  }
-
-  @Test
-  fun `runtime-application ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-application")
-  }
-
-  @Test
-  fun `runtime-contracts ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-contracts")
-  }
-
-  @Test
-  fun `runtime-core ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-core")
-  }
-
-  @Test
-  fun `runtime-domain ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-domain")
-  }
-
-  @Test
-  fun `runtime-infra host ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-infra:host")
-  }
-
-  @Test
-  fun `runtime-infra contracts ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-infra:contracts")
-  }
-
-  @Test
-  fun `runtime-infra skills ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-infra:skills")
-  }
-
-  @Test
-  fun `runtime-infra launcher ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-infra:launcher")
-  }
-
-  @Test
-  fun `runtime-infra workflow ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-infra:workflow")
-  }
-
-  @Test
-  fun `runtime-infra http ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-infra:http")
-  }
-
-  @Test
-  fun `runtime-infra sqlite ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-infra:sqlite")
-  }
-
-  @Test
-  fun `runtime-mcp ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-mcp")
-  }
-
-  @Test
-  fun `runtime-ports ambient environment sites equal the recorded census`() {
-    assertAmbientEnvironmentMatchesBaseline("runtime-ports")
+    val drift = ArchitectureScanSupport.ambientEnvironmentDrift(scanRoot = root, readBaseline = { "" })
+    assertEquals(
+      listOf(
+        "runtime-engine: $SYNTHETIC_ENGINE_VIOLATION_PATH:System.getenv():1 " +
+          "is not listed in runtime-engine-ambient-environment-baseline.txt.",
+      ),
+      drift,
+    )
   }
 
   @Test
@@ -108,31 +54,12 @@ class AmbientEnvironmentArchitectureTest {
       )
     assertEquals(
       listOf(
-        "$EXAMPLE_PATH:6:System.getenv() is not listed in the ambient-environment baseline.",
-        "$EXAMPLE_PATH:7:System.getProperty() is not listed in the ambient-environment baseline.",
-        "$EXAMPLE_PATH:8:Path.of(\"\") is not listed in the ambient-environment baseline.",
-        "$EXAMPLE_PATH:9:Paths.get(\"\") is not listed in the ambient-environment baseline.",
+        "$EXAMPLE_PATH:Path.of(\"\"):1 is not listed in the ambient-environment baseline.",
+        "$EXAMPLE_PATH:Paths.get(\"\"):1 is not listed in the ambient-environment baseline.",
+        "$EXAMPLE_PATH:System.getProperty():1 is not listed in the ambient-environment baseline.",
+        "$EXAMPLE_PATH:System.getenv():1 is not listed in the ambient-environment baseline.",
       ),
       violations,
-    )
-  }
-
-  private fun assertAmbientEnvironmentMatchesBaseline(moduleName: String) {
-    val scanCase =
-      PrincipleEnforcementInventory.moduleArchitectureScanCases
-        .single { scanCase -> scanCase.moduleName == moduleName }
-    val baseline =
-      ArchitectureScanSupport.parseStringSetBaseline(
-        ArchitectureBaselineSupport.readBaseline(scanCase.ambientEnvironmentBaseline),
-      )
-    val current =
-      ArchitectureScanSupport.ambientEnvironmentCallSites(scanCase.mainScanRoot)
-        .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
-        .toSet()
-    assertEquals(
-      baseline,
-      current,
-      "Re-record ${scanCase.ambientEnvironmentBaseline} with RECORD_ARCHITECTURE_BASELINES=1.",
     )
   }
 

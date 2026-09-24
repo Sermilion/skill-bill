@@ -84,26 +84,6 @@ class RuntimeAdapterDependencyAllowlistTest {
     )
   }
 
-  @Test
-  fun `runtime-application declares no production dependency on infrastructure adapters (SKILL-140 AC-005)`() {
-    val forbidden =
-      setOf(
-        "runtime-infra:host",
-        "runtime-infra:contracts",
-        "runtime-infra:skills",
-        "runtime-infra:launcher",
-        "runtime-infra:workflow",
-        "runtime-infra:http",
-        "runtime-infra:sqlite",
-      )
-    val violations = forbidden.filter { moduleName -> moduleName in mainProjectDependencies("runtime-application") }
-    assertEquals(
-      emptyList(),
-      violations,
-      "runtime-application must not gain a production dependency on infrastructure modules.",
-    )
-  }
-
   private fun testFixturesProjectDependencies(moduleName: String): Set<String> {
     val buildFile =
       runtimeRoot.resolve(

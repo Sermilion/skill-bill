@@ -30,19 +30,6 @@ class RuntimeDiagnosticsBestEffortGuardArchitectureTest {
 
 class GoalRunnerAgentOutputScannerArchitectureTest {
   @Test
-  fun `goal runner engine sources do not declare a brace scanner`() {
-    val engineGoalRunnerRoot =
-      ArchitectureScanSupport.runtimeRoot.resolve(
-        "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner",
-      )
-    val violations =
-      kotlinFilesUnderWithArchitectureAsserts(engineGoalRunnerRoot).filter { path ->
-        path.readText().contains("fun topLevelJsonObjectCandidates")
-      }.map { path -> engineGoalRunnerRoot.relativize(path).toString() }
-    assertEquals(emptyList(), violations)
-  }
-
-  @Test
   fun `adapter-owned agent output scanner remains the single production scanner`() {
     val roots =
       listOf(

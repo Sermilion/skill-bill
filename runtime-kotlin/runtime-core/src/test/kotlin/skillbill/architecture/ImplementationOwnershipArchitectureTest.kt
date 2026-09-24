@@ -2,133 +2,18 @@ package skillbill.architecture
 
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.isRegularFile
 import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class ImplementationOwnershipArchitectureTest {
   private val runtimeRoot: Path = ArchitectureScanSupport.runtimeRoot
-  private val infraSkillsModule = RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")
-  private val infraLauncherModule = RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:launcher")
-
-  private fun moduleRelativePath(
-    moduleId: String,
-    suffix: String,
-  ): String = "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleId)}/$suffix"
-
-  @Test
-  fun `implementation ownership moved out of runtime core`() {
-    listOf(
-      "skillbill/infrastructure/skills/install",
-      "skillbill/infrastructure/skills/scaffold",
-      "skillbill/infrastructure/skills/nativeagent",
-      "skillbill/infrastructure/launcher",
-      "skillbill/infrastructure/skills/skillremove",
-      "skillbill/infrastructure/workflow",
-    ).forEach { packagePath ->
-      assertTrue(
-        !Files.exists(runtimeRoot.resolve("runtime-kotlin/runtime-core/src/main/kotlin/$packagePath")),
-        "runtime-core must not own moved implementation package $packagePath",
-      )
-    }
-
-    mapOf(
-      "skillbill/infrastructure/skills/install/runtime/InstallOperations.kt" to infraSkillsModule,
-      "skillbill/infrastructure/skills/scaffold/runtime/service/ScaffoldService.kt" to infraSkillsModule,
-      "skillbill/infrastructure/skills/nativeagent/rendering/NativeAgentOperations.kt" to infraSkillsModule,
-      "skillbill/infrastructure/skills/install/mcp/McpRegistrationOperations.kt" to infraSkillsModule,
-      "skillbill/infrastructure/skills/skillremove/SkillRemoveJvmFileSystem.kt" to infraSkillsModule,
-    ).forEach { (packagePath, modulePath) ->
-      assertTrue(
-        Files.isRegularFile(runtimeRoot.resolve("$modulePath/src/main/kotlin/$packagePath")),
-        "$modulePath must own moved filesystem implementation $packagePath",
-      )
-    }
-  }
-
-  @Test
-  fun `moved filesystem implementation packages do not depend on forbidden adapters`() {
-    val forbiddenProjectDependencies =
-      listOf(
-        ":runtime-core",
-        ":runtime-cli",
-        ":runtime-mcp",
-        ":runtime-infra:http",
-        ":runtime-infra:sqlite",
-      )
-    val infraModuleIds =
-      listOf(
-        "runtime-infra:skills",
-        "runtime-infra:launcher",
-      )
-    val projectDependencyViolations =
-      infraModuleIds.flatMap { moduleId ->
-        val build =
-          runtimeRoot.resolve(
-            "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleId)}/build.gradle.kts",
-          ).readText()
-        forbiddenProjectDependencies
-          .filter { dependency -> build.contains("project(\"$dependency\")") }
-          .map { dependency -> "$moduleId depends on $dependency" }
-      }
-    assertEquals(
-      emptyList(),
-      projectDependencyViolations,
-      "Skills and launcher infrastructure modules must not depend on runtime-core, adapters, or sibling infra.",
-    )
-
-    val forbiddenPackages =
-      forbiddenSourcePackages(
-        listOf(
-          moduleRelativePath("runtime-core", "src/main/kotlin"),
-          moduleRelativePath("runtime-cli", "src/main/kotlin"),
-          moduleRelativePath("runtime-mcp", "src/main/kotlin"),
-          moduleRelativePath("runtime-infra:http", "src/main/kotlin"),
-          moduleRelativePath("runtime-infra:sqlite", "src/main/kotlin"),
-        ),
-      )
-    val movedPackageRoots =
-      listOf(
-        "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/install",
-        "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/scaffold",
-        "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/nativeagent",
-        "$infraLauncherModule/src/main/kotlin/skillbill/infrastructure/launcher",
-        "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/skillremove",
-      ).map { packagePath -> runtimeRoot.resolve(packagePath) }
-
-    val violations =
-      movedPackageRoots
-        .flatMap(::kotlinFilesUnderWithArchitectureAsserts)
-        .flatMap { sourceFile ->
-          sourceFile.importsForbiddenBy(forbiddenPackages).map { forbiddenImport ->
-            "${runtimeRoot.relativize(sourceFile)} imports $forbiddenImport"
-          }
-        }
-        .sorted()
-
-    assertEquals(
-      emptyList(),
-      violations,
-      "Moved infrastructure implementation packages must use ports/domain/contracts instead of concrete " +
-        "runtime-core, CLI, MCP, HTTP, or SQLite adapter packages.",
-    )
-  }
 
   @Test
   fun `runtime core is composition only and not an implementation umbrella`() {
-    val runtimeCoreBuild = runtimeRoot.resolve("runtime-kotlin/runtime-core/build.gradle.kts").readText()
-    assertNoRuntimeCorePublicProjectEdges(runtimeCoreBuild)
+    assertRuntimeCorePublicProjectEdges(runtimeRoot)
 
     val runtimeCoreSourceFiles = kotlinFilesUnderWithArchitectureAsserts(moduleMainKotlinRoot("runtime-core"))
-    val runtimeCorePackages = runtimeCoreSourceFiles.mapNotNull(::packageName).toSet()
-    assertTrue(
-      runtimeCorePackages.all { sourcePackage ->
-        sourcePackage == "skillbill.di" || sourcePackage.startsWith("skillbill.di.")
-      },
-      "runtime-core source must stay limited to DI composition. found: $runtimeCorePackages",
-    )
     val nonCompositionPackages =
       runtimeCoreSourceFiles
         .mapNotNull { sourceFile ->
@@ -148,12 +33,12 @@ class ImplementationOwnershipArchitectureTest {
 
     assertEquals(
       emptyList(),
-      movedImplementationImportViolations(),
-      "runtime-core must not import moved implementation packages.",
+      implementationImportViolations(),
+      "runtime-core must not import implementation packages outside the composition allow-list.",
     )
   }
 
-  private fun movedImplementationImportViolations(): List<String> {
+  private fun implementationImportViolations(): List<String> {
     val bannedImplementationImports =
       listOf(
         "skillbill.install",
@@ -172,10 +57,6 @@ class ImplementationOwnershipArchitectureTest {
           .map { importedName -> "${runtimeRoot.relativize(sourceFile)} imports $importedName" }
       }
       .sorted()
-  }
-
-  private fun assertNoRuntimeCorePublicProjectEdges(runtimeCoreBuild: String) {
-    assertRuntimeCorePublicProjectEdges(runtimeRoot, runtimeCoreBuild)
   }
 
   @Test
@@ -209,35 +90,6 @@ class ImplementationOwnershipArchitectureTest {
       emptyList(),
       concreteInfrastructureViolations,
       "runtime-core may import concrete infrastructure only from explicit DI composition files.",
-    )
-  }
-
-  @Test
-  fun `infrastructure modules do not depend on adapters or runtime core`() {
-    val forbiddenProjectDependencies = listOf(":runtime-core", ":runtime-cli", ":runtime-mcp")
-    val violations =
-      listOf(
-        "runtime-infra:host",
-        "runtime-infra:contracts",
-        "runtime-infra:skills",
-        "runtime-infra:launcher",
-        "runtime-infra:workflow",
-        "runtime-infra:http",
-        "runtime-infra:sqlite",
-      )
-        .flatMap { module ->
-          val build =
-            runtimeRoot.resolve(
-              "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(module)}/build.gradle.kts",
-            ).readText()
-          forbiddenProjectDependencies
-            .filter { dependency -> build.contains("project(\"$dependency\")") }
-            .map { dependency -> "$module depends on $dependency" }
-        }
-    assertEquals(
-      emptyList(),
-      violations,
-      "Infrastructure modules must not depend on runtime-core or adapter entrypoints.",
     )
   }
 
@@ -297,115 +149,6 @@ class ImplementationOwnershipArchitectureTest {
   }
 
   @Test
-  fun `cli and mcp declare direct runtime dependencies beside runtime core`() {
-    val adapterDependencies =
-      mapOf(
-        "runtime-kotlin/runtime-cli/build.gradle.kts" to
-          listOf(
-            ":runtime-application",
-            ":runtime-contracts",
-            ":runtime-core",
-            ":runtime-domain",
-            ":runtime-ports",
-          ),
-        "runtime-kotlin/runtime-mcp/build.gradle.kts" to
-          listOf(
-            ":runtime-application",
-            ":runtime-contracts",
-            ":runtime-core",
-            ":runtime-domain",
-            ":runtime-ports",
-          ),
-      )
-
-    val missing =
-      adapterDependencies.flatMap { (relativeBuildFile, dependencies) ->
-        val build = runtimeRoot.resolve(relativeBuildFile).readText()
-        dependencies
-          .filterNot { dependency -> build.contains("project(\"$dependency\")") }
-          .map { dependency -> "$relativeBuildFile is missing direct dependency $dependency" }
-      }
-    assertEquals(
-      emptyList(),
-      missing,
-      "Adapters must declare direct runtime dependencies instead of using core as API.",
-    )
-
-    val umbrellaApiViolations =
-      listOf(
-        "runtime-kotlin/runtime-cli/build.gradle.kts",
-        "runtime-kotlin/runtime-mcp/build.gradle.kts",
-      )
-        .filter { relativeBuildFile ->
-          runtimeRoot.resolve(relativeBuildFile).readText().contains("api(project(\":runtime-core\"))")
-        }
-    assertEquals(
-      emptyList(),
-      umbrellaApiViolations,
-      "CLI and MCP must not expose runtime-core as a broad API umbrella.",
-    )
-  }
-
-  @Test
-  fun `runtime core binds install capability adapters directly`() {
-    val compositionSources =
-      listOf(
-        "RuntimeComponent.kt",
-        "RuntimeInstallTargetProvides.kt",
-        "RuntimeInstallPlanProvides.kt",
-        "RuntimeTelemetryProvides.kt",
-        "RuntimeGoalPlanningProvides.kt",
-        "RuntimeGoalPlanningSweepProvides.kt",
-        "RuntimeGoalRunnerStoreProvides.kt",
-        "RuntimeGoalRunnerLaunchProvides.kt",
-        "RuntimeReviewLaunchProvides.kt",
-        "RuntimeReviewAddonCatalogProvides.kt",
-        "RuntimeReviewEvidenceProvides.kt",
-        "RuntimeFeatureTaskProvides.kt",
-        "RuntimeFeatureSpecProvides.kt",
-        "RuntimeWorkflowProvides.kt",
-        "RuntimeWorkflowValidatorProvides.kt",
-        "RuntimeFeatureTaskValidatorProvides.kt",
-        "RuntimeScaffoldProvides.kt",
-        "RuntimeScaffoldValidationProvides.kt",
-        "RuntimeDiagnosticsProvides.kt",
-      ).joinToString("\n") { fileName ->
-        kotlinFilesUnderWithArchitectureAsserts(moduleMainKotlinRoot("runtime-core").resolve("skillbill/di"))
-          .single { path -> path.fileName.toString() == fileName }
-          .readText()
-      }
-
-    listOf(
-      "FileSystemInstallPlanningFacts",
-      "FileSystemInstallPlatformSkillMaterialization",
-      "FileSystemInstallStagingIntent",
-      "FileSystemInstallApplyExecution",
-      "FileSystemInstallSkillLink",
-      "FileSystemInstallAgentTargets",
-      "FileSystemInstallNativeAgentLinks",
-      "FileSystemInstallMcpRegistration",
-    ).forEach { adapterName ->
-      assertTrue(
-        adapterName in compositionSources,
-        "RuntimeComponent must bind direct install capability adapter $adapterName.",
-      )
-    }
-
-    listOf(
-      "InstallPlanGateway",
-      "FileSystemInstallGateway",
-      "InstallAgentGateway",
-      "NativeAgentInstallGateway",
-      "McpRegistrationGateway",
-    ).forEach { retiredName ->
-      assertTrue(
-        retiredName !in compositionSources,
-        "RuntimeComponent must not bind retired install gateway $retiredName.",
-      )
-    }
-  }
-
-  @Test
   fun `cli and mcp adapters do not import concrete runtime implementations`() {
     val adapterSourceRoots =
       listOf(
@@ -434,26 +177,17 @@ class ImplementationOwnershipArchitectureTest {
   @Test
   fun `scaffold policy packages must not import infrastructure adapters`() {
     val policySourceRoots =
-      listOf(
-        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/scaffold/policy",
-        "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application",
-      ).map { sourceRoot -> runtimeRoot.resolve(sourceRoot) }
+      listOf("runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/scaffold/policy")
+        .map { sourceRoot -> runtimeRoot.resolve(sourceRoot) }
         .filter(Files::isDirectory)
-
-    val forbiddenImportPattern =
-      Regex(
-        "^import\\s+(skillbill\\.infrastructure\\.(?:host|contracts|skills|launcher|workflow)(?:\\..*)?|" +
-          "skillbill\\.scaffold\\.(?:adapters\\..*|ScaffoldService|FileSystem.*))$",
-      )
 
     val violations =
       policySourceRoots
         .flatMap(::kotlinFilesUnderWithArchitectureAsserts)
-        .filter { sourceFile -> isPolicyOrScaffoldApplicationFile(sourceFile) }
         .flatMap { sourceFile ->
           sourceFile.readText().lineSequence()
             .map { line -> line.trim() }
-            .filter(forbiddenImportPattern::matches)
+            .filter(SCAFFOLD_POLICY_FORBIDDEN_IMPORT_REGEX::matches)
             .map { importLine -> "${runtimeRoot.relativize(sourceFile)} contains '$importLine'" }
             .toList()
         }
@@ -463,173 +197,13 @@ class ImplementationOwnershipArchitectureTest {
       emptyList(),
       violations,
       "Scaffold pure-policy packages must not import skillbill.infrastructure.* adapter packages or " +
-        "skillbill.infrastructure.skills.scaffold.ScaffoldService/FileSystem* — those imports leak adapter ownership " +
-        "into runtime-domain/runtime-application policy code (SKILL-52.1 subtask 2).",
-    )
-  }
-
-  @Test
-  fun `io-coupled scaffold validators live in capability-aligned adapters`() {
-    val repoValidationAdapter =
-      runtimeRoot.resolve(
-        "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/scaffold/adapters/" +
-          "FileSystemScaffoldRepoValidation.kt",
-      )
-    val sourceLoaderAdapter =
-      runtimeRoot.resolve(
-        "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/scaffold/adapters/" +
-          "FileSystemScaffoldSourceLoader.kt",
-      )
-    val legacyScaffoldService =
-      runtimeRoot.resolve(
-        "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/scaffold/runtime/service/" +
-          "ScaffoldService.kt",
-      )
-    assertTrue(Files.isRegularFile(repoValidationAdapter), "Repo-validation adapter file must exist.")
-    assertTrue(Files.isRegularFile(sourceLoaderAdapter), "Source-loader adapter file must exist.")
-    assertTrue(Files.isRegularFile(legacyScaffoldService), "Legacy scaffold service file must exist.")
-
-    val repoValidationText = repoValidationAdapter.readText()
-    val sourceLoaderText = sourceLoaderAdapter.readText()
-    val legacyText = legacyScaffoldService.readText()
-
-    listOf(
-      "fun validateBaselineLayerPayloadReferences(",
-      "fun validateScaffold(",
-      "fun plannedAuthoringTarget(",
-      "fun optionalBaselineLayers(",
-    ).forEach { signature ->
-      assertTrue(
-        repoValidationText.contains(signature),
-        "FileSystemScaffoldRepoValidation must declare '$signature' (SKILL-52.1 subtask 3 AC1).",
-      )
-    }
-
-    listOf(
-      "fun resolveAddonConsumerSkillDirs(",
-      "fun validateAddonConsumerSkillDir(",
-    ).forEach { signature ->
-      assertTrue(
-        sourceLoaderText.contains(signature),
-        "FileSystemScaffoldSourceLoader must declare '$signature' (SKILL-52.1 subtask 3 AC1).",
-      )
-    }
-
-    val redeclared =
-      LEGACY_FORBIDDEN_TOP_LEVEL_REGEX.findAll(legacyText)
-        .map { match -> match.value.trim() }
-        .toList()
-    assertEquals(
-      emptyList(),
-      redeclared,
-      "Legacy skillbill.infrastructure.skills.scaffold.ScaffoldService.kt must NOT redeclare IO-coupled validators " +
-        "moved to runtime-infra:skills capability adapters in SKILL-52.1 subtask 3 (AC1).",
-    )
-  }
-
-  @Test
-  fun `legacy scaffold service forbidden top-level declaration regex catches all modifier variants`() {
-    val mustMatch =
-      listOf(
-        "private fun validateScaffold(plan: ScaffoldPlan, repoRoot: Path) {}",
-        "internal fun validateScaffold(plan: ScaffoldPlan, repoRoot: Path) {}",
-        "fun validateScaffold(plan: ScaffoldPlan, repoRoot: Path) {}",
-        "public fun validateScaffold(plan: ScaffoldPlan, repoRoot: Path) {}",
-        "private fun validateBaselineLayerPayloadReferences(\n" +
-          "  layers: List<CodeReviewBaselineLayer>,\n" +
-          "  repoRoot: Path,\n" +
-          "  newPlatform: String,\n" +
-          ") {}",
-        "fun plannedAuthoringTarget(plan: ScaffoldPlan): AuthoringTarget = AuthoringTarget()",
-        "internal fun resolveAddonConsumerSkillDirs(payload: Map<String, Any?>) = emptyList<String>()",
-        "fun validateAddonConsumerSkillDir(pack: PlatformManifest, dir: String) = \"\"",
-        "private fun optionalBaselineLayers(payload: Map<String, Any?>) = emptyList<CodeReviewBaselineLayer>()",
-      )
-    val mustNotMatch =
-      listOf(
-        "private fun unrelatedHelper() {}",
-        "fun validateScaffoldExtension(plan: ScaffoldPlan) {}",
-      )
-
-    val falseNegatives = mustMatch.filterNot { LEGACY_FORBIDDEN_TOP_LEVEL_REGEX.containsMatchIn(it) }
-    val falsePositives = mustNotMatch.filter { LEGACY_FORBIDDEN_TOP_LEVEL_REGEX.containsMatchIn(it) }
-    assertEquals(
-      emptyList(),
-      falseNegatives,
-      "Forbidden-top-level-validator regex must detect every modifier variant (incl. ktfmt-wrapped).",
-    )
-    assertEquals(
-      emptyList(),
-      falsePositives,
-      "Forbidden-top-level-validator regex must not flag unrelated helpers or longer-named functions.",
-    )
-  }
-
-  @Test
-  fun `scaffold gateway raw-map producer regex catches wrapped signatures but not typed-result variants`() {
-    val rawMapProducerPattern =
-      Regex(
-        """fun\s+(list|show|explain|validate|upgrade|fill|saveExactContent|editWithBodyFile)""" +
-          """\s*\([^)]*\)\s*:\s*Map<\s*String\s*,\s*Any\?\s*>""",
-        setOf(RegexOption.DOT_MATCHES_ALL),
-      )
-
-    val wrappedRawMapSignature = """fun editWithBodyFile(
-      repoRoot: Path,
-      skillName: String,
-      body: String,
-      sectionName: String?,
-    ): Map<String, Any?>
-    """
-    val typedResultVariant = """fun editWithBodyFile(
-      repoRoot: Path,
-      skillName: String,
-      body: String,
-      sectionName: String?,
-    ): ScaffoldEditWithBodyFileResult
-    """
-
-    assertTrue(
-      rawMapProducerPattern.containsMatchIn(wrappedRawMapSignature),
-      "Raw-map producer regex must catch a multi-line wrapped Map<String, Any?> return signature.",
-    )
-    assertTrue(
-      !rawMapProducerPattern.containsMatchIn(typedResultVariant),
-      "Raw-map producer regex must NOT flag a typed-result return signature.",
-    )
-  }
-
-  @Test
-  fun `scaffold gateway no longer exposes raw map producers on the public surface`() {
-    val gatewayFile =
-      runtimeRoot.resolve(
-        "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/scaffold/ScaffoldGateways.kt",
-      )
-    assertTrue(Files.isRegularFile(gatewayFile), "ScaffoldGateways.kt must exist.")
-    val gatewayText = gatewayFile.readText()
-    val rawMapProducerPattern =
-      Regex(
-        """fun\s+(list|show|explain|validate|upgrade|fill|saveExactContent|editWithBodyFile)""" +
-          """\s*\([^)]*\)\s*:\s*Map<\s*String\s*,\s*Any\?\s*>""",
-        setOf(RegexOption.DOT_MATCHES_ALL),
-      )
-    val violations = rawMapProducerPattern.findAll(gatewayText).map { match -> match.value }.toList()
-    assertEquals(
-      emptyList(),
-      violations,
-      "ScaffoldGateway must NOT return raw Map<String, Any?> for the eight raw-map producers — " +
-        "they were retyped to capability-aligned result models in SKILL-52.1 subtask 3 (AC2).",
+        "the concrete scaffold service and filesystem adapters; those imports leak adapter ownership into " +
+        "runtime-domain policy code.",
     )
   }
 
   @Test
   fun `scaffold policy import regex catches known bad and passes known good`() {
-    val forbiddenImportPattern =
-      Regex(
-        "^import\\s+(skillbill\\.infrastructure\\.(?:host|contracts|skills|launcher|workflow)(?:\\..*)?|" +
-          "skillbill\\.scaffold\\.(?:adapters\\..*|ScaffoldService|FileSystem.*))$",
-      )
-
     val mustBeDetectedAsForbidden =
       listOf(
         "import skillbill.infrastructure.skills.Foo",
@@ -646,28 +220,16 @@ class ImplementationOwnershipArchitectureTest {
         "import java.nio.file.Path",
       )
 
-    val falseNegatives = mustBeDetectedAsForbidden.filterNot(forbiddenImportPattern::matches)
-    val falsePositives = mustNotBeDetectedAsForbidden.filter(forbiddenImportPattern::matches)
-
     assertEquals(
       emptyList(),
-      falseNegatives,
+      mustBeDetectedAsForbidden.filterNot(SCAFFOLD_POLICY_FORBIDDEN_IMPORT_REGEX::matches),
       "Scaffold-policy forbidden-import regex must detect known-bad import lines.",
     )
     assertEquals(
       emptyList(),
-      falsePositives,
+      mustNotBeDetectedAsForbidden.filter(SCAFFOLD_POLICY_FORBIDDEN_IMPORT_REGEX::matches),
       "Scaffold-policy forbidden-import regex must not flag known-good import lines.",
     )
-  }
-
-  private fun isPolicyOrScaffoldApplicationFile(sourceFile: Path): Boolean {
-    val pathString = sourceFile.toString().replace('\\', '/')
-    val inPolicyPackage = pathString.contains("/runtime-domain/src/main/kotlin/skillbill/scaffold/policy/")
-    val inScaffoldApplication =
-      pathString.contains("/runtime-application/src/main/kotlin/skillbill/application/") &&
-        sourceFile.fileName.toString() in scaffoldApplicationServiceFileNames
-    return inPolicyPackage || inScaffoldApplication
   }
 
   private companion object {
@@ -690,23 +252,12 @@ class ImplementationOwnershipArchitectureTest {
         "skillbill.infrastructure.skills.skillremove.FileSystemSkillRemoveFileSystem",
       )
 
-    val scaffoldApplicationServiceFileNames: Set<String> = emptySet()
-
-    val LEGACY_FORBIDDEN_TOP_LEVEL_REGEX =
+    val SCAFFOLD_POLICY_FORBIDDEN_IMPORT_REGEX =
       Regex(
-        """\bfun\s+(validateScaffold|validateBaselineLayerPayloadReferences|""" +
-          """plannedAuthoringTarget|resolveAddonConsumerSkillDirs|""" +
-          """validateAddonConsumerSkillDir|optionalBaselineLayers)\s*\(""",
+        "^import\\s+(skillbill\\.infrastructure\\.(?:host|contracts|skills|launcher|workflow)(?:\\..*)?|" +
+          "skillbill\\.scaffold\\.(?:adapters\\..*|ScaffoldService|FileSystem.*))$",
       )
   }
-
-  private fun forbiddenSourcePackages(moduleSourceRoots: List<String>): Set<String> =
-    moduleSourceRoots
-      .map { sourceRoot -> runtimeRoot.resolve(sourceRoot) }
-      .flatMap(::kotlinFilesUnderWithArchitectureAsserts)
-      .mapNotNull { sourceFile -> packageName(sourceFile) }
-      .filterNot { packageName -> packageName == "skillbill" }
-      .toSet()
 
   private fun packageName(sourceFile: Path): String? =
     sourceFile.readText().lineSequence()

@@ -1,3 +1,17 @@
+## [2026-09-24] SKILL-373 subtask 2 — Guard coverage and pruning
+Areas: runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture (+ baselines), runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/experiment, runtime-kotlin/runtime-engine/{goalrunner/execution/core,goalrunner/experiment} main and test, runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/agent/decisions.md, docs/code-principles.md, AGENTS.md
+- The ambient-clock, ambient-environment, and inject-constructor-default rules now iterate every module in `settings.gradle.kts` through `PrincipleEnforcementInventory.moduleArchitectureScanCases` instead of a hard-coded module list.
+- Pattern: each restored rule carries a rejection fixture that seeds a violation into a temporary runtime-engine tree, so a silent scanner that reads zero files fails the test. reusable
+- Baseline rows are keyed `path:call:count` with no line numbers, so moving a tolerated call within a file leaves the baselines unchanged. `ArchitectureBaselineRecorder` and `ArchitectureScanGuardSupport` own the shared scan/record helpers. reusable
+- No architecture test reads `ARCHITECTURE.md`, `AGENTS.md`, `docs/code-principles.md`, or any `agent/*.md`; the suppression allow-list moved from `decisions.md` prose into `PrincipleEnforcementInventory`.
+- Pruned tests whose only subject was a retired shape, a rule count, a doc prose pin, or a restatement of current source: `RuntimeArchitectureDocumentationTest`, `PrincipleEnforcementInventoryTest`, the run-loop context census, the parameter-bag test, and the feature-task boundary-ownership test are gone; `ImplementationOwnershipArchitectureTest` went 15 tests to 6 and `RuntimeGradleModuleLayeringTest` 5 to 1.
+- Module edges are compared only against `RuntimeModuleCatalog`; `RuntimeCoreCompositionOnlyTest` keeps its added-edge, removed-edge, and changed-configuration rejection fixtures.
+- `enforceableRules` pairs each of 23 rules with a test class that exists; ARCHITECTURE.md Architecture Guardrails lists those rules and carries no `SKILL-` reference.
+- Removing kotlin-inject constructor defaults in runtime-engine required an explicit `@Provides` returning null for `ExperimentTelemetryRecorder?` — kotlin-inject does not derive the nullable key from a non-null provider. Wiring behavior is unchanged.
+- Known limitation: the corrected runtime-engine ambient-clock baseline reflects the post-default-removal tree; a future engine change that reintroduces an ambient call must add a row deliberately, not by re-recording.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-24] SKILL-373 subtask 1 — Composition root simplification
 Areas: runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/{core,experiment,featurespec,featuretask,goal,install,review,scaffold,telemetry,workflow}, runtime-core tests (architecture, di, application), runtime-ports/skillbill/model, runtime-engine/{featuretask/prepare,goalrunner/experiment}, runtime-cli, runtime-mcp, runtime-application, runtime-infra/skills scaffold, runtime-kotlin/ARCHITECTURE.md
 - `RuntimeGoalRunnerStoreProvides` declares no class; both goal-runner stores are `@Inject` bindings exposed as `RuntimeComponent` accessors, and the generated CLI/MCP components reference no `skillbill.infrastructure` type.

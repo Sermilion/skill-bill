@@ -61,9 +61,9 @@ class ExperimentPairCoordinator(
   private val isolationCapability: ExperimentIsolationCapabilityPort,
   private val measurementPort: ExperimentArmMeasurementPort?,
   private val parentDelivery: ExperimentParentDeliveryPort,
-  private val telemetryRecorder: ExperimentTelemetryRecorder? = null,
-  private val random: Random = Random.Default,
-  private val clock: Clock = Clock.systemUTC(),
+  private val telemetryRecorder: ExperimentTelemetryRecorder?,
+  private val random: Random,
+  private val clock: Clock,
 ) {
   private data class ArmLifecycleUpdate(
     val payload: Map<String, Any?>,

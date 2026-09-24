@@ -1,22 +1,45 @@
 package skillbill.architecture
 
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class InjectConstructorDefaultsArchitectureTest {
   @Test
-  fun `runtime-application main has no inject constructor defaults beyond baseline`() {
+  fun `every declared module matches its inject constructor defaults baseline`() {
     assertEquals(
       emptySet(),
       baseline("inject-constructor-defaults-baseline.txt"),
       "The runtime-application inject-defaults rule is absolute; its baseline must stay empty.",
     )
-    val violations =
-      ArchitectureScanSupport.injectConstructorDefaultViolations(
-        baseline = baseline("inject-constructor-defaults-baseline.txt"),
-        scanRoot = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
-      )
-    assertEquals(emptyList(), violations, violations.joinToString("\n"))
+    val drift = ArchitectureScanSupport.injectConstructorDefaultDrift()
+    assertEquals(emptyList(), drift, drift.joinToString("\n"))
+  }
+
+  @Test
+  fun `inject default rule reports a violation placed in runtime-engine`() {
+    val root = Files.createTempDirectory("skillbill-inject-defaults-rejection")
+    seedModuleScanTreeWithEngineViolation(
+      root,
+      """
+      package skillbill.engine
+
+      import java.time.Clock
+      import me.tatarka.inject.annotations.Inject
+
+      @Inject
+      class SyntheticEngineService(private val clock: Clock = Clock.systemUTC())
+      """.trimIndent(),
+    )
+    val drift =
+      ArchitectureScanSupport.injectConstructorDefaultDrift(scanRoot = root, readBaseline = { "" })
+    assertEquals(
+      listOf(
+        "runtime-engine: $SYNTHETIC_ENGINE_VIOLATION_PATH::SyntheticEngineService::clock " +
+          "is not listed in runtime-engine-inject-constructor-defaults-baseline.txt.",
+      ),
+      drift,
+    )
   }
 
   @Test
@@ -51,96 +74,6 @@ class InjectConstructorDefaultsArchitectureTest {
         source = source,
       ).map { site -> "${site.symbol}::${site.parameter}" }
     assertEquals(listOf("SyntheticExposedService::exposed", "SyntheticExposedService::shared"), sites)
-  }
-
-  @Test
-  fun `runtime-cli inject defaults equal the recorded census`() {
-    val current =
-      ArchitectureScanSupport.injectConstructorDefaultSites(
-        PrincipleEnforcementInventory.RUNTIME_CLI_MAIN,
-      ).map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }.toSet()
-    assertEquals(
-      baseline("runtime-cli-inject-constructor-defaults-baseline.txt"),
-      current,
-      "Re-record runtime-cli-inject-constructor-defaults-baseline.txt with RECORD_ARCHITECTURE_BASELINES=1.",
-    )
-  }
-
-  @Test
-  fun `runtime-ports inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-ports")
-  }
-
-  @Test
-  fun `runtime-infra host inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra:host")
-  }
-
-  @Test
-  fun `runtime-infra contracts inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra:contracts")
-  }
-
-  @Test
-  fun `runtime-infra skills inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra:skills")
-  }
-
-  @Test
-  fun `runtime-infra launcher inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra:launcher")
-  }
-
-  @Test
-  fun `runtime-infra workflow inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra:workflow")
-  }
-
-  @Test
-  fun `runtime-infra http inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra:http")
-  }
-
-  @Test
-  fun `runtime-infra sqlite inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-infra:sqlite")
-  }
-
-  @Test
-  fun `runtime-mcp inject defaults equal the recorded census`() {
-    assertInjectDefaultsMatchBaseline("runtime-mcp")
-  }
-
-  @Test
-  fun `inject constructor default scanner fires on synthetic default argument`() {
-    val source =
-      """
-      package skillbill.example
-
-      import me.tatarka.inject.annotations.Inject
-      import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
-
-      @Inject
-      data class SyntheticInjectBag(
-        val reviewDriver: FeatureTaskRuntimeReviewDriver = FeatureTaskRuntimeReviewDriver { _ ->
-          error("auto-approve")
-        },
-      )
-      """.trimIndent()
-    val violations =
-      ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
-        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/SyntheticInjectBag.kt",
-        source = source,
-      ).map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
-        .filter { encoded -> encoded !in emptySet<String>() }
-        .map { encoded -> "$encoded has a default argument on an @Inject constructor or dependency bag." }
-    assertEquals(
-      listOf(
-        "runtime-kotlin/runtime-example/src/main/kotlin/SyntheticInjectBag.kt::SyntheticInjectBag::reviewDriver " +
-          "has a default argument on an @Inject constructor or dependency bag.",
-      ),
-      violations,
-    )
   }
 
   @Test
@@ -236,24 +169,6 @@ class InjectConstructorDefaultsArchitectureTest {
         source = source,
       ).map { site -> site.parameter }
     assertEquals(listOf("openBrace", "closingParen", "stdinText"), parameters)
-  }
-
-  private fun assertInjectDefaultsMatchBaseline(moduleName: String) {
-    val scanCase =
-      PrincipleEnforcementInventory.moduleArchitectureScanCases
-        .single { scanCase -> scanCase.moduleName == moduleName }
-    val baselineName =
-      scanCase.injectDefaultsBaseline
-        ?: error("Module $moduleName has no inject-defaults baseline.")
-    val current =
-      ArchitectureScanSupport.injectConstructorDefaultSites(scanCase.mainScanRoot)
-        .map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
-        .toSet()
-    assertEquals(
-      baseline(baselineName),
-      current,
-      "Re-record $baselineName with RECORD_ARCHITECTURE_BASELINES=1.",
-    )
   }
 
   private fun baseline(name: String): Set<String> =

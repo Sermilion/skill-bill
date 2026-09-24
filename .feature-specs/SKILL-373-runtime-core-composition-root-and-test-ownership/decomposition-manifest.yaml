@@ -9,18 +9,18 @@ base_branch: "main"
 feature_branch: "feat/SKILL-373-runtime-core-composition-root-and-test-ownership"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 1
+  subtask_id: 2
   action: "resume"
 subtasks:
 - id: 1
   name: "Composition root simplification"
   spec_path: ".feature-specs/SKILL-373-runtime-core-composition-root-and-test-ownership/spec_subtask_1_composition-root-simplification.md"
-  status: "in_progress"
+  status: "complete"
   branch: null
   commit_sha: null
   workflow_id: "wftr-20260924-141534-8xz3"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   linear_issue_id: null
   finalizing_agent_id: null
   participating_agent_ids: []
@@ -28,12 +28,12 @@ subtasks:
 - id: 2
   name: "Guard coverage and pruning"
   spec_path: ".feature-specs/SKILL-373-runtime-core-composition-root-and-test-ownership/spec_subtask_2_guard-coverage-and-pruning.md"
-  status: "pending"
+  status: "in_progress"
   branch: null
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wftr-20260924-145316-jt2o"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   linear_issue_id: null
   finalizing_agent_id: null
   participating_agent_ids: []

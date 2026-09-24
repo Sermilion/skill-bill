@@ -17,6 +17,7 @@ import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
 import skillbill.ports.experiment.pair.ExperimentPairReportPort
 import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.experiment.validation.ExperimentPayloadValidationPort
+import kotlin.random.Random
 
 internal interface RuntimeExperimentProvides {
   @Provides
@@ -56,4 +57,7 @@ internal interface RuntimeExperimentProvides {
 
   @Provides
   fun experimentPairReportPort(service: ExperimentPairReportService): ExperimentPairReportPort = service
+
+  @Provides
+  fun experimentRandom(): Random = Random.Default
 }

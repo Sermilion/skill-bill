@@ -80,9 +80,9 @@ class ExperimentNavigationPairCoordinator(
   private val sessionRunner: ExperimentNavigationSessionRunnerPort,
   private val gitOperations: WorkflowGitOperations,
   private val pairOwner: ExperimentPairOwnerPort,
-  private val measurementPort: ExperimentArmMeasurementPort? = null,
-  private val telemetryRecorder: ExperimentTelemetryRecorder? = null,
-  private val clock: Clock = Clock.systemUTC(),
+  private val measurementPort: ExperimentArmMeasurementPort?,
+  private val telemetryRecorder: ExperimentTelemetryRecorder?,
+  private val clock: Clock,
 ) : ExperimentNavigationRunPort {
   override fun acceptanceCriteria(specText: String): List<String> = parseNavigationAcceptanceCriteria(specText)
 

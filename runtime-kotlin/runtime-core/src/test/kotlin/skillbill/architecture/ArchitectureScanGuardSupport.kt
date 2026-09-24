@@ -1,6 +1,7 @@
 package skillbill.architecture
 
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.io.path.readText
 
 private val INJECT_ANNOTATION_PATTERN = Regex("""@Inject\b""")
@@ -226,50 +227,54 @@ private fun ambientSitesInText(
   return sites
 }
 
-private fun ArchitectureScanSupport.ambientSitesUnder(
+private fun ambientSitesUnder(
+  root: Path,
   scanRoot: String,
   forms: List<Pair<Regex, String>>,
 ): List<AmbientSite> =
-  kotlinFilesUnder(runtimeRoot.resolve(scanRoot))
+  ArchitectureScanSupport.kotlinFilesUnder(root.resolve(scanRoot))
     .flatMap { sourceFile ->
-      val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+      val relativePath = root.relativize(sourceFile).toString().replace('\\', '/')
       ambientSitesInText(relativePath, sourceFile.readText(), forms)
     }
-    .sortedWith(compareBy({ it.relativePath }, { it.lineNumber }, { it.call }))
 
-fun ArchitectureScanSupport.encodeAmbientSite(site: AmbientSite): String =
-  "${site.relativePath}:${site.lineNumber}:${site.call}"
+fun ArchitectureScanSupport.encodeAmbientSites(sites: List<AmbientSite>): List<String> =
+  sites.groupingBy { site -> site.relativePath to site.call }
+    .eachCount()
+    .entries
+    .sortedWith(compareBy({ entry -> entry.key.first }, { entry -> entry.key.second }))
+    .map { (key, count) -> "${key.first}:${key.second}:$count" }
 
-private fun ArchitectureScanSupport.unlistedAmbientSites(
-  sites: List<AmbientSite>,
+private fun unlistedAmbientRows(
+  rows: List<String>,
   baseline: Set<String>,
   guardName: String,
 ): List<String> =
-  (sites.map { site -> encodeAmbientSite(site) }.toSet() - baseline)
+  (rows.toSet() - baseline)
     .sorted()
-    .map { site -> "$site is not listed in the $guardName baseline." }
+    .map { row -> "$row is not listed in the $guardName baseline." }
 
 fun ArchitectureScanSupport.ambientClockCallSites(scanRoot: String): List<AmbientSite> =
-  ambientSitesUnder(scanRoot, AMBIENT_CLOCK_FORMS)
+  ambientSitesUnder(runtimeRoot, scanRoot, AMBIENT_CLOCK_FORMS)
 
-fun ArchitectureScanSupport.ambientClockViolations(
-  baseline: Set<String>,
-  scanRoot: String,
-): List<String> = unlistedAmbientSites(ambientClockCallSites(scanRoot), baseline, "ambient-clock")
+fun ArchitectureScanSupport.encodeAmbientClockSitesInSource(
+  relativePath: String,
+  source: String,
+): List<String> = encodeAmbientSites(ambientSitesInText(relativePath, source, AMBIENT_CLOCK_FORMS))
 
 fun ArchitectureScanSupport.ambientClockViolationsInSource(
   relativePath: String,
   source: String,
   baseline: Set<String>,
 ): List<String> =
-  unlistedAmbientSites(
-    ambientSitesInText(relativePath, source, AMBIENT_CLOCK_FORMS),
+  unlistedAmbientRows(
+    encodeAmbientClockSitesInSource(relativePath, source),
     baseline,
     "ambient-clock",
   )
 
 fun ArchitectureScanSupport.ambientEnvironmentCallSites(scanRoot: String): List<AmbientSite> =
-  ambientSitesUnder(scanRoot, AMBIENT_ENVIRONMENT_FORMS)
+  ambientSitesUnder(runtimeRoot, scanRoot, AMBIENT_ENVIRONMENT_FORMS)
     .filterNot { site -> site.relativePath in PrincipleEnforcementInventory.ambientEnvironmentExemptions }
 
 fun ArchitectureScanSupport.ambientEnvironmentViolationsInSource(
@@ -277,37 +282,95 @@ fun ArchitectureScanSupport.ambientEnvironmentViolationsInSource(
   source: String,
   baseline: Set<String>,
 ): List<String> =
-  unlistedAmbientSites(
-    ambientSitesInText(relativePath, source, AMBIENT_ENVIRONMENT_FORMS),
+  unlistedAmbientRows(
+    encodeAmbientSites(ambientSitesInText(relativePath, source, AMBIENT_ENVIRONMENT_FORMS)),
     baseline,
     "ambient-environment",
   )
 
+private typealias ModuleScanCase = PrincipleEnforcementInventory.ModuleArchitectureScanCase
+
+private fun ArchitectureScanSupport.moduleBaselineDrift(
+  readBaseline: (String) -> String,
+  baselineName: (ModuleScanCase) -> String,
+  currentRows: (ModuleScanCase) -> Set<String>,
+): List<String> =
+  PrincipleEnforcementInventory.moduleArchitectureScanCases.flatMap { scanCase ->
+    val name = baselineName(scanCase)
+    val baseline = parseStringSetBaseline(readBaseline(name))
+    val current = currentRows(scanCase)
+    (current - baseline).sorted().map { row ->
+      "${scanCase.moduleName}: $row is not listed in $name."
+    } +
+      (baseline - current).sorted().map { row ->
+        "${scanCase.moduleName}: $row is listed in $name but no longer exists; re-record the baseline."
+      }
+  }
+
+internal fun ArchitectureScanSupport.ambientClockDrift(
+  scanRoot: Path = runtimeRoot,
+  readBaseline: (String) -> String = ArchitectureBaselineSupport::readBaseline,
+): List<String> =
+  moduleBaselineDrift(readBaseline, ModuleScanCase::ambientClockBaseline) { scanCase ->
+    encodeAmbientSites(ambientSitesUnder(scanRoot, scanCase.mainScanRoot, AMBIENT_CLOCK_FORMS)).toSet()
+  }
+
+internal fun ArchitectureScanSupport.ambientEnvironmentDrift(
+  scanRoot: Path = runtimeRoot,
+  readBaseline: (String) -> String = ArchitectureBaselineSupport::readBaseline,
+): List<String> =
+  moduleBaselineDrift(readBaseline, ModuleScanCase::ambientEnvironmentBaseline) { scanCase ->
+    encodeAmbientSites(
+      ambientSitesUnder(scanRoot, scanCase.mainScanRoot, AMBIENT_ENVIRONMENT_FORMS)
+        .filterNot { site -> site.relativePath in PrincipleEnforcementInventory.ambientEnvironmentExemptions },
+    ).toSet()
+  }
+
+internal const val SYNTHETIC_ENGINE_VIOLATION_PATH: String =
+  "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/SyntheticEngineService.kt"
+
+internal fun seedModuleScanTreeWithEngineViolation(
+  root: Path,
+  violationSource: String,
+) {
+  PrincipleEnforcementInventory.moduleArchitectureScanCases.forEach { scanCase ->
+    val mainRoot = root.resolve(scanCase.mainScanRoot)
+    Files.createDirectories(mainRoot)
+    Files.writeString(mainRoot.resolve("SyntheticNeutral.kt"), "package skillbill.synthetic\n")
+  }
+  val violationFile = root.resolve(SYNTHETIC_ENGINE_VIOLATION_PATH)
+  Files.createDirectories(violationFile.parent)
+  Files.writeString(violationFile, violationSource)
+}
+
+internal fun ArchitectureScanSupport.injectConstructorDefaultDrift(
+  scanRoot: Path = runtimeRoot,
+  readBaseline: (String) -> String = ArchitectureBaselineSupport::readBaseline,
+): List<String> =
+  moduleBaselineDrift(readBaseline, ModuleScanCase::injectDefaultsBaseline) { scanCase ->
+    injectConstructorDefaultSitesUnder(scanRoot, scanCase.mainScanRoot)
+      .map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
+      .toSet()
+  }
+
 fun ArchitectureScanSupport.parseStringSetBaseline(text: String): Set<String> =
   text.lineSequence().map { it.trim() }.filter { it.isNotBlank() && !it.startsWith("#") }.toSet()
+
+private fun injectConstructorDefaultSitesUnder(
+  root: Path,
+  scanRoot: String,
+): List<ArchitectureScanSupport.InjectConstructorDefaultSite> =
+  ArchitectureScanSupport.kotlinFilesUnder(root.resolve(scanRoot))
+    .flatMap { sourceFile ->
+      val relativePath = root.relativize(sourceFile).toString().replace('\\', '/')
+      ArchitectureScanSupport.injectConstructorDefaultSitesInSource(relativePath, sourceFile.readText())
+    }
+    .sortedWith(compareBy({ it.relativePath }, { it.symbol }, { it.parameter }))
 
 fun ArchitectureScanSupport.injectConstructorDefaultSites(
   scanRoot: String = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
 ): List<ArchitectureScanSupport.InjectConstructorDefaultSite> =
-  kotlinFilesUnder(runtimeRoot.resolve(scanRoot))
-    .flatMap { sourceFile ->
-      val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
-      injectConstructorDefaultSitesInSource(relativePath, sourceFile.readText())
-    }
-    .sortedWith(compareBy({ it.relativePath }, { it.symbol }, { it.parameter }))
-
-fun ArchitectureScanSupport.injectConstructorDefaultViolations(
-  baseline: Set<String>,
-  scanRoot: String = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
-): List<String> {
-  val current =
-    injectConstructorDefaultSites(scanRoot)
-      .map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
-      .toSet()
-  return (current - baseline).sorted().map { site ->
-    "$site has a default argument on an @Inject constructor or dependency bag."
-  }
-}
+  injectConstructorDefaultSitesUnder(runtimeRoot, scanRoot)
 
 fun ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
   relativePath: String,
@@ -442,23 +505,6 @@ private val SUPPRESSION_SCAN_ROOTS: List<String> =
     "runtime-kotlin/build-logic",
   )
 
-fun ArchitectureScanSupport.parseSuppressionAllowList(decisionsMarkdown: String): Set<Triple<String, String, String>> {
-  val sectionStart = decisionsMarkdown.indexOf("Compiler suppression allow-list")
-  if (sectionStart < 0) return emptySet()
-  val tableBody = decisionsMarkdown.substring(sectionStart)
-  val rows = mutableSetOf<Triple<String, String, String>>()
-  TABLE_ROW_PATTERN.findAll(tableBody).forEach { match ->
-    val path = match.groupValues[1].trim()
-    val symbol = match.groupValues[2].trim()
-    val rule = match.groupValues[3].trim()
-    if (path == "path" || path.startsWith("-")) return@forEach
-    if (path.isNotBlank() && symbol.isNotBlank() && rule.isNotBlank()) {
-      rows += Triple(path, symbol, rule)
-    }
-  }
-  return rows
-}
-
 fun ArchitectureScanSupport.authoredSuppressions(
   scanRoots: List<String> = SUPPRESSION_SCAN_ROOTS,
 ): List<AuthoredSuppressionSite> =
@@ -491,8 +537,9 @@ fun ArchitectureScanSupport.suppressionViolations(
       site.rule in COMPLEXITY_SUPPRESSION_RULES ->
         "${site.relativePath}::${site.symbol} uses banned complexity suppression '${site.rule}'; refactor instead."
       Triple(site.relativePath, site.symbol, site.rule) !in allowList ->
-        "${site.relativePath}::${site.symbol} has @Suppress('${site.rule}') without a dated allow-list row; " +
-          "fix the finding or add path, symbol, rule, and why to runtime-kotlin/agent/decisions.md."
+        "${site.relativePath}::${site.symbol} has @Suppress('${site.rule}') without an allow-list row; " +
+          "fix the finding or add path, symbol, rule, and why to " +
+          "PrincipleEnforcementInventory.suppressionAllowList."
       else -> null
     }
   }.sorted()
@@ -506,12 +553,6 @@ fun ArchitectureScanSupport.detektComplexityPinViolations(detektYaml: String): L
       else -> null
     }
   }
-
-private val TABLE_ROW_PATTERN =
-  Regex(
-    """^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|""",
-    RegexOption.MULTILINE,
-  )
 
 private val PROVIDES_FUNCTION_PATTERN =
   Regex("""@Provides[\s\S]*?fun\s+[A-Za-z_][A-Za-z0-9_]*\s*\(([^)]*)\)""")

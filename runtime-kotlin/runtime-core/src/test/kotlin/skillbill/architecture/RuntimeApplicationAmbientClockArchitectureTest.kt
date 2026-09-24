@@ -1,95 +1,44 @@
 package skillbill.architecture
 
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class RuntimeApplicationAmbientClockArchitectureTest {
   @Test
-  fun `runtime-application main matches the ambient clock baseline`() {
-    val violations =
-      ArchitectureScanSupport.ambientClockViolations(
-        baseline = baseline("runtime-application-ambient-clock-baseline.txt"),
-        scanRoot = PrincipleEnforcementInventory.RUNTIME_APPLICATION_MAIN,
-      )
-    assertEquals(emptyList(), violations, violations.joinToString("\n"))
+  fun `every declared module matches its ambient clock baseline`() {
+    val drift = ArchitectureScanSupport.ambientClockDrift()
+    assertEquals(emptyList(), drift, drift.joinToString("\n"))
   }
 
   @Test
-  fun `runtime-cli ambient clock sites equal the recorded census`() {
-    val current =
-      ArchitectureScanSupport.ambientClockCallSites(PrincipleEnforcementInventory.RUNTIME_CLI_MAIN)
-        .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
-        .toSet()
+  fun `ambient clock rule reports a violation placed in runtime-engine`() {
+    val root = Files.createTempDirectory("skillbill-ambient-clock-rejection")
+    seedModuleScanTreeWithEngineViolation(
+      root,
+      """
+      package skillbill.engine
+
+      import java.time.Clock
+      import me.tatarka.inject.annotations.Inject
+
+      @Inject
+      class SyntheticEngineService(private val clock: Clock = Clock.systemUTC())
+      """.trimIndent(),
+    )
+    val drift = ArchitectureScanSupport.ambientClockDrift(scanRoot = root, readBaseline = { "" })
     assertEquals(
-      baseline("runtime-cli-ambient-clock-baseline.txt"),
-      current,
-      "Re-record runtime-cli-ambient-clock-baseline.txt with RECORD_ARCHITECTURE_BASELINES=1.",
+      listOf(
+        "runtime-engine: $SYNTHETIC_ENGINE_VIOLATION_PATH:Clock.systemUTC():1 " +
+          "is not listed in runtime-engine-ambient-clock-baseline.txt.",
+      ),
+      drift,
     )
   }
 
   @Test
-  fun `runtime-contracts ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-contracts")
-  }
-
-  @Test
-  fun `runtime-core ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-core")
-  }
-
-  @Test
-  fun `runtime-domain ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-domain")
-  }
-
-  @Test
-  fun `runtime-infra host ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-infra:host")
-  }
-
-  @Test
-  fun `runtime-infra contracts ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-infra:contracts")
-  }
-
-  @Test
-  fun `runtime-infra skills ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-infra:skills")
-  }
-
-  @Test
-  fun `runtime-infra launcher ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-infra:launcher")
-  }
-
-  @Test
-  fun `runtime-infra workflow ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-infra:workflow")
-  }
-
-  @Test
-  fun `runtime-infra http ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-infra:http")
-  }
-
-  @Test
-  fun `runtime-infra sqlite ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-infra:sqlite")
-  }
-
-  @Test
-  fun `runtime-mcp ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-mcp")
-  }
-
-  @Test
-  fun `runtime-ports ambient clock sites equal the recorded census`() {
-    assertAmbientClockMatchesBaseline("runtime-ports")
-  }
-
-  @Test
-  fun `ambient clock scanner fires on unlisted Instant now site`() {
-    val source =
+  fun `ambient clock rows key on call and count, not line number`() {
+    val onLineFive =
       """
       package skillbill.example
 
@@ -97,124 +46,67 @@ class RuntimeApplicationAmbientClockArchitectureTest {
 
       fun nowMarker() = Instant.now()
       """.trimIndent()
-    val violations =
-      ArchitectureScanSupport.ambientClockViolationsInSource(
-        relativePath = EXAMPLE_PATH,
-        source = source,
-        baseline = emptySet(),
-      )
-    assertEquals(
-      listOf("$EXAMPLE_PATH:5:Instant.now() is not listed in the ambient-clock baseline."),
-      violations,
-    )
+    val movedToLineNine =
+      """
+      package skillbill.example
+
+      import java.time.Instant
+
+      fun unrelated() = 1
+
+      fun alsoUnrelated() = 2
+
+      fun nowMarker() = Instant.now()
+      """.trimIndent()
+    val twiceInOneFile = "$onLineFive\n\nfun secondMarker() = Instant.now()\n"
+    assertEquals(listOf("$EXAMPLE_PATH:Instant.now():1"), encode(onLineFive))
+    assertEquals(encode(onLineFive), encode(movedToLineNine))
+    assertEquals(listOf("$EXAMPLE_PATH:Instant.now():2"), encode(twiceInOneFile))
+  }
+
+  @Test
+  fun `ambient clock scanner fires on unlisted Instant now site`() {
+    assertScannerReports("fun nowMarker() = Instant.now()", "Instant.now()")
   }
 
   @Test
   fun `ambient clock scanner fires on unlisted OffsetDateTime now site`() {
-    val source =
-      """
-      package skillbill.example
-
-      import java.time.OffsetDateTime
-      import java.time.ZoneOffset
-
-      fun nowMarker() = OffsetDateTime.now(ZoneOffset.UTC)
-      """.trimIndent()
-    val violations =
-      ArchitectureScanSupport.ambientClockViolationsInSource(
-        relativePath = EXAMPLE_PATH,
-        source = source,
-        baseline = emptySet(),
-      )
-    assertEquals(
-      listOf("$EXAMPLE_PATH:6:OffsetDateTime.now() is not listed in the ambient-clock baseline."),
-      violations,
-    )
+    assertScannerReports("fun nowMarker() = OffsetDateTime.now(ZoneOffset.UTC)", "OffsetDateTime.now()")
   }
 
   @Test
   fun `ambient clock scanner fires on unlisted ZonedDateTime now site`() {
-    val source =
-      """
-      package skillbill.example
-
-      import java.time.ZonedDateTime
-
-      fun nowMarker() = ZonedDateTime.now()
-      """.trimIndent()
-    val violations =
-      ArchitectureScanSupport.ambientClockViolationsInSource(
-        relativePath = EXAMPLE_PATH,
-        source = source,
-        baseline = emptySet(),
-      )
-    assertEquals(
-      listOf("$EXAMPLE_PATH:5:ZonedDateTime.now() is not listed in the ambient-clock baseline."),
-      violations,
-    )
+    assertScannerReports("fun nowMarker() = ZonedDateTime.now()", "ZonedDateTime.now()")
   }
 
   @Test
   fun `ambient clock scanner fires on unlisted JvmSystemClock instant site`() {
-    val source =
-      """
-      package skillbill.example
-
-      import skillbill.contracts.time.JvmSystemClock
-
-      fun nowMarker() = JvmSystemClock.instant()
-      """.trimIndent()
-    val violations =
-      ArchitectureScanSupport.ambientClockViolationsInSource(
-        relativePath = EXAMPLE_PATH,
-        source = source,
-        baseline = emptySet(),
-      )
-    assertEquals(
-      listOf("$EXAMPLE_PATH:5:JvmSystemClock.instant() is not listed in the ambient-clock baseline."),
-      violations,
-    )
+    assertScannerReports("fun nowMarker() = JvmSystemClock.instant()", "JvmSystemClock.instant()")
   }
 
   @Test
   fun `ambient clock scanner fires on unlisted LocalDate now site`() {
-    val source =
-      """
-      package skillbill.example
+    assertScannerReports("fun todayMarker() = LocalDate.now()", "LocalDate.now()")
+  }
 
-      import java.time.LocalDate
-
-      fun todayMarker() = LocalDate.now()
-      """.trimIndent()
+  private fun assertScannerReports(
+    declaration: String,
+    expectedCall: String,
+  ) {
     val violations =
       ArchitectureScanSupport.ambientClockViolationsInSource(
         relativePath = EXAMPLE_PATH,
-        source = source,
+        source = "package skillbill.example\n\n$declaration\n",
         baseline = emptySet(),
       )
     assertEquals(
-      listOf("$EXAMPLE_PATH:5:LocalDate.now() is not listed in the ambient-clock baseline."),
+      listOf("$EXAMPLE_PATH:$expectedCall:1 is not listed in the ambient-clock baseline."),
       violations,
     )
   }
 
-  private fun assertAmbientClockMatchesBaseline(moduleName: String) {
-    val scanCase =
-      PrincipleEnforcementInventory.moduleArchitectureScanCases
-        .single { scanCase -> scanCase.moduleName == moduleName }
-    val current =
-      ArchitectureScanSupport.ambientClockCallSites(scanCase.mainScanRoot)
-        .map { site -> ArchitectureScanSupport.encodeAmbientSite(site) }
-        .toSet()
-    assertEquals(
-      baseline(scanCase.ambientClockBaseline),
-      current,
-      "Re-record ${scanCase.ambientClockBaseline} with RECORD_ARCHITECTURE_BASELINES=1.",
-    )
-  }
-
-  private fun baseline(name: String): Set<String> =
-    ArchitectureScanSupport.parseStringSetBaseline(ArchitectureBaselineSupport.readBaseline(name))
+  private fun encode(source: String): List<String> =
+    ArchitectureScanSupport.encodeAmbientClockSitesInSource(EXAMPLE_PATH, source)
 
   private companion object {
     const val EXAMPLE_PATH = "runtime-kotlin/runtime-example/src/main/kotlin/Example.kt"

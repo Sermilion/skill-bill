@@ -163,7 +163,7 @@ class ApplicationPackageAcyclicityArchitectureTest {
   }
 
   @Test
-  fun `engine model packages contain no injected data classes or goal runner dependency bag`() {
+  fun `engine model packages contain no injected data classes`() {
     val engineRoot =
       ArchitectureScanSupport.runtimeRoot.resolve(
         "runtime-kotlin/runtime-engine/src/main/kotlin",
@@ -178,24 +178,9 @@ class ApplicationPackageAcyclicityArchitectureTest {
           ) {
             add("${engineRoot.relativize(sourceFile)} declares an injected model data class")
           }
-          if (Regex("""\b(?:class|data class|interface)\s+GoalRunnerDeps\b""").containsMatchIn(source)) {
-            add("${engineRoot.relativize(sourceFile)} declares GoalRunnerDeps")
-          }
         }
       }
     assertEquals(emptyList(), violations)
-  }
-
-  @Test
-  fun `goal runner exposes direct dependencies below the constructor threshold`() {
-    val source =
-      ArchitectureScanSupport.runtimeRoot.resolve(
-        "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner/GoalRunner.kt",
-      ).readText()
-    val constructor = source.substringAfter("class GoalRunner(").substringBefore(") {")
-    assertEquals(4, Regex("""private val \w+:""").findAll(constructor).count())
-    assertTrue(!Regex("""\bfun\s+get\s*\(""").containsMatchIn(source))
-    assertTrue(!Regex("""\bGoalRunnerDeps\b""").containsMatchIn(source))
   }
 
   private fun assertPackageCyclesMatchBaseline(moduleName: String) {

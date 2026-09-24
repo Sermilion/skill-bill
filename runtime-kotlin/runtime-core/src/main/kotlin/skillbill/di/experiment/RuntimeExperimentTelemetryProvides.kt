@@ -29,6 +29,9 @@ internal interface RuntimeExperimentTelemetryProvides {
   fun experimentTelemetryRecorder(recorder: ExperimentTelemetryOutboxRecorder): ExperimentTelemetryRecorder = recorder
 
   @Provides
+  fun optionalExperimentTelemetryRecorder(): ExperimentTelemetryRecorder? = null
+
+  @Provides
   fun experimentNavigationSessionRunner(): ExperimentNavigationSessionRunnerPort =
     BoundedReadOnlyExperimentNavigationSessionRunner { _ ->
       throw ExperimentIsolationCapabilityRefusalError(

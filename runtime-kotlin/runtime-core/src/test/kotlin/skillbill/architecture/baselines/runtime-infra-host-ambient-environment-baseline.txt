@@ -1,9 +1,3 @@
-runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/FileTelemetryConfigStore.kt:48:System.getenv()
-runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:7:System.getProperty()
-runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:8:System.getProperty()
-runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:9:System.getProperty()
-runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:11:System.getProperty()
-runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:13:System.getenv()
-runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:15:System.getProperty()
-runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:17:System.getProperty()
-runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:19:System.getProperty()
+runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/FileTelemetryConfigStore.kt:System.getenv():1
+runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:System.getProperty():7
+runtime-kotlin/runtime-infra/host/src/main/kotlin/skillbill/infrastructure/host/jvm/JdkHostPlatformPort.kt:System.getenv():1

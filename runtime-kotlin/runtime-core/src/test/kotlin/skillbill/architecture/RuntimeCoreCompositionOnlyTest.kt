@@ -5,7 +5,6 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertTrue
 
 class RuntimeCoreCompositionOnlyTest {
   private val runtimeKotlinRoot: Path =
@@ -22,7 +21,7 @@ class RuntimeCoreCompositionOnlyTest {
   }
 
   @Test
-  fun `module api edges match the recorded expectation`() {
+  fun `module api and implementation edges match the recorded expectation`() {
     RuntimeModuleCatalog.moduleEdgeExpectations.forEach { (moduleName, expectation) ->
       val source =
         Files.readString(
@@ -32,36 +31,6 @@ class RuntimeCoreCompositionOnlyTest {
         )
       assertModuleEdgesMatchExpectation(moduleName, source, expectation)
     }
-  }
-
-  @Test
-  fun `module implementation edges match the recorded expectation`() {
-    RuntimeModuleCatalog.moduleEdgeExpectations.forEach { (moduleName, expectation) ->
-      val source =
-        Files.readString(
-          runtimeKotlinRoot.resolve(
-            "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(moduleName)}/build.gradle.kts",
-          ),
-        )
-      assertModuleEdgesMatchExpectation(moduleName, source, expectation)
-    }
-  }
-
-  @Test
-  fun `runtime-core does not publish infrastructure or entrypoint modules as api`() {
-    val source = Files.readString(runtimeKotlinRoot.resolve("runtime-core/build.gradle.kts"))
-    val apiEdges = ArchitectureScanSupport.projectEdgesForConfiguration(source, "api")
-    val banned =
-      apiEdges.filter { edge ->
-        edge.startsWith("runtime-infra-") ||
-          edge == "runtime-cli" ||
-          edge == "runtime-mcp"
-      }
-    assertTrue(
-      banned.isEmpty(),
-      "runtime-core must not publish infrastructure or entrypoint modules as api(...). " +
-        "Offenders: $banned",
-    )
   }
 
   @Test

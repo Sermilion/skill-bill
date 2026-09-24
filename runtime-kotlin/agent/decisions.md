@@ -2061,17 +2061,8 @@ gate cycle.
 
 ## [2026-08-30] Compiler suppression allow-list lock
 
-Machine-parseable rows: `path | symbol | rule | why`. Complexity rule names never appear on this list.
-
-| path | symbol | rule | why |
-|------|--------|------|-----|
-| runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/externaladdon/FileSystemExternalAddonOverlayApply.kt | asMutableMap | UNCHECKED_CAST | SnakeYAML returns an erased mutable map; ClassCastException guard keeps string-key overlay writes honest |
-| runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/externaladdon/FileSystemExternalAddonOverlayApply.kt | asMutableList | UNCHECKED_CAST | SnakeYAML returns an erased mutable list; ClassCastException guard keeps manifest list overlay writes honest |
-| runtime-application/src/testFixtures/kotlin/skillbill/application/review/snapshot/ReviewRecordingHarness.kt | recordingDatabase | UNCHECKED_CAST | Dynamic ReviewRepository proxy passes typed args through erased invoke; casts mirror the repository contract |
-| runtime-core/src/test/kotlin/skillbill/application/ApplicationPersistencePortTestSupport.kt | noopPort | UNCHECKED_CAST | Dynamic port proxy returns typed facade from erased invoke |
-| runtime-engine/src/test/kotlin/skillbill/engine/FeatureTaskRuntimeRunnerTestSupport.kt | noopPort | UNCHECKED_CAST | Dynamic port proxy returns typed facade from erased invoke |
-| runtime-engine/src/test/kotlin/skillbill/engine/FeatureTaskRuntimeRunnerTestSupport.kt | recordHarnessFindingVerdicts | UNCHECKED_CAST | Dynamic ReviewRepository proxy passes typed verdict list through erased invoke |
-| runtime-application/src/test/kotlin/skillbill/application/ParallelCodeReviewRunnerTest.kt | RecordingReviewDatabase | UNCHECKED_CAST | Dynamic ReviewRepository proxy passes typed args through erased invoke |
+The allow-list rows live in `PrincipleEnforcementInventory.suppressionAllowList`, which the suppression
+guard reads directly; complexity rule names are never allow-listed.
 
 
 ## [2026-09-04] Guard recalibration: line ceiling 1200, TooManyFunctions 40/45, constructor threshold 12, LargeClass 1200 (SKILL-233 subtask 1)
@@ -2238,3 +2229,33 @@ Context: `ReviewStackRouting` warned through `java.util.logging` when a routed p
 Decision: `route` returns `missingPackFallbacks` on `ReviewStackRoutingResult`, and `FileSystemDeclaredReviewSpecialists` emits the record with the same seam, pack, used, expected, and cause fields.
 Reason: The observability policy still gets its fallback record, and the domain stays free of ambient effects.
 Alternatives considered: Exempt the file from the purity guard (rejected: the guard is what keeps the domain testable without ambient wiring). Drop the warning (rejected: a silent routing fallback is the defect the policy names).
+
+## [2026-09-24] Architecture guards iterate over every declared module; rule inventory names its proving test
+
+Context: The ambient-clock, ambient-environment, and `@Inject`-defaults rules were hand-written per module, so a module with no hand-written case was never scanned. The engine ambient-clock baseline had drifted by line number without failing, which proved no engine case ran. Baselines keyed rows as `path:line:call`, so reformatting churned them.
+
+Decision: Each of the three rules is one iterating test over `PrincipleEnforcementInventory.moduleArchitectureScanCases`, plus one rejection fixture that seeds a synthetic violation into a temporary `runtime-engine` tree. Baseline rows are grouped `path:call:count` with no line numbers. `PrincipleEnforcementInventory.enforceableRules` is a list of `EnforcedRule(rule, test)` pairs, so a rule cannot stay listed once its test is gone, and each rule text states current behaviour rather than migration history. The compiler-suppression allow-list moved from a markdown table in this file into `PrincipleEnforcementInventory.suppressionAllowList`; this file records only where it lives.
+
+Reason: A rule counts as enforced only if it runs where it claims to run and names the test that proves it. Line-keyed baselines made a real drift look like noise and a reformat look like a violation.
+
+Alternatives considered: Keep per-module test methods and add the missing ones (rejected: the next module added would silently go unscanned again). Keep the allow-list table here and parse the markdown (rejected: a test that reads prose fails for reasons unrelated to the rule).
+
+## [2026-09-24] Architecture tests stop pinning history, counts, and source restatements
+
+Context: The suite pinned retired type names, exact member counts, and verbatim current declarations, and several tests asserted only that prose in `ARCHITECTURE.md`, `agent/decisions.md`, or a historical evaluation document contained given phrases.
+
+Decision: A test stays only if it asserts an invariant that neither the compiler nor the `RuntimeModuleCatalog` topology enforces. No architecture test reads `ARCHITECTURE.md` or any `agent/*.md`. Deleted: `RuntimeArchitectureDocumentationTest`, `PrincipleEnforcementInventoryTest`, `FeatureTaskRuntimeParameterBagArchitectureTest`, `FeatureTaskRuntimeBoundaryOwnershipArchitectureTest`, and `FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest`, plus the retired-shape and prose clauses inside surviving tests.
+
+Reason: Pinning a deleted name or a rule count fails on the next honest rename and proves nothing about the boundary; documentation is kept true by review, not by a string search.
+
+Alternatives considered: Keep the doc-phrase assertions as drift detection (rejected: they fail on wording changes and pass on wrong content).
+
+## [2026-09-24] Experiment pair coordinators keep telemetry off through an explicit nullable binding
+
+Context: Dropping the `@Inject` constructor defaults from `ExperimentPairCoordinator` and `ExperimentNavigationPairCoordinator` removed `telemetryRecorder: ExperimentTelemetryRecorder? = null`, so the nullable parameter now needs a binding. The outbox recorder is bound on the non-null `ExperimentTelemetryRecorder` type, which no constructor asks for.
+
+Decision: `optionalExperimentTelemetryRecorder` returns `null`. The DI-built coordinators record no experiment telemetry, exactly as the removed default did.
+
+Reason: The guard bundle removes defaults; it does not switch a delivery path on. Binding the outbox recorder here would start writing experiment pair events to the telemetry outbox as a side effect of a guard change, with no measurement of what that adds to the outbox.
+
+Alternatives considered: Bind `ExperimentTelemetryOutboxRecorder` to the nullable parameter (rejected: behaviour change outside this bundle; it belongs to the change that wants experiment pair telemetry, which would also drop the then-redundant nullable binding). Make the parameter non-null (rejected: the coordinators treat a missing recorder as a supported state, and the tests construct them without one).

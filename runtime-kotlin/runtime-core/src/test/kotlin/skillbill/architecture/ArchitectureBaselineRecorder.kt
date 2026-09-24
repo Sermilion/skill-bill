@@ -63,13 +63,10 @@ class ArchitectureBaselineRecorder {
 
   private fun recordInjectDefaultBaselines(baselineDir: Path) {
     PrincipleEnforcementInventory.moduleArchitectureScanCases
-      .mapNotNull { scanCase ->
-        scanCase.injectDefaultsBaseline?.let { baselineName -> scanCase to baselineName }
-      }
-      .filterNot { (scanCase, _) -> scanCase.moduleName == "runtime-application" }
-      .forEach { (scanCase, baselineName) ->
+      .filterNot { scanCase -> scanCase.moduleName == "runtime-application" }
+      .forEach { scanCase ->
         writeInjectDefaultBaseline(
-          baselineDir.resolve(baselineName),
+          baselineDir.resolve(scanCase.injectDefaultsBaseline),
           scanCase.mainScanRoot,
         )
       }
@@ -109,7 +106,7 @@ class ArchitectureBaselineRecorder {
   ) {
     Files.writeString(
       target,
-      sites.joinToString("\n") { site -> ArchitectureScanSupport.encodeAmbientSite(site) } + "\n",
+      ArchitectureScanSupport.encodeAmbientSites(sites).joinToString("\n") + "\n",
     )
   }
 

@@ -25,10 +25,6 @@ class DecompositionManifestArchitectureTest {
 
   @Test
   fun `decomposition manifest schema validation stays at application seams`() {
-    val architecture =
-      Files.readString(
-        runtimeRoot.resolve("runtime-kotlin/ARCHITECTURE.md"),
-      )
     val applicationSeam =
       Files.readString(
         runtimeRoot.resolve(
@@ -36,8 +32,6 @@ class DecompositionManifestArchitectureTest {
             "DecompositionManifestFileWrites.kt",
         ),
       )
-
-    assertContains(architecture, "decomposition-manifest file-store ports")
 
     assertContains(applicationSeam, "validator: DecompositionManifestValidator")
     assertContains(applicationSeam, "validator.validateYamlText")

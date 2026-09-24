@@ -7,8 +7,7 @@ import kotlin.test.assertEquals
 class SuppressionBanArchitectureTest {
   @Test
   fun `authored suppressions and allow-list stay in bijection`() {
-    val decisions = ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/agent/decisions.md").readText()
-    val allowList = ArchitectureScanSupport.parseSuppressionAllowList(decisions)
+    val allowList = PrincipleEnforcementInventory.suppressionAllowListKeys
     val suppressions = ArchitectureScanSupport.authoredSuppressions()
     val suppressionKeys = suppressions.map { Triple(it.relativePath, it.symbol, it.rule) }.toSet()
     assertEquals(
@@ -20,12 +19,10 @@ class SuppressionBanArchitectureTest {
 
   @Test
   fun `live tree has no banned or unlisted compiler suppressions`() {
-    val decisions = ArchitectureScanSupport.runtimeRoot.resolve("runtime-kotlin/agent/decisions.md").readText()
-    val allowList = ArchitectureScanSupport.parseSuppressionAllowList(decisions)
     val violations =
       ArchitectureScanSupport.suppressionViolations(
         ArchitectureScanSupport.authoredSuppressions(),
-        allowList,
+        PrincipleEnforcementInventory.suppressionAllowListKeys,
       )
     assertEquals(
       emptyList(),
@@ -77,8 +74,9 @@ class SuppressionBanArchitectureTest {
       """.trimIndent()
     assertEquals(
       listOf(
-        "fixture.kt::decode has @Suppress('UNCHECKED_CAST') without a dated allow-list row; " +
-          "fix the finding or add path, symbol, rule, and why to runtime-kotlin/agent/decisions.md.",
+        "fixture.kt::decode has @Suppress('UNCHECKED_CAST') without an allow-list row; " +
+          "fix the finding or add path, symbol, rule, and why to " +
+          "PrincipleEnforcementInventory.suppressionAllowList.",
       ),
       ArchitectureScanSupport.suppressionViolations(
         ArchitectureScanSupport.authoredSuppressionsInSource("fixture.kt", unlistedCastFixture),
@@ -90,13 +88,6 @@ class SuppressionBanArchitectureTest {
 
   @Test
   fun `suppression scanner fixture accepts allow-listed suppressions`() {
-    val allowListFixture =
-      """
-      ## [2026-08-30] Compiler suppression allow-list lock
-
-      | path | symbol | rule | why |
-      | fixture.kt | decode | UNCHECKED_CAST | honest wire-map cast at decode boundary |
-      """.trimIndent()
     val allowedCastFixture =
       """
       package example
@@ -110,7 +101,7 @@ class SuppressionBanArchitectureTest {
       emptyList(),
       ArchitectureScanSupport.suppressionViolations(
         ArchitectureScanSupport.authoredSuppressionsInSource("fixture.kt", allowedCastFixture),
-        ArchitectureScanSupport.parseSuppressionAllowList(allowListFixture),
+        setOf(Triple("fixture.kt", "decode", "UNCHECKED_CAST")),
       ),
       "Regression if a matching allow-list row false-positives the suppression scanner.",
     )

@@ -103,33 +103,6 @@ internal fun subsystemPackageRootViolationMessage(
 internal const val MCP_SCAFFOLD_RUNTIME_PATH =
   "runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/scaffold/McpScaffoldRuntime.kt"
 
-internal fun assertRegularFiles(
-  relativePaths: List<String>,
-  present: Boolean,
-) {
-  relativePaths.forEach { relative ->
-    val path = runtimeArchitectureRoot.resolve(relative)
-    if (present) {
-      assertTrue(Files.isRegularFile(path), "Missing infra-fs-owned validator: $relative")
-    } else {
-      val normalized = relative.replace('\\', '/')
-      val mainKotlinMarker = "/src/main/kotlin/"
-      if (mainKotlinMarker in normalized) {
-        val mainKotlinRoot =
-          runtimeArchitectureRoot.resolve(
-            normalized.substringBefore(mainKotlinMarker) + mainKotlinMarker.removeSuffix("/"),
-          )
-        assertTrue(
-          Files.isDirectory(mainKotlinRoot),
-          "Cannot assert absence under missing main source root: " +
-            runtimeArchitectureRoot.relativize(mainKotlinRoot),
-        )
-      }
-      assertTrue(!Files.exists(path), "Legacy contract/domain validator shim must stay absent: $relative")
-    }
-  }
-}
-
 internal fun moduleMainKotlinRoot(moduleName: String): Path =
   runtimeArchitectureRoot.resolve(
     "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/src/main/kotlin",

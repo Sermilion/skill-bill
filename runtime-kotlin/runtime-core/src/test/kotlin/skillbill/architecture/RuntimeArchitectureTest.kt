@@ -1,7 +1,6 @@
 package skillbill.architecture
 
 import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -9,11 +8,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class RuntimeArchitectureTest {
-  private val infraContractsModule = RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:contracts")
-
-  private fun infraContractsPath(vararg segments: String): Path =
-    segments.fold(runtimeArchitectureRoot.resolve(infraContractsModule)) { path, segment -> path.resolve(segment) }
-
   @Test
   fun `touched domain contract foundation stays free of concrete adapters`() {
     assertNoBannedImports(
@@ -39,111 +33,6 @@ class RuntimeArchitectureTest {
           "skillbill.infrastructure",
           "skillbill.mcp",
         ),
-    )
-  }
-
-  @Test
-  fun `runtime schema validators and schema resources are owned by runtime infra-contracts`() {
-    assertInfraContractsSchemaValidatorFilesPresent()
-    assertContractsSchemaPathFilesPresent()
-    assertLegacySchemaValidatorFilesAbsent()
-    assertSchemaCopyTasksOwnedByInfraContracts()
-  }
-
-  private fun assertInfraContractsSchemaValidatorFilesPresent() {
-    assertRegularFiles(
-      listOf(
-        "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/install/" +
-          "InstallPlanSchemaValidator.kt",
-        "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
-          "workflow/WorkflowStateSchemaValidator.kt",
-        "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
-          "decomposition/DecompositionManifestSchemaValidator.kt",
-        "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
-          "decomposition/DecompositionManifestCoherenceValidator.kt",
-        "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
-          "goal/status/IdeStatusSchemaValidator.kt",
-      ),
-      present = true,
-    )
-  }
-
-  private fun assertContractsSchemaPathFilesPresent() {
-    assertRegularFiles(
-      listOf(
-        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/install/InstallPlanSchemaPaths.kt",
-        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
-          "workflow/WorkflowStateSchemaPaths.kt",
-        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
-          "featuretask/DecompositionManifestSchemaPaths.kt",
-        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/identity/status/" +
-          "IdeStatusSchemaPaths.kt",
-      ),
-      present = true,
-    )
-  }
-
-  private fun assertLegacySchemaValidatorFilesAbsent() {
-    assertRegularFiles(
-      listOf(
-        "$infraContractsModule/src/main/kotlin/skillbill/contracts/install/" +
-          "InstallPlanSchemaValidator.kt",
-        "$infraContractsModule/src/main/kotlin/skillbill/contracts/workflow/" +
-          "WorkflowStateSchemaValidator.kt",
-        "$infraContractsModule/src/main/kotlin/skillbill/contracts/workflow/" +
-          "DecompositionManifestSchemaValidator.kt",
-        "$infraContractsModule/src/main/kotlin/skillbill/contracts/workflow/" +
-          "DecompositionManifestCoherenceValidator.kt",
-        "$infraContractsModule/src/main/kotlin/skillbill/contracts/workflow/" +
-          "IdeStatusSchemaValidator.kt",
-        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/install/" +
-          "InstallPlanSchemaValidator.kt",
-        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
-          "WorkflowStateSchemaValidator.kt",
-        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
-          "DecompositionManifestSchemaValidator.kt",
-        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
-          "DecompositionManifestCoherenceValidator.kt",
-        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/DecompositionManifestSchemaValidator.kt",
-        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/DecompositionManifestSchemaPaths.kt",
-        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/WorkflowStateSchemaValidator.kt",
-        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/WorkflowStateSchemaPaths.kt",
-        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallPlanSchemaValidator.kt",
-        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallPlanSchemaPaths.kt",
-      ),
-      present = false,
-    )
-  }
-
-  private fun assertSchemaCopyTasksOwnedByInfraContracts() {
-    val runtimeInfraContractsBuild = Files.readString(infraContractsPath("build.gradle.kts"))
-    assertContains(runtimeInfraContractsBuild, "copyWorkflowStateSchema")
-    assertContains(runtimeInfraContractsBuild, "copyInstallPlanSchema")
-    assertContains(runtimeInfraContractsBuild, "copyDecompositionManifestSchema")
-    assertContains(runtimeInfraContractsBuild, "copyIdeStatusSchema")
-
-    val runtimeContractsBuild =
-      Files.readString(
-        runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-contracts/build.gradle.kts"),
-      )
-    assertTrue(
-      "copyWorkflowStateSchema" !in runtimeContractsBuild &&
-        "copyInstallPlanSchema" !in runtimeContractsBuild &&
-        "copyDecompositionManifestSchema" !in runtimeContractsBuild &&
-        "copyIdeStatusSchema" !in runtimeContractsBuild,
-      "runtime-contracts must no longer own runtime schema copy tasks.",
-    )
-
-    val runtimeDomainBuild =
-      Files.readString(
-        runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-domain/build.gradle.kts"),
-      )
-    assertTrue(
-      "copyWorkflowStateSchema" !in runtimeDomainBuild &&
-        "copyInstallPlanSchema" !in runtimeDomainBuild &&
-        "copyDecompositionManifestSchema" !in runtimeDomainBuild &&
-        "copyIdeStatusSchema" !in runtimeDomainBuild,
-      "runtime-domain must not own runtime contract schema copy tasks.",
     )
   }
 
@@ -279,16 +168,11 @@ class RuntimeArchitectureTest {
 
   @Test
   fun `decomposition manifest application projection declares final parse seam ownership`() {
-    val architecture = Files.readString(runtimeArchitectureRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
     val projectionIo =
       Files.readString(
         sourcePath("skillbill/application/decomposition/DecompositionManifestFileWrites.kt"),
       )
 
-    assertContains(architecture, "Decomposition-manifest schema validation is owned by")
-    assertContains(architecture, "skillbill.application.decomposition.DecompositionManifestFileWrites")
-    assertContains(architecture, "skillbill.ports.workflow.decomposition.DecompositionManifestStore")
-    assertContains(architecture, "FileSystemDecompositionManifestFileStore")
     assertContains(projectionIo, "fun loadValidatedDecompositionManifest")
     assertContains(projectionIo, "fun encodeValidatedDecompositionManifestYaml")
     assertContains(projectionIo, "validator.validateYamlText")
@@ -397,23 +281,6 @@ class RuntimeArchitectureTest {
   }
 
   @Test
-  fun `cli and mcp learning payloads use contract DTO mappers`() {
-    val cliPayloads = Files.readString(sourcePath("skillbill/cli/kernel/payload/LearningCliPayloads.kt"))
-    val mcpRuntime = Files.readString(sourcePath("skillbill/mcp/core/McpRuntime.kt"))
-    val learningMappers = Files.readString(sourcePath("skillbill/application/learning/LearningContractMappers.kt"))
-    val learningContracts = sourcePath("skillbill/contracts/learning/LearningContracts.kt")
-    val systemContracts = sourcePath("skillbill/contracts/system/SystemContracts.kt")
-
-    assertTrue(Files.exists(learningContracts), "Missing learning contract DTOs")
-    assertTrue(Files.exists(systemContracts), "Missing system contract DTOs")
-    assertContains(cliPayloads, "skillbill.application.learning.toLearning")
-    assertContains(mcpRuntime, "skillbill.application.learning.toLearningResolveContract")
-    assertContains(learningMappers, "skillbill.contracts.learning")
-    assertTrue("learningEntryPayload" !in cliPayloads)
-    assertTrue("learningEntryPayload" !in mcpRuntime)
-  }
-
-  @Test
   fun `runtime context does not depend on infrastructure defaults`() {
     assertNoBannedImports(
       files = listOf(sourceFile(sourcePath("skillbill/di/core/RuntimeContext.kt"))),
@@ -422,35 +289,7 @@ class RuntimeArchitectureTest {
   }
 
   @Test
-  fun `gradle module split has an explicit evaluation decision`() {
-    val evaluation =
-      Files.readString(
-        runtimeArchitectureRoot.resolve("runtime-kotlin/docs/architecture/gradle-module-split-evaluation.md"),
-      )
-
-    assertContains(evaluation, "Status: Deeper Split Implemented")
-    assertContains(evaluation, "physical Gradle split")
-    assertContains(evaluation, "runtime-contracts")
-    assertContains(evaluation, "runtime-domain")
-    assertContains(evaluation, "runtime-application")
-    assertContains(evaluation, "runtime-ports")
-    assertContains(evaluation, "runtime-infra:host")
-    assertContains(evaluation, "runtime-infra:contracts")
-    assertContains(evaluation, "runtime-infra:skills")
-    assertContains(evaluation, "runtime-infra:launcher")
-    assertContains(evaluation, "runtime-infra:workflow")
-    assertContains(evaluation, "runtime-infra:sqlite")
-    assertContains(evaluation, "runtime-infra:http")
-    assertContains(evaluation, "runtime-cli")
-    assertContains(evaluation, "runtime-mcp")
-    assertContains(evaluation, "RuntimeContext")
-    assertContains(evaluation, "Resolved Split Blockers")
-    assertContains(evaluation, "No known package-level upward dependencies remain")
-    assertContains(evaluation, "Deeper Split Readiness Criteria")
-  }
-
-  @Test
-  fun `install ports expose typed capability APIs instead of retired gateways`() {
+  fun `install ports expose typed capability APIs`() {
     val installPortFiles =
       sourceFiles()
         .filter { sourceFile ->
@@ -459,35 +298,6 @@ class RuntimeArchitectureTest {
           )
         }
     assertTrue(installPortFiles.isNotEmpty(), "Install capability ports must exist.")
-
-    val sourceText = installPortFiles.joinToString(separator = "\n", transform = SourceFile::source)
-    listOf(
-      "interface InstallPlanningFactsPort",
-      "interface InstallPlatformSkillMaterializationPort",
-      "interface InstallStagingIntentPort",
-      "interface InstallApplyExecutionPort",
-      "interface InstallSkillLinkPort",
-      "interface InstallAgentTargetPort",
-      "interface InstallNativeAgentLinkPort",
-      "interface InstallMcpRegistrationPort",
-    ).forEach { expectedDeclaration ->
-      assertContains(sourceText, expectedDeclaration)
-    }
-
-    listOf(
-      "InstallPlanGateway",
-      "InstallAgentGateway",
-      "NativeAgentInstallGateway",
-      "McpRegistrationGateway",
-      "Map<String, Any?>",
-      "Map<String, *>",
-      "MutableMap<String, Any?>",
-    ).forEach { forbiddenText ->
-      assertTrue(
-        forbiddenText !in sourceText,
-        "Install port public surface must not contain retired/raw-map shape '$forbiddenText'.",
-      )
-    }
 
     val nonRequestResultSignatures =
       installPortFiles
@@ -587,17 +397,5 @@ class RuntimeArchitectureTest {
       violations.sorted(),
       "Inner-layer tests must use application/domain/port-facing seams instead of adapter packages.",
     )
-  }
-
-  @Test
-  fun `cli text rendering consumes typed presenter models instead of raw maps`() {
-    val cliOutput = Files.readString(sourcePath("skillbill/cli/kernel/cli/CliOutput.kt"))
-    val cliPresenters = Files.readString(sourcePath("skillbill/cli/kernel/cli/CliPresenters.kt"))
-
-    assertTrue("List<Map<String, Any?>>" !in cliOutput)
-    assertContains(cliOutput, "CliNumberedFindingsPresentation")
-    assertContains(cliOutput, "CliResolvedLearningsPresentation")
-    assertContains(cliPresenters, "data class CliTriagePresentation")
-    assertContains(cliPresenters, "data class CliLearningListPresentation")
   }
 }

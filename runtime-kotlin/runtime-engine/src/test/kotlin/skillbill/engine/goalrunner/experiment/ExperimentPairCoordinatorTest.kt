@@ -28,6 +28,7 @@ import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
+import java.time.Clock
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -71,6 +72,8 @@ class ExperimentPairCoordinatorTest {
           ExperimentArmMeasurement(setupCost = measured(1.0), usage = measured(2.0), cost = measured(3.0))
         },
       random = Random(0),
+      telemetryRecorder = null,
+      clock = Clock.systemUTC(),
     )
 
   private fun fixtureSelectionPort() =
@@ -188,6 +191,9 @@ class ExperimentPairCoordinatorTest {
       ExperimentParentDeliveryPort { _, _, _, _, _ ->
         ExperimentPublicationResult(published = false)
       },
+    telemetryRecorder = null,
+    random = Random.Default,
+    clock = Clock.systemUTC(),
   )
 
   private fun resumeSelectionPort() =
@@ -349,6 +355,9 @@ class ExperimentPairCoordinatorTest {
           ExperimentParentDeliveryPort { _, _, _, _, _ ->
             ExperimentPublicationResult(published = false)
           },
+        telemetryRecorder = null,
+        random = Random.Default,
+        clock = Clock.systemUTC(),
       )
 
     assertFailsWith<ExperimentDirtySourceRefusalError> {
@@ -429,6 +438,9 @@ class ExperimentPairCoordinatorTest {
           ExperimentParentDeliveryPort { _, _, _, _, _ ->
             ExperimentPublicationResult(published = false)
           },
+        telemetryRecorder = null,
+        random = Random.Default,
+        clock = Clock.systemUTC(),
       )
 
     coordinator.run(

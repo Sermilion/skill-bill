@@ -79,11 +79,11 @@ class PackageSiblingCountArchitectureTest {
   ) {
     assertTrue(
       counts.any { count -> count.packageName == "skillbill.engine.featuretask.lifecycle.core" },
-      "The sibling census must scan the moved feature-task production packages.",
+      "The sibling census must scan the nested feature-task production packages.",
     )
     assertTrue(
       counts.any { count -> count.packageName == "skillbill.engine.goalrunner.execution.core" },
-      "The sibling census must scan the moved goal-runner production packages.",
+      "The sibling census must scan the nested goal-runner production packages.",
     )
     assertTrue(
       counts.filter { count -> count.packageName.startsWith("skillbill.engine.featuretask") }

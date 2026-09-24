@@ -251,9 +251,10 @@ for the remaining allowances; their existence does not imply they are empty.
 An empty baseline is the target state, not a claim of current compliance.
 
 **Preferred shapes.** `RECORD_ARCHITECTURE_BASELINES=1` run after a cleanup that
-removes entries; a new rule registered in `enforceableRules` with its scan in
-`ArchitectureScanSupport`; a rule that resists deterministic scanning registered
-in `reviewOnlyRules` with the reason.
+removes entries; a new rule registered in `enforceableRules` as an
+`EnforcedRule(rule, test)` pair naming the test class that proves it, with its
+scan in `ArchitectureScanSupport`; a rule that resists deterministic scanning
+registered in `reviewOnlyRules` with the reason.
 
 **Anti-patterns.** Running the recorder to turn a red test green; adding an
 exemption entry instead of splitting the file; `@Suppress` in place of the fix; a
@@ -264,7 +265,7 @@ rule asserted in prose or review with no entry in `enforceableRules` or
 
 - `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ArchitectureBaselineRecorder.kt`
 - `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/SuppressionBanArchitectureTest.kt`
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PrincipleEnforcementInventoryTest.kt`
+- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt`
 
 ## Imports And Simple Names (No Inline FQN)
 

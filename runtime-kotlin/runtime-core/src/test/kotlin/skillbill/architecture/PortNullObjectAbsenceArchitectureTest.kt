@@ -86,11 +86,5 @@ class PortNullObjectAbsenceArchitectureTest {
         .sorted()
 
     assertEquals(emptyList(), missingReferences)
-    assertEquals(
-      emptySet(),
-      PortNullObjectClassification.classifiedObjects.keys.intersect(
-        setOf("StubGovernedReviewEvidenceEndpointBinder", "CheckpointHistoryGitOperationsRefusalTest"),
-      ),
-    )
   }
 }
