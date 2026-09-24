@@ -1419,6 +1419,19 @@ and wire serialisation; they do not widen the port surface.
     (standalone JVM entry)
 ## Architecture Guardrails
 
+The architecture suite lives in `runtime-core/src/repoTest/kotlin/skillbill/architecture`
+and runs in `:runtime-core:repoTest`. That task declares every module's `src/**`,
+every `*.gradle.kts`, `ARCHITECTURE.md`, `agent/**`, `build-logic/convention/src/**`,
+`config/**`, and `.editorconfig` as inputs, so editing any source the scanners read
+invalidates the task instead of leaving a stale pass. Installer and launcher shell
+tests run in `:runtime-cli:repoTest`, which reads `install.sh` and `uninstall.sh`
+through the shared governed-repository inputs.
+
+Test placement: the subject's module owns its test. `runtime-core` owns composition
+and multi-adapter integration tests under `skillbill.di.*`. Repository-contract
+suites — the ones that read governed sources outside their own module — live in
+`src/repoTest`.
+
 `PrincipleEnforcementInventory.enforceableRules` pairs each mechanically checked
 rule with the test class that proves it. The tests also enforce the following
 boundary rules:

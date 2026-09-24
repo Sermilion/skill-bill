@@ -26,9 +26,8 @@ internal interface RuntimeReviewLaunchProvides {
   ): ReviewSpecialistContractProvider = adapter
 
   @Provides
-  fun reviewNativeAgentPreflightPort(
-    adapter: FileSystemReviewNativeAgentPreflight,
-  ): ReviewNativeAgentPreflightPort = adapter
+  fun reviewNativeAgentPreflightPort(adapter: FileSystemReviewNativeAgentPreflight): ReviewNativeAgentPreflightPort =
+    adapter
 
   @Provides
   fun reviewLaunchAgentStagingPort(adapter: FileSystemReviewLaunchAgentStaging): ReviewLaunchAgentStagingPort = adapter

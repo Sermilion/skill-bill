@@ -52,7 +52,7 @@ inside durable control-state or phase-output decoders.
 - `runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/error/FailureWireCodeContract.kt`
 - `runtime-kotlin/runtime-domain/src/test/kotlin/skillbill/workflow/failureidentity/FailureWireCodeConformanceTest.kt`
 - `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/workflow/GoalRunnerControlStore.kt` (`decodeControlState` and helpers)
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/TypedParseBoundaryArchitectureTest.kt`
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/TypedParseBoundaryArchitectureTest.kt`
 
 **Amendment.** Genuinely open operator or agent JSON maps, external process
 stdout, and `@OpenBoundaryMap` payloads stay open at `when` branches; each site
@@ -103,7 +103,7 @@ different validation rules.
 
 **Reference examples.**
 
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt`
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt`
 - `orchestration/contracts/platform-pack-schema.yaml` with `PlatformPackSchemaContractVersionTest`
 - `runtime-kotlin/ARCHITECTURE.md` open-boundary and raw-map inventory markers
 
@@ -134,7 +134,7 @@ storage technology.
 - `runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/goalrunner/runner/GoalRunnerPorts.kt` (`GoalRunnerManifestStore`)
 - `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/goalrunner/WorkflowGoalRunnerManifestStore.kt`
 - `runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/engine/WorkflowEngine.kt`
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PackageClusteringArchitectureTest.kt`
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/PackageClusteringArchitectureTest.kt`
 - `runtime-kotlin/ARCHITECTURE.md` Package Ownership section
 
 ## Concurrency And Lifetime
@@ -177,7 +177,7 @@ with one implementation.
 
 - `runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponentBindingsA1.kt`
 - `runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/featuretask/FeatureTaskRuntimeRunLoopSession.kt`
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeCoreCompositionOnlyTest.kt`
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/RuntimeCoreCompositionOnlyTest.kt`
 
 ## Port Necessity And Deletion
 
@@ -234,8 +234,8 @@ production line-ceiling gate to test sources.
 - `runtime-kotlin/build-logic/convention/src/main/kotlin/dev/skillbill/runtime/buildlogic/Jvm.kt`
 - `runtime-kotlin/build-logic/convention/src/main/kotlin/dev/skillbill/runtime/buildlogic/RepoTestConventionPlugin.kt`
 - `runtime-kotlin/build-logic/convention/src/test/kotlin/dev/skillbill/runtime/buildlogic/RuntimeImageConventionPluginTest.kt`
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ProductionFileLineCeilingArchitectureTest.kt`
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ConventionReapplicationArchitectureTest.kt`
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/ProductionFileLineCeilingArchitectureTest.kt`
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/ConventionReapplicationArchitectureTest.kt`
 
 **Amendment.** The line ceiling applies to production `src/main` Kotlin only.
 Test sources are outside that ceiling. Detekt complexity pinning and suppression
@@ -263,9 +263,9 @@ rule asserted in prose or review with no entry in `enforceableRules` or
 
 **Reference examples.**
 
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ArchitectureBaselineRecorder.kt`
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/SuppressionBanArchitectureTest.kt`
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt`
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/ArchitectureBaselineRecorder.kt`
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/SuppressionBanArchitectureTest.kt`
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt`
 
 ## Imports And Simple Names (No Inline FQN)
 
@@ -283,8 +283,8 @@ prose.
 
 **Reference examples.**
 
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/InlineFqnArchitectureTest.kt`
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt` (`inlineFqnPrefixes`, `inlineFqnScanRoots`)
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/InlineFqnArchitectureTest.kt`
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt` (`inlineFqnPrefixes`, `inlineFqnScanRoots`)
 
 **Amendment (SKILL-220 subtask 2 and 7).** Keep-list: `package` and `import`
 lines; string literals (including architecture inventories); generated sources;
@@ -309,8 +309,8 @@ instead of fixing the scan.
 
 **Reference examples.**
 
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/CommentAndInterfaceKdocArchitectureTest.kt`
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ArchitectureScanSupport.kt` (`commentAndInterfaceKdocViolations`)
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/CommentAndInterfaceKdocArchitectureTest.kt`
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/ArchitectureScanSupport.kt` (`commentAndInterfaceKdocViolations`)
 
 ## Review-Only Principles (Not Mechanically Enforced)
 
@@ -326,5 +326,5 @@ and in decision logs; they are not silent violations.
 
 **Reference examples.**
 
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt` (`reviewOnlyRules`)
+- `runtime-kotlin/runtime-core/src/repoTest/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt` (`reviewOnlyRules`)
 - `runtime-kotlin/agent/decisions.md` dated 2026-08-29 (capability vocabulary and enforcement boundaries)

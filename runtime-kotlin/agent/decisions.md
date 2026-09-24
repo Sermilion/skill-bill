@@ -4,6 +4,30 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-24] The architecture suite is a repository-contract suite with declared inputs
+
+The architecture suite reads governed sources across the whole repository, not
+runtime-core's own classes. It moved to `runtime-core/src/repoTest` so it runs in
+`:runtime-core:repoTest` next to the other repository-contract suites instead of
+riding `runtime-core`'s unit-test task. The move alone would have made the suite
+worse: `repoTest`'s shared `governedRepositorySources` covers `skills`,
+`platform-packs`, `orchestration`, `docs`, and the installer scripts, none of
+which the scanners read, so Gradle would have reported UP-TO-DATE after a Kotlin
+edit that broke a rule. `:runtime-core:repoTest` therefore declares its own input
+set: every module's `src/**`, every `*.gradle.kts` (which covers
+`settings.gradle.kts`), `ARCHITECTURE.md`, `agent/**`,
+`build-logic/convention/src/**`, `config/**`, and `.editorconfig`. Installer and
+launcher shell tests moved to `:runtime-cli:repoTest`, where the shared governed
+inputs already cover `install.sh` and `uninstall.sh`.
+
+Test placement follows one rule: the subject's module owns its test. runtime-core
+keeps only composition and multi-adapter integration tests, all under
+`skillbill.di.*`. Single-subject tests that happened to sit in runtime-core moved
+to the module that owns the subject. Three borderline files stay in `skillbill.di.*`
+because their subject is runtime-core composition or they need an infrastructure
+adapter that `runtime-application` may not import: `SkillBillVersionTest`,
+`RuntimeExperimentProvidesTest`, and `TelemetryLevelMutationServiceTest`.
+
 ## [2026-09-24] runtime-core is the only composition root
 
 `RuntimeComponent`'s abstract accessors are the export list for the generated

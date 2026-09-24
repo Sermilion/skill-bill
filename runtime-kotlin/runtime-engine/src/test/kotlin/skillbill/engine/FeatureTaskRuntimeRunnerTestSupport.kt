@@ -63,8 +63,6 @@ import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.error.core.RejectedOutputDiagnosticError.Absent
 import skillbill.error.core.RejectedOutputDiagnosticError.Conflict
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.featurespec.model.FeatureSpecPreparationDecision
-import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.infrastructure.workflow.github.GitHubPullRequestCheckDiscovery
@@ -619,7 +617,6 @@ internal data class RuntimeHarnessConfig(
   val repoRoot: Path = Path.of("/tmp/repo"),
   val environment: Map<String, String> = emptyMap(),
   val goalContinuation: FeatureTaskRuntimeGoalContinuationContext? = null,
-  val useRealDecompositionPlanner: Boolean = false,
   val eventSink: FeatureTaskRuntimeRunEventSink? = null,
   val acceptanceCriteria: List<String> = listOf("AC-1", "AC-2"),
   val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator =
@@ -965,12 +962,7 @@ private fun harnessRunner(deps: HarnessRunnerDeps): FeatureTaskRuntimeRunner {
       deps.recorder,
       deps.runtimeConfig.branchSetup.gitOperations,
     )
-  val decompositionPlanner =
-    if (deps.runtimeConfig.useRealDecompositionPlanner) {
-      testDecompositionPlanner()
-    } else {
-      noOpDecompositionPlanner()
-    }
+  val decompositionPlanner = testDecompositionPlanner()
   val planningStopper =
     FeatureTaskRuntimePlanningStopper(
       deps.validator,
@@ -1106,12 +1098,7 @@ private fun telemetryHarnessRunner(
       workflow.recorder,
       runtimeConfig.branchSetup.gitOperations,
     )
-  val decompositionPlanner =
-    if (runtimeConfig.useRealDecompositionPlanner) {
-      testDecompositionPlanner()
-    } else {
-      noOpDecompositionPlanner()
-    }
+  val decompositionPlanner = testDecompositionPlanner()
   val planningStopper =
     FeatureTaskRuntimePlanningStopper(
       validator,
@@ -1182,27 +1169,6 @@ private fun telemetryRunnerProbeWriters(database: RuntimeFakeDatabaseSessionFact
         Clock.systemUTC(),
         NoopRuntimeDiagnostics,
         NoopWorkflowGitOperations,
-      ),
-  )
-
-private fun noOpDecompositionPlanner(): FeatureTaskRuntimeDecompositionPlanner =
-  FeatureTaskRuntimeDecompositionPlanner(
-    preparationRuntime =
-      FeatureSpecPreparationRuntime { intake ->
-        FeatureSpecPreparationDecision(
-          issueKey = intake.issueKey,
-          intendedOutcome = intake.intendedOutcome,
-          acceptanceCriteria = intake.acceptanceCriteria,
-          constraints = intake.constraints,
-          nonGoals = intake.nonGoals,
-          mode = FeatureSpecPreparationMode.SINGLE_SPEC,
-        )
-      },
-    preparationWriter =
-      FeatureSpecPreparationWriter(
-        decompositionManifestValidator = testDecompositionManifestValidator,
-        fileStore = TestDecompositionManifestStore,
-        decompositionManifestWriter = testDecompositionManifestWriter,
       ),
   )
 
@@ -1690,7 +1656,6 @@ internal fun goalContinuationHarness(
             parentWorkflowId = "wfl-parent",
             reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
           ),
-        useRealDecompositionPlanner = true,
         reviewDriver = reviewDriver,
       ),
     core = RunnerHarnessCore(launcher = launcher, agentAssignment = phasePerAgentAssignment()),
