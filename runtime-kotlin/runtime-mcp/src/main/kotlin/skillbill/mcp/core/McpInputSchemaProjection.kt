@@ -3,40 +3,40 @@ package skillbill.mcp.core
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
-import skillbill.application.telemetry.validation.featureVerifyCompletionStatuses
-import skillbill.application.telemetry.validation.qualityCheckResults
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys
-import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.error.shellcontent.InvalidTelemetryEventSchemaError
 import skillbill.mcp.shared.McpProtocolFramer
 import skillbill.mcp.telemetry.TelemetryEventSchemaValidator
+import java.util.concurrent.ConcurrentHashMap
 
 internal object McpInputSchemaProjection {
   private val mapper: ObjectMapper = ObjectMapper()
+  private val cache: ConcurrentHashMap<String, Map<String, Any?>> = ConcurrentHashMap()
 
-  fun projectedInputSchema(toolName: String): Map<String, Any?> {
-    val branch = branchForTool(toolName)
-    val defs =
-      TelemetryEventSchemaValidator.canonicalSchemaDocument()
-        .path(McpProtocolFramer.SCHEMA_DEFS_KEY)
-    val inlined = inlineLocalRefs(branch.deepCopy(), defs)
-    val stripped = stripAdvertisementEnvelope(inlined, toolName)
-    return jsonObjectToMap(stripRuntimeOnlyEnumValues(stripped, toolName))
-  }
+  fun projectedInputSchema(tool: McpTool): Map<String, Any?> = cache.getOrPut(tool.name) { project(tool) }
 
-  private fun branchForTool(toolName: String): JsonNode {
+  private fun project(tool: McpTool): Map<String, Any?> {
     val defs =
       TelemetryEventSchemaValidator.canonicalSchemaDocument()
         .path(McpProtocolFramer.SCHEMA_DEFS_KEY)
     if (!defs.isObject) {
       throw InvalidTelemetryEventSchemaError(
         fieldPath = McpProtocolFramer.SCHEMA_DEFS_KEY,
-        eventName = toolName,
+        eventName = tool.name,
         reason = "Canonical telemetry-event schema is missing a \$defs object.",
       )
     }
+    val inlined = inlineLocalRefs(branchForTool(defs, tool.name), defs)
+    val stripped = stripAdvertisementEnvelope(inlined, tool)
+    return jsonObjectToMap(stripRuntimeOnlyEnumValues(stripped, tool))
+  }
+
+  private fun branchForTool(
+    defs: JsonNode,
+    toolName: String,
+  ): JsonNode {
     defs.fields().forEach { (_, defNode) ->
       val eventName =
         defNode.path(McpProtocolFramer.SCHEMA_PROPERTIES_KEY)
@@ -56,7 +56,7 @@ internal object McpInputSchemaProjection {
 
   private fun stripAdvertisementEnvelope(
     branch: JsonNode,
-    toolName: String,
+    tool: McpTool,
   ): ObjectNode {
     val copy = branch.deepCopy() as ObjectNode
     val properties = copy.path(McpProtocolFramer.SCHEMA_PROPERTIES_KEY)
@@ -64,7 +64,9 @@ internal object McpInputSchemaProjection {
       return copy
     }
     val propertiesCopy = properties.deepCopy() as ObjectNode
-    val removedPropertyKeys = advertisementRemovedPropertyKeys(toolName)
+    val removedPropertyKeys =
+      linkedSetOf(McpToolPayloadKeys.EVENT_NAME, SharedPayloadKeys.CONTRACT_VERSION) +
+        tool.runtimeOwnedArgumentKeys
     removedPropertyKeys.forEach(propertiesCopy::remove)
     copy.set<JsonNode>(McpProtocolFramer.SCHEMA_PROPERTIES_KEY, propertiesCopy)
 
@@ -82,36 +84,11 @@ internal object McpInputSchemaProjection {
     return copy
   }
 
-  private fun advertisementRemovedPropertyKeys(toolName: String): Set<String> {
-    val envelopeKeys = linkedSetOf(McpToolPayloadKeys.EVENT_NAME, SharedPayloadKeys.CONTRACT_VERSION)
-    if (toolName == McpToolPayloadKeys.QUALITY_CHECK_FINISHED) {
-      envelopeKeys += LifecycleTelemetryPayloadKeys.COMPLETION
-      envelopeKeys += LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT_AVAILABILITY
-      envelopeKeys += LifecycleTelemetryPayloadKeys.STALE_REASON
-    }
-    if (toolName == McpToolPayloadKeys.FEATURE_VERIFY_FINISHED) {
-      envelopeKeys += LifecycleTelemetryPayloadKeys.DURATION_SECONDS_AVAILABILITY
-    }
-    return envelopeKeys
-  }
-
   private fun stripRuntimeOnlyEnumValues(
     branch: ObjectNode,
-    toolName: String,
+    tool: McpTool,
   ): ObjectNode {
-    val propertyName: String
-    val allowedValues: List<String>
-    when (toolName) {
-      McpToolPayloadKeys.FEATURE_VERIFY_FINISHED -> {
-        propertyName = McpToolPayloadKeys.COMPLETION_STATUS
-        allowedValues = featureVerifyCompletionStatuses
-      }
-      McpToolPayloadKeys.QUALITY_CHECK_FINISHED -> {
-        propertyName = McpToolPayloadKeys.RESULT
-        allowedValues = qualityCheckResults
-      }
-      else -> return branch
-    }
+    val (propertyName, allowedValues) = tool.advertisedEnumSubset ?: return branch
     val properties = branch.path(McpProtocolFramer.SCHEMA_PROPERTIES_KEY)
     val property = properties.path(propertyName)
     val enum = property.path(McpProtocolFramer.SCHEMA_ENUM_KEY)

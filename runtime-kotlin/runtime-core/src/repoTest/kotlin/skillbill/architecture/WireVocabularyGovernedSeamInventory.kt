@@ -51,8 +51,6 @@ internal object WireVocabularyGovernedSeamInventory {
             "contracts/goalplanning/GoalPlanningSharedContextPacketPayloadKeys",
             "contracts/workflow/ImplementationReturnContractPayloadKeys",
             "cli/workflow/WorkflowContinueCliBranchMapsDecomposition",
-            "cli/workflow/WorkflowContinueMcpBranchMapsDecomposition",
-            "mcp/workflow/WorkflowContinueMcpBranchMapsDecomposition",
           ),
       ),
       GovernedPayloadSeam(

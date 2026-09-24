@@ -10,8 +10,9 @@ import skillbill.application.updatecheck.UpdateCheckService
 import skillbill.application.workflow.service.WorkflowService
 import skillbill.di.core.RuntimeComponent
 import skillbill.engine.featuretask.phase.core.FeatureTaskPhaseSettlementService
-import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.scaffold.ScaffoldGateway
 import java.time.Clock
 
 @Component
@@ -26,7 +27,8 @@ internal abstract class McpComponent(
   abstract val workflowService: WorkflowService
   abstract val updateCheckService: UpdateCheckService
   abstract val featureTaskPhaseSettlementService: FeatureTaskPhaseSettlementService
+  abstract val scaffoldGateway: ScaffoldGateway
+  abstract val resolvedEnvironmentContext: EnvironmentContext
   abstract val clock: Clock
   abstract val runtimeDiagnostics: RuntimeDiagnostics
-  abstract val databaseSessionFactory: DatabaseSessionFactory
 }

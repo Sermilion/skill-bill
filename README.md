@@ -2,6 +2,8 @@
 
 # Skill Bill
 
+
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-4c1.svg)](LICENSE)
 ![Latest release](https://img.shields.io/github/v/release/oila-gmbh/skill-bill?include_prereleases&sort=semver)
 ![Validate agent configs](https://img.shields.io/github/actions/workflow/status/oila-gmbh/skill-bill/validate-agent-configs.yml?branch=main&label=validate)

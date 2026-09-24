@@ -1,11 +1,10 @@
-import java.io.File
-
 plugins {
   alias(libs.plugins.ksp)
   application
   id("skillbill.jvm-library")
   id("skillbill.repo-test")
   id("skillbill.quality")
+  id("skillbill.governed-resources")
 
   id("skillbill.runtime-image")
 }
@@ -25,6 +24,7 @@ dependencies {
   implementation(libs.jackson.databind)
   implementation(libs.jackson.dataformat.yaml)
   ksp(libs.kotlin.inject.compiler)
+  kspTest(libs.kotlin.inject.compiler)
 
   testImplementation(project(":runtime-infra:host"))
   testImplementation(project(":runtime-infra:workflow"))
@@ -47,39 +47,15 @@ tasks.named<JavaExec>("run") {
   standardInput = System.`in`
 }
 
-val canonicalTelemetryEventSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/telemetry-event-schema.yaml")
-    .absolutePath
+governedResources {
+  sourceRoot.set(rootProject.layout.projectDirectory.dir("../orchestration/contracts"))
 
-val copyTelemetryEventSchema =
-  tasks.register<Copy>("copyTelemetryEventSchema") {
-    val schemaPath = canonicalTelemetryEventSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-contracts/skillbill/mcp/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-48: canonical telemetry-event schema is missing at $schemaPath. " +
-          "Run from the repo root and ensure the schema file exists."
-      }
-    }
-  }
-
-sourceSets.named("main") {
-  resources.srcDir(layout.buildDirectory.dir("generated/skillbill-contracts"))
-}
-
-tasks.named("processResources") {
-  dependsOn(copyTelemetryEventSchema)
-}
-
-tasks.named("processTestResources") {
-  dependsOn(copyTelemetryEventSchema)
+  copy(
+    "copyTelemetryEventSchema",
+    "telemetry-event-schema.yaml",
+    "SKILL-48: canonical telemetry-event schema",
+    "skillbill/mcp/contracts",
+  )
 }
 
 runtimeImage {

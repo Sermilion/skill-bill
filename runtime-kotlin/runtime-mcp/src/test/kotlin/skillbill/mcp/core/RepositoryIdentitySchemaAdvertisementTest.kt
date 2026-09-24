@@ -1,0 +1,54 @@
+package skillbill.mcp.core
+
+import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
+import kotlin.test.Test
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class RepositoryIdentitySchemaAdvertisementTest {
+  @Test
+  fun `every tool taking repository_identity advertises the required prefix`() {
+    val tools = McpToolRegistry.tools.filter { repositoryIdentitySchemaOf(it) != null }
+    assertTrue(tools.isNotEmpty(), "No MCP tool declares a repository_identity property.")
+
+    tools.forEach { tool ->
+      val schema = requireNotNull(repositoryIdentitySchemaOf(tool))
+      val description = schema["description"] as? String
+      assertTrue(
+        description != null,
+        "Tool '${tool.name}' exposes repository_identity without a description; " +
+          "callers cannot discover the required prefix.",
+      )
+      assertContains(description, FeatureTaskExecutionIdentityPolicy.REPOSITORY_IDENTITY_PREFIX)
+      assertEquals(
+        "^${FeatureTaskExecutionIdentityPolicy.REPOSITORY_IDENTITY_PREFIX}/",
+        schema["pattern"],
+        "Tool '${tool.name}' repository_identity pattern drifted from the policy prefix.",
+      )
+    }
+  }
+
+  @Test
+  fun `the advertised pattern accepts canonical identities and rejects bare paths`() {
+    val schema =
+      requireNotNull(
+        McpToolRegistry.toolNamed("feature_verify_workflow_open")?.let(::repositoryIdentitySchemaOf),
+      )
+    val pattern = Regex(schema["pattern"] as String)
+    val prefix = FeatureTaskExecutionIdentityPolicy.REPOSITORY_IDENTITY_PREFIX
+
+    assertTrue(pattern.containsMatchIn("$prefix/home/me/projects/app"))
+    assertTrue(!pattern.containsMatchIn("/home/me/projects/app"))
+    assertTrue(!pattern.containsMatchIn("${prefix}home/me/projects/app"))
+  }
+
+  private fun repositoryIdentitySchemaOf(tool: McpTool): Map<String, Any?>? {
+    val properties =
+      McpInputSchemaProjection.projectedInputSchema(tool)["properties"] as? Map<*, *> ?: return null
+    val repositoryIdentity = properties["repository_identity"] as? Map<*, *> ?: return null
+    return repositoryIdentity.entries
+      .mapNotNull { (key, value) -> (key as? String)?.let { stringKey -> stringKey to value } }
+      .toMap()
+  }
+}

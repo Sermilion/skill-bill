@@ -1,3 +1,1 @@
-core|shared
-lifecycle|shared
 
