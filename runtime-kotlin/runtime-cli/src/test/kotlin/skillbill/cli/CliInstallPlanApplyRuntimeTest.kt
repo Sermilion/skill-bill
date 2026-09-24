@@ -7,6 +7,7 @@ import skillbill.cli.kernel.cli.CliOutput
 import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.di.core.RuntimeComponent
 import skillbill.di.core.create
 import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
@@ -1031,7 +1032,7 @@ private fun enqueueTelemetryEvent(
   userHome: Path,
 ) {
   sqliteSessionFactoryForTests(userHome, dbPath.toString(), environment = emptyMap()).transaction {
-    it.telemetryOutbox.enqueue("test.event", """{"ok":true}""")
+    it.telemetryOutbox.enqueue(TelemetryOutboxEvent.GOAL_FINISHED, """{"ok":true}""")
   }
 }
 

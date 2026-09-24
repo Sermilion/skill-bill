@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite.telemetry.outbox
 
 import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
@@ -26,7 +27,7 @@ internal class TelemetryOutboxStore(
   private val version: String,
 ) : TelemetryOutboxRepository {
   override fun enqueue(
-    eventName: String,
+    event: TelemetryOutboxEvent,
     payloadJson: String,
   ): Long {
     connection.prepareStatement(
@@ -35,7 +36,7 @@ internal class TelemetryOutboxStore(
       VALUES (?, ?, ?, ?)
       """.trimIndent(),
     ).use { statement ->
-      statement.bindAll(eventName, payloadJson, version, UUID.randomUUID().toString())
+      statement.bindAll(event.wireValue, payloadJson, version, UUID.randomUUID().toString())
       statement.executeUpdate()
     }
     return connection.createStatement().use { statement ->

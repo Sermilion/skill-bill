@@ -2,6 +2,7 @@ package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.core.ops.sqliteDiagnostics
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.maps.stringOrEmpty
@@ -15,7 +16,6 @@ import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.lifecyc
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.markLifecycleEmitted
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
 import skillbill.infrastructure.sqlite.telemetry.redaction.telemetryRedactionSalt
-import skillbill.review.model.REVIEW_STAGE_DEGRADATION_EVENT_NAME
 import skillbill.review.model.ReviewStageDegradationMeasurement
 import java.sql.Connection
 
@@ -28,7 +28,7 @@ internal fun emitFeatureTaskRuntimeStarted(
   val row = lifecycleRow(connection, "feature_task_runtime_sessions", sessionId) ?: return
   emitOnce(
     LifecycleEmitRequest(connection, runtimeVersion, row, "feature_task_runtime_sessions", "started_event_emitted_at"),
-    "skillbill_feature_task_runtime_started",
+    TelemetryOutboxEvent.FEATURE_TASK_RUNTIME_STARTED,
   ) { featureTaskRuntimeStartedPayload(row, level, telemetryRedactionSalt(connection)) }
 }
 
@@ -41,7 +41,7 @@ internal fun emitFeatureTaskRuntimeFinished(
   val row = lifecycleRow(connection, "feature_task_runtime_sessions", sessionId) ?: return
   emitOnce(
     LifecycleEmitRequest(connection, runtimeVersion, row, "feature_task_runtime_sessions", "finished_event_emitted_at"),
-    "skillbill_feature_task_runtime_finished",
+    TelemetryOutboxEvent.FEATURE_TASK_RUNTIME_FINISHED,
   ) {
     featureTaskRuntimeFinishedPayload(
       row,
@@ -60,7 +60,7 @@ internal fun emitQualityCheckStarted(
   val row = lifecycleRow(connection, "quality_check_sessions", sessionId) ?: return
   emitOnce(
     LifecycleEmitRequest(connection, runtimeVersion, row, "quality_check_sessions", "started_event_emitted_at"),
-    "skillbill_quality_check_started",
+    TelemetryOutboxEvent.QUALITY_CHECK_STARTED,
   ) { qualityCheckStartedPayload(row) }
 }
 
@@ -73,7 +73,7 @@ internal fun emitQualityCheckFinished(
   val row = lifecycleRow(connection, "quality_check_sessions", sessionId) ?: return
   emitOnce(
     LifecycleEmitRequest(connection, runtimeVersion, row, "quality_check_sessions", "finished_event_emitted_at"),
-    "skillbill_quality_check_finished",
+    TelemetryOutboxEvent.QUALITY_CHECK_FINISHED,
   ) { qualityCheckFinishedPayload(row, level, connection.sqliteDiagnostics()) }
 }
 
@@ -86,7 +86,7 @@ internal fun emitFeatureVerifyStarted(
   val row = lifecycleRow(connection, "feature_verify_sessions", sessionId) ?: return
   emitOnce(
     LifecycleEmitRequest(connection, runtimeVersion, row, "feature_verify_sessions", "started_event_emitted_at"),
-    "skillbill_feature_verify_started",
+    TelemetryOutboxEvent.FEATURE_VERIFY_STARTED,
   ) { featureVerifyStartedPayload(row, level) }
 }
 
@@ -99,17 +99,17 @@ internal fun emitFeatureVerifyFinished(
   val row = lifecycleRow(connection, "feature_verify_sessions", sessionId) ?: return
   emitOnce(
     LifecycleEmitRequest(connection, runtimeVersion, row, "feature_verify_sessions", "finished_event_emitted_at"),
-    "skillbill_feature_verify_finished",
+    TelemetryOutboxEvent.FEATURE_VERIFY_FINISHED,
   ) { featureVerifyFinishedPayload(row, level, connection.sqliteDiagnostics()) }
 }
 
 internal fun enqueueTelemetry(
   connection: Connection,
   runtimeVersion: String,
-  eventName: String,
+  event: TelemetryOutboxEvent,
   payload: Map<String, Any?>,
 ) {
-  TelemetryOutboxStore(connection, runtimeVersion).enqueue(eventName, JsonCodec.mapToJsonString(payload))
+  TelemetryOutboxStore(connection, runtimeVersion).enqueue(event, JsonCodec.mapToJsonString(payload))
 }
 
 internal fun reviewStageDegradationExists(
@@ -126,7 +126,12 @@ internal fun reviewStageDegradationExists(
     LIMIT 1
     """.trimIndent(),
   ).use { statement ->
-    statement.bindAll(REVIEW_STAGE_DEGRADATION_EVENT_NAME, record.reviewRunId, record.seam, record.reason.wireValue)
+    statement.bindAll(
+      TelemetryOutboxEvent.REVIEW_STAGE_DEGRADATION.wireValue,
+      record.reviewRunId,
+      record.seam,
+      record.reason.wireValue,
+    )
     statement.executeQuery().use { it.next() }
   }
 
@@ -140,13 +145,13 @@ private data class LifecycleEmitRequest(
 
 private fun emitOnce(
   request: LifecycleEmitRequest,
-  eventName: String,
+  event: TelemetryOutboxEvent,
   payload: () -> Map<String, Any?>,
 ) {
   if (request.row.stringOrEmpty(request.emittedColumn).isNotBlank()) {
     return
   }
-  enqueueTelemetry(request.connection, request.runtimeVersion, eventName, payload())
+  enqueueTelemetry(request.connection, request.runtimeVersion, event, payload())
   markLifecycleEmitted(
     request.connection,
     request.tableName,

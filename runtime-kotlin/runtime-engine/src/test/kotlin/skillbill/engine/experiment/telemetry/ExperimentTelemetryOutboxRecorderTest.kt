@@ -2,6 +2,7 @@ package skillbill.engine.experiment.telemetry
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.experiment.ExperimentTelemetryPayloadKeys
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.ports.telemetry.transport.TelemetryConfigStore
 import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.model.TelemetryOpenDocument
@@ -19,15 +20,15 @@ class ExperimentTelemetryOutboxRecorderTest {
       ExperimentTelemetryOutboxRecorder(
         configStore = configStore("anonymous"),
         outbox =
-          ExperimentTelemetryOutboxSink { eventName, payloadJson ->
-            events += eventName to payloadJson
+          ExperimentTelemetryOutboxSink { event, payloadJson ->
+            events += event.wireValue to payloadJson
           },
       )
 
     assertTrue(recorder.record("pair-1", "goal", mapOf("cost" to 2, "source_path" to "/private")))
 
     val payload = JsonCodec.parseObjectOrNull(events.single().second)!!
-    assertEquals(ExperimentTelemetryPayloadKeys.EXPERIMENT_COMPLETED_EVENT, events.single().first)
+    assertEquals(TelemetryOutboxEvent.EXPERIMENT_COMPLETED.wireValue, events.single().first)
     assertEquals(null, payload[ExperimentTelemetryPayloadKeys.METRICS].toString().takeIf { it.contains("private") })
 
     val offRecorder =

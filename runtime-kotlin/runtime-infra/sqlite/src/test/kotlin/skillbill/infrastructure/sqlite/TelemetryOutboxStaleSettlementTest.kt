@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite
 
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
 import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
@@ -15,7 +16,7 @@ class TelemetryOutboxStaleSettlementTest {
   @Test
   fun `a stale owner cannot settle any outcome after another drain reclaims the rows`() {
     withOutbox { connection, store ->
-      val ids = List(3) { store.enqueue(eventName = "probe", payloadJson = "{}") }
+      val ids = List(3) { store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}") }
       val t = Instant.parse("2026-09-15T10:00:00Z")
 
       val a = store.claimPending(claim("A", t, t.minusSeconds(300), limit = 10))
@@ -44,7 +45,7 @@ class TelemetryOutboxStaleSettlementTest {
   @Test
   fun `late failure cannot mutate an already acknowledged row`() {
     withOutbox { connection, store ->
-      val id = store.enqueue(eventName = "probe", payloadJson = "{}")
+      val id = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       val t = Instant.parse("2026-09-15T10:00:00Z")
       store.claimPending(claim("A", t, t.minusSeconds(300)))
       store.claimPending(claim("B", t.plusSeconds(301), t.plusSeconds(1)))
@@ -61,7 +62,7 @@ class TelemetryOutboxStaleSettlementTest {
   @Test
   fun `late sync cannot clear a row owned by another sender`() {
     withOutbox { connection, store ->
-      val id = store.enqueue(eventName = "probe", payloadJson = "{}")
+      val id = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       val t = Instant.parse("2026-09-15T10:00:00Z")
       store.claimPending(claim("A", t, t.minusSeconds(300)))
       store.claimPending(claim("B", t.plusSeconds(301), t.plusSeconds(1)))
@@ -76,7 +77,7 @@ class TelemetryOutboxStaleSettlementTest {
   @Test
   fun `partial stale settlement reports the lost portion of a batch`() {
     withOutbox { connection, store ->
-      val ids = List(2) { store.enqueue(eventName = "probe", payloadJson = "{}") }
+      val ids = List(2) { store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}") }
       val t = Instant.parse("2026-09-15T10:00:00Z")
       store.claimPending(claim("A", t, t.minusSeconds(300), limit = 10))
       store.claimPending(claim("B", t.plusSeconds(301), t.plusSeconds(1), limit = 1))

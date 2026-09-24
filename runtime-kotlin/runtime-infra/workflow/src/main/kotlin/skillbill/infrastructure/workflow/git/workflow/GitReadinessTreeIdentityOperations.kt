@@ -88,11 +88,13 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
     repoRoot: Path,
     workflowId: String,
   ): WorkflowGitOperationResult {
+    val gitDir = runGitCommand(repoRoot, "rev-parse", "--absolute-git-dir")
+    if (gitDir !is WorkflowGitOperationResult.Ok) return gitDir
     val indexPath = runGitCommand(repoRoot, "rev-parse", "--git-path", "index")
     if (indexPath !is WorkflowGitOperationResult.Ok) return indexPath
     val resolvedIndex = repoRoot.resolve(indexPath.value.orEmpty().trim()).normalize()
-    val root = repoRoot.normalize()
-    requirePathContainedIn(resolvedIndex, root) { "Git index path escapes repository root." }
+    val gitDirRoot = Path.of(gitDir.value.orEmpty().trim()).normalize()
+    requirePathContainedIn(resolvedIndex, gitDirRoot) { "Git index path escapes the repository git directory." }
     if (!Files.isRegularFile(resolvedIndex)) {
       return WorkflowGitOperationResult.Failed(error = "Git index is missing at '$resolvedIndex'.")
     }

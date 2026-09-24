@@ -10,6 +10,7 @@ import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.core.ops.reconcileStaleTelemetrySessions
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.featureTaskRuntimeFinishedPayload
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.payloads.featureVerifyFinishedPayload
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
 import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
@@ -279,6 +280,27 @@ class LifecycleTelemetryTruthfulnessTest {
       assertNull(payload[LifecycleTelemetryPayloadKeys.AUDIT_GAP_ITERATION_COUNT])
       assertNull(payload[LifecycleTelemetryPayloadKeys.AUDIT_FIRST_PASS_CONVERGENCE])
     }
+  }
+
+  @Test
+  fun `a verify run with no durable timestamps reports no duration rather than a measured zero`() {
+    val payload =
+      featureVerifyFinishedPayload(
+        mapOf(
+          LifecycleTelemetryPayloadKeys.SESSION_ID to "fv-truth",
+          LifecycleTelemetryPayloadKeys.COMPLETION_STATUS to "completed",
+        ),
+        level = "anonymous",
+      )
+
+    assertNull(
+      payload[LifecycleTelemetryPayloadKeys.DURATION_SECONDS],
+      "a run whose start and end were never recorded must not report a zero-second duration",
+    )
+    assertEquals(
+      TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE.wireValue,
+      payload[LifecycleTelemetryPayloadKeys.DURATION_SECONDS_AVAILABILITY],
+    )
   }
 
   @Test

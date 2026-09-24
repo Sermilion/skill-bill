@@ -1,3 +1,15 @@
+## [2026-09-24] SKILL-381 subtask 1 — Runtime delivery integrity
+Areas: runtime-kotlin/{runtime-contracts,runtime-domain,runtime-application,runtime-infra/http,runtime-infra/sqlite,runtime-mcp,runtime-cli,runtime-core tests}, docs/telemetry-privacy.md, orchestration/contracts/telemetry-event-schema.yaml
+- Each outbox row's `event_uuid` is now the top-level PostHog `uuid` of its event (`$insert_id` stays on properties for installed relays); a row without one mints nothing. That identity is what makes the existing unbounded-retry design safe — `UNKNOWN` still consumes no attempt, and a resent batch carries the same `uuid`, so the receiver can collapse the duplicate. reusable
+- `telemetryProxyBatchPayload` widened from `internal` to public so the runtime-core recovery test asserts the identity production actually sends; no visibility guard covers runtime-infra:http.
+- Reserved test identity `test-install-id` never reaches the hosted relay: `syncTelemetry` returns a refusal and emits a `record_kind: refusal` record (seam `telemetry_sync`, cause `reserved_test_install_id`); a custom proxy URL still delivers, so local-sink delivery tests keep working. `TelemetryTestIsolationArchitectureTest` is the second guard over tests that build a real `CliRuntimeContext`/`McpRuntimeContext`. reusable
+- `TelemetryOutboxEvent` in runtime-contracts is the closed registry of outbox event names; `enqueue` and every enqueue helper take the enum, so a literal event name at an enqueue site is a compile error and no separate wire-vocabulary guard is needed. Retired `skillbill_feature_implement_*` / `*_prose_*` names are absent. A parity test fails when a registered event has no `docs/telemetry-privacy.md` section. reusable
+- `featureVerifyFinishedPayload` no longer reports an unobserved duration as `0`: stale → `unavailable_incomplete`, missing timestamps → `unavailable_no_durable_state`, otherwise `measured`, via a new `duration_seconds_availability` key.
+- Pattern note: `LifecycleTelemetryPayloads` reuses its own `STALE_TERMINAL_VALUE` token instead of importing the review stats constant — that import would have created the first package cycle in runtime-infra:sqlite (its cycle baseline is empty).
+- Known limitation: quoted `skillbill_*` literals remain in row-reading assertions and the raw-SQL fixture `seedTelemetryOutbox`, which are not enqueue call sites. Relay and stats changes are subtask 2.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-24] SKILL-373 subtask 3 — Test ownership and declared inputs
 Areas: runtime-kotlin/runtime-core (src/repoTest and src/test), runtime-kotlin/runtime-cli/src/repoTest, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra/{contracts,sqlite}, runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/agent/decisions.md, AGENTS.md, docs/code-principles.md
 - All 54 architecture tests plus 62 baselines moved from `runtime-core/src/test` to `runtime-core/src/repoTest`, which applies the `skillbill.repo-test` convention and declares `runtimeKotlinArchitectureSources` as an explicit input.
@@ -1639,7 +1651,6 @@ Feature flag: N/A
 Acceptance criteria: 14/14 implemented (parent) across 3 subtasks
 Deferred: interactive `/bill-code-review` routed review on Claude Code (specialist spawn + rubric sidecar reads) — not drivable from this implementing session; outstanding check is an interactive routed review on a real agent harness. The four automated install-layout and PD8 plan checks all passed.
 Follow-up: file a `gh issue` to internal-ize the quality-check pack skills (`bill-*-code-check`) under `bill-code-check` (PD7 non-goal; expected answer is yes) — recorded as recommended follow-up pending maintainer authorization.
-
 
 Areas: runtime-application/goalrunner (GoalRunnerStatusService, GoalRunnerStatusProjector), runtime-domain/install/model (InstallModels), runtime-infra-fs/launcher/agentrun (AgentRunCommandBuilders, AgentRunAdapters, FileSystemAgentRunLauncher), runtime-cli/core (RuntimeAgentRefusal), skills/bill-feature-task|goal|task-runtime (content.md)
 - `goal status` `active_agent` now sourced from persisted run state, not the status caller's resolution chain. Order: current subtask's latest phase-ledger `resolved_agent_id` -> subtask `finalizing_agent_id` -> `participating_agentIds.firstOrNull` -> null (omitted). Reuses `agentAttributionFromPhaseState` from FeatureTaskRuntimeGoalContinuationOutcomeSupport; `GoalRunnerStatusProjection.activeAgent` is now nullable. PATTERN: status projection reads only persisted state, never caller env. reusable

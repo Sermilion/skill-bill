@@ -1,0 +1,24 @@
+package skillbill.contracts.telemetry
+
+enum class TelemetryOutboxEvent(val wireValue: String) {
+  GOAL_STARTED("skillbill_goal_started"),
+  GOAL_FINISHED("skillbill_goal_finished"),
+  GOAL_ISSUE_FINISHED("skillbill_goal_issue_finished"),
+  GOAL_SUBTASK_FINISHED("skillbill_goal_subtask_finished"),
+  FEATURE_TASK_RUNTIME_STARTED("skillbill_feature_task_runtime_started"),
+  FEATURE_TASK_RUNTIME_FINISHED("skillbill_feature_task_runtime_finished"),
+  FEATURE_TASK_RUNTIME_PROJECTION_MEASUREMENT("skillbill_feature_task_runtime_projection_measurement"),
+  FEATURE_TASK_RUNTIME_SHARED_EVIDENCE("skillbill_feature_task_runtime_shared_evidence"),
+  FEATURE_TASK_RUNTIME_REJECTION("skillbill_feature_task_runtime_rejection"),
+  FEATURE_TASK_RUNTIME_DIAGNOSTIC_DEGRADATION("skillbill_feature_task_runtime_diagnostic_degradation"),
+  QUALITY_CHECK_STARTED("skillbill_quality_check_started"),
+  QUALITY_CHECK_FINISHED("skillbill_quality_check_finished"),
+  FEATURE_VERIFY_STARTED("skillbill_feature_verify_started"),
+  FEATURE_VERIFY_FINISHED("skillbill_feature_verify_finished"),
+  REVIEW_FINISHED("skillbill_review_finished"),
+  REVIEW_FINISHED_LEGACY_REGENERATED("skillbill_review_finished_legacy_regenerated"),
+  REVIEW_STAGE_DEGRADATION("skillbill_review_stage_degradation"),
+  PR_DESCRIPTION_GENERATED("skillbill_pr_description_generated"),
+  RUNTIME_EXCEPTION("skillbill_runtime_exception"),
+  EXPERIMENT_COMPLETED("experiment.completed"),
+}

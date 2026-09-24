@@ -37,6 +37,9 @@ class StaleSessionReconcilerTest {
       assertEquals(1, eventCount(connection, "skillbill_feature_task_runtime_finished"))
       assertEquals(1, eventCount(connection, "skillbill_feature_verify_finished"))
       assertEquals(1, eventCount(connection, "skillbill_quality_check_finished"))
+      val verifyFinished = payload(connection, "skillbill_feature_verify_finished")
+      assertEquals("measured", verifyFinished["duration_seconds_availability"])
+      assertIs<Number>(verifyFinished["duration_seconds"])
       listOf(
         "feature_task_runtime_sessions" to "ftr-stale",
         "feature_verify_sessions" to "fvs-stale",
@@ -132,6 +135,15 @@ class StaleSessionReconcilerTest {
       assertEquals(1, eventCount(connection, "skillbill_quality_check_finished"))
       assertEquals("stale", payload(connection, "skillbill_feature_task_runtime_finished")["completion_status"])
       assertEquals("stale", payload(connection, "skillbill_feature_verify_finished")["completion_status"])
+      assertEquals(
+        null,
+        payload(connection, "skillbill_feature_verify_finished")["duration_seconds"],
+        "A reconciler-closed verify run never observed its end, so its age is not a duration.",
+      )
+      assertEquals(
+        "unavailable_incomplete",
+        payload(connection, "skillbill_feature_verify_finished")["duration_seconds_availability"],
+      )
       assertEquals("stale", payload(connection, "skillbill_quality_check_finished")["result"])
 
       val repeated = reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full")

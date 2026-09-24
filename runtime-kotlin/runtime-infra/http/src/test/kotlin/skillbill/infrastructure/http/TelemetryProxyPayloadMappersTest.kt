@@ -41,24 +41,32 @@ class TelemetryProxyPayloadMappersTest {
   }
 
   @Test
-  fun `the row identity is mapped onto the receiver deduplication key and stays per-row`() {
+  fun `the row identity rides as the top-level event uuid the receiver deduplicates on`() {
     val rows =
       listOf(
         row(id = 1, version = "1.2.3", eventUuid = "11111111-1111-4111-8111-111111111111"),
         row(id = 2, version = "1.2.3", eventUuid = "22222222-2222-4222-8222-222222222222"),
       )
 
-    val payload = telemetryProxyBatchPayload(settings(), rows)
+    val wireEvents = telemetryProxyBatchPayload(settings(), rows).batch.map { it.toPayload() }
 
     assertEquals(
       listOf("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"),
-      payload.batch.map { it.properties[TelemetryProxyPayloadKeys.EVENT_DEDUPLICATION_ID] },
+      wireEvents.map { it[TelemetryProxyPayloadKeys.EVENT_IDENTITY] },
     )
     assertEquals(
       rows.map { it.createdAt }.distinct().size,
       1,
       "Identical timestamps are the case the identity has to separate.",
     )
+  }
+
+  @Test
+  fun `a row without a recorded identity sends no event uuid rather than minting one`() {
+    val wireEvent = telemetryProxyBatchPayload(settings(), listOf(row(id = 1, version = "1.2.3"))).batch.single()
+
+    assertFalse(TelemetryProxyPayloadKeys.EVENT_IDENTITY in wireEvent.toPayload())
+    assertFalse(TelemetryProxyPayloadKeys.EVENT_DEDUPLICATION_ID in wireEvent.properties)
   }
 
   private fun row(

@@ -10,6 +10,7 @@ import skillbill.application.review.snapshot.reviewHarness
 import skillbill.application.review.snapshot.reviewPack
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.contracts.review.ReviewContextSchemaValidator
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.infrastructure.sqlite.review.accounting.toBoundedPayload
@@ -24,7 +25,6 @@ import skillbill.review.context.model.accounting.ReviewCommitRoutingAccounting
 import skillbill.review.context.model.accounting.ReviewIntegrationAccounting
 import skillbill.review.context.model.accounting.ReviewParentAnalysisConsumption
 import skillbill.review.context.model.launch.ReviewIntegrationTerminalOutcome
-import skillbill.review.model.REVIEW_STAGE_DEGRADATION_EVENT_NAME
 import java.nio.file.Files
 import java.sql.Connection
 import kotlin.test.Test
@@ -169,7 +169,7 @@ class ReviewAccountingDurableRedactionTest {
       val quarantined = telemetryOutboxOnConnection(connection).listPending(null)
       assertTrue(
         quarantined.any { record ->
-          record.eventName == REVIEW_STAGE_DEGRADATION_EVENT_NAME &&
+          record.eventName == TelemetryOutboxEvent.REVIEW_STAGE_DEGRADATION.wireValue &&
             record.payloadJson.contains("accounting_contract_quarantined")
         },
       )
@@ -202,7 +202,7 @@ class ReviewAccountingDurableRedactionTest {
       val quarantined = telemetryOutboxOnConnection(connection).listPending(null)
       assertTrue(
         quarantined.any { record ->
-          record.eventName == REVIEW_STAGE_DEGRADATION_EVENT_NAME &&
+          record.eventName == TelemetryOutboxEvent.REVIEW_STAGE_DEGRADATION.wireValue &&
             record.payloadJson.contains("accounting_contract_quarantined")
         },
       )

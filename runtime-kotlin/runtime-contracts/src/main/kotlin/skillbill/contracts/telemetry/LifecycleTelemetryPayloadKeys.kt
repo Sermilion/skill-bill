@@ -15,6 +15,7 @@ object LifecycleTelemetryPayloadKeys {
   const val ITERATIONS: String = "iterations"
   const val RESULT: String = "result"
   const val DURATION_SECONDS: String = "duration_seconds"
+  const val DURATION_SECONDS_AVAILABILITY: String = "duration_seconds_availability"
   const val SKILL: String = "skill"
   const val FAILING_CHECK_NAMES: String = "failing_check_names"
   const val UNSUPPORTED_REASON: String = "unsupported_reason"

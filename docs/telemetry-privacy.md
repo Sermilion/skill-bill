@@ -9,7 +9,7 @@ The default telemetry level is `anonymous`. Collection is on unless you disable 
 
 | Level | Behavior |
 |-------|----------|
-| `off` | Nothing is transmitted: `sync` and `autoSync` short-circuit on the disabled level. Five events are still written to the local outbox — `skillbill_runtime_exception`, `skillbill_feature_task_runtime_projection_measurement`, `skillbill_feature_task_runtime_shared_evidence`, `skillbill_feature_task_runtime_diagnostic_degradation`, and `skillbill_review_stage_degradation` — see [What is still queued at `off`](#what-is-still-queued-at-off). |
+| `off` | Nothing is transmitted: `sync` and `autoSync` short-circuit on the disabled level. Seven events are still written to the local outbox — `skillbill_runtime_exception`, `skillbill_feature_task_runtime_projection_measurement`, `skillbill_feature_task_runtime_shared_evidence`, `skillbill_feature_task_runtime_rejection`, `skillbill_feature_task_runtime_diagnostic_degradation`, `skillbill_review_stage_degradation`, and `skillbill_review_finished_legacy_regenerated` — see [What is still queued at `off`](#what-is-still-queued-at-off). |
 | `anonymous` | Counts, enums, durations, and identifiers derived by one-way hash. No file paths, descriptions, notes, learning text, error messages, or non-Skill-Bill stack frames. |
 | `full` | Everything in `anonymous`, plus the free-text and path fields marked below. |
 
@@ -21,7 +21,7 @@ outbox but never transmitted while the level is `off`.
 
 ### What is still queued at `off`
 
-Five producers enqueue without consulting the telemetry level:
+Seven producers enqueue without consulting the telemetry level:
 
 - `TelemetryService.captureException` enqueues `skillbill_runtime_exception` guarded only by
   `database.databaseExists`; the level is used solely to choose redaction, so at `off` the row is
@@ -33,6 +33,12 @@ Five producers enqueue without consulting the telemetry level:
   `skillbill_feature_task_runtime_shared_evidence` with no telemetry gate; the row carries the
   checkpoint fingerprint, consuming phase id, outcome (`derivation` / `reuse` /
   `checkpoint_change_rederivation`), and bounded index counters only.
+- `FeatureTaskRuntimeRejectedOutputRecorder.recordRejectionMeasurement` enqueues
+  `skillbill_feature_task_runtime_rejection` with no telemetry gate; the row carries the workflow,
+  phase, iteration, rule, JSON pointer, closed violation class, and bounded caps only.
+- `migrateLegacyReviewFinishedRow` enqueues `skillbill_review_finished_legacy_regenerated` when it
+  regenerates a legacy `skillbill_review_finished` row still in the outbox; the row carries the
+  `review_run_id` and the from/to contract versions only.
 - `FeatureTaskRuntimePhaseRecorder.degradeDiagnosticFailure` enqueues
   `skillbill_feature_task_runtime_diagnostic_degradation` with no telemetry gate; the row carries
   the workflow, phase, attempt, generation, operation, typed failure class, and conflicting key
@@ -68,16 +74,25 @@ enabling.
 | `install_id` (also the `distinct_id`) | — | ✓ | ✓ | `telemetryProperties` |
 | `skill_bill_version` | — | ✓ | ✓ | `telemetryProperties`, from the `telemetry_outbox.skill_bill_version` column; omitted on rows enqueued before release attribution existed |
 | `$process_person_profile` (always `false`) | — | ✓ | ✓ | `telemetryProperties` |
-| `$insert_id` (delivery identity) | — | ✓ | ✓ | `telemetryProperties`, from the `telemetry_outbox.event_uuid` column; omitted on rows that predate the column and were already synced |
+| `uuid` (top-level delivery identity) | — | ✓ | ✓ | `telemetryProxyBatchPayload`, from the `telemetry_outbox.event_uuid` column; omitted on rows that predate the column and were already synced |
+| `$insert_id` (legacy mirror of `uuid`) | — | ✓ | ✓ | `telemetryProperties`, same value; PostHog does not read it |
+| `$geoip_disable` (always `true`) | — | added by the relay | added by the relay | `transformBatch` |
 
-`$insert_id` is a random UUID minted in the same write that enqueues the row. It is content-free:
-never derived from payload bytes, event name, timestamp, `install_id`, or any machine property, so
-it discloses nothing beyond "this is one distinct queued event". It is the receiver's deduplication
-key, so it is assigned once and never re-minted on rebatch, retry, restart, or reclaim — and it is
-independent per database file, so two installs cannot produce the same identity.
+The delivery identity is a random UUID minted in the same write that enqueues the row. It is
+content-free: never derived from payload bytes, event name, timestamp, `install_id`, or any machine
+property, so it discloses nothing beyond "this is one distinct queued event". It is assigned once and
+never re-minted on rebatch, retry, restart, or reclaim, and it is independent per database file, so
+two installs cannot produce the same identity.
+
+PostHog keys event identity on the top-level `uuid`, so a resend of the same row overwrites the
+stored event instead of adding one. Before SKILL-381 the identity rode only as `$insert_id`, which
+PostHog ignores, and resends were stored again (one batch was stored about 32,630 times on
+2026-08-15). A delivery whose outcome is unconfirmed — a timeout, a relay 502, a 408 or 429 — keeps
+retrying without consuming a delivery attempt, so an offline machine never blocks its own events;
+the `uuid` is what makes those resends safe.
 
 Redaction is unchanged by it: the anonymous-level redaction path still governs event content, and
-`$insert_id` is not part of that content.
+the identity is not part of that content.
 
 ### `skillbill_goal_started`, `skillbill_goal_finished`, `skillbill_goal_issue_finished`, `skillbill_goal_subtask_finished`
 
@@ -173,6 +188,38 @@ Unlike the goal events above, this event's `workflow_id` is **not** redacted at 
 enqueues `toTelemetryMap` verbatim. No agent output, prompt text, database path, or process output
 is present on the map.
 
+### `skillbill_feature_task_runtime_rejection`
+
+| Field | off | anonymous | full | Source |
+|-------|-----|-----------|------|--------|
+| `contract_version`, `phase_id`, `iteration`, `rule`, `pointer_path`, `violation_class`, `exhausted_fix_loop`, `exhausted_fix_loop_availability` | queued only | ✓ | ✓ | `FeatureTaskRuntimeRejectionMeasurement.toTelemetryMap` |
+| `declared_cap`, `observed_length` | queued only, omitted when not measured | ✓ when present | ✓ when present | `FeatureTaskRuntimeRejectionMeasurement.toTelemetryMap` |
+| `workflow_id` | queued only | ✓ raw, not hashed | ✓ | `FeatureTaskRuntimeRejectionMeasurement.toTelemetryMap` |
+
+This event is enqueued regardless of level. `pointer_path` is a JSON pointer into the rejected
+phase output (`/` for the whole document), never a filesystem path, and the row carries
+no agent output.
+
+### `skillbill_review_finished_legacy_regenerated`
+
+| Field | off | anonymous | full | Source |
+|-------|-----|-----------|------|--------|
+| `event_name`, `contract_version`, `review_run_id`, `from_version`, `to_version` | queued only | ✓ | ✓ | `migrateLegacyReviewFinishedRow` |
+
+This event is enqueued regardless of level, once per legacy `skillbill_review_finished` outbox row
+the review-health materializer regenerates. It records the migration, not the review.
+
+### `experiment.completed`
+
+| Field | off | anonymous | full | Source |
+|-------|-----|-----------|------|--------|
+| `pair_id` | — | SHA-256 of the pair id | ✓ | `ExperimentTelemetryPayloadBuilder.build` |
+| `cohort` | — | ✓ | ✓ | `ExperimentTelemetryPayloadBuilder.build` |
+| `metrics` (keys containing `source`, `query`, `path`, `secret`, `credential`, or `token` are dropped, recursively) | — | ✓ | ✓ | `ExperimentTelemetryPayloadBuilder.build` |
+
+Consent is read from a top-level `telemetry_level` key in the config file, not from
+`telemetry.level`, so an ordinary install never emits this event.
+
 ### `skillbill_quality_check_started` / `skillbill_quality_check_finished`
 
 | Field | off | anonymous | full | Source |
@@ -255,6 +302,12 @@ and no outbox payload carries a `repo` property.
   `~/.config/skill-bill/config.json`.
 - When a proxy is configured, it becomes the only remote telemetry destination. Skill Bill does
   not also send to the default relay.
+- The reserved test identity `test-install-id` never syncs to the hosted relay: the runtime refuses
+  (`record_kind=refusal`, cause `reserved_test_install_id`) unless a custom proxy is configured,
+  and the bundled relay drops events whose install id or distinct id is blank or reserved before
+  forwarding, reporting the count as `dropped_test_events` in its response.
+- The bundled relay sets `$geoip_disable: true` on every event. The only IP PostHog sees is the
+  relay's egress address, so a location derived from it describes the relay, not the user.
 
 ## Opting out
 
@@ -323,5 +376,6 @@ telemetry proxy accepts them unchanged: a batch carrying a retired name is never
 rejected, and the events are forwarded to the analytics backend as-is and kept
 under its normal retention. The retirement is enforced only on the reporting
 side — no `/stats` aggregate counts a retired name. Already-installed older
-clients therefore keep receiving normal success responses instead of errors. Locally, the runtime's telemetry-event schema no longer defines those
-events, so an in-tree emitter attempting one loud-fails at the validator.
+clients therefore keep receiving normal success responses instead of errors. Locally, the outbox
+takes only a `TelemetryOutboxEvent`, and that registry does not define the retired names, so an
+in-tree emitter cannot enqueue one: it does not compile.

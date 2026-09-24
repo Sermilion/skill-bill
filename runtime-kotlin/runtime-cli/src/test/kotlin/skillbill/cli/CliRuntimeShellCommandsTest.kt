@@ -7,6 +7,7 @@ import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.INSTALL_ID_ENVIRONMENT_KEY
+import skillbill.telemetry.RESERVED_TEST_INSTALL_ID
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -60,7 +61,7 @@ class CliRuntimeShellCommandsTest {
       configPath,
       """
       {
-        "install_id": "doctor-install-id",
+        "install_id": "test-install-id",
         "telemetry": {
           "level": "anonymous",
           "proxy_url": "",
@@ -74,7 +75,7 @@ class CliRuntimeShellCommandsTest {
         environment =
           mapOf(
             CONFIG_ENVIRONMENT_KEY to configPath.toString(),
-            INSTALL_ID_ENVIRONMENT_KEY to "doctor-install-id",
+            INSTALL_ID_ENVIRONMENT_KEY to RESERVED_TEST_INSTALL_ID,
           ),
       )
 

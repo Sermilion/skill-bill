@@ -1,12 +1,13 @@
 package skillbill.ports.telemetry.transport
 
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
 
 interface TelemetryOutboxRepository {
   fun enqueue(
-    eventName: String,
+    event: TelemetryOutboxEvent,
     payloadJson: String,
   ): Long
 

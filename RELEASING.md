@@ -136,24 +136,31 @@ under the hood.
    scripts/validate_agent_configs
    ```
 
-3. Confirm that the root [LICENSE](LICENSE) contains the MIT license and that
+3. Confirm the hosted telemetry relay runs this checkout's contract. A mismatch means the
+   Worker was not redeployed after a relay change:
+
+   ```bash
+   (cd docs/cloudflare-telemetry-proxy && npm run --silent check-deployed)
+   ```
+
+4. Confirm that the root [LICENSE](LICENSE) contains the MIT license and that
    release artifacts include it.
-4. Pick the next canonical `v`-prefixed version tag and run
+5. Pick the next canonical `v`-prefixed version tag and run
    `scripts/validate_release_ref v0.x.y`. A staging build must use a SemVer
    prerelease label such as `v0.x.y-staging.1`.
-5. Create an annotated tag:
+6. Create an annotated tag:
 
    ```bash
    git tag -a v0.x.y -m "Release v0.x.y"
    ```
 
-6. Push the tag:
+7. Push the tag:
 
    ```bash
    git push origin v0.x.y
    ```
 
-7. Confirm the `Release` workflow succeeds and the GitHub Release appears with
+8. Confirm the `Release` workflow succeeds and the GitHub Release appears with
    generated notes and the per-OS runtime-image assets (each with its `.sha256`)
    attached. Confirm the published artifacts passed the
    root-license byte check on their native release-matrix host.

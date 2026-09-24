@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.telemetry.goal
 
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.core.ops.sqliteDiagnostics
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.enqueueTelemetry
@@ -20,7 +21,7 @@ internal fun emitGoalStarted(
     return
   }
   val payload = goalStartedPayload(row, level, telemetryRedactionSalt(connection))
-  enqueueTelemetry(connection, runtimeVersion, "skillbill_goal_started", payload)
+  enqueueTelemetry(connection, runtimeVersion, TelemetryOutboxEvent.GOAL_STARTED, payload)
   markGoalRunSessionEmitted(connection, "started_event_emitted_at", workflowId)
 }
 
@@ -35,7 +36,7 @@ internal fun emitGoalFinished(
     return
   }
   val payload = goalFinishedPayload(row, level, telemetryRedactionSalt(connection))
-  enqueueTelemetry(connection, runtimeVersion, "skillbill_goal_finished", payload)
+  enqueueTelemetry(connection, runtimeVersion, TelemetryOutboxEvent.GOAL_FINISHED, payload)
   markGoalRunSessionEmitted(connection, "finished_event_emitted_at", workflowId)
 }
 
@@ -57,7 +58,7 @@ internal fun emitGoalIssueFinished(
       telemetryRedactionSalt(connection),
       connection.sqliteDiagnostics(),
     )
-  enqueueTelemetry(connection, runtimeVersion, "skillbill_goal_issue_finished", payload)
+  enqueueTelemetry(connection, runtimeVersion, TelemetryOutboxEvent.GOAL_ISSUE_FINISHED, payload)
   markGoalIssueProgressEmitted(connection, parentWorkflowId, issueKey)
 }
 
@@ -78,7 +79,7 @@ internal fun emitGoalSubtaskFinished(
       telemetryRedactionSalt(connection),
       connection.sqliteDiagnostics(),
     )
-  enqueueTelemetry(connection, runtimeVersion, "skillbill_goal_subtask_finished", payload)
+  enqueueTelemetry(connection, runtimeVersion, TelemetryOutboxEvent.GOAL_SUBTASK_FINISHED, payload)
   markGoalSubtaskEventEmitted(connection, record.issueKey, record.subtaskId, record.workflowId)
 }
 

@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite
 
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
 import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
@@ -22,8 +23,8 @@ class TelemetryOutboxStoreTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
 
-      val firstId = store.enqueue(eventName = "skillbill_feature_implement_started", payloadJson = """{"id":"1"}""")
-      val secondId = store.enqueue(eventName = "skillbill_feature_verify_started", payloadJson = """{"id":"2"}""")
+      val firstId = store.enqueue(event = TelemetryOutboxEvent.GOAL_STARTED, payloadJson = """{"id":"1"}""")
+      val secondId = store.enqueue(event = TelemetryOutboxEvent.FEATURE_VERIFY_STARTED, payloadJson = """{"id":"2"}""")
 
       assertEquals(2, store.pendingCount())
       assertEquals(listOf(firstId, secondId), store.listPending().map { it.id })
@@ -48,7 +49,7 @@ class TelemetryOutboxStoreTest {
   @Test
   fun `marking an event synced clears last_error to SQL NULL`() {
     withOutbox { connection, store ->
-      val id = store.enqueue(eventName = "skillbill_review_finished", payloadJson = "{}")
+      val id = store.enqueue(event = TelemetryOutboxEvent.REVIEW_FINISHED, payloadJson = "{}")
       val token = "error-test"
       store.claimPending(claimRequest(token, limit = 10))
       store.markFailed(listOf(id), token, "connection refused")
@@ -68,8 +69,8 @@ class TelemetryOutboxStoreTest {
   @Test
   fun `latestError reports a real failure while healthy rows stay NULL`() {
     withOutbox { connection, store ->
-      val healthy = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
-      val failed = store.enqueue(eventName = "skillbill_review_finished", payloadJson = "{}")
+      val healthy = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
+      val failed = store.enqueue(event = TelemetryOutboxEvent.REVIEW_FINISHED, payloadJson = "{}")
       val token = "latest-error"
       store.claimPending(claimRequest(token, limit = 10))
       store.markFailed(listOf(failed), token, "boom")
@@ -88,7 +89,7 @@ class TelemetryOutboxStoreTest {
   @Test
   fun `latestError ignores legacy empty-string rows`() {
     withOutbox { connection, store ->
-      store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       connection.createStatement().use { statement ->
         statement.executeUpdate("UPDATE telemetry_outbox SET last_error = ''")
       }
@@ -101,7 +102,7 @@ class TelemetryOutboxStoreTest {
   fun `the outbox drains fully after every row is marked synced`() {
     withOutbox { _, store ->
       val ids =
-        List(3) { index -> store.enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"i":$index}""") }
+        List(3) { index -> store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = """{"i":$index}""") }
       val token = "drain-all"
       store.claimPending(claimRequest(token, limit = 10))
       store.markFailed(ids, token, "transient")
@@ -117,7 +118,7 @@ class TelemetryOutboxStoreTest {
   @Test
   fun `enqueue records the version supplied by the test outbox fixture`() {
     withOutbox { connection, store ->
-      val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      val id = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
 
       assertEquals(
         "test-runtime-version",
@@ -132,7 +133,7 @@ class TelemetryOutboxStoreTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = TelemetryOutboxStore(connection, version = "9.9.9-injected")
 
-      val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      val id = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
 
       assertEquals(
         "9.9.9-injected",
@@ -153,7 +154,7 @@ class TelemetryOutboxStoreTest {
       )
 
     database.transaction { unit ->
-      unit.telemetryOutbox.enqueue("skillbill_goal_finished", "{}")
+      unit.telemetryOutbox.enqueue(TelemetryOutboxEvent.GOAL_FINISHED, "{}")
       unit.lifecycleTelemetry.goalStarted(
         GoalStartedRecord(
           issueKey = "SKILL-372",
@@ -182,8 +183,8 @@ class TelemetryOutboxStoreTest {
   @Test
   fun `lastSyncedAt is null until a row is marked synced`() {
     withOutbox { _, store ->
-      val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
-      store.enqueue(eventName = "skillbill_review_finished", payloadJson = "{}")
+      val id = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
+      store.enqueue(event = TelemetryOutboxEvent.REVIEW_FINISHED, payloadJson = "{}")
 
       assertEquals(null, store.lastSyncedAt(), "An outbox that never delivered has no successful sync timestamp.")
 
@@ -199,8 +200,8 @@ class TelemetryOutboxStoreTest {
   @Test
   fun `identical payloads enqueued at the same timestamp get distinct identities`() {
     withOutbox { connection, store ->
-      val first = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"same":"payload"}""")
-      val second = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"same":"payload"}""")
+      val first = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = """{"same":"payload"}""")
+      val second = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = """{"same":"payload"}""")
       connection.createStatement().use { statement ->
         statement.executeUpdate("UPDATE telemetry_outbox SET created_at = '2026-04-23 00:00:00'")
       }
@@ -219,7 +220,7 @@ class TelemetryOutboxStoreTest {
   @Test
   fun `an identity survives a payload rewrite after enqueue`() {
     withOutbox { connection, store ->
-      val id = store.enqueue(eventName = "skillbill_review_finished", payloadJson = """{"v":"1"}""")
+      val id = store.enqueue(event = TelemetryOutboxEvent.REVIEW_FINISHED, payloadJson = """{"v":"1"}""")
       val minted = store.listPending().single().eventUuid
 
       connection.prepareStatement("UPDATE telemetry_outbox SET payload_json = ? WHERE id = ?").use { statement ->
@@ -238,7 +239,7 @@ class TelemetryOutboxStoreTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { seed ->
       repeat(4) { index ->
         TelemetryOutboxStore(seed, version = "test-runtime-version").enqueue(
-          eventName = "skillbill_goal_finished",
+          event = TelemetryOutboxEvent.GOAL_FINISHED,
           payloadJson = """{"i":$index}""",
         )
       }
@@ -268,7 +269,7 @@ class TelemetryOutboxStoreTest {
   @Test
   fun `an expired claim is reclaimable so a crashed drainer strands nothing`() {
     withOutbox { _, store ->
-      store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       val abandoned = store.claimPending(claimRequest("crashed-drainer", limit = 10))
       assertEquals(1, abandoned.size)
 
@@ -292,7 +293,7 @@ class TelemetryOutboxStoreTest {
   @Test
   fun `a row past the attempt budget stops being claimed and reports as blocked`() {
     withOutbox { _, store ->
-      val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      val id = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       repeat(3) { attempt ->
         val token = "budget-$attempt"
         store.claimPending(claimRequest(token, limit = 10))

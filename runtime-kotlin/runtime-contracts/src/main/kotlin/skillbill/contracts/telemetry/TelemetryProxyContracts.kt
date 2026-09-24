@@ -5,14 +5,16 @@ data class TelemetryProxyBatchEvent(
   val distinctId: String,
   val properties: Map<String, Any?>,
   val timestamp: String,
+  val eventIdentity: String? = null,
 ) {
   fun toPayload(): Map<String, Any?> =
-    mapOf(
-      TelemetryProxyPayloadKeys.EVENT to event,
-      TelemetryProxyPayloadKeys.DISTINCT_ID to distinctId,
-      TelemetryProxyPayloadKeys.PROPERTIES to properties,
-      TelemetryProxyPayloadKeys.TIMESTAMP to timestamp,
-    )
+    buildMap {
+      put(TelemetryProxyPayloadKeys.EVENT, event)
+      put(TelemetryProxyPayloadKeys.DISTINCT_ID, distinctId)
+      put(TelemetryProxyPayloadKeys.PROPERTIES, properties)
+      put(TelemetryProxyPayloadKeys.TIMESTAMP, timestamp)
+      eventIdentity?.let { put(TelemetryProxyPayloadKeys.EVENT_IDENTITY, it) }
+    }
 }
 
 data class TelemetryProxyBatchPayload(

@@ -226,7 +226,7 @@ internal fun qualityCheckFinishedPayload(
   diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
 ): Map<String, Any?> {
   val result = row.stringOrEmpty(LifeKeys.RESULT).ifBlank { "skipped" }
-  val reconcilerStale = result == STALE_RESULT
+  val reconcilerStale = result == STALE_TERMINAL_VALUE
   val finalFailureCount =
     row.nullableInt(LifeKeys.FINAL_FAILURE_COUNT)
       .takeUnless { reconcilerStale }
@@ -270,7 +270,7 @@ internal fun qualityCheckFinishedPayload(
   }
 }
 
-internal const val STALE_RESULT: String = "stale"
+internal const val STALE_TERMINAL_VALUE: String = "stale"
 
 internal fun featureVerifyStartedPayload(
   row: Map<String, Any?>,
@@ -299,7 +299,9 @@ internal fun featureVerifyFinishedPayload(
     put(LifeKeys.COMPLETION_STATUS, row.stringOrEmpty(LifeKeys.COMPLETION_STATUS))
     put(LifeKeys.HISTORY_RELEVANCE, row.stringOrEmpty(LifeKeys.HISTORY_RELEVANCE).ifBlank { "none" })
     put(LifeKeys.HISTORY_HELPFULNESS, row.stringOrEmpty(LifeKeys.HISTORY_HELPFULNESS).ifBlank { "none" })
-    put(LifeKeys.DURATION_SECONDS, durationSeconds(row, diagnostics))
+    val durationAvailability = verifyDurationAvailability(row)
+    put(LifeKeys.DURATION_SECONDS, durationSeconds(row, diagnostics).takeIf { durationAvailability.measured })
+    put(LifeKeys.DURATION_SECONDS_AVAILABILITY, durationAvailability.wireValue)
     if (level == "full") {
       put(
         LifeKeys.GAPS_FOUND,
@@ -310,6 +312,16 @@ internal fun featureVerifyFinishedPayload(
         ),
       )
     }
+  }
+
+private fun verifyDurationAvailability(row: Map<String, Any?>): TelemetryMeasurementAvailability =
+  when {
+    row.stringOrEmpty(LifeKeys.COMPLETION_STATUS) == STALE_TERMINAL_VALUE ->
+      TelemetryMeasurementAvailability.UNAVAILABLE_INCOMPLETE
+    row.stringOrEmpty(GoalTelemetryPayloadKeys.STARTED_AT).isBlank() ||
+      row.stringOrEmpty(GoalTelemetryPayloadKeys.FINISHED_AT).isBlank() ->
+      TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE
+    else -> TelemetryMeasurementAvailability.MEASURED
   }
 
 internal fun prDescriptionPayload(

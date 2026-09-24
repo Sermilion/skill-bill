@@ -13,9 +13,9 @@ import skillbill.ports.telemetry.transport.TelemetryConfigStore
 internal interface RuntimeExperimentTelemetryProvides {
   @Provides
   fun experimentTelemetryOutboxSink(database: DatabaseSessionFactory): ExperimentTelemetryOutboxSink =
-    ExperimentTelemetryOutboxSink { eventName, payloadJson ->
+    ExperimentTelemetryOutboxSink { event, payloadJson ->
       database.transaction { unitOfWork ->
-        unitOfWork.telemetryOutbox.enqueue(eventName, payloadJson)
+        unitOfWork.telemetryOutbox.enqueue(event, payloadJson)
       }
     }
 

@@ -2,6 +2,7 @@ package skillbill.di.telemetry
 
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.repository.toFileLocation
@@ -37,8 +38,8 @@ class TelemetryRuntimeTest {
       )
 
     withTelemetryOutboxStore(tempDir, dbPath) { outboxStore ->
-      outboxStore.enqueue("skillbill_feature_implement_started", JsonCodec.mapToJsonString(mapOf("name" to "ok")))
-      outboxStore.enqueue("skillbill_feature_implement_finished", JsonCodec.mapToJsonString(mapOf("name" to "fail")))
+      outboxStore.enqueue(TelemetryOutboxEvent.GOAL_STARTED, JsonCodec.mapToJsonString(mapOf("name" to "ok")))
+      outboxStore.enqueue(TelemetryOutboxEvent.GOAL_FINISHED, JsonCodec.mapToJsonString(mapOf("name" to "fail")))
 
       val successClient = RecordingTelemetryClient()
       val successResult =
@@ -51,7 +52,10 @@ class TelemetryRuntimeTest {
     }
 
     withTelemetryOutboxStore(tempDir, dbPath) { outboxStore ->
-      outboxStore.enqueue("skillbill_feature_verify_started", JsonCodec.mapToJsonString(mapOf("name" to "retry")))
+      outboxStore.enqueue(
+        TelemetryOutboxEvent.FEATURE_VERIFY_STARTED,
+        JsonCodec.mapToJsonString(mapOf("name" to "retry")),
+      )
 
       val failingClient = RecordingTelemetryClient(failure = IOException("blocked by network isolation sentinel"))
       val failedResult =
@@ -120,7 +124,10 @@ class TelemetryRuntimeTest {
     val unconfiguredTempDir = Files.createTempDirectory("telemetry-unconfigured-run")
     val unconfiguredDbPath = unconfiguredTempDir.resolve("metrics.db")
     withTelemetryOutboxStore(unconfiguredTempDir, unconfiguredDbPath) { outboxStore ->
-      outboxStore.enqueue("skillbill_feature_verify_started", JsonCodec.mapToJsonString(mapOf("name" to "pending")))
+      outboxStore.enqueue(
+        TelemetryOutboxEvent.FEATURE_VERIFY_STARTED,
+        JsonCodec.mapToJsonString(mapOf("name" to "pending")),
+      )
       val unconfiguredResult =
         TelemetrySyncRuntime.syncTelemetry(
           telemetrySettings(

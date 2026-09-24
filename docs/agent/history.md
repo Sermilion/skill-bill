@@ -1,3 +1,15 @@
+## [2026-09-24] SKILL-381 subtask 2 — Relay identity, drop reporting, and stats truthfulness
+
+Areas: docs/cloudflare-telemetry-proxy, docs/telemetry-privacy.md
+- The bundled relay now drops an event when `distinct_id` is blank or the reserved `test-install-id`, or when a present `properties.install_id` is; an absent `install_id` no longer drops, so pre-`install_id` clients still forward on a real `distinct_id`.
+- Drop reporting is additive: `successBodyWithDropCount` merges `dropped_test_events` into the upstream success body while keeping the upstream status, so older clients that read only the status are unaffected. reusable
+- Delivery identity is the top-level `uuid`; PostHog collapses unconfirmed resends on it. `$insert_id` is a legacy mirror PostHog does not read — the old comment claiming it deduplicates was wrong and is corrected in `worker.js` and `docs/telemetry-privacy.md`.
+- `in_progress_runs` is no longer clamped with `Math.max(..., 0)` in `normalizeVerifyStats`, `normalizeVerifySeriesEntry`, or `summarizeVerifySeriesBucket`: a negative value is real evidence of missing start rows and clamping hid it. The separate `finished_without_start_runs` clamps stay.
+- Pattern: worker tests that assert forwarding behavior drive `worker.fetch` with a stubbed `globalThis.fetch` and assert the captured upstream body, rather than exercising an exported helper. `dropTestTraffic` lost its export as a result. reusable
+- Limitation: relay changes are code-only here; deployment and PostHog history cleanup remain the operator runbook in the spec, and the drift-check script is not run against the network from this repo.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-09-18] SKILL-354 subtask 2 — Split filesystem infrastructure by ownership
 
 Areas: runtime-kotlin/runtime-infra/{host,contracts,skills,launcher,workflow,http,sqlite}, runtime-kotlin/ARCHITECTURE.md, docs

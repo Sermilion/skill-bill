@@ -1,7 +1,9 @@
 const DEFAULT_POSTHOG_INGEST_HOST = "https://us.i.posthog.com";
 const DEFAULT_POSTHOG_APP_HOST = "https://us.posthog.com";
 const MAX_BATCH_SIZE = 100;
-const CONTRACT_VERSION = "2";
+const CONTRACT_VERSION = "3";
+const RESERVED_TEST_INSTALL_ID = "test-install-id";
+const MAX_EXCEPTION_FRAMES = 12;
 
 const PRODUCTION_INSTALL_FILTER = `
       AND properties.install_id IS NOT NULL
@@ -30,6 +32,21 @@ function isValidEvent(event) {
     typeof event.properties === "object" &&
     event.properties !== null
   );
+}
+
+function isBlankOrReservedIdentity(value) {
+  const identity = String(value ?? "").trim();
+  return identity === "" || identity === RESERVED_TEST_INSTALL_ID;
+}
+
+// Either identity being blank or reserved drops the event. An absent install_id is not itself a
+// drop, so clients that predate the property still forward on a real distinct_id.
+function isProductionEvent(event) {
+  if (isBlankOrReservedIdentity(event.distinct_id)) {
+    return false;
+  }
+  const installId = event.properties?.install_id;
+  return installId == null || !isBlankOrReservedIdentity(installId);
 }
 
 function isIsoDate(value) {
@@ -120,10 +137,10 @@ function capabilitiesPayload(env) {
     supports_stats: supportsStats,
     supported_workflows: supportsStats ? ["bill-feature-verify"] : [],
     stats_auth_required: Boolean(env.PROXY_STATS_BEARER_TOKEN),
-    // isValidEvent inspects properties without rewriting them and transformBatch spreads them into
-    // every branch, so the producer's $insert_id reaches PostHog unchanged and a retried batch
-    // deduplicates. A fork that drops or rewrites properties must report false here instead, which
-    // makes the client refuse to send undeduplicated batches rather than degrade silently.
+    // PostHog keys event identity on the top-level `uuid`; `$insert_id` is only a legacy mirror it
+    // ignores. transformBatch spreads every event, so the producer's `uuid` reaches PostHog unchanged
+    // and a retried batch overwrites instead of duplicating. A fork that drops or rewrites `uuid`
+    // must report false here, so the client refuses to send rather than degrade silently.
     supports_event_deduplication: true,
   };
 }
@@ -136,12 +153,25 @@ async function readJson(request) {
   }
 }
 
+function exceptionFrames(stackTrace) {
+  const lines = Array.isArray(stackTrace) ? stackTrace : String(stackTrace || "").split("\n");
+  return lines
+    .map((line) => String(line).trim())
+    .filter((line) => line !== "")
+    .slice(0, MAX_EXCEPTION_FRAMES)
+    .map((line) => ({ raw_id: line, function: line, platform: "java", in_app: line.includes("skillbill.") }));
+}
+
+function withoutGeoIp(event) {
+  return { ...event, properties: { ...event.properties, $geoip_disable: true } };
+}
+
 function transformBatch(batch) {
   return batch.map((event) => {
     if (event.event !== "skillbill_runtime_exception") {
-      return event;
+      return withoutGeoIp(event);
     }
-    return {
+    return withoutGeoIp({
       ...event,
       event: "$exception",
       properties: {
@@ -152,21 +182,45 @@ function transformBatch(batch) {
           {
             type: event.properties.error_type || "UnknownError",
             value: event.properties.error_message || "",
-            stacktrace: { frames: [] },
+            stacktrace: { type: "raw", frames: exceptionFrames(event.properties.stack_trace) },
           },
         ],
       },
-    };
+    });
   });
+}
+
+function dropTestTraffic(batch) {
+  const production = batch.filter(isProductionEvent);
+  return { production, dropped: batch.length - production.length };
+}
+
+// The status code stays the upstream's, because an older client only reads that; the drop count is
+// additive reporting for clients that look at the body.
+function successBodyWithDropCount(responseText, dropped) {
+  const body = responseText || JSON.stringify({ ok: true });
+  if (!dropped) {
+    return body;
+  }
+  try {
+    const payload = JSON.parse(body);
+    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+      return body;
+    }
+    return JSON.stringify({ ...payload, dropped_test_events: dropped });
+  } catch {
+    return body;
+  }
 }
 
 // Acknowledgement semantics: this relay acknowledges a batch only after PostHog has accepted it.
 // The 10s abort and the 502 rewrite below are both lost-acknowledgement sources — the upstream may
 // have accepted the batch before the abort fired or before the error surfaced — so the client must
-// treat a timeout or a 502 from here as an unknown outcome, keep the rows pending with their
-// original $insert_id, and let PostHog deduplicate the retry. Treating either as a rejection would
-// discard delivered events; treating either as success would drop undelivered ones.
-async function forwardBatch(env, batch) {
+// treat a timeout or a 502 from here as an unknown outcome and keep the rows pending with their
+// original top-level `uuid`. PostHog keys event identity on that `uuid` and collapses the retry onto
+// the stored event; `$insert_id` is a legacy mirror PostHog ignores. Treating either outcome as a
+// rejection would discard delivered events; treating either as success would drop undelivered ones.
+async function forwardBatch(env, batch, dropped) {
   if (!env.POSTHOG_API_KEY) {
     return jsonResponse(500, { error: "POSTHOG_API_KEY is not configured." });
   }
@@ -193,7 +247,7 @@ async function forwardBatch(env, batch) {
 
   const responseText = await upstreamResponse.text();
   return new Response(
-    responseText || JSON.stringify({ ok: true }),
+    successBodyWithDropCount(responseText, dropped),
     {
       status: upstreamResponse.status,
       headers: {
@@ -238,11 +292,7 @@ async function runPostHogQuery(env, query) {
 
   const responseText = await upstreamResponse.text();
   if (!upstreamResponse.ok) {
-    return {
-      error: "Upstream telemetry stats backend returned an error.",
-      status: 502,
-      details: responseText || null,
-    };
+    return { error: "Upstream telemetry stats backend returned an error.", status: 502 };
   }
 
   let payload;
@@ -253,6 +303,34 @@ async function runPostHogQuery(env, query) {
   }
   return { payload, status: 200 };
 }
+
+const VERIFY_FINISHED_SESSION = "uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished'";
+const KNOWN_COMPLETION_STATUSES = "('completed', 'abandoned_at_review', 'abandoned_at_audit', 'error', 'stale')";
+
+const COMPLETION_STATUS_TAIL_COLUMNS = `
+      ${VERIFY_FINISHED_SESSION} AND toString(properties.completion_status) = 'stale') AS completion_status_stale,
+      ${VERIFY_FINISHED_SESSION} AND toString(properties.completion_status) NOT IN ${KNOWN_COMPLETION_STATUSES}) AS completion_status_other`
+  .replace(/^\n/, "");
+
+const HISTORY_SIGNALS = ["none", "irrelevant", "low", "medium", "high"];
+
+const HISTORY_COLUMNS = [
+  `      ${VERIFY_FINISHED_SESSION} AND (
+        toString(properties.history_relevance) IN ('irrelevant', 'low', 'medium', 'high')
+        OR toString(properties.history_helpfulness) IN ('irrelevant', 'low', 'medium', 'high')
+      )) AS history_read_runs`,
+  ...["relevance", "helpfulness"].flatMap((dimension) =>
+    HISTORY_SIGNALS.map(
+      (signal) =>
+        `      ${VERIFY_FINISHED_SESSION} AND toString(properties.history_${dimension}) = '${signal}') AS history_${dimension}_${signal}`,
+    ),
+  ),
+].join(",\n");
+
+const MEASURED_COMPLETED_DURATION = `event = 'skillbill_feature_verify_finished'
+        AND toString(properties.completion_status) = 'completed'
+        AND properties.duration_seconds IS NOT NULL
+        AND (properties.duration_seconds_availability IS NULL OR toString(properties.duration_seconds_availability) = 'measured')`;
 
 function buildVerifyStatsQuery(dateFrom, dateToExclusive) {
   const from = escapeSqlLiteral(`${dateFrom} 00:00:00`);
@@ -270,23 +348,11 @@ function buildVerifyStatsQuery(dateFrom, dateToExclusive) {
       uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.completion_status) = 'abandoned_at_review') AS completion_status_abandoned_at_review,
       uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.completion_status) = 'abandoned_at_audit') AS completion_status_abandoned_at_audit,
       uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.completion_status) = 'error') AS completion_status_error,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND (
-        toString(properties.history_relevance) IN ('irrelevant', 'low', 'medium', 'high')
-        OR toString(properties.history_helpfulness) IN ('irrelevant', 'low', 'medium', 'high')
-      )) AS history_read_runs,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_relevance) = 'none') AS history_relevance_none,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_relevance) = 'irrelevant') AS history_relevance_irrelevant,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_relevance) = 'low') AS history_relevance_low,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_relevance) = 'medium') AS history_relevance_medium,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_relevance) = 'high') AS history_relevance_high,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_helpfulness) = 'none') AS history_helpfulness_none,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_helpfulness) = 'irrelevant') AS history_helpfulness_irrelevant,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_helpfulness) = 'low') AS history_helpfulness_low,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_helpfulness) = 'medium') AS history_helpfulness_medium,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_helpfulness) = 'high') AS history_helpfulness_high,
+${COMPLETION_STATUS_TAIL_COLUMNS},
+${HISTORY_COLUMNS},
       avgIf(toFloatOrZero(toString(properties.acceptance_criteria_count)), event = 'skillbill_feature_verify_started') AS average_acceptance_criteria_count,
       avgIf(toFloatOrZero(toString(properties.review_iterations)), event = 'skillbill_feature_verify_finished') AS average_review_iterations,
-      avgIf(toFloatOrZero(toString(properties.duration_seconds)), event = 'skillbill_feature_verify_finished') AS average_duration_seconds
+      avgIf(toFloat(toString(properties.duration_seconds)), ${MEASURED_COMPLETED_DURATION}) AS average_duration_seconds
     FROM events
     WHERE event IN ('skillbill_feature_verify_started', 'skillbill_feature_verify_finished')
       AND timestamp >= toDateTime('${from}')
@@ -312,20 +378,8 @@ function buildVerifySeriesQuery(dateFrom, dateToExclusive) {
       uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.completion_status) = 'abandoned_at_review') AS completion_status_abandoned_at_review,
       uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.completion_status) = 'abandoned_at_audit') AS completion_status_abandoned_at_audit,
       uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.completion_status) = 'error') AS completion_status_error,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND (
-        toString(properties.history_relevance) IN ('irrelevant', 'low', 'medium', 'high')
-        OR toString(properties.history_helpfulness) IN ('irrelevant', 'low', 'medium', 'high')
-      )) AS history_read_runs,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_relevance) = 'none') AS history_relevance_none,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_relevance) = 'irrelevant') AS history_relevance_irrelevant,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_relevance) = 'low') AS history_relevance_low,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_relevance) = 'medium') AS history_relevance_medium,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_relevance) = 'high') AS history_relevance_high,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_helpfulness) = 'none') AS history_helpfulness_none,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_helpfulness) = 'irrelevant') AS history_helpfulness_irrelevant,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_helpfulness) = 'low') AS history_helpfulness_low,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_helpfulness) = 'medium') AS history_helpfulness_medium,
-      uniqExactIf(toString(properties.session_id), event = 'skillbill_feature_verify_finished' AND toString(properties.history_helpfulness) = 'high') AS history_helpfulness_high
+${COMPLETION_STATUS_TAIL_COLUMNS},
+${HISTORY_COLUMNS}
     FROM events
     WHERE event IN ('skillbill_feature_verify_started', 'skillbill_feature_verify_finished')
       AND timestamp >= toDateTime('${from}')
@@ -355,7 +409,7 @@ function queryRowsToObjects(payload) {
 export function normalizeVerifyStats(row, dateFrom, dateTo) {
   const startedRuns = toInt(row.started_runs);
   const finishedRuns = toInt(row.finished_runs);
-  const inProgressRuns = Math.max(startedRuns - finishedRuns, 0);
+  const inProgressRuns = startedRuns - finishedRuns;
   const completedRuns = toInt(row.completion_status_completed);
   const abandonedAtReviewRuns = toInt(row.completion_status_abandoned_at_review);
   const abandonedAtAuditRuns = toInt(row.completion_status_abandoned_at_audit);
@@ -372,6 +426,7 @@ export function normalizeVerifyStats(row, dateFrom, dateTo) {
     finished_runs: finishedRuns,
     in_progress_runs: inProgressRuns,
     in_progress_rate: rate(inProgressRuns, startedRuns),
+    finished_without_start_runs: Math.max(finishedRuns - startedRuns, 0),
     completion_rate: rate(completedRuns, startedRuns),
     abandonment_rate: rate(abandonedRuns, startedRuns),
     completion_status_counts: {
@@ -379,6 +434,8 @@ export function normalizeVerifyStats(row, dateFrom, dateTo) {
       abandoned_at_review: abandonedAtReviewRuns,
       abandoned_at_audit: abandonedAtAuditRuns,
       error: toInt(row.completion_status_error),
+      stale: toInt(row.completion_status_stale),
+      other: toInt(row.completion_status_other),
     },
     audit_result_counts: {
       all_pass: toInt(row.audit_result_all_pass),
@@ -418,7 +475,7 @@ export function normalizeVerifyStats(row, dateFrom, dateTo) {
 export function normalizeVerifySeriesEntry(row, bucketStart, bucketEnd) {
   const startedRuns = toInt(row.started_runs);
   const finishedRuns = toInt(row.finished_runs);
-  const inProgressRuns = Math.max(startedRuns - finishedRuns, 0);
+  const inProgressRuns = startedRuns - finishedRuns;
   const completedRuns = toInt(row.completion_status_completed);
   const abandonedAtReviewRuns = toInt(row.completion_status_abandoned_at_review);
   const abandonedAtAuditRuns = toInt(row.completion_status_abandoned_at_audit);
@@ -432,6 +489,7 @@ export function normalizeVerifySeriesEntry(row, bucketStart, bucketEnd) {
     finished_runs: finishedRuns,
     in_progress_runs: inProgressRuns,
     in_progress_rate: rate(inProgressRuns, startedRuns),
+    finished_without_start_runs: Math.max(finishedRuns - startedRuns, 0),
     completion_rate: rate(completedRuns, startedRuns),
     abandonment_rate: rate(abandonedRuns, startedRuns),
     completion_status_counts: {
@@ -439,6 +497,8 @@ export function normalizeVerifySeriesEntry(row, bucketStart, bucketEnd) {
       abandoned_at_review: abandonedAtReviewRuns,
       abandoned_at_audit: abandonedAtAuditRuns,
       error: toInt(row.completion_status_error),
+      stale: toInt(row.completion_status_stale),
+      other: toInt(row.completion_status_other),
     },
     audit_result_counts: {
       all_pass: toInt(row.audit_result_all_pass),
@@ -479,7 +539,7 @@ function summarizeVerifySeriesBucket(bucketStart, bucketEnd, entries) {
   const abandonedAtReviewRuns = entries.reduce((sum, entry) => sum + toInt(entry.completion_status_counts?.abandoned_at_review), 0);
   const abandonedAtAuditRuns = entries.reduce((sum, entry) => sum + toInt(entry.completion_status_counts?.abandoned_at_audit), 0);
   const abandonedRuns = abandonedAtReviewRuns + abandonedAtAuditRuns;
-  const inProgressRuns = Math.max(startedRuns - finishedRuns, 0);
+  const inProgressRuns = startedRuns - finishedRuns;
   const historyReadRuns = entries.reduce((sum, entry) => sum + toInt(entry.history_read_runs), 0);
   const historyRelevantRuns = entries.reduce((sum, entry) => sum + toInt(entry.history_relevant_runs), 0);
   const historyHelpfulRuns = entries.reduce((sum, entry) => sum + toInt(entry.history_helpful_runs), 0);
@@ -490,6 +550,7 @@ function summarizeVerifySeriesBucket(bucketStart, bucketEnd, entries) {
     finished_runs: finishedRuns,
     in_progress_runs: inProgressRuns,
     in_progress_rate: rate(inProgressRuns, startedRuns),
+    finished_without_start_runs: Math.max(finishedRuns - startedRuns, 0),
     completion_rate: rate(completedRuns, startedRuns),
     abandonment_rate: rate(abandonedRuns, startedRuns),
     completion_status_counts: {
@@ -497,6 +558,8 @@ function summarizeVerifySeriesBucket(bucketStart, bucketEnd, entries) {
       abandoned_at_review: abandonedAtReviewRuns,
       abandoned_at_audit: abandonedAtAuditRuns,
       error: entries.reduce((sum, entry) => sum + toInt(entry.completion_status_counts?.error), 0),
+      stale: entries.reduce((sum, entry) => sum + toInt(entry.completion_status_counts?.stale), 0),
+      other: entries.reduce((sum, entry) => sum + toInt(entry.completion_status_counts?.other), 0),
     },
     audit_result_counts: {
       all_pass: entries.reduce((sum, entry) => sum + toInt(entry.audit_result_counts?.all_pass), 0),
@@ -536,8 +599,19 @@ function summarizeVerifySeriesBucket(bucketStart, bucketEnd, entries) {
   };
 }
 
+function isoDatesBetween(dateFrom, dateTo) {
+  const dates = [];
+  for (let current = dateFrom; current <= dateTo; current = nextIsoDate(current)) {
+    dates.push(current);
+  }
+  return dates;
+}
+
 export function buildVerifySeries(rows, groupBy, dateFrom, dateTo) {
-  const dailySeries = rows.map((row) => normalizeVerifySeriesEntry(row, String(row.bucket_date || ""), String(row.bucket_date || "")));
+  const rowsByDate = new Map(rows.map((row) => [String(row.bucket_date || ""), row]));
+  const dailySeries = isoDatesBetween(dateFrom, dateTo).map((date) =>
+    normalizeVerifySeriesEntry(rowsByDate.get(date) || {}, date, date),
+  );
   if (groupBy !== "week") {
     return dailySeries;
   }
@@ -599,11 +673,7 @@ export default {
       const query = buildVerifyStatsQuery(payload.date_from, dateToExclusive);
       const result = await runPostHogQuery(env, query);
       if (result.error) {
-        const responsePayload = { error: result.error };
-        if (result.details) {
-          responsePayload.details = result.details;
-        }
-        return jsonResponse(result.status, responsePayload);
+        return jsonResponse(result.status, { error: result.error });
       }
 
       const summaryRows = queryRowsToObjects(result.payload);
@@ -613,11 +683,7 @@ export default {
         const seriesQuery = buildVerifySeriesQuery(payload.date_from, dateToExclusive);
         const seriesResult = await runPostHogQuery(env, seriesQuery);
         if (seriesResult.error) {
-          const responsePayload = { error: seriesResult.error };
-          if (seriesResult.details) {
-            responsePayload.details = seriesResult.details;
-          }
-          return jsonResponse(seriesResult.status, responsePayload);
+          return jsonResponse(seriesResult.status, { error: seriesResult.error });
         }
         const seriesRows = queryRowsToObjects(seriesResult.payload);
         normalized.group_by = payload.group_by;
@@ -637,11 +703,16 @@ export default {
       return jsonResponse(400, { error: "Each batch entry must include event, distinct_id, and properties." });
     }
 
-    return forwardBatch(env, transformBatch(batch));
+    const { production, dropped } = dropTestTraffic(batch);
+    if (production.length === 0) {
+      return jsonResponse(200, { status: 1, dropped_test_events: dropped });
+    }
+    return forwardBatch(env, transformBatch(production), dropped);
   },
 };
 
 export {
+  CONTRACT_VERSION,
   validateStatsRequest,
   capabilitiesPayload,
   transformBatch,

@@ -48,6 +48,9 @@ Choose `full` only for deployments where that detail is acceptable.
    wrangler secret put PROXY_STATS_BEARER_TOKEN
    ```
 
+   Set `PROXY_STATS_BEARER_TOKEN` on any public deployment. Without it, `/stats` answers anyone
+   who knows the URL.
+
    Optional variables:
 
    - `POSTHOG_APP_HOST` defaults to `https://us.posthog.com` and is used for Query API calls
@@ -57,6 +60,12 @@ Choose `full` only for deployments where that detail is acceptable.
 
    ```bash
    wrangler deploy
+   ```
+
+6. Confirm the deployed Worker runs this checkout's contract:
+
+   ```bash
+   npm run --silent check-deployed -- https://your-worker.your-subdomain.workers.dev
    ```
 
 The example defaults `POSTHOG_HOST` to the US ingest endpoint and `POSTHOG_APP_HOST` to the US app/API endpoint. If you use EU Cloud or self-hosted PostHog, update those in your local `wrangler.toml` before deploying.

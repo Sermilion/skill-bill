@@ -18,6 +18,7 @@ import skillbill.application.workflow.persist.openFeatureTask
 import skillbill.application.workflow.service.WorkflowService
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
@@ -598,7 +599,7 @@ internal object ThrowingPlanReviewAttributionPort : ReviewAttributionPort {
 
 internal object NoopTelemetryOutboxRepository : TelemetryOutboxRepository {
   override fun enqueue(
-    eventName: String,
+    event: TelemetryOutboxEvent,
     payloadJson: String,
   ): Long = error("Unexpected enqueue")
 
@@ -639,15 +640,15 @@ internal class InMemoryTelemetryOutboxRepository(
   private val claimTokens = mutableMapOf<Long, String>()
 
   override fun enqueue(
-    eventName: String,
+    event: TelemetryOutboxEvent,
     payloadJson: String,
   ): Long {
     val id = (rows.maxOfOrNull { it.id } ?: 0L) + 1
-    enqueuedEventNames += eventName
+    enqueuedEventNames += event.wireValue
     rows +=
       TelemetryOutboxRecord(
         id = id,
-        eventName = eventName,
+        eventName = event.wireValue,
         payloadJson = payloadJson,
         createdAt = "2026-04-24 00:00:00",
         syncedAt = null,

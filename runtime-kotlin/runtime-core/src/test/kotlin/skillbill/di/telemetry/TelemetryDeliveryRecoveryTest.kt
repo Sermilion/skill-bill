@@ -1,7 +1,10 @@
 package skillbill.di.telemetry
 
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
+import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
+import skillbill.infrastructure.http.telemetryProxyBatchPayload
 import skillbill.infrastructure.sqlite.TelemetryOutboxTestHandle
 import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.concurrency.InterruptSignalPort
@@ -35,22 +38,26 @@ class TelemetryDeliveryRecoveryTest {
   @Test
   fun `an unconfirmed delivery keeps one recoverable entry with its original identity`() {
     withOutbox { store ->
-      store.enqueue(eventName = "skillbill_review_finished", payloadJson = """{"run":"r-1"}""")
+      store.enqueue(event = TelemetryOutboxEvent.REVIEW_FINISHED, payloadJson = """{"run":"r-1"}""")
       val mintedIdentity = store.listPending().single().eventUuid
+      val unconfirmedRelay = StubTelemetryClient(TelemetryDeliveryOutcome.UNKNOWN)
 
       val result =
-        TelemetrySyncRuntime.syncTelemetry(
-          settings(),
-          store,
-          StubTelemetryClient(TelemetryDeliveryOutcome.UNKNOWN),
-          { NOW },
-          JvmInterruptSignalPort,
-        )
+        TelemetrySyncRuntime.syncTelemetry(settings(), store, unconfirmedRelay, { NOW }, JvmInterruptSignalPort)
+      TelemetrySyncRuntime.syncTelemetry(settings(), store, unconfirmedRelay, {
+        NOW.plusSeconds(301)
+      }, JvmInterruptSignalPort)
 
       assertEquals(TelemetrySyncStatus.FAILED, result.status)
       val pending = store.listPending()
       assertEquals(1, pending.size, "An unconfirmed batch must stay queued exactly once.")
       assertEquals(mintedIdentity, pending.single().eventUuid, "The retry must reuse the original identity.")
+      assertEquals(
+        listOf<List<Any?>>(listOf(mintedIdentity), listOf(mintedIdentity)),
+        unconfirmedRelay.sentBatches,
+        "A resend after an unconfirmed delivery must carry the identity the receiver deduplicates on.",
+      )
+      assertEquals(0, pending.single().deliveryAttempts, "An unconfirmed delivery consumes no attempt.")
       assertTrue(store.latestError().orEmpty().contains("unconfirmed"))
     }
   }
@@ -59,7 +66,7 @@ class TelemetryDeliveryRecoveryTest {
   fun `a failed local acknowledgement does not resend the batch without bound`() {
     withOutbox { store ->
       repeat(3) { index ->
-        store.enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"i":$index}""")
+        store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = """{"i":$index}""")
       }
       val client = StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED)
       val brokenAcknowledgement =
@@ -87,7 +94,7 @@ class TelemetryDeliveryRecoveryTest {
   @Test
   fun `an unconfirmed transport failure leaves the queue drainable once delivery recovers`() {
     withOutbox { store ->
-      store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       val unreachable = StubTelemetryClient(TelemetryDeliveryOutcome.UNKNOWN)
 
       repeat(TELEMETRY_DELIVERY_ATTEMPT_BUDGET * 2) {
@@ -116,7 +123,7 @@ class TelemetryDeliveryRecoveryTest {
   @Test
   fun `repeated delivery failure enqueues no new telemetry and the drain terminates`() {
     withOutbox { store ->
-      store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       val client =
         StubTelemetryClient(TelemetryDeliveryOutcome.REJECTED, detail = "HTTP 422: unknown event property")
 
@@ -137,7 +144,7 @@ class TelemetryDeliveryRecoveryTest {
   @Test
   fun `an unexpected client failure is recorded and releases the batch instead of escaping`() {
     withOutbox { store ->
-      store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       val throwingClient =
         object : TelemetryClient by StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED) {
           override fun sendBatch(
@@ -170,7 +177,7 @@ class TelemetryDeliveryRecoveryTest {
   @Test
   fun `a drain that claims nothing while rows stay queued does not report a clean sync`() {
     withOutbox { store ->
-      store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       store.claimPending(
         TelemetryOutboxClaimRequest(
           claimToken = "concurrent-drain",
@@ -194,7 +201,7 @@ class TelemetryDeliveryRecoveryTest {
     val cancellingRepository =
       object : TelemetryOutboxRepository {
         override fun enqueue(
-          eventName: String,
+          event: TelemetryOutboxEvent,
           payloadJson: String,
         ): Long = error("unexpected")
 
@@ -247,7 +254,7 @@ class TelemetryDeliveryRecoveryTest {
   @Test
   fun `transport cancellation propagates without consuming an attempt and the lease can recover`() {
     withOutbox { store ->
-      val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      val id = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       val cancellingClient =
         object : TelemetryClient by StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED) {
           override fun sendBatch(
@@ -278,7 +285,7 @@ class TelemetryDeliveryRecoveryTest {
   @Test
   fun `acknowledgement cancellation propagates without consuming an attempt or writing an error`() {
     withOutbox { store ->
-      val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      val id = store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       val cancellingAcknowledgement =
         object : TelemetryOutboxRepository by store {
           override fun markSynced(
@@ -305,7 +312,7 @@ class TelemetryDeliveryRecoveryTest {
   @Test
   fun `interrupted delivery is rethrown with the thread interrupt signal preserved`() {
     withOutbox { store ->
-      store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      store.enqueue(event = TelemetryOutboxEvent.GOAL_FINISHED, payloadJson = "{}")
       val interruptSignal = RecordingInterruptSignalPort()
       val interruptedClient =
         object : TelemetryClient by StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED) {
@@ -359,13 +366,16 @@ private class StubTelemetryClient(
   private val outcome: TelemetryDeliveryOutcome,
   private val detail: String = "",
 ) : TelemetryClient {
-  val sentBatches = mutableListOf<List<String>>()
+  val sentBatches = mutableListOf<List<Any?>>()
 
   override fun sendBatch(
     settings: TelemetrySettings,
     rows: List<TelemetryOutboxRecord>,
   ): TelemetryDeliveryReport {
-    sentBatches += rows.map { it.eventUuid }
+    sentBatches +=
+      telemetryProxyBatchPayload(settings, rows).batch.map { event ->
+        event.toPayload()[TelemetryProxyPayloadKeys.EVENT_IDENTITY]
+      }
     return TelemetryDeliveryReport(outcome, detail)
   }
 

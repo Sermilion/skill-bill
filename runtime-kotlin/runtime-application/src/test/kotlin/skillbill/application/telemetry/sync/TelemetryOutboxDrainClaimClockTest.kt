@@ -1,6 +1,7 @@
 package skillbill.application.telemetry.sync
 
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime.syncTelemetry
+import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
@@ -75,7 +76,7 @@ private class RecordingClaimClockRepository : TelemetryOutboxRepository {
   }
 
   override fun enqueue(
-    eventName: String,
+    event: TelemetryOutboxEvent,
     payloadJson: String,
   ): Long = error("unexpected")
 
