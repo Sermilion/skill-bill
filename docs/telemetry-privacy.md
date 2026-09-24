@@ -304,7 +304,8 @@ and no outbox payload carries a `repo` property.
   not also send to the default relay.
 - The reserved test identity `test-install-id` never syncs to the hosted relay: the runtime refuses
   (`record_kind=refusal`, cause `reserved_test_install_id`) unless a custom proxy is configured,
-  and the bundled relay drops events whose install id is blank or reserved before forwarding.
+  and the bundled relay drops events whose install id or distinct id is blank or reserved before
+  forwarding, reporting the count as `dropped_test_events` in its response.
 - The bundled relay sets `$geoip_disable: true` on every event. The only IP PostHog sees is the
   relay's egress address, so a location derived from it describes the relay, not the user.
 

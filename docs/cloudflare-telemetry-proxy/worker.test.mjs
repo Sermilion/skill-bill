@@ -1,17 +1,19 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import { createServer } from "node:http";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import {
   validateStatsRequest,
   capabilitiesPayload,
   transformBatch,
   buildVerifyStatsQuery,
   buildVerifySeriesQuery,
-  dropTestTraffic,
   normalizeVerifyStats,
   buildVerifySeries,
 } from "./worker.js";
 import worker from "./worker.js";
-import { relayDriftError } from "./check-deployed-relay.mjs";
 
 const VALID_DATE_RANGE = { date_from: "2026-05-01", date_to: "2026-06-01" };
 const INGEST_SCHEMA_ERROR_FRAGMENT = "event_name must be the constant value";
@@ -130,10 +132,9 @@ describe("transformBatch", () => {
     assert.equal(result[1].event, "$exception");
   });
 
-  // The whole replay recovery depends on the receiver seeing the producer's $insert_id. The
-  // exception branch rebuilds properties, so a rewrite that forgot to spread them would silently
-  // turn every retried exception into a fresh duplicate event.
-  it("forwards $insert_id verbatim through both the pass-through and exception-rewrite branches", () => {
+  // $insert_id is a legacy mirror PostHog ignores, but consumers of the raw stream still read it.
+  // The exception branch rebuilds properties, so a rewrite that forgot to spread them would drop it.
+  it("keeps the legacy $insert_id mirror on both the pass-through and exception-rewrite branches", () => {
     const batch = [
       { ...baseEvent("skillbill_review_finished", { $insert_id: "pass-through-id" }) },
       {
@@ -152,14 +153,33 @@ describe("transformBatch", () => {
 
   // PostHog collapses a resend only on the top-level uuid; losing it on either branch turns every
   // retried batch back into duplicates (the 2026-08-15 storm stored one batch ~32,630 times).
-  it("keeps the producer's top-level uuid on pass-through and rewritten exception events", () => {
-    const result = transformBatch([
-      { ...baseEvent("skillbill_goal_started"), uuid: "11111111-1111-4111-8111-111111111111" },
-      { ...baseEvent("skillbill_runtime_exception", { error_type: "E" }), uuid: "22222222-2222-4222-8222-222222222222" },
-    ]);
-    assert.equal(result[0].uuid, "11111111-1111-4111-8111-111111111111");
-    assert.equal(result[1].uuid, "22222222-2222-4222-8222-222222222222");
-    assert.equal(result[1].event, "$exception");
+  it("forwards the producer's top-level uuid on pass-through and rewritten exception events", async () => {
+    const originalFetch = globalThis.fetch;
+    let forwardedBody;
+    globalThis.fetch = async (_url, init) => {
+      forwardedBody = JSON.parse(init.body);
+      return new Response(JSON.stringify({ status: 1 }), { status: 200 });
+    };
+    try {
+      await worker.fetch(
+        new Request("https://relay.example/", {
+          method: "POST",
+          body: JSON.stringify({
+            batch: [
+              { ...baseEvent("skillbill_goal_started"), uuid: "11111111-1111-4111-8111-111111111111" },
+              { ...baseEvent("skillbill_runtime_exception", { error_type: "E" }), uuid: "22222222-2222-4222-8222-222222222222" },
+            ],
+          }),
+        }),
+        { POSTHOG_API_KEY: "key" },
+      );
+      const [plain, exception] = forwardedBody.batch;
+      assert.equal(plain.uuid, "11111111-1111-4111-8111-111111111111");
+      assert.equal(exception.uuid, "22222222-2222-4222-8222-222222222222");
+      assert.equal(exception.event, "$exception");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("builds exception frames from the redacted stack trace instead of an empty list", () => {
@@ -195,17 +215,34 @@ describe("test traffic never reaches PostHog", () => {
   const event = (distinctId, installId = distinctId) => ({
     event: "skillbill_quality_check_finished",
     distinct_id: distinctId,
-    properties: installId === undefined ? {} : { install_id: installId },
+    properties: { install_id: installId },
   });
 
-  it("drops the reserved test identity and blank identities and keeps real installs", () => {
-    const { production, dropped } = dropTestTraffic([
-      event("test-install-id"),
-      event("ddd1bdbc", "  "),
-      event("real-install"),
-    ]);
-    assert.deepEqual(production.map((e) => e.distinct_id), ["real-install"]);
-    assert.equal(dropped, 2);
+  // Guards against the filter running on a copy while the unfiltered batch is what gets forwarded,
+  // or a later transform step reintroducing a dropped event.
+  it("forwards only the real install from a mixed batch and reports the drop count", async () => {
+    const originalFetch = globalThis.fetch;
+    let forwardedBody;
+    globalThis.fetch = async (_url, init) => {
+      forwardedBody = JSON.parse(init.body);
+      return new Response(JSON.stringify({ status: 1 }), { status: 200 });
+    };
+    try {
+      const response = await worker.fetch(
+        new Request("https://relay.example/", {
+          method: "POST",
+          body: JSON.stringify({
+            batch: [event("test-install-id"), event("ddd1bdbc", "  "), event("real-install")],
+          }),
+        }),
+        { POSTHOG_API_KEY: "key" },
+      );
+      assert.deepEqual(forwardedBody.batch.map((e) => e.distinct_id), ["real-install"]);
+      assert.equal(response.status, 200);
+      assert.equal((await response.json()).dropped_test_events, 2);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("acknowledges an all-test batch without calling PostHog, so the client stops retrying", async () => {
@@ -247,6 +284,8 @@ describe("verify stats account for every finished run", () => {
     const counted = Object.values(stats.completion_status_counts).reduce((sum, count) => sum + count, 0);
     assert.equal(counted, stats.finished_runs);
     assert.equal(stats.finished_without_start_runs, 1);
+    // A clamp on in_progress_runs would report 0 here and hide the started/finished mismatch.
+    assert.equal(stats.in_progress_runs, -1);
   });
 
   it("averages duration over completed runs with a measured duration only", () => {
@@ -292,8 +331,27 @@ describe("stats failures", () => {
 });
 
 describe("deployed relay drift check", () => {
-  it("fails when the deployed relay reports an older contract and passes when it matches", () => {
-    assert.match(relayDriftError({ contract_version: "1" }), /Redeploy/);
-    assert.equal(relayDriftError(capabilitiesPayload({})), null);
+  const DRIFT_SCRIPT = fileURLToPath(new URL("./check-deployed-relay.mjs", import.meta.url));
+
+  async function driftScriptExitCode(capabilities) {
+    const server = createServer((_request, response) => {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify(capabilities));
+    });
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      await promisify(execFile)(process.execPath, [DRIFT_SCRIPT, `http://127.0.0.1:${server.address().port}`]);
+      return 0;
+    } catch (error) {
+      return error.code;
+    } finally {
+      server.close();
+    }
+  }
+
+  // Guards the release checklist: a script that only logs the drift and exits 0 lets a stale relay ship.
+  it("exits non-zero when the deployed relay reports an older contract and zero when it matches", async () => {
+    assert.notEqual(await driftScriptExitCode({ contract_version: "1" }), 0);
+    assert.equal(await driftScriptExitCode(capabilitiesPayload({})), 0);
   });
 });

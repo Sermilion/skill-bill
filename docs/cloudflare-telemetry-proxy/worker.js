@@ -34,13 +34,19 @@ function isValidEvent(event) {
   );
 }
 
-function installIdentity(event) {
-  return String(event.properties?.install_id ?? event.distinct_id ?? "").trim();
+function isBlankOrReservedIdentity(value) {
+  const identity = String(value ?? "").trim();
+  return identity === "" || identity === RESERVED_TEST_INSTALL_ID;
 }
 
+// Either identity being blank or reserved drops the event. An absent install_id is not itself a
+// drop, so clients that predate the property still forward on a real distinct_id.
 function isProductionEvent(event) {
-  const identity = installIdentity(event);
-  return identity !== "" && identity !== RESERVED_TEST_INSTALL_ID && event.distinct_id !== RESERVED_TEST_INSTALL_ID;
+  if (isBlankOrReservedIdentity(event.distinct_id)) {
+    return false;
+  }
+  const installId = event.properties?.install_id;
+  return installId == null || !isBlankOrReservedIdentity(installId);
 }
 
 function isIsoDate(value) {
@@ -189,13 +195,32 @@ function dropTestTraffic(batch) {
   return { production, dropped: batch.length - production.length };
 }
 
+// The status code stays the upstream's, because an older client only reads that; the drop count is
+// additive reporting for clients that look at the body.
+function successBodyWithDropCount(responseText, dropped) {
+  const body = responseText || JSON.stringify({ ok: true });
+  if (!dropped) {
+    return body;
+  }
+  try {
+    const payload = JSON.parse(body);
+    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+      return body;
+    }
+    return JSON.stringify({ ...payload, dropped_test_events: dropped });
+  } catch {
+    return body;
+  }
+}
+
 // Acknowledgement semantics: this relay acknowledges a batch only after PostHog has accepted it.
 // The 10s abort and the 502 rewrite below are both lost-acknowledgement sources — the upstream may
 // have accepted the batch before the abort fired or before the error surfaced — so the client must
-// treat a timeout or a 502 from here as an unknown outcome, keep the rows pending with their
-// original $insert_id, and let PostHog deduplicate the retry. Treating either as a rejection would
-// discard delivered events; treating either as success would drop undelivered ones.
-async function forwardBatch(env, batch) {
+// treat a timeout or a 502 from here as an unknown outcome and keep the rows pending with their
+// original top-level `uuid`. PostHog keys event identity on that `uuid` and collapses the retry onto
+// the stored event; `$insert_id` is a legacy mirror PostHog ignores. Treating either outcome as a
+// rejection would discard delivered events; treating either as success would drop undelivered ones.
+async function forwardBatch(env, batch, dropped) {
   if (!env.POSTHOG_API_KEY) {
     return jsonResponse(500, { error: "POSTHOG_API_KEY is not configured." });
   }
@@ -222,7 +247,7 @@ async function forwardBatch(env, batch) {
 
   const responseText = await upstreamResponse.text();
   return new Response(
-    responseText || JSON.stringify({ ok: true }),
+    successBodyWithDropCount(responseText, dropped),
     {
       status: upstreamResponse.status,
       headers: {
@@ -384,7 +409,7 @@ function queryRowsToObjects(payload) {
 export function normalizeVerifyStats(row, dateFrom, dateTo) {
   const startedRuns = toInt(row.started_runs);
   const finishedRuns = toInt(row.finished_runs);
-  const inProgressRuns = Math.max(startedRuns - finishedRuns, 0);
+  const inProgressRuns = startedRuns - finishedRuns;
   const completedRuns = toInt(row.completion_status_completed);
   const abandonedAtReviewRuns = toInt(row.completion_status_abandoned_at_review);
   const abandonedAtAuditRuns = toInt(row.completion_status_abandoned_at_audit);
@@ -450,7 +475,7 @@ export function normalizeVerifyStats(row, dateFrom, dateTo) {
 export function normalizeVerifySeriesEntry(row, bucketStart, bucketEnd) {
   const startedRuns = toInt(row.started_runs);
   const finishedRuns = toInt(row.finished_runs);
-  const inProgressRuns = Math.max(startedRuns - finishedRuns, 0);
+  const inProgressRuns = startedRuns - finishedRuns;
   const completedRuns = toInt(row.completion_status_completed);
   const abandonedAtReviewRuns = toInt(row.completion_status_abandoned_at_review);
   const abandonedAtAuditRuns = toInt(row.completion_status_abandoned_at_audit);
@@ -514,7 +539,7 @@ function summarizeVerifySeriesBucket(bucketStart, bucketEnd, entries) {
   const abandonedAtReviewRuns = entries.reduce((sum, entry) => sum + toInt(entry.completion_status_counts?.abandoned_at_review), 0);
   const abandonedAtAuditRuns = entries.reduce((sum, entry) => sum + toInt(entry.completion_status_counts?.abandoned_at_audit), 0);
   const abandonedRuns = abandonedAtReviewRuns + abandonedAtAuditRuns;
-  const inProgressRuns = Math.max(startedRuns - finishedRuns, 0);
+  const inProgressRuns = startedRuns - finishedRuns;
   const historyReadRuns = entries.reduce((sum, entry) => sum + toInt(entry.history_read_runs), 0);
   const historyRelevantRuns = entries.reduce((sum, entry) => sum + toInt(entry.history_relevant_runs), 0);
   const historyHelpfulRuns = entries.reduce((sum, entry) => sum + toInt(entry.history_helpful_runs), 0);
@@ -682,7 +707,7 @@ export default {
     if (production.length === 0) {
       return jsonResponse(200, { status: 1, dropped_test_events: dropped });
     }
-    return forwardBatch(env, transformBatch(production));
+    return forwardBatch(env, transformBatch(production), dropped);
   },
 };
 
@@ -691,7 +716,6 @@ export {
   validateStatsRequest,
   capabilitiesPayload,
   transformBatch,
-  dropTestTraffic,
   buildVerifyStatsQuery,
   buildVerifySeriesQuery,
 };
