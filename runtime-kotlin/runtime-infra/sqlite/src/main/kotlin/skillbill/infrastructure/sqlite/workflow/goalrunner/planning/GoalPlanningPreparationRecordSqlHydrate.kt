@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.planning
+
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord

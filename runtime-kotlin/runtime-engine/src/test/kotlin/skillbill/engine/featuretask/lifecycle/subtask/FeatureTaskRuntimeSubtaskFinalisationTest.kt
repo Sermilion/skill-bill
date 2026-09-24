@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask.lifecycle.subtask
+
+import skillbill.engine.envelope
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointMessage
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointMetadata
 import skillbill.engine.featuretask.lifecycle.continuation.commitShaFromPhasePayload
@@ -699,7 +701,7 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     return output
   }
 
-  private fun envelope(
+  internal fun envelope(
     message: String,
     paths: List<String>,
   ): Map<String, Any?> =

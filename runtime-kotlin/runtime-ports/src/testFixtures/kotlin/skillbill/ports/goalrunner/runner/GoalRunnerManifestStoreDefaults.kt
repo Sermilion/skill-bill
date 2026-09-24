@@ -59,7 +59,7 @@ abstract class GoalRunnerManifestStoreDefaults : GoalRunnerManifestStore {
   ): Boolean {
     val lease = executionLease(parentWorkflowId) ?: return false
     if (lease.ownerToken != ownerToken || lease.generation != generation) return false
-    if (Instant.parse(lease.expiresAt).isAfter(Instant.parse(nowInstant))) return false
+    if (lease.expiresAt.isAfter(Instant.parse(nowInstant))) return false
     return releaseExecutionLease(parentWorkflowId, ownerToken, generation)
   }
 

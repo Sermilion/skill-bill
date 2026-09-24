@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats
+
 import java.util.Locale
 
 private const val MEDIAN_PERCENTILE = 50.0

@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.run
+
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.SharedPayloadKeys
@@ -9,7 +10,7 @@ import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 
-const val FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY: String = "feature_task_runtime_run_invariants"
+internal const val FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY: String = "feature_task_runtime_run_invariants"
 
 internal fun FeatureTaskRuntimeRunInvariants.toArtifactMap(): Map<String, Any?> =
   linkedMapOf(

@@ -3,6 +3,7 @@ package skillbill.infrastructure.skills.install.reconcile
 import skillbill.error.shellcontent.ReconciliationConflictError
 import skillbill.infrastructure.contracts.newSha256Digest
 import skillbill.infrastructure.skills.agentaddon.discoverAgentAddons
+import skillbill.infrastructure.skills.install.apply.selectedPlatformManifests
 import skillbill.infrastructure.skills.install.plan.discoverPlatformManifests
 import skillbill.infrastructure.skills.install.plan.enumerateInstallPlanSkills
 import skillbill.infrastructure.skills.install.staging.staging.applicablePointers

@@ -1,4 +1,5 @@
 package skillbill.contracts.scaffold.wire
+
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 
 fun requireString(

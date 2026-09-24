@@ -1,6 +1,8 @@
 package skillbill.infrastructure.contracts.workflow.workflow
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.ValidationMessage
+import skillbill.infrastructure.contracts.review.offendingValue
 
 internal val workflowStateSchemaViolationOrdering: Comparator<ValidationMessage> =
   compareBy(

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.maps
+
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 
 internal fun Map<String, Any?>.stringOrEmpty(name: String): String = this[name]?.toString().orEmpty()

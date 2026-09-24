@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.ops
+
 import skillbill.infrastructure.sqlite.telemetry.goal.emitGoalIssueFinished
 import skillbill.infrastructure.sqlite.telemetry.goal.nextGoalStateEnteredAtSql
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.emitFeatureTaskRuntimeFinished
@@ -15,13 +16,18 @@ internal const val STALE_GOAL_ISSUE_ABANDONMENT_DAYS: Long = 14L
 internal const val TELEMETRY_RECONCILIATION_CADENCE_SECONDS: Long = 300L
 internal const val TELEMETRY_RECONCILIATION_MAXIMUM_BATCH_SIZE: Int = 100
 
+internal data class StaleSessionReconciliationPolicy(
+  val sessionThresholdSeconds: Long = STALE_SESSION_THRESHOLD_SECONDS,
+  val goalIssueAbandonmentDays: Long = STALE_GOAL_ISSUE_ABANDONMENT_DAYS,
+)
+
 private data class LifecycleReconciliationTarget(
   internal val family: String,
   internal val tableName: String,
   internal val terminalColumn: String,
   internal val terminalValue: String,
   internal val workflowTableName: String? = null,
-  internal val emitFinished: (Connection, String, String) -> Unit,
+  internal val emitFinished: (Connection, String, String, String) -> Unit,
 )
 
 internal data class ReconciliationCandidate(
@@ -38,28 +44,34 @@ private val lifecycleTargets =
       terminalColumn = "completion_status",
       terminalValue = "stale",
       workflowTableName = "feature_task_workflows",
-    ) { connection, sessionId, level -> emitFeatureTaskRuntimeFinished(connection, sessionId, level) },
+    ) { connection, runtimeVersion, sessionId, level ->
+      emitFeatureTaskRuntimeFinished(connection, runtimeVersion, sessionId, level)
+    },
     LifecycleReconciliationTarget(
       family = "feature_verify",
       tableName = "feature_verify_sessions",
       terminalColumn = "completion_status",
       terminalValue = "stale",
       workflowTableName = "feature_verify_workflows",
-    ) { connection, sessionId, level -> emitFeatureVerifyFinished(connection, sessionId, level) },
+    ) { connection, runtimeVersion, sessionId, level ->
+      emitFeatureVerifyFinished(connection, runtimeVersion, sessionId, level)
+    },
     LifecycleReconciliationTarget(
       family = "quality_check",
       tableName = "quality_check_sessions",
       terminalColumn = "result",
       terminalValue = "stale",
-    ) { connection, sessionId, level -> emitQualityCheckFinished(connection, sessionId, level) },
+    ) { connection, runtimeVersion, sessionId, level ->
+      emitQualityCheckFinished(connection, runtimeVersion, sessionId, level)
+    },
   )
 
 internal fun reconcileStaleTelemetrySessions(
   connection: Connection,
   clock: Clock,
   level: String,
-  sessionThresholdSeconds: Long = STALE_SESSION_THRESHOLD_SECONDS,
-  goalIssueAbandonmentDays: Long = STALE_GOAL_ISSUE_ABANDONMENT_DAYS,
+  runtimeVersion: String = "test-runtime-version",
+  policy: StaleSessionReconciliationPolicy = StaleSessionReconciliationPolicy(),
 ): TelemetryReconciliationResult =
   reconcileStaleTelemetrySessions(
     connection = connection,
@@ -68,15 +80,17 @@ internal fun reconcileStaleTelemetrySessions(
         level = level,
         cadenceSeconds = 0L,
         maximumBatchSize = Int.MAX_VALUE,
-        sessionThresholdSeconds = sessionThresholdSeconds,
-        goalIssueAbandonmentDays = goalIssueAbandonmentDays,
+        sessionThresholdSeconds = policy.sessionThresholdSeconds,
+        goalIssueAbandonmentDays = policy.goalIssueAbandonmentDays,
         now = clock.instant(),
       ),
+    runtimeVersion = runtimeVersion,
   )
 
 internal fun reconcileStaleTelemetrySessions(
   connection: Connection,
   request: TelemetryReconciliationRequest,
+  runtimeVersion: String = "test-runtime-version",
 ): TelemetryReconciliationResult {
   if (!claimReconciliationCadence(connection, request)) {
     return TelemetryReconciliationResult.Empty.copy(skippedByCadence = true)
@@ -91,6 +105,7 @@ internal fun reconcileStaleTelemetrySessions(
         markGoalIssueAbandoned(connection, goal) &&
           emitGoalIssueFinished(
             connection,
+            runtimeVersion,
             goal.parentWorkflowId,
             goal.issueKey,
             request.level,
@@ -98,7 +113,7 @@ internal fun reconcileStaleTelemetrySessions(
       } else {
         val target = requireNotNull(lifecycleTargets.firstOrNull { it.family == candidate.family })
         markLifecycleSessionStale(connection, target, candidate.primaryIdentity).also { marked ->
-          if (marked) target.emitFinished(connection, candidate.primaryIdentity, request.level)
+          if (marked) target.emitFinished(connection, runtimeVersion, candidate.primaryIdentity, request.level)
         }
       }
     if (emitted) counts[candidate.family] = counts.getOrDefault(candidate.family, 0) + 1
@@ -117,8 +132,9 @@ internal fun reconcileStaleTelemetrySessions(
 
 internal fun reconcileStaleFeatureTaskRuntimeSessions(
   connection: Connection,
+  runtimeVersion: String = "test-runtime-version",
   thresholdSeconds: Long = STALE_SESSION_THRESHOLD_SECONDS,
-): Int = reconcileLifecycleTable(connection, lifecycleTargets[0], thresholdSeconds, "anonymous")
+): Int = reconcileLifecycleTable(connection, lifecycleTargets[0], runtimeVersion, thresholdSeconds, "anonymous")
 
 private fun claimReconciliationCadence(
   connection: Connection,
@@ -142,13 +158,14 @@ private fun claimReconciliationCadence(
 private fun reconcileLifecycleTable(
   connection: Connection,
   target: LifecycleReconciliationTarget,
+  runtimeVersion: String,
   thresholdSeconds: Long,
   level: String,
 ): Int {
   val sessionIds = staleSessionIds(connection, target, thresholdSeconds)
   return sessionIds.count { sessionId ->
     markLifecycleSessionStale(connection, target, sessionId).also { marked ->
-      if (marked) target.emitFinished(connection, sessionId, level)
+      if (marked) target.emitFinished(connection, runtimeVersion, sessionId, level)
     }
   }
 }

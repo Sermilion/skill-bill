@@ -1,4 +1,5 @@
 package skillbill.cli.kernel.cli
+
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliStdoutCompletion

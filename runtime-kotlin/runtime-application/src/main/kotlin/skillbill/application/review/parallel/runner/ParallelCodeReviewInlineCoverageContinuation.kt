@@ -15,8 +15,8 @@ import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.review.context.model.execution.ResolvedReviewExecutionMode
 import skillbill.review.context.model.hunk.ReviewBudgetEvaluator
 import skillbill.review.context.model.hunk.ReviewLaneIdentity
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.model.ParallelReviewRawFinding
+import skillbill.review.model.ReviewLaneReviewDisposition
 import kotlin.time.Duration
 import kotlin.time.TimeSource
 

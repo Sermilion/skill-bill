@@ -1,5 +1,24 @@
 # Boundary History — runtime-domain
 
+## [2026-09-24] SKILL-372 subtask 2 — Domain-owned artifacts and shared rules
+Areas: runtime-domain, runtime-ports, runtime-engine, runtime-application, runtime-infra-sqlite, runtime-mcp, runtime-cli, runtime-core
+- Added typed artifact-family reads and writes, moved shared workflow rules and validator contracts to their owning boundaries, and preserved wire-compatible encoding.
+- Removed duplicate adapter decoders, raw domain-key reads, forwarding validator extensions, and local integer coercions; malformed payloads now fail at typed seams.
+- Pattern: keep pure artifact projection and coercion in runtime-domain; validate encoded payloads at adapter/application boundaries. reusable
+- Known limitation: package and public-surface cleanup continues in SKILL-372 subtask 3.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
+## [2026-09-24] SKILL-372 subtask 1 — Typed workflow aggregate and strict decode
+Areas: runtime-domain/workflow, runtime-ports/workflow, runtime-engine/workflow, runtime-application/workflow, runtime-infra-sqlite/workflow, runtime-core
+- `WorkflowStateSnapshot` now carries typed steps, artifacts, mode, and `Instant` timestamps; port mapping is the single strict JSON decode/encode seam and preserves stored bytes.
+- Engine open/update validation remains always-on with typed schema failures; validator ownership moved to runtime-ports and consumers use typed snapshots.
+- Domain and adapter timestamp handling uses `Instant`, removing consumer reparsing and lenient empty-map fallback paths.
+- Pattern: decode durable row text once into a typed aggregate at the mapping boundary; keep validation at write/adaptation seams and quarantine malformed persisted input. reusable
+- Breaking changes or known limitations: malformed legacy workflow data now fails typed and follows quarantine/regeneration; wire formats remain unchanged.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-19] SKILL-363 subtask 1 — Add the mandatory simplification phase
 Areas: runtime-domain/taskruntime, runtime-engine/featuretask, runtime-infra/skills, orchestration/contracts, README, skills catalog
 - Added the single-session `simplify` phase between `implement` and `audit`, with bounded subtask scope, receipt persistence, resume reconstruction, and audit-before-review routing.

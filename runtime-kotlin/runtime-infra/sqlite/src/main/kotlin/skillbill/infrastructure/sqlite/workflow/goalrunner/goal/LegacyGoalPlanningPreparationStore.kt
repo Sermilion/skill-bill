@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.goal
+
 import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.GoalPlanningPreparationRecordSql
 import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.deletePreparedByGoal
 import skillbill.ports.goalrunner.LegacyGoalPlanningPreparationRepository

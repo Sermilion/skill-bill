@@ -17,6 +17,7 @@ object PrincipleEnforcementInventory {
     val moduleSourceRoot: String,
     val packagePrefix: String,
     val packageCycleBaseline: String,
+    val packageCycleGranularity: ArchitectureScanSupport.PackageCycleGranularity,
     val ambientClockBaseline: String,
     val ambientEnvironmentBaseline: String,
     val injectDefaultsBaseline: String,
@@ -36,6 +37,12 @@ object PrincipleEnforcementInventory {
       moduleSourceRoot = "runtime-kotlin/$directoryPath/src",
       packagePrefix = packagePrefixForModule(moduleName),
       packageCycleBaseline = packageCycleBaselineForModule(moduleName, baselineStem),
+      packageCycleGranularity =
+        if (moduleName == "runtime-domain") {
+          ArchitectureScanSupport.PackageCycleGranularity.EXACT_PACKAGE_SCC
+        } else {
+          ArchitectureScanSupport.PackageCycleGranularity.FIRST_SEGMENT_MUTUAL_PAIR
+        },
       ambientClockBaseline = ambientClockBaselineForModule(moduleName, baselineStem),
       ambientEnvironmentBaseline = ambientEnvironmentBaselineForModule(moduleName, baselineStem),
       injectDefaultsBaseline = injectDefaultsBaselineForModule(moduleName, baselineStem),
@@ -93,7 +100,7 @@ object PrincipleEnforcementInventory {
       else -> "$baselineStem-inject-constructor-defaults-baseline.txt"
     }
 
-  val cliSharedLeafAreas: Set<String> = setOf("kernel", "model")
+  val cliSharedLeafAreas: Set<String> = setOf("codereview", "kernel", "model")
 
   const val CLI_COMPOSITION_ROOT_AREA: String = "core"
 
@@ -129,7 +136,7 @@ object PrincipleEnforcementInventory {
         "Dynamic ReviewRepository proxy passes typed args through erased invoke; casts mirror the repository contract",
       ),
       SuppressionAllowListRow(
-        "runtime-core/src/test/kotlin/skillbill/di/workflow/ApplicationPersistencePortTestSupport.kt",
+        "runtime-core/src/test/kotlin/skillbill/application/ApplicationPersistencePortTestSupport.kt",
         "noopPort",
         "UNCHECKED_CAST",
         "Dynamic port proxy returns typed facade from erased invoke",
@@ -399,12 +406,13 @@ object PrincipleEnforcementInventory {
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
-          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/review/model/ReviewRunLaneSegmentAccountingJson.kt",
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/review/context/model/packet/" +
+            "ReviewRunLaneSegmentAccountingJson.kt",
         functionNames = setOf("decode", "decodeSegment", "encode"),
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
-          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/persistence/artifact/" +
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/model/persistence/artifact/" +
             "DurableArtifactMapReader.kt",
         functionNames = setOf("durableArtifactMapReader"),
       ),
@@ -473,7 +481,8 @@ object PrincipleEnforcementInventory {
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
-          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/GoalObservabilityModels.kt",
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/model/" +
+            "goalreview/GoalObservabilityModels.kt",
         functionNames = setOf("fromWire"),
       ),
       ArchitectureScanSupport.ParseBoundarySite(
@@ -483,7 +492,8 @@ object PrincipleEnforcementInventory {
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
-          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/GoalObservabilityParsing.kt",
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/model/" +
+            "goalreview/GoalObservabilityParsing.kt",
         functionNames =
           setOf(
             "goalObservabilityHistoryFromArtifacts",
@@ -493,7 +503,7 @@ object PrincipleEnforcementInventory {
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
-          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/" +
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/model/goalreview/" +
             "GoalSubtaskReviewFindingArtifacts.kt",
         functionNames =
           setOf(
@@ -505,7 +515,7 @@ object PrincipleEnforcementInventory {
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
-          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/" +
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/model/goalreview/" +
             "GoalSubtaskReviewStateDecoding.kt",
         functionNames =
           setOf(
@@ -516,7 +526,7 @@ object PrincipleEnforcementInventory {
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
-          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/" +
+          "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/model/goalreview/" +
             "GoalObservabilityParsing.kt",
         functionNames = setOf("goalObservabilityReader", "requireGoalObservabilityContractVersion"),
       ),
@@ -545,7 +555,7 @@ object PrincipleEnforcementInventory {
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =
           "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/engine/" +
-            "WorkflowEngineSnapshotCodecDurable.kt",
+            "WorkflowEngineSnapshotCodec.kt",
         functionNames = setOf("decodeSteps", "decodeObject"),
       ),
     )

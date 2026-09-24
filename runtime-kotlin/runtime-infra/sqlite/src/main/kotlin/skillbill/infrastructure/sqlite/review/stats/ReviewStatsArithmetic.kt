@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats
+
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.sqlite.core.ops.InternalSqliteDiagnostics

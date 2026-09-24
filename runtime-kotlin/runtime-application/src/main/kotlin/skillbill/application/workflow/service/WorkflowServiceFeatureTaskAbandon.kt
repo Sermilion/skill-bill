@@ -1,8 +1,11 @@
 package skillbill.application.workflow.service
+
 import skillbill.application.workflow.model.WorkflowUpdateResult
+import skillbill.application.workflow.persist.WorkflowPersistenceContext
 import skillbill.application.workflow.persist.buildUpdateOk
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.contracts.JsonCodec
+import skillbill.error.core.MalformedJsonTextError
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
@@ -21,6 +24,7 @@ import java.time.ZoneOffset
 internal class WorkflowServiceFeatureTaskAbandon(
   private val engine: WorkflowEngine,
   private val clock: Clock,
+  private val repositoryCheckpointIdentity: () -> String = { "" },
 ) {
   fun abandonRuntimeFeatureTask(
     unitOfWork: UnitOfWork,
@@ -38,6 +42,7 @@ internal class WorkflowServiceFeatureTaskAbandon(
     val abandonedAt = clock.instant().atOffset(ZoneOffset.UTC).toString()
     val input =
       WorkflowUpdateInput(
+        terminalInstant = clock.instant(),
         workflowStatus = WorkflowStatus.ABANDONED,
         currentStepId = existing.currentStepId.orEmpty(),
         stepUpdates = null,
@@ -55,7 +60,16 @@ internal class WorkflowServiceFeatureTaskAbandon(
       )
     val updated = engine.updateRecord(family.definition, existing, input)
     family.save(unitOfWork.workflowStates, updated)
-    return buildUpdateOk(engine, family.definition, updated, input, unitOfWork.dbPath.toString())
+    return buildUpdateOk(
+      engine,
+      family.definition,
+      updated,
+      input,
+      WorkflowPersistenceContext(
+        dbPath = unitOfWork.dbPath.toString(),
+        repositoryCheckpointIdentity = repositoryCheckpointIdentity,
+      ),
+    )
   }
 
   fun abandonLegacyProseFeatureTask(
@@ -71,7 +85,13 @@ internal class WorkflowServiceFeatureTaskAbandon(
       )
     }
     val abandonedAt = clock.instant().atOffset(ZoneOffset.UTC).toString()
-    val artifacts = LinkedHashMap(decodeWorkflowArtifacts(existing.artifactsJson))
+    val artifacts =
+      try {
+        JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(existing.artifactsJson))?.toMutableMap()
+          ?: throw InvalidWorkflowStateSchemaError("Legacy workflow artifacts must decode to an object.")
+      } catch (error: MalformedJsonTextError) {
+        throw InvalidWorkflowStateSchemaError("Legacy workflow artifacts contain malformed JSON.", error)
+      }
     artifacts[FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY] =
       mapOf(
         "reason" to normalizedReason,

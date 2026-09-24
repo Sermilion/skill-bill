@@ -1,5 +1,4 @@
 package skillbill.infrastructure.http
-
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.transport.RemoteTransportPort
 import java.net.http.HttpClient

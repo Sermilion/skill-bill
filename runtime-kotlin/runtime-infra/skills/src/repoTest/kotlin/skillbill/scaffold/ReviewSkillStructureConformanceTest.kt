@@ -3,6 +3,9 @@ package skillbill.scaffold
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.infrastructure.skills.scaffold.rendering.canonicalSeverityCloser
 import skillbill.infrastructure.skills.scaffold.validation.review.ReviewSkillStructureValidator
+import skillbill.infrastructure.skills.scaffold.validation.review.severityRatings
+import skillbill.infrastructure.skills.scaffold.validation.review.severityViolations
+import skillbill.ports.workflow.list
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import java.nio.file.Path

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.git.workflow
+
 import skillbill.infrastructure.contracts.newSha256Digest
 import skillbill.infrastructure.host.jvm.requirePathContainedIn
 import skillbill.infrastructure.workflow.process.GIT_CHANGED_FILE_SAMPLE_LIMIT
@@ -27,11 +28,11 @@ import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
-import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
-import skillbill.workflow.goal.model.GoalObservabilityDiffStat
-import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
+import skillbill.workflow.model.goalreview.GoalObservabilityChangedFileSummary
+import skillbill.workflow.model.goalreview.GoalObservabilityDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilityFileDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunk
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
 import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Files

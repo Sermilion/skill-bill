@@ -1,6 +1,8 @@
 package skillbill.application.review.preparation
+
 import skillbill.application.review.model.ReviewPreparationRequest
 import skillbill.application.review.model.ReviewPreparationResult
+import skillbill.application.review.parallel.planning.criteriaReferences
 import skillbill.application.reviewevidence.RawCommitDiff
 import skillbill.application.reviewevidence.SharedReviewEvidenceCodec
 import skillbill.application.reviewevidence.SharedReviewEvidenceCommits
@@ -12,6 +14,7 @@ import skillbill.error.shellcontent.REVIEW_HUNK_EVIDENCE_INTEGRITY
 import skillbill.error.shellcontent.ReviewHunkEvidenceIntegrityError
 import skillbill.error.shellcontent.ReviewHunkEvidenceLocatorMissingError
 import skillbill.error.shellcontent.ReviewHunkEvidenceLocatorUnreadableError
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.model.ReviewFactPorts
 import skillbill.ports.review.model.ReviewLaneSelection
 import skillbill.ports.review.model.ReviewScopeFacts
@@ -24,7 +27,7 @@ import skillbill.ports.review.preparation.ReviewScopeResolverPort
 import skillbill.ports.review.preparation.ReviewStackRoutingPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceLocatorReadRequest
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.review.context.ReviewContextWireMap
 import skillbill.review.context.model.bundle.ReviewLaneBundle
 import skillbill.review.context.model.commit.ReviewAssignment
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
@@ -45,8 +48,7 @@ import skillbill.review.context.model.hunk.ReviewRevision
 import skillbill.review.context.model.hunk.ReviewRuleReference
 import skillbill.review.context.model.launch.GovernedReviewLaunch
 import skillbill.review.context.model.packet.ReviewExpansionRecord
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
-import skillbill.workflow.engine.model.ReviewContextWireMap
+import skillbill.review.model.ReviewLaneReviewDisposition
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -1,8 +1,6 @@
 package skillbill.experiment.model
 
 import skillbill.config.model.ExperimentAvailabilityPolicy
-import skillbill.experiment.EXPERIMENT_DISABLE_TOKEN
-import skillbill.experiment.parseExperimentNameList
 
 sealed interface ExperimentConfigParse {
   data class Valid(val policy: ExperimentAvailabilityPolicy) : ExperimentConfigParse

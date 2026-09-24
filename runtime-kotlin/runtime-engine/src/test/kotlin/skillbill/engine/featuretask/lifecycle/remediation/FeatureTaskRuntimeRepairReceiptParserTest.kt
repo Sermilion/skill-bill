@@ -2,11 +2,11 @@ package skillbill.engine.featuretask.lifecycle.remediation
 
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeCensusCoverageTestSupport.assertRepairOmits
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeRepairReceiptError
-import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairOutcome
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceiptEntry
-import skillbill.workflow.taskruntime.model.repair.task.omittedCarriedFindings
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairOutcome
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceiptEntry
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.model.goalreview.omittedCarriedFindings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

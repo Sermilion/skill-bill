@@ -1,4 +1,5 @@
 package skillbill.review.review
+
 import skillbill.review.parsing.ReviewParser
 import kotlin.test.Test
 import kotlin.test.assertEquals

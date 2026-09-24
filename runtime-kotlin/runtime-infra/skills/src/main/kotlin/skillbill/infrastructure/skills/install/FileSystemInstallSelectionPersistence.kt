@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.shellcontent.MissingInstallSelectionRecordError
 import skillbill.error.shellcontent.UnreadableInstallSelectionRecordError

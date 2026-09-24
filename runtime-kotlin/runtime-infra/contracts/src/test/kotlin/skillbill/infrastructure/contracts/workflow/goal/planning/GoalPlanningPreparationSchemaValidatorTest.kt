@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.goal.planning
+
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION

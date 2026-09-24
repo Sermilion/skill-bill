@@ -1,6 +1,10 @@
 package skillbill.application
+
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.decomposition.statusFromUpdate
 import skillbill.application.decomposition.withRuntimeFields
+import skillbill.goalrunner.goalContinuationOutcome
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.workflow.decomposition.intentFor
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
@@ -144,9 +148,27 @@ class DecompositionManifestRuntimeStateSupportTest {
       artifactsPatch =
         WorkflowArtifactPatch.from(
           buildMap {
-            put("goal_continuation", mapOf("issue_key" to "SKILL-68", "subtask_id" to 5, "suppress_pr" to true))
+            put(
+              "goal_continuation",
+              mapOf(
+                "issue_key" to "SKILL-68",
+                "subtask_id" to 5,
+                "suppress_pr" to true,
+                "goal_branch" to "feature/SKILL-68",
+                "code_review_mode" to "inline",
+              ),
+            )
             commitPushResult?.let { put("commit_push_result", it) }
-            goalContinuationOutcome?.let { put("goal_continuation_outcome", it) }
+            goalContinuationOutcome?.let {
+              put(
+                "goal_continuation_outcome",
+                mapOf(
+                  "workflow_id" to "wfl-subtask-5",
+                  "last_resumable_step" to "commit_push",
+                  "status" to "complete",
+                ) + it,
+              )
+            }
           },
         ),
     )

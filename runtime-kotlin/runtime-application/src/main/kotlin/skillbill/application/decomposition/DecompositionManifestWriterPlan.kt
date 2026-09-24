@@ -58,7 +58,7 @@ fun specSource(
     ?: invalidManifest(sourceLabel, "spec_source '$value' is not supported.")
 }
 
-private fun linearIssueId(
+internal fun linearIssueId(
   item: DecompositionPlanningSubtaskWire,
   index: Int,
   sourceLabel: String,

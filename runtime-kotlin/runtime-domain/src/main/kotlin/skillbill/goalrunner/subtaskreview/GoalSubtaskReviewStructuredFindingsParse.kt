@@ -6,13 +6,13 @@ import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFinding
 import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFindingsParse
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
-import skillbill.review.finding.ReviewFindingActionability
-import skillbill.review.finding.ReviewFindingFieldCodec
 import skillbill.review.model.RecordedVerdictFields
 import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
 import skillbill.review.model.ReviewFindingVerdict
+import skillbill.review.model.requireRepositoryRelativePath
+import skillbill.review.parsing.ReviewFindingActionability
+import skillbill.review.parsing.ReviewFindingFieldCodec
 
 object GoalSubtaskReviewStructuredFindingsParse {
   fun structuredFindings(
@@ -120,10 +120,12 @@ object GoalSubtaskReviewStructuredFindingsParse {
 
   private fun admissibleRepositoryPath(raw: String?): String? {
     val trimmed = raw?.trim()?.takeIf(String::isNotBlank) ?: return null
-    return runCatching {
+    return try {
       requireRepositoryRelativePath(trimmed)
       trimmed
-    }.getOrNull()
+    } catch (_: IllegalArgumentException) {
+      null
+    }
   }
 
   private fun pathFromLocationLine(location: String): String? {

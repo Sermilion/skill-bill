@@ -1,7 +1,9 @@
 package skillbill.review.attribution
+
 import skillbill.review.model.CanonicalScope
 import skillbill.review.model.ReviewAttributionResolutionError
 import skillbill.review.model.ReviewExecutionMode
+import skillbill.review.model.UNRESOLVED_ATTRIBUTION
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

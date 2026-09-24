@@ -4,19 +4,19 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import skillbill.domain.skillremove.SkillBillRollbackException
-import skillbill.domain.skillremove.SkillRemovalRefusedException
-import skillbill.domain.skillremove.model.AgentSymlinkProvider
-import skillbill.domain.skillremove.model.AgentSymlinkUnlink
-import skillbill.domain.skillremove.model.AppliedCascade
-import skillbill.domain.skillremove.model.ManifestEdit
-import skillbill.domain.skillremove.model.ReadmeCatalogEdit
-import skillbill.domain.skillremove.model.SkillRemovalPreview
-import skillbill.domain.skillremove.model.SkillRemovalRefusalReason
-import skillbill.domain.skillremove.model.SkillRemovalRequest
-import skillbill.domain.skillremove.model.SkillRemovalResult
-import skillbill.domain.skillremove.model.SkillRemovalTarget
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.skillremove.SkillRemoveFileSystem
+import skillbill.skillremove.SkillBillRollbackException
+import skillbill.skillremove.SkillRemovalRefusedException
+import skillbill.skillremove.model.AgentSymlinkUnlink
+import skillbill.skillremove.model.AppliedCascade
+import skillbill.skillremove.model.ManifestEdit
+import skillbill.skillremove.model.ReadmeCatalogEdit
+import skillbill.skillremove.model.SkillRemovalPreview
+import skillbill.skillremove.model.SkillRemovalRefusalReason
+import skillbill.skillremove.model.SkillRemovalRequest
+import skillbill.skillremove.model.SkillRemovalResult
+import skillbill.skillremove.model.SkillRemovalTarget
 import kotlin.test.assertFailsWith
 
 class SkillRemoveTest {
@@ -33,8 +33,8 @@ class SkillRemoveTest {
           ),
         symlinks =
           listOf(
-            AgentSymlinkUnlink(AgentSymlinkProvider.CLAUDE, "/home/u/.claude/agents/bill-foo.md"),
-            AgentSymlinkUnlink(AgentSymlinkProvider.CODEX, "/home/u/.codex/agents/bill-foo.md"),
+            AgentSymlinkUnlink(SupportedAgent.CLAUDE, "/home/u/.claude/agents/bill-foo.md"),
+            AgentSymlinkUnlink(SupportedAgent.CODEX, "/home/u/.codex/agents/bill-foo.md"),
           ),
       )
     val request =
@@ -69,7 +69,7 @@ class SkillRemoveTest {
       FakeSkillRemoveFileSystem(
         filesystemPaths = listOf("platform-packs/my-platform", "skills/my-platform"),
         symlinks =
-          AgentSymlinkProvider.values().map { provider ->
+          SupportedAgent.values().map { provider ->
             AgentSymlinkUnlink(provider, "/home/u/agents/bill-my-platform-*.md")
           },
       )
@@ -80,7 +80,7 @@ class SkillRemoveTest {
       )
     val preview = SkillRemove(fs).previewRemoval(request).preview
     assertEquals(listOf("platform-packs/my-platform", "skills/my-platform"), preview.filesystemPaths)
-    assertEquals(AgentSymlinkProvider.values().size, preview.agentSymlinkUnlinks.size)
+    assertEquals(SupportedAgent.values().size, preview.agentSymlinkUnlinks.size)
     assertEquals(emptyList<String>(), preview.cascadedSkillNames)
   }
 

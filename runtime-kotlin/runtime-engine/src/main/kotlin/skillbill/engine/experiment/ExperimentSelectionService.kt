@@ -1,4 +1,5 @@
 package skillbill.engine.experiment
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.shellcontent.ExperimentDescriptorUnavailableError
 import skillbill.error.shellcontent.ExperimentSelectionConflictError
@@ -7,7 +8,7 @@ import skillbill.experiment.ExperimentAvailabilityResolver
 import skillbill.experiment.ExperimentParameterParser
 import skillbill.experiment.model.ExperimentExecutionMode
 import skillbill.experiment.model.ResolvedExperimentSelection
-import skillbill.experiment.validateExperimentName
+import skillbill.experiment.model.validateExperimentName
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.experiment.config.MachineExperimentConfigStore

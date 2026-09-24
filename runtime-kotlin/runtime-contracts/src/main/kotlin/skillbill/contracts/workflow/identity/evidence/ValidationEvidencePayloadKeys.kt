@@ -1,4 +1,5 @@
 package skillbill.contracts.workflow.identity.evidence
+
 import skillbill.contracts.SharedPayloadKeys
 
 object ValidationEvidencePayloadKeys {

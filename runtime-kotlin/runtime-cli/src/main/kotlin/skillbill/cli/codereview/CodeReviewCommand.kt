@@ -26,7 +26,7 @@ import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.error.shellcontent.ReviewAggregationIntegrityError
 import skillbill.error.shellcontent.ShellContentContractException
-import skillbill.workflow.goal.model.toReviewAccountingBoundedJson
+import skillbill.workflow.model.goalreview.toReviewAccountingBoundedJson
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
 
@@ -230,7 +230,7 @@ private fun runParallelReviewDriver(
     null
   }
 
-private fun usageError(error: Throwable): Nothing {
+internal fun usageError(error: Throwable): Nothing {
   throw UsageError(error.message.orEmpty()).also { usage ->
     runCatching { usage.initCause(error) }
   }

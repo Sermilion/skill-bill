@@ -1,14 +1,12 @@
 package skillbill.infrastructure.skills.install.plan
 
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentDefaultTarget
 import skillbill.install.model.InstallAgentTarget
 import skillbill.install.model.InstallAgentTargetSource
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanSkill
-import skillbill.install.model.InstallPlanWireValidator
 import skillbill.install.model.InstallPlatformPackSnapshot
 import skillbill.install.model.InstallPlatformSkillMaterializationRequest
 import skillbill.install.model.InstallPolicyInput
@@ -16,6 +14,7 @@ import skillbill.install.model.SupportedAgent
 import skillbill.install.model.validateInstallPlanWireSnapshot
 import skillbill.install.policy.InstallPlanPolicy
 import skillbill.model.toPath
+import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.ports.install.plan.model.InstallPlanningFacts
 import skillbill.ports.repository.toFileLocation
 import skillbill.review.plan.ReviewFallbackResolver
@@ -34,13 +33,13 @@ internal fun buildInstallPlan(
   val staging = buildInstallStagingIntent(request, draft.skills, platformManifests)
   val plan = draft.toInstallPlan(staging)
 
-  validateInstallPlanWireSnapshot(plan, wireValidator)
+  validateInstallPlanWireSnapshot(plan, wireValidator::validate)
   return plan
 }
 
 private fun requireSupportedAgentContract() {
-  require(SUPPORTED_AGENTS.map(SupportedAgent::wireValue) == InstallAgent.supportedIds) {
-    "Install plan supported-agent contract drifted. Domain=${InstallAgent.supportedIds}; core=$SUPPORTED_AGENTS."
+  require(SUPPORTED_AGENTS.map(SupportedAgent::wireValue) == SupportedAgent.supportedIds) {
+    "Install plan supported-agent contract drifted. Domain=${SupportedAgent.supportedIds}; core=$SUPPORTED_AGENTS."
   }
 }
 
@@ -88,7 +87,7 @@ private fun buildInstallPolicyInput(
     detectedAgentTargets =
       detectAgents(request.home.toPath(), installPlanEnvironment(request)).map { target ->
         InstallAgentTarget(
-          agent = InstallAgent.fromId(target.name),
+          agent = SupportedAgent.fromId(target.name),
           path = target.path,
           source = InstallAgentTargetSource.DETECTED,
         )
@@ -124,7 +123,7 @@ internal fun collectInstallPlanningFacts(
     detectedAgentTargets =
       detectAgents(request.home.toPath(), installPlanEnvironment(request)).map { target ->
         InstallAgentTarget(
-          agent = InstallAgent.fromId(target.name),
+          agent = SupportedAgent.fromId(target.name),
           path = target.path,
           source = InstallAgentTargetSource.DETECTED,
         )
@@ -153,7 +152,7 @@ internal fun materializeSelectedPlatformSkills(
   }
 }
 
-private fun packRootsBySlug(platformManifests: List<PlatformManifest>): Map<String, Path> =
+internal fun packRootsBySlug(platformManifests: List<PlatformManifest>): Map<String, Path> =
   platformManifests.associate { manifest ->
     manifest.slug to manifest.packRoot.toPath().toAbsolutePath().normalize()
   }

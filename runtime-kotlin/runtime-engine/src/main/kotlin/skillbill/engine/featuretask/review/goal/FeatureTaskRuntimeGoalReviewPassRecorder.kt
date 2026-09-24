@@ -9,8 +9,8 @@ import skillbill.engine.featuretask.model.review.GoalSubtaskReviewPassCarryForwa
 import skillbill.engine.featuretask.model.review.GoalSubtaskReviewPassInFlight
 import skillbill.engine.featuretask.model.review.GoalSubtaskReviewPassReservation
 import skillbill.engine.featuretask.model.review.GoalSubtaskReviewPassReserved
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.persist.RuntimeOwnedPersistenceBoundary
+import skillbill.engine.goalrunner.status.completed
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
@@ -20,13 +20,11 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.ports.workflow.model.WorkflowFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
-import skillbill.workflow.goal.model.GoalSubtaskReviewRevision
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.goalreview.GoalSubtaskBlockerDisposition
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewRevision
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 
 class FeatureTaskRuntimeGoalReviewPassRecorder(
   private val database: DatabaseSessionFactory,
@@ -38,7 +36,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction GoalSubtaskReviewPassReservation.MissingState
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val state =
         reviewStateFromArtifacts(artifacts)
           ?: return@transaction GoalSubtaskReviewPassReservation.MissingState
@@ -55,7 +53,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       patcher.save(
         record,
         unitOfWork.workflowStates,
-        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to reserved.toPersistenceWire()),
+        mapOf(DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(reserved.toPersistenceWire())),
       )
       GoalSubtaskReviewPassReserved(reserved)
     }
@@ -66,7 +64,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
   ): GoalSubtaskReviewState? =
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val state =
         reviewStateFromArtifacts(artifacts)
           ?: return@transaction null
@@ -75,7 +73,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       }
       val updated =
         state.copy(
-          reviewInputArtifact = GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY,
+          reviewInputArtifact = DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_INPUT.label(),
           reviewedDeltaDigest =
             if (input.reviewBaseSha == state.reviewBaseSha) {
               input.deltaDigest
@@ -87,8 +85,8 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
         record,
         unitOfWork.workflowStates,
         mapOf(
-          GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire(),
-          GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY to goalReviewInputArtifactMap(input),
+          DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(updated.toPersistenceWire()),
+          DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_INPUT.entry(goalReviewInputArtifactMap(input)),
         ),
       )
       updated
@@ -102,14 +100,14 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
       val state =
         reviewStateFromArtifacts(
-          FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+          record.artifacts,
         ) ?: return@transaction null
       val updated = transform(state)
       if (updated == state) return@transaction state
       patcher.save(
         record,
         unitOfWork.workflowStates,
-        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire()),
+        mapOf(DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(updated.toPersistenceWire())),
       )
       updated
     }
@@ -138,7 +136,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
   fun lastGoalReviewResult(workflowId: String): String? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val state =
         reviewStateFromArtifacts(artifacts)
           ?: return@read null
@@ -162,7 +160,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
     val record =
       WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return null
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    val artifacts = record.artifacts
     val state = reviewStateFromArtifacts(artifacts) ?: return null
     require(request.rawReviewResult.isNotBlank()) { "Goal-subtask review pass result must be non-blank." }
     val continuation =
@@ -217,8 +215,10 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       loaded.record,
       unitOfWork.workflowStates,
       mapOf(
-        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to completed.toPersistenceWire(),
-        GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to (loaded.previousResults + (passNumber to request.rawReviewResult)),
+        DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(completed.toPersistenceWire()),
+        DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_RESULTS.entry(
+          loaded.previousResults + (passNumber to request.rawReviewResult),
+        ),
       ),
     )
   }

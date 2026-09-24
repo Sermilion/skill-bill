@@ -1,15 +1,16 @@
 package skillbill.review.context.model.hunk
+
 import skillbill.error.shellcontent.ReviewLearningRuleTextTooLongError
 import skillbill.error.shellcontent.ReviewLearningTitleTooLongError
 import skillbill.review.context.model.execution.SHA256_HEX
 import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.canonicalFields
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.execution.sha256
+import skillbill.review.model.requireRepositoryRelativePath
 
 const val REVIEW_RULE_EXCERPT_MAX_CHARS: Int = 2_000
 
-const val REVIEW_LEARNING_TITLE_MAX_CHARS: Int = 2_000
+internal const val REVIEW_LEARNING_TITLE_MAX_CHARS: Int = 2_000
 
 data class ReviewRevision(val sessionId: String, val runRevision: Int) {
   init {

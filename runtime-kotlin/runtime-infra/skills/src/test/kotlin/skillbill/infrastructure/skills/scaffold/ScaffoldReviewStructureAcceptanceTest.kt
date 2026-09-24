@@ -6,7 +6,7 @@ import skillbill.infrastructure.skills.scaffold.rendering.canonicalSeverityClose
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.infrastructure.skills.scaffold.validation.review.ReviewSkillStructureValidator
-import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
+import skillbill.scaffold.policy.APPROVED_CODE_REVIEW_AREAS
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

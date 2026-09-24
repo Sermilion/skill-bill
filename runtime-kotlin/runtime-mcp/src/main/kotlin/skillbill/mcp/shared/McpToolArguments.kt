@@ -1,6 +1,7 @@
 package skillbill.mcp.shared
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.error.core.InvalidMcpToolArgumentError
 
 internal fun Map<String, Any?>.string(name: String): String =

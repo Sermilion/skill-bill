@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.prior
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

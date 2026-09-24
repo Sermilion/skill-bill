@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.featuretask
+
 import java.sql.Connection
 
 internal object FeatureTaskPhaseSettlementsMigration {

@@ -1,5 +1,4 @@
 package skillbill.infrastructure.http
-
 import skillbill.contracts.time.JvmSystemClock
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.RuntimeDiagnostics

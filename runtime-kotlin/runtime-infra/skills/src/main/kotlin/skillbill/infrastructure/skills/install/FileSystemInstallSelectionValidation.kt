@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install
+
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.MalformedInstallSelectionRecordError
 import java.nio.file.Path

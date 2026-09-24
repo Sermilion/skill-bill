@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.model.core
+
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 
 internal data class FeatureTaskRuntimeProjectionCanonicalization(
@@ -25,9 +26,9 @@ internal enum class FeatureTaskRuntimeProjectionCanonicalizationTransform(val wi
   MISNAMED_KEY_ADOPTED("misnamed_key_adopted"),
 }
 
-const val MAX_CANONICALIZATION_RECORDS: Int = 256
+internal const val MAX_CANONICALIZATION_RECORDS: Int = 256
 
-const val MAX_RECORDED_ID_LENGTH: Int = 128
+internal const val MAX_RECORDED_ID_LENGTH: Int = 128
 
 internal val FEATURE_TASK_RUNTIME_NONBLANK_STRING_LIST_KEYS =
   setOf(

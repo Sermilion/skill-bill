@@ -1,12 +1,13 @@
 package skillbill.goalrunner.planning
+
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 
-fun isTerminalWithCommitPlan(subtask: DecompositionSubtask): Boolean =
+internal fun isTerminalWithCommitPlan(subtask: DecompositionSubtask): Boolean =
   subtask.status.decompositionStatus() == DecompositionStatus.COMPLETE && !subtask.commitSha.isNullOrBlank()
 
-fun isTerminalWithCommitPlan(
+internal fun isTerminalWithCommitPlan(
   status: String,
   commitSha: String?,
 ): Boolean = status.decompositionStatus() == DecompositionStatus.COMPLETE && !commitSha.isNullOrBlank()

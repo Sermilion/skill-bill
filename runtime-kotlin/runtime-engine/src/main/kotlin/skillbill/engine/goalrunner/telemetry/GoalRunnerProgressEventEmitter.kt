@@ -5,7 +5,7 @@ import skillbill.ports.agentrun.model.AgentRunProgressEmitter
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
-import skillbill.workflow.goal.model.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEvent
 import java.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -27,7 +27,7 @@ internal class GoalRunnerProgressEventEmitter(
         workflowPhase = "goal_runner_supervision",
         processAlive = emission.processAlive,
         sequenceNumber = sequence++,
-        timestamp = clock.instant().toString(),
+        timestamp = clock.instant(),
         operationName = emission.operationName,
         operationKind = emission.operationKind,
         expectedLong = emission.expectedLong,

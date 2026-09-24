@@ -1,9 +1,13 @@
 package skillbill.workflow.taskruntime.model.phase
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.requireKnownFeatureTaskRuntimePhaseId
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.requireKnownFeatureTaskRuntimePhaseId
+import skillbill.workflow.time.parsePersistedInstant
+import java.time.Instant
 
 enum class FeatureTaskRuntimePhaseExecutionOrigin(val wireValue: String) {
   AGENT_EXECUTED("agent-executed"),
@@ -58,7 +62,7 @@ enum class FeatureTaskRuntimePhaseLedgerAction(val wireValue: String) {
 data class FeatureTaskRuntimePhaseLedgerEntry(
   val action: FeatureTaskRuntimePhaseLedgerAction,
   val sequenceNumber: Int,
-  val timestamp: String,
+  val timestamp: Instant,
   val phaseId: String,
   val attemptCount: Int,
   val resolvedAgentId: String? = null,
@@ -69,11 +73,36 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
   val loopId: String? = null,
   val edgeIteration: Int? = null,
 ) {
+  constructor(
+    action: FeatureTaskRuntimePhaseLedgerAction,
+    sequenceNumber: Int,
+    timestamp: String,
+    phaseId: String,
+    attemptCount: Int,
+    resolvedAgentId: String? = null,
+    executionOrigin: FeatureTaskRuntimePhaseExecutionOrigin = FeatureTaskRuntimePhaseExecutionOrigin.AGENT_EXECUTED,
+    fixLoopIteration: Int? = null,
+    blockedReason: String? = null,
+    loopId: String? = null,
+    edgeIteration: Int? = null,
+  ) : this(
+    action,
+    sequenceNumber,
+    parsePersistedInstant(timestamp),
+    phaseId,
+    attemptCount,
+    resolvedAgentId,
+    executionOrigin,
+    fixLoopIteration,
+    blockedReason,
+    loopId,
+    edgeIteration,
+  )
+
   init {
     require(sequenceNumber >= 0) {
       "FeatureTaskRuntimePhaseLedgerEntry.sequenceNumber must be non-negative, was $sequenceNumber."
     }
-    require(timestamp.isNotBlank()) { "FeatureTaskRuntimePhaseLedgerEntry.timestamp must be non-blank." }
     require(phaseId.isNotBlank()) { "FeatureTaskRuntimePhaseLedgerEntry.phaseId must be non-blank." }
     require(attemptCount >= 1) {
       "FeatureTaskRuntimePhaseLedgerEntry.attemptCount must be >= 1, was $attemptCount."
@@ -94,7 +123,7 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
     linkedMapOf<String, Any?>(
       DecompositionManifestPayloadKeys.ACTION to action.wireValue,
       "sequence_number" to sequenceNumber,
-      "timestamp" to timestamp,
+      "timestamp" to timestamp.toString(),
       SharedPayloadKeys.PHASE_ID to phaseId,
       "attempt_count" to attemptCount,
     ).apply {
@@ -122,7 +151,7 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
               reader.requiredString(DecompositionManifestPayloadKeys.ACTION),
             ),
           sequenceNumber = reader.requiredInt("sequence_number"),
-          timestamp = reader.requiredString("timestamp"),
+          timestamp = parsePersistedInstant(reader.requiredString("timestamp")),
           phaseId =
             requireKnownFeatureTaskRuntimePhaseId(
               reader.requiredString(SharedPayloadKeys.PHASE_ID),

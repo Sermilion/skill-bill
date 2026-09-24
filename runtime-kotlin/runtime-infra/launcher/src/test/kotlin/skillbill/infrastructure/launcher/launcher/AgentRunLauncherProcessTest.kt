@@ -6,7 +6,7 @@ import skillbill.infrastructure.launcher.agentrun.FileSystemAgentRunLauncher
 import skillbill.infrastructure.launcher.agentrun.headlessAgentRunAdapters
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessResult
 import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import java.nio.file.Path
@@ -25,7 +25,7 @@ class AgentRunLauncherProcessTest {
     val runner = RecordingAgentRunProcessRunner()
     val request = skillRunRequest(goalContinuation = null).copy(promptOverride = AGENT_RUN_LAUNCHER_PHASE_PROMPT)
 
-    requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CLAUDE]).launch(request)
+    requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.CLAUDE]).launch(request)
 
     val captured = runner.requests.single()
     assertEquals("claude", captured.command[0])
@@ -39,7 +39,7 @@ class AgentRunLauncherProcessTest {
     val runner = RecordingAgentRunProcessRunner()
     val request = skillRunRequest(goalContinuation = null).copy(promptOverride = AGENT_RUN_LAUNCHER_PHASE_PROMPT)
 
-    requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.JUNIE]).launch(request)
+    requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.JUNIE]).launch(request)
 
     val captured = runner.requests.single()
     assertEquals("junie", captured.command.first())
@@ -80,7 +80,7 @@ class AgentRunLauncherProcessTest {
       )
     val timeout =
       requireNotNull(
-        headlessAgentRunAdapters(timeoutRunner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CODEX],
+        headlessAgentRunAdapters(timeoutRunner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.CODEX],
       ).launch(skillRunRequest())
     assertTrue(timeout.timedOut)
     assertFalse(timeout.spawnFailed)
@@ -100,7 +100,7 @@ class AgentRunLauncherProcessTest {
       )
     val spawnFailure =
       requireNotNull(
-        headlessAgentRunAdapters(spawnRunner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CODEX],
+        headlessAgentRunAdapters(spawnRunner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.CODEX],
       ).launch(skillRunRequest())
     assertFalse(spawnFailure.timedOut)
     assertTrue(spawnFailure.spawnFailed)
@@ -125,7 +125,7 @@ class AgentRunLauncherProcessTest {
       )
 
     val facts =
-      requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CODEX])
+      requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.CODEX])
         .launch(skillRunRequest())
 
     assertContentEquals(rawBytes, facts.stdoutBytes)
@@ -148,7 +148,7 @@ class AgentRunLauncherProcessTest {
       )
 
     val facts =
-      requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CLAUDE])
+      requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.CLAUDE])
         .launch(skillRunRequest())
 
     assertEquals("""{"status":"blocked"}""", facts.stdout)
@@ -158,7 +158,7 @@ class AgentRunLauncherProcessTest {
   @Test
   fun `adapter invokes process runner once per launch`() {
     val runner = RecordingAgentRunProcessRunner()
-    val adapter = requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.CODEX])
+    val adapter = requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.CODEX])
 
     adapter.launch(
       skillRunRequest(issueKey = "SKILL-56", goalContinuation = null)

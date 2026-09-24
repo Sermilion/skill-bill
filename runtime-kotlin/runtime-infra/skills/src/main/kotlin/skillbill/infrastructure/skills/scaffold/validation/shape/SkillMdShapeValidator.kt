@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.validation.shape
+
 import java.nio.file.Files
 import java.nio.file.Path
 

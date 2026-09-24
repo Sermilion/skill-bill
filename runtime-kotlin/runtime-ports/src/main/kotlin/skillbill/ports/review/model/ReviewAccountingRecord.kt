@@ -1,4 +1,5 @@
 package skillbill.ports.review.model
+
 import skillbill.review.context.model.accounting.ReviewAccountingSummary
 
 data class ReviewAccountingRecord(

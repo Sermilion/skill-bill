@@ -3,6 +3,7 @@ package skillbill.engine.featuretask.runloop.state
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.application.testHarnessClock
 import skillbill.engine.IMPLEMENT_OUTPUT
+import skillbill.engine.NoopWorkflowSnapshotValidator
 import skillbill.engine.PLAN_OUTPUT
 import skillbill.engine.PREPLAN_OUTPUT
 import skillbill.engine.RuntimeHarnessConfig
@@ -15,14 +16,15 @@ import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequ
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.core.ReconstructFixLoopBudgetBasesArgs
 import skillbill.engine.featuretask.runner.serializeTokenData
+import skillbill.engine.goalrunner.status.completed
 import skillbill.engine.runnerHarness
 import skillbill.engine.satisfiedAuditLauncher
 import skillbill.engine.validJsonOutput
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus

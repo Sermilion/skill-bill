@@ -1,8 +1,10 @@
 package skillbill.infrastructure.skills.scaffold.runtime.validation
+
 import skillbill.error.shellcontent.InvalidSkillMdShapeError
 import skillbill.infrastructure.skills.nativeagent.composition.NATIVE_AGENT_SOURCE_DIR
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
 import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
+import skillbill.infrastructure.skills.scaffold.validation.review.contentFiles
 import skillbill.infrastructure.skills.scaffold.validation.shape.validateAuthoredContent
 import skillbill.infrastructure.skills.scaffold.validation.shape.validateSkillMdShape
 import java.nio.file.Files

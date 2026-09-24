@@ -1,4 +1,5 @@
 package skillbill.cli.kernel.payload
+
 import skillbill.application.learning.model.LearningDeleteResult
 import skillbill.application.learning.model.LearningListResult
 import skillbill.application.learning.model.LearningRecordResult

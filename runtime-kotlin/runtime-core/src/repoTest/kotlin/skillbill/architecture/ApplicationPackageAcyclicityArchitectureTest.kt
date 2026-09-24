@@ -1,6 +1,9 @@
 package skillbill.architecture
 
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.io.path.readText
+import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -44,6 +47,34 @@ class ApplicationPackageAcyclicityArchitectureTest {
   @Test
   fun `runtime-domain package cycles equal the recorded census`() {
     assertPackageCyclesMatchBaseline("runtime-domain")
+  }
+
+  @Test
+  fun `runtime-domain model packages import only model packages`() {
+    val violations =
+      ArchitectureScanSupport.modelPackageImportViolations(
+        scanRoot = "runtime-kotlin/runtime-domain/src/main/kotlin",
+        packagePrefix = "skillbill.",
+      )
+    assertEquals(
+      emptyList(),
+      violations,
+      "A runtime-domain model package must depend on an owning model package, not an internal non-model package.",
+    )
+  }
+
+  @Test
+  fun `runtime-domain public declarations have cross-file consumers`() {
+    val violations =
+      ArchitectureScanSupport.publicDomainDeclarationViolations(
+        scanRoot = "runtime-kotlin/runtime-domain/src/main/kotlin",
+        referenceRoot = "runtime-kotlin",
+      )
+    assertEquals(
+      emptyList(),
+      violations,
+      "Public runtime-domain declarations must be consumed outside their declaring file and module.",
+    )
   }
 
   @Test
@@ -107,6 +138,162 @@ class ApplicationPackageAcyclicityArchitectureTest {
       violations,
     )
     assertTrue(violations.single().contains("alpha <-> beta"))
+  }
+
+  @Test
+  fun `exact package scanner reports arbitrary length cycles and resolves imported members`() {
+    val violations =
+      ArchitectureScanSupport.packageCycleViolationsForEdges(
+        edges =
+          mapOf(
+            "skillbill.synthetic.alpha" to setOf("skillbill.synthetic.beta"),
+            "skillbill.synthetic.beta" to setOf("skillbill.synthetic.gamma"),
+            "skillbill.synthetic.gamma" to setOf("skillbill.synthetic.alpha"),
+          ),
+        baselineCycles = emptySet(),
+        granularity = ArchitectureScanSupport.PackageCycleGranularity.EXACT_PACKAGE_SCC,
+      )
+    assertEquals(
+      listOf(
+        "New package cycle not in baseline: " +
+          "skillbill.synthetic.alpha <-> skillbill.synthetic.beta <-> skillbill.synthetic.gamma",
+      ),
+      violations,
+    )
+  }
+
+  @Test
+  fun `exact package source scan resolves nested and member imports without changing default scan`() {
+    assertExactPackageCycleScan()
+    assertAcyclicExactPackageScan()
+  }
+
+  private fun assertExactPackageCycleScan() {
+    val root = Files.createTempDirectory("architecture-exact-package-cycle")
+    try {
+      val packages =
+        listOf("alpha", "beta", "gamma", "delta", "epsilon").associateWith { area ->
+          root.resolve("skillbill/synthetic/$area").also { path -> Files.createDirectories(path) }
+        }
+      writeSyntheticPackageFiles(packages)
+      val exactEdges =
+        ArchitectureScanSupport.packageImportEdges(
+          scanRoot = root.toString(),
+          packagePrefix = "skillbill.synthetic.",
+          granularity = ArchitectureScanSupport.PackageCycleGranularity.EXACT_PACKAGE_SCC,
+        )
+      assertEquals(
+        mapOf(
+          "skillbill.synthetic.alpha" to setOf("skillbill.synthetic.beta"),
+          "skillbill.synthetic.beta" to setOf("skillbill.synthetic.gamma"),
+          "skillbill.synthetic.gamma" to setOf("skillbill.synthetic.alpha"),
+          "skillbill.synthetic.delta" to setOf("skillbill.synthetic.epsilon"),
+          "skillbill.synthetic.epsilon" to setOf("skillbill.synthetic.delta"),
+        ),
+        exactEdges,
+      )
+      assertEquals(
+        setOf(
+          ArchitectureScanSupport.PackageCycle(
+            listOf(
+              "skillbill.synthetic.alpha",
+              "skillbill.synthetic.beta",
+              "skillbill.synthetic.gamma",
+            ),
+          ),
+          ArchitectureScanSupport.PackageCycle(
+            listOf(
+              "skillbill.synthetic.delta",
+              "skillbill.synthetic.epsilon",
+            ),
+          ),
+        ),
+        ArchitectureScanSupport.packageCycles(
+          scanRoot = root.toString(),
+          packagePrefix = "skillbill.synthetic.",
+          granularity = ArchitectureScanSupport.PackageCycleGranularity.EXACT_PACKAGE_SCC,
+        ),
+      )
+      assertEquals(
+        setOf(ArchitectureScanSupport.PackageCycle(listOf("delta", "epsilon"))),
+        ArchitectureScanSupport.packageCycles(
+          scanRoot = root.toString(),
+          packagePrefix = "skillbill.synthetic.",
+        ),
+      )
+    } finally {
+      root.toFile().deleteRecursively()
+    }
+  }
+
+  private fun assertAcyclicExactPackageScan() {
+    val root = Files.createTempDirectory("architecture-acyclic-package")
+    try {
+      val packages =
+        listOf("alpha", "beta", "gamma").associateWith { area ->
+          root.resolve("skillbill/synthetic/$area").also { path -> Files.createDirectories(path) }
+        }
+      packages.forEach { (name, path) ->
+        path.resolve("${name.replaceFirstChar(Char::uppercase)}.kt").writeText(
+          """
+
+
+          class ${name.replaceFirstChar(Char::uppercase)}
+          """.trimIndent(),
+        )
+      }
+      assertEquals(
+        emptySet(),
+        ArchitectureScanSupport.packageCycles(
+          scanRoot = root.toString(),
+          packagePrefix = "skillbill.synthetic.",
+          granularity = ArchitectureScanSupport.PackageCycleGranularity.EXACT_PACKAGE_SCC,
+        ),
+      )
+    } finally {
+      root.toFile().deleteRecursively()
+    }
+  }
+
+  private fun writeSyntheticPackageFiles(packages: Map<String, Path>) {
+    packages.getValue("alpha").resolve("Alpha.kt").writeText(
+      """
+      package skillbill.synthetic.alpha
+      import skillbill.synthetic.beta.Beta
+      class Alpha
+      """.trimIndent(),
+    )
+    packages.getValue("beta").resolve("Beta.kt").writeText(
+      """
+      package skillbill.synthetic.beta
+      import skillbill.synthetic.gamma.Gamma
+      class Beta {
+        object Nested
+      }
+      """.trimIndent(),
+    )
+    packages.getValue("gamma").resolve("Gamma.kt").writeText(
+      """
+      package skillbill.synthetic.gamma
+      import skillbill.synthetic.alpha.Alpha.*
+
+      class Gamma
+      """.trimIndent(),
+    )
+    packages.getValue("delta").resolve("Delta.kt").writeText(
+      """
+      package skillbill.synthetic.delta
+      import skillbill.synthetic.epsilon.Epsilon
+      class Delta
+      """.trimIndent(),
+    )
+    packages.getValue("epsilon").resolve("Epsilon.kt").writeText(
+      """
+      package skillbill.synthetic.epsilon
+      import skillbill.synthetic.delta.Delta
+      class Epsilon
+      """.trimIndent(),
+    )
   }
 
   @Test
@@ -187,7 +374,12 @@ class ApplicationPackageAcyclicityArchitectureTest {
     val scanCase =
       PrincipleEnforcementInventory.moduleArchitectureScanCases
         .single { scanCase -> scanCase.moduleName == moduleName }
-    val current = ArchitectureScanSupport.packageCycles(scanCase.mainScanRoot, scanCase.packagePrefix)
+    val current =
+      ArchitectureScanSupport.packageCycles(
+        scanRoot = scanCase.mainScanRoot,
+        packagePrefix = scanCase.packagePrefix,
+        granularity = scanCase.packageCycleGranularity,
+      )
     assertEquals(
       baselineCycles(scanCase.packageCycleBaseline),
       current,

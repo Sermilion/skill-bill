@@ -2,6 +2,7 @@ package skillbill.engine.goalrunner.planning
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
+import skillbill.engine.goalrunner.planning.attempt.diagnosticPhaseId
 import skillbill.engine.goalrunner.planning.model.GoalPlanningAttemptOutcome
 import skillbill.engine.goalrunner.planning.model.GoalPlanningLog
 import skillbill.engine.goalrunner.planning.model.GoalPlanningLogAttempt
@@ -12,9 +13,9 @@ import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressOutcome
 import java.time.Clock
 import java.time.Instant
 
@@ -81,7 +82,7 @@ class GoalPlanningLogService(
       val eventKind = event.eventKind
       when (eventKind) {
         GoalProgressEventKind.OPERATION_STARTED -> {
-          val occurrence = AttemptOccurrence(operation, timestamp(event))
+          val occurrence = AttemptOccurrence(operation, event.timestamp)
           occurrences += occurrence
           open.getOrPut(operation) { mutableListOf() } += occurrence
         }
@@ -90,7 +91,7 @@ class GoalPlanningLogService(
           val pending =
             open[operation]?.removeLastOrNull()
               ?: AttemptOccurrence(operation, startedAt = null).also { occurrences += it }
-          pending.settle(timestamp(event), outcomeWire(event.outcome))
+          pending.settle(event.timestamp, outcomeWire(event.outcome))
         }
 
         GoalProgressEventKind.PHASE_STARTED,
@@ -134,8 +135,6 @@ class GoalPlanningLogService(
       this.outcome = outcome?.let(GoalPlanningAttemptOutcome::fromWire) ?: GoalPlanningAttemptOutcome.IN_FLIGHT
     }
   }
-
-  private fun timestamp(event: GoalProgressEvent): Instant? = runCatching { Instant.parse(event.timestamp) }.getOrNull()
 
   private fun outcomeWire(outcome: GoalProgressOutcome): String? =
     if (outcome == GoalProgressOutcome.NONE) null else outcome.wireValue

@@ -13,6 +13,7 @@ import skillbill.infrastructure.skills.scaffold.runtime.service.ScaffoldPlan
 import skillbill.infrastructure.skills.scaffold.runtime.service.ScaffoldRuntimeContext
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
+import skillbill.infrastructure.skills.scaffold.runtime.service.performInstall
 import skillbill.infrastructure.skills.scaffold.runtime.service.scaffoldWithAdapters
 import skillbill.scaffold.policy.platformpack.model.PlatformPackManifestRenderRequest
 import skillbill.scaffold.policy.platformpack.renderPlatformPackManifest

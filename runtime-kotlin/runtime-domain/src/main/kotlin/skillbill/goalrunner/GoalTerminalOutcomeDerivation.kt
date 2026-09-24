@@ -3,12 +3,11 @@ package skillbill.goalrunner
 import skillbill.goalrunner.model.GoalContinuation
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
-import skillbill.workflow.engine.decodeWorkflowSteps
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
-import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.model.goalreview.asGoalWorkflowArtifactMap
 
 fun terminalOutcomeFor(
   snapshot: WorkflowStateSnapshot,
@@ -45,7 +44,7 @@ fun derivedTerminalOutcomeFor(
   goalContinuation: GoalContinuation,
   measuredCommitSha: () -> String?,
 ): GoalRunnerStoredOutcome? {
-  val steps = decodeWorkflowSteps(snapshot.stepsJson)
+  val steps = snapshot.steps
   val commitSha =
     commitShaFrom(artifacts)
       ?: if (commitPushCompletedUnderSuppressPr(steps, goalContinuation.suppressPr)) measuredCommitSha() else null
@@ -101,7 +100,7 @@ fun terminalStatus(
     else -> null
   }
 
-fun liveBlockedStep(
+private fun liveBlockedStep(
   snapshot: WorkflowStateSnapshot,
   steps: List<WorkflowStepState>,
 ): WorkflowStepState? {
@@ -137,7 +136,7 @@ fun commitShaFrom(artifacts: Any): String? {
   return (wire["commit_push_result"] as? Map<*, *>)?.get("commit_sha")?.toString()?.takeIf(String::isNotBlank)
 }
 
-fun commitPushCompletedUnderSuppressPr(
+private fun commitPushCompletedUnderSuppressPr(
   steps: List<WorkflowStepState>,
   suppressPr: Boolean,
 ): Boolean =

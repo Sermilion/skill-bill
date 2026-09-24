@@ -72,7 +72,6 @@ class RuntimeSpilloverFileNameArchitectureTest {
         relativePath = path,
         source =
           """
-          package skillbill.application.example
 
           class BarSupport(private val seed: Int) {
             val fooContinued2: Int = seed
@@ -99,7 +98,6 @@ class RuntimeSpilloverFileNameArchitectureTest {
         relativePath = "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/Protocol2.kt",
         source =
           """
-          package skillbill.workflow
 
           class Protocol2(val digestSha256: String) {
             val stage1: Int = 1

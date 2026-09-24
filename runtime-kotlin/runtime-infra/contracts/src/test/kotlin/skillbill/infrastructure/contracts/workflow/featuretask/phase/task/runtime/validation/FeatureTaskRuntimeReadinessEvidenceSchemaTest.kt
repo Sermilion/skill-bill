@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.validation
+
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeReadinessEvidenceSchemaPaths

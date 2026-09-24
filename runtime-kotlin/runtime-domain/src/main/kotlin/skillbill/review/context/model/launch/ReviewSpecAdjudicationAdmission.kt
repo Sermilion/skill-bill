@@ -1,4 +1,5 @@
 package skillbill.review.context.model.launch
+
 import skillbill.review.context.model.execution.SpecIntentProjection
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewFindingCitation

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.file
+
 import skillbill.contracts.JsonCodec
 import skillbill.error.core.ExternalAddonConfigError
 import skillbill.model.toPath

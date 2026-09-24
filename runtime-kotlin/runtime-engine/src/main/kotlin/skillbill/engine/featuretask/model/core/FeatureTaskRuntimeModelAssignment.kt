@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.core
+
 import skillbill.config.model.ExecutionMatrix
 import skillbill.config.model.PhaseModelDirective
 

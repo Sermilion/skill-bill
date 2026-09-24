@@ -1,7 +1,6 @@
 package skillbill.infrastructure.skills.install
 
 import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
@@ -13,6 +12,7 @@ import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.RuntimeDistributionInputs
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
@@ -54,7 +54,7 @@ class InstallPlanSchemaValidatesExistingFixturesTest {
   fun `manual selected agent plan validates against the canonical schema`() {
     val fixture = setupFixture()
     val explicitTargets =
-      InstallAgent.entries.map { agent ->
+      SupportedAgent.entries.map { agent ->
         InstallAgentTarget(
           agent = agent,
           path = fixture.home.resolve("manual-targets/${agent.id}").toFileLocation(),
@@ -67,7 +67,7 @@ class InstallPlanSchemaValidatesExistingFixturesTest {
           agentSelection =
             InstallAgentSelection(
               mode = InstallAgentSelectionMode.MANUAL,
-              manualAgents = InstallAgent.entries.toSet(),
+              manualAgents = SupportedAgent.entries.toSet(),
             ),
           targetPaths = fixture.targetPaths(agentTargets = explicitTargets),
         ),
@@ -192,7 +192,7 @@ class InstallPlanSchemaValidatesExistingFixturesTest {
       agentSelection: InstallAgentSelection =
         InstallAgentSelection(
           mode = InstallAgentSelectionMode.MANUAL,
-          manualAgents = setOf(InstallAgent.CODEX),
+          manualAgents = setOf(SupportedAgent.CODEX),
         ),
       platformPackSelection: PlatformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.NONE),
       telemetryLevel: InstallTelemetryLevel = InstallTelemetryLevel.ANONYMOUS,

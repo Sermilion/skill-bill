@@ -1,5 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.manifest
+
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 
 private val QUALITY_CHECK_KEY_PATTERN =

@@ -1,14 +1,12 @@
 package skillbill.workflow.taskruntime.model.handoff.task
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_DIAGNOSTIC_DEGRADATION_MEASUREMENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PROJECTION_MEASUREMENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_REJECTION_MEASUREMENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_SHARED_EVIDENCE_PROJECTION_CONTRACT_VERSION
-import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
-
-const val FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE: String =
-  "restart the active run or use the documented out-of-band migration procedure"
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDiagnosticFailureClass
 
 data class FeatureTaskRuntimeProducerIteration(
   val phaseId: String,

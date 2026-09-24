@@ -7,15 +7,15 @@ import skillbill.infrastructure.launcher.agentrun.WorktreeActivityProbe
 import skillbill.infrastructure.launcher.agentrun.headlessAgentRunAdapters
 import skillbill.infrastructure.launcher.process.launch.AgentRunActivityProbe
 import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunDeclaredProgressProbe
 import skillbill.ports.agentrun.model.AgentRunDeclaredProgressSnapshot
 import skillbill.ports.agentrun.model.AgentRunProgressEmission
 import skillbill.ports.agentrun.model.AgentRunProgressEmitter
 import skillbill.ports.agentrun.model.AgentRunWorktreeEditObserver
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressOutcome
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Collections
@@ -257,7 +257,7 @@ class AgentRunLauncherActivityTest {
   fun `launch facts expose provider-neutral child session path and id for codex and other builders`() {
     val runner = RecordingAgentRunProcessRunner()
     val adapters = headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)
-    listOf(InstallAgent.CODEX, InstallAgent.CLAUDE, InstallAgent.JUNIE, InstallAgent.CURSOR).forEach { agent ->
+    listOf(SupportedAgent.CODEX, SupportedAgent.CLAUDE, SupportedAgent.JUNIE, SupportedAgent.CURSOR).forEach { agent ->
       val facts = requireNotNull(adapters[agent]).launch(skillRunRequest())
       assertEquals("/tmp/skillbill-agent-run", facts.childSessionPath, "session path for $agent")
       val sessionId = requireNotNull(facts.childSessionId) { "session id for $agent" }

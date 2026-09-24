@@ -1,10 +1,12 @@
 package skillbill.workflow.taskruntime.model.repair.task
+
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeRepairReceiptError
+import skillbill.workflow.model.goalreview.REPAIR_RECEIPT_MAX_CONSTRUCT_FILE_UTF8_BYTES
+import skillbill.workflow.model.goalreview.REPAIR_RECEIPT_MAX_CONSTRUCT_SYMBOL_UTF8_BYTES
 
 private val COMPACT_SYMBOL = Regex("^[A-Za-z_][A-Za-z0-9_$-]*(?:\\.[A-Za-z_][A-Za-z0-9_$-]*)?$")
 private val COMPACT_IDENTIFIER = Regex("^[A-Za-z_][A-Za-z0-9_$-]*$")
 private val FILE_BASENAME = Regex("^[A-Za-z0-9_.-]+$")
-private val IDENTITY_WHITESPACE = Regex("\\s+")
 private val LINE_NUMBER =
   Regex(
     "(?:\\b(?:lines?|ln)\\s*:?\\s*\\d+(?:\\s*[-–]\\s*\\d+)?)|" +
@@ -22,8 +24,6 @@ private val SOURCE_BODY =
 private val DIFF_HUNK = Regex("@@[^@]*@@|^(?:diff --git|\\+\\+\\+ |--- )")
 private val SERIALIZED_PAYLOAD = Regex("\\{\\s*\"|\"\\s*:\\s*[\\[{\"]")
 private const val CODE_FENCE: String = "```"
-
-internal fun normalizeIdentityPart(part: String): String = part.trim().lowercase().replace(IDENTITY_WHITESPACE, " ")
 
 internal fun requireReceiptSymbol(
   value: String,

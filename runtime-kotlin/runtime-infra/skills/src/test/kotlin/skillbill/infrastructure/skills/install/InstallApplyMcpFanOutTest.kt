@@ -1,9 +1,9 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyIssueKind
 import skillbill.install.model.InstallApplyStatus
 import skillbill.install.model.McpRegistrationApplyStatus
+import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
 import java.nio.file.Files
 import kotlin.test.Test
@@ -21,13 +21,13 @@ class InstallApplyMcpFanOutTest : InstallApplyTestSupport() {
     Files.createFile(work.resolve(".claude.json"))
     val plan =
       planInstallForTest(
-        fixture.request(agents = setOf(InstallAgent.CLAUDE)),
+        fixture.request(agents = setOf(SupportedAgent.CLAUDE)),
       )
 
     val result = applyInstallForTest(plan)
 
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
-    val claudeOutcome = result.mcpRegistrationOutcomes.single { outcome -> outcome.agent == InstallAgent.CLAUDE }
+    val claudeOutcome = result.mcpRegistrationOutcomes.single { outcome -> outcome.agent == SupportedAgent.CLAUDE }
     assertEquals(McpRegistrationApplyStatus.SUCCESS, claudeOutcome.status)
     assertTrue(claudeOutcome.profiles.size > 1, "expected fan-out across profiles: ${claudeOutcome.profiles}")
     assertEquals(
@@ -50,13 +50,13 @@ class InstallApplyMcpFanOutTest : InstallApplyTestSupport() {
     val defaultConfig = fixture.home.resolve(".claude.json")
     val plan =
       planInstallForTest(
-        fixture.request(agents = setOf(InstallAgent.CLAUDE)),
+        fixture.request(agents = setOf(SupportedAgent.CLAUDE)),
       )
 
     val result = applyInstallForTest(plan)
 
     assertEquals(InstallApplyStatus.WARNING, result.status)
-    val claudeOutcome = result.mcpRegistrationOutcomes.single { outcome -> outcome.agent == InstallAgent.CLAUDE }
+    val claudeOutcome = result.mcpRegistrationOutcomes.single { outcome -> outcome.agent == SupportedAgent.CLAUDE }
     assertEquals(McpRegistrationApplyStatus.FAILED, claudeOutcome.status)
     assertEquals(listOf(defaultConfig), claudeOutcome.profiles.map { profile -> profile.configPath.toPath() })
     assertContains(claudeOutcome.message, malformed.toString())
@@ -64,7 +64,7 @@ class InstallApplyMcpFanOutTest : InstallApplyTestSupport() {
     assertTrue(
       result.warnings.any { warning ->
         warning.kind == InstallApplyIssueKind.MCP_REGISTRATION_FAILED &&
-          warning.agent == InstallAgent.CLAUDE
+          warning.agent == SupportedAgent.CLAUDE
       },
     )
     assertEquals("{ not valid json", Files.readString(malformed))

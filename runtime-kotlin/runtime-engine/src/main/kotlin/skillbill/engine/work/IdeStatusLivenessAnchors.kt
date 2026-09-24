@@ -22,7 +22,7 @@ class IdeStatusLivenessAnchors(
         IdeStatusWorkflowFamily.FEATURE_VERIFY ->
           WorkflowFamily.VERIFY.get(unitOfWork.workflowStates, item.workflowId)
         IdeStatusWorkflowFamily.FEATURE_GOAL -> null
-      }?.let { parseInstantOrNull(it.updatedAt) }
+      }?.updatedAt
         ?: latestGoalChildUpdatedAt(item, family)
 
     return listOfNotNull(fromWorkflow, item.stateEnteredAt, goalLeaseHeartbeatAt(item, family))
@@ -35,7 +35,7 @@ class IdeStatusLivenessAnchors(
   ): Instant? {
     if (family != IdeStatusWorkflowFamily.FEATURE_GOAL) return null
     val lease = unitOfWork.goalRunnerControls.controlState(item.workflowId).executionLease ?: return null
-    return parseInstantOrNull(lease.heartbeatAt)
+    return lease.heartbeatAt
   }
 
   private fun latestGoalChildUpdatedAt(

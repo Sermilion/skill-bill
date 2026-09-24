@@ -1,4 +1,5 @@
 package skillbill.engine.experiment.report
+
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 
 private const val PERCENT_MULTIPLIER = 100.0

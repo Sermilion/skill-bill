@@ -1,4 +1,5 @@
 package skillbill.workflow.model
+
 import skillbill.contracts.workflow.identity.task.FEATURE_TASK_EXECUTION_IDENTITY_CONTRACT_VERSION
 
 data class FeatureTaskExecutionIdentity(

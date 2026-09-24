@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.feature
+
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
@@ -19,6 +20,17 @@ class FeatureTaskRuntimeValidationGateExecutionEvidenceTest {
       FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(
         mapOf(ValidationEvidencePayloadKeys.VALIDATION_STATUS to "passed"),
         "validate",
+      )
+    }
+    assertFailsWith<InvalidFeatureTaskRuntimeValidationEvidenceSchemaError> {
+      FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(
+        evidenceArtifact(
+          checks = emptyList(),
+          gateRuns = listOf(gateRun().toArtifactMap()),
+        ).toMutableMap().apply {
+          put(ValidationEvidencePayloadKeys.GATE_RUN_COUNT, 1.7)
+        },
+        "fractional-gate-count",
       )
     }
   }

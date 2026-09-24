@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.model
 
-import skillbill.goalrunner.model.GoalContinuation as PContinuation
 import skillbill.ports.goalrunner.persistence.model.CrashReconcileExpiredWorkerRequest as PCrashExpired
 import skillbill.ports.goalrunner.persistence.model.GoalContinuationCandidate as PContinuationCandidate
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerAppliedRepair as PAppliedRepair
@@ -19,7 +18,6 @@ import skillbill.ports.goalrunner.persistence.model.GoalSubtaskIdentity as PSubt
 import skillbill.ports.goalrunner.persistence.model.HistoryArtifactAppend as PHistoryAppend
 import skillbill.ports.goalrunner.persistence.model.StaleRunningCandidatesBlockRequest as PStaleBlockRequest
 
-typealias GoalContinuation = PContinuation
 typealias GoalSubtaskIdentity = PSubtaskIdentity
 typealias HistoryArtifactAppend = PHistoryAppend
 typealias GoalContinuationCandidate = PContinuationCandidate

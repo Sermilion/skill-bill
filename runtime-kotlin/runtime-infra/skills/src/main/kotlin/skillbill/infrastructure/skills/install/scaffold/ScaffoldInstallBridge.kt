@@ -20,9 +20,9 @@ import skillbill.install.model.InstallPlanSkillKind
 import skillbill.install.model.InstallTransaction
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
+import skillbill.scaffold.policy.SKILL_KIND_ADD_ON
+import skillbill.scaffold.policy.SKILL_KIND_AGENT_ADDON
+import skillbill.scaffold.policy.SKILL_KIND_PLATFORM_PACK
 import java.nio.file.Files
 import java.nio.file.Path
 

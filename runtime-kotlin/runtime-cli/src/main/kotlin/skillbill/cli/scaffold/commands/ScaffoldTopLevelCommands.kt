@@ -1,4 +1,5 @@
 package skillbill.cli.scaffold.commands
+
 import com.github.ajalt.clikt.core.CliktCommand
 import me.tatarka.inject.annotations.Inject
 

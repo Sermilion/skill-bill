@@ -1,4 +1,5 @@
 package skillbill.install.model
+
 import skillbill.error.core.InvalidAgentAddonAgentIdError
 
 enum class SupportedAgent(
@@ -49,5 +50,3 @@ enum class SupportedAgent(
     }
   }
 }
-
-typealias InstallAgent = SupportedAgent

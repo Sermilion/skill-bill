@@ -1,9 +1,11 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.runner
+
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.goalrunner.control.clearRunnerInterruptedPauseState
+import skillbill.infrastructure.sqlite.goalrunner.control.executionLease
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
@@ -22,6 +24,12 @@ internal class GoalRunnerControlStore(
     parentWorkflowId: String,
     state: GoalRunnerControlState,
   ): GoalRunnerControlState {
+    val source =
+      selectJson(parentWorkflowId, "control_state_json")?.let { raw ->
+        decodeControlState(raw)
+        JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(raw))
+          ?: goalRunnerControlSchemaError("control state must be an object")
+      }
     connection.prepareStatement(
       """
       INSERT INTO goal_runner_controls (parent_workflow_id, control_state_json)
@@ -31,7 +39,7 @@ internal class GoalRunnerControlStore(
         updated_at = CURRENT_TIMESTAMP
       """.trimIndent(),
     ).use { statement ->
-      statement.bindAll(parentWorkflowId, JsonCodec.mapToJsonString(state.toArtifactMap()))
+      statement.bindAll(parentWorkflowId, JsonCodec.mapToJsonString(state.toArtifactMap(source)))
       statement.executeUpdate()
     }
     return state

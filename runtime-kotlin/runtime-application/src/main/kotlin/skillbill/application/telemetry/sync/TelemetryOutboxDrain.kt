@@ -206,7 +206,7 @@ private fun attemptDelivery(
   }
 }
 
-private fun failureDetail(error: Exception): String =
+internal fun failureDetail(error: Exception): String =
   error.message.orEmpty().ifBlank { error::class.simpleName.orEmpty() }
 
 private fun rejectedMessage(detail: String): String {

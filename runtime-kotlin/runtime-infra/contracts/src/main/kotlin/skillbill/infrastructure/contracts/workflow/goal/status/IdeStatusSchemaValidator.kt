@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.goal.status
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
@@ -11,6 +12,9 @@ import skillbill.contracts.workflow.identity.status.IdeStatusSchemaPaths
 import skillbill.error.shellcontent.InvalidIdeStatusSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
+import skillbill.infrastructure.contracts.review.formatValidationReason
+import skillbill.infrastructure.contracts.review.offendingValue
+import skillbill.infrastructure.contracts.review.violationOrdering
 import skillbill.infrastructure.contracts.workflow.goal.observability.extractGoalObservabilityOffendingValue
 import skillbill.infrastructure.contracts.workflow.goal.observability.goalObservabilityDottedFieldPath
 import skillbill.ports.idestatus.IdeStatusValidator

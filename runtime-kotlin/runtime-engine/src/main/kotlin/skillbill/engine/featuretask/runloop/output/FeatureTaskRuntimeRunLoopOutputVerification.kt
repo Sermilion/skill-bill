@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.runloop.output
 
+import skillbill.application.decomposition.baseBranch
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.lifecycle.continuation.matches
@@ -55,6 +56,7 @@ import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.engine.featuretask.runner.mutatingReconciliationGateReason
 import skillbill.engine.featuretask.runner.phaseDeclaration
+import skillbill.engine.goalrunner.status.completed
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseBriefingFramingError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
@@ -65,12 +67,13 @@ import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.ports.workflow.gitops.repositoryOwnedPaths
 import skillbill.ports.workflow.gitops.runtimePhaseChangedPathsBetweenCommits
 import skillbill.review.model.ReviewFindingVerdict
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffAssemblyRequest
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
@@ -81,7 +84,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputR
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputSourceLocation
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.validation.validateDispositionCoverage
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 

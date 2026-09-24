@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install.nativeagent.inventory
+
 import skillbill.error.core.InvalidNativeAgentLinkInventoryReconcileError
 import skillbill.error.shellcontent.ShellContentContractException
 import java.io.IOException

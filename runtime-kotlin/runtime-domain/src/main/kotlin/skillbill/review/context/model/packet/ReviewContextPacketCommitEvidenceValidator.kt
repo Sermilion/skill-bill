@@ -1,4 +1,5 @@
 package skillbill.review.context.model.packet
+
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitUnit
 

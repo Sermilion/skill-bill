@@ -9,17 +9,17 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.work.model.WorkItemKind
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.getAll
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
 
 @Inject
 class WorkListService(
   private val database: DatabaseSessionFactory,
-  workflowSnapshotValidator: WorkflowSnapshotValidator,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
 ) {
-  private val workflowEngine = WorkflowEngine(workflowSnapshotValidator)
+  private val workflowEngine = WorkflowEngine()
 
   fun list(limit: Int? = null): WorkListResult {
     require(limit == null || limit > 0) { "--limit must be a positive integer." }
@@ -47,6 +47,7 @@ class WorkListService(
               "Work-list row '${item.workflowId}' has no matching ${item.workflowKind.wireValue} workflow snapshot.",
             )
         workflowEngine.summaryView(family.definition, snapshot)
+        workflowSnapshotValidator.validate(snapshot, family.definition.workflowName)
       }
     }
   }

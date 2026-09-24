@@ -1,15 +1,15 @@
 package skillbill.cli
 
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
+import skillbill.engine.featuretask.persist.durationMillis
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.ports.agentrun.ExecutableLookup
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.phaseRecordsFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -17,6 +17,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+
+private val FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS.label()
 
 class CliGoalRepairRuntimeTest {
   @Test
@@ -248,7 +251,7 @@ class CliGoalRepairRuntimeTest {
     assertContains(result.stdout, "status: repaired")
     assertContains(result.stdout, "completed_upstream_missing_output")
     val repairedRecords =
-      phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifacts(readChildArtifacts(fixture, childWorkflowId)))
+      phaseRecordsFromWorkflowArtifacts(parseWorkflowArtifactsForTest(readChildArtifacts(fixture, childWorkflowId)))
     assertEquals(WorkflowStepStatus.PENDING, repairedRecords.getValue("verify_findings").status)
     assertEquals(WorkflowStepStatus.PENDING, repairedRecords.getValue("implement_fix").status)
   }
@@ -344,7 +347,7 @@ class CliGoalRepairRuntimeTest {
             rows.getString(1)
           }
         }
-      val artifacts = decodeWorkflowArtifacts(current).toMutableMap()
+      val artifacts = parseWorkflowArtifactsForTest(current).toMutableMap()
       val records = phaseRecordsFromWorkflowArtifacts(artifacts).toMutableMap()
       val timestamp = "2026-09-12T08:00:00Z"
       records.putIfAbsent(
@@ -395,3 +398,8 @@ class CliGoalRepairRuntimeTest {
     }
   }
 }
+
+private fun parseWorkflowArtifactsForTest(json: String): Map<String, Any?> =
+  requireNotNull(
+    JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(json)))),
+  )

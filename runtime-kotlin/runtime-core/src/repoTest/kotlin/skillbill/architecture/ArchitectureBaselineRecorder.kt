@@ -39,6 +39,7 @@ class ArchitectureBaselineRecorder {
         baselineDir.resolve(scanCase.packageCycleBaseline),
         scanCase.mainScanRoot,
         scanCase.packagePrefix,
+        scanCase.packageCycleGranularity,
       )
     }
   }
@@ -92,9 +93,10 @@ class ArchitectureBaselineRecorder {
     target: Path,
     scanRoot: String,
     packagePrefix: String,
+    granularity: ArchitectureScanSupport.PackageCycleGranularity,
   ) {
     val cycles =
-      ArchitectureScanSupport.packageCycles(scanRoot, packagePrefix)
+      ArchitectureScanSupport.packageCycles(scanRoot, packagePrefix, granularity)
         .map { cycle -> cycle.areas.sorted().joinToString("|") }
         .sorted()
     Files.writeString(target, cycles.joinToString("\n") + "\n")

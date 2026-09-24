@@ -1,20 +1,22 @@
 package skillbill.application
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
+
+import skillbill.application.decomposition.baseBranch
 import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.executionModel
-import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.decomposition.parseStackBranches
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.model.toPath
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.loadDecompositionManifest
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
-import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -22,6 +24,7 @@ import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -31,7 +34,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class DecompositionManifestWriterTest {
-  private val engine: WorkflowEngine = WorkflowEngine(testWorkflowSnapshotValidator)
+  private val engine: WorkflowEngine = WorkflowEngine()
 
   @Test
   fun `decomposition planning result writes validated same branch manifest beside parent spec`() {
@@ -241,7 +244,7 @@ class DecompositionManifestWriterTest {
         repoRoot,
         JsonCodec.mapToJsonString(
           mapOf(
-            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+            DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to
               testDecompositionManifestValidator.encodeManifestWireMap(reset),
           ),
         ),
@@ -550,6 +553,7 @@ class DecompositionManifestWriterTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "implement",
           stepUpdates =
@@ -656,7 +660,11 @@ class DecompositionManifestWriterTest {
   ): String =
     JsonCodec.mapToJsonString(
       mapOf(
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+        DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to
+          testDecompositionManifestValidator.encodeManifestWireMap(
+            manifest,
+            DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
+          ),
         "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
         "branch" to mapOf("branch" to "feature/SKILL-51-decomposition"),
       ),

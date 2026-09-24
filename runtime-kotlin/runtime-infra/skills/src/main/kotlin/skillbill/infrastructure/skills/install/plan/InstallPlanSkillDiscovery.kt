@@ -10,11 +10,13 @@ import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlat
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.validatePlatformPack
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.infrastructure.skills.scaffold.validation.review.ReviewSkillStructureValidator
+import skillbill.infrastructure.skills.scaffold.validation.review.contentFiles
 import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.workflow.list
 import skillbill.scaffold.model.PlatformManifest
 import java.io.FileNotFoundException
 import java.nio.file.Files

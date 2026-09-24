@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.durations
+
 import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.InternalSqliteDiagnostics
 import skillbill.infrastructure.sqlite.core.ops.recordDegradedValue

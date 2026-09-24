@@ -1,5 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.runtime.service
+
 import skillbill.infrastructure.skills.scaffold.manifest.appendCodeReviewArea
 import skillbill.infrastructure.skills.scaffold.manifest.appendExternalAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.manifest.appendGovernedAddonManifestRegistration
@@ -7,10 +8,10 @@ import skillbill.infrastructure.skills.scaffold.manifest.appendReadmeCatalogRow
 import skillbill.infrastructure.skills.scaffold.manifest.renderExternalAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.infrastructure.skills.scaffold.rendering.renderNativeAgentBundleStubs
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_CODE_REVIEW_AREA
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_HORIZONTAL
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
+import skillbill.scaffold.policy.SKILL_KIND_ADD_ON
+import skillbill.scaffold.policy.SKILL_KIND_CODE_REVIEW_AREA
+import skillbill.scaffold.policy.SKILL_KIND_HORIZONTAL
+import skillbill.scaffold.policy.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
 import java.nio.file.Files
 import java.nio.file.Path
 

@@ -1,27 +1,28 @@
 package skillbill.workflow.taskruntime.artifact
+
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeRepairReceiptError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairLedgerEntry
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceiptDecodeObservations
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceiptDecoded
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeQuarantineEntry
 import skillbill.workflow.taskruntime.model.audit.featureTaskRuntimeQuarantineEntriesFromWire
 import skillbill.workflow.taskruntime.model.audit.featureTaskRuntimeQuarantineRecordToWire
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDecomposeTerminal
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffEnvelope
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjection
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeCheckpointIdentitiesFromArtifact
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeCheckpointIdentitiesToArtifact
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationFieldAdoption
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.toArtifactMap
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedgerEntry
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceiptDecodeObservations
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceiptDecoded
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessEvidence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
@@ -43,20 +44,6 @@ private fun artifactsMap(artifacts: Any?): Map<String, Any?> =
           "Feature-task-runtime workflow artifacts must decode to an object.",
         )
   }
-
-class FeatureTaskRuntimeWorkflowArtifactMap private constructor(
-  private val delegate: Map<String, Any?>,
-) : Map<String, Any?> by delegate {
-  internal companion object {
-    fun from(raw: Any?): FeatureTaskRuntimeWorkflowArtifactMap =
-      FeatureTaskRuntimeWorkflowArtifactMap(
-        JsonCodec.anyToStringAnyMap(raw)
-          ?: throw InvalidWorkflowStateSchemaError(
-            "Feature-task-runtime workflow artifact entry must decode to an object.",
-          ),
-      )
-  }
-}
 
 class FeatureTaskRuntimePhaseRecords(
   private val delegate: Map<String, FeatureTaskRuntimePhaseRecord>,
@@ -147,7 +134,7 @@ internal fun decodeValidationEvidenceFromArtifact(
 
 fun FeatureTaskRuntimeRepairReceipt.asWorkflowArtifactEntry(): Any = toArtifactMap()
 
-fun decodeRepairReceiptFromArtifact(
+internal fun decodeRepairReceiptFromArtifact(
   raw: Any?,
   sourceLabel: String,
 ): FeatureTaskRuntimeRepairReceipt? =

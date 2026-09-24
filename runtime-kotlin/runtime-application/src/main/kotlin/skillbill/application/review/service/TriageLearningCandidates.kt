@@ -35,7 +35,7 @@ internal fun learningCandidates(
     }
 }
 
-private fun suggestedTitle(
+internal fun suggestedTitle(
   description: String,
   findingId: String,
 ): String =

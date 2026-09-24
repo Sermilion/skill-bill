@@ -99,7 +99,6 @@ class RuntimeEnginePublicTopLevelDeclarationArchitectureTest {
   fun `visibility census detects Kotlin default-public declarations outside the pinned api`() {
     val source =
       """
-      package skillbill.engine.goalrunner
 
       class NewEngineLeak
       internal class AllowedImplementation
@@ -120,7 +119,6 @@ class RuntimeEnginePublicTopLevelDeclarationArchitectureTest {
   fun `visibility census allows a pinned api declaration without allowing its package`() {
     val source =
       """
-      package skillbill.engine.goalrunner
 
       class GoalRunner
       class UnpinnedEngineLeak

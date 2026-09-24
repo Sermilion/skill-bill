@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install.nativeagent.install.native
+
 import skillbill.infrastructure.skills.install.nativeagent.install.agent.NativeAgentLinkProviderBodyArgs
 import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgentLinkInventory
 import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgentLinkInventoryEntry

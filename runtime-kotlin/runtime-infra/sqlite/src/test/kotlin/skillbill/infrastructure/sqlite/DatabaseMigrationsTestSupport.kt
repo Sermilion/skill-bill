@@ -3,13 +3,13 @@ package skillbill.infrastructure.sqlite
 import org.junit.jupiter.api.Assumptions
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidWorkListRowError
-import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
-import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
 import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.schema.DatabaseSchema
 import skillbill.infrastructure.sqlite.worklist.SQLiteWorkListRepository
+import skillbill.ports.workflow.list
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -21,6 +21,11 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
+private val GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_OUT_OF_BAND_ACCEPTANCE.label()
+private val GOAL_REVIEW_POLICY_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_REVIEW_POLICY.label()
 
 internal fun seedVersionKeyedLedger(dbPath: Path) {
   DatabaseRuntime.ensureDatabase(dbPath).use { connection ->

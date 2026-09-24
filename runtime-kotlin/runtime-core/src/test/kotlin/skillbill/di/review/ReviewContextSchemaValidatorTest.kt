@@ -42,8 +42,8 @@ import skillbill.review.context.model.launch.GovernedReviewIntegrationLaunch
 import skillbill.review.context.model.launch.GovernedReviewLaunch
 import skillbill.review.context.model.launch.ReviewSpecialistSummary
 import skillbill.review.context.model.packet.ReviewContextPacket
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.context.model.packet.ReviewPacketConsumerContract
+import skillbill.review.model.ReviewLaneReviewDisposition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

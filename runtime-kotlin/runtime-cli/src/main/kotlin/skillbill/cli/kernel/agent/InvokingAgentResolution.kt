@@ -1,8 +1,9 @@
 package skillbill.cli.kernel.agent
+
 import com.github.ajalt.clikt.core.UsageError
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InvokingAgentContextResolver
 import skillbill.install.model.InvokingAgentContextSignal
+import skillbill.install.model.SupportedAgent
 
 const val SKILL_BILL_AGENT_ENV: String = "SKILL_BILL_AGENT"
 
@@ -30,7 +31,7 @@ fun requireSupportedAgentId(
   source: String,
 ): String {
   val normalized = agentId.trim().lowercase()
-  if (normalized !in InstallAgent.supportedIds) {
+  if (normalized !in SupportedAgent.supportedIds) {
     throw UsageError(unsupportedAgentMessage(agentId, source))
   }
   return normalized
@@ -46,7 +47,7 @@ fun requireSupportedOptionalAgentId(
   }
 
 fun invokingAgentResolutionHelp(agentOption: String): String =
-  "Agent invoking this run (${InstallAgent.supportedIds.joinToString("|")}). Resolution order: $agentOption, " +
+  "Agent invoking this run (${SupportedAgent.supportedIds.joinToString("|")}). Resolution order: $agentOption, " +
     "then $SKILL_BILL_AGENT_ENV, then the detected invoking-agent execution context. Resolution fails when " +
     "none of the three names an agent."
 
@@ -58,7 +59,10 @@ private fun invokingAgentSource(
 private fun unsupportedAgentMessage(
   agentId: String,
   source: String,
-): String = "Unknown agent '$agentId' from $source. Supported agents: ${InstallAgent.supportedIds.joinToString(", ")}."
+): String =
+  "Unknown agent '$agentId' from $source. Supported agents: ${SupportedAgent.supportedIds.joinToString(
+    ", ",
+  )}."
 
 private fun undetectedInvokingAgentMessage(agentOption: String): String =
   "Cannot determine the invoking agent, and there is no default: $agentOption was not passed, " +

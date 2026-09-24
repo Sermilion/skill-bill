@@ -1,4 +1,5 @@
 package skillbill.application.review.service
+
 import skillbill.application.review.model.ImportedReviewResult
 import skillbill.application.review.model.LearningCandidate
 import skillbill.application.review.model.ReviewFeedbackResult

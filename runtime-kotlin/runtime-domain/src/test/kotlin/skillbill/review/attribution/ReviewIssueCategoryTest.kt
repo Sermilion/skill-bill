@@ -1,4 +1,5 @@
 package skillbill.review.attribution
+
 import skillbill.review.model.ImportedFinding
 import kotlin.test.Test
 import kotlin.test.assertEquals

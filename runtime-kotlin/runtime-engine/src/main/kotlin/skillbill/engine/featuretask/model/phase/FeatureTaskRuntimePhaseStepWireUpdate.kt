@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model.phase
+
 import skillbill.contracts.SharedPayloadKeys
 
 internal data class FeatureTaskRuntimePhaseStepWireUpdate(

@@ -1,6 +1,10 @@
 package skillbill.workflow.taskruntime.model.phase
+
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.scaffold.wire.requireString
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.scaffold.policy.requireStringList
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 internal fun Map<String, Any?>.requireSubtasks(): List<FeatureTaskRuntimeDecomposeSubtask> {
   val rawSubtasks =
@@ -55,7 +59,7 @@ private fun Map<String, Any?>.requireInt(
   key: String,
   index: Int,
 ): Int =
-  this[key].asIntOrNull()
+  this[key].asExactIntOrNull()
     ?: planOutcomeSchemaError("Decompose plan subtask[$index].$key must be an integer.")
 
 private fun Map<String, Any?>.requireStringList(
@@ -90,18 +94,9 @@ private fun Map<String, Any?>.optionalIntList(
     raw as? List<*>
       ?: planOutcomeSchemaError("Decompose plan subtask[$index].$key must be a list.")
   return list.mapIndexed { itemIndex, value ->
-    value.asIntOrNull()
+    value.asExactIntOrNull()
       ?: planOutcomeSchemaError("Decompose plan subtask[$index].$key[$itemIndex] must be an integer.")
   }
 }
-
-private fun Any?.asIntOrNull(): Int? =
-  when (this) {
-    is Int -> this
-    is Long -> takeIf { it in Int.MIN_VALUE..Int.MAX_VALUE }?.toInt()
-    is Number -> toDouble().takeIf { it % 1.0 == 0.0 }?.toInt()
-    is String -> toIntOrNull()
-    else -> null
-  }
 
 private fun planOutcomeSchemaError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)

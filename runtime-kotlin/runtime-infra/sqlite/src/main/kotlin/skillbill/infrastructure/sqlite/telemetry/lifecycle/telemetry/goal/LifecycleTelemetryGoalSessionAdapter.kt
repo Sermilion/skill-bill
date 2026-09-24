@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.goal
+
 import skillbill.infrastructure.sqlite.telemetry.goal.GoalFinishedSaveOutcome
 import skillbill.infrastructure.sqlite.telemetry.goal.GoalIssueSegmentStart
 import skillbill.infrastructure.sqlite.telemetry.goal.GoalStartedSaveOutcome
@@ -21,6 +22,7 @@ import java.sql.Connection
 
 internal class LifecycleTelemetryGoalSessionAdapter(
   private val connection: Connection,
+  private val runtimeVersion: String,
 ) : GoalLifecycleTelemetryRepository {
   override fun goalStarted(
     record: GoalStartedRecord,
@@ -44,7 +46,7 @@ internal class LifecycleTelemetryGoalSessionAdapter(
           )
         }
     }
-    emitGoalStarted(connection, record.workflowId, level)
+    emitGoalStarted(connection, runtimeVersion, record.workflowId, level)
   }
 
   override fun goalSubtaskFinished(
@@ -52,7 +54,7 @@ internal class LifecycleTelemetryGoalSessionAdapter(
     level: String,
   ) {
     saveGoalSubtaskFinished(connection, record)
-    emitGoalSubtaskFinished(connection, record, level)
+    emitGoalSubtaskFinished(connection, runtimeVersion, record, level)
   }
 
   override fun goalFinished(
@@ -71,7 +73,7 @@ internal class LifecycleTelemetryGoalSessionAdapter(
         )
       }
     }
-    emitGoalFinished(connection, record.workflowId, level)
+    emitGoalFinished(connection, runtimeVersion, record.workflowId, level)
   }
 
   override fun goalIssueFinished(
@@ -79,7 +81,7 @@ internal class LifecycleTelemetryGoalSessionAdapter(
     level: String,
   ) {
     if (saveGoalIssueFinished(connection, record).persisted) {
-      emitGoalIssueFinished(connection, record.parentWorkflowId, record.issueKey, level)
+      emitGoalIssueFinished(connection, runtimeVersion, record.parentWorkflowId, record.issueKey, level)
     }
   }
 }

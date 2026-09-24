@@ -1,4 +1,5 @@
 package skillbill.ports.experiment.descriptor
+
 import skillbill.experiment.model.ExperimentExecutionMode
 
 object TestExperimentDescriptorCatalog {

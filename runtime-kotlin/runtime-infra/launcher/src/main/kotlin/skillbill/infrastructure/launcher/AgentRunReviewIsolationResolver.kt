@@ -5,13 +5,13 @@ import skillbill.infrastructure.launcher.agentrun.ClaudeAgentRunCommandBuilder
 import skillbill.infrastructure.launcher.agentrun.CodexAgentRunCommandBuilder
 import skillbill.infrastructure.launcher.agentrun.CursorAgentRunCommandBuilder
 import skillbill.infrastructure.launcher.agentrun.JunieAgentRunCommandBuilder
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.review.launch.ReviewLaunchIsolationResolver
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
 
 @Inject
 class AgentRunReviewIsolationResolver : ReviewLaunchIsolationResolver {
-  private val strategies: Map<InstallAgent, ReviewLaunchIsolationStrategy> =
+  private val strategies: Map<SupportedAgent, ReviewLaunchIsolationStrategy> =
     listOf(
       ClaudeAgentRunCommandBuilder(),
       CodexAgentRunCommandBuilder(),
@@ -21,7 +21,7 @@ class AgentRunReviewIsolationResolver : ReviewLaunchIsolationResolver {
 
   override fun isolationFor(agentId: String): ReviewLaunchIsolationStrategy {
     val agent =
-      InstallAgent.supportedIds.firstOrNull { it == agentId }
+      SupportedAgent.supportedIds.firstOrNull { it == agentId }
         ?.let { id -> strategies.keys.firstOrNull { it.id == id } }
     return agent?.let(strategies::get) ?: ReviewLaunchIsolationStrategy.UNSUPPORTED
   }

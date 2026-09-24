@@ -1,14 +1,14 @@
 package skillbill.infrastructure.skills.scaffold.payload
-
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.error.shellcontent.ScaffoldPayloadVersionMismatchError
 import skillbill.error.shellcontent.UnknownPreShellFamilyError
 import skillbill.error.shellcontent.UnknownSkillKindError
-import skillbill.scaffold.policy.scaffold.ACTIVE_CREATION_SKILL_KINDS
-import skillbill.scaffold.policy.scaffold.RETIRED_CODE_REVIEW_AREA_KIND_ALIASES
-import skillbill.scaffold.policy.scaffold.RETIRED_PLATFORM_OVERRIDE_KIND_ALIASES
-import skillbill.scaffold.policy.scaffold.SCAFFOLD_PAYLOAD_VERSION
-import skillbill.scaffold.policy.scaffold.rejectRetiredPartialScaffoldKind
+import skillbill.scaffold.model.SkillKind
+import skillbill.scaffold.policy.ACTIVE_CREATION_SKILL_KINDS
+import skillbill.scaffold.policy.RETIRED_CODE_REVIEW_AREA_KIND_ALIASES
+import skillbill.scaffold.policy.RETIRED_PLATFORM_OVERRIDE_KIND_ALIASES
+import skillbill.scaffold.policy.SCAFFOLD_PAYLOAD_VERSION
+import skillbill.scaffold.policy.rejectRetiredPartialScaffoldKind
 
 internal fun validatePayloadVersion(payload: Map<String, Any?>) {
   val version =
@@ -37,13 +37,14 @@ internal fun detectKind(payload: Map<String, Any?>): String {
   if (kind.trim().lowercase() in RETIRED_CODE_REVIEW_AREA_KIND_ALIASES) {
     rejectRetiredPartialScaffoldKind(kind)
   }
-  if (kind !in ACTIVE_CREATION_SKILL_KINDS) {
+  val skillKind = SkillKind.fromWire(kind)
+  if (skillKind.wireValue !in ACTIVE_CREATION_SKILL_KINDS) {
     throw UnknownSkillKindError(
       "Scaffold payload declares unsupported kind '$kind'. " +
         "Supported kinds: $ACTIVE_CREATION_SKILL_KINDS.",
     )
   }
-  return kind
+  return skillKind.wireValue
 }
 
 private fun rejectRetiredFeatureImplementFamily(family: Any?) {

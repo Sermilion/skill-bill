@@ -1,6 +1,8 @@
 package skillbill.engine.featuretask.validation
 
+import skillbill.application.decomposition.baseBranch
 import skillbill.engine.RecordingWorkflowGitOperations
+import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimeReadinessEvidencePort
 import skillbill.engine.featuretask.runner.phasesFor
@@ -165,7 +167,7 @@ class FeatureTaskRuntimeReadinessGateCoordinatorTest {
 
 private const val WORKFLOW_ID = "wf-readiness-fingerprint"
 
-private fun coordinator(store: FeatureTaskRuntimeReadinessEvidencePort): FeatureTaskRuntimeReadinessGateCoordinator =
+internal fun coordinator(store: FeatureTaskRuntimeReadinessEvidencePort): FeatureTaskRuntimeReadinessGateCoordinator =
   FeatureTaskRuntimeReadinessGateCoordinator(
     ReadinessCheckSelection(
       object : PrCheckDiscovery {

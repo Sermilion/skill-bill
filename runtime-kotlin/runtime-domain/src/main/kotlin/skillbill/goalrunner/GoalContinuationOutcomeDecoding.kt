@@ -1,9 +1,42 @@
 package skillbill.goalrunner
 
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
-import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
+import skillbill.workflow.model.goalreview.asGoalWorkflowArtifactMap
+
+fun missingResultPrefixTerminalOutcomeArtifact(
+  output: Any,
+  issueKey: String,
+  subtaskId: Int,
+  workflowId: String,
+): Map<String, Any?>? {
+  val wire = JsonCodec.anyToStringAnyMap(output) ?: return null
+  return (JsonCodec.anyToStringAnyMap(wire["subtask_outcome"]) ?: wire)
+    .takeIf { candidate ->
+      val candidateIssueKey = candidate[SharedPayloadKeys.ISSUE_KEY]?.toString()?.takeIf(String::isNotBlank) ?: issueKey
+      val candidateSubtaskId = candidate[SharedPayloadKeys.SUBTASK_ID].asGoalRunnerIntOrNull() ?: subtaskId
+      candidateIssueKey == issueKey && candidateSubtaskId == subtaskId
+    }?.let { candidate ->
+      candidate[SharedPayloadKeys.STATUS]?.toString()?.let(::goalContinuationTerminalStatus)?.let { status ->
+        linkedMapOf<String, Any?>(
+          SharedPayloadKeys.ISSUE_KEY to issueKey,
+          SharedPayloadKeys.SUBTASK_ID to subtaskId,
+          SharedPayloadKeys.STATUS to status.wireValue,
+          SharedPayloadKeys.WORKFLOW_ID to (
+            candidate[SharedPayloadKeys.WORKFLOW_ID]?.toString()?.takeIf(String::isNotBlank) ?: workflowId
+          ),
+          "last_resumable_step" to (
+            candidate["last_resumable_step"]?.toString()?.takeIf(String::isNotBlank) ?: "preplan"
+          ),
+        ).apply {
+          candidate["commit_sha"]?.toString()?.takeIf(String::isNotBlank)?.let { put("commit_sha", it) }
+          candidate["blocked_reason"]?.toString()?.takeIf(String::isNotBlank)?.let { put("blocked_reason", it) }
+        }
+      }
+    }
+}
 
 fun goalContinuationTerminalStatus(status: String?): GoalRunnerTerminalStatus? =
   status?.let(GoalRunnerTerminalStatus::fromWire)

@@ -3,7 +3,7 @@ package skillbill.application
 import skillbill.application.review.governed.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.application.review.snapshot.simulateGovernedEvidenceReads
 import skillbill.application.reviewevidence.model.ParallelReviewScope
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
@@ -204,7 +204,7 @@ private fun throwingLauncher(error: Throwable): GoalRunnerSubtaskLauncher = Goal
 private fun unsupportedLauncher(): GoalRunnerSubtaskLauncher =
   GoalRunnerSubtaskLauncher {
     UnsupportedAgentRunLaunch(
-      agent = InstallAgent.fromNormalizedId("cursor", label = "agentId"),
+      agent = SupportedAgent.fromNormalizedId("cursor", label = "agentId"),
       reason = "unsupported",
     )
   }
@@ -247,7 +247,7 @@ private class RecordingSubtaskLauncher : GoalRunnerSubtaskLauncher {
 
   override fun launch(request: GoalRunnerSubtaskLaunchRequest) =
     AgentRunLaunchFacts(
-      agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+      agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
       exitStatus = 0,
       stdout = "NO_FINDINGS",
       stderr = "",

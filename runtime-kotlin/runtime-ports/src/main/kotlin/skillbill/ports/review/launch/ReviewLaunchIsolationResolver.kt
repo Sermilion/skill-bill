@@ -1,4 +1,5 @@
 package skillbill.ports.review.launch
+
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
 
 fun interface ReviewLaunchIsolationResolver {

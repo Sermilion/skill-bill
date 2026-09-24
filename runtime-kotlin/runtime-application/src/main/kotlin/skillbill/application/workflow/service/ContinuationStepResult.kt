@@ -1,20 +1,20 @@
 package skillbill.application.workflow.service
-import kotlinx.serialization.json.JsonElement
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
+
 import skillbill.application.workflow.decomposition.withPendingProjection
 import skillbill.application.workflow.model.GoalContinuationOutcome
 import skillbill.application.workflow.model.WorkflowContinueResult
-import skillbill.contracts.JsonCodec
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 
 internal data class ContinuationStepResult(
   val result: WorkflowContinueResult,
-  val projectionArtifactsJson: String? = null,
+  val projectionArtifacts: DurableWorkflowArtifacts? = null,
   val projectionOwnerWorkflowId: String? = null,
 ) {
   fun withProjection(
@@ -24,12 +24,12 @@ internal data class ContinuationStepResult(
   ): ContinuationStepResult =
     withPendingProjection(
       ownerWorkflowId = ownerWorkflowId,
-      artifactsJson = decompositionRuntimeArtifactsJson(manifest, validator),
+      artifacts = decompositionRuntimeArtifacts(manifest, validator),
     )
 
-  fun withProjectionArtifactsIfMissing(artifactsJson: String?): ContinuationStepResult =
-    if (projectionArtifactsJson == null && artifactsJson != null) {
-      copy(projectionArtifactsJson = artifactsJson)
+  fun withProjectionArtifactsIfMissing(artifacts: DurableWorkflowArtifacts?): ContinuationStepResult =
+    if (projectionArtifacts == null && artifacts != null) {
+      copy(projectionArtifacts = artifacts)
     } else {
       this
     }
@@ -128,22 +128,17 @@ internal fun blockedGitResult(
     blockedReason = reason.ifBlank { "Subtask advancement failed." },
   )
 
-internal fun decompositionRuntimeArtifactsJson(
+internal fun decompositionRuntimeArtifacts(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
-): String =
-  jsonString(
+): DurableWorkflowArtifacts =
+  DurableWorkflowArtifacts.fromMap(
     mapOf(
-      DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+      DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.entry(
         validator.encodeManifestWireMap(
           manifest,
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+          DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
         ),
+      ),
     ),
-  )
-
-private fun jsonString(value: Any?): String =
-  JsonCodec.json.encodeToString(
-    JsonElement.serializer(),
-    JsonCodec.valueToJsonElement(value),
   )

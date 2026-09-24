@@ -1,11 +1,12 @@
 package skillbill.application.workflow.persist
+
 import skillbill.contracts.JsonCodec
+import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -23,26 +24,18 @@ class WorkflowStateSchemaWireBaselineTest {
         resumeActions = mapOf("implement" to "Resume."),
         workflowMode = null,
       )
-    val engine =
-      WorkflowEngine(
-        object : WorkflowSnapshotValidator {
-          override fun validate(
-            snapshot: WorkflowStateSnapshot,
-            slug: String,
-          ) = Unit
-        },
-      )
+    val engine = WorkflowEngine()
     val record =
       engine.openRecord(definition, "wf-1", "sess", "implement").copy(
-        startedAt = "1970-01-01T00:00:00Z",
-        updatedAt = "1970-01-01T00:00:00Z",
-        finishedAt = "",
+        startedAt = Instant.parse("1970-01-01T00:00:00Z"),
+        updatedAt = Instant.parse("1970-01-01T00:00:00Z"),
+        finishedAt = null,
       )
     val snapshotJson =
       JsonCodec.mapToJsonString(
         WorkflowWireProjections.snapshotMap(engine.snapshotView(definition, record)).toPayload(),
       ) + "\n"
-    val stepJson = record.stepsJson + "\n"
+    val stepJson = record.toRecord().stepsJson + "\n"
 
     assertBaselineBytes("workflow-snapshot-wire.json", snapshotJson)
     assertBaselineBytes("workflow-step-wire.json", stepJson)

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.goal
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys

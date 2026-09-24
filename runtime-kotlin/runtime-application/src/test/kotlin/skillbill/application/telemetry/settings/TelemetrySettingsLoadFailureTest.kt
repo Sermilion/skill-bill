@@ -1,4 +1,5 @@
 package skillbill.application.telemetry.settings
+
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.transport.TelemetrySettingsProvider
 import skillbill.telemetry.model.TelemetrySettings

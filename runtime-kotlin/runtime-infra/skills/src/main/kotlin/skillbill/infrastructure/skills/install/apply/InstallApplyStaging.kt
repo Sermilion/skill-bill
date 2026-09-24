@@ -214,7 +214,7 @@ private fun plannedInternalStaging(
   ),
 )
 
-private fun selectedPlatformManifests(
+internal fun selectedPlatformManifests(
   plan: InstallPlan,
   platformManifests: List<PlatformManifest>,
 ): List<PlatformManifest> {

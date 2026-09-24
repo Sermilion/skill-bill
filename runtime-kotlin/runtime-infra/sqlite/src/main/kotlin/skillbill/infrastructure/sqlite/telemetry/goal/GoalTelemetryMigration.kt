@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.goal
+
 import java.sql.Connection
 
 internal object GoalTelemetryMigration {

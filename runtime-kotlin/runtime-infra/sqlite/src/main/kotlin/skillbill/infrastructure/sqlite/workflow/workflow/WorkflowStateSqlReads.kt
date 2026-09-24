@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.workflow
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError

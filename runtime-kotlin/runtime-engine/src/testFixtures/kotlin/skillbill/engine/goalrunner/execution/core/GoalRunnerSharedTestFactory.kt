@@ -42,16 +42,16 @@ import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.NoopGoalRunnerAttemptLedgerStore
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.NoopFeatureTaskRuntimeWorkerSupervisor
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.scaffold.model.PlatformManifest
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
 import java.time.Clock
 
 fun goalRunnerDefaultPhaseRecorder(): FeatureTaskRuntimePhaseRecorder =

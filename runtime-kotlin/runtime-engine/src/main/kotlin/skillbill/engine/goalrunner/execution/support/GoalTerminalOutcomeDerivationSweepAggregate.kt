@@ -1,12 +1,11 @@
 package skillbill.engine.goalrunner.execution.support
 
-import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.goalrunner.model.GoalContinuationCandidate
 import skillbill.goalrunner.asGoalRunnerIntOrNull
-import skillbill.goalrunner.goalContinuationTerminalStatus
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 
 fun List<GoalContinuationCandidate>.authoritativeOutcomesBySubtask(): Map<Int, GoalRunnerStoredOutcome> =
   groupBy { candidate -> candidate.goalContinuation.subtaskId }
@@ -50,20 +49,6 @@ fun staleRunningReason(
       "subtask $subtaskId because it was no longer active."
   )
 
-fun missingResultPrefixTerminalOutcomeArtifact(
-  output: Map<String, Any?>,
-  issueKey: String,
-  subtaskId: Int,
-  workflowId: String,
-): Map<String, Any?>? =
-  (JsonCodec.anyToStringAnyMap(output["subtask_outcome"]) ?: output)
-    .takeIf { candidate -> candidate.matchesGoalContinuation(issueKey, subtaskId) }
-    ?.let { candidate ->
-      candidate[SharedPayloadKeys.STATUS]?.toString()?.let(::goalContinuationTerminalStatus)?.let { status ->
-        candidate.toMissingResultPrefixOutcomeArtifact(issueKey, subtaskId, workflowId, status)
-      }
-    }
-
 fun Map<String, Any?>.matchesGoalContinuation(
   issueKey: String,
   subtaskId: Int,
@@ -100,10 +85,10 @@ fun GoalRunnerTerminalStatus.toGoalContinuationWireStatus(): String = wireValue
 
 fun maxHistorySequence(
   artifacts: Map<String, Any?>,
-  historyKey: String,
+  historyFamily: DurableWorkflowArtifactFamily,
   current: Int?,
 ): Int? {
-  val entries = (artifacts[historyKey] as? List<*>).orEmpty()
+  val entries = (historyFamily.value(artifacts) as? List<*>).orEmpty()
   var max = current
   entries.forEach { item ->
     val sequence = (item as? Map<*, *>)?.get("sequence_number").asGoalRunnerIntOrNull()

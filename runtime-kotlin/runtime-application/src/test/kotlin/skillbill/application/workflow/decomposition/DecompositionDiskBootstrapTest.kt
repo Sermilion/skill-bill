@@ -3,26 +3,31 @@ package skillbill.application.workflow.decomposition
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
+import skillbill.application.decomposition.baseBranch
 import skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml
+import skillbill.application.decomposition.executionModel
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testDecompositionManifestWriter
-import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
+import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.toRecord
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
+import skillbill.workflow.decomposition.runtime.isGoalContinuationChildWorkflow
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
@@ -30,6 +35,7 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
+import java.time.Instant
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -39,7 +45,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-private val testWorkflowEngine: WorkflowEngine = WorkflowEngine(testWorkflowSnapshotValidator)
+private val testWorkflowEngine: WorkflowEngine = WorkflowEngine()
 
 private class CheckoutRecordingGitOperations : WorkflowGitOperations by NoopWorkflowGitOperations {
   val checkoutCalls = mutableListOf<String>()
@@ -65,6 +71,7 @@ private fun workflowRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = workflowStatus,
       currentStepId = "plan",
       stepUpdates = null,
@@ -85,7 +92,7 @@ private fun InMemoryWorkflowStates.decomposedParentRows(issueKey: String): List<
     val snapshot = row.toSnapshot()
     row.issueKey == issueKey &&
       !snapshot.isGoalContinuationChildWorkflow() &&
-      snapshot.decompositionRuntime(testDecompositionManifestValidator) != null
+      snapshot.decompositionRuntime() != null
   }
 
 class DecompositionDiskBootstrapTest {
@@ -120,7 +127,7 @@ class DecompositionDiskBootstrapTest {
           WorkflowArtifactPatch.from(
             mapOf(
               "plan" to mapOf("mode" to "decompose"),
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to
                 testDecompositionManifestValidator.encodeManifestWireMap(manifest),
             ),
           ),
@@ -304,7 +311,7 @@ class DecompositionDiskBootstrapTest {
     }
     val parent =
       assertNotNull(
-        workflows.findDecomposedParentWorkflow("SKILL-TEST", testDecompositionManifestValidator),
+        workflows.findDecomposedParentWorkflow("SKILL-TEST"),
         "Expected the bootstrapped parent to stay discoverable for a later resume",
       )
 
@@ -329,7 +336,7 @@ class DecompositionDiskBootstrapTest {
     assertEquals(1, parentRows.size, "Bootstrap must reuse the existing parent, not mint a second one.")
     assertEquals("wfl-corrupt-parent", parentRows.single().workflowId)
     assertNotNull(
-      parentRows.single().toSnapshot().decompositionRuntime(testDecompositionManifestValidator),
+      parentRows.single().toSnapshot().decompositionRuntime(),
       "Reclaimed parent must carry a decodable decomposition_runtime artifact.",
     )
   }
@@ -370,7 +377,7 @@ class DecompositionDiskBootstrapTest {
           WorkflowArtifactPatch.from(
             mapOf(
               "plan" to mapOf("mode" to "decompose"),
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
+              DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to "not-a-map",
             ),
           ),
       ).copy(issueKey = "SKILL-TEST"),
@@ -488,7 +495,7 @@ class DecompositionDiskBootstrapTest {
           WorkflowArtifactPatch.from(
             mapOf(
               "plan" to mapOf("mode" to "decompose"),
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
+              DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to "not-a-map",
             ),
           ),
       ).copy(issueKey = "SKILL-TEST"),
@@ -555,7 +562,7 @@ class DecompositionDiskBootstrapTest {
           WorkflowArtifactPatch.from(
             mapOf(
               "plan" to mapOf("mode" to "decompose"),
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
+              DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label() to "not-a-map",
             ),
           ),
       ).copy(issueKey = "SKILL-TEST"),

@@ -7,6 +7,10 @@ import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.infrastructure.sqlite.ageTelemetryReliabilitySession
 import skillbill.infrastructure.sqlite.telemetryReliabilityEmittedEnvelope
 import skillbill.infrastructure.sqlite.telemetryReliabilityReviewFinishedEnvelope
+import skillbill.mcp.lifecycle.featureVerifyFinished
+import skillbill.mcp.lifecycle.featureVerifyStarted
+import skillbill.mcp.lifecycle.qualityCheckFinished
+import skillbill.mcp.lifecycle.qualityCheckStarted
 import skillbill.mcp.telemetry.TELEMETRY_EVENT_CONTRACT_VERSION
 import skillbill.mcp.telemetry.TelemetryEventSchemaPaths
 import skillbill.mcp.telemetry.TelemetryEventSchemaValidator

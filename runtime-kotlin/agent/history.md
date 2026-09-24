@@ -38,6 +38,13 @@ Areas: runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/{core,experiment
 - Deviation: `ExperimentGoalRunnerFactory` is declared in `di.core` rather than `di.experiment` — declaring it in the area package forced either an internal type on a public `@Provides` or a `di.experiment -> di.core` cycle.
 - `RuntimeImplementationImportRules` now allowlists the runtime-core-owned composition types and maps `skillbill.model.*` to `:runtime-ports`, keeping the documented ABI closure unchanged.
 - Known limitations: `WorkflowGoalRunnerOutcomeStoreDependencies` stays in runtime-infra/sqlite (removal belongs to SKILL-376); AC-2 and AC-8 depend on regenerated KSP readers, first proven at the validate gate.
+## [2026-09-24] SKILL-372 subtask 3 — Acyclic packages, vocabulary, aliases, and surface
+Areas: runtime-kotlin/{runtime-domain,runtime-ports,runtime-engine,runtime-application,runtime-infra,runtime-cli,runtime-contracts,runtime-core,runtime-mcp}, runtime-kotlin/ARCHITECTURE.md
+- Reorganized runtime-domain vocabulary and task-runtime persistence, handoff, and repair packages; removed runtime-domain and engine aliases; moved skill-removal and review parsing surfaces to their owning boundaries.
+- Replaced closed skill-kind and code-review-area string sets with domain enums and centralized wire parsing while preserving existing wire values.
+- Added exact-package SCC scanning and refreshed boundary inventories/baselines; removed duplicate/orphan declarations and injected runtime version into SQLite/outbox seams.
+- Pattern: typed domain vocabulary plus explicit package-level cycle scanning keeps model boundaries mechanically checkable. reusable
+- Known limitations: two remaining SCCs (workflow/goalrunner/decomposition/engine and review.context.model) remain follow-up boundary work.
 Feature flag: N/A
 Acceptance criteria: 9/9 implemented
 

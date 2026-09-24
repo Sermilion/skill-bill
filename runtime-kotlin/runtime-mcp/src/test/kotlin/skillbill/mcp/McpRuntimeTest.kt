@@ -1414,7 +1414,7 @@ private fun assertSqliteTimestampShape(
   timestamp: String,
   label: String,
 ) {
-  assertMatchesPattern(Regex("""^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$"""), timestamp, label)
+  assertMatchesPattern(Regex("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$"""), timestamp, label)
 }
 
 private fun assertMatchesPattern(

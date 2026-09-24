@@ -1,5 +1,8 @@
 package skillbill.infrastructure.workflow.git.local
+
 import skillbill.infrastructure.workflow.git.standard.gitLocalBranchHasUnpushedCommits
+import skillbill.infrastructure.workflow.git.workflow.git
+import skillbill.infrastructure.workflow.git.workflow.runGit
 import skillbill.infrastructure.workflow.process.runGitCommand
 import java.nio.file.Files
 import java.nio.file.Path

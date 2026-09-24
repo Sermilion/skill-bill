@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.agentaddon
+
 import skillbill.error.shellcontent.InvalidAgentAddonSchemaError
 
 internal inline fun <T> sourceOperation(

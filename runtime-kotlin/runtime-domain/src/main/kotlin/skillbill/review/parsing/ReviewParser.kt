@@ -1,12 +1,9 @@
 package skillbill.review.parsing
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.review.attribution.normalizeRoutedSkill
 import skillbill.review.attribution.resolveExecutionMode
 import skillbill.review.attribution.resolveReviewIssueCategory
-import skillbill.review.finding.extractSpecialistReviews
-import skillbill.review.finding.extractSummaryValue
-import skillbill.review.finding.parseReviewFindings
-import skillbill.review.finding.requireMatch
 import skillbill.review.model.ImportedReview
 import skillbill.review.model.ReviewExecutionMode
 import skillbill.review.model.ReviewIssueCategory

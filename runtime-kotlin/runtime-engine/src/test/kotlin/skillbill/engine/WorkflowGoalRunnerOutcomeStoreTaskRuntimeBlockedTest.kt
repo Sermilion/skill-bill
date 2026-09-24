@@ -1,8 +1,8 @@
 package skillbill.engine
+
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerOutcomeStore
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
@@ -79,7 +79,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
     assertEquals(GoalRunnerTerminalStatus.BLOCKED, recovered.status)
     assertEquals(reason, recovered.blockedReason)
     val artifacts =
-      decodeWorkflowArtifacts(
+      decodeWorkflowArtifactsForTest(
         requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-standing-nested-reason")).artifactsJson,
       )
     assertNull(artifacts["goal_continuation_outcome_displacement"])
@@ -129,7 +129,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
     assertTrue(recovered.blockedReason != staleReason)
 
     val artifacts =
-      decodeWorkflowArtifacts(
+      decodeWorkflowArtifactsForTest(
         requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-20260808-175505-c5po")).artifactsJson,
       )
     val displacement = artifacts["goal_continuation_outcome_displacement"] as Map<*, *>
@@ -167,7 +167,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
         gate = GoalRunnerReconcileGate(requireStalenessEvidence = true),
       )
     val artifactsAfterFirst =
-      decodeWorkflowArtifacts(
+      decodeWorkflowArtifactsForTest(
         requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).artifactsJson,
       )
     assertEquals(
@@ -188,7 +188,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
       )
     assertEquals(first, second)
     val artifactsAfterSecond =
-      decodeWorkflowArtifacts(
+      decodeWorkflowArtifactsForTest(
         requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).artifactsJson,
       )
     assertEquals(

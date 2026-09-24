@@ -9,7 +9,9 @@ import skillbill.application.review.snapshot.diffForPaths
 import skillbill.application.review.snapshot.harnessRequest
 import skillbill.application.review.snapshot.reviewHarness
 import skillbill.application.review.snapshot.reviewPack
-import skillbill.install.model.InstallAgent
+import skillbill.application.runner
+import skillbill.goalrunner.terminalStatus
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointHandle
@@ -20,8 +22,8 @@ import skillbill.ports.review.model.ReviewEvidenceBrokerBinding
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.review.context.model.packet.LANE_EVIDENCE_BYTES_DIMENSION
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.model.ReviewEvidenceBoundaryAccounting
+import skillbill.review.model.ReviewLaneReviewDisposition
 import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.scaffold.model.ReviewLaneCondition
 import java.nio.file.Files
@@ -254,7 +256,7 @@ class ParallelCodeReviewEvidenceBoundaryTest {
           diff = diffForPaths("src/Repo.kt"),
           parentLaunch = { request ->
             UnsupportedAgentRunLaunch(
-              agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+              agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
               reason = "not configured for this repo",
             )
           },

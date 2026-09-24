@@ -1,6 +1,9 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence
+
+import skillbill.contracts.scaffold.wire.optionalList
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
 import java.math.BigDecimal
 import kotlin.test.Test
 import kotlin.test.assertEquals

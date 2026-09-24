@@ -1,3 +1,0 @@
-package skillbill.workflow.goal
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
-typealias GoalPlanningPreparationEnvelopeValidator = FeatureTaskRuntimeWireArtifactValidator

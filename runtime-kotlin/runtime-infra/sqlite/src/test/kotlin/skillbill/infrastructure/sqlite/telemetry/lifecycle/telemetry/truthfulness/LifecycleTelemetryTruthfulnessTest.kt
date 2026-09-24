@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.truthfulness
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.telemetry.LifecycleSessionCompletion
@@ -32,7 +33,7 @@ class LifecycleTelemetryTruthfulnessTest {
   @Test
   fun `a quality check the reconciler closed reports no failure count and a reconciler completion`() {
     withConnection { connection ->
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.qualityCheckStarted(startedQualityCheck(), "anonymous")
       ageQualityCheckStart(connection)
 
@@ -61,7 +62,7 @@ class LifecycleTelemetryTruthfulnessTest {
   @Test
   fun `a check the operator finished with nothing failing still reports a measured clean zero`() {
     withConnection { connection ->
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.qualityCheckStarted(startedQualityCheck(), "anonymous")
       store.qualityCheckFinished(finishedQualityCheck(), "anonymous")
 
@@ -85,7 +86,7 @@ class LifecycleTelemetryTruthfulnessTest {
   @Test
   fun `a run with no durable budget state reports unavailable rather than an intact budget`() {
     withConnection { connection ->
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.featureTaskRuntimeStarted(startedRuntimeSession(), "anonymous")
       store.featureTaskRuntimeFinished(finishedRuntimeSession(), "anonymous")
 
@@ -110,7 +111,7 @@ class LifecycleTelemetryTruthfulnessTest {
   @Test
   fun `a measured budget reports its value and a measured zero stays distinguishable from absent`() {
     withConnection { connection ->
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.featureTaskRuntimeStarted(startedRuntimeSession(), "anonymous")
       store.featureTaskRuntimeFinished(
         finishedRuntimeSession().copy(reviewFixCapExhausted = false, auditGapIterationCount = 0),
@@ -131,7 +132,7 @@ class LifecycleTelemetryTruthfulnessTest {
   @Test
   fun `correlation identifiers join started to finished without exposing the raw issue key`() {
     withConnection { connection ->
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.featureTaskRuntimeStarted(startedRuntimeSession(), "anonymous")
       store.featureTaskRuntimeFinished(finishedRuntimeSession(), "anonymous")
 
@@ -158,7 +159,7 @@ class LifecycleTelemetryTruthfulnessTest {
   @Test
   fun `a run reports the agents and models its phases resolved and declares the ones it never learned`() {
     withConnection { connection ->
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.featureTaskRuntimeStarted(startedRuntimeSession(), "anonymous")
       store.featureTaskRuntimeFinished(
         finishedRuntimeSession().copy(resolvedAgentIds = listOf("claude", "codex"), launchedModels = null),
@@ -188,7 +189,7 @@ class LifecycleTelemetryTruthfulnessTest {
   @Test
   fun `a run that resolved no agent reports unavailable rather than an empty agent set`() {
     withConnection { connection ->
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.featureTaskRuntimeStarted(startedRuntimeSession(), "anonymous")
       store.featureTaskRuntimeFinished(finishedRuntimeSession(), "anonymous")
 
@@ -253,7 +254,7 @@ class LifecycleTelemetryTruthfulnessTest {
   @Test
   fun `a row written before the availability columns existed reports unknown and no value`() {
     withConnection { connection ->
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.featureTaskRuntimeStarted(startedRuntimeSession(), "anonymous")
       store.featureTaskRuntimeFinished(finishedRuntimeSession(), "anonymous")
       clearAvailabilityColumns(connection)
@@ -283,7 +284,7 @@ class LifecycleTelemetryTruthfulnessTest {
   @Test
   fun `a rejection measurement joins its own lifecycle run on one identifier at anonymous consent`() {
     withConnection { connection ->
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.featureTaskRuntimeStarted(goalChildRuntimeSession(), "anonymous")
       store.featureTaskRuntimeFinished(finishedRuntimeSession(), "anonymous")
       store.featureTaskRuntimeRejection(
@@ -317,7 +318,7 @@ class LifecycleTelemetryTruthfulnessTest {
   @Test
   fun `a standalone run reports goal linkage as explicitly unknown rather than as a blank join key`() {
     withConnection { connection ->
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.featureTaskRuntimeStarted(
         goalChildRuntimeSession().copy(goalParentWorkflowId = null, goalSubtaskId = null),
         "anonymous",

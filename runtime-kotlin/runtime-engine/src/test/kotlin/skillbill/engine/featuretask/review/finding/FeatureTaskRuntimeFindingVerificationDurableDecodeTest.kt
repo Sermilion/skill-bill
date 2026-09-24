@@ -2,9 +2,9 @@ package skillbill.engine.featuretask.review.finding
 
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
+import skillbill.engine.decodeWorkflowArtifactsForTest
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
@@ -13,15 +13,19 @@ import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+
+private val FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT.label()
 
 class FeatureTaskRuntimeFindingVerificationDurableDecodeTest {
   @Test
@@ -94,15 +98,16 @@ private fun seedWorkflow(
   workflowId: String,
   artifactsJson: String,
 ) {
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val definition = WorkflowFamily.TASK_RUNTIME.definition
   val opened = engine.openRecord(definition, workflowId, "ftr-finding-verification", "verify_findings")
-  val artifacts = decodeWorkflowArtifacts(artifactsJson)
+  val artifacts = decodeWorkflowArtifactsForTest(artifactsJson)
   val seeded =
     engine.updateRecord(
       definition,
       opened,
       WorkflowUpdateInput(
+        terminalInstant = Instant.EPOCH,
         workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "verify_findings",
         stepUpdates = null,

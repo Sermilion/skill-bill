@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.runner
+
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonElement
 import skillbill.agentaddon.model.AgentAddonSelection

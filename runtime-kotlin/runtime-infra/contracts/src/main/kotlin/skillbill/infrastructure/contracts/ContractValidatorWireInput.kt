@@ -19,6 +19,7 @@ import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 
 internal fun requireValidatorWireMap(
   payload: Any,
@@ -30,11 +31,13 @@ internal fun requireValidatorWireMap(
 
 internal fun requireFeatureTaskRuntimeArtifactMap(
   kind: FeatureTaskRuntimeWireArtifactKind,
-  payload: Any,
+  payload: FeatureTaskRuntimeWorkflowArtifactMap,
   sourceLabel: String,
 ): Map<String, Any?> =
-  requireValidatorWireMap(payload, sourceLabel) { label, reason ->
-    featureTaskRuntimeWireArtifactNonObjectError(kind, label, reason)
+  if (payload.isObject) {
+    payload
+  } else {
+    throw featureTaskRuntimeWireArtifactNonObjectError(kind, sourceLabel, "<root> must be an object.")
   }
 
 internal fun featureTaskRuntimeWireArtifactNonObjectError(

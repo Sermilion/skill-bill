@@ -1,5 +1,4 @@
 package skillbill.infrastructure.skills.install.runtime
-
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.skills.install.apply.applyInstallPlan
 import skillbill.infrastructure.skills.install.plan.buildInstallPlan
@@ -11,7 +10,7 @@ import skillbill.install.model.AgentTarget
 import skillbill.install.model.InstallApplyResult
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanRequest
-import skillbill.install.model.InstallPlanWireValidator
+import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.system.HostPlatformPort
 import skillbill.ports.telemetry.transport.TelemetryConfigStore

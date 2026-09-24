@@ -5,10 +5,10 @@ import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBri
 import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.prior.FeatureTaskRuntimePriorReviewContext
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimePriorReviewContext
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairLedger
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairContext
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
 
 data class FeatureTaskRuntimePhasePromptComposeInputs(
   val issueKey: String,

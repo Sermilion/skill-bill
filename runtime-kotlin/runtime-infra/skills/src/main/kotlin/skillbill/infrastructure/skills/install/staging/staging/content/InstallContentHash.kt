@@ -1,7 +1,9 @@
 package skillbill.infrastructure.skills.install.staging.staging.content
+
 import skillbill.infrastructure.contracts.newSha256Digest
 import skillbill.infrastructure.host.jvm.requirePathContainedIn
 import skillbill.infrastructure.skills.agentaddon.AgentAddonPointer
+import skillbill.infrastructure.skills.install.staging.staging.applicablePointers
 import skillbill.infrastructure.skills.install.staging.staging.sidecar.InternalSidecarTarget
 import skillbill.infrastructure.skills.install.staging.staging.support.GeneratedSupportPointer
 import skillbill.model.toPath

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.host.jvm
+
 import skillbill.error.core.SkillBillRuntimeException
 
 internal class GateJvmGuardResourceMissingException(resource: String) : SkillBillRuntimeException(

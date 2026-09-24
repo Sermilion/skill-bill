@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.runloop.core
 
+import skillbill.application.decomposition.baseBranch
 import skillbill.contracts.JsonCodec
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeBranchSetup
@@ -10,14 +11,15 @@ import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoopCheckpoint
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
+import skillbill.engine.goalrunner.execution.support.protectedBranchName
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.readiness.readinessChangedPathsAgainstBase
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
 import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 
 object FeatureTaskRuntimeRunLoopSubtaskCommit {
   internal fun unownedWorktreeCommitSha(args: UnownedWorktreeCommitShaArgs): CommitPushFinalisation {

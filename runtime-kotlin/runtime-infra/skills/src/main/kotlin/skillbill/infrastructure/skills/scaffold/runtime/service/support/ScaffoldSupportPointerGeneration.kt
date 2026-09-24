@@ -1,4 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.runtime.service.support
+
+import skillbill.infrastructure.skills.install.apply.selectedPlatformManifests
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.FEATURE_TASK_ADDON_CONSUMER
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.SKILL_CLASSES_DIR
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.discoverSkillClasses

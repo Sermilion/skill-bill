@@ -1,7 +1,7 @@
 package skillbill.application.workflow.service
+
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
@@ -10,17 +10,15 @@ import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-
-const val GOAL_REVIEW_POLICY_ARTIFACT_KEY = "goal_review_policy"
-const val GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY = "goal_out_of_band_acceptances"
 
 internal fun migrateLegacyGoalRunnerControls(
   unitOfWork: GoalRunnerPersistenceSession,
   existing: WorkflowStateSnapshot,
 ) {
-  val artifacts = decodeWorkflowArtifacts(existing.artifactsJson)
+  val artifacts = existing.artifacts
   if (unitOfWork.goalRunnerControls.reviewPolicy(existing.workflowId) == null) {
     reviewPolicyFromLegacyArtifacts(artifacts)?.let {
       unitOfWork.goalRunnerControls.persistReviewPolicy(existing.workflowId, it)
@@ -36,19 +34,20 @@ internal fun migrateLegacyGoalRunnerControls(
 }
 
 fun reviewPolicyFromLegacyArtifacts(artifacts: DurableWorkflowArtifacts): GoalRunnerReviewPolicy? {
-  val raw = artifacts[GOAL_REVIEW_POLICY_ARTIFACT_KEY] ?: return null
+  val artifactFamily = DurableWorkflowArtifactFamily.GOAL_REVIEW_POLICY
+  val raw = artifactFamily.value(artifacts) ?: return null
   val policy =
     JsonCodec.anyToStringAnyMap(raw)
-      ?: error("Goal review policy artifact '$GOAL_REVIEW_POLICY_ARTIFACT_KEY' must be a map.")
+      ?: error("Goal review policy artifact '${artifactFamily.label()}' must be a map.")
   val allowedKeys = setOf("code_review_mode", "parallel_review_agent", "agent_addon_selection")
   policy.keys.forEach { key ->
     require(key in allowedKeys) {
-      "Goal review policy artifact '$GOAL_REVIEW_POLICY_ARTIFACT_KEY' has unsupported field '$key'."
+      "Goal review policy artifact '${artifactFamily.label()}' has unsupported field '$key'."
     }
   }
   val mode =
     policy["code_review_mode"] as? String
-      ?: error("Goal review policy artifact '$GOAL_REVIEW_POLICY_ARTIFACT_KEY' is missing code_review_mode.")
+      ?: error("Goal review policy artifact '${artifactFamily.label()}' is missing code_review_mode.")
   val codeReviewMode =
     try {
       CodeReviewExecutionMode.fromWire(mode)
@@ -62,14 +61,15 @@ fun reviewPolicyFromLegacyArtifacts(artifacts: DurableWorkflowArtifacts): GoalRu
 fun outOfBandAcceptancesFromLegacyArtifacts(
   artifacts: DurableWorkflowArtifacts,
 ): Map<Int, GoalRunnerOutOfBandAcceptance> {
-  val raw = artifacts[GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY] ?: return emptyMap()
+  val artifactFamily = DurableWorkflowArtifactFamily.GOAL_OUT_OF_BAND_ACCEPTANCE
+  val raw = artifactFamily.value(artifacts) ?: return emptyMap()
   val entries =
     raw as? List<*>
-      ?: error("Goal acceptance artifact '$GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY' must be a list.")
+      ?: error("Goal acceptance artifact '${artifactFamily.label()}' must be a list.")
   return entries.associate { element ->
     val entry =
       JsonCodec.anyToStringAnyMap(element)
-        ?: error("Goal acceptance artifact '$GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY' entries must be maps.")
+        ?: error("Goal acceptance artifact '${artifactFamily.label()}' entries must be maps.")
     val acceptance =
       GoalRunnerOutOfBandAcceptance(
         subtaskId =

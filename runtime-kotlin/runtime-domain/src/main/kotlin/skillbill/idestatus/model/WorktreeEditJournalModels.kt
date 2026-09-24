@@ -1,6 +1,6 @@
 package skillbill.idestatus.model
 
-import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilityFileDiffStat
 import java.time.Instant
 
 enum class WorktreeEditSource(val wireValue: String) {

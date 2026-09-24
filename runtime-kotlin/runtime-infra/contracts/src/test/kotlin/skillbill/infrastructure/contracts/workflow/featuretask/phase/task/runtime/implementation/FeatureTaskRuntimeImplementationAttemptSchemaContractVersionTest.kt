@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.implementation
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION

@@ -4,13 +4,13 @@ import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.lifecycle.continuation.reviewState
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeRepairReceiptError
 import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
-import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
+import skillbill.workflow.model.goalreview.coversCarriedFindings
+import skillbill.workflow.model.goalreview.featureTaskRuntimeRemediationRoundNumber
 import skillbill.workflow.taskruntime.artifact.decodeRepairReceiptFromArtifactWithObservations
 import skillbill.workflow.taskruntime.artifact.validateRepairReceiptWireEntries
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.repair.task.coversCarriedFindings
-import skillbill.workflow.taskruntime.model.repair.task.featureTaskRuntimeRemediationRoundNumber
 
 fun featureTaskRuntimeParseRepairReceiptOrNull(
   producedOutputs: Map<String, Any?>,

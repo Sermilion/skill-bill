@@ -34,7 +34,6 @@ class RuntimeEnforcementHardeningArchitectureTest {
   fun `inline fully-qualified reference scanner fires on synthetic fixture`() {
     val fixtureWithInlineReference =
       """
-      package skillbill.application
 
       class Leaky {
         fun build(): Any = skillbill.infrastructure.skills.Foo()
@@ -53,9 +52,7 @@ class RuntimeEnforcementHardeningArchitectureTest {
     val commentTailLine = "fun build(): Foo = Foo() // inline tail skillbill.infrastructure.skills.Qux"
     val cleanFixture =
       """
-      package skillbill.application
 
-      import skillbill.engine.featuretask.model.Foo
 
       interface CleanDoc {
         /**
@@ -118,11 +115,9 @@ class RuntimeEnforcementHardeningArchitectureTest {
   fun `validator-import extraction strips aliases before applying the ban predicate`() {
     val aliasedImportSource =
       """
-            package skillbill.application
+      import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as InstallValidator
 
-      import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator as IPV
-
-            class Leaky
+      class Leaky
       """.trimIndent()
     val flagged = importedNames(aliasedImportSource).filter(::isSchemaOrCoherenceValidatorImport)
     assertEquals(

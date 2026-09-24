@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.measurement
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
@@ -19,11 +20,13 @@ import java.sql.Connection
 
 internal class LifecycleTelemetryMeasurementAdapter(
   private val connection: Connection,
+  private val runtimeVersion: String,
 ) : FeatureTaskRuntimeTelemetryMeasurementRepository,
   ReviewStageTelemetryMeasurementRepository {
   override fun featureTaskRuntimeProjectionMeasurement(record: FeatureTaskRuntimeProjectionMeasurement) {
     enqueueTelemetry(
       connection,
+      runtimeVersion,
       "skillbill_feature_task_runtime_projection_measurement",
       JsonCodec.anyToStringAnyMap(record.asTelemetryPayload()) ?: emptyMap(),
     )
@@ -32,6 +35,7 @@ internal class LifecycleTelemetryMeasurementAdapter(
   override fun featureTaskRuntimeSharedEvidence(record: FeatureTaskRuntimeSharedEvidenceMeasurement) {
     enqueueTelemetry(
       connection,
+      runtimeVersion,
       "skillbill_feature_task_runtime_shared_evidence",
       JsonCodec.anyToStringAnyMap(record.asTelemetryPayload()) ?: emptyMap(),
     )
@@ -40,6 +44,7 @@ internal class LifecycleTelemetryMeasurementAdapter(
   override fun featureTaskRuntimeRejection(record: FeatureTaskRuntimeRejectionMeasurement) {
     enqueueTelemetry(
       connection,
+      runtimeVersion,
       "skillbill_feature_task_runtime_rejection",
       JsonCodec.anyToStringAnyMap(record.asTelemetryPayload()) ?: emptyMap(),
     )
@@ -48,6 +53,7 @@ internal class LifecycleTelemetryMeasurementAdapter(
   override fun featureTaskRuntimeDiagnosticDegradation(record: FeatureTaskRuntimeDiagnosticDegradationMeasurement) {
     enqueueTelemetry(
       connection,
+      runtimeVersion,
       "skillbill_feature_task_runtime_diagnostic_degradation",
       JsonCodec.anyToStringAnyMap(record.asTelemetryPayload()) ?: emptyMap(),
     )
@@ -55,7 +61,12 @@ internal class LifecycleTelemetryMeasurementAdapter(
 
   override fun reviewStageDegradation(record: ReviewStageDegradationMeasurement) {
     if (reviewStageDegradationExists(connection, record)) return
-    enqueueTelemetry(connection, REVIEW_STAGE_DEGRADATION_EVENT_NAME, record.toStageDegradationPayload())
+    enqueueTelemetry(
+      connection,
+      runtimeVersion,
+      REVIEW_STAGE_DEGRADATION_EVENT_NAME,
+      record.toStageDegradationPayload(),
+    )
   }
 }
 

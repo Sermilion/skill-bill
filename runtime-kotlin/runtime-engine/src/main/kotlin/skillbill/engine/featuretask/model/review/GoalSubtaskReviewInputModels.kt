@@ -1,7 +1,7 @@
 package skillbill.engine.featuretask.model.review
 
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 
 sealed interface GoalSubtaskReviewPassReservation {
   data object MissingState : GoalSubtaskReviewPassReservation

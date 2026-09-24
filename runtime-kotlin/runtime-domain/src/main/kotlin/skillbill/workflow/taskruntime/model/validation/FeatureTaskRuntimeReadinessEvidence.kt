@@ -3,8 +3,9 @@ package skillbill.workflow.taskruntime.model.validation
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.evidence.ReadinessEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
-const val FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_ARTIFACT_KEY: String =
+internal const val FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_ARTIFACT_KEY: String =
   "feature_task_runtime_readiness_evidence"
 
 enum class FeatureTaskRuntimeReadinessCheckStatus(val wireValue: String) {
@@ -231,7 +232,7 @@ data class FeatureTaskRuntimeReadinessEvidence(
         result[ReadinessEvidencePayloadKeys.COMMAND] as? String
           ?: invalid(sourceLabel, "check_results[$index].command must be a string.")
       val exitCode =
-        result[ReadinessEvidencePayloadKeys.EXIT_CODE].asIntegerOrNull()
+        result[ReadinessEvidencePayloadKeys.EXIT_CODE].asExactIntOrNull()
           ?: invalid(sourceLabel, "check_results[$index].exit_code must be an integer.")
       val statusWire =
         result[ReadinessEvidencePayloadKeys.STATUS] as? String
@@ -248,12 +249,3 @@ data class FeatureTaskRuntimeReadinessEvidence(
     ): Nothing = throw InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError(sourceLabel, reason)
   }
 }
-
-private fun Any?.asIntegerOrNull(): Int? =
-  when (this) {
-    is Int -> this
-    is Long -> toInt().takeIf { it.toLong() == this }
-    is Short -> toInt()
-    is Byte -> toInt()
-    else -> null
-  }

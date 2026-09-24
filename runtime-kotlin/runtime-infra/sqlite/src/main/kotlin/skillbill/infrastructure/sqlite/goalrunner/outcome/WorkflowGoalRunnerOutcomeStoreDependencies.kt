@@ -1,23 +1,23 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.goal.GoalObservabilityEventValidator
-import skillbill.workflow.goal.GoalProgressEventValidator
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.time.Clock
 
 class WorkflowGoalRunnerOutcomeStoreDependencies
   @Inject
   constructor(
     val workflowSnapshotValidator: WorkflowSnapshotValidator,
-    val goalObservabilityEventValidator: GoalObservabilityEventValidator,
-    val goalProgressEventValidator: GoalProgressEventValidator,
+    val goalObservabilityEventValidator: FeatureTaskRuntimeWireArtifactValidator,
+    val goalProgressEventValidator: FeatureTaskRuntimeWireArtifactValidator,
     val gitOperations: WorkflowGitOperations,
     val phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
     val workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,

@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.model.core
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

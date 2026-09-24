@@ -1,7 +1,7 @@
 package skillbill.workflow.taskruntime.model.audit
+
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.toArtifactMap
+import skillbill.workflow.taskruntime.model.core.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith

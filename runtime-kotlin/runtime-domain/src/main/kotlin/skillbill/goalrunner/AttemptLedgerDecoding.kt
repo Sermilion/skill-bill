@@ -1,14 +1,17 @@
 package skillbill.goalrunner
+
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.goalrunner.model.GoalRunnerProgressEvent
-import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
-import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
-import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
+import skillbill.workflow.model.goalreview.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressOutcome
+import skillbill.workflow.model.goalreview.asGoalWorkflowArtifactMap
+import skillbill.workflow.model.persistence.artifact.DurableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.toStringKeyedArtifactMap
+import skillbill.workflow.time.parsePersistedInstant
 
 fun progressEventFrom(artifacts: Any): GoalRunnerProgressEvent? {
   val wire = artifacts.asGoalWorkflowArtifactMap("goal progress event artifacts")
@@ -41,7 +44,11 @@ fun Map<*, *>.decodeDeclaredGoalProgressEvent(sourceLabel: String): GoalProgress
   val eventKind = requiredProgressEventKind(reader, sourceLabel)
   val workflowId = reader.requiredString("workflow_id")
   val workflowPhase = reader.requiredString("workflow_phase")
-  val timestamp = reader.requiredString("timestamp")
+  val timestamp =
+    runCatching { parsePersistedInstant(reader.requiredString("timestamp")) }
+      .getOrElse { error ->
+        throw InvalidGoalProgressEventSchemaError(sourceLabel, "timestamp", "must be an RFC 3339 instant.", error)
+      }
   val sequenceNumber =
     reader.requiredInt("sequence_number").also { value ->
       if (value < 0) {

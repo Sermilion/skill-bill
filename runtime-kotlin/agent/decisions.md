@@ -75,6 +75,12 @@ The experiment goal-runner factory is composition-owned: it creates a second
 `RuntimeComponent`, which only the composition root may do.
 `ExperimentGoalRunnerPort` stays in runtime-engine, where
 `ExperimentPairCoordinator` reads it.
+## [2026-09-24] Domain-owned durable artifact maps supersede duplicated cluster ownership (SKILL-372)
+Context: Durable workflow artifacts are consumed by multiple adapters, while their keys and decoders were duplicated across engine, application, and SQLite.
+Decision: Each artifact family owns typed reads and writes beside its domain model; adapters validate wire payloads and persist the resulting aggregate without indexing raw maps with domain keys.
+Reason: One domain owner preserves byte-compatible encoding and makes malformed durable state fail at the read or write seam instead of becoming absence in one adapter.
+Alternatives considered: Keeping per-adapter readers (rejected: divergent null and coercion behavior); moving storage coordination into domain (rejected: domain must remain free of filesystem, transaction, and validator concerns).
+Revisit when: A family gains a genuinely open wire contract or its authoritative persistence owner changes.
 
 ## [2026-09-22] Build-logic declares one plugin classpath; modules keep ksp
 
@@ -545,6 +551,7 @@ Reason: A port file that declares no interface is behaviour the inside cannot su
 Alternatives considered: Move the clusters to `runtime-application` (rejected: `runtime-infra/sqlite` cannot see it). Introduce a shared module below both (rejected: no second consumer; a new module for one caller is not a boundary). Keep `java.nio.file.Path` in domain signatures and guard only the imports (rejected: the import is the symptom, the signature is the coupling).
 Consequence: The `skillbill.db.decomposition` copy shrank from seven files to one — infra-sqlite reached only six of the thirty-one declarations the ports copy carried, so the rest were deleted rather than relocated. Six near-duplicate basename pairs remain between `runtime-application` and `runtime-infra/sqlite` (`GoalContinuationArtifactCodec`, `GoalParentProjectionWriter`, `GoalRunnerWorkflowFamilyLookup`, `LegacyGoalRunnerControlMigration`, `DecompositionWorkflowRuntimeLookup`, `DecompositionWorkflowRuntimeLookupParentDiscovery`). They are distinct types: the copies diverge (3–31 differing lines each), each is live in its own module, and no module below both can hold them now that `runtime-ports` is interface-and-DTO only. Two call sites lost implicit CWD resolution of a relative path: `SkillRemoveErrorSanitizer.parseRepoRoot` and `InstallPlanPolicyChecks.validatePath` now compare the given text rather than a working-directory-resolved absolute path.
 Revisit when: a third module needs one of the six duplicated clusters — that is the second consumer that would justify a shared module — or `DecompositionManifestStore` stops taking `java.nio.file.Path`, which would let the decomposition pair collapse.
+Superseded by: Domain-owned durable artifact maps supersede duplicated cluster ownership (2026-09-24)
 
 ## [2026-09-04] Deletion-elision path for goal-subtask review retired, not bypassed
 Context: SKILL-232 subtask 1 swept confirmed-unused `internal` declarations. `withinReviewInputBound` in `runtime-infra/fs` was unreferenced, and every other symbol in `GoalSubtaskReviewDeletionElision.kt` (`goalReviewDiffArguments`, `goalReviewNumstatArguments`, `ownedPathspecArguments`, `fitsReviewInputBound`, `deletionElidedDelta`, `deletionManifest`, `deletionManifestEntry`, `NUMSTAT_FIELD_COUNT`) was reachable only through it.

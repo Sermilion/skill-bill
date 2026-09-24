@@ -1,4 +1,5 @@
 package skillbill.application.review.stats
+
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.review.model.ReviewFindingDetail
 import skillbill.review.model.ReviewFindingStats

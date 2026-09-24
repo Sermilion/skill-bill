@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.git.goal
+
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path

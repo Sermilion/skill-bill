@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats.platform
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

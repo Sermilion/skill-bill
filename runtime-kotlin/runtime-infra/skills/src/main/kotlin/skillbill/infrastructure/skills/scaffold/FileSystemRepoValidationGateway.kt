@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.skills.nativeagent.FileSystemNativeAgentPlatformPackLoader
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionContext

@@ -2,7 +2,6 @@ package skillbill.engine.goalrunner.findings
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.error.shellcontent.InvalidUnaddressedFindingsLedgerSchemaError
 import skillbill.error.shellcontent.UnaddressedFindingsLedgerAbsentError
 import skillbill.goalrunner.model.UNADDRESSED_FINDING_CATEGORIES
@@ -13,10 +12,9 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairLedger
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 
 @Inject
@@ -49,20 +47,22 @@ class UnaddressedFindingsLedgerService(
         val record =
           WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
             ?: return@flatMap emptyList()
-        val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
-        val artifactKey =
+        val artifacts = record.artifacts
+        val artifactFamily =
           when {
-            artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY] != null ->
-              FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
-            artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY] != null ->
-              FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
+            DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS.value(artifacts) !=
+              null ->
+              DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS
+            DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT.value(artifacts) !=
+              null ->
+              DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT
             else -> return@flatMap emptyList()
           }
-        val raw = artifacts[artifactKey] ?: return@flatMap emptyList()
+        val raw = artifactFamily.value(artifacts) ?: return@flatMap emptyList()
         runCatching {
           FeatureTaskRuntimeFindingVerificationDisposition.parseList(
             raw,
-            artifactKey,
+            artifactFamily.label(),
           )
         }.getOrElse { error ->
           val message =
@@ -85,7 +85,7 @@ class UnaddressedFindingsLedgerService(
         val state =
           runCatching {
             GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(
-              FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+              record.artifacts,
             )
           }.getOrNull() ?: return@mapNotNull null
         runCatching { state.repairLedger }.getOrNull()

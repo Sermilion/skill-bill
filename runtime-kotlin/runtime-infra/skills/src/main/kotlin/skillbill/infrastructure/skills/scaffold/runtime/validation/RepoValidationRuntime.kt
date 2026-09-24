@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.runtime.validation
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionContext
 import java.nio.file.Files

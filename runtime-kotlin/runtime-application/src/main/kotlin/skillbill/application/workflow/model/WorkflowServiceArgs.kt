@@ -3,7 +3,7 @@ package skillbill.application.workflow.model
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import java.nio.file.Path
@@ -13,6 +13,7 @@ internal data class ContinueExistingWorkflowArgs(
   val fileStore: DecompositionManifestStore? = null,
   val repoRoot: Path? = null,
   val manifestWriter: DecompositionManifestWriter? = null,
+  val repositoryCheckpointIdentity: () -> String = { "" },
 )
 
 internal data class DecompositionRuntimeWriteArgs(

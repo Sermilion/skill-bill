@@ -4,9 +4,11 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.runloop.core.PhaseRun
+import skillbill.engine.goalrunner.status.completed
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.decodeValidationEvidenceFromArtifact
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
@@ -14,7 +16,6 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhase
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationEvidence
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 internal class ValidationSettlementState(

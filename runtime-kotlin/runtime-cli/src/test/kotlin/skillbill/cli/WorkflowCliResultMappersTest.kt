@@ -11,25 +11,23 @@ import skillbill.cli.workflow.toCliMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.error.shellcontent.InvalidGoalObservabilityEventSchemaError
-import skillbill.infrastructure.contracts.workflow.goal.observability.GoalObservabilityEventSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
-import skillbill.workflow.goal.GoalObservabilityEventValidator
-import skillbill.workflow.goal.model.GoalObservabilityDiffStat
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
-import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.model.goalreview.GoalObservabilityDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunk
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
+import skillbill.workflow.model.goalreview.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -100,7 +98,7 @@ class WorkflowCliResultMappersTest {
   @Test
   fun `runtime continue mapper returns honest ok for a recoverable run instead of false missing artifacts error`() {
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
-    val engine = WorkflowEngine(NoopWorkflowSnapshotValidator)
+    val engine = WorkflowEngine()
     val record =
       WorkflowStateSnapshot(
         workflowId = "wftr-crashed",
@@ -109,26 +107,36 @@ class WorkflowCliResultMappersTest {
         contractVersion = definition.contractVersion,
         workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "plan",
-        stepsJson =
-          """[{"step_id":"preplan","status":"completed","attempt_count":1},""" +
-            """{"step_id":"plan","status":"completed","attempt_count":1},""" +
-            """{"step_id":"implement","status":"pending","attempt_count":0}]""",
-        artifactsJson =
-          """{"feature_task_runtime_phase_records":{""" +
-            """"preplan":{"contract_version":"0.2","record_kind":"private_phase_record",""" +
-            """"phase_id":"preplan","status":"completed","attempt_count":1,""" +
-            """"started_at":"2026-06-18T10:00:00Z","first_started_at":"2026-06-18T10:00:00Z",""" +
-            """"finished_at":"2026-06-18T10:01:00Z","resolved_agent_id":"agent-preplan",""" +
-            """"execution_origin":"agent-executed"},""" +
-            """"plan":{"contract_version":"0.2","record_kind":"private_phase_record",""" +
-            """"phase_id":"plan","status":"completed","attempt_count":1,""" +
-            """"started_at":"2026-06-18T10:02:00Z","first_started_at":"2026-06-18T10:02:00Z",""" +
-            """"finished_at":"2026-06-18T10:03:00Z","resolved_agent_id":"agent-plan",""" +
-            """"execution_origin":"agent-executed"}}}""",
-        startedAt = "2026-06-18T10:00:00Z",
-        updatedAt = "2026-06-18T10:03:00Z",
+        steps =
+          listOf(
+            WorkflowStepState("preplan", WorkflowStepStatus.COMPLETED, 1),
+            WorkflowStepState("plan", WorkflowStepStatus.COMPLETED, 1),
+            WorkflowStepState("implement", WorkflowStepStatus.PENDING, 0),
+          ),
+        artifacts =
+          DurableWorkflowArtifacts.fromMap(
+            requireNotNull(
+              JsonCodec.anyToStringAnyMap(
+                JsonCodec.parseValue(
+                  """{"feature_task_runtime_phase_records":{""" +
+                    """"preplan":{"contract_version":"0.2","record_kind":"private_phase_record",""" +
+                    """"phase_id":"preplan","status":"completed","attempt_count":1,""" +
+                    """"started_at":"2026-06-18T10:00:00Z","first_started_at":"2026-06-18T10:00:00Z",""" +
+                    """"finished_at":"2026-06-18T10:01:00Z","resolved_agent_id":"agent-preplan",""" +
+                    """"execution_origin":"agent-executed"},""" +
+                    """"plan":{"contract_version":"0.2","record_kind":"private_phase_record",""" +
+                    """"phase_id":"plan","status":"completed","attempt_count":1,""" +
+                    """"started_at":"2026-06-18T10:02:00Z","first_started_at":"2026-06-18T10:02:00Z",""" +
+                    """"finished_at":"2026-06-18T10:03:00Z","resolved_agent_id":"agent-plan",""" +
+                    """"execution_origin":"agent-executed"}}}""",
+                ),
+              ),
+            ),
+          ),
+        startedAt = Instant.parse("2026-06-18T10:00:00Z"),
+        updatedAt = Instant.parse("2026-06-18T10:03:00Z"),
         finishedAt = null,
-        mode = definition.workflowMode,
+        mode = definition.workflowMode?.let(FeatureTaskWorkflowMode::fromWireValue),
       )
     val decision =
       engine.continueDecision(
@@ -388,29 +396,8 @@ class WorkflowCliResultMappersTest {
   private fun WorkflowGetResult.Ok.withDecodedGoalObservability(): WorkflowGetResult.Ok =
     copy(
       goalObservability =
-        goalObservabilityLatestEventFromArtifacts(snapshot.artifacts, testGoalObservabilityEventValidator),
+        goalObservabilityLatestEventFromArtifacts(snapshot.artifacts),
     )
-
-  private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
-    object : GoalObservabilityEventValidator {
-      override fun validate(
-        kind: FeatureTaskRuntimeWireArtifactKind,
-        payload: Any,
-        sourceLabel: String,
-      ) {
-        GoalObservabilityEventSchemaValidator.validate(
-          requireNotNull(JsonCodec.anyToStringAnyMap(payload)),
-          sourceLabel,
-        )
-      }
-    }
-
-  private object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
-    override fun validate(
-      snapshot: WorkflowStateSnapshot,
-      slug: String,
-    ) = Unit
-  }
 }
 
 private fun cliCompatibilityRepositoryRoot(): Path {

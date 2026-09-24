@@ -1,4 +1,5 @@
 package skillbill.infrastructure.launcher.process.support
+
 import java.security.MessageDigest
 
 internal fun newLauncherSha256Digest(): MessageDigest = MessageDigest.getInstance("SHA-256")

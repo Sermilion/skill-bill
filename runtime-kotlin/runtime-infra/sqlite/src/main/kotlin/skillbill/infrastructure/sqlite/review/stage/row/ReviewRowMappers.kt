@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stage.row
+
 import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys

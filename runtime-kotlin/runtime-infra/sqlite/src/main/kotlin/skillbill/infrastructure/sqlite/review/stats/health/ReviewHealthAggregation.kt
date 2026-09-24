@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats.health
+
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 import skillbill.review.model.FindingOutcomeType

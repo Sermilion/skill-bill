@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.externalplatformpack
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.config.ExternalPlatformPackConfigKeys
 import skillbill.error.core.ExternalPlatformPackConfigError

@@ -1,4 +1,5 @@
 package skillbill.ports.goalrunner.persistence.model
+
 import skillbill.goalrunner.model.GoalContinuation
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
@@ -8,7 +9,7 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 
 data class CrashReconcileExpiredWorkerRequest(

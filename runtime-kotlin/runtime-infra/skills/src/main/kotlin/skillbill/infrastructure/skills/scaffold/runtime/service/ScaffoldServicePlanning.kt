@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.runtime.service
+
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.error.shellcontent.MissingPlatformPackError
 import skillbill.error.shellcontent.SkillAlreadyExistsError
@@ -12,13 +13,13 @@ import skillbill.infrastructure.skills.scaffold.runtime.service.contract.APPROVE
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELLED_FAMILIES
 import skillbill.infrastructure.skills.scaffold.runtime.service.externalpack.registerPlannedExternalPlatformPack
 import skillbill.ports.system.HostPlatformPort
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_CODE_REVIEW_AREA
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_HORIZONTAL
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
-import skillbill.scaffold.policy.scaffold.sharedContractNote
+import skillbill.scaffold.policy.SKILL_KIND_ADD_ON
+import skillbill.scaffold.policy.SKILL_KIND_AGENT_ADDON
+import skillbill.scaffold.policy.SKILL_KIND_CODE_REVIEW_AREA
+import skillbill.scaffold.policy.SKILL_KIND_HORIZONTAL
+import skillbill.scaffold.policy.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
+import skillbill.scaffold.policy.SKILL_KIND_PLATFORM_PACK
+import skillbill.scaffold.policy.sharedContractNote
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path

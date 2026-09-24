@@ -214,7 +214,7 @@ class ImplementationOwnershipArchitectureTest {
       )
     val mustNotBeDetectedAsForbidden =
       listOf(
-        "import skillbill.scaffold.policy.scaffold.X",
+        "import skillbill.scaffold.policy.X",
         "import skillbill.scaffold.model.Y",
         "import skillbill.ports.scaffold.foo.Bar",
         "import java.nio.file.Path",
@@ -235,18 +235,18 @@ class ImplementationOwnershipArchitectureTest {
   private companion object {
     val ALLOWED_COMPOSITION_IMPORTS: Set<String> =
       setOf(
-        "skillbill.install.model.InstallPlanWireValidator",
+        "skillbill.ports.install.InstallPlanWireValidator",
         "skillbill.infrastructure.launcher.agentrun.FileSystemAgentRunLauncher",
         "skillbill.infrastructure.launcher.agentrun.PathExecutableLookup",
         "skillbill.infrastructure.launcher.review.UnixSocketGovernedReviewEvidenceEndpointBinder",
-        "skillbill.workflow.decomposition.DecompositionManifestValidator",
-        "skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator",
-        "skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator",
-        "skillbill.workflow.goal.GoalObservabilityEventValidator",
-        "skillbill.workflow.goal.GoalPlanningPreparationEnvelopeValidator",
-        "skillbill.workflow.goal.GoalProgressEventValidator",
+        "skillbill.ports.workflow.decomposition.DecompositionManifestValidator",
+        "skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator",
+        "skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator",
+        "skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator",
+        "skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator",
+        "skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator",
         "skillbill.ports.idestatus.IdeStatusValidator",
-        "skillbill.workflow.engine.WorkflowSnapshotValidator",
+        "skillbill.ports.workflow.WorkflowSnapshotValidator",
         "skillbill.infrastructure.skills.scaffold.adapters.FileSystemScaffoldRepoValidation",
         "skillbill.infrastructure.skills.scaffold.adapters.FileSystemScaffoldSourceLoader",
         "skillbill.infrastructure.skills.skillremove.FileSystemSkillRemoveFileSystem",

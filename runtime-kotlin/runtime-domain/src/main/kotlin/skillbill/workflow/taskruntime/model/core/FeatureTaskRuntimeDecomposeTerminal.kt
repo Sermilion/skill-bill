@@ -1,11 +1,12 @@
 package skillbill.workflow.taskruntime.model.core
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
 
-const val FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY: String =
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
+
+internal const val FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY: String =
   "feature_task_runtime_decompose_terminal"
 
-const val FEATURE_TASK_RUNTIME_DECOMPOSE_GUIDANCE: String =
+private const val FEATURE_TASK_RUNTIME_DECOMPOSE_GUIDANCE: String =
   "Work the first subtask first, then continue through the ordered spec_subtask_*.md files."
 
 data class FeatureTaskRuntimeDecomposeTerminal(

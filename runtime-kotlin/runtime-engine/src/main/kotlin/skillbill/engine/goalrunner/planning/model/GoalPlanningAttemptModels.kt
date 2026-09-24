@@ -8,8 +8,8 @@ import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.ports.goalrunner.planning.model.GoalPlanningResolvedBoundaryBodies
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.workflow.decomposition.model.DecompositionSubtask
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressOutcome
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 

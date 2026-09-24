@@ -1,4 +1,5 @@
 package skillbill.ports.telemetry.transport
+
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryDeliveryReport

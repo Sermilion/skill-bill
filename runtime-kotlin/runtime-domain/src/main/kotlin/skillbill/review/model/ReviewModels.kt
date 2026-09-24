@@ -1,5 +1,4 @@
 package skillbill.review.model
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 
 data class ImportedFinding(
   val findingId: String,

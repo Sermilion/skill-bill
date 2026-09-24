@@ -10,21 +10,21 @@ class InstallPlanModelTest {
   fun `supported install agents are exactly the install contract set`() {
     assertEquals(
       listOf("claude", "codex", "junie", "cursor"),
-      InstallAgent.supportedIds,
+      SupportedAgent.supportedIds,
     )
   }
 
   @Test
   fun `cursor is a governed install agent and stays runtime eligible`() {
-    assertEquals(InstallAgent.CURSOR, InstallAgent.fromId("cursor"))
-    assertEquals(InstallAgent.CURSOR, InstallAgent.fromNormalizedId(" CURSOR "))
+    assertEquals(SupportedAgent.CURSOR, SupportedAgent.fromId("cursor"))
+    assertEquals(SupportedAgent.CURSOR, SupportedAgent.fromNormalizedId(" CURSOR "))
   }
 
   @Test
   fun `cursor invoking-agent markers are session identity not api credentials`() {
     val cursor =
       InvokingAgentContextResolver.INVOKING_AGENT_CONTEXT_SIGNALS.single { signal ->
-        signal.agent == InstallAgent.CURSOR
+        signal.agent == SupportedAgent.CURSOR
       }
     assertEquals(listOf("CURSOR_AGENT", "CURSOR_INVOKED_AS"), cursor.markerKeys)
   }
@@ -39,17 +39,17 @@ class InstallPlanModelTest {
 
   @Test
   fun `agent ids parse only governed install targets`() {
-    InstallAgent.supportedIds.forEach { id ->
-      assertEquals(id, InstallAgent.fromId(id).id)
+    SupportedAgent.supportedIds.forEach { id ->
+      assertEquals(id, SupportedAgent.fromId(id).id)
     }
 
     val error =
       assertFailsWith<IllegalArgumentException> {
-        InstallAgent.fromId("not-an-agent")
+        SupportedAgent.fromId("not-an-agent")
       }
 
     assertContains(error.message.orEmpty(), "Unknown agent 'not-an-agent'")
-    InstallAgent.supportedIds.forEach { id ->
+    SupportedAgent.supportedIds.forEach { id ->
       assertContains(error.message.orEmpty(), id)
     }
   }

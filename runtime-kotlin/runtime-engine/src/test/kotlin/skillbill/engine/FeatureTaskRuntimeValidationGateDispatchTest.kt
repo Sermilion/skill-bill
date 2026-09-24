@@ -2,9 +2,10 @@ package skillbill.engine
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.contracts.JsonCodec
+import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.runloop.state.validationPassedFromEnvelope
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.validation.ValidationGateRunner
@@ -163,7 +164,7 @@ class FeatureTaskRuntimeValidationGateDispatchTest {
     val harness =
       validationHarness {
         AgentRunLaunchFacts(
-          agent = InstallAgent.CLAUDE,
+          agent = SupportedAgent.CLAUDE,
           exitStatus = 1,
           stdout = validJsonOutput("validate"),
           stderr = "Validation process failed.",
@@ -183,7 +184,7 @@ class FeatureTaskRuntimeValidationGateDispatchTest {
     val harness =
       validationHarness {
         AgentRunLaunchFacts(
-          agent = InstallAgent.CLAUDE,
+          agent = SupportedAgent.CLAUDE,
           exitStatus = 1,
           stdout = "",
           stderr = "You've hit your usage limit",

@@ -1,8 +1,9 @@
 package skillbill.review.context.model.packet
+
 import skillbill.review.context.model.execution.SHA256_HEX
 import skillbill.review.context.model.execution.canonicalFieldList
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.hunk.ReviewEvidenceLimits
+import skillbill.review.model.requireRepositoryRelativePath
 
 data class ReviewExpansionRecord(
   val expansionId: String,

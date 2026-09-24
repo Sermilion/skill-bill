@@ -1,4 +1,5 @@
 package skillbill.cli.goal.control
+
 import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.flag
@@ -35,7 +36,7 @@ import skillbill.engine.goalrunner.model.GoalRunnerRepairRequest
 import skillbill.engine.goalrunner.model.GoalRunnerReplanRequest
 import skillbill.engine.goalrunner.model.GoalRunnerResetRequest
 import skillbill.engine.goalrunner.status.GoalRunnerStatusService
-import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
+import skillbill.workflow.model.goalreview.GoalSubtaskOperatorDecision
 
 @Inject
 class GoalPauseCommand(

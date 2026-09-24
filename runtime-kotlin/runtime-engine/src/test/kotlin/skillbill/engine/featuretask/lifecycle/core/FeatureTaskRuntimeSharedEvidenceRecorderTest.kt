@@ -3,11 +3,12 @@ package skillbill.engine.featuretask.lifecycle.core
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.testHarnessClock
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
+import skillbill.engine.NoopWorkflowSnapshotValidator
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffEnvelope
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeSharedEvidenceMeasurement

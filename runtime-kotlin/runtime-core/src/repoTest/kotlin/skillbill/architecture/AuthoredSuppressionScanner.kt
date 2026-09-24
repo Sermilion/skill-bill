@@ -1,7 +1,7 @@
 package skillbill.architecture
 
 object AuthoredSuppressionScanner {
-  fun scan(
+  internal fun scan(
     relativePath: String,
     lines: Sequence<String>,
   ): List<ArchitectureScanSupport.AuthoredSuppression> {

@@ -9,7 +9,7 @@ class ModelDirectiveCapabilityTest {
   @Test
   fun `cursor joins claude and codex as model-directive capable agents`() {
     assertEquals(
-      setOf(InstallAgent.CLAUDE, InstallAgent.CODEX, InstallAgent.CURSOR),
+      setOf(SupportedAgent.CLAUDE, SupportedAgent.CODEX, SupportedAgent.CURSOR),
       MODEL_DIRECTIVE_CAPABLE_AGENTS,
     )
   }

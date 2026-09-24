@@ -1,8 +1,9 @@
 package skillbill.goalrunner.model
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
 
 data class FeatureTaskRuntimeGoalContinuationOutcome(
   val issueKey: String,

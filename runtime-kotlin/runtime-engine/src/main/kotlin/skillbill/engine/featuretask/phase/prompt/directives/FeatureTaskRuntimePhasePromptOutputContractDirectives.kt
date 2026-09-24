@@ -5,7 +5,7 @@ import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBri
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseProjectionShapes
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
 import skillbill.review.model.ReviewIssueCategory
-import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
+import skillbill.workflow.model.goalreview.GoalSubtaskCommitFocusedAccounting
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 fun outputContract(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {

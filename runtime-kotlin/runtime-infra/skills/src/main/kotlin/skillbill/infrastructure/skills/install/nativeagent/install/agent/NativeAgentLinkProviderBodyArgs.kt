@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install.nativeagent.install.agent
+
 import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest
 import skillbill.infrastructure.skills.install.nativeagent.install.native.ProviderMutationJournal
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionContext

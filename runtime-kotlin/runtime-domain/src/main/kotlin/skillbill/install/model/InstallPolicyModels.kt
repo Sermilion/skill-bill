@@ -1,10 +1,11 @@
 package skillbill.install.model
 
+import skillbill.install.policy.selectedPlatformSlugs
 import skillbill.model.FileLocation
 import skillbill.scaffold.model.CodeReviewBaselineLayer
 
 data class InstallAgentDefaultTarget(
-  val agent: InstallAgent,
+  val agent: SupportedAgent,
   val path: FileLocation,
 )
 

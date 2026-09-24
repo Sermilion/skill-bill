@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.verification
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.application.review.model.ParallelReviewLaneStatus
@@ -15,11 +16,11 @@ import skillbill.application.review.verification.verificationReviewOutput
 import skillbill.application.runtimepersistence.RuntimeOwnedPersistenceBoundary
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.execution.SpecIntentResolution
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewFindingVerdict
+import skillbill.review.model.ReviewLaneReviewDisposition
 import skillbill.review.model.ReviewStage
 import skillbill.review.model.ReviewStageBoundary
 import skillbill.review.model.ReviewStageDegradationReason

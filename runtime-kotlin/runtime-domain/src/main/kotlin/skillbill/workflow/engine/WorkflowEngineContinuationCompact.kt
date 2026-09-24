@@ -1,5 +1,6 @@
 package skillbill.workflow.engine
 
+import skillbill.contracts.JsonCodec
 import skillbill.workflow.engine.model.InlineContinuationArtifactValue
 import skillbill.workflow.engine.model.WorkflowCompactContinueView
 import skillbill.workflow.engine.model.WorkflowContinuationArtifactSummary
@@ -70,7 +71,7 @@ internal fun losslessProjectionArtifact(
   key: String,
   value: Any?,
 ): WorkflowContinuationArtifactSummary {
-  val sizeBytes = jsonString(value).toByteArray(Charsets.UTF_8).size
+  val sizeBytes = JsonCodec.valueToJsonString(value).toByteArray(Charsets.UTF_8).size
   return WorkflowContinuationArtifactSummary(
     key = key,
     present = true,
@@ -102,7 +103,7 @@ internal fun artifactSummary(
       omissionReason = "missing_required_artifact",
     )
   }
-  val serialized = jsonString(value)
+  val serialized = JsonCodec.valueToJsonString(value)
   val sizeBytes = serialized.toByteArray(Charsets.UTF_8).size
   val inline = sizeBytes <= COMPACT_ARTIFACT_INLINE_MAX_BYTES
   return WorkflowContinuationArtifactSummary(

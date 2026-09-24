@@ -11,6 +11,7 @@ import skillbill.application.review.parallel.verification.ParallelCodeReviewRunn
 import skillbill.application.review.parallel.verification.parallelCodeReviewCaptureLane
 import skillbill.application.review.parallel.verification.parallelCodeReviewInlineTerminalStatus
 import skillbill.application.review.parallel.verification.parallelCodeReviewNoOpResumeOutcome
+import skillbill.goalrunner.terminalStatus
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch

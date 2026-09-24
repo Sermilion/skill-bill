@@ -1,4 +1,5 @@
 package skillbill.ports.review.model
+
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.review.context.model.commit.ReviewAssignment
 import skillbill.review.context.model.hunk.ReviewEvidenceLimits

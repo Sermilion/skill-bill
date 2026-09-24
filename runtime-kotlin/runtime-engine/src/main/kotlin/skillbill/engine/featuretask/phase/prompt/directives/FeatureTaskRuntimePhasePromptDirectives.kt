@@ -5,9 +5,9 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeImplementationC
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.prior.FeatureTaskRuntimePriorReviewContext
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimePriorReviewContext
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairLedger
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairContext
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairLedger
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 fun implementationContinuationDirective(

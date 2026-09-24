@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.telemetry
+
 import skillbill.engine.agentoutput.stderrExcerpt
 import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
 import skillbill.engine.goalrunner.model.GoalRunnerObservabilityWorkerRole

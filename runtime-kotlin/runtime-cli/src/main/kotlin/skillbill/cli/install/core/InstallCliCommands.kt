@@ -1,4 +1,5 @@
 package skillbill.cli.install.core
+
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
@@ -15,7 +16,6 @@ import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.model.CliRunInputs
 import skillbill.error.core.SkillBillRuntimeException
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallPlanRequest
@@ -27,6 +27,7 @@ import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.ReconciliationPlan
 import skillbill.install.model.RuntimeDistributionInputs
 import skillbill.install.model.SharedInstallSelection
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
@@ -244,7 +245,7 @@ class InstallReplayLastSelectionCommand(
 
   private fun SharedInstallSelection.toReplayText(): String =
     buildString {
-      selectedAgents.map(InstallAgent::id).sorted().forEach { agentId ->
+      selectedAgents.map(SupportedAgent::id).sorted().forEach { agentId ->
         append("agent\t")
         append(agentId)
         append('\t')

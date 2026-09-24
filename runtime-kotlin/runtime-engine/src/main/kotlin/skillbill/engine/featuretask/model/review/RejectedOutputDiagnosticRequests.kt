@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.model.review
-import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
+
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDiagnosticFailureClass
 
 data class RejectedOutputDiagnosticDegradeRequest(
   val workflowId: String,

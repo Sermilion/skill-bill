@@ -1,4 +1,5 @@
 package skillbill.cli.kernel.payload
+
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.contracts.SharedPayloadKeys

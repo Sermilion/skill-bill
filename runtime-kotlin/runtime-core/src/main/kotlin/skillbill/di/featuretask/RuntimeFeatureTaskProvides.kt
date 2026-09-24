@@ -1,4 +1,5 @@
 package skillbill.di.featuretask
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.runtime.RuntimeSingleton
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder

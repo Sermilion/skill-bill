@@ -1,14 +1,14 @@
 package skillbill.engine.featuretask.lifecycle.remediation
 
 import skillbill.engine.featuretask.lifecycle.continuation.reviewState
-import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.goal.model.withoutRefutedFindings
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceiptEntry
-import skillbill.workflow.taskruntime.model.repair.task.attemptedUnresolvedEntries
-import skillbill.workflow.taskruntime.model.repair.task.omittedCarriedFindings
-import skillbill.workflow.taskruntime.model.repair.task.withStableFindingRefs
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceiptEntry
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
+import skillbill.workflow.model.goalreview.attemptedUnresolvedEntries
+import skillbill.workflow.model.goalreview.omittedCarriedFindings
+import skillbill.workflow.model.goalreview.withStableFindingRefs
+import skillbill.workflow.model.goalreview.withoutRefutedFindings
 
 fun featureTaskRuntimeCarriedFindings(
   reviewState: GoalSubtaskReviewState,

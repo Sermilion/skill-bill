@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.validation.review
+
 import skillbill.error.shellcontent.InvalidReviewSkillStructureError
 import java.nio.file.Path
 

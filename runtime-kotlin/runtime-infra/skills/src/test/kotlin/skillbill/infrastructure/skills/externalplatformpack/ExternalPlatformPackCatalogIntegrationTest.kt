@@ -36,6 +36,7 @@ import skillbill.infrastructure.skills.scaffold.authoring.resolveTarget
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadCompositionClosure
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.routeQualityCheck
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION

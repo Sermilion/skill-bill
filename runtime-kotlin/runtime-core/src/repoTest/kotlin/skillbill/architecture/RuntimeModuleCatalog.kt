@@ -199,7 +199,7 @@ object RuntimeModuleCatalog {
       "skillbill.config",
       "skillbill.contracts",
       "skillbill.di",
-      "skillbill.domain.skillremove",
+      "skillbill.skillremove",
       "skillbill.engine",
       "skillbill.error",
       "skillbill.experiment",

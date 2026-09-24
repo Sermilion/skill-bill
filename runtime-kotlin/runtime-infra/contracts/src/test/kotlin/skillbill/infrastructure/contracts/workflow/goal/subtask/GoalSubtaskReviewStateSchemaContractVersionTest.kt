@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.goal.subtask
+
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.identity.subtask.GOAL_SUBTASK_REVIEW_STATE_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.subtask.GoalSubtaskReviewStateSchemaPaths

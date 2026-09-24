@@ -2,7 +2,7 @@ package skillbill.ports.workflow.decomposition.runtime.model
 
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionStackBranch
 import skillbill.workflow.decomposition.model.SpecSource
@@ -45,7 +45,7 @@ data class DecompositionPlanManifestInput(
 
 data class DecompositionManifestWorkflowProjectionInput(
   val repoRoot: Path,
-  val existingArtifactsJson: String,
+  val existingArtifacts: DurableWorkflowArtifacts,
   val validator: DecompositionManifestValidator,
   val planningResult: DecompositionPlanningResult? = null,
   val artifactsPatch: WorkflowArtifactPatch? = null,

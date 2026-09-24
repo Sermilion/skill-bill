@@ -1,7 +1,6 @@
 package skillbill.infrastructure.skills.scaffold
 
 import skillbill.infrastructure.skills.scaffold.catalog.ScaffoldCatalog
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

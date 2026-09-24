@@ -1,4 +1,5 @@
 package skillbill.cli.kernel.agent
+
 import com.github.ajalt.clikt.core.UsageError
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry

@@ -2,7 +2,7 @@ package skillbill.application
 
 import skillbill.application.agentrun.AgentRunService
 import skillbill.application.agentrun.model.AgentRunStartRequest
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
@@ -28,9 +28,9 @@ class AgentRunServiceTest {
         ),
       )
 
-    assertEquals(InstallAgent.CLAUDE, result.resolution.invokedAgent)
-    assertEquals(InstallAgent.CODEX, result.resolution.configuredOverrideAgent)
-    assertEquals(InstallAgent.CODEX, result.resolution.effectiveAgent)
+    assertEquals(SupportedAgent.CLAUDE, result.resolution.invokedAgent)
+    assertEquals(SupportedAgent.CODEX, result.resolution.configuredOverrideAgent)
+    assertEquals(SupportedAgent.CODEX, result.resolution.effectiveAgent)
     assertEquals("codex", launcher.requests.single().agentId)
   }
 
@@ -48,7 +48,7 @@ class AgentRunServiceTest {
         ),
       )
 
-    assertEquals(InstallAgent.JUNIE, result.resolution.effectiveAgent)
+    assertEquals(SupportedAgent.JUNIE, result.resolution.effectiveAgent)
     assertEquals("junie", launcher.requests.single().agentId)
   }
 
@@ -84,7 +84,7 @@ private class RecordingAgentRunLauncher : AgentRunLauncher {
   override fun launch(request: AgentRunLaunchRequest): AgentRunLaunchOutcome {
     requests += request
     return AgentRunLaunchFacts(
-      agent = InstallAgent.fromId(request.agentId),
+      agent = SupportedAgent.fromId(request.agentId),
       exitStatus = 0,
       stdout = "diagnostic",
       stderr = "",

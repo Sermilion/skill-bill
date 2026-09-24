@@ -9,6 +9,7 @@ import skillbill.application.review.service.RuntimeOwnedReviewMode
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointMessage
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.lifecycle.continuation.reviewState
@@ -33,6 +34,7 @@ import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutp
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
+import skillbill.engine.goalrunner.status.completed
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.error.shellcontent.UnreadableSpecIntentProjectionError
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
@@ -42,14 +44,14 @@ import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.review.context.model.hunk.ReviewContextBudgetExceededException
-import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeReviewPassSequence
+import skillbill.workflow.model.goalreview.GoalSubtaskBlockerDisposition
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
-import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewPassSequence
 import java.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
 

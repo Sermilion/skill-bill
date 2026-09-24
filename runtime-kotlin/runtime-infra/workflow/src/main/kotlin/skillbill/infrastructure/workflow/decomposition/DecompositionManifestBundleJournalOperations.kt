@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.decomposition
+
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalPayloadKeys

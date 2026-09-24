@@ -1,5 +1,7 @@
 package skillbill.infrastructure.workflow.git.protected
+
 import skillbill.infrastructure.workflow.git.standard.gitPushBranch
+import skillbill.infrastructure.workflow.git.workflow.git
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Files
 import java.nio.file.Path

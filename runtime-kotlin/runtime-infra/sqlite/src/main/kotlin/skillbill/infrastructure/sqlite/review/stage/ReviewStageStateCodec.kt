@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stage
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys

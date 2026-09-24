@@ -1,5 +1,6 @@
 package skillbill.infrastructure.skills.install
 
+import skillbill.infrastructure.skills.install.plan.codexAgentsPath
 import skillbill.infrastructure.skills.install.plan.codexConfigRoots
 import skillbill.infrastructure.skills.install.plan.codexSkillTargets
 import skillbill.infrastructure.skills.install.plan.detectAgents

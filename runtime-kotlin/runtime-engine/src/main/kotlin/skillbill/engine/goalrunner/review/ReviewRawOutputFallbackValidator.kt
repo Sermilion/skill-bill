@@ -1,9 +1,10 @@
 package skillbill.engine.goalrunner.review
+
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputValidationResult
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 
 object ReviewRawOutputFallbackValidator : FeatureTaskRuntimePhaseOutputValidator {
   override fun validatePhaseOutput(
@@ -19,14 +20,6 @@ object ReviewRawOutputFallbackValidator : FeatureTaskRuntimePhaseOutputValidator
     sourceLabel: String,
   ) {
     validatePhaseOutput(phaseOutputText, sourceLabel)
-  }
-
-  override fun validateAndReadPhaseOutput(
-    phaseOutputText: String,
-    sourceLabel: String,
-  ): Map<String, Any?> {
-    return JsonCodec.anyToStringAnyMap(normalizePhaseOutput(phaseOutputText, sourceLabel).envelopePayload())
-      ?: error("Normalized phase output was not a string-keyed object.")
   }
 
   override fun normalizePhaseOutput(

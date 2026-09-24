@@ -1,4 +1,5 @@
 package skillbill.infrastructure.launcher.process.waitloop
+
 import skillbill.goalrunner.model.GoalRunnerLivenessClassifier
 import skillbill.goalrunner.model.GoalRunnerLivenessDecision
 import skillbill.goalrunner.model.GoalRunnerLivenessInputs
@@ -14,9 +15,9 @@ import skillbill.infrastructure.launcher.process.launch.toIsoUtc
 import skillbill.ports.agentrun.model.AgentRunDeclaredProgressSnapshot
 import skillbill.ports.agentrun.model.AgentRunLivenessSnapshot
 import skillbill.ports.agentrun.model.AgentRunProgressEmission
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressOutcome
 import java.nio.charset.StandardCharsets
 import java.time.Clock
 import java.time.Instant
@@ -174,7 +175,7 @@ internal class ProcessWaitLoop(
       processState = processState,
       workflowId = declared?.workflowId ?: parsedWorkflowId,
       workflowStep = declared?.let { it.stepId ?: it.workflowPhase } ?: parsedWorkflowStep,
-      lastDurableProgressAt = declared?.timestamp ?: lastProgressInstant?.toIsoUtc(),
+      lastDurableProgressAt = declared?.timestamp?.toIsoUtc() ?: lastProgressInstant?.toIsoUtc(),
       lastDurableProgressLabel = lastProgressLabel?.takeIf(String::isNotBlank),
       lastWorkflowSnapshotAt = lastSnapshotInstant?.toIsoUtc(),
       lastFileActivityAt = lastActivityInstant?.toIsoUtc(),

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.schema
+
 import skillbill.error.core.DatabaseAccessOperation
 import java.nio.file.Files
 import java.nio.file.Path

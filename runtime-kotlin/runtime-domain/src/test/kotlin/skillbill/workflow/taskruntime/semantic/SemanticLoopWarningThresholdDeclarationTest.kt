@@ -1,7 +1,8 @@
 package skillbill.workflow.taskruntime.semantic
+
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionContext
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.validation.FeatureTaskRuntimeTransitionFunction
 import kotlin.test.Test

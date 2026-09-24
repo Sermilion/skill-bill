@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.persist
-
 import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
+import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.goalrunner.repair.GoalRunnerChildRepairOperations
 import skillbill.infrastructure.sqlite.goalrunner.manifest.WorkflowGoalRunnerManifestStore
 import skillbill.infrastructure.sqlite.goalrunner.outcome.WorkflowGoalRunnerOutcomeStore
@@ -12,22 +12,21 @@ import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.repository.RepositoryEnclosingRootPort
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.goal.GoalObservabilityEventValidator
-import skillbill.workflow.goal.GoalProgressEventValidator
-import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
-import skillbill.workflow.goal.NoopGoalProgressEventValidator
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.time.Clock
 
 data class OutcomeStoreTestArtifactPorts(
-  val goalObservabilityEventValidator: GoalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-  val goalProgressEventValidator: GoalProgressEventValidator = NoopGoalProgressEventValidator,
+  val goalObservabilityEventValidator: FeatureTaskRuntimeWireArtifactValidator =
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
+  val goalProgressEventValidator: FeatureTaskRuntimeWireArtifactValidator =
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
   val phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator = realFeatureTaskRuntimePhaseOutputValidator,
   val decompositionManifestStore: DecompositionManifestStore = UnavailableDecompositionManifestStore,
 )

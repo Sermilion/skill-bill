@@ -1,4 +1,5 @@
 package skillbill.cli.goal.purge
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.goalrunner.GoalRunnerPurgePayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerPurgeResult

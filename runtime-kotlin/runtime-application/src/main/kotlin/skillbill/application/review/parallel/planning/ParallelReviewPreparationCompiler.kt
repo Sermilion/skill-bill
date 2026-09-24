@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.planning
+
 import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.application.review.model.ReviewPreparationRequest
 import skillbill.application.review.model.ReviewPreparationResult
@@ -10,6 +11,7 @@ import skillbill.application.review.preparation.deriveSpecialistBudget
 import skillbill.application.reviewevidence.ResolvedCommitSequence
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.repository.RepositoryEnclosingRootPort
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
 import skillbill.ports.review.model.ReviewFactPorts
 import skillbill.ports.review.model.ReviewLaneSelection
@@ -22,7 +24,6 @@ import skillbill.ports.review.preparation.ReviewLearningsPort
 import skillbill.ports.review.preparation.ReviewScopeResolverPort
 import skillbill.ports.review.preparation.ReviewStackRoutingPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
-import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.commit.ReviewCommitLaneRoutingMatrix
 import skillbill.review.context.model.execution.ReviewLaneDecision
 import skillbill.review.context.model.execution.SpecIntentAbsenceReason
@@ -299,7 +300,7 @@ private data class PrepareReviewCompileInput(
   val hunkLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
 )
 
-private fun criteriaReferences(
+internal fun criteriaReferences(
   routes: List<SpecialistRoute>,
   resolution: SpecIntentResolution,
 ): Map<String, List<String>> {
@@ -314,7 +315,7 @@ private fun criteriaReferences(
 
 private data class SelectedRubric(val planned: PlannedReviewRubric, val ownedPaths: List<String>)
 
-private data class SpecialistRoute(
+internal data class SpecialistRoute(
   val lane: String,
   val agentId: String,
   val rubric: ReviewRubricProjection,

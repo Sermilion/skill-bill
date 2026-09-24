@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.review.broker
+
 import skillbill.ports.review.evidence.ReviewEvidenceBroker
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
@@ -12,12 +13,12 @@ import skillbill.ports.review.model.ReviewToolCallResult
 import skillbill.review.context.model.accounting.ReviewBudgetKind
 import skillbill.review.context.model.execution.ReviewOperationPolicy
 import skillbill.review.context.model.execution.ReviewRequestedOperation
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.hunk.ReviewBudgetEvaluator
 import skillbill.review.context.model.hunk.ReviewBudgetOutcome
 import skillbill.review.context.model.hunk.ReviewLaneIdentity
 import skillbill.review.context.model.packet.LANE_EVIDENCE_BYTES_DIMENSION
 import skillbill.review.context.model.packet.ReviewExpansionRecord
+import skillbill.review.model.requireRepositoryRelativePath
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 

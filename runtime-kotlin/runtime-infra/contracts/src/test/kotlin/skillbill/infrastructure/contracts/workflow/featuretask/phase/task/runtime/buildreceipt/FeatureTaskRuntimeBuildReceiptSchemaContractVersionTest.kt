@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.buildreceipt
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION

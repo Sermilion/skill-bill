@@ -1,6 +1,8 @@
 package skillbill.application.workflow.service
+
 import skillbill.application.workflow.model.FeatureTaskIdentityRepairArgs
 import skillbill.application.workflow.model.WorkflowUpdateResult
+import skillbill.application.workflow.persist.WorkflowPersistenceContext
 import skillbill.application.workflow.persist.buildUpdateOk
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.ports.persistence.UnitOfWork
@@ -23,6 +25,7 @@ import java.time.ZoneOffset
 internal class WorkflowServiceFeatureTaskIdentityRepair(
   private val engine: WorkflowEngine,
   private val clock: Clock,
+  private val repositoryCheckpointIdentity: () -> String = { "" },
 ) {
   fun repair(args: FeatureTaskIdentityRepairArgs): WorkflowUpdateResult {
     val unitOfWork = args.unitOfWork
@@ -57,7 +60,16 @@ internal class WorkflowServiceFeatureTaskIdentityRepair(
     val input = repairInput(existing, args)
     val updated = engine.updateRecord(family.definition, existing, input)
     family.save(unitOfWork.workflowStates, updated)
-    return buildUpdateOk(engine, family.definition, updated, input, unitOfWork.dbPath.toString())
+    return buildUpdateOk(
+      engine,
+      family.definition,
+      updated,
+      input,
+      WorkflowPersistenceContext(
+        dbPath = unitOfWork.dbPath.toString(),
+        repositoryCheckpointIdentity = repositoryCheckpointIdentity,
+      ),
+    )
   }
 
   private fun persistIdentity(

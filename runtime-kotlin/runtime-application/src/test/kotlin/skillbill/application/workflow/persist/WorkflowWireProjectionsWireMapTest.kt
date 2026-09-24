@@ -1,4 +1,5 @@
 package skillbill.application.workflow.persist
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys

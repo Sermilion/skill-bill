@@ -2,11 +2,10 @@ package skillbill.mcp.workflow
 
 import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.contracts.JsonCodec
-import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowSnapshotView
-import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GoalObservabilityEvent
+import skillbill.workflow.model.goalreview.GoalObservabilityEvent
 
 internal fun workflowSnapshotMcpMap(
   snapshot: WorkflowSnapshotView,
@@ -16,10 +15,11 @@ internal fun workflowSnapshotMcpMap(
     goalObservabilitySummary(goalObservability)?.let { summary ->
       put("goal_observability", summary)
     }
-    (snapshot.artifacts[GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY] as? Map<*, *>)?.let { event ->
+    (DurableWorkflowArtifactFamily.GOAL_PROGRESS_LATEST_EVENT.value(snapshot.artifacts) as? Map<*, *>)?.let { event ->
       put("goal_progress", event)
     }
-    (snapshot.artifacts[GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY] as? List<*>)?.lastOrNull()?.let { entry ->
+    (DurableWorkflowArtifactFamily.GOAL_ATTEMPT_LEDGER.value(snapshot.artifacts) as? List<*>)?.lastOrNull()?.let {
+        entry ->
       put("goal_attempt_ledger_latest", entry)
     }
   }

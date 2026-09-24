@@ -1,12 +1,13 @@
 package skillbill.engine.featuretask.model.phase
+
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
-import skillbill.workflow.goal.model.GoalSubtaskBlockerDisposition
-import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
-import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
+import skillbill.workflow.model.goalreview.GoalSubtaskBlockerDisposition
+import skillbill.workflow.model.goalreview.GoalSubtaskCommitFocusedAccounting
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDiagnosticFailureClass
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionFailureClassification
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 
 data class GoalReviewPhaseCompletionRequest(
   val phaseState: FeatureTaskRuntimePhaseStateRequest,

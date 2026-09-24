@@ -1,4 +1,5 @@
 package skillbill.review.context
+
 import skillbill.review.context.model.execution.ResolvedReviewDepth
 import skillbill.review.context.model.execution.ResolvedReviewExecutionMode
 import skillbill.review.context.model.launch.CodeReviewExecutionMode

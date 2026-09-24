@@ -1,9 +1,10 @@
 package skillbill.engine.goalrunner.planning.hydration
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.engine.featuretask.persist.durationMillis
 import skillbill.engine.featuretask.persist.workflowArtifactEntryMap
 import skillbill.engine.goalrunner.planning.model.GoalChildPlanningHydration
+import skillbill.engine.goalrunner.planning.model.expectedProvenance
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRecoveryKind
 import skillbill.engine.goalrunner.planning.recovery.classifyGoalPlanningRecovery
 import skillbill.engine.planningprojection.requireValidPlanningProjection
@@ -15,18 +16,16 @@ import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.ports.goalrunner.runner.model.GoalChildPlanningHydrationRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.text.sha256HexUtf8
-import skillbill.workflow.engine.decodeWorkflowSteps
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalPlanningImport
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseExecutionOrigin
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
@@ -34,7 +33,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerE
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.time.Clock
 
 private data class PreparedGoalPlanning(
@@ -155,9 +153,11 @@ class GoalChildPlanningHydrator(
       stepUpdates = records.keys.map(::completedStep),
       artifacts =
         mapOf(
-          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to records,
-          FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to createImportedLedger(importedAt),
-          FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY to createProvenance(request, prepared),
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS.entry(records),
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_LEDGER.entry(createImportedLedger(importedAt)),
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT.entry(
+            createProvenance(request, prepared),
+          ),
         ),
     )
   }
@@ -293,9 +293,9 @@ private class GoalChildPlanningImportMatcher(
     setup: GoalRunnerChildWorkflowSetup,
     request: GoalChildPlanningHydrationRequest,
   ): String? {
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(existing)
+    val artifacts = existing.artifacts
     val expected =
-      artifacts[FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY] as? Map<*, *>
+      DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT.value(artifacts) as? Map<*, *>
         ?: return "child carries no goal planning import artifact"
     val shared = unitOfWork.goalPlanningPreparations.findSharedPreplan(request.identity)
     val plan =
@@ -400,8 +400,11 @@ private class GoalChildPlanningImportMatcher(
     artifacts: Map<String, Any?>,
     existing: WorkflowStateSnapshot,
   ): Boolean {
-    val records = artifacts[FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY] as? Map<*, *> ?: return false
-    val expected = artifacts[FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY] as? Map<*, *> ?: return false
+    val records =
+      DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS.value(artifacts) as? Map<*, *> ?: return false
+    val expected =
+      DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT.value(artifacts) as? Map<*, *>
+        ?: return false
     val expectedStepStatuses =
       PLANNING_PHASE_IDS.mapNotNull { phaseId ->
         settledStepStatus(records[phaseId] as? Map<*, *>, phaseId)?.let { phaseId to it }
@@ -429,7 +432,7 @@ private class GoalChildPlanningImportMatcher(
 
   private fun ledgerMatches(artifacts: Map<String, Any?>): Boolean {
     val ledger =
-      (artifacts[FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY] as? List<*>)
+      (DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_LEDGER.value(artifacts) as? List<*>)
         ?.mapNotNull { it as? Map<*, *> }
         ?: return false
     if (ledger.size < PLANNING_PHASE_IDS.size) return false
@@ -449,27 +452,11 @@ private class GoalChildPlanningImportMatcher(
     existing: WorkflowStateSnapshot,
     expected: Map<String, WorkflowStepStatus>,
   ): Boolean {
-    val planningSteps = decodeWorkflowSteps(existing.stepsJson).filter { it.stepId in PLANNING_PHASE_IDS }
+    val planningSteps = existing.steps.filter { it.stepId in PLANNING_PHASE_IDS }
     return planningSteps.size == PLANNING_PHASE_IDS.size &&
       planningSteps.all { it.status.workflowStepStatus() == expected[it.stepId] }
   }
 }
-
-private fun expectedProvenance(request: GoalChildPlanningHydrationRequest): Map<String, Any?> =
-  mapOf(
-    "source_kind" to "imported_goal_planning",
-    "parent_goal_workflow_id" to request.identity.parentGoalWorkflowId,
-    "normalized_issue_key" to request.identity.normalizedIssueKey,
-    "repository_identity" to request.identity.repositoryIdentity,
-    SharedPayloadKeys.SUBTASK_ID to request.descriptor.subtaskId,
-    "manifest_order" to request.descriptor.manifestOrder,
-    "governed_sub_spec_path" to request.descriptor.governedSubSpecPath,
-    "decomposition_manifest_hash" to request.provenance.decompositionManifestHash,
-    "planning_contract_id" to request.provenance.planningContractId,
-    "planning_contract_version" to request.provenance.planningContractVersion,
-    "phase_output_contract_id" to request.provenance.phaseOutputContractId,
-    "phase_output_contract_version" to request.provenance.phaseOutputContractVersion,
-  )
 
 private fun completedStep(phaseId: String): Map<String, Any?> =
   linkedMapOf(

@@ -1,4 +1,5 @@
 package skillbill.di.goal
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.engine.goalrunner.planning.recovery.ChildAwareGoalPlanningRefreshLiveness
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRefreshLiveness

@@ -1,4 +1,5 @@
 package skillbill.cli.install.core
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.cli.install.apply.InstallApplyExternalAddonsCommand
 import skillbill.cli.install.mcp.InstallRegisterMcpCommand

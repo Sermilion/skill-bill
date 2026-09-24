@@ -1,7 +1,7 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation
+
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.toArtifactMap
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import kotlin.test.Test
 import kotlin.test.assertEquals

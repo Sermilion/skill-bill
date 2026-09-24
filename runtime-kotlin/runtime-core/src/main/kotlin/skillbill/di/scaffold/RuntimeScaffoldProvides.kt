@@ -1,4 +1,5 @@
 package skillbill.di.scaffold
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.infrastructure.skills.scaffold.FileSystemScaffoldCatalogGateway
 import skillbill.infrastructure.skills.scaffold.FileSystemScaffoldGateway

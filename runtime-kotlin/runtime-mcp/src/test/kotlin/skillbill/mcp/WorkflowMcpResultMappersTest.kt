@@ -2,19 +2,15 @@ package skillbill.mcp
 
 import skillbill.application.workflow.model.WorkflowGetResult
 import skillbill.application.workflow.model.WorkflowUpdateResult
-import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidGoalObservabilityEventSchemaError
-import skillbill.infrastructure.contracts.workflow.goal.observability.GoalObservabilityEventSchemaValidator
 import skillbill.mcp.workflow.toMcpMap
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
-import skillbill.workflow.goal.GoalObservabilityEventValidator
-import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.model.goalreview.goalObservabilityLatestEventFromArtifacts
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -278,20 +274,6 @@ class WorkflowMcpResultMappersTest {
   private fun WorkflowGetResult.Ok.withDecodedGoalObservability(): WorkflowGetResult.Ok =
     copy(
       goalObservability =
-        goalObservabilityLatestEventFromArtifacts(snapshot.artifacts, testGoalObservabilityEventValidator),
+        goalObservabilityLatestEventFromArtifacts(snapshot.artifacts),
     )
-
-  private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
-    object : GoalObservabilityEventValidator {
-      override fun validate(
-        kind: FeatureTaskRuntimeWireArtifactKind,
-        payload: Any,
-        sourceLabel: String,
-      ) {
-        GoalObservabilityEventSchemaValidator.validate(
-          requireNotNull(JsonCodec.anyToStringAnyMap(payload)),
-          sourceLabel,
-        )
-      }
-    }
 }

@@ -7,6 +7,7 @@ import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.mapToRecord
 import skillbill.ports.workflow.model.toContinueSessionSummary
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -25,6 +26,8 @@ interface WorkflowStateRepository :
   FeatureImplementWorkflowStateRepository,
   FeatureVerifyWorkflowStateRepository,
   FeatureTaskRuntimeWorkflowStateRepository
+
+fun WorkflowStateSnapshot.toRecord(source: WorkflowStateRecord? = null): WorkflowStateRecord = mapToRecord(source)
 
 interface FeatureTaskExecutionLookupRepository {
   fun saveFeatureTaskExecutionIdentity(identity: FeatureTaskExecutionIdentity)
@@ -141,27 +144,17 @@ interface FeatureTaskRuntimeWorkflowStateRepository {
   fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord?
 }
 
-fun WorkflowStateSnapshot.toRecord(): WorkflowStateRecord =
-  WorkflowStateRecord(
-    workflowId = workflowId,
-    sessionId = sessionId,
-    workflowName = workflowName,
-    contractVersion = contractVersion,
-    workflowStatus = workflowStatus.wireValue,
-    currentStepId = currentStepId,
-    stepsJson = stepsJson,
-    artifactsJson = artifactsJson,
-    startedAt = startedAt,
-    updatedAt = updatedAt,
-    finishedAt = finishedAt,
-    mode = mode?.let(FeatureTaskWorkflowMode::fromWireValue),
-  )
-
 fun WorkflowFamily.save(
   repository: WorkflowStateRepository,
   record: WorkflowStateSnapshot,
 ) {
-  saveRecord(repository, record.toRecord())
+  val source =
+    when (this) {
+      WorkflowFamily.VERIFY -> repository.getFeatureVerifyWorkflow(record.workflowId)
+      WorkflowFamily.TASK_RUNTIME ->
+        repository.getFeatureTaskWorkflowAsMode(record.workflowId, FeatureTaskWorkflowMode.RUNTIME)
+    }
+  saveRecord(repository, record.toRecord(source))
 }
 
 fun WorkflowFamily.saveRecord(

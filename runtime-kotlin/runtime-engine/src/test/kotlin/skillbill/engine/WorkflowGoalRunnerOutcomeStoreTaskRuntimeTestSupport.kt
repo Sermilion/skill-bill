@@ -1,5 +1,5 @@
 package skillbill.engine
-import skillbill.application.testWorkflowSnapshotValidator
+
 import skillbill.contracts.JsonCodec
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
@@ -17,20 +17,17 @@ import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import java.nio.file.Path
 import java.time.Duration
@@ -38,6 +35,15 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+
+private val GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_RESULTS.label()
+private val GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.label()
+private val FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.label()
+private val FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS.label()
 
 internal fun outcomeStoreSqliteTimestamp(instant: Instant): String =
   DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -61,7 +67,7 @@ internal fun blockedContinuationRecord(fixture: BlockedContinuationRecordFixture
   val storedBlockedReason = fixture.storedBlockedReason
   val declaredProgressTimestamp = fixture.declaredProgressTimestamp
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-176", "preplan")
   val artifacts =
     linkedMapOf<String, Any?>(
@@ -70,6 +76,8 @@ internal fun blockedContinuationRecord(fixture: BlockedContinuationRecordFixture
           "issue_key" to "SKILL-176.4",
           "subtask_id" to 4,
           "suppress_pr" to true,
+          "goal_branch" to "feat/SKILL-176",
+          "code_review_mode" to "auto",
         ),
       "goal_continuation_outcome" to
         mapOf(
@@ -102,6 +110,7 @@ internal fun blockedContinuationRecord(fixture: BlockedContinuationRecordFixture
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus =
         WorkflowStatus.fromWire(workflowStatus)
           ?: error("Unknown workflow status '$workflowStatus'."),
@@ -120,12 +129,13 @@ internal fun blockedContinuationRecord(fixture: BlockedContinuationRecordFixture
 
 internal fun completeWithoutShaContinuationRecord(workflowId: String): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-176", "preplan")
   return engine.updateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "commit_push",
       stepUpdates =
@@ -142,6 +152,8 @@ internal fun completeWithoutShaContinuationRecord(workflowId: String): WorkflowS
                 "issue_key" to "SKILL-176.4",
                 "subtask_id" to 4,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-176",
+                "code_review_mode" to "auto",
               ),
             "goal_continuation_outcome" to
               mapOf(
@@ -163,12 +175,13 @@ internal fun runtimeCandidateRecordNoDeclaredEvent(
   updatedAt: String?,
 ): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   return engine.updateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates =
@@ -185,6 +198,8 @@ internal fun runtimeCandidateRecordNoDeclaredEvent(
                 "issue_key" to "SKILL-87.1",
                 "subtask_id" to 1,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-87",
+                "code_review_mode" to "auto",
               ),
           ),
         ),
@@ -199,12 +214,13 @@ internal fun goalReviewWorkflowRecord(
   rawReviewResult: String,
 ): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   return engine.updateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "review",
       stepUpdates = null,
@@ -233,7 +249,7 @@ internal fun runtimeCandidateRecord(
   declaredProgressTimestamp: Instant,
 ): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   val declaredEvent =
     GoalProgressEvent(
@@ -251,6 +267,7 @@ internal fun runtimeCandidateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates =
@@ -267,6 +284,8 @@ internal fun runtimeCandidateRecord(
                 "issue_key" to "SKILL-87.1",
                 "subtask_id" to 1,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-87",
+                "code_review_mode" to "auto",
               ),
             "goal_progress_latest_event" to declaredEvent.toPersistenceWire(),
           ),
@@ -278,12 +297,13 @@ internal fun runtimeCandidateRecord(
 
 internal fun taskRuntimeWorkflowRecord(workflowId: String): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   return engine.updateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates = null,
@@ -293,14 +313,14 @@ internal fun taskRuntimeWorkflowRecord(workflowId: String): WorkflowStateRecord 
   ).toRecord()
 }
 
-internal fun decodeWorkflowArtifacts(artifactsJson: String): Map<String, Any?> {
+internal fun decodeWorkflowArtifactsForTest(artifactsJson: String): Map<String, Any?> {
   val element = JsonCodec.json.parseToJsonElement(artifactsJson)
   return requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(element)))
 }
 
 internal fun tornBlockedReviewRecord(workflowId: String): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   val reviewRecord =
     FeatureTaskRuntimePhaseRecord(
@@ -314,6 +334,7 @@ internal fun tornBlockedReviewRecord(workflowId: String): WorkflowStateRecord {
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.BLOCKED,
       currentStepId = "review",
       stepUpdates =
@@ -334,6 +355,8 @@ internal fun tornBlockedReviewRecord(workflowId: String): WorkflowStateRecord {
                 "issue_key" to "SKILL-191",
                 "subtask_id" to 9,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-191",
+                "code_review_mode" to "auto",
               ),
           ),
         ),
@@ -344,12 +367,13 @@ internal fun tornBlockedReviewRecord(workflowId: String): WorkflowStateRecord {
 
 internal fun crashedChildRecord(workflowId: String): WorkflowStateRecord {
   val definition = WorkflowFamily.TASK_RUNTIME.definition
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
   return engine.updateRecord(
     definition,
     opened,
     WorkflowUpdateInput(
+      terminalInstant = Instant.EPOCH,
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates = null,
@@ -361,6 +385,8 @@ internal fun crashedChildRecord(workflowId: String): WorkflowStateRecord {
                 "issue_key" to "SKILL-87.1",
                 "subtask_id" to 1,
                 "suppress_pr" to true,
+                "goal_branch" to "feat/SKILL-87",
+                "code_review_mode" to "auto",
               ),
           ),
         ),

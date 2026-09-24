@@ -1,5 +1,6 @@
 package skillbill.engine
 
+import skillbill.application.decomposition.baseBranch
 import skillbill.ports.workflow.gitops.CheckpointHistoryGitOperations
 import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
@@ -23,9 +24,9 @@ import skillbill.ports.workflow.gitops.readiness.encodeReadinessTreeIdentityPayl
 import skillbill.ports.workflow.gitops.worktree.LinkedWorktreeAddRequest
 import skillbill.ports.workflow.gitops.worktree.LinkedWorktreeRemoveRequest
 import skillbill.ports.workflow.gitops.worktree.WorkflowGitLinkedWorktreeOperations
-import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
-import skillbill.workflow.goal.model.GoalObservabilityDiffStat
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
+import skillbill.workflow.model.goalreview.GoalObservabilityChangedFileSummary
+import skillbill.workflow.model.goalreview.GoalObservabilityDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
 import java.nio.file.Path
 
 private const val COMMITTED_HEAD_SHA = "ffffffffffffffffffffffffffffffffffffffff"

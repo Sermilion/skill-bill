@@ -157,7 +157,7 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
     ) {
       return false
     }
-    rows[workflowId] = existing.copy(workflowStatus = WorkflowStatus.RUNNING.wireValue, updatedAt = "claimed")
+    rows[workflowId] = existing.copy(workflowStatus = WorkflowStatus.RUNNING.wireValue)
     return true
   }
 

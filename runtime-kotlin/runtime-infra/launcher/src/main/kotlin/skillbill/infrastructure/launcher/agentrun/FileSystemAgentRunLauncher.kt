@@ -3,7 +3,7 @@ package skillbill.infrastructure.launcher.agentrun
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRunner
 import skillbill.infrastructure.launcher.process.launch.JvmAgentRunProcessRunner
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
@@ -28,11 +28,11 @@ class FileSystemAgentRunLauncher internal constructor(
     databasePath = databaseSessionFactory.resolveDbPath(),
   )
 
-  private val adapters: Map<InstallAgent, AgentRunAdapter> =
+  private val adapters: Map<SupportedAgent, AgentRunAdapter> =
     headlessAgentRunAdapters(processRunner, executableLookup, databasePath)
 
   override fun launch(request: AgentRunLaunchRequest): AgentRunLaunchOutcome {
-    val agent = InstallAgent.fromNormalizedId(request.agentId)
+    val agent = SupportedAgent.fromNormalizedId(request.agentId)
     val adapter =
       adapters[agent]
         ?: return UnsupportedAgentRunLaunch(

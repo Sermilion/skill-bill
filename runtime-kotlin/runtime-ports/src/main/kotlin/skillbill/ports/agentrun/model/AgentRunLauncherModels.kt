@@ -6,16 +6,16 @@ import skillbill.config.model.PhaseCompactionDirective
 import skillbill.experiment.model.ExperimentArmId
 import skillbill.goalrunner.model.GoalRunnerLivenessState
 import skillbill.goalrunner.model.GoalRunnerProcessState
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.review.evidence.ReviewEvidenceBroker
 import skillbill.ports.review.model.ReviewProcessOutcome
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.goal.model.GoalProgressEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
-import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.ValidationDepth
+import skillbill.workflow.model.goalreview.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressOutcome
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -186,7 +186,7 @@ data class AgentRunLaunchRequest(
 }
 
 sealed interface AgentRunLaunchOutcome {
-  val agent: InstallAgent
+  val agent: SupportedAgent
 }
 
 data class AgentRunLivenessSnapshot(
@@ -209,7 +209,7 @@ data class AgentRunLivenessSnapshot(
 )
 
 data class AgentRunLaunchFacts(
-  override val agent: InstallAgent,
+  override val agent: SupportedAgent,
   val exitStatus: Int?,
   val stdout: String,
   val stderr: String,
@@ -250,7 +250,7 @@ fun AgentRunLaunchFacts.reviewProcessOutcome(): ReviewProcessOutcome =
   }
 
 data class UnsupportedAgentRunLaunch(
-  override val agent: InstallAgent,
+  override val agent: SupportedAgent,
   val reason: String,
 ) : AgentRunLaunchOutcome {
   init {

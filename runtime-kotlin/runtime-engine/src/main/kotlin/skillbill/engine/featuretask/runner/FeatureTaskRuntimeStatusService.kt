@@ -1,6 +1,8 @@
 package skillbill.engine.featuretask.runner
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.decomposition.decompositionManifestPath
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
@@ -165,7 +167,7 @@ private fun FeatureTaskRuntimeStatusService.statusProjectionFrom(
   )
 }
 
-private fun validationGateExecutionEvidence(
+internal fun validationGateExecutionEvidence(
   records: Map<String, FeatureTaskRuntimePhaseRecord>,
 ): FeatureTaskRuntimeValidationGateExecutionEvidence? =
   records[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE]

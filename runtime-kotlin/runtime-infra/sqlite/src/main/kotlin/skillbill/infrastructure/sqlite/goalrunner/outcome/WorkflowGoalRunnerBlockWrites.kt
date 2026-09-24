@@ -1,8 +1,8 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.toPersistenceWire
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseLedger
 import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseRecords
 import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
@@ -15,17 +15,14 @@ import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.blockedStepId
-import skillbill.workflow.engine.decodeWorkflowSteps
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
@@ -59,7 +56,7 @@ internal class WorkflowGoalRunnerBlockWrites(
   }
 
   fun markBlocked(write: GoalRunnerBlockWrite): String {
-    val steps = decodeWorkflowSteps(write.record.stepsJson)
+    val steps = write.record.steps
     val definitionStepIds =
       if (write.family == WorkflowFamily.TASK_RUNTIME) {
         write.family.definition.stepIds.filterNot { it in write.family.loopOnlyStepIds }
@@ -73,6 +70,7 @@ internal class WorkflowGoalRunnerBlockWrites(
         write.family.definition,
         write.record,
         WorkflowUpdateInput(
+          terminalInstant = clock.instant(),
           workflowStatus = WorkflowStatus.BLOCKED,
           currentStepId = stepId,
           stepUpdates =
@@ -110,7 +108,7 @@ internal class WorkflowGoalRunnerBlockWrites(
     if (family.definition.isTerminalStatus(existing.workflowStatus)) {
       return false
     }
-    val artifacts = decodeArtifacts(existing.artifactsJson)
+    val artifacts = existing.artifacts
     val phaseRecords = decodePhaseRecords(artifacts)
     val blockedRecord =
       operatorReopenablePhaseRecord(
@@ -177,13 +175,15 @@ internal class WorkflowGoalRunnerBlockWrites(
       artifactsPatch =
         WorkflowArtifactPatch.from(
           mapOf(
-            FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+            DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS.entry(
               reopened.mapValues { (_, record) -> record.encodeWorkflowArtifact() },
-            FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
+            ),
+            DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_LEDGER.entry(
               (ledger.map { it.encodeWorkflowArtifact() } + retryEntry.encodeWorkflowArtifact()).takeLast(
                 FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
               ),
-            FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to
+            ),
+            DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY.entry(
               mapOf(
                 SharedPayloadKeys.PHASE_ID to blockedRecord.phaseId,
                 "reason" to reason,
@@ -191,6 +191,7 @@ internal class WorkflowGoalRunnerBlockWrites(
                 "previous_blocked_reason" to blockedRecord.blockedReason,
                 "previous_blocked_record" to blockedRecord.encodeWorkflowArtifact(),
               ),
+            ),
           ),
         ),
       sessionId = "",

@@ -6,8 +6,10 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeOperatorDecisio
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.runner.OPERATOR_DECISION_QUALITY_GATE_PHASE_IDS
+import skillbill.engine.featuretask.runner.operatorDecisionPause
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
 import skillbill.engine.goalrunner.status.GoalRunnerStatusService
+import skillbill.engine.goalrunner.status.completed
 import skillbill.engine.work.model.IdeStatusCandidate
 import skillbill.engine.work.model.IdeStatusCurrentModel
 import skillbill.engine.work.model.IdeStatusCurrentPhaseExecution
@@ -24,10 +26,10 @@ import skillbill.goalrunner.model.GoalPlanningStatusState
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import java.io.IOException
@@ -54,12 +56,12 @@ private data class ChildOptionalContext(
 
 @Inject
 class IdeStatusProjector(
-  workflowSnapshotValidator: WorkflowSnapshotValidator,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
   private val goalRunnerStatusService: GoalRunnerStatusService,
   private val featureTaskRuntimeStatusService: FeatureTaskRuntimeStatusService,
   private val diagnostics: RuntimeDiagnostics,
 ) {
-  private val workflowEngine = WorkflowEngine(workflowSnapshotValidator)
+  private val workflowEngine = WorkflowEngine()
 
   internal fun project(
     candidate: IdeStatusCandidate,
@@ -264,7 +266,7 @@ class IdeStatusProjector(
       phaseTotal?.let {
         IdeStatusProgress(completed = status.completeCount, total = it)
       }
-    val startedAt = parseInstantOrNull(snapshot.startedAt) ?: candidate.startedAt
+    val startedAt = snapshot.startedAt ?: candidate.startedAt
     val updatedAt = candidate.updatedAt
     val (activityAt, activityLabel) = agentActivityFields(context.unitOfWork, candidate.workflowId)
     return IdeStatusSnapshot(
@@ -308,6 +310,7 @@ class IdeStatusProjector(
           context,
           "${family.humanName} workflow snapshot is missing.",
         )
+    workflowSnapshotValidator.validate(snapshot, family.definition.workflowName)
     val view = workflowEngine.snapshotView(family.definition, snapshot)
     val stepId = view.currentStepId.takeIf(String::isNotBlank) ?: "unknown"
     val stepLabel =
@@ -319,7 +322,7 @@ class IdeStatusProjector(
       }
     val total = family.definition.stepIds.size
     val progress = IdeStatusProgress(completed = completed, total = total).takeIf { total > 0 }
-    val startedAt = parseInstantOrNull(snapshot.startedAt) ?: candidate.startedAt
+    val startedAt = snapshot.startedAt ?: candidate.startedAt
     val updatedAt = candidate.updatedAt
     val (activityAt, activityLabel) = agentActivityFields(context.unitOfWork, candidate.workflowId)
     val wireFamily =

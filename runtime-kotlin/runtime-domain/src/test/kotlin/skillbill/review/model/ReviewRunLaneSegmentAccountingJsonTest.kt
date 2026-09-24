@@ -2,6 +2,7 @@ package skillbill.review.model
 
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.review.context.model.packet.ReviewLaneSegmentAccounting
+import skillbill.review.context.model.packet.ReviewRunLaneSegmentAccountingJson
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

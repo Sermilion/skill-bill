@@ -1,12 +1,14 @@
 package skillbill.infrastructure.sqlite.workflow.featuretask
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.error.shellcontent.ProseFeatureTaskWorkflowWriteRefusedError
+import skillbill.infrastructure.sqlite.workflow.workflow.FeatureTaskWorkflowUpsertRequest
 import skillbill.infrastructure.sqlite.workflow.workflow.defaultContractVersion
 import skillbill.infrastructure.sqlite.workflow.workflow.defaultImplementationSkill
 import skillbill.infrastructure.sqlite.workflow.workflow.getFeatureTaskWorkflowRow
 import skillbill.infrastructure.sqlite.workflow.workflow.listFeatureTaskWorkflowRows
 import skillbill.infrastructure.sqlite.workflow.workflow.terminalizeLegacyProseFeatureTaskWorkflowRow
 import skillbill.infrastructure.sqlite.workflow.workflow.upsertFeatureTaskWorkflowRow
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection
@@ -15,6 +17,7 @@ import java.time.Clock
 internal class FeatureTaskWorkflowRowStore(
   private val connection: Connection,
   private val clock: Clock,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
 ) {
   fun saveFeatureTaskWorkflow(
     row: WorkflowStateRecord,
@@ -25,10 +28,14 @@ internal class FeatureTaskWorkflowRowStore(
     }
     connection.upsertFeatureTaskWorkflowRow(
       row = row,
-      mode = mode,
-      implementationSkill = row.implementationSkill.orEmpty().ifBlank { mode.defaultImplementationSkill },
-      defaultContractVersion = mode.defaultContractVersion,
-      clock = clock,
+      request =
+        FeatureTaskWorkflowUpsertRequest(
+          mode = mode,
+          implementationSkill = row.implementationSkill.orEmpty().ifBlank { mode.defaultImplementationSkill },
+          defaultContractVersion = mode.defaultContractVersion,
+          clock = clock,
+          workflowSnapshotValidator = workflowSnapshotValidator,
+        ),
     )
   }
 

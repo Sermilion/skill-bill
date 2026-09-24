@@ -1,8 +1,20 @@
 package skillbill.workflow.taskruntime.model.repair.task
+
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeRepairReceiptError
-import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
-import skillbill.workflow.goal.model.withoutRefutedFindings
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairConstruct
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairOutcome
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceiptDecodeObservations
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceiptEntry
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.model.goalreview.REPAIR_RECEIPT_MAX_ENTRIES
+import skillbill.workflow.model.goalreview.REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES
+import skillbill.workflow.model.goalreview.attemptedUnresolvedEntries
+import skillbill.workflow.model.goalreview.coversCarriedFindings
+import skillbill.workflow.model.goalreview.featureTaskRuntimeRemediationRoundNumber
+import skillbill.workflow.model.goalreview.omittedCarriedFindings
+import skillbill.workflow.model.goalreview.withoutRefutedFindings
 import skillbill.workflow.taskruntime.artifact.decodeRepairReceiptFromArtifactWithObservations
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -1,4 +1,5 @@
 package skillbill.application.workflow.service
+
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.workflow.model.WorkflowStatus
 

@@ -24,13 +24,11 @@ class ProductionLogicalTypeLineCeilingArchitectureTest {
     val partLineCount = PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING / 2 + 10
     val partOne =
       """
-      package skillbill.fixture.logicaltype
 
       class SplitLogicalTypeFixture
       """.trimIndent() + "\n" + (1..partLineCount).joinToString("\n") { index -> "fun partOne$index() = $index" }
     val partTwo =
       """
-      package skillbill.fixture.logicaltype
 
       fun SplitLogicalTypeFixture.partTwo() = Unit
       """.trimIndent() + "\n" + (1..partLineCount).joinToString("\n") { index -> "fun partTwo$index() = $index" }

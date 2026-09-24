@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
+
 import skillbill.error.shellcontent.ContractVersionMismatchError
 import skillbill.error.shellcontent.InvalidFallbackCapabilityError
 import skillbill.error.shellcontent.InvalidManifestSchemaError

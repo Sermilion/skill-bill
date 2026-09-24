@@ -1,4 +1,5 @@
 package skillbill.cli.scaffold.commands
+
 import com.github.ajalt.clikt.core.UsageError
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliExecutionResult

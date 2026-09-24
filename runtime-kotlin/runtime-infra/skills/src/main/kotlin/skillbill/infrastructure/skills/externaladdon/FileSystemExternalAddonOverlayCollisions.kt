@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.externaladdon
+
 import skillbill.error.core.ExternalAddonOverlayError
 import skillbill.error.shellcontent.InvalidManifestSchemaError
 import skillbill.scaffold.model.GovernedAddonSelection

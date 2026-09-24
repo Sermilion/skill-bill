@@ -1,5 +1,6 @@
 package skillbill.ports.install.reconcile
 
+import skillbill.install.model.ReconciliationPlan
 import skillbill.ports.install.reconcile.model.InstallReconcileApplyRequest
 import skillbill.ports.install.reconcile.model.InstallReconcileApplyResult
 

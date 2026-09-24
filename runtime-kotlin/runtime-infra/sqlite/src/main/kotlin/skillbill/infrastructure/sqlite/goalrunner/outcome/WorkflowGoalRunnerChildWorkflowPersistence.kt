@@ -4,49 +4,46 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.GoalRunnerQualityGateSelectionResolver
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
-import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
-import skillbill.infrastructure.sqlite.goalrunner.manifest.GoalParentProjectionWriter
 import skillbill.infrastructure.sqlite.goalrunner.manifest.mergeConcurrentGoalProgress
-import skillbill.infrastructure.sqlite.workflow.decomposition.decompositionRuntime
-import skillbill.infrastructure.sqlite.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.infrastructure.sqlite.workflow.decomposition.requireRuntimeModeForEngineWrite
+import skillbill.ports.goalrunner.GoalParentProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
-import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.ValidationDepth
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 import java.nio.file.Path
 
 internal data class SavedGoalChildWorkflow(
   internal val state: GoalRunnerManifestState,
-  internal val projectionArtifactsJson: String,
+  internal val projectionArtifacts: DurableWorkflowArtifacts,
 )
 
 internal class WorkflowGoalRunnerChildWorkflowPersistence(
   private val engine: WorkflowEngine,
   private val planningHydrator: GoalChildPlanningHydratorPort,
   private val parentProjection: GoalParentProjectionWriter,
-  private val decompositionManifestValidator: DecompositionManifestValidator,
 ) {
   fun saveInTransaction(
     unitOfWork: UnitOfWork,
@@ -91,10 +88,10 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
         GoalRunnerManifestState(
           parentWorkflowId = refreshedParent.workflowId,
           dbPath = unitOfWork.dbPath.toString(),
-          manifest = refreshedParent.decompositionRuntime(decompositionManifestValidator) ?: state.manifest,
+          manifest = refreshedParent.decompositionRuntime() ?: state.manifest,
           controlState = unitOfWork.goalRunnerControls.controlState(refreshedParent.workflowId),
         ),
-      projectionArtifactsJson = refreshedParent.artifactsJson,
+      projectionArtifacts = refreshedParent.artifacts,
     )
   }
 
@@ -156,14 +153,12 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
     state: GoalRunnerManifestState,
     setup: GoalRunnerChildWorkflowSetup,
   ) {
-    val continuation =
-      decodeArtifacts(existing.artifactsJson)[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY]
-        as? Map<*, *>
+    val continuation = DurableWorkflowArtifacts.fromMap(existing.artifacts).goalContinuationArtifact()
     val matches =
-      continuation?.get(SharedPayloadKeys.ISSUE_KEY) == state.manifest.issueKey &&
-        (continuation[SharedPayloadKeys.SUBTASK_ID] as? Number)?.toInt() == setup.subtaskId &&
-        continuation["parent_workflow_id"] == state.parentWorkflowId &&
-        continuation["goal_branch"] == setup.goalBranch && continuation["suppress_pr"] == true
+      continuation?.issueKey == state.manifest.issueKey &&
+        continuation.subtaskId == setup.subtaskId &&
+        continuation.parentWorkflowId == state.parentWorkflowId &&
+        continuation.goalBranch == setup.goalBranch && continuation.suppressPr
     if (!matches) {
       throw IncompatibleGoalPlanningPreparationRecoveryError(
         state.parentWorkflowId,
@@ -181,7 +176,6 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
       unitOfWork.workflowStates.getFeatureTaskWorkflow(state.parentWorkflowId)
         ?: unitOfWork.workflowStates.findDecomposedParentWorkflow(
           state.manifest.issueKey,
-          decompositionManifestValidator,
         )
         ?: error("Unknown decomposed parent workflow '${state.parentWorkflowId}'.")
     existingRecord.requireRuntimeModeForEngineWrite()
@@ -198,10 +192,10 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
             WorkflowArtifactPatch.from(
               parentProjection.artifacts(
                 mergeConcurrentGoalProgress(
-                  existingParent.decompositionRuntime(decompositionManifestValidator) ?: state.manifest,
+                  existingParent.decompositionRuntime() ?: state.manifest,
                   state.manifest,
                 ),
-                existingParent.artifactsJson,
+                existingParent.artifacts,
               ),
             ),
           sessionId = existingParent.sessionId.orEmpty(),
@@ -262,8 +256,8 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
     setup: GoalRunnerChildWorkflowSetup,
     parentWorkflowId: String,
   ): Map<String, Any?> =
-    mapOf(
-      FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to
+    linkedMapOf<String, Any?>().apply {
+      putAll(
         FeatureTaskRuntimeGoalContinuationArtifact(
           issueKey = state.manifest.issueKey,
           subtaskId = setup.subtaskId,
@@ -277,19 +271,27 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
             state.manifest.subtasks.firstOrNull { it.id == setup.subtaskId }?.name?.takeIf(
               String::isNotBlank,
             ),
-        ).encodeWorkflowArtifact(),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to
-        GoalSubtaskReviewState.initial(
-          reviewBaseSha = setup.reviewBaseline.reviewBaseSha,
-          baselineUntrackedPaths = setup.reviewBaseline.baselineUntrackedPaths,
-          codeReviewMode = setup.reviewPolicy.codeReviewMode,
-        ).toPersistenceWire(),
-      "install_sync_result" to
+        ).toWorkflowArtifactPatch(),
+      )
+      putAll(
+        mapOf(
+          DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(
+            GoalSubtaskReviewState.initial(
+              reviewBaseSha = setup.reviewBaseline.reviewBaseSha,
+              baselineUntrackedPaths = setup.reviewBaseline.baselineUntrackedPaths,
+              codeReviewMode = setup.reviewPolicy.codeReviewMode,
+            ).toPersistenceWire(),
+          ),
+        ),
+      )
+      put(
+        "install_sync_result",
         mapOf(
           SharedPayloadKeys.STATUS to "deferred",
           "reason" to
             "goal-continuation defers installer, uninstall, and install-sync flows until the parent goal exits; " +
             "deferred install sync must not block subtask completion",
         ),
-    )
+      )
+    }
 }

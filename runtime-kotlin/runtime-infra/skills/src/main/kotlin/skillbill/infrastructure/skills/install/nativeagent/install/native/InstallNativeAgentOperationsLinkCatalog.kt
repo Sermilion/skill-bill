@@ -1,9 +1,11 @@
 package skillbill.infrastructure.skills.install.nativeagent.install.native
+
 import skillbill.contracts.config.ExternalPlatformPackTelemetryPayloadKeys
 import skillbill.error.core.ExternalPlatformPackPublishError
 import skillbill.infrastructure.host.jvm.atomicMoveReplacing
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.model.toPath
+import skillbill.ports.workflow.list
 import skillbill.scaffold.policy.platformpack.externalPlatformPackTelemetryPayload
 import skillbill.scaffold.policy.platformpack.model.PlatformPackSourceKind
 import java.nio.file.Files
@@ -83,7 +85,7 @@ private fun reviewCatalogStageFailure(
   )
 }
 
-private fun sourceKind(
+internal fun sourceKind(
   platformPacksRoot: Path,
   source: Path,
 ): PlatformPackSourceKind =

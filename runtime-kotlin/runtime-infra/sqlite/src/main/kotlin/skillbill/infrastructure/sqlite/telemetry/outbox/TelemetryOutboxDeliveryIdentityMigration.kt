@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.outbox
+
 import skillbill.infrastructure.sqlite.core.migration.column.DatabaseColumnMigrations
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import java.sql.Connection

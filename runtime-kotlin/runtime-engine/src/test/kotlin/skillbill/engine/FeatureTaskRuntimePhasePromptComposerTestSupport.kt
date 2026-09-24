@@ -1,12 +1,13 @@
 
 package skillbill.engine
+
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeImplementationContinuation
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.phase.briefing.FeatureTaskRuntimePhaseBriefingAssembler
 import skillbill.engine.featuretask.phase.prompt.compose.FeatureTaskRuntimePhasePromptComposer
 import skillbill.engine.featuretask.runner.phaseDeclaration
-import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize

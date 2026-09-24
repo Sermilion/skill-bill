@@ -2,10 +2,10 @@ package skillbill.goalrunner.subtaskreview
 
 import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFinding
 import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
-import skillbill.review.finding.ReviewFindingFieldCodec
 import skillbill.review.model.ReviewFindingCitation
+import skillbill.review.parsing.ReviewFindingFieldCodec
 import skillbill.text.Utf8Text
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

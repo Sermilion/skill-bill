@@ -1,13 +1,16 @@
 package skillbill.workflow.taskruntime.model.validation
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
+import skillbill.workflow.model.persistence.artifact.asExactLongOrNull
 
-const val FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY: String =
+internal const val FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY: String =
   "feature_task_runtime_validation_gate_progress"
 
-const val FEATURE_TASK_RUNTIME_BUILD_GATE_PROGRESS_ARTIFACT_KEY: String =
+internal const val FEATURE_TASK_RUNTIME_BUILD_GATE_PROGRESS_ARTIFACT_KEY: String =
   "feature_task_runtime_build_gate_progress"
 
 enum class FeatureTaskRuntimeValidationGateRepairWindowPhase(val wireValue: String) {
@@ -249,20 +252,12 @@ internal fun Map<*, *>.gateProgressString(key: String): String =
   this[key] as? String ?: throw InvalidWorkflowStateSchemaError("Missing required string field '$key'.")
 
 internal fun Map<*, *>.gateProgressInt(key: String): Int =
-  when (val value = this[key]) {
-    is Int -> value
-    is Long -> value.toInt()
-    is Number -> value.toInt()
-    else -> throw InvalidWorkflowStateSchemaError("Missing required int field '$key'.")
-  }
+  this[key].asExactIntOrNull()
+    ?: throw InvalidWorkflowStateSchemaError("Missing required int field '$key'.")
 
 internal fun Map<*, *>.gateProgressLong(key: String): Long =
-  when (val value = this[key]) {
-    is Long -> value
-    is Int -> value.toLong()
-    is Number -> value.toLong()
-    else -> throw InvalidWorkflowStateSchemaError("Missing required long field '$key'.")
-  }
+  this[key].asExactLongOrNull()
+    ?: throw InvalidWorkflowStateSchemaError("Missing required long field '$key'.")
 
 internal fun Map<*, *>.gateProgressOptionalInt(key: String): Int? {
   if (!containsKey(key) || this[key] == null) {

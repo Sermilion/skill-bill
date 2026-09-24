@@ -1,4 +1,5 @@
 package skillbill.application.scaffold
+
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 
 internal fun parseStringList(

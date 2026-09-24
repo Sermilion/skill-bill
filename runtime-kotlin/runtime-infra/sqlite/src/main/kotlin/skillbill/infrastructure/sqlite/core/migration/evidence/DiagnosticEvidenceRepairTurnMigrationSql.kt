@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.migration.evidence
+
 import java.sql.Connection
 
 internal fun rebuildRejectedOutputDiagnosticsForRepairTurn(connection: Connection) {

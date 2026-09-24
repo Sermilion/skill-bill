@@ -1,4 +1,5 @@
 package skillbill.di.core
+
 import skillbill.error.core.UnresolvedRemoteTransportPortError
 import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.infrastructure.http.JdkHttpRemoteTransport
@@ -8,6 +9,7 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.telemetry.transport.RemoteTransportPort
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import java.nio.file.Path
 import java.time.Clock
 
@@ -57,5 +59,7 @@ internal object RuntimeBootstrapBindings {
     context: EnvironmentContext,
     clock: Clock,
     diagnostics: RuntimeDiagnostics,
-  ): DatabaseSessionFactory = SQLiteDatabaseSessionFactory(context, clock, diagnostics)
+    workflowSnapshotValidator: WorkflowSnapshotValidator,
+  ): DatabaseSessionFactory =
+    SQLiteDatabaseSessionFactory(context, clock, diagnostics, workflowSnapshotValidator, SkillBillVersion.VALUE)
 }

@@ -8,6 +8,7 @@ import skillbill.error.shellcontent.MissingContentFileError
 import skillbill.error.shellcontent.MissingManifestError
 import skillbill.error.shellcontent.MissingRequiredSectionError
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
+import skillbill.infrastructure.skills.scaffold.platformpack.substanceaudit.relative
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.infrastructure.skills.scaffold.validation.shape.validateSkillMdShape
 import skillbill.model.toPath

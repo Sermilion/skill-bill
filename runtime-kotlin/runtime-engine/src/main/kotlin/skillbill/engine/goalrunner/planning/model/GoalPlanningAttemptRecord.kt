@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.planning.model
 
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
+import skillbill.workflow.model.goalreview.GoalProgressEventKind
+import skillbill.workflow.model.goalreview.GoalProgressOutcome
 
 data class GoalPlanningAttemptRecord(
   val parentWorkflowId: String,

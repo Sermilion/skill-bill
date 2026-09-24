@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.validation
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

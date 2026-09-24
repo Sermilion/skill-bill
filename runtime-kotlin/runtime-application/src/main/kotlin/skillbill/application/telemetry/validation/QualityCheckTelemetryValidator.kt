@@ -1,4 +1,5 @@
 package skillbill.application.telemetry.validation
+
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
 

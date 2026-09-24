@@ -1,4 +1,5 @@
 package skillbill.application.review.parallel.planning
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.model.ReviewRubricProjection
 import skillbill.application.review.model.ReviewWorkerKind.GENERIC

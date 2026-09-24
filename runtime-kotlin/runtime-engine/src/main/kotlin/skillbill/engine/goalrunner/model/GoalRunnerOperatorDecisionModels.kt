@@ -1,6 +1,6 @@
 package skillbill.engine.goalrunner.model
 
-import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
+import skillbill.workflow.model.goalreview.GoalSubtaskOperatorDecision
 import java.nio.file.Path
 
 data class GoalRunnerOperatorDecisionRequest(

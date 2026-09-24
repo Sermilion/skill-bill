@@ -1,4 +1,5 @@
 package skillbill.cli.scaffold.wizard
+
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliRunInputs
 

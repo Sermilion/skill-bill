@@ -1,16 +1,18 @@
 package skillbill.workflow.taskruntime.phase.task
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeCapExhaustionBehavior
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,7 +31,7 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
 
   @Test
   fun `continuation extras are enabled only for the feature-task definition`() {
-    val engine = WorkflowEngine(NoopWorkflowSnapshotValidator)
+    val engine = WorkflowEngine()
     val artifacts =
       JsonCodec.mapToJsonString(
         mapOf(
@@ -47,12 +49,15 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
           contractVersion = definition.contractVersion,
           workflowStatus = WorkflowStatus.BLOCKED,
           currentStepId = "implement",
-          stepsJson = "[]",
-          artifactsJson = artifacts,
+          steps = emptyList(),
+          artifacts =
+            DurableWorkflowArtifacts.fromMap(
+              requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(artifacts))),
+            ),
           startedAt = null,
           updatedAt = null,
           finishedAt = null,
-          mode = definition.workflowMode,
+          mode = definition.workflowMode?.let(FeatureTaskWorkflowMode::fromWireValue),
         ),
       )
     val verifyDefinition = FeatureVerifyWorkflowDefinition.definition
@@ -66,12 +71,15 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
           contractVersion = verifyDefinition.contractVersion,
           workflowStatus = WorkflowStatus.BLOCKED,
           currentStepId = "gather_diff",
-          stepsJson = "[]",
-          artifactsJson = artifacts,
+          steps = emptyList(),
+          artifacts =
+            DurableWorkflowArtifacts.fromMap(
+              requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(artifacts))),
+            ),
           startedAt = null,
           updatedAt = null,
           finishedAt = null,
-          mode = verifyDefinition.workflowMode,
+          mode = verifyDefinition.workflowMode?.let(FeatureTaskWorkflowMode::fromWireValue),
         ),
       )
 
@@ -267,13 +275,6 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
       declarations.getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN).derivedContextKeys,
     )
   }
-}
-
-private object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
-  override fun validate(
-    snapshot: WorkflowStateSnapshot,
-    slug: String,
-  ) = Unit
 }
 
 internal fun phaseWorkflowDependenciesOf(phaseId: String): List<String> =

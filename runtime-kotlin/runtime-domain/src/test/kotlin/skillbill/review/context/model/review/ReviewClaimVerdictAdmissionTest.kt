@@ -1,4 +1,7 @@
 package skillbill.review.context.model.review
+
+import skillbill.review.context.model.claim.ReviewClaimVerdictAdmission
+import skillbill.review.context.model.claim.ReviewClaimWorkerResult
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewSeverity
 import skillbill.review.model.ReviewClaimVerdict

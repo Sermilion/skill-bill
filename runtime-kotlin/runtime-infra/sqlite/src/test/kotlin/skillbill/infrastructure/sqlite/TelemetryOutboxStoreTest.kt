@@ -2,9 +2,9 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
-import skillbill.infrastructure.sqlite.telemetry.redaction.SkillBillRuntimeVersion
 import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
+import skillbill.telemetry.model.GoalStartedRecord
 import java.nio.file.Files
 import java.sql.Connection
 import java.time.Instant
@@ -20,7 +20,7 @@ class TelemetryOutboxStoreTest {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-outbox").resolve("metrics.db")
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val store = TelemetryOutboxStore(connection)
+      val store = TelemetryOutboxStore(connection, version = "test-runtime-version")
 
       val firstId = store.enqueue(eventName = "skillbill_feature_implement_started", payloadJson = """{"id":"1"}""")
       val secondId = store.enqueue(eventName = "skillbill_feature_verify_started", payloadJson = """{"id":"2"}""")
@@ -115,12 +115,12 @@ class TelemetryOutboxStoreTest {
   }
 
   @Test
-  fun `enqueue records the running skill-bill version without the caller supplying it`() {
+  fun `enqueue records the version supplied by the test outbox fixture`() {
     withOutbox { connection, store ->
       val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
 
       assertEquals(
-        SkillBillRuntimeVersion.VALUE,
+        "test-runtime-version",
         scalarString(connection, "SELECT skill_bill_version FROM telemetry_outbox WHERE id = $id"),
       )
     }
@@ -140,6 +140,43 @@ class TelemetryOutboxStoreTest {
       )
       assertEquals("9.9.9-injected", store.listPending().single { it.id == id }.skillBillVersion)
     }
+  }
+
+  @Test
+  fun `production session factory carries its injected version into repository outbox rows`() {
+    val root = Files.createTempDirectory("runtime-kotlin-db-factory-version")
+    val database =
+      sqliteDatabaseSessionFactory(
+        userHome = root,
+        environment = emptyMap(),
+        runtimeVersion = "factory-injected-version",
+      )
+
+    database.transaction { unit ->
+      unit.telemetryOutbox.enqueue("skillbill_goal_finished", "{}")
+      unit.lifecycleTelemetry.goalStarted(
+        GoalStartedRecord(
+          issueKey = "SKILL-372",
+          featureName = "version injection",
+          workflowId = "workflow-version",
+          subtaskTotal = 1,
+          resumed = false,
+          startedAt = "2026-09-24T00:00:00Z",
+          status = "running",
+          mode = "runtime",
+        ),
+        "anonymous",
+      )
+    }
+
+    val claimedRows =
+      database.transaction { unit ->
+        unit.telemetryOutbox.claimPending(claimRequest("factory-version", limit = 10))
+      }
+    assertEquals(
+      setOf("factory-injected-version"),
+      claimedRows.map { it.skillBillVersion }.toSet(),
+    )
   }
 
   @Test
@@ -200,14 +237,21 @@ class TelemetryOutboxStoreTest {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-outbox-claim").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { seed ->
       repeat(4) { index ->
-        TelemetryOutboxStore(seed).enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"i":$index}""")
+        TelemetryOutboxStore(seed, version = "test-runtime-version").enqueue(
+          eventName = "skillbill_goal_finished",
+          payloadJson = """{"i":$index}""",
+        )
       }
     }
 
     DatabaseRuntime.ensureDatabase(dbPath).use { first ->
       DatabaseRuntime.ensureDatabase(dbPath).use { second ->
-        val firstClaim = TelemetryOutboxStore(first).claimPending(claimRequest("drainer-a", limit = 2))
-        val secondClaim = TelemetryOutboxStore(second).claimPending(claimRequest("drainer-b", limit = 2))
+        val firstClaim =
+          TelemetryOutboxStore(first, version = "test-runtime-version")
+            .claimPending(claimRequest("drainer-a", limit = 2))
+        val secondClaim =
+          TelemetryOutboxStore(second, version = "test-runtime-version")
+            .claimPending(claimRequest("drainer-b", limit = 2))
 
         val firstIds = firstClaim.map { it.id }
         val secondIds = secondClaim.map { it.id }
@@ -290,7 +334,7 @@ class TelemetryOutboxStoreTest {
   private fun withOutbox(block: (Connection, TelemetryOutboxStore) -> Unit) {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-outbox").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      block(connection, TelemetryOutboxStore(connection))
+      block(connection, TelemetryOutboxStore(connection, version = "test-runtime-version"))
     }
   }
 

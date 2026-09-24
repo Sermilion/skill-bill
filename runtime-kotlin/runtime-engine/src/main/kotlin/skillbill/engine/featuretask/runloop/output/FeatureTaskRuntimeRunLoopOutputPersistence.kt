@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.runloop.output
 
+import skillbill.application.decomposition.baseBranch
 import skillbill.application.review.service.RuntimeOwnedReviewMode
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
@@ -40,12 +41,15 @@ import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhase
 import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopValidationGate
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.STATUS_COMPLETED
+import skillbill.engine.goalrunner.status.completed
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.ValidationDepth
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeReviewPassSequence
+import skillbill.workflow.model.goalreview.ReviewPassResolution
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
@@ -57,8 +61,6 @@ import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhas
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeCorrectiveRepairContext
-import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewPassSequence
-import skillbill.workflow.taskruntime.model.review.ReviewPassResolution
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 object FeatureTaskRuntimeRunLoopOutputPersistence {
@@ -512,7 +514,7 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
   internal fun launchedModelDirective(run: PhaseRun): LaunchedModelDirective {
     val model = run.modelDirective?.model
     val effort = run.modelDirective?.effort
-    if (run.resolvedAgent.resolvedAgentId == InstallAgent.CURSOR.id && model != null && effort != null) {
+    if (run.resolvedAgent.resolvedAgentId == SupportedAgent.CURSOR.id && model != null && effort != null) {
       return LaunchedModelDirective("$model[effort=$effort]", effort, persistedEffort = null)
     }
     return LaunchedModelDirective(model, effort, effort)

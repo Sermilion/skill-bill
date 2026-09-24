@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass
+
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
 import skillbill.error.shellcontent.InvalidManifestSchemaError

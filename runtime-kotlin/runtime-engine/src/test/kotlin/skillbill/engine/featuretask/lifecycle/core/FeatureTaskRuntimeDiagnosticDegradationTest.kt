@@ -14,10 +14,10 @@ import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.error.core.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
-import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.taskruntime.artifact.asTelemetryPayload
-import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeDiagnosticFailureClass
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDiagnosticFailureClass
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertContains

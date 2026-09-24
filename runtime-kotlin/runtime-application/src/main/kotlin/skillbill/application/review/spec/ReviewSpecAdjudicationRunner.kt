@@ -1,4 +1,5 @@
 package skillbill.application.review.spec
+
 import skillbill.application.review.model.ReviewSpecAdjudicationOutcome
 import skillbill.application.review.model.ReviewSpecAdjudicationRunRequest
 import skillbill.application.review.packet.toAdjudicationLaunchEnvelope
@@ -15,7 +16,7 @@ import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.execution.SpecIntentProjection
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.hunk.ReviewDependencyAllowlist

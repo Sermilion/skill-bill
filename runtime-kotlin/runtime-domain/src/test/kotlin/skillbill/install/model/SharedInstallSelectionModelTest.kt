@@ -22,10 +22,10 @@ class SharedInstallSelectionModelTest {
         status = InstallApplyStatus.SUCCESS,
         links =
           listOf(
-            link(InstallAgent.CODEX, InstallAgentLinkStatus.CREATED),
-            link(InstallAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
-            link(InstallAgent.CURSOR, InstallAgentLinkStatus.WARNING),
-            link(InstallAgent.JUNIE, InstallAgentLinkStatus.FAILED),
+            link(SupportedAgent.CODEX, InstallAgentLinkStatus.CREATED),
+            link(SupportedAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
+            link(SupportedAgent.CURSOR, InstallAgentLinkStatus.WARNING),
+            link(SupportedAgent.JUNIE, InstallAgentLinkStatus.FAILED),
           ),
       )
     val warningResult =
@@ -33,9 +33,9 @@ class SharedInstallSelectionModelTest {
         status = InstallApplyStatus.WARNING,
         links =
           listOf(
-            link(InstallAgent.CODEX, InstallAgentLinkStatus.CREATED),
-            link(InstallAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
-            link(InstallAgent.JUNIE, InstallAgentLinkStatus.FAILED),
+            link(SupportedAgent.CODEX, InstallAgentLinkStatus.CREATED),
+            link(SupportedAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
+            link(SupportedAgent.JUNIE, InstallAgentLinkStatus.FAILED),
           ),
       )
     val failureResult =
@@ -43,13 +43,13 @@ class SharedInstallSelectionModelTest {
         status = InstallApplyStatus.FAILURE,
         links =
           listOf(
-            link(InstallAgent.CODEX, InstallAgentLinkStatus.CREATED),
-            link(InstallAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
+            link(SupportedAgent.CODEX, InstallAgentLinkStatus.CREATED),
+            link(SupportedAgent.CLAUDE, InstallAgentLinkStatus.SKIPPED),
           ),
       )
 
-    assertEquals(setOf(InstallAgent.CODEX, InstallAgent.CLAUDE), successResult.resolvedInstalledAgents.agents)
-    assertEquals(setOf(InstallAgent.CODEX, InstallAgent.CLAUDE), warningResult.resolvedInstalledAgents.agents)
+    assertEquals(setOf(SupportedAgent.CODEX, SupportedAgent.CLAUDE), successResult.resolvedInstalledAgents.agents)
+    assertEquals(setOf(SupportedAgent.CODEX, SupportedAgent.CLAUDE), warningResult.resolvedInstalledAgents.agents)
     assertEquals(emptySet(), failureResult.resolvedInstalledAgents.agents)
   }
 
@@ -83,7 +83,7 @@ class SharedInstallSelectionModelTest {
       mcpRegistrationOutcomes =
         listOf(
           McpRegistrationApplyOutcome(
-            agent = InstallAgent.CURSOR,
+            agent = SupportedAgent.CURSOR,
             status = McpRegistrationApplyStatus.SUCCESS,
           ),
         ),
@@ -103,12 +103,12 @@ class SharedInstallSelectionModelTest {
         McpRegistrationIntent(
           register = true,
           runtimeMcpBin = FileLocation("/runtime-mcp"),
-          agents = listOf(InstallAgent.CURSOR),
+          agents = listOf(SupportedAgent.CURSOR),
         ),
     )
 
   private fun link(
-    agent: InstallAgent,
+    agent: SupportedAgent,
     status: InstallAgentLinkStatus,
   ): InstallAgentSkillLinkOutcome =
     InstallAgentSkillLinkOutcome(

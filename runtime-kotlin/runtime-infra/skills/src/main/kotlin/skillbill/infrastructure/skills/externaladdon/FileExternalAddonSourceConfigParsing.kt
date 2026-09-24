@@ -1,5 +1,7 @@
 package skillbill.infrastructure.skills.externaladdon
+
 import skillbill.error.core.ExternalAddonConfigError
+import skillbill.scaffold.model.SkillKind
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -17,7 +19,7 @@ internal fun validateExternalAddonEntryKind(
   index: Int,
   kind: String?,
 ) {
-  if (kind != null && kind != "platform-pack") {
+  if (kind != null && kind != SkillKind.PLATFORM_PACK.wireValue) {
     throw ExternalAddonConfigError(
       "External addon config at '$configPath': 'external_addon_sources[$index].kind' " +
         "must be 'platform-pack' or 'agent-addon'.",

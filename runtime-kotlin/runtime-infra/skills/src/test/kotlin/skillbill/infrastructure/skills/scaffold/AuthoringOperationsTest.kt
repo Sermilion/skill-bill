@@ -4,6 +4,7 @@ import skillbill.error.core.SkillBillRuntimeException
 import skillbill.infrastructure.skills.scaffold.authoring.AuthoringOperations
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
 import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
+import skillbill.ports.workflow.list
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

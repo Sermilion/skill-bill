@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase
+
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonNode
@@ -55,16 +56,6 @@ object FeatureTaskRuntimePhaseOutputWireSchema {
     val node = readPhaseOutputObjectNode(phaseOutputText, sourceLabel)
     val parsed = phaseOutputObjectNodeToMap(node, sourceLabel)
     validate(parsed, sourceLabel)
-  }
-
-  fun validateAndReadPhaseOutput(
-    phaseOutputText: String,
-    sourceLabel: String,
-  ): Map<String, Any?> {
-    val node = readPhaseOutputObjectNode(phaseOutputText, sourceLabel)
-    val parsed = phaseOutputObjectNodeToMap(node, sourceLabel)
-    validate(parsed, sourceLabel)
-    return parsed
   }
 
   fun normalizePhaseOutput(

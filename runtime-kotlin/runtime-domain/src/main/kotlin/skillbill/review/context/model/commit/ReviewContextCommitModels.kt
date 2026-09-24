@@ -1,4 +1,5 @@
 package skillbill.review.context.model.commit
+
 import skillbill.review.context.model.execution.canonicalFieldList
 import skillbill.review.context.model.execution.canonicalFields
 import skillbill.review.context.model.execution.sha256

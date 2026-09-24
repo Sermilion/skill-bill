@@ -1,6 +1,7 @@
 package skillbill.engine.work.model
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.goalrunner.status.completed
 import skillbill.ports.idestatus.model.IdeStatusCurrentModel
 import skillbill.ports.idestatus.model.IdeStatusCurrentPhaseExecution
 import skillbill.ports.idestatus.model.IdeStatusCurrentSubtask

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.review.broker
+
 import skillbill.error.shellcontent.ReviewHunkEvidenceIntegrityError
 import skillbill.error.shellcontent.ReviewHunkEvidenceLocatorMissingError
 import skillbill.infrastructure.workflow.featuretask.storePath
@@ -13,12 +14,12 @@ import skillbill.review.context.model.execution.ForbiddenReviewOperation
 import skillbill.review.context.model.execution.ReviewOperationKind
 import skillbill.review.context.model.execution.ReviewOperationPolicy
 import skillbill.review.context.model.execution.ReviewRequestedOperation
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.hunk.ReviewBudgetOutcome
 import skillbill.review.context.model.hunk.ReviewChangedHunk
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.hunk.ReviewLaneIdentity
 import skillbill.review.context.model.packet.ReviewExpansionRecord
+import skillbill.review.model.requireRepositoryRelativePath
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path

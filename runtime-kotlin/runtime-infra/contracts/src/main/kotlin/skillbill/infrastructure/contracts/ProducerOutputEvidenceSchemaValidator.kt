@@ -1,5 +1,4 @@
 package skillbill.infrastructure.contracts
-
 import com.networknt.schema.JsonSchema
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.SharedPayloadKeys

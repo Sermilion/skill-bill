@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats
+
 import skillbill.SAMPLE_REVIEW
 import skillbill.application.learning.learningAppliedSessionWire
 import skillbill.application.learning.learningEntryDto
@@ -9,6 +10,7 @@ import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
 import skillbill.infrastructure.sqlite.review.stage.and.addLearning
 import skillbill.infrastructure.sqlite.review.stage.runtime.TriageRuntime
 import skillbill.infrastructure.sqlite.review.stats.workflow.phaseOutcomeCounts
+import skillbill.infrastructure.sqlite.reviewSessionId
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.listJson
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
@@ -96,7 +98,7 @@ class ReviewStatsRuntimeTest {
   fun categorySeverityCrossTabReturnsMajorAndBlocker() {
     val (_, connection) = tempDbConnection("review-category-severity-cross-tab")
     connection.use {
-      TelemetryOutboxStore(connection).enqueue(
+      TelemetryOutboxStore(connection, version = "test-runtime-version").enqueue(
         "skillbill_review_finished",
         JsonCodec.mapToJsonString(
           mapOf(
@@ -163,7 +165,7 @@ class ReviewStatsRuntimeTest {
   fun `statsSnapshot derives missing latest outcome counts from finding details`() {
     val (_, connection) = tempDbConnection("review-health-detail-outcomes")
     connection.use {
-      TelemetryOutboxStore(connection).enqueue(
+      TelemetryOutboxStore(connection, version = "test-runtime-version").enqueue(
         "skillbill_review_finished",
         JsonCodec.mapToJsonString(
           mapOf(
@@ -323,8 +325,8 @@ class ReviewStatsRuntimeTest {
   fun `feature task runtime telemetry persists started then finished and enqueues each event once`() {
     val (_, connection) = tempDbConnection("feature-task-runtime-telemetry")
     connection.use {
-      val store = LifecycleTelemetryStore(connection)
-      val outbox = TelemetryOutboxStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
+      val outbox = TelemetryOutboxStore(connection, version = "test-runtime-version")
       persistFeatureTaskRuntimeTelemetryPair(store)
       store.featureTaskRuntimeFinished(
         featureTaskRuntimeFinishedRecord(),
@@ -426,7 +428,7 @@ class ReviewStatsRuntimeTest {
   fun `feature task runtime stats counts blocked and decomposed completion statuses`() {
     val (_, connection) = tempDbConnection("feature-task-runtime-stats")
     connection.use {
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.featureTaskRuntimeStarted(
         FeatureTaskRuntimeStartedRecord("ftr-blocked", "SMALL", "SKILL-1", "blocked-run"),
         level = "anonymous",
@@ -470,7 +472,7 @@ class ReviewStatsRuntimeTest {
 
       val payloads =
         telemetryPayloads(
-          TelemetryOutboxStore(connection).listPending(limit = null),
+          TelemetryOutboxStore(connection, version = "test-runtime-version").listPending(limit = null),
           "skillbill_feature_task_runtime_finished",
         )
       val blockedPayload = payloads.single { it["session_id"] == "ftr-blocked" }
@@ -508,6 +510,7 @@ private fun recordFindingOutcome(
         note = note,
       ),
     telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "anonymous"),
+    runtimeVersion = "test-runtime-version",
   )
 }
 
@@ -600,7 +603,22 @@ private fun seedMixedReviewHealth(
   connection: Connection,
   reviewRunId: String,
 ) {
-  ReviewStatsRuntime.updateReviewFinishedTelemetryState(connection, reviewRunId, enabled = true, level = "full")
+  ReviewStatsRuntime.updateReviewFinishedTelemetryState(
+    connection,
+    reviewRunId,
+    request =
+      ReviewFinishedTelemetryUpdateRequest(
+        enabled = true,
+        level = "full",
+      ),
+    runtimeVersion = "test-runtime-version",
+  )
+  val emittedRows =
+    TelemetryOutboxStore(connection, version = "test-runtime-version")
+      .listPending()
+      .filter { record -> record.eventName == "skillbill_review_finished" }
+  assertTrue(emittedRows.isNotEmpty())
+  assertTrue(emittedRows.all { record -> record.skillBillVersion == "test-runtime-version" })
   insertFeatureImplementSessionWithChildSteps(
     connection,
     FeatureImplementSessionFixture(
@@ -731,7 +749,7 @@ private fun insertFeatureVerifySession(connection: Connection) {
   fun mapperEmitsSeverityCounts() {
     val (_, connection) = tempDbConnection("review-contract-mapper-cross-tab")
     connection.use {
-      TelemetryOutboxStore(connection).enqueue(
+      TelemetryOutboxStore(connection, version = "test-runtime-version").enqueue(
         "skillbill_review_finished",
         JsonCodec.mapToJsonString(
           mapOf(

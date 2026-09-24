@@ -1,19 +1,23 @@
 package skillbill.engine.goalrunner.findings
-import skillbill.application.testWorkflowSnapshotValidator
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
+
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
+import skillbill.engine.decodeWorkflowArtifactsForTest
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+
+private val FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS.label()
 
 class UnaddressedFindingsLedgerServiceVerificationProvenanceTest {
   @Test
@@ -71,7 +75,7 @@ private fun seedWorkflow(
   workflowId: String,
   artifactsJson: String,
 ) {
-  val engine = WorkflowEngine(testWorkflowSnapshotValidator)
+  val engine = WorkflowEngine()
   val definition = WorkflowFamily.TASK_RUNTIME.definition
   val opened = engine.openRecord(definition, workflowId, "ftr-provenance", "verify_findings")
   val seeded =
@@ -79,10 +83,11 @@ private fun seedWorkflow(
       definition,
       opened,
       WorkflowUpdateInput(
+        terminalInstant = Instant.EPOCH,
         workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "verify_findings",
         stepUpdates = null,
-        artifactsPatch = WorkflowArtifactPatch.from(decodeWorkflowArtifacts(artifactsJson)),
+        artifactsPatch = WorkflowArtifactPatch.from(decodeWorkflowArtifactsForTest(artifactsJson)),
         sessionId = "ftr-provenance",
       ),
     ).toRecord()

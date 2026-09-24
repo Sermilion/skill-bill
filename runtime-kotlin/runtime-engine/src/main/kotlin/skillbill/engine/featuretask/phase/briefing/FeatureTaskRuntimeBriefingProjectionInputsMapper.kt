@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask.phase.briefing
+
+import skillbill.application.decomposition.baseBranch
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeBriefingProjectionInputs
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionInputs
 
@@ -18,7 +20,7 @@ fun briefingProjectionInputs(
     branchIdentity = inputs.handoff.branchIdentity,
     baseBranch = inputs.handoff.baseBranch,
     workflowId = inputs.workflowId,
-    planningProjectionValidator = inputs.planningProjectionValidator,
+    planningProjectionValidator = inputs.planningProjectionValidator::validate,
     addonContentBySlug = inputs.addonContentBySlug,
     validationDepth = inputs.handoff.validationDepth,
     qualityGateSelection = inputs.handoff.qualityGateSelection,

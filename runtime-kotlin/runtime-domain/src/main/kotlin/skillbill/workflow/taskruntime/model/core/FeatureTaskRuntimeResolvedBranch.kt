@@ -1,7 +1,9 @@
 package skillbill.workflow.taskruntime.model.core
+
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
 
 data class FeatureTaskRuntimeResolvedBranch(
   val branch: String,

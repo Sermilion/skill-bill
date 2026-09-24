@@ -23,7 +23,6 @@ class RuntimeDatabasePathPlumbingArchitectureTest {
         syntheticSourceFile(
           "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/example/ExampleService.kt",
           """
-          package skillbill.example
 
           class ExampleService {
             fun load(dbPathOverride: String?) = dbPathOverride
@@ -36,7 +35,6 @@ class RuntimeDatabasePathPlumbingArchitectureTest {
         syntheticSourceFile(
           "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/example/ExampleRequest.kt",
           """
-          package skillbill.example
 
           data class ExampleRequest(val dbOverride: String?)
           """.trimIndent(),
@@ -47,7 +45,6 @@ class RuntimeDatabasePathPlumbingArchitectureTest {
         syntheticSourceFile(
           "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/model/EnvironmentContext.kt",
           """
-          package skillbill.model
 
           data class EnvironmentContext(
             val dbPathOverride: String? = null,
@@ -58,14 +55,14 @@ class RuntimeDatabasePathPlumbingArchitectureTest {
 
     assertEquals(
       listOf(
-        "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/example/ExampleService.kt:4 " +
+        "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/example/ExampleService.kt:3 " +
           "threads db override plumbing",
       ),
       applicationViolation,
     )
     assertEquals(
       listOf(
-        "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/example/ExampleRequest.kt:3 " +
+        "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/example/ExampleRequest.kt:2 " +
           "threads db override plumbing",
       ),
       portsViolation,

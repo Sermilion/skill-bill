@@ -6,7 +6,6 @@ import skillbill.engine.featuretask.lifecycle.continuation.reconcileRemediationB
 import skillbill.engine.featuretask.lifecycle.continuation.reviewState
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskGitIntegrationDatabase
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskGitIntegrationWorkflowRepository
-import skillbill.engine.featuretask.lifecycle.core.featureTaskGitIntegrationSnapshotValidator
 import skillbill.engine.featuretask.model.subtask.RemediationBaseBlocked
 import skillbill.engine.featuretask.model.subtask.RemediationBaseCoherent
 import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
@@ -22,26 +21,23 @@ import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.artifact.asCheckpointIdentitiesArtifactEntry
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.featureTaskRuntimeCheckpointRefName
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -50,6 +46,17 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
+private val GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.label()
+private val GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_RESULTS.label()
+private val GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.label()
+private val FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES.label()
+private val FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.label()
 
 class RemediationBaseReconciliationUnderAmendTest {
   private val workflowId = "wftr-skill190-reconcile"
@@ -403,7 +410,7 @@ class RemediationBaseReconciliationUnderAmendTest {
     repository: FeatureTaskGitIntegrationWorkflowRepository = FeatureTaskGitIntegrationWorkflowRepository(),
     legacyCheckpointRecord: Map<String, Any?>? = null,
   ): FeatureTaskRuntimeGoalContinuationRecorder {
-    val engine = WorkflowEngine(featureTaskGitIntegrationSnapshotValidator)
+    val engine = WorkflowEngine()
     val definition = WorkflowFamily.TASK_RUNTIME.definition
     val opened = engine.openRecord(definition, workflowId, "fis-001", "preplan")
     val artifactsPatch =
@@ -432,6 +439,7 @@ class RemediationBaseReconciliationUnderAmendTest {
         definition,
         opened,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "review",
           stepUpdates = null,
@@ -442,7 +450,6 @@ class RemediationBaseReconciliationUnderAmendTest {
     repository.saveFeatureTaskRuntimeWorkflow(seeded)
     return FeatureTaskRuntimeGoalContinuationRecorder(
       FeatureTaskGitIntegrationDatabase(repository),
-      featureTaskGitIntegrationSnapshotValidator,
       NoopRuntimeDiagnostics,
       Clock.systemUTC(),
     )

@@ -1,5 +1,6 @@
 
 package skillbill.workflow.taskruntime.model.phase
+
 import skillbill.workflow.decomposition.model.SpecSource
 import kotlin.test.Test
 import kotlin.test.assertEquals

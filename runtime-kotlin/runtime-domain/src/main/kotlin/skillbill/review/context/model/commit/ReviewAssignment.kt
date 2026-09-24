@@ -1,9 +1,9 @@
 package skillbill.review.context.model.commit
+
 import skillbill.review.context.model.bundle.ReviewLaneBundle
 import skillbill.review.context.model.execution.ReviewLaneDecision
 import skillbill.review.context.model.execution.SHA256_HEX
 import skillbill.review.context.model.execution.canonicalFieldList
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.execution.sha256
 import skillbill.review.context.model.hunk.ReviewBaselineUntrackedPolicy
 import skillbill.review.context.model.hunk.ReviewDependencyAllowlist
@@ -12,6 +12,7 @@ import skillbill.review.context.model.hunk.ReviewLearningsReference
 import skillbill.review.context.model.hunk.ReviewRevision
 import skillbill.review.context.model.hunk.ReviewRuleReference
 import skillbill.review.context.model.packet.ReviewExpansionRecord
+import skillbill.review.model.requireRepositoryRelativePath
 
 data class ReviewAssignment(
   val reviewId: String,

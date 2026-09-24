@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install.nativeagent.inventory
+
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.networknt.schema.JsonSchema

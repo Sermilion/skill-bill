@@ -1,9 +1,10 @@
 package skillbill.infrastructure.contracts.install
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.contracts.install.InstallPlanSchemaPaths
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -38,14 +39,14 @@ class InstallPlanSchemaContractVersionTest {
   }
 
   @Test
-  fun `schema agentId enum matches InstallAgent supportedIds in order`() {
+  fun `schema agentId enum matches SupportedAgent supportedIds in order`() {
     val schema = readSchema()
     val agentIds = schema.path("\$defs").path("agentId").path("enum").map(JsonNode::asText)
 
     assertEquals(
-      InstallAgent.supportedIds,
+      SupportedAgent.supportedIds,
       agentIds,
-      "Schema `\$defs.agentId.enum` must list exactly the InstallAgent ids, in the same order.",
+      "Schema `\$defs.agentId.enum` must list exactly the SupportedAgent ids, in the same order.",
     )
     assertContains(agentIds, "cursor")
   }

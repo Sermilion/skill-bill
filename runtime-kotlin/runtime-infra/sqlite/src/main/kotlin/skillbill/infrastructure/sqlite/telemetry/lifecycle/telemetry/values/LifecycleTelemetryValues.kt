@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.values
+
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.toSqlInt
 import skillbill.telemetry.model.FeatureVerifyFinishedRecord
 

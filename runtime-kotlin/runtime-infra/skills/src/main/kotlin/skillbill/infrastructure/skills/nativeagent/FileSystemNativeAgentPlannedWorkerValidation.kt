@@ -1,4 +1,6 @@
 package skillbill.infrastructure.skills.nativeagent
+
+import skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentSourceFile
 import skillbill.infrastructure.skills.nativeagent.rendering.discoverRepoNativeAgentSourceFiles
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
 import skillbill.review.plan.ReviewLaunchPlanPolicy

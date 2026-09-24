@@ -3,6 +3,7 @@ package skillbill.infrastructure.workflow.github
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import me.tatarka.inject.annotations.Inject
+import skillbill.model.toPath
 import skillbill.ports.validation.PrCheckDiscovery
 import skillbill.ports.validation.model.DiscoveredPrCheck
 import skillbill.ports.validation.model.PrCheckDiscoveryResult

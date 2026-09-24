@@ -1,4 +1,5 @@
 package skillbill.cli.goal.core
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerOperatorDecisionResult
 import skillbill.engine.goalrunner.model.GoalRunnerRepairResult

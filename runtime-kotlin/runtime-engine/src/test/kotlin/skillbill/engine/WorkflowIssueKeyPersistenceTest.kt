@@ -19,7 +19,6 @@ import skillbill.error.shellcontent.WorkflowIssueKeyConflictError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
-import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -40,7 +39,7 @@ class WorkflowIssueKeyPersistenceTest {
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         runtimeDiagnostics = NoopRuntimeDiagnostics,
         clock = Clock.systemUTC(),
       )
@@ -89,7 +88,7 @@ class WorkflowIssueKeyPersistenceTest {
         decompositionManifestValidator = testDecompositionManifestValidator,
         decompositionManifestWriter = testDecompositionManifestWriter,
         repositoryRoot = testRepositoryRoot,
-        goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+        goalObservabilityEventValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator,
         runtimeDiagnostics = NoopRuntimeDiagnostics,
         clock = Clock.systemUTC(),
       )

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.externaladdon
+
 import org.yaml.snakeyaml.Yaml
 import skillbill.infrastructure.host.jvm.atomicMoveReplacing
 import skillbill.scaffold.model.GovernedAddonActivation

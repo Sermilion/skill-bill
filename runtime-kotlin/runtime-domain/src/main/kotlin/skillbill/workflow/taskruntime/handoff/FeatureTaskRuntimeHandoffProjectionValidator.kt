@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.handoff
+
 import skillbill.error.featuretask.InvalidFeatureTaskRuntimeHandoffProjectionContext
 import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
@@ -6,7 +7,7 @@ import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclar
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffEnvelope
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjection
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionInputs
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 
 object FeatureTaskRuntimeHandoffProjectionValidator {
   const val COMPACT_REFERENCE_MAX_LENGTH: Int = 512

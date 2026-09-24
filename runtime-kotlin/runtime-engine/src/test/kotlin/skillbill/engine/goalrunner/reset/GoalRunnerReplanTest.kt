@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.reset
+
 import skillbill.engine.DeadProcessSupervisor
 import skillbill.engine.goalrunner.InMemoryGoalManifestStore
 import skillbill.engine.goalrunner.RecordingOutcomeStore
@@ -107,7 +108,7 @@ class GoalRunnerReplanTest {
   fun `scoped replan refuses live goals without mutation`() {
     val store =
       refusalBaseStore().apply {
-        executionLeaseForTest = idleLease().copy(expiresAt = "2026-07-27T12:00:01Z")
+        executionLeaseForTest = idleLease().copy(expiresAt = Instant.parse("2026-07-27T12:00:01Z"))
       }
     val failure =
       assertFailsWith<IllegalArgumentException> {

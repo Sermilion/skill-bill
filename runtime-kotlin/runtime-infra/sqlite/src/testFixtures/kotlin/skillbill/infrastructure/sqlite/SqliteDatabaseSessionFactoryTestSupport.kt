@@ -2,6 +2,8 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.workflow.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import java.nio.file.Path
 import java.time.Clock
 import java.time.Instant
@@ -13,6 +15,7 @@ fun sqliteDatabaseSessionFactory(
   environment: Map<String, String>,
   clock: Clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
   diagnostics: RuntimeDiagnostics = SqliteTestDiagnostics,
+  runtimeVersion: String = "test-runtime-version",
 ): SQLiteDatabaseSessionFactory =
   SQLiteDatabaseSessionFactory(
     EnvironmentContext(
@@ -22,7 +25,16 @@ fun sqliteDatabaseSessionFactory(
     ),
     clock,
     diagnostics,
+    SqliteTestWorkflowSnapshotValidator,
+    runtimeVersion,
   )
+
+object SqliteTestWorkflowSnapshotValidator : WorkflowSnapshotValidator {
+  override fun validate(
+    snapshot: WorkflowStateSnapshot,
+    slug: String,
+  ) = Unit
+}
 
 object SqliteTestDiagnostics : RuntimeDiagnostics {
   private val warnings = mutableListOf<String>()

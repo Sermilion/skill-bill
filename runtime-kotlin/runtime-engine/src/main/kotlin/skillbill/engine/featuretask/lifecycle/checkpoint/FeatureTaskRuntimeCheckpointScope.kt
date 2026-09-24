@@ -60,7 +60,7 @@ object FeatureTaskRuntimeCheckpointScope {
   }
 }
 
-private fun sanitized(
+internal fun sanitized(
   paths: Collection<String>,
   runtimeOwned: (String) -> Boolean,
 ): List<String> = paths.filter(String::isNotBlank).filterNot(runtimeOwned)

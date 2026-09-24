@@ -24,14 +24,15 @@ import skillbill.engine.featuretask.runloop.core.OWNED_PATH_DELIMITER
 import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.engine.featuretask.runloop.core.RemediationCheckpointCommit
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopRepairReceipt
+import skillbill.engine.goalrunner.execution.support.protectedBranchName
 import skillbill.ports.workflow.gitops.captureIndexState
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.pathContentIdentities
 import skillbill.ports.workflow.gitops.repositoryOwnedPaths
 import skillbill.ports.workflow.gitops.stagePaths
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 

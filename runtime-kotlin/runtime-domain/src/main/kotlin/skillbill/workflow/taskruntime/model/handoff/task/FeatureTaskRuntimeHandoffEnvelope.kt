@@ -1,12 +1,14 @@
 package skillbill.workflow.taskruntime.model.handoff.task
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
+import skillbill.workflow.model.persistence.artifact.DurableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.toStringKeyedArtifactMap
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
-import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeHandoffPromptVisibility
 
 data class FeatureTaskRuntimeHandoffEnvelope(

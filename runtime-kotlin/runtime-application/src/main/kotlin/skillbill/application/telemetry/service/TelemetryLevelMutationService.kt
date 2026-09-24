@@ -1,4 +1,5 @@
 package skillbill.application.telemetry.service
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.config.TelemetryConfigMutations
 import skillbill.application.telemetry.config.clearsPendingOutbox

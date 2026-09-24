@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install.nativeagent.install.native
+
 import java.nio.file.Path
 
 sealed class InstallNativeAgentResult {

@@ -15,6 +15,7 @@ import skillbill.model.EnvironmentContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.SQLException
@@ -26,6 +27,8 @@ class SQLiteDatabaseSessionFactory(
   context: EnvironmentContext,
   private val clock: Clock,
   private val diagnostics: RuntimeDiagnostics,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
+  private val runtimeVersion: String,
 ) : DatabaseSessionFactory {
   private val resolvedContext = requireResolvedEnvironmentContext(context)
   private val resolvedPath by lazy {
@@ -107,7 +110,7 @@ class SQLiteDatabaseSessionFactory(
     }
 
   private fun unitOfWork(openDb: OpenDatabase): SQLiteUnitOfWork =
-    SQLiteUnitOfWork(openDb.connection, openDb.dbPath, clock, diagnostics)
+    SQLiteUnitOfWork(openDb.connection, openDb.dbPath, clock, diagnostics, workflowSnapshotValidator, runtimeVersion)
 
   private fun <T> withWriteDatabase(block: (OpenDatabase) -> T): T {
     val dbPath = resolveDbPath()

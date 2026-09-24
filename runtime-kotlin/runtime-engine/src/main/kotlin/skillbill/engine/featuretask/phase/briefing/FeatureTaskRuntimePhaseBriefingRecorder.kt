@@ -11,21 +11,20 @@ import skillbill.engine.featuretask.phase.core.toMeasurementFailureClassificatio
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.validateDeclaration
+import skillbill.ports.taskruntime.validateEnvelope
+import skillbill.ports.taskruntime.validateMeasurement
+import skillbill.ports.taskruntime.validatePersistenceRecord
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.taskruntime.artifact.asTelemetryPayload
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.artifact.validateDeclaration
-import skillbill.workflow.taskruntime.artifact.validateEnvelope
-import skillbill.workflow.taskruntime.artifact.validateMeasurement
-import skillbill.workflow.taskruntime.artifact.validatePersistenceRecord
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionMeasurement
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeSharedEvidenceMeasurement
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeDeliveredProjectionRecord
 
 class FeatureTaskRuntimePhaseBriefingRecorder(
@@ -43,7 +42,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction false
       wireArtifactValidator.validateEnvelope(briefing.handoffEnvelope.asWorkflowArtifactEntry(), workflowId)
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+      val artifacts = record.artifacts
       val updatedBriefings =
         LinkedHashMap(phaseBriefingsFrom(artifacts, wireArtifactValidator::validateEnvelopeWire))
           .apply { put(briefing.phaseId, briefing) }
@@ -68,10 +67,12 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
           }
       val patch =
         mapOf(
-          FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY to
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS.entry(
             updatedBriefings.mapValues { (_, value) -> value.asBriefingArtifactEntry() },
-          FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY to
+          ),
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS.entry(
             updatedDelivered.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
+          ),
         )
       workflowPersistence.persistArtifactsPatch(unitOfWork.workflowStates, record, patch)
       true
@@ -117,7 +118,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
       val record =
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
-      phaseBriefingsFrom(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)) { envelope ->
+      phaseBriefingsFrom(record.artifacts) { envelope ->
         wireArtifactValidator.validateEnvelope(envelope, workflowId)
       }
     }
@@ -128,7 +129,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
         WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@read null
       deliveredProjectionsFrom(
-        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+        record.artifacts,
         validateEnvelope = { envelope -> wireArtifactValidator.validateEnvelope(envelope, workflowId) },
         validatePersistenceRecord = { persistence ->
           wireArtifactValidator.validatePersistenceRecord(persistence, "delivered-projection:$workflowId")

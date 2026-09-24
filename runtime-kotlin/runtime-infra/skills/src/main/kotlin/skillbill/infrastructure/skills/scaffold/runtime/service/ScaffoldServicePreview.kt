@@ -1,13 +1,14 @@
 package skillbill.infrastructure.skills.scaffold.runtime.service
+
 import skillbill.infrastructure.skills.scaffold.manifest.renderExternalAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.manifest.renderGovernedAddonManifestRegistration
 import skillbill.infrastructure.skills.scaffold.manifest.renderReadmeCatalogRow
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_AGENT_ADDON
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_CODE_REVIEW_AREA
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_HORIZONTAL
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
+import skillbill.scaffold.policy.SKILL_KIND_ADD_ON
+import skillbill.scaffold.policy.SKILL_KIND_AGENT_ADDON
+import skillbill.scaffold.policy.SKILL_KIND_CODE_REVIEW_AREA
+import skillbill.scaffold.policy.SKILL_KIND_HORIZONTAL
+import skillbill.scaffold.policy.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
+import skillbill.scaffold.policy.SKILL_KIND_PLATFORM_PACK
 import java.nio.file.Files
 import java.nio.file.Path
 

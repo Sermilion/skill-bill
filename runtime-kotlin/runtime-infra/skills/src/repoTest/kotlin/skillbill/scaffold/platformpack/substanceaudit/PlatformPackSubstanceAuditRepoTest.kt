@@ -2,7 +2,7 @@ package skillbill.scaffold.platformpack.substanceaudit
 
 import skillbill.infrastructure.skills.scaffold.platformpack.substanceaudit.PLATFORM_PACK_SUBSTANCE_CONTRACT_VERSION
 import skillbill.infrastructure.skills.scaffold.platformpack.substanceaudit.PlatformPackSubstanceAudit
-import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
+import skillbill.scaffold.policy.APPROVED_CODE_REVIEW_AREAS
 import skillbill.testing.repoRootFromTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

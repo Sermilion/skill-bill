@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.schema
+
 import org.sqlite.SQLiteConfig
 import skillbill.error.core.DatabaseAccessError
 import skillbill.error.core.DatabaseAccessOperation

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.git.standard
+
 import skillbill.ports.workflow.gitops.WorkflowGitBranchOperations
 import skillbill.ports.workflow.gitops.WorkflowGitCommitHistoryOperations
 import skillbill.ports.workflow.gitops.WorkflowGitRemoteOperations

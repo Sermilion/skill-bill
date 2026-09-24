@@ -1,5 +1,9 @@
 package skillbill.engine.goalrunner.planning.context
 
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.executionModel
+import skillbill.application.decomposition.parentSpecPath
+import skillbill.application.decomposition.specSource
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys

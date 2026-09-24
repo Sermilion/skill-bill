@@ -1,7 +1,6 @@
 package skillbill.application
 
 import skillbill.application.install.InstallService
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentDefaultTarget
 import skillbill.install.model.InstallAgentLinkStatus
 import skillbill.install.model.InstallAgentSelection
@@ -32,11 +31,13 @@ import skillbill.install.model.McpRegistrationIntent
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.RuntimeDistributionInputs
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkApplyOutcome
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkFallbackState
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
+import skillbill.install.policy.selectedPlatformSlugs
 import skillbill.ports.install.apply.InstallApplyExecutionPort
 import skillbill.ports.install.apply.model.InstallApplyExecutionRequest
 import skillbill.ports.install.apply.model.InstallApplyExecutionResult
@@ -116,12 +117,12 @@ class InstallServiceTest {
         agents =
           listOf(
             InstallAgentTarget(
-              InstallAgent.CODEX,
+              SupportedAgent.CODEX,
               home.resolve(".codex/skills").toFileLocation(),
               InstallAgentTargetSource.MANUAL,
             ),
             InstallAgentTarget(
-              InstallAgent.CLAUDE,
+              SupportedAgent.CLAUDE,
               home.resolve(".claude/skills").toFileLocation(),
               InstallAgentTargetSource.MANUAL,
             ),
@@ -130,7 +131,7 @@ class InstallServiceTest {
     val selectionPort = RecordingInstallSelectionPersistencePort()
     val service =
       serviceForApply(
-        result = successfulApplyResult(plan, resolvedAgent = InstallAgent.CODEX),
+        result = successfulApplyResult(plan, resolvedAgent = SupportedAgent.CODEX),
         selectionPort = selectionPort,
       )
 
@@ -138,7 +139,7 @@ class InstallServiceTest {
 
     val write = selectionPort.writeRequests.single()
     assertEquals(home, write.installHome)
-    assertEquals(setOf(InstallAgent.CODEX), write.selection.selectedAgents)
+    assertEquals(setOf(SupportedAgent.CODEX), write.selection.selectedAgents)
     assertEquals(PlatformPackSelectionMode.ALL, write.selection.platformPackSelection.mode)
     assertEquals(emptySet(), write.selection.platformPackSelection.selectedSlugs)
     assertEquals(InstallTelemetryLevel.ANONYMOUS, write.selection.telemetryLevel)
@@ -159,7 +160,7 @@ class InstallServiceTest {
 
     service.applyInstall(plan)
 
-    assertEquals(setOf(InstallAgent.CODEX), selectionPort.writeRequests.single().selection.selectedAgents)
+    assertEquals(setOf(SupportedAgent.CODEX), selectionPort.writeRequests.single().selection.selectedAgents)
   }
 
   @Test
@@ -182,12 +183,12 @@ class InstallServiceTest {
         agents =
           listOf(
             InstallAgentTarget(
-              InstallAgent.CODEX,
+              SupportedAgent.CODEX,
               home.resolve(".codex/skills").toFileLocation(),
               InstallAgentTargetSource.MANUAL,
             ),
             InstallAgentTarget(
-              InstallAgent.CLAUDE,
+              SupportedAgent.CLAUDE,
               home.resolve(".claude/skills").toFileLocation(),
               InstallAgentTargetSource.MANUAL,
             ),
@@ -204,7 +205,7 @@ class InstallServiceTest {
     service.applyInstall(plan)
 
     val selection = selectionPort.writeRequests.single().selection
-    assertEquals(setOf(InstallAgent.CLAUDE, InstallAgent.CODEX), selection.selectedAgents)
+    assertEquals(setOf(SupportedAgent.CLAUDE, SupportedAgent.CODEX), selection.selectedAgents)
     assertEquals(PlatformPackSelectionMode.SELECTED, selection.platformPackSelection.mode)
     assertEquals(setOf("kotlin"), selection.platformPackSelection.selectedSlugs)
     assertEquals(InstallTelemetryLevel.OFF, selection.telemetryLevel)
@@ -225,12 +226,12 @@ class InstallServiceTest {
         agents =
           listOf(
             InstallAgentTarget(
-              InstallAgent.CLAUDE,
+              SupportedAgent.CLAUDE,
               home.resolve(".claude/skills").toFileLocation(),
               InstallAgentTargetSource.DETECTED,
             ),
             InstallAgentTarget(
-              InstallAgent.CURSOR,
+              SupportedAgent.CURSOR,
               home.resolve(".cursor/skills").toFileLocation(),
               InstallAgentTargetSource.DETECTED,
             ),
@@ -246,7 +247,7 @@ class InstallServiceTest {
     service.applyInstall(plan)
 
     assertEquals(
-      setOf(InstallAgent.CLAUDE, InstallAgent.CURSOR),
+      setOf(SupportedAgent.CLAUDE, SupportedAgent.CURSOR),
       selectionPort.writeRequests.single().selection.selectedAgents,
     )
   }
@@ -292,7 +293,7 @@ class InstallServiceTest {
       agentSelection =
         InstallAgentSelection(
           mode = InstallAgentSelectionMode.MANUAL,
-          manualAgents = setOf(InstallAgent.CODEX),
+          manualAgents = setOf(SupportedAgent.CODEX),
         ),
       platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL),
       telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
@@ -321,7 +322,11 @@ class InstallServiceTest {
     request: InstallPlanRequest,
     agents: List<InstallAgentTarget> =
       listOf(
-        InstallAgentTarget(InstallAgent.CODEX, request.home.resolve(".codex/skills"), InstallAgentTargetSource.MANUAL),
+        InstallAgentTarget(
+          SupportedAgent.CODEX,
+          request.home.resolve(".codex/skills"),
+          InstallAgentTargetSource.MANUAL,
+        ),
       ),
     selectedPlatformSlugs: List<String> = emptyList(),
   ): InstallPlan =
@@ -374,7 +379,7 @@ class InstallServiceTest {
 
   private fun successfulApplyResult(
     plan: InstallPlan,
-    resolvedAgent: InstallAgent?,
+    resolvedAgent: SupportedAgent?,
   ): InstallApplyResult =
     InstallApplyResult(
       status = InstallApplyStatus.SUCCESS,
@@ -478,7 +483,7 @@ class InstallServiceTest {
             defaultAgentTargets =
               listOf(
                 InstallAgentDefaultTarget(
-                  agent = InstallAgent.CODEX,
+                  agent = SupportedAgent.CODEX,
                   path = home.resolve(".codex/skills").toFileLocation(),
                 ),
               ),

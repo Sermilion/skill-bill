@@ -1,5 +1,6 @@
 package skillbill.application
 
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import java.nio.file.Files

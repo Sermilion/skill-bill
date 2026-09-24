@@ -1,3 +1,10 @@
+## [2026-09-24] Validator contracts stay outside domain while artifact families stay typed (SKILL-372)
+Context: Domain decoders need to reject malformed durable artifacts without depending on schema-validator ports.
+Decision: Validator interfaces and wire carriers live in `runtime-ports`; runtime-domain owns pure artifact decoding and typed accessors, and adapters validate encoded payloads at every durable read and write seam.
+Reason: This keeps domain rules dependency-free while preserving loud schema rejection and one owner for each artifact family.
+Alternatives considered: Keeping validators in domain (rejected: it couples pure rules to adapter contracts); validating only service-mediated writes (rejected: direct engine and SQLite saves would bypass the boundary).
+Revisit when: A validator contract no longer crosses a module boundary or an artifact family becomes an open extension surface.
+
 ## [2026-09-17] Remaining multi-file families after merge-count shrink (SKILL-351 subtask 3)
 
 Context: Subtask 3 merges count-driven split files where ceilings allow and documents responsibility-based splits that remain.
@@ -27,6 +34,7 @@ Decision: `DecompositionManifestValidator` in `runtime-domain` is the domain-own
 Evidence: `DecompositionManifestValidatorAdapter`, decomposition manifest rejection tests in `runtime-infra/fs`.
 
 Revisit when: Manifest schema or repair orchestration changes ownership again.
+Superseded by: Validator contracts stay outside domain while artifact families stay typed (2026-09-24)
 
 ## [2026-09-16] Unified durable artifact map reader and lenient workflow-step integers (SKILL-351 subtask 1)
 

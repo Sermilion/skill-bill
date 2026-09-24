@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.decomposition
+
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.core.type.TypeReference
@@ -17,8 +18,11 @@ import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
 import skillbill.infrastructure.contracts.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepair
 import skillbill.infrastructure.contracts.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepairDecision
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.decodeManifest
+import skillbill.infrastructure.contracts.review.formatValidationReason
+import skillbill.infrastructure.contracts.review.offendingValue
+import skillbill.infrastructure.contracts.review.violationOrdering
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.decodeManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairEvidence
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperation
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode

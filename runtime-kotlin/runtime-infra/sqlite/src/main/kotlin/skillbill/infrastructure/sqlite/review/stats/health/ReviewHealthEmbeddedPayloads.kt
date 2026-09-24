@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats.health
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.error.shellcontent.ShellContentContractException

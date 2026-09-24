@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.PlatformPackSchemaPaths
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
-import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
+import skillbill.scaffold.policy.APPROVED_CODE_REVIEW_AREAS
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test

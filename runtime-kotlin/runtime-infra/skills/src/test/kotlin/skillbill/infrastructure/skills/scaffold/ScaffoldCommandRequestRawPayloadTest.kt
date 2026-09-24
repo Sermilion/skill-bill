@@ -2,7 +2,6 @@ package skillbill.infrastructure.skills.scaffold
 
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.skills.scaffold.payload.toRawScaffoldPayload
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.CodeReviewCompositionMode
 import skillbill.scaffold.model.CodeReviewCompositionScope

@@ -1,11 +1,11 @@
 package skillbill.infrastructure.skills.skillremove
 
-import skillbill.domain.skillremove.model.AgentSymlinkProvider
-import skillbill.domain.skillremove.model.AgentSymlinkUnlink
-import skillbill.domain.skillremove.model.SkillRemovalRequest
 import skillbill.infrastructure.host.jvm.resolveEnvironmentMap
 import skillbill.infrastructure.skills.nativeagent.support.claudeConfigRoots
 import skillbill.infrastructure.skills.nativeagent.support.codexAgentsTargets
+import skillbill.install.model.SupportedAgent
+import skillbill.skillremove.model.AgentSymlinkUnlink
+import skillbill.skillremove.model.SkillRemovalRequest
 import java.nio.file.Path
 
 internal fun SkillRemoveJvmFileSystemPlanning.agentUnlinksForSkills(
@@ -16,7 +16,7 @@ internal fun SkillRemoveJvmFileSystemPlanning.agentUnlinksForSkills(
   val environment = resolveEnvironmentMap(request.environment)
   val out = mutableListOf<AgentSymlinkUnlink>()
   cascadedSkillNames.forEach { name ->
-    AgentSymlinkProvider.values().forEach { provider ->
+    SupportedAgent.values().forEach { provider ->
       agentHomeDirs(provider, resolvedHome, environment).forEach { dir ->
         val candidate = dir.resolve("$name.md")
         out += AgentSymlinkUnlink(provider = provider, path = candidate.toString().replace('\\', '/'))
@@ -33,7 +33,7 @@ internal fun SkillRemoveJvmFileSystemPlanning.agentUnlinksForPlatform(
   val resolvedHome = skillRemoveUserHome(request, home)
   val environment = resolveEnvironmentMap(request.environment)
   val out = mutableListOf<AgentSymlinkUnlink>()
-  AgentSymlinkProvider.values().forEach { provider ->
+  SupportedAgent.values().forEach { provider ->
     agentHomeDirs(provider, resolvedHome, environment).forEach { dir ->
       out +=
         AgentSymlinkUnlink(
@@ -46,14 +46,14 @@ internal fun SkillRemoveJvmFileSystemPlanning.agentUnlinksForPlatform(
 }
 
 internal fun SkillRemoveJvmFileSystemPlanning.agentHomeDirs(
-  provider: AgentSymlinkProvider,
+  provider: SupportedAgent,
   home: Path,
   environment: Map<String, String>,
 ): List<Path> =
   when (provider) {
-    AgentSymlinkProvider.CLAUDE -> claudeConfigRoots(home, environment).map { it.resolve("agents") }
-    AgentSymlinkProvider.CODEX -> codexAgentsTargets(home, environment)
-    AgentSymlinkProvider.JUNIE,
-    AgentSymlinkProvider.CURSOR,
+    SupportedAgent.CLAUDE -> claudeConfigRoots(home, environment).map { it.resolve("agents") }
+    SupportedAgent.CODEX -> codexAgentsTargets(home, environment)
+    SupportedAgent.JUNIE,
+    SupportedAgent.CURSOR,
     -> listOf(home.resolve(requireNotNull(provider.simpleHomeDirectory)).resolve("agents"))
   }

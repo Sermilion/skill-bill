@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.host.jvm.atomicWriteString
 import skillbill.install.model.BaselineManifest

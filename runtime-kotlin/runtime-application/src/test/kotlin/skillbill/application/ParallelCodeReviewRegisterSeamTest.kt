@@ -3,7 +3,7 @@ package skillbill.application
 import skillbill.application.review.parallel.verification.parseLaneRegisterSeam
 import skillbill.application.review.snapshot.simulateGovernedEvidenceReads
 import skillbill.application.reviewevidence.model.ParallelReviewScope
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.review.context.model.hunk.ReviewRegisterParseSeamException
@@ -30,7 +30,7 @@ class ParallelCodeReviewRegisterSeamTest {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
         AgentRunLaunchFacts(
-          agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+          agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
           exitStatus = 0,
           stdout = blocked,
           stderr = "",
@@ -237,7 +237,7 @@ class ParallelCodeReviewRegisterSeamTest {
     GoalRunnerSubtaskLauncher { request ->
       simulateGovernedEvidenceReads(request.skillRunRequest)
       AgentRunLaunchFacts(
-        agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+        agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
         exitStatus = 0,
         stdout = stdout,
         stderr = "",

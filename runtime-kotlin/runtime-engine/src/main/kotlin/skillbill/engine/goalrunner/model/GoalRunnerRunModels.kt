@@ -5,7 +5,7 @@ import skillbill.experiment.model.ExperimentArmId
 import skillbill.goalrunner.model.GoalPullRequestStatus
 import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewCompactFinding
 import java.nio.file.Path
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes

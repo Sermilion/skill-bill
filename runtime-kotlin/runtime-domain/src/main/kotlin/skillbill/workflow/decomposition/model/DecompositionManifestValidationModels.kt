@@ -1,10 +1,12 @@
 package skillbill.workflow.decomposition.model
+
 import skillbill.contracts.workflow.featuretask.DECOMPOSITION_MANIFEST_VALIDATION_CONTRACT_VERSION
 import skillbill.error.core.FailureWireCode
 import skillbill.error.core.failureWireByValue
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
+import skillbill.review.context.model.execution.SHA256_HEX
 
-const val DECOMPOSITION_MANIFEST_VALIDATION_VERSION: String =
+private const val DECOMPOSITION_MANIFEST_VALIDATION_VERSION: String =
   DECOMPOSITION_MANIFEST_VALIDATION_CONTRACT_VERSION
 
 enum class DecompositionManifestValidationFormat(val wireValue: String) {

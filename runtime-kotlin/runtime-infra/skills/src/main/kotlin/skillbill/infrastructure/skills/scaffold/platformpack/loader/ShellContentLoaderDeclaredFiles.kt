@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
+
 import java.nio.file.Path
 
 internal fun parseDeclaredAreaFileEntries(

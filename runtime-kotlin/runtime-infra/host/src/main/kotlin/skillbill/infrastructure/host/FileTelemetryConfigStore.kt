@@ -1,5 +1,4 @@
 package skillbill.infrastructure.host
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.model.EnvironmentContext

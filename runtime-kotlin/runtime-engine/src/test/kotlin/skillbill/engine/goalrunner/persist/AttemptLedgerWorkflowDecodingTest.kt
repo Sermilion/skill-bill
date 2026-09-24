@@ -1,16 +1,22 @@
 package skillbill.engine.goalrunner.persist
 
 import skillbill.contracts.JsonCodec
-import skillbill.workflow.engine.artifactsFingerprint
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.progressToken
-import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+
+private val GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY =
+  DurableWorkflowArtifactFamily.GOAL_PROGRESS_LATEST_EVENT.label()
 
 class AttemptLedgerWorkflowDecodingTest {
   @Test
@@ -25,7 +31,7 @@ class AttemptLedgerWorkflowDecodingTest {
 
     assertFalse(token.contains("xxxx"))
     assertTrue(token.length < 2_000)
-    assertTrue(artifactsFingerprint(bloatedArtifacts) in token)
+    assertTrue(snapshot.artifacts.hashCode().toString() in token)
   }
 
   @Test
@@ -73,10 +79,13 @@ class AttemptLedgerWorkflowDecodingTest {
       contractVersion = "1.0",
       workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "validate",
-      stepsJson = """[{"step_id":"validate","status":"running","attempt_count":1}]""",
-      artifactsJson = artifactsJson,
-      startedAt = "2026-06-02T10:00:00Z",
-      updatedAt = "2026-06-02T10:00:01Z",
+      steps = listOf(WorkflowStepState("validate", WorkflowStepStatus.RUNNING, 1)),
+      artifacts =
+        DurableWorkflowArtifacts.fromMap(
+          requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(artifactsJson))),
+        ),
+      startedAt = Instant.parse("2026-06-02T10:00:00Z"),
+      updatedAt = Instant.parse("2026-06-02T10:00:01Z"),
       finishedAt = null,
     )
 }

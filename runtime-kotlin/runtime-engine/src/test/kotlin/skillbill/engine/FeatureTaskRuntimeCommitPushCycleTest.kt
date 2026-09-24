@@ -1,5 +1,6 @@
 package skillbill.engine
 
+import skillbill.application.decomposition.baseBranch
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys

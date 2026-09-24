@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.externalplatformpack
+
 import skillbill.contracts.config.ExternalPlatformPackConfigKeys
 import skillbill.error.core.ExternalPlatformPackConfigError
 import java.nio.file.Path

@@ -1,17 +1,19 @@
 package skillbill.workflow.taskruntime.model.audit
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.taskruntime.model.core.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
 
-const val FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY: String =
+internal const val FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY: String =
   "feature_task_runtime_quarantined_records"
 
-const val FEATURE_TASK_RUNTIME_QUARANTINE_ARTIFACT_CONTRACT_VERSION: String = "0.3"
+private const val FEATURE_TASK_RUNTIME_QUARANTINE_ARTIFACT_CONTRACT_VERSION: String = "0.3"
 
 const val QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION: String = "planning_projection_schema"
-const val QUARANTINE_REJECTION_CLASS_HANDOFF_ENVELOPE: String = "handoff_envelope_schema"
+private const val QUARANTINE_REJECTION_CLASS_HANDOFF_ENVELOPE: String = "handoff_envelope_schema"
 const val QUARANTINE_REJECTION_CLASS_CHECKPOINT_IDENTITY_VERSION: String = "checkpoint_identity_contract_version"
 
 private val QUARANTINE_REJECTION_CLASSES: Set<String> =

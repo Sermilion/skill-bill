@@ -1,9 +1,10 @@
 package skillbill.engine.featuretask.lifecycle.core
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeFindingVerificationRecordError
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
-import skillbill.workflow.taskruntime.artifact.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.validation.validateDispositionCoverage
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition

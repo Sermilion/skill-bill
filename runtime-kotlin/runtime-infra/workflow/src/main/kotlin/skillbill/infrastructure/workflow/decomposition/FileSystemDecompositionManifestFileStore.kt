@@ -1,4 +1,5 @@
 package skillbill.infrastructure.workflow.decomposition
+
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.workflow.decomposition.DecompositionManifestDiscoveryPort

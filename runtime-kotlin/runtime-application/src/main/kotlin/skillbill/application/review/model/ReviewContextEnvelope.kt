@@ -1,6 +1,6 @@
 package skillbill.application.review.model
 
-import skillbill.workflow.engine.model.ReviewContextWireMap
+import skillbill.review.context.ReviewContextWireMap
 
 class ReviewContextEnvelope private constructor(
   private val wire: ReviewContextWireMap,

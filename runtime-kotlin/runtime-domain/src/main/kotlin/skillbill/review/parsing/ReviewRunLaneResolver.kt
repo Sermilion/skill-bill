@@ -1,8 +1,9 @@
 package skillbill.review.parsing
-import skillbill.review.attribution.UNRESOLVED_ATTRIBUTION
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
+
 import skillbill.review.model.ReviewLaneResolutionState
+import skillbill.review.model.ReviewLaneReviewDisposition
 import skillbill.review.model.ReviewRunLane
+import skillbill.review.model.UNRESOLVED_ATTRIBUTION
 import skillbill.review.plan.model.ReviewLaunchPlan
 
 object ReviewRunLaneResolver {

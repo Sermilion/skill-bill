@@ -1,7 +1,9 @@
 package skillbill.workflow.taskruntime.model.validation
+
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 data class FeatureTaskRuntimeValidationGateExecutionEvidence(
   val validationStatus: String,
@@ -72,7 +74,7 @@ data class FeatureTaskRuntimeValidationGateExecutionEvidence(
       val checks = decodeChecks(raw, sourceLabel)
       decodeRepositoryCheckpoint(raw[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT], sourceLabel)
       val gateRunCount =
-        raw[ValidationEvidencePayloadKeys.GATE_RUN_COUNT].asIntegerOrNull()
+        raw[ValidationEvidencePayloadKeys.GATE_RUN_COUNT].asExactIntOrNull()
           ?: invalid(sourceLabel, "gate_run_count must be an integer.")
       val gateRuns =
         try {
@@ -188,12 +190,3 @@ data class FeatureTaskRuntimeValidationGateExecutionEvidence(
     ): Nothing = throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(sourceLabel, reason)
   }
 }
-
-private fun Any?.asIntegerOrNull(): Int? =
-  when (this) {
-    is Int -> this
-    is Long -> toInt().takeIf { it.toLong() == this }
-    is Short -> toInt()
-    is Byte -> toInt()
-    else -> null
-  }

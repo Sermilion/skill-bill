@@ -1,6 +1,6 @@
 package skillbill.workflow.taskruntime.model.core
 
-object FeatureTaskRuntimePhaseIds {
+internal object FeatureTaskRuntimePhaseIds {
   const val PREPLAN: String = "preplan"
   const val PLAN: String = "plan"
   const val IMPLEMENT: String = "implement"

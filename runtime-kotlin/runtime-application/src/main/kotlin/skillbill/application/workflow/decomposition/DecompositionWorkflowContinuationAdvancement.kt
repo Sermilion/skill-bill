@@ -1,22 +1,25 @@
 package skillbill.application.workflow.decomposition
-import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
+
+import skillbill.application.decomposition.baseBranch
 import skillbill.application.workflow.model.AdvanceCompletedSubtasksRequest
 import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
 import skillbill.application.workflow.model.GoalContinuationOutcome
 import skillbill.application.workflow.model.WorkflowContinueResult
-import skillbill.application.workflow.persist.decodeWorkflowArtifacts
-import skillbill.application.workflow.service.decompositionRuntimeArtifactsJson
+import skillbill.application.workflow.service.decompositionRuntimeArtifacts
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.withBlockedSubtask
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.DecompositionStatus
@@ -26,7 +29,7 @@ import java.nio.file.Path
 internal data class AdvancementResult(
   val manifest: DecompositionManifest,
   val error: String? = null,
-  val projectionArtifactsJson: String? = null,
+  val projectionArtifacts: DurableWorkflowArtifacts? = null,
 )
 
 internal data class CommitAdvanceResult(
@@ -50,7 +53,7 @@ internal fun WorkflowEngine.advanceCompletedSubtasks(request: AdvanceCompletedSu
       if (advanced.error != null) {
         updated = updated.withBlockedSubtask(subtask.id, advanced.error, "commit_push")
         persistParentDecompositionRuntime(request.parentRecord, updated, request.unitOfWork, request.validator)
-        return AdvancementResult(updated, advanced.error, decompositionRuntimeArtifactsJson(updated, request.validator))
+        return AdvancementResult(updated, advanced.error, decompositionRuntimeArtifacts(updated, request.validator))
       }
       updated = advanced.manifest
     }
@@ -137,7 +140,6 @@ internal fun subtaskStartArtifacts(
       "assessment" to
         mapOf(
           DecompositionPlanningPayloadKeys.SPEC_PATH to selection.subtask.specPath,
-          "goal_continuation" to true,
           SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
           SharedPayloadKeys.SUBTASK_ID to selection.subtask.id,
           "accepted_without_user_confirmation" to true,
@@ -146,36 +148,40 @@ internal fun subtaskStartArtifacts(
         mapOf(
           "branch_name" to selection.branchPlan.branch,
           DecompositionPlanningPayloadKeys.BRANCH to selection.branchPlan.branch,
-          "goal_continuation" to true,
         ),
-      "goal_continuation" to
+      DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.entry(
         mapOf(
-          "enabled" to true,
           SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
           SharedPayloadKeys.SUBTASK_ID to selection.subtask.id,
           "suppress_pr" to true,
-          "outcome_authority" to "workflow_store",
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.GOAL_BRANCH to selection.branchPlan.branch,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.CODE_REVIEW_MODE to "inline",
         ),
-      DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+      ),
+      DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.entry(
         validator.encodeManifestWireMap(
           manifest,
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+          DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
         ),
+      ),
     ),
   )!!
 
 internal fun parentProjectionArtifacts(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
-  existingArtifactsJson: String,
+  existingArtifacts: DurableWorkflowArtifacts,
 ): WorkflowArtifactPatch =
   WorkflowArtifactPatch.from(
-    LinkedHashMap(decodeWorkflowArtifacts(existingArtifactsJson)).apply {
-      remove("goal_review_policy")
-      remove("goal_out_of_band_acceptances")
-      put(
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-        validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+    LinkedHashMap(existingArtifacts).apply {
+      DurableWorkflowArtifactFamily.GOAL_REVIEW_POLICY.removeFrom(this)
+      DurableWorkflowArtifactFamily.GOAL_OUT_OF_BAND_ACCEPTANCE.removeFrom(this)
+      DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.putInto(
+        this,
+        validator.encodeManifestWireMap(
+          manifest,
+          DurableWorkflowArtifactFamily.DECOMPOSITION_RUNTIME.label(),
+        ),
       )
     },
   )!!

@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.model.feature
+
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeFindingVerificationRecordError
 

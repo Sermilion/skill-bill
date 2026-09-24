@@ -1,4 +1,5 @@
 package skillbill.di.install
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator
 import skillbill.infrastructure.skills.externaladdon.FileExternalAddonSourceConfigStore
@@ -10,7 +11,7 @@ import skillbill.infrastructure.skills.install.FileSystemInstallSelectionPersist
 import skillbill.infrastructure.skills.install.FileSystemInstallStagingIntent
 import skillbill.infrastructure.skills.install.FileSystemUninstallFileSystemGateway
 import skillbill.infrastructure.skills.skillremove.FileSystemSkillRemoveFileSystem
-import skillbill.install.model.InstallPlanWireValidator
+import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.ports.install.addon.ExternalAddonOverlayPort
 import skillbill.ports.install.addon.ExternalAddonSourceConfigPort
 import skillbill.ports.install.apply.InstallApplyExecutionPort

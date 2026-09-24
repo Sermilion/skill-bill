@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.phase.briefing
+
 import skillbill.workflow.taskruntime.model.audit.canonicalAcceptanceCriterionRef
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffEnvelope

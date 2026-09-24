@@ -4,7 +4,6 @@ import skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentB
 import skillbill.infrastructure.skills.nativeagent.composition.renderNativeAgentBundle
 import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoringTarget
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
 import skillbill.testsupport.SnapshotAssertions
 import java.nio.file.Files
 import java.nio.file.Path

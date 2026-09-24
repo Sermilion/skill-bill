@@ -37,7 +37,7 @@ data class InstallStagingIntent(
 data class McpRegistrationIntent(
   val register: Boolean,
   val runtimeMcpBin: FileLocation?,
-  val agents: List<InstallAgent>,
+  val agents: List<SupportedAgent>,
 )
 
 data class InstallPlan(
@@ -106,7 +106,7 @@ data class InstallApplyIssue(
   val kind: InstallApplyIssueKind,
   val message: String,
   val skillName: String? = null,
-  val agent: InstallAgent? = null,
+  val agent: SupportedAgent? = null,
   val path: FileLocation? = null,
   val guidance: String? = null,
   val causeClass: String? = null,
@@ -150,7 +150,7 @@ data class WindowsSymlinkApplyOutcome(
 )
 
 data class InstallAgentSkillLinkOutcome(
-  val agent: InstallAgent,
+  val agent: SupportedAgent,
   val targetDir: FileLocation,
   val linkPath: FileLocation,
   val linkTarget: FileLocation,
@@ -160,7 +160,7 @@ data class InstallAgentSkillLinkOutcome(
 )
 
 data class ResolvedInstalledAgents(
-  val agents: Set<InstallAgent>,
+  val agents: Set<SupportedAgent>,
 ) {
   companion object {
     val EMPTY: ResolvedInstalledAgents = ResolvedInstalledAgents(emptySet())
@@ -218,7 +218,7 @@ enum class NativeAgentApplyStatus {
 
 data class NativeAgentApplyOutcome(
   val provider: NativeAgentProviderId,
-  val agent: InstallAgent,
+  val agent: SupportedAgent,
   val status: NativeAgentApplyStatus,
   val path: FileLocation? = null,
   val message: String = "",
@@ -247,7 +247,7 @@ enum class McpRegistrationApplyStatus {
 }
 
 data class McpRegistrationApplyOutcome(
-  val agent: InstallAgent,
+  val agent: SupportedAgent,
   val status: McpRegistrationApplyStatus,
   val configPath: FileLocation? = null,
   val changed: Boolean = false,

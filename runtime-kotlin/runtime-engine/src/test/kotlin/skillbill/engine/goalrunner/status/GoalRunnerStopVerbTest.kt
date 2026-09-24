@@ -1,8 +1,13 @@
 package skillbill.engine.goalrunner.status
+
+import skillbill.application.decomposition.baseBranch
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.engine.goalrunner.RecordingOutcomeStore
 import skillbill.engine.goalrunner.execution.core.GoalRunnerStatusTestPorts
+import skillbill.engine.goalrunner.execution.core.lease
 import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService
 import skillbill.engine.goalrunner.goalTestPhaseRecorder
+import skillbill.engine.goalrunner.manifest
 import skillbill.engine.goalrunner.model.GoalRunnerStopStatus
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_REQUEST
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_STOP
@@ -75,7 +80,7 @@ class GoalRunnerStopVerbTest {
 
   @Test
   fun `an expired lease whose process the supervisor still confirms live is terminated`() {
-    val store = StopFakeManifestStore(lease = liveLease().copy(expiresAt = "2026-08-07T11:00:00Z"))
+    val store = StopFakeManifestStore(lease = liveLease().copy(expiresAt = Instant.parse("2026-08-07T11:00:00Z")))
     val supervisor = RecordingSupervisor(FeatureTaskRuntimeProcessInspection.ExactLive)
 
     val result = stopService(store, supervisor).stop("SKILL-168", null)
@@ -87,7 +92,7 @@ class GoalRunnerStopVerbTest {
 
   @Test
   fun `an expired lease whose process is gone reports no live lease`() {
-    val store = StopFakeManifestStore(lease = liveLease().copy(expiresAt = "2026-08-07T11:00:00Z"))
+    val store = StopFakeManifestStore(lease = liveLease().copy(expiresAt = Instant.parse("2026-08-07T11:00:00Z")))
     val supervisor = RecordingSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning)
 
     val result = stopService(store, supervisor).stop("SKILL-168", null)
@@ -290,7 +295,7 @@ class GoalRunnerStopVerbTest {
 
 private fun stopClock(): Clock = Clock.fixed(STOP_NOW, ZoneOffset.UTC)
 
-private fun liveLease() =
+internal fun liveLease() =
   GoalRunnerExecutionLease(
     generation = 1,
     ownerToken = "owner-token-123456",

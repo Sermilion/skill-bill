@@ -499,6 +499,12 @@ and `:runtime-infra:sqlite`.
   `skillbill.workflow.taskruntime.model`: feature-task runtime phase workflow,
   handoff projections, phase records, and taskruntime models owned by
   `runtime-domain`.
+- `skillbill.workflow.model.goalreview` and
+  `skillbill.workflow.model.persistence.artifact`: shared goal-review vocabulary
+  and durable artifact-map access owned by `runtime-domain`. These lower model
+  packages are the common vocabulary below their workflow consumers.
+- `skillbill.review.parsing`: review finding and lane parsing owned by
+  `runtime-domain`; review model types remain under `skillbill.review.model`.
 - `skillbill.workflow.idestatus`: IDE status validation owned by
   `runtime-domain`.
 - `skillbill.workflow.specsource`: spec-source reading owned by
@@ -514,6 +520,12 @@ and `:runtime-infra:sqlite`.
   planning projection use cases owned by `runtime-engine`.
 - `skillbill.experiment`: experiment selection policy owned by `runtime-domain`.
 - `skillbill.experiment.model`: experiment domain models owned by `runtime-domain`.
+
+Package-cycle enforcement uses exact declared-package strongly connected
+components for `runtime-domain`, including nested model packages. Other module
+scan cases retain the existing first-segment mutual-pair algorithm and their
+recorded baselines; the scanner does not infer package nodes from imported
+symbol suffixes.
 
 ### Goal-runner execution lifetime (`DefaultGoalRunnerExecutionCoordinator`)
 
@@ -558,7 +570,9 @@ reads through the production coordinator and recorders.
   install-plan wire-map conversion owned by `runtime-domain`.
 - `skillbill.scaffold.model`: platform manifest, scaffold result, skill-class,
   routing, add-on, and review-composition models owned by `runtime-domain`.
-- `skillbill.domain.skillremove` and `skillbill.domain.skillremove.model`: pure
+- `skillbill.scaffold.policy` and `skillbill.scaffold.policy.model`: pure
+  scaffold policy rules and their policy models owned by `runtime-domain`.
+- `skillbill.skillremove` and `skillbill.skillremove.model`: pure
   skill-remove service, target validation, rollback/refusal types, and removal
   models owned by `runtime-domain`.
 - `skillbill.learnings` and `skillbill.learnings.model`: learning scope/source
@@ -566,6 +580,10 @@ reads through the production coordinator and recorders.
   `runtime-domain`.
 - `skillbill.review` and `skillbill.review.model`: pure review parsing, triage
   decision normalization, and review models owned by `runtime-domain`.
+- `skillbill.review.context.model.claim` and
+  `skillbill.workflow.taskruntime.model.persistence.task.runtime.store`:
+  claim-admission and task-runtime persistence vocabulary owned by
+  `runtime-domain`.
 - `skillbill.telemetry.model`: telemetry settings normalization and lifecycle
   telemetry records owned by `runtime-domain`.
 - `skillbill.application.telemetry`: telemetry sync orchestration, config
@@ -753,9 +771,10 @@ silently bypass the journal boundary.
    reference, or any `java.nio.file.Files` filesystem call. The concrete schema
    validators and their schema-resource copy tasks live in `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`,
    and `runtime-domain` / `runtime-application` reach schema validation only
-   through the domain-owned ports `InstallPlanWireValidator`,
+   through the ports `InstallPlanWireValidator`,
    `DecompositionManifestValidator`, and `WorkflowSnapshotValidator` — never by
    importing a concrete `*SchemaValidator` / `*CoherenceValidator`.
+   The install validator port is `skillbill.ports.install.InstallPlanWireValidator`.
 6. Infrastructure packages implement ports and may depend on domain,
    contracts, ports, and JVM APIs. They must not depend on runtime-core or
    entry adapters.
@@ -831,7 +850,7 @@ skillbill.cli
 skillbill.config
 skillbill.contracts
 skillbill.di
-skillbill.domain.skillremove
+skillbill.skillremove
 skillbill.engine
 skillbill.error
 skillbill.experiment
@@ -875,23 +894,24 @@ skillbill.workflow.verify
   `contract_version`, and runtime-owned quality-check keys). The JVM
   JSON-Schema validators, their typed schema errors, and their
   classpath-resource copy tasks live in `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`,
-  reached only through the domain-neutral ports `InstallPlanWireValidator`,
+reached only through the ports-owned validators `InstallPlanWireValidator`,
   `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`. Validator modules
   load schema resources from the `runtime-infra/contracts` classpath copy tasks, not from `runtime-contracts`.
 - Workflow-state schema validation is owned by
   `skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator`, compiled into
   `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`. The runtime-domain workflow engine MUST NOT import that
-  validator directly — instead it depends on the domain-owned port
-  `skillbill.workflow.engine.WorkflowSnapshotValidator`, which the composition root
+  validator directly. The ports module declares
+  `skillbill.ports.workflow.WorkflowSnapshotValidator`, which the composition root
   wires to the infra adapter
   `skillbill.infrastructure.contracts.WorkflowSnapshotValidatorInfraAdapter`. The
   port takes the typed `skillbill.workflow.engine.model.WorkflowStateSnapshot`, not a
   `Map<String, Any?>`; projecting that record onto the canonical wire shape is
   adapter work owned by
   `skillbill.infrastructure.contracts.WorkflowStateSnapshotWireMapper`, so
-  `WorkflowEngine` never builds a snapshot map. The owning read seam is still
-  `skillbill.workflow.engine.WorkflowEngine`; durable record
-  mapping stays pure and the next engine read rejects drift. Architecture
+  `WorkflowEngine` never builds a snapshot map. `WorkflowStateRecord.toSnapshot()`
+  strictly decodes step and artifact columns at the ports mapping boundary. The
+  engine owns aggregate rules, while adapters and application entry points own
+  canonical schema validation. Architecture
   tests forbid any `skillbill.infrastructure.contracts.workflow.*SchemaValidator*` or
   `skillbill.infrastructure.contracts.*Mapper` import under `runtime-domain` workflow
   source. (SKILL-52.2 Subtask 4 narrowed the
@@ -925,14 +945,14 @@ skillbill.workflow.verify
 - Install-plan schema validation is owned by
   `skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator`, compiled into
   `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` and reached through the domain-owned port
-  `skillbill.install.model.InstallPlanWireValidator`. The owning seams are
+  `skillbill.ports.install.InstallPlanWireValidator`. The owning seams are
   install-plan building and CLI/MCP emission, both of which validate through the
   injected port rather than importing the validator directly.
 - Decomposition-manifest schema validation is owned by
   `skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator` (paired
   with `DecompositionManifestCoherenceValidator`), compiled into
   `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow` and reached through the domain-owned port
-  `skillbill.workflow.decomposition.DecompositionManifestValidator`. The owning parse/emission
+  `skillbill.ports.workflow.decomposition.DecompositionManifestValidator`. The owning parse/emission
   seam is `skillbill.application.decomposition.DecompositionManifestFileWrites`, which
   validates YAML text and in-memory maps through that port before workflow
   artifacts are persisted or returned. Repo-local manifest text persistence is
@@ -1379,8 +1399,9 @@ and wire serialisation; they do not widen the port surface.
     governed-skill validation seam.
   - Each port has a matching `FileSystem<Capability>` adapter in
     `runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/` that
-    delegates to the existing `skillbill.scaffold.AuthoringOperations`
-    and `skillbill.scaffold.scaffold` IO seams. `FileSystemScaffoldGateway`
+    delegates to the existing
+    `skillbill.infrastructure.skills.scaffold.authoring.AuthoringOperations`
+    IO seams. `FileSystemScaffoldGateway`
     implements the typed `ScaffoldGateway` port.
 - **Adapter-internal raw-map functions** (`Map<String, Any?>` only inside
   `scaffold/`; not part of `ScaffoldGateway`):

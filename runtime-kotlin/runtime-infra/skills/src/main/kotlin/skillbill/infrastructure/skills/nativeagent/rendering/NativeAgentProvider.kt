@@ -1,5 +1,4 @@
 package skillbill.infrastructure.skills.nativeagent.rendering
-
 import skillbill.infrastructure.host.jvm.resolveEnvironmentMap
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentSource
 import skillbill.infrastructure.skills.nativeagent.composition.declaresReadOnlyToolset

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.externaladdon
+
 import skillbill.scaffold.model.GovernedAddonSelection
 import skillbill.scaffold.model.GovernedAddonUsage
 import skillbill.scaffold.model.PointerSpec

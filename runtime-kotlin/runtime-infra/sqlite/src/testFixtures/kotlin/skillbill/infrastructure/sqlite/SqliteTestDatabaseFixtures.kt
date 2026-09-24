@@ -3,7 +3,6 @@ package skillbill.infrastructure.sqlite
 import skillbill.infrastructure.sqlite.core.schema.DatabasePaths
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
-import skillbill.infrastructure.sqlite.telemetry.redaction.SkillBillRuntimeVersion
 import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.GoalPlanningPreparationStore
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
@@ -60,14 +59,14 @@ fun withLifecycleTelemetryStore(
   block: (LifecycleTelemetryRepository) -> Unit,
 ) {
   ensureTestDatabase(dbPath).use { connection ->
-    block(LifecycleTelemetryStore(connection))
+    block(LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version"))
   }
 }
 
 fun withTelemetryOutboxStore(
   userHome: Path,
   dbPath: Path,
-  version: String = SkillBillRuntimeVersion.VALUE,
+  version: String = "test-runtime-version",
   block: (TelemetryOutboxTestHandle) -> Unit,
 ) {
   ensureTestDatabase(dbPath).use { connection ->

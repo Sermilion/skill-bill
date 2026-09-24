@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.checkpoint
+
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError
 import kotlin.test.Test
 import kotlin.test.assertContains

@@ -1,12 +1,14 @@
 package skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
-import skillbill.workflow.taskruntime.model.handoff.task.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
-import skillbill.workflow.taskruntime.model.persistence.artifact.durableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPTS_LIMIT
+import skillbill.workflow.model.goalreview.appendBoundedHistoryBySequence
+import skillbill.workflow.model.persistence.artifact.durableArtifactMapReader
+import skillbill.workflow.taskruntime.model.core.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPTS_LIMIT
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 
 data class FeatureTaskRuntimeImplementationAttempt(

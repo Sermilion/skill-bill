@@ -1,4 +1,5 @@
 package skillbill.review.attribution
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

@@ -3,6 +3,7 @@ package skillbill.engine.featuretask.lifecycle.continuation
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
@@ -17,6 +18,7 @@ import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+import java.time.Instant
 
 const val BRANCH_SETUP_AGENT_SENTINEL = "branch-setup"
 const val GOAL_PLANNING_IMPORT_AGENT_SENTINEL = "goal-planning-import"
@@ -120,11 +122,11 @@ internal fun agentAttributionFromPhaseState(
 private fun terminalRecordAgentId(records: Map<String, FeatureTaskRuntimePhaseRecord>): String? {
   val realRecords = records.values.filter { it.resolvedAgentId.isRuntimeAgentId() }
   realRecords.filter { it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED }
-    .maxByOrNull { it.finishedAt.orEmpty() }
+    .maxByOrNull { it.finishedAt ?: Instant.MIN }
     ?.let { return it.resolvedAgentId }
   return realRecords
     .filter { it.finishedAt != null }
-    .maxByOrNull { it.finishedAt.orEmpty() }
+    .maxByOrNull { it.finishedAt ?: Instant.MIN }
     ?.resolvedAgentId
 }
 

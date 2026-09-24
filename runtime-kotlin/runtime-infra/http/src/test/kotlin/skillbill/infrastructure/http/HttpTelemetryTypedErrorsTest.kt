@@ -1,5 +1,4 @@
 package skillbill.infrastructure.http
-
 import skillbill.error.core.InvalidTelemetryTransportOutcomeError
 import skillbill.error.core.SkillBillRuntimeException
 import skillbill.error.core.TelemetryProxyInvalidResponseError

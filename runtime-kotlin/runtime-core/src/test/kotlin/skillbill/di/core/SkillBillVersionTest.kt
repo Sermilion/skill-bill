@@ -1,6 +1,7 @@
 package skillbill.di.core
-import skillbill.goalrunner.DurableDecodeSubstitutionObservations
-import skillbill.goalrunner.DurableDecodeSubstitutionRecord
+
+import skillbill.goalrunner.model.DurableDecodeSubstitutionObservations
+import skillbill.goalrunner.model.DurableDecodeSubstitutionRecord
 import java.io.ByteArrayInputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals

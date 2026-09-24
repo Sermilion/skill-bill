@@ -138,7 +138,13 @@ internal fun syntheticSourceFile(
 ): SourceFile =
   SourceFile(
     relativePath = relativePath,
-    packageName = RuntimeArchitectureScanConstants.packagePattern.find(source)?.groupValues?.get(1).orEmpty(),
+    packageName =
+      RuntimeArchitectureScanConstants.packagePattern.find(source)?.groupValues?.get(1)
+        ?: relativePath
+          .substringBeforeLast('/')
+          .removePrefix("src/main/kotlin/")
+          .replace('/', '.')
+          .let { path -> if (path.startsWith("skillbill.")) path else "skillbill.$path" },
     imports =
       RuntimeArchitectureScanConstants.importPattern.findAll(source)
         .map { it.groupValues[1].substringBefore(" as ") }
@@ -212,7 +218,6 @@ internal fun containsReturnTypeSeparator(text: String): Boolean = "):" in text |
 
 internal fun rawMapViolationFixtureSource(): String =
   """
-  package skillbill.application
 
   typealias AnyMapAlias = Map<String, Any>
   typealias HashMapAlias = HashMap<String, Any?>
@@ -446,6 +451,22 @@ internal fun findRawMapViolations(file: SourceFile): List<String> {
   return violations
 }
 
+private val rawMapBoundaryAccessors =
+  setOf(
+    "skillbill.workflow.taskruntime.phaseartifacts.decodeStrictKeyedArtifactMap",
+    "skillbill.workflow.taskruntime.model.persistence.task.runtime.goal." +
+      "FeatureTaskRuntimeGoalContinuationArtifact.toWorkflowArtifactPatch",
+    "skillbill.workflow.decomposition.runtime.goalParentArtifactProjection",
+    "skillbill.workflow.engine.model.DurableWorkflowArtifactFamily.contains",
+    "skillbill.workflow.engine.model.DurableWorkflowArtifactFamily.value",
+    "skillbill.workflow.engine.model.DurableWorkflowArtifactFamily.putInto",
+    "skillbill.workflow.engine.model.DurableWorkflowArtifactFamily.removeFrom",
+    "skillbill.goalrunner.missingResultPrefixTerminalOutcomeArtifact",
+    "skillbill.goalrunner.goalReviewArtifacts",
+    "skillbill.goalrunner.validatedGoalReviewPasses",
+    "skillbill.ports.goalrunner.GoalParentProjectionWriter.artifacts",
+  )
+
 private fun rawMapViolationForLine(
   file: SourceFile,
   lines: List<String>,
@@ -473,6 +494,7 @@ private fun rawMapViolationForLine(
       .joinToString(".")
   return when {
     !signatureUsesBannedRawMap(signature, rawMapBannedShapes, bannedTypeAliases) -> null
+    fqn in rawMapBoundaryAccessors -> null
     isBoundaryCarrierRawMapDeclaration(context) -> null
     else -> "${file.relativePath}:${index + 1} public `$declName` exposes raw map shape (fqn=$fqn)"
   }

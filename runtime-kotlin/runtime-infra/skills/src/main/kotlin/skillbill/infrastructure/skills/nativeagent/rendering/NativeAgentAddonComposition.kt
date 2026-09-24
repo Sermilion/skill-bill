@@ -9,6 +9,7 @@ import skillbill.infrastructure.skills.nativeagent.composition.platformPackRoot
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentAddonSelectionPolicy
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentGovernedAddonActivation
 import skillbill.infrastructure.skills.nativeagent.platformpack.NativeAgentPlatformPack
+import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path
 
 internal fun composeGovernedAgentBody(

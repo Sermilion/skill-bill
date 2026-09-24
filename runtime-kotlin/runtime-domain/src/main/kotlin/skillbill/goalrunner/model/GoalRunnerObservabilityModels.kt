@@ -1,8 +1,8 @@
 package skillbill.goalrunner.model
 
-import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
-import skillbill.workflow.goal.model.GoalObservabilityDiffStat
-import skillbill.workflow.goal.model.GoalObservabilityEvent
+import skillbill.workflow.model.goalreview.GoalObservabilityChangedFileSummary
+import skillbill.workflow.model.goalreview.GoalObservabilityDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilityEvent
 
 data class GoalRunnerObservabilityRecordRequest(
   val workflowId: String,

@@ -1,5 +1,6 @@
 package skillbill.workflow.taskruntime.model.phase
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
+
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 
 sealed interface FeatureTaskRuntimeNextPhase {
   /** Re-enter or advance to [phaseId]. A backward re-entry additionally carries its loop context. */

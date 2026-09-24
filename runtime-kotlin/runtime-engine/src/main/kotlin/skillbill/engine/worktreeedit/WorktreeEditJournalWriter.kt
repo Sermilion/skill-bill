@@ -5,6 +5,7 @@ import skillbill.application.getOrElseUnlessCooperative
 import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
 import skillbill.contracts.workflow.payload.WorktreeEditJournalPayloadKeys
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
+import skillbill.engine.featuretask.lifecycle.checkpoint.isRuntimePrivatePath
 import skillbill.idestatus.model.WorktreeEditSource
 import skillbill.idestatus.model.WorktreeEditTick
 import skillbill.ports.agentrun.model.AgentRunWorktreeEditObserver
@@ -13,7 +14,7 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
-import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilityFileDiffStat
 import java.nio.file.Path
 import java.time.Clock
 

@@ -1,10 +1,10 @@
 package skillbill.infrastructure.skills.skillremove
 
-import skillbill.domain.skillremove.model.ManifestEditKind
-import skillbill.domain.skillremove.model.SkillRemovalPreview
-import skillbill.domain.skillremove.model.SkillRemovalRequest
-import skillbill.domain.skillremove.model.SkillRemovalTarget
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.discoverPlatformPackManifests
+import skillbill.skillremove.model.ManifestEditKind
+import skillbill.skillremove.model.SkillRemovalPreview
+import skillbill.skillremove.model.SkillRemovalRequest
+import skillbill.skillremove.model.SkillRemovalTarget
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path

@@ -1,4 +1,5 @@
 package skillbill.cli.goal.status
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
 

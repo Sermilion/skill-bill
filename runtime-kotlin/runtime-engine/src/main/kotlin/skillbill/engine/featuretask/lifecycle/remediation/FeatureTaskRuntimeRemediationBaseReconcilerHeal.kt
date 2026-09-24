@@ -3,7 +3,6 @@ package skillbill.engine.featuretask.lifecycle.remediation
 import skillbill.engine.featuretask.lifecycle.continuation.reviewStateFromArtifacts
 import skillbill.engine.featuretask.model.subtask.PersistHealedRemediationBaseRequest
 import skillbill.engine.featuretask.model.subtask.ResolvedReviewFixCheckpoint
-import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRequest
@@ -11,9 +10,8 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputFailureReason
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.recoverGoalSubtaskReviewBaseline
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 import java.nio.file.Path
 
@@ -36,7 +34,7 @@ internal fun FeatureTaskRuntimeRemediationBaseReconciler.persistHealedRemediatio
     val record =
       WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return@transaction null
-    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    val artifacts = record.artifacts
     val latest = reviewStateFromArtifacts(artifacts) ?: return@transaction null
     if (latest.remediationBaseSha == request.target) return@transaction latest
     val updated = latest.copy(remediationBaseSha = request.target)
@@ -50,13 +48,14 @@ internal fun FeatureTaskRuntimeRemediationBaseReconciler.persistHealedRemediatio
           headSha = headSha,
         ),
       )
-    val priorEvidence = (artifacts[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY] as? List<*>).orEmpty()
+    val priorEvidence =
+      (DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.value(artifacts) as? List<*>).orEmpty()
     patcher.save(
       record,
       unitOfWork.workflowStates,
       mapOf(
-        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire(),
-        GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY to priorEvidence + evidenceEntry,
+        DurableWorkflowArtifactFamily.GOAL_SUBTASK_REVIEW_STATE.entry(updated.toPersistenceWire()),
+        DurableWorkflowArtifactFamily.GOAL_REVIEW_BASE_RECOVERIES.entry(priorEvidence + evidenceEntry),
       ),
     )
     updated

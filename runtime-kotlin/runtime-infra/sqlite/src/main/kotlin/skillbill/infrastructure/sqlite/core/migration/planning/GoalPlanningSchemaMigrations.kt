@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.migration.planning
+
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import java.sql.Connection

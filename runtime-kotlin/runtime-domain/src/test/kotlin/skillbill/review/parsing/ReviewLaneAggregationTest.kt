@@ -1,7 +1,8 @@
 package skillbill.review.parsing
+
 import skillbill.error.shellcontent.ReviewAggregationIntegrityError
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.model.ReviewLaneAggregationInput
+import skillbill.review.model.ReviewLaneReviewDisposition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

@@ -1,7 +1,6 @@
 package skillbill.workflow.taskruntime.model.core
+
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.workflow.taskruntime.model.handoff.task.MAX_REPOSITORY_FINGERPRINT_LENGTH
-import skillbill.workflow.taskruntime.model.handoff.task.unrecognizedHandoffWireValue
 
 enum class FeatureTaskRuntimeRepositoryCheckpointPolicy(val wireValue: String) {
   NOT_REQUIRED("not_required"),

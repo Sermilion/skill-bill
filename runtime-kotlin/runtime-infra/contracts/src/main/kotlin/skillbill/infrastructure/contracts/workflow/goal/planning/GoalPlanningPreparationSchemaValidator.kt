@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.goal.planning
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
@@ -8,6 +9,10 @@ import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
+import skillbill.infrastructure.contracts.review.dottedFieldPath
+import skillbill.infrastructure.contracts.review.formatValidationReason
+import skillbill.infrastructure.contracts.review.offendingValue
+import skillbill.infrastructure.contracts.review.violationOrdering
 import skillbill.infrastructure.contracts.workflow.issue.inlineIssueKeySchemaRefs
 import java.util.logging.Level
 import java.util.logging.Logger

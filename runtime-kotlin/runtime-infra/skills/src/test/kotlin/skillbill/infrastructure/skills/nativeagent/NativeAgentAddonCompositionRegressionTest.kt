@@ -11,6 +11,7 @@ import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.nativeagent.rendering.composeGovernedAgentBody
 import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoredContentBody
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
+import skillbill.scaffold.model.PlatformManifest
 import skillbill.testing.HARBOR_ADDON_SLUG
 import skillbill.testing.HARBOR_ARCHITECTURE_WORKER
 import skillbill.testing.HARBOR_AREA_MARKER

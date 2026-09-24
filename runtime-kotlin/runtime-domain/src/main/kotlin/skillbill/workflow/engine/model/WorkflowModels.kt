@@ -1,7 +1,10 @@
 package skillbill.workflow.engine.model
 
+import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
+import java.time.Instant
 
 data class WorkflowStepState(
   val stepId: String,
@@ -16,6 +19,7 @@ data class WorkflowUpdateInput(
   val artifactsPatch: WorkflowArtifactPatch?,
   val sessionId: String,
   val replaceArtifacts: Boolean = false,
+  val terminalInstant: Instant? = null,
 )
 
 data class WorkflowStateSnapshot(
@@ -25,12 +29,12 @@ data class WorkflowStateSnapshot(
   val contractVersion: String,
   val workflowStatus: WorkflowStatus,
   val currentStepId: String,
-  val stepsJson: String,
-  val artifactsJson: String,
-  val startedAt: String?,
-  val updatedAt: String?,
-  val finishedAt: String?,
-  val mode: String? = null,
+  val steps: List<WorkflowStepState>,
+  val artifacts: DurableWorkflowArtifacts,
+  val startedAt: Instant?,
+  val updatedAt: Instant?,
+  val finishedAt: Instant?,
+  val mode: FeatureTaskWorkflowMode? = null,
 )
 
 data class WorkflowContinueDecision(
@@ -38,6 +42,12 @@ data class WorkflowContinueDecision(
   val shouldReopen: Boolean,
   val resumeStepId: String,
   val nextAttemptCount: Int,
+)
+
+data class WorkflowContinueDecisionOverrides(
+  val continueStatus: WorkflowContinueStatus? = null,
+  val workflowStatusBeforeContinue: WorkflowStatus? = null,
+  val repositoryCheckpointIdentity: String = "",
 )
 
 data class ResolvedRequiredArtifact(

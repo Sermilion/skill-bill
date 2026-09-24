@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.phase.prompt.directives
+
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
 
 fun auditRetryFocusDirective(focusHint: String?): String {

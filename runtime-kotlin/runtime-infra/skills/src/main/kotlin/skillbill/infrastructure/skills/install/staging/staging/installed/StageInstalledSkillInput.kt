@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install.staging.staging.installed
+
 import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.InstallPlanSkill

@@ -4,6 +4,7 @@ import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallR
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentRegenerationRequest
+import skillbill.ports.workflow.list
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals

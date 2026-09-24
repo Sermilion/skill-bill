@@ -1,4 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.validation.review
+
+import skillbill.infrastructure.skills.install.plan.packRootsBySlug
 import java.nio.file.Files
 import java.nio.file.Path
 

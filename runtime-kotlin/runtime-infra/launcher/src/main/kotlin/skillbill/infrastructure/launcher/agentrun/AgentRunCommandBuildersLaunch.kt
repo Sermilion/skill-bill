@@ -5,7 +5,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.error.shellcontent.GovernedReviewLaunchCapabilityError
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
@@ -22,7 +22,7 @@ internal fun governedReviewConversationIsolation(request: SkillRunRequest): Revi
 
 internal fun requireGovernedReviewLaunch(
   request: SkillRunRequest,
-  agent: InstallAgent,
+  agent: SupportedAgent,
   capability: GovernedReviewLaunchCapability,
 ) {
   if (request.reviewEvidenceEndpoint == null) return
@@ -51,7 +51,7 @@ internal fun requireProcessLaunch(
 
 internal fun goalContinuationCommand(
   request: SkillRunRequest,
-  agent: InstallAgent,
+  agent: SupportedAgent,
   databasePath: Path?,
 ): AgentRunCommand? {
   val context = request.goalContinuation ?: return null
@@ -67,7 +67,7 @@ internal fun goalContinuationCommand(
 
 internal fun goalContinuationArguments(
   request: SkillRunRequest,
-  agent: InstallAgent,
+  agent: SupportedAgent,
   databasePath: Path?,
 ): List<String> {
   val context = requireNotNull(request.goalContinuation)

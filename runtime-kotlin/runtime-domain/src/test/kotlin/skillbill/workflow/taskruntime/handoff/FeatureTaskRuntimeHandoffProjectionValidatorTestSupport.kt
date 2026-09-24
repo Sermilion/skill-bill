@@ -1,5 +1,6 @@
 package skillbill.workflow.taskruntime.handoff
-import skillbill.workflow.goal.model.ValidationDepth
+
+import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.BUILD
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.VALIDATE
@@ -17,7 +18,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhase
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeResolvedUpstreamOutputs
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeHandoffPromptVisibility
-import skillbill.workflow.taskruntime.noop.NoopFeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowQueries
 import kotlin.test.assertTrue
@@ -97,7 +98,7 @@ internal data class HandoffProjectionValidatorInputsFixture(
       workflowId = "wftr-1",
       validationDepth = validationDepth,
       qualityGateSelection = qualityGateSelection,
-      planningProjectionValidator = NoopFeatureTaskRuntimeWireArtifactValidator,
+      planningProjectionValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator::validate,
     )
 }
 

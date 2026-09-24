@@ -1,5 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.platformpack.loader
+
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.CodeReviewBaselineLayer
@@ -9,7 +10,7 @@ import skillbill.scaffold.model.CodeReviewCompositionScope
 import skillbill.scaffold.model.DeclaredFiles
 import skillbill.scaffold.model.ReviewLaneCondition
 import skillbill.scaffold.model.RoutingSignals
-import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
+import skillbill.scaffold.policy.APPROVED_CODE_REVIEW_AREAS
 import java.nio.file.Path
 
 internal fun parseRoutingSignals(

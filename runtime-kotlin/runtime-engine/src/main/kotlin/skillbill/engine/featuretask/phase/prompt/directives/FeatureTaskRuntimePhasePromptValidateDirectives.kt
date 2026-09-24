@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.phase.prompt.directives
+
 import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 

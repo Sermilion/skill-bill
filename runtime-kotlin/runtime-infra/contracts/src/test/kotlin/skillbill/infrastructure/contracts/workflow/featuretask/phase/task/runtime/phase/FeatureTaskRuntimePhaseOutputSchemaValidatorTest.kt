@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase
+
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimePhaseOutputSchemaValidator

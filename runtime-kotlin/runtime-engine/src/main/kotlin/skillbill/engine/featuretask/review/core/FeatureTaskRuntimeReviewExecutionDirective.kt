@@ -17,7 +17,7 @@ internal fun reviewExecutionDirective(
   }.trim()
 }
 
-private fun baselineUntrackedPolicy(inputs: ReviewExecutionDirectiveInputs): String =
+internal fun baselineUntrackedPolicy(inputs: ReviewExecutionDirectiveInputs): String =
   inputs.baselineUntrackedPaths
     .distinct()
     .sorted()

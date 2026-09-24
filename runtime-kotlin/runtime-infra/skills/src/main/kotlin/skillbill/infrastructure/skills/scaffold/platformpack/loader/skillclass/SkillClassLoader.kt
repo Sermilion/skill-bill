@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass
+
 import skillbill.error.shellcontent.InvalidManifestSchemaError
 import skillbill.error.shellcontent.MissingManifestError
 import skillbill.scaffold.model.SkillClassManifest

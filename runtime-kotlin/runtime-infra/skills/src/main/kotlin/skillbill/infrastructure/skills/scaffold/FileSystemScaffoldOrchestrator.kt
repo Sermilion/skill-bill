@@ -8,6 +8,7 @@ import skillbill.infrastructure.skills.scaffold.payload.toRawScaffoldPayload
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.infrastructure.skills.scaffold.runtime.service.ScaffoldAdapterSeams
 import skillbill.infrastructure.skills.scaffold.runtime.service.ScaffoldRuntimeContext
+import skillbill.infrastructure.skills.scaffold.runtime.service.performInstall
 import skillbill.infrastructure.skills.scaffold.runtime.service.scaffoldWithAdapters
 import skillbill.model.EnvironmentContext
 import skillbill.ports.install.platformpack.ExternalPlatformPackSourceConfigPort

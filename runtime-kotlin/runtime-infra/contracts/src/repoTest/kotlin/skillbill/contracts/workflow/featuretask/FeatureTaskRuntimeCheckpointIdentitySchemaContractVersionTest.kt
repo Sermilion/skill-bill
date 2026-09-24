@@ -1,4 +1,5 @@
 package skillbill.contracts.workflow.featuretask
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import java.nio.file.Files

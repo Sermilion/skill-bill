@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.scaffold.validation.shape
+
 import skillbill.error.shellcontent.InvalidSkillMdShapeError
 import java.nio.file.Path
 

@@ -1,7 +1,8 @@
 package skillbill.cli.goal.run
-import skillbill.workflow.goal.model.GoalObservabilityDiffStat
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
+
+import skillbill.workflow.model.goalreview.GoalObservabilityDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunk
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
 
 internal fun GoalObservabilityDiffStat.toGoalDiffStatCliMap(): Map<String, Any?> =
   linkedMapOf(

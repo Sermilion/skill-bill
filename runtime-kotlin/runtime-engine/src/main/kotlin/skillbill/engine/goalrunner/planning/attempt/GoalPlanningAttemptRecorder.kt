@@ -5,7 +5,7 @@ import skillbill.application.runtime.RuntimeSingleton
 import skillbill.engine.goalrunner.planning.model.GoalPlanningAttemptRecord
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
-import skillbill.workflow.goal.model.GoalProgressEvent
+import skillbill.workflow.model.goalreview.GoalProgressEvent
 import java.time.Clock
 
 fun interface GoalPlanningAttemptRecorder {
@@ -42,7 +42,7 @@ class DurableGoalPlanningAttemptRecorder(
                   ?.plus(1)
                   ?: 0
               },
-            timestamp = clock.instant().toString(),
+            timestamp = clock.instant(),
             stepId = attempt.phaseId,
             operationName = "${attempt.phaseId}:${attempt.subtaskId}:attempt:${attempt.attempt}",
             operationKind = "planning_projection_attempt",

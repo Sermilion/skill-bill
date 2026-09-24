@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.core.migration.column
+
 import skillbill.infrastructure.sqlite.core.migration.attribution.ReviewAttributionBackfillMigration
 import skillbill.infrastructure.sqlite.core.migration.evidence.rekeyDiagnosticEvidenceByRepairTurn
 import skillbill.infrastructure.sqlite.core.ops.bindAll

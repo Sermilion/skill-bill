@@ -1,12 +1,15 @@
 package skillbill.application.review.verification
+
 import skillbill.application.review.model.ReviewClaimVerificationRunRequest
 import skillbill.application.review.model.ReviewDelegatedStageLaunch
+import skillbill.application.review.parallel.runner.finding
+import skillbill.application.runner
 import skillbill.application.testHarnessClock
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitLaneDecision
 import skillbill.review.context.model.commit.ReviewCommitLaneDisposition
@@ -195,7 +198,7 @@ class ReviewClaimVerificationRunnerTest {
     request: GoalRunnerSubtaskLaunchRequest,
     stdout: String,
   ) = AgentRunLaunchFacts(
-    agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+    agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
     exitStatus = 0,
     stdout = stdout,
     stderr = "",

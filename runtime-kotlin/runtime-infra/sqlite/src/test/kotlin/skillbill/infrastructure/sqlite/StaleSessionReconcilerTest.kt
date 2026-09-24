@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite
 
 import skillbill.contracts.JsonCodec
+import skillbill.infrastructure.sqlite.core.ops.StaleSessionReconciliationPolicy
 import skillbill.infrastructure.sqlite.core.ops.reconcileStaleFeatureTaskRuntimeSessions
 import skillbill.infrastructure.sqlite.core.ops.reconcileStaleTelemetrySessions
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
@@ -25,7 +26,7 @@ class StaleSessionReconcilerTest {
     val dbPath = Files.createTempDirectory("duplicate-lifecycle-finish").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       seedStaleLifecycleSessions(connection)
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
 
       repeat(2) {
         store.featureTaskRuntimeFinished(featureTaskRuntimeFinishedRecord("ftr-stale"), level = "full")
@@ -149,7 +150,7 @@ class StaleSessionReconcilerTest {
       seedStaleLifecycleSessions(connection)
       reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full")
 
-      val store = LifecycleTelemetryStore(connection)
+      val store = LifecycleTelemetryStore(connection, runtimeVersion = "test-runtime-version")
       store.featureTaskRuntimeFinished(featureTaskRuntimeFinishedRecord("ftr-stale"), level = "full")
       store.featureVerifyFinished(featureVerifyFinishedRecord("fvs-stale"), level = "full")
       store.qualityCheckFinished(qualityCheckFinishedRecord("qcs-stale"), level = "full")
@@ -187,7 +188,12 @@ class StaleSessionReconcilerTest {
       seedAbandonedGoalIssueCandidates(connection)
 
       val reconciled =
-        reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full", goalIssueAbandonmentDays = 14)
+        reconcileStaleTelemetrySessions(
+          connection,
+          Clock.systemUTC(),
+          level = "full",
+          policy = StaleSessionReconciliationPolicy(goalIssueAbandonmentDays = 14),
+        )
 
       assertEquals(1, reconciled.goalIssueAbandonedSessions)
       assertEquals(1, reconciled.emittedTerminalEvents)
@@ -207,7 +213,12 @@ class StaleSessionReconcilerTest {
       assertEquals(null, goalColumnValue(connection, "SKILL-110", "status"))
 
       val repeated =
-        reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full", goalIssueAbandonmentDays = 14)
+        reconcileStaleTelemetrySessions(
+          connection,
+          Clock.systemUTC(),
+          level = "full",
+          policy = StaleSessionReconciliationPolicy(goalIssueAbandonmentDays = 14),
+        )
 
       assertEquals(0, repeated.goalIssueAbandonedSessions)
       assertEquals(1, eventCount(connection, "skillbill_goal_issue_finished"))
@@ -228,7 +239,12 @@ class StaleSessionReconcilerTest {
         statement.executeUpdate()
       }
 
-      reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "full", goalIssueAbandonmentDays = 14)
+      reconcileStaleTelemetrySessions(
+        connection,
+        Clock.systemUTC(),
+        level = "full",
+        policy = StaleSessionReconciliationPolicy(goalIssueAbandonmentDays = 14),
+      )
 
       assertEquals("abandoned", goalColumnValue(connection, "SKILL-109", "status"))
       assertTrue(

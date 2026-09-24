@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.skills.install.apply.InstallCleanupOperations
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations

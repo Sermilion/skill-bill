@@ -1,9 +1,11 @@
 package skillbill.goalrunner
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
 import skillbill.goalrunner.model.GoalRunnerProgressEvent
-import skillbill.workflow.goal.model.GoalObservabilityEvent
+import skillbill.workflow.model.goalreview.GoalObservabilityEvent
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 fun Map<*, *>.toGoalRunnerProgressEventOrNull(): GoalRunnerProgressEvent? {
   val stepId = this[SharedPayloadKeys.STEP_ID]?.toString()?.takeIf(String::isNotBlank)
@@ -12,15 +14,25 @@ fun Map<*, *>.toGoalRunnerProgressEventOrNull(): GoalRunnerProgressEvent? {
   return if (stepId != null && kind != null && timestamp != null) {
     GoalRunnerProgressEvent(
       stepId = stepId,
-      attemptCount = this["attempt_count"].asGoalRunnerIntOrNull() ?: 0,
+      attemptCount = requiredLegacyProgressInt("attempt_count"),
       kind = kind,
       message = this["message"]?.toString().orEmpty(),
-      sequence = this["sequence"].asGoalRunnerIntOrNull() ?: 0,
+      sequence = requiredLegacyProgressInt("sequence"),
       timestamp = timestamp,
     )
   } else {
     null
   }
+}
+
+private fun Map<*, *>.requiredLegacyProgressInt(key: String): Int {
+  val value = this[key] ?: return 0
+  return value.asExactIntOrNull()
+    ?: throw InvalidGoalProgressEventSchemaError(
+      "progress_event",
+      key,
+      "must be an integer.",
+    )
 }
 
 fun GoalRunnerProgressEvent.summary(): String =
@@ -50,5 +62,5 @@ fun GoalObservabilityEvent.toProgressEvent(): GoalObservabilityProgressEvent =
     livenessClass = livenessClass,
     activitySummary = activitySummary,
     sequenceNumber = sequenceNumber,
-    timestamp = timestamp,
+    timestamp = timestamp.toString(),
   )

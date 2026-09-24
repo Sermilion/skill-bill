@@ -1,9 +1,11 @@
 package skillbill.engine.featuretask.lifecycle.core
-import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
+
+import skillbill.engine.disposition
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairOutcome
+import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceipt
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.model.goalreview.omittedCarriedFindings
 import skillbill.workflow.taskruntime.artifact.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairOutcome
-import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.repair.task.omittedCarriedFindings
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.validation.validateDispositionCoverage
 import kotlin.test.assertTrue

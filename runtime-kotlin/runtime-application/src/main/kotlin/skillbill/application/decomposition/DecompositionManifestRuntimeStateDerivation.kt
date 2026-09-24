@@ -3,17 +3,21 @@ package skillbill.application.decomposition
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.goalrunner.commitPushResultArtifact
+import skillbill.goalrunner.goalContinuationOutcomeArtifact
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.runtime.normalizedBlockedReason
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.decompositionStatus
 import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.model.workflowStepStatus
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 import java.nio.file.Path
 
 private val statusTrackedSteps =
@@ -27,15 +31,12 @@ internal fun DecompositionSubtask.withRuntimeFields(
   status: String?,
 ): DecompositionSubtask {
   val artifacts = mergedArtifacts(update)
+  val durableArtifacts = DurableWorkflowArtifacts.fromMap(artifacts)
   val nextStatus = status ?: this.status
 
   val terminalOutcome =
-    (artifacts["goal_continuation_outcome"] as? Map<*, *>)
+    durableArtifacts.goalContinuationOutcomeArtifact()
       ?.takeIf { nextStatus.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.BLOCKED) }
-  val rolledParticipants =
-    (terminalOutcome?.get(DecompositionManifestPayloadKeys.PARTICIPATING_AGENT_IDS) as? List<*>)
-      ?.mapNotNull { it?.toString()?.takeIf(String::isNotBlank) }
-      .orEmpty()
   return copy(
     status = nextStatus,
     branch =
@@ -53,12 +54,10 @@ internal fun DecompositionSubtask.withRuntimeFields(
         nextStatus.decompositionStatus() != DecompositionStatus.BLOCKED
       },
     lastResumableStep = update.currentStepId.takeIf(String::isNotBlank) ?: lastResumableStep,
-    finalizingAgentId =
-      terminalOutcome?.get(
-        DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID,
-      )?.toString()?.takeIf(String::isNotBlank)
-        ?: finalizingAgentId,
-    participatingAgentIds = rolledParticipants.ifEmpty { participatingAgentIds },
+    finalizingAgentId = terminalOutcome?.finalizingAgentId ?: finalizingAgentId,
+    participatingAgentIds =
+      terminalOutcome?.participatingAgentIds?.takeIf { it.isNotEmpty() }
+        ?: participatingAgentIds,
   )
 }
 
@@ -111,7 +110,7 @@ private fun DecompositionManifest.matchingSubtaskId(
   }?.id
 }
 
-private fun mergedArtifacts(update: DecompositionManifestRuntimeUpdate): Map<String, Any?> =
+internal fun mergedArtifacts(update: DecompositionManifestRuntimeUpdate): Map<String, Any?> =
   LinkedHashMap(update.existingArtifacts).apply { update.artifactsPatch?.let(::putAll) }
 
 private fun blockedReasonFrom(
@@ -147,15 +146,15 @@ private fun blockedReasonFrom(
 
 private fun prSuppressedCommitStatus(update: DecompositionManifestRuntimeUpdate): DecompositionStatus? {
   val artifacts = mergedArtifacts(update)
-  val goalContinuation = artifacts["goal_continuation"] as? Map<*, *> ?: return null
-  val suppressPr = goalContinuation["suppress_pr"] == true
-  val commitPushResult = artifacts["commit_push_result"] as? Map<*, *>
+  val durableArtifacts = DurableWorkflowArtifacts.fromMap(artifacts)
+  val suppressPr = durableArtifacts.goalContinuationArtifact()?.suppressPr ?: return null
+  val commitPushResult = durableArtifacts.commitPushResultArtifact()
   val commitPushActive =
     update.currentStepId == "commit_push" ||
       update.stepUpdates?.asEntries().orEmpty().any { it[SharedPayloadKeys.STEP_ID] == "commit_push" }
   val preCommitProjection =
     commitPushActive &&
-      commitPushResult?.get("pre_commit_projection") == true &&
+      commitPushResult?.preCommitProjection == true &&
       commitShaFrom(artifacts) == null
   val commitPushCompleted =
     update.stepUpdates?.asEntries().orEmpty().any {
@@ -172,16 +171,13 @@ private fun prSuppressedCommitStatus(update: DecompositionManifestRuntimeUpdate)
 }
 
 private fun commitShaFrom(artifacts: Map<String, Any?>): String? {
-  val fromCommitPush =
-    (artifacts["commit_push_result"] as? Map<*, *>)
-      ?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.trim()?.takeIf(String::isNotBlank)
-  val fromOutcome =
-    (artifacts["goal_continuation_outcome"] as? Map<*, *>)
-      ?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.trim()?.takeIf(String::isNotBlank)
+  val durableArtifacts = DurableWorkflowArtifacts.fromMap(artifacts)
+  val fromCommitPush = durableArtifacts.commitPushResultArtifact()?.commitSha
+  val fromOutcome = durableArtifacts.goalContinuationOutcomeArtifact()?.commitSha
   if (fromCommitPush != null && fromOutcome != null && fromCommitPush != fromOutcome) {
     val subtaskId =
-      (artifacts["goal_continuation_outcome"] as? Map<*, *>)?.get(SharedPayloadKeys.SUBTASK_ID)
-        ?: (artifacts["goal_continuation"] as? Map<*, *>)?.get(SharedPayloadKeys.SUBTASK_ID)
+      durableArtifacts.goalContinuationOutcomeArtifact()?.subtaskId
+        ?: durableArtifacts.goalContinuationArtifact()?.subtaskId
     error(
       "Conflicting completing commit SHAs for subtask $subtaskId: " +
         "commit_push_result.commit_sha=$fromCommitPush vs goal_continuation_outcome.commit_sha=$fromOutcome.",

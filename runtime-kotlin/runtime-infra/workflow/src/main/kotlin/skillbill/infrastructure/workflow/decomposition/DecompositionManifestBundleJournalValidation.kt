@@ -1,9 +1,11 @@
 package skillbill.infrastructure.workflow.decomposition
+
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalPayloadKeys
 import skillbill.error.shellcontent.InvalidDecompositionManifestBundleJournalError
 import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.infrastructure.contracts.workflow.decomposition.DecompositionManifestBundleJournalSchemaValidator
 import skillbill.infrastructure.host.jvm.pathContainedIn
+import skillbill.infrastructure.workflow.review.broker.digest
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException

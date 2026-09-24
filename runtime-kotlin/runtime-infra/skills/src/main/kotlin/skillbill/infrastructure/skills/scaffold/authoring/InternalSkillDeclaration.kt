@@ -29,7 +29,7 @@ internal fun internalSkillClassificationViolations(declarations: Collection<Inte
   }
 }
 
-private fun parentViolation(
+internal fun parentViolation(
   prefix: String,
   declaredParent: String,
   parent: InternalSkillDeclaration?,

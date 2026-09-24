@@ -3,8 +3,8 @@ package skillbill.infrastructure.workflow.process
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
-import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunk
+import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
 import java.io.BufferedReader
 import java.nio.file.Path
 

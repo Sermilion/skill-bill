@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.redaction
+
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.duplicates.incrementDuplicateTerminalFinishedEvents
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.duplicates.lifecycleAlreadyFinished

@@ -1,4 +1,5 @@
 package skillbill.application.review.verification
+
 import skillbill.agent.model.AgentPhaseInput
 import skillbill.agent.model.AgentPhaseOutput
 import skillbill.application.review.model.ReviewClaimVerificationOutcome
@@ -13,16 +14,14 @@ import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.ports.review.ReviewContextEnvelopeValidator
+import skillbill.review.context.model.claim.ReviewClaimVerdictAdmission
+import skillbill.review.context.model.claim.ReviewClaimWorkerResult
 import skillbill.review.context.model.execution.ResolvedReviewExecutionMode
-import skillbill.review.context.model.execution.requireRepositoryRelativePath
 import skillbill.review.context.model.hunk.ReviewDependencyAllowlist
 import skillbill.review.context.model.launch.GovernedReviewVerificationLaunch
 import skillbill.review.context.model.launch.ReviewCitedRegion
 import skillbill.review.context.model.packet.ReviewContextPacket
-import skillbill.review.context.model.review.ReviewClaimVerdictAdmission
-import skillbill.review.context.model.review.ReviewClaimWorkerResult
-import skillbill.review.finding.ReviewFindingFieldCodec
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewFindingCitation
@@ -31,6 +30,8 @@ import skillbill.review.model.ReviewFindingVerdict
 import skillbill.review.model.ReviewStage
 import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewVerificationNonSuccess
+import skillbill.review.model.requireRepositoryRelativePath
+import skillbill.review.parsing.ReviewFindingFieldCodec
 import skillbill.review.stage.ReviewStageDegradationSelection
 import java.time.Clock
 
@@ -405,7 +406,7 @@ internal fun launchFailureReason(facts: AgentRunLaunchFacts): String? =
     else -> null
   }
 
-private fun unresolved(
+internal fun unresolved(
   finding: ParallelReviewMergedFinding,
   recordedAt: String,
   reason: String,

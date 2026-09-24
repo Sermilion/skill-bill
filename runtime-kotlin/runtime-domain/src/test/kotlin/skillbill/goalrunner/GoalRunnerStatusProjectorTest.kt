@@ -5,8 +5,8 @@ import skillbill.goalrunner.model.GoalRunnerStatusProjector
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
-import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.goalreview.GoalObservabilityEvent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

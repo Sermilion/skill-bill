@@ -9,6 +9,8 @@ import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.durations.p
 import skillbill.infrastructure.sqlite.workflow.featuretask.parseWorkerLeaseInstant
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.workflow.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import java.nio.file.Files
 import java.time.Clock
 import java.util.concurrent.CopyOnWriteArrayList
@@ -61,6 +63,13 @@ class SqliteDegradationDiagnosticsTest {
           EnvironmentContext(),
           Clock.systemUTC(),
           recordingDiagnostics(),
+          object : WorkflowSnapshotValidator {
+            override fun validate(
+              snapshot: WorkflowStateSnapshot,
+              slug: String,
+            ) = Unit
+          },
+          "test-runtime-version",
         )
       }
     assertEquals("userHome", error.fieldName)

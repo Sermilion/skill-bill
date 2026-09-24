@@ -61,8 +61,6 @@ class RuntimeArchitectureTest {
   fun `runtime contracts purity scanner fires on synthetic fixtures`() {
     val fixtureSource =
       """
-      package skillbill.contracts
-
       import com.networknt.schema.JsonSchemaFactory
       import com.fasterxml.jackson.databind.ObjectMapper
       import java.nio.file.Files
@@ -109,7 +107,6 @@ class RuntimeArchitectureTest {
       syntheticSourceFile(
         "test-fixture/ContractsClean.kt",
         """
-        package skillbill.contracts
 
         data class ProfileFiles(val names: List<String>)
 

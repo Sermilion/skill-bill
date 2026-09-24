@@ -1,7 +1,7 @@
 package skillbill.config.model
 
-import skillbill.install.model.InstallAgent
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.install.model.SupportedAgent
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimePhaseIds
 
 const val EXECUTION_MATRIX_KEY: String = "execution_matrix"
 
@@ -17,21 +17,21 @@ enum class ExecutionTier(
   }
 }
 
-val DEFAULT_PHASE_TIERS: Map<String, ExecutionTier> =
+internal val DEFAULT_PHASE_TIERS: Map<String, ExecutionTier> =
   mapOf(
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to ExecutionTier.IMPLEMENTATION,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to ExecutionTier.REASONING,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to ExecutionTier.IMPLEMENTATION,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY to ExecutionTier.IMPLEMENTATION,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX to ExecutionTier.IMPLEMENTATION,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to ExecutionTier.REASONING,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS to ExecutionTier.REASONING,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD to ExecutionTier.IMPLEMENTATION,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to ExecutionTier.REASONING,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to ExecutionTier.REASONING,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY to ExecutionTier.IMPLEMENTATION,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH to ExecutionTier.IMPLEMENTATION,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR to ExecutionTier.IMPLEMENTATION,
+    FeatureTaskRuntimePhaseIds.PREPLAN to ExecutionTier.IMPLEMENTATION,
+    FeatureTaskRuntimePhaseIds.PLAN to ExecutionTier.REASONING,
+    FeatureTaskRuntimePhaseIds.IMPLEMENT to ExecutionTier.IMPLEMENTATION,
+    FeatureTaskRuntimePhaseIds.SIMPLIFY to ExecutionTier.IMPLEMENTATION,
+    FeatureTaskRuntimePhaseIds.IMPLEMENT_FIX to ExecutionTier.IMPLEMENTATION,
+    FeatureTaskRuntimePhaseIds.REVIEW to ExecutionTier.REASONING,
+    FeatureTaskRuntimePhaseIds.VERIFY_FINDINGS to ExecutionTier.REASONING,
+    FeatureTaskRuntimePhaseIds.BUILD to ExecutionTier.IMPLEMENTATION,
+    FeatureTaskRuntimePhaseIds.AUDIT to ExecutionTier.REASONING,
+    FeatureTaskRuntimePhaseIds.VALIDATE to ExecutionTier.REASONING,
+    FeatureTaskRuntimePhaseIds.WRITE_HISTORY to ExecutionTier.IMPLEMENTATION,
+    FeatureTaskRuntimePhaseIds.COMMIT_PUSH to ExecutionTier.IMPLEMENTATION,
+    FeatureTaskRuntimePhaseIds.PR to ExecutionTier.IMPLEMENTATION,
   )
 
 data class PhaseModelDirective(
@@ -46,8 +46,8 @@ data class PhaseModelDirective(
 
 data class ExecutionMatrix(
   val phaseTiers: Map<String, ExecutionTier> = emptyMap(),
-  val agents: Map<InstallAgent, Map<ExecutionTier, PhaseModelDirective>> = emptyMap(),
-  val agentPhaseOverrides: Map<InstallAgent, Map<String, PhaseModelDirective>> = emptyMap(),
+  val agents: Map<SupportedAgent, Map<ExecutionTier, PhaseModelDirective>> = emptyMap(),
+  val agentPhaseOverrides: Map<SupportedAgent, Map<String, PhaseModelDirective>> = emptyMap(),
 ) {
   fun tierOf(phaseId: String): ExecutionTier = phaseTiers[phaseId] ?: DEFAULT_PHASE_TIERS.getValue(phaseId)
 
@@ -55,7 +55,7 @@ data class ExecutionMatrix(
     agentId: String,
     phaseId: String,
   ): PhaseModelDirective? {
-    val agent = InstallAgent.entries.firstOrNull { it.id == agentId.trim().lowercase() } ?: return null
+    val agent = SupportedAgent.entries.firstOrNull { it.id == agentId.trim().lowercase() } ?: return null
     return agentPhaseOverrides[agent]?.get(phaseId) ?: agents[agent]?.get(tierOf(phaseId))
   }
 }
@@ -106,7 +106,7 @@ private fun parsePhaseTiers(raw: Any?): Map<String, ExecutionTier> {
         rawTier,
         "is not a runtime phase.",
       )
-    if (phaseId !in FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds) {
+    if (phaseId !in FeatureTaskRuntimePhaseIds.all) {
       invalidExecutionMatrix("$EXECUTION_MATRIX_KEY.$PHASE_TIERS_KEY.$phaseId", rawTier, "is not a runtime phase.")
     }
     val tier =
@@ -124,7 +124,7 @@ private class AgentDirectives(
   val phases: Map<String, PhaseModelDirective>,
 )
 
-private fun parseAgents(raw: Any?): Map<InstallAgent, AgentDirectives> {
+private fun parseAgents(raw: Any?): Map<SupportedAgent, AgentDirectives> {
   val agents =
     raw as? Map<*, *> ?: invalidExecutionMatrix(
       "$EXECUTION_MATRIX_KEY.$AGENTS_KEY",
@@ -139,7 +139,7 @@ private fun parseAgents(raw: Any?): Map<InstallAgent, AgentDirectives> {
         "is not a supported install agent.",
       )
     val agent =
-      InstallAgent.entries.firstOrNull { it.id == agentId } ?: invalidExecutionMatrix(
+      SupportedAgent.entries.firstOrNull { it.id == agentId } ?: invalidExecutionMatrix(
         "$EXECUTION_MATRIX_KEY.$AGENTS_KEY.$agentId",
         rawTiers,
         "is not a supported install agent.",
@@ -149,7 +149,7 @@ private fun parseAgents(raw: Any?): Map<InstallAgent, AgentDirectives> {
 }
 
 private val COLLIDING_PHASE_IDS: List<String> =
-  FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds.filter { ExecutionTier.fromId(it) != null }
+  FeatureTaskRuntimePhaseIds.all.filter { ExecutionTier.fromId(it) != null }
 
 private fun parseAgentDirectives(
   agentId: String,
@@ -173,7 +173,7 @@ private fun parseAgentDirectives(
     val tier = key?.let(ExecutionTier::fromId)
     when {
       tier != null -> tiers[tier] = parseDirective(path, rawDirective)
-      key != null && key in FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds ->
+      key != null && key in FeatureTaskRuntimePhaseIds.all ->
         phases[key] = parseDirective(path, rawDirective)
 
       else ->

@@ -56,9 +56,7 @@ class InjectConstructorDefaultsArchitectureTest {
   fun `inject constructor property scanner reports only non-private properties`() {
     val source =
       """
-      package skillbill.example
 
-      import me.tatarka.inject.annotations.Inject
 
       @Inject
       class SyntheticExposedService(
@@ -77,14 +75,39 @@ class InjectConstructorDefaultsArchitectureTest {
   }
 
   @Test
+  fun `inject constructor default scanner fires on synthetic default argument`() {
+    val source =
+      """
+
+
+      @Inject
+      data class SyntheticInjectBag(
+        val reviewDriver: FeatureTaskRuntimeReviewDriver = FeatureTaskRuntimeReviewDriver { _ ->
+          error("auto-approve")
+        },
+      )
+      """.trimIndent()
+    val violations =
+      ArchitectureScanSupport.injectConstructorDefaultSitesInSource(
+        relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/SyntheticInjectBag.kt",
+        source = source,
+      ).map { site -> "${site.relativePath}::${site.symbol}::${site.parameter}" }
+        .filter { encoded -> encoded !in emptySet<String>() }
+        .map { encoded -> "$encoded has a default argument on an @Inject constructor or dependency bag." }
+    assertEquals(
+      listOf(
+        "runtime-kotlin/runtime-example/src/main/kotlin/SyntheticInjectBag.kt::SyntheticInjectBag::reviewDriver " +
+          "has a default argument on an @Inject constructor or dependency bag.",
+      ),
+      violations,
+    )
+  }
+
+  @Test
   fun `inject constructor default scanner sees past a visibility modifier`() {
     val source =
       """
-      package skillbill.example
 
-      import me.tatarka.inject.annotations.Inject
-      import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-      import skillbill.ports.diagnostics.RuntimeDiagnostics
 
       @Inject
       public class ModifierShieldedInjectClass(
@@ -103,9 +126,7 @@ class InjectConstructorDefaultsArchitectureTest {
   fun `inject scanner reports non-private property defaults of a class without a primary constructor`() {
     val source =
       """
-      package skillbill.example
 
-      import me.tatarka.inject.annotations.Inject
 
       @Inject
       class SyntheticRunState {
@@ -148,9 +169,7 @@ class InjectConstructorDefaultsArchitectureTest {
   fun `inject scanner keeps reading defaults past a literal holding an unbalanced delimiter`() {
     val source =
       """
-      package skillbill.example
 
-      import me.tatarka.inject.annotations.Inject
 
       @Inject
       class LiteralDefaultRunState {

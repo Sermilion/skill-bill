@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
@@ -20,24 +21,26 @@ import java.sql.Connection
 
 internal fun emitFeatureTaskRuntimeStarted(
   connection: Connection,
+  runtimeVersion: String,
   sessionId: String,
   level: String,
 ) {
   val row = lifecycleRow(connection, "feature_task_runtime_sessions", sessionId) ?: return
   emitOnce(
-    LifecycleEmitRequest(connection, row, "feature_task_runtime_sessions", "started_event_emitted_at"),
+    LifecycleEmitRequest(connection, runtimeVersion, row, "feature_task_runtime_sessions", "started_event_emitted_at"),
     "skillbill_feature_task_runtime_started",
   ) { featureTaskRuntimeStartedPayload(row, level, telemetryRedactionSalt(connection)) }
 }
 
 internal fun emitFeatureTaskRuntimeFinished(
   connection: Connection,
+  runtimeVersion: String,
   sessionId: String,
   level: String,
 ) {
   val row = lifecycleRow(connection, "feature_task_runtime_sessions", sessionId) ?: return
   emitOnce(
-    LifecycleEmitRequest(connection, row, "feature_task_runtime_sessions", "finished_event_emitted_at"),
+    LifecycleEmitRequest(connection, runtimeVersion, row, "feature_task_runtime_sessions", "finished_event_emitted_at"),
     "skillbill_feature_task_runtime_finished",
   ) {
     featureTaskRuntimeFinishedPayload(
@@ -51,57 +54,62 @@ internal fun emitFeatureTaskRuntimeFinished(
 
 internal fun emitQualityCheckStarted(
   connection: Connection,
+  runtimeVersion: String,
   sessionId: String,
 ) {
   val row = lifecycleRow(connection, "quality_check_sessions", sessionId) ?: return
   emitOnce(
-    LifecycleEmitRequest(connection, row, "quality_check_sessions", "started_event_emitted_at"),
+    LifecycleEmitRequest(connection, runtimeVersion, row, "quality_check_sessions", "started_event_emitted_at"),
     "skillbill_quality_check_started",
   ) { qualityCheckStartedPayload(row) }
 }
 
 internal fun emitQualityCheckFinished(
   connection: Connection,
+  runtimeVersion: String,
   sessionId: String,
   level: String,
 ) {
   val row = lifecycleRow(connection, "quality_check_sessions", sessionId) ?: return
   emitOnce(
-    LifecycleEmitRequest(connection, row, "quality_check_sessions", "finished_event_emitted_at"),
+    LifecycleEmitRequest(connection, runtimeVersion, row, "quality_check_sessions", "finished_event_emitted_at"),
     "skillbill_quality_check_finished",
   ) { qualityCheckFinishedPayload(row, level, connection.sqliteDiagnostics()) }
 }
 
 internal fun emitFeatureVerifyStarted(
   connection: Connection,
+  runtimeVersion: String,
   sessionId: String,
   level: String,
 ) {
   val row = lifecycleRow(connection, "feature_verify_sessions", sessionId) ?: return
   emitOnce(
-    LifecycleEmitRequest(connection, row, "feature_verify_sessions", "started_event_emitted_at"),
+    LifecycleEmitRequest(connection, runtimeVersion, row, "feature_verify_sessions", "started_event_emitted_at"),
     "skillbill_feature_verify_started",
   ) { featureVerifyStartedPayload(row, level) }
 }
 
 internal fun emitFeatureVerifyFinished(
   connection: Connection,
+  runtimeVersion: String,
   sessionId: String,
   level: String,
 ) {
   val row = lifecycleRow(connection, "feature_verify_sessions", sessionId) ?: return
   emitOnce(
-    LifecycleEmitRequest(connection, row, "feature_verify_sessions", "finished_event_emitted_at"),
+    LifecycleEmitRequest(connection, runtimeVersion, row, "feature_verify_sessions", "finished_event_emitted_at"),
     "skillbill_feature_verify_finished",
   ) { featureVerifyFinishedPayload(row, level, connection.sqliteDiagnostics()) }
 }
 
 internal fun enqueueTelemetry(
   connection: Connection,
+  runtimeVersion: String,
   eventName: String,
   payload: Map<String, Any?>,
 ) {
-  TelemetryOutboxStore(connection).enqueue(eventName, JsonCodec.mapToJsonString(payload))
+  TelemetryOutboxStore(connection, runtimeVersion).enqueue(eventName, JsonCodec.mapToJsonString(payload))
 }
 
 internal fun reviewStageDegradationExists(
@@ -124,6 +132,7 @@ internal fun reviewStageDegradationExists(
 
 private data class LifecycleEmitRequest(
   internal val connection: Connection,
+  internal val runtimeVersion: String,
   internal val row: Map<String, Any?>,
   internal val tableName: String,
   internal val emittedColumn: String,
@@ -137,7 +146,7 @@ private fun emitOnce(
   if (request.row.stringOrEmpty(request.emittedColumn).isNotBlank()) {
     return
   }
-  enqueueTelemetry(request.connection, eventName, payload())
+  enqueueTelemetry(request.connection, request.runtimeVersion, eventName, payload())
   markLifecycleEmitted(
     request.connection,
     request.tableName,

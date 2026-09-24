@@ -1,8 +1,9 @@
 package skillbill.engine.featuretask.lifecycle.core
 
+import skillbill.engine.envelope
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeOutputVerification
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals

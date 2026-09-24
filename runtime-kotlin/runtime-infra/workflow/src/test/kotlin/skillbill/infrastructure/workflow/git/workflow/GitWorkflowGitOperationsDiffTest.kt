@@ -1,10 +1,11 @@
 package skillbill.infrastructure.workflow.git.workflow
+
 import skillbill.ports.workflow.gitops.buildGoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.captureGoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
-import skillbill.workflow.goal.model.GoalObservabilityDiffStat
-import skillbill.workflow.goal.model.GoalObservabilityFileDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilityDiffStat
+import skillbill.workflow.model.goalreview.GoalObservabilityFileDiffStat
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains

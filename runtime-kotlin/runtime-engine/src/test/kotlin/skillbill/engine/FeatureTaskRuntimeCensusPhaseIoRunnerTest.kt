@@ -1,5 +1,7 @@
 package skillbill.engine
+
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
+import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.lifecycle.core.ApprovingReviewDriverStub
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
@@ -333,7 +335,7 @@ private fun seededReviewFinding(): String =
   }
   """.trimIndent()
 
-private fun disposition(
+internal fun disposition(
   findingId: String,
   disposition: String,
   reason: String? = null,

@@ -1,9 +1,9 @@
 package skillbill.cli.install.apply
+
 import skillbill.application.install.InstallService
 import skillbill.cli.install.core.installPlanPayload
 import skillbill.cli.install.core.windowsPreflightPayload
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSkillLinkOutcome
 import skillbill.install.model.InstallAppliedSkill
 import skillbill.install.model.InstallApplyIssue
@@ -12,6 +12,7 @@ import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallSkillStagingOutcome
 import skillbill.install.model.InstallTelemetryApplyOutcome
 import skillbill.install.model.NativeAgentApplyOutcome
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkApplyOutcome
 
 internal fun installApplyPayload(
@@ -85,7 +86,7 @@ private fun applyMcpRegistrationPayload(result: InstallApplyResult): Map<String,
   mapOf(
     "register" to result.mcpRegistrationIntent.register,
     "runtime_mcp_bin" to result.mcpRegistrationIntent.runtimeMcpBin?.toString(),
-    "agents" to result.mcpRegistrationIntent.agents.map(InstallAgent::id),
+    "agents" to result.mcpRegistrationIntent.agents.map(SupportedAgent::id),
     "outcomes" to
       result.mcpRegistrationOutcomes.map { outcome ->
         mapOf(

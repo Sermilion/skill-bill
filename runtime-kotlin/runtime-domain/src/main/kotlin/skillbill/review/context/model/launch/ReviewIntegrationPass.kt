@@ -1,10 +1,11 @@
 package skillbill.review.context.model.launch
+
 import skillbill.review.context.model.execution.ReviewSpecialistSummaryCoverage
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.hunk.ReviewEvidenceTarget
 import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.context.model.packet.ReviewLaneCompletionState
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
+import skillbill.review.model.ReviewLaneReviewDisposition
 
 data class ReviewSpecialistSummary(
   val lane: String,

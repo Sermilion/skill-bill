@@ -10,7 +10,7 @@ import skillbill.experiment.model.ExperimentArmId
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import java.nio.file.Files
 import java.nio.file.Path

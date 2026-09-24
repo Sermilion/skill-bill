@@ -2,7 +2,7 @@ package skillbill.review.context.model.accounting
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.ReviewAccountingPayloadKeys
-import skillbill.workflow.goal.model.toReviewAccountingBoundedJson
+import skillbill.workflow.model.goalreview.toReviewAccountingBoundedJson
 
 fun ReviewAccountingSummary.toBoundedPayload(): Map<String, Any?> =
   requireNotNull(

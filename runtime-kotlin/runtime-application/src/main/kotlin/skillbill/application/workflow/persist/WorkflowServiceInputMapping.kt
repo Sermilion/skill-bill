@@ -1,4 +1,7 @@
 package skillbill.application.workflow.persist
+
+import skillbill.application.decomposition.mergedArtifacts
+import skillbill.application.telemetry.lifecycle.random
 import skillbill.application.workflow.model.PersistOpenedWorkflowArgs
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
@@ -18,13 +21,15 @@ import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.model.GoalObservabilityProgressInput
 import skillbill.goalrunner.model.GoalObservabilityWorktreeActivity
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.ports.taskruntime.validateGoalObservabilityEvent
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
-import skillbill.workflow.engine.RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowContinueDecision
 import skillbill.workflow.engine.model.WorkflowDefinition
@@ -32,12 +37,22 @@ import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Clock
 import java.time.ZoneOffset
 import kotlin.random.Random
+
+internal data class WorkflowPersistenceContext(
+  val dbPath: String,
+  val repositoryCheckpointIdentity: () -> String = { "" },
+)
+
+internal data class ProjectionLaunchRequest(
+  val stepId: String,
+  val producerIteration: Int,
+  val repositoryCheckpointIdentity: () -> String = { "" },
+)
 
 internal fun incompleteFeatureTaskIdentityError(args: WorkflowServiceOpenArgs): WorkflowOpenResult.Error? {
   val hasIdentityCoordinates = args.repositoryIdentity != null || args.governedSpecPath != null
@@ -72,6 +87,7 @@ internal fun persistOpenedWorkflow(args: PersistOpenedWorkflowArgs): WorkflowOpe
         args.effectiveSessionId,
         stepId,
       )
+    args.workflowSnapshotValidator.validate(record, family.definition.workflowName)
     family.saveRecord(
       unitOfWork.workflowStates,
       record.toRecord().copy(
@@ -89,8 +105,11 @@ internal fun persistOpenedWorkflow(args: PersistOpenedWorkflowArgs): WorkflowOpe
         engine,
         family.definition,
         engine.snapshotView(family.definition, saved),
-        stepId,
-        currentStep?.attemptCount ?: 0,
+        ProjectionLaunchRequest(
+          stepId = stepId,
+          producerIteration = currentStep?.attemptCount ?: 0,
+          repositoryCheckpointIdentity = args.repositoryCheckpointIdentity,
+        ),
       )
     WorkflowOpenResult.Ok(
       workflowId = saved.workflowId,
@@ -144,7 +163,7 @@ internal fun WorkflowContinueDecision.toReopenInput(sessionId: String): Workflow
 internal fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
   existing: WorkflowStateSnapshot,
   workflowId: String,
-  validator: GoalObservabilityEventValidator,
+  validator: FeatureTaskRuntimeWireArtifactValidator,
   gitOperations: WorkflowGitOperations,
   repoRoot: Path,
 ): WorkflowUpdateInput {
@@ -152,11 +171,7 @@ internal fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
   return if (patch?.containsKey("progress_event") != true) {
     this
   } else {
-    val existingArtifacts =
-      JsonCodec.parseObjectOrNull(existing.artifactsJson)
-        ?.let(JsonCodec::jsonElementToValue)
-        ?.let(JsonCodec::anyToStringAnyMap)
-        .orEmpty()
+    val existingArtifacts = existing.artifacts
     val mergedArtifacts = LinkedHashMap(existingArtifacts).apply { putAll(patch) }
     val observabilityPatch =
       GoalObservabilityArtifacts.patchForProgressEvent(
@@ -176,7 +191,7 @@ internal fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
                   )
                 },
           ),
-        validator = validator,
+        validator = validator::validateGoalObservabilityEvent,
       )
     observabilityPatch?.let { patchValue ->
       val decoded = JsonCodec.anyToStringAnyMap(patchValue) ?: return this
@@ -190,13 +205,13 @@ internal fun buildUpdateOk(
   definition: WorkflowDefinition,
   updated: WorkflowStateSnapshot,
   effectiveInput: WorkflowUpdateInput,
-  dbPath: String,
+  persistenceContext: WorkflowPersistenceContext,
 ): WorkflowUpdateResult.Ok {
   val snapshot = engine.snapshotView(definition, updated)
   val currentStep = snapshot.steps.firstOrNull { it.stepId == snapshot.currentStepId }
   return WorkflowUpdateResult.Ok(
     workflowId = updated.workflowId,
-    dbPath = dbPath,
+    dbPath = persistenceContext.dbPath,
     acknowledgement =
       engine.updateAcknowledgementView(
         snapshot = snapshot,
@@ -207,8 +222,11 @@ internal fun buildUpdateOk(
         engine,
         definition,
         snapshot,
-        snapshot.currentStepId,
-        currentStep?.attemptCount ?: 0,
+        ProjectionLaunchRequest(
+          stepId = snapshot.currentStepId,
+          producerIteration = currentStep?.attemptCount ?: 0,
+          repositoryCheckpointIdentity = persistenceContext.repositoryCheckpointIdentity,
+        ),
       ),
   )
 }
@@ -217,15 +235,23 @@ internal fun launchProjectionIfReady(
   engine: WorkflowEngine,
   definition: WorkflowDefinition,
   snapshot: WorkflowSnapshotView,
-  stepId: String,
-  producerIteration: Int,
-) = definition.inputProjectionsByStep[stepId]
+  request: ProjectionLaunchRequest,
+) = definition.inputProjectionsByStep[request.stepId]
   ?.takeIf { declaration ->
     declaration.requiredArtifactKeys.all { artifactKey ->
-      artifactKey == RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY || snapshot.artifacts.containsKey(artifactKey)
+      DurableWorkflowArtifactFamily.RUNTIME_REPOSITORY_EVIDENCE.contains(snapshot.artifacts) ||
+        snapshot.artifacts.containsKey(artifactKey)
     }
   }
-  ?.let { engine.launchProjection(definition, snapshot, stepId, producerIteration) }
+  ?.let {
+    engine.launchProjection(
+      definition,
+      snapshot,
+      request.stepId,
+      request.producerIteration,
+      request.repositoryCheckpointIdentity(),
+    )
+  }
 
 fun WorkflowService.openFeatureTask(args: WorkflowServiceOpenFeatureTaskArgs): WorkflowOpenResult {
   require(args.kind in FEATURE_TASK_FAMILY_KINDS) {

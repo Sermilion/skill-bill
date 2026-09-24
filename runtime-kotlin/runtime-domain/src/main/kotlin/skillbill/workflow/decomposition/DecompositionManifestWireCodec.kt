@@ -3,16 +3,18 @@ package skillbill.workflow.decomposition
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionStackBranch
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.taskruntime.model.persistence.artifact.DurableArtifactMapReader
-import skillbill.workflow.taskruntime.model.persistence.artifact.toStringKeyedArtifactMap
+import skillbill.workflow.model.persistence.artifact.DurableArtifactMapReader
+import skillbill.workflow.model.persistence.artifact.toStringKeyedArtifactMap
 
 internal object DecompositionManifestWireCodec {
   fun decode(
@@ -237,3 +239,11 @@ private fun invalidDecompositionManifest(
     reason = reason,
     failureCode = "invalid_shape",
   )
+
+fun decodeDecompositionManifestWireMap(
+  wireMap: DecompositionManifestWireMap,
+  sourceLabel: String,
+): DecompositionManifest = DecompositionManifestWireCodec.decode(wireMap, sourceLabel)
+
+fun encodeDecompositionManifestWireMap(manifest: DecompositionManifest): DecompositionManifestWireMap =
+  DecompositionManifestWireMap.from(DecompositionManifestWireCodec.encode(manifest))

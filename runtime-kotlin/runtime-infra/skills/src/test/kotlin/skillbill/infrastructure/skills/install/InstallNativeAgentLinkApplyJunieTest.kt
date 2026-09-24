@@ -8,12 +8,12 @@ import skillbill.infrastructure.skills.install.nativeagent.install.native.instal
 import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgentLinkInventory
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.install.model.AgentTarget
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentLinkStatus
 import skillbill.install.model.InstallApplyStatus
 import skillbill.install.model.McpRegistrationApplyStatus
 import skillbill.install.model.NativeAgentApplyStatus
 import skillbill.install.model.NativeAgentProviderId
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -60,7 +60,7 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
     )
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
       )
 
     val result = applyInstallForTest(plan)
@@ -90,7 +90,7 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
     Files.deleteIfExists(fixture.home.resolve(".skill-bill/native-agent-link-inventory.json"))
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
       )
 
     val result = applyInstallForTest(plan)
@@ -115,7 +115,7 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
     createSymlinkOrSkip(link, target)
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
       )
 
     val result = applyInstallForTest(plan)
@@ -152,7 +152,7 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
         }
         val plan =
           planInstallForTest(
-            fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+            fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
           )
 
         val result = applyInstallForTest(plan)
@@ -194,12 +194,18 @@ class InstallNativeAgentLinkApplyJunieTest : InstallNativeAgentLinkApplyTestSupp
     val result = applyInstallForTest(plan)
 
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
-    assertEquals(InstallAgent.entries.sortedBy(InstallAgent::id), result.mcpRegistrationIntent.agents)
-    assertEquals(InstallAgent.entries.toSet(), result.mcpRegistrationOutcomes.map { outcome -> outcome.agent }.toSet())
+    assertEquals(SupportedAgent.entries.sortedBy(SupportedAgent::id), result.mcpRegistrationIntent.agents)
+    assertEquals(
+      SupportedAgent.entries.toSet(),
+      result.mcpRegistrationOutcomes.map {
+          outcome ->
+        outcome.agent
+      }.toSet(),
+    )
     assertTrue(result.mcpRegistrationOutcomes.all { outcome -> outcome.status == McpRegistrationApplyStatus.SUCCESS })
     result.skills.forEach { skill ->
       assertEquals(
-        InstallAgent.entries.toSet(),
+        SupportedAgent.entries.toSet(),
         skill.links.map { link -> link.agent }.toSet(),
         "${skill.skillName} did not link to every selected skill target",
       )

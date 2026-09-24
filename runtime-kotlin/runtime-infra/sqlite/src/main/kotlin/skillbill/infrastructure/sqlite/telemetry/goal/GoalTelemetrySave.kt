@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.goal
+
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.core.ops.sqliteDiagnostics
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.listJson

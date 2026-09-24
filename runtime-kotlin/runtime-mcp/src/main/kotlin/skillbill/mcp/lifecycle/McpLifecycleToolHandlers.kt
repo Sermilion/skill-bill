@@ -7,6 +7,7 @@ import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
 import skillbill.application.telemetry.validation.historySignalValues
 import skillbill.contracts.mcp.McpToolPayloadKeys
+import skillbill.contracts.scaffold.wire.optionalString
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.McpRuntimeLifecycle
 import skillbill.mcp.shared.boolean

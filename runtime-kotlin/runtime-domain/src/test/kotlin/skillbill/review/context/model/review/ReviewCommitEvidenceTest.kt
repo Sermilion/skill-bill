@@ -1,4 +1,5 @@
 package skillbill.review.context.model.review
+
 import skillbill.review.context.model.bundle.ReviewLaneBundle
 import skillbill.review.context.model.bundle.ReviewLaneBundleEntry
 import skillbill.review.context.model.commit.REVIEW_SYNTHETIC_COMMIT_PREFIX

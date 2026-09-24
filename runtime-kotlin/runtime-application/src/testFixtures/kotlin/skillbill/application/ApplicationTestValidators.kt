@@ -2,8 +2,8 @@ package skillbill.application
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.JsonCodec
-import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.decodeManifest
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.decodeManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 

@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.review.finding
+
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFindingBoundaryMemorySection
 import skillbill.error.shellcontent.GoalVerificationBoundaryCapExceededError

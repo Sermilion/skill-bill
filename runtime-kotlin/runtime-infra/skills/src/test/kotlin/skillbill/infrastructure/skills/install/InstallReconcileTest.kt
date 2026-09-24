@@ -3,6 +3,7 @@ package skillbill.infrastructure.skills.install
 import skillbill.error.shellcontent.ContractVersionMismatchError
 import skillbill.infrastructure.skills.install.reconcile.ReconcileSourceRoots
 import skillbill.infrastructure.skills.install.reconcile.computeReconciliationPlan
+import skillbill.infrastructure.skills.install.reconcile.skillRelativePath
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.platformPackSchemaLog
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.install.model.BaselineManifest

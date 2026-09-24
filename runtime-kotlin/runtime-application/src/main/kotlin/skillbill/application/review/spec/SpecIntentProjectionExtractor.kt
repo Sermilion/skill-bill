@@ -1,19 +1,20 @@
 package skillbill.application.review.spec
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.repoRelativePath
 import skillbill.application.decomposition.resolvedParentSpecPath
 import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.error.shellcontent.UnreadableSpecIntentProjectionError
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.review.context.ReviewContextWireMap
 import skillbill.review.context.model.execution.SpecIntentProjection
 import skillbill.review.context.model.execution.SpecIntentProvenance
 import skillbill.review.context.model.execution.SpecIntentSurroundingContext
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.spec.GovernedSpecSectionParser
 import skillbill.review.spec.GovernedSpecSectionParser.ACCEPTANCE_CRITERIA_PREFIX
-import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.io.IOException
 import java.nio.file.Path
 import java.security.MessageDigest

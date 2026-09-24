@@ -2,7 +2,6 @@ package skillbill.application
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
-import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.workflow.payload.WorkflowArtifactKeys
@@ -13,12 +12,14 @@ import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifes
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
 import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import skillbill.ports.workflow.decomposition.loadDecompositionManifest as loadManifestFromStore
 
 object TestDecompositionManifestStore : DecompositionManifestStore {
   override fun readText(path: Path): String = Files.readString(path)
@@ -98,8 +99,13 @@ object TestDecompositionManifestStore : DecompositionManifestStore {
   }
 }
 
+private fun decodeArtifacts(raw: String): DurableWorkflowArtifacts =
+  DurableWorkflowArtifacts.fromMap(
+    requireNotNull(JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(raw))),
+  )
+
 fun loadDecompositionManifest(path: Path) =
-  skillbill.application.decomposition.loadDecompositionManifest(
+  loadManifestFromStore(
     path,
     TestDecompositionManifestStore,
     testDecompositionManifestValidator,
@@ -121,7 +127,7 @@ fun writeFromWorkflowUpdate(
   testDecompositionManifestWriter.writeFromWorkflowUpdate(
     DecompositionManifestWorkflowProjectionInput(
       repoRoot = repoRoot,
-      existingArtifactsJson = existingArtifactsJson,
+      existingArtifacts = decodeArtifacts(existingArtifactsJson),
       validator = testDecompositionManifestValidator,
       planningResult =
         artifactsPatch?.get(WorkflowArtifactKeys.PLAN)
@@ -141,7 +147,7 @@ fun writeProjectionFromWorkflowState(
     val outcome =
       testDecompositionManifestWriter.writeProjectionFromWorkflowState(
         repoRoot = repoRoot,
-        artifactsJson = artifactsJson,
+        artifacts = decodeArtifacts(artifactsJson),
         validator = testDecompositionManifestValidator,
         fileStore = TestDecompositionManifestStore,
       )

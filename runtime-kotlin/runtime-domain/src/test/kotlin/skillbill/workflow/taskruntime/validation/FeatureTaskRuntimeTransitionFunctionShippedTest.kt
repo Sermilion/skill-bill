@@ -1,7 +1,8 @@
 package skillbill.workflow.taskruntime.validation
+
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOrderViolationError
+import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeNextPhase
-import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals

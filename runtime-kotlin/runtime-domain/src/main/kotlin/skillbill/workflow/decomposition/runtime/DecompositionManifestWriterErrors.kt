@@ -1,4 +1,5 @@
 package skillbill.workflow.decomposition.runtime
+
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 
 fun invalidManifest(

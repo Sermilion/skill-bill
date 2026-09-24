@@ -1,13 +1,13 @@
 package skillbill.infrastructure.sqlite.goalrunner.outcome
+
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.goalrunner.commitShaFrom
 import skillbill.goalrunner.goalContinuationOutcome
+import skillbill.goalrunner.missingResultPrefixTerminalOutcomeArtifact
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.terminalOutcomeFor
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
-import skillbill.infrastructure.sqlite.goalrunner.control.goalContinuation
-import skillbill.infrastructure.sqlite.goalrunner.control.missingResultPrefixTerminalOutcomeArtifact
 import skillbill.infrastructure.sqlite.goalrunner.control.workflowFamilyFor
 import skillbill.ports.goalrunner.persistence.model.CrashReconcileExpiredWorkerRequest
 import skillbill.ports.goalrunner.persistence.model.GoalSubtaskIdentity
@@ -16,12 +16,15 @@ import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuation
 import java.nio.file.Path
 import java.time.Clock
 
@@ -45,8 +48,8 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
         ?.let { family -> family.get(workflowStates, workflowId)?.let { snapshot -> family to snapshot } }
     return candidate?.let { (family, snapshot) ->
       engine.snapshotView(family.definition, snapshot)
-      val artifacts = decodeArtifacts(snapshot.artifactsJson)
-      goalContinuation(artifacts)
+      val artifacts = snapshot.artifacts
+      DurableWorkflowArtifacts.fromMap(artifacts).goalContinuation()
         ?.takeIf { it.issueKey == issueKey && it.subtaskId == subtaskId }
         ?.let { continuation -> terminalOutcomeFor(snapshot, artifacts, continuation, measuredCommitSha) }
     }
@@ -63,7 +66,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
       ?.let {
         workflowFamilyFor(workflowStates, identity.workflowId)?.get(workflowStates, identity.workflowId)
       }
-      ?.let { record -> goalContinuation(decodeArtifacts(record.artifactsJson)) }
+      ?.let { record -> DurableWorkflowArtifacts.fromMap(record.artifacts).goalContinuation() }
       ?.takeIf { continuation ->
         continuation.issueKey == identity.issueKey && continuation.subtaskId == identity.subtaskId
       }
@@ -95,7 +98,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
     val continuation =
       row
         ?.takeIf { it.workflowStatus.workflowStatus() == WorkflowStatus.RUNNING }
-        ?.let { goalContinuation(decodeArtifacts(it.artifactsJson)) }
+        ?.let { DurableWorkflowArtifacts.fromMap(it.toSnapshot().artifacts).goalContinuation() }
         ?.takeIf { it.issueKey == issueKey && it.subtaskId == subtaskId }
     if (ownership == null || row == null || continuation == null) return null
     return crashReconcileExpiredWorkerToResumable(
@@ -123,7 +126,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
         ?.let { family -> family.get(workflowStates, workflowId)?.let { record -> family to record } }
         ?.takeIf { outcome.status == GoalRunnerTerminalStatus.COMPLETE && !outcome.commitSha.isNullOrBlank() }
     recordContext?.let { (family, record) ->
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = record.artifacts
       val existingOutcome = goalContinuationOutcome(artifacts, issueKey, subtaskId, outcome.suppressPr)
       val needsBackfill =
         (existingOutcome == null || existingOutcome.commitSha.isNullOrBlank()) &&
@@ -140,7 +143,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
               artifactsPatch =
                 WorkflowArtifactPatch.from(
                   mapOf(
-                    "goal_continuation_outcome" to
+                    WorkflowWirePayloadKeys.GOAL_CONTINUATION_OUTCOME to
                       mapOf(
                         SharedPayloadKeys.ISSUE_KEY to issueKey,
                         SharedPayloadKeys.SUBTASK_ID to subtaskId,
@@ -179,7 +182,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
     val subtaskId = args.subtaskId
     val workflowId = args.workflowId
     val terminalArtifact = missingResultPrefixTerminalOutcomeArtifact(output, issueKey, subtaskId, workflowId)
-    val existingArtifacts = decodeArtifacts(record.artifactsJson)
+    val existingArtifacts = record.artifacts
     val artifactsPatch =
       linkedMapOf<String, Any?>(
         "goal_runner_missing_result_prefix_recovery" to
@@ -193,7 +196,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
     if (terminalArtifact != null &&
       goalContinuationOutcome(existingArtifacts, issueKey, subtaskId, suppressPr = true) == null
     ) {
-      artifactsPatch["goal_continuation_outcome"] = terminalArtifact
+      artifactsPatch[WorkflowWirePayloadKeys.GOAL_CONTINUATION_OUTCOME] = terminalArtifact
     }
     val updated =
       engine.updateRecord(
@@ -210,7 +213,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
     family.save(workflowStates, updated)
     val recoveredArtifacts = existingArtifacts + artifactsPatch
     val recoveredContinuation =
-      goalContinuation(recoveredArtifacts)
+      DurableWorkflowArtifacts.fromMap(recoveredArtifacts).goalContinuation()
         ?.takeIf { it.issueKey == issueKey && it.subtaskId == subtaskId }
     val recovered =
       recoveredContinuation?.let {

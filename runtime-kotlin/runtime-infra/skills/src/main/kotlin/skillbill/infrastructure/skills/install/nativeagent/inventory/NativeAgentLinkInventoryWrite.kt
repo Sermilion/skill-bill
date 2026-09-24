@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install.nativeagent.inventory
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.nativeagent.NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION
 import skillbill.error.core.InvalidNativeAgentLinkInventoryWriteError

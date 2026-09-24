@@ -54,9 +54,7 @@ class RuntimeEngineInboundApiTest {
     Files.writeString(
       sourceFile,
       """
-      package skillbill.cli.fixture
-
-      import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunnerPolicies
+      import skillbill.engine.featuretask.FeatureTaskRuntimeRunnerPolicies
 
       class SyntheticLeak(private val policies: FeatureTaskRuntimeRunnerPolicies)
       """.trimIndent(),

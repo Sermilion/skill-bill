@@ -1,32 +1,34 @@
 package skillbill.infrastructure.sqlite.core.migration.goal
-import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
-import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
+
 import skillbill.infrastructure.sqlite.core.ops.recordMigrationNormalization
 import skillbill.infrastructure.sqlite.core.ops.sqliteDiagnostics
-import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.goalrunner.control.outOfBandAcceptancesFromLegacyArtifacts
 import skillbill.infrastructure.sqlite.goalrunner.control.reviewPolicyFromLegacyArtifacts
 import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.GoalRunnerControlStore
+import skillbill.infrastructure.sqlite.workflow.workflow.toFeatureTaskWorkflowStateRecord
+import skillbill.ports.workflow.model.toSnapshot
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import java.sql.Connection
 
 internal fun applyLegacyGoalRunnerControlLedgerMigration(connection: Connection) {
   val store = GoalRunnerControlStore(connection)
   connection.prepareStatement(
     """
-    SELECT workflow_id, artifacts_json
+    SELECT *
     FROM feature_task_workflows
     WHERE mode = 'runtime'
     """.trimIndent(),
   ).use { statement ->
     statement.executeQuery().use { rows ->
       while (rows.next()) {
-        val workflowId = rows.getString("workflow_id")
-        val artifacts = decodeArtifacts(rows.getString("artifacts_json"))
+        val workflow = rows.toFeatureTaskWorkflowStateRecord()
+        val workflowId = workflow.workflowId
+        val artifacts = workflow.toSnapshot().artifacts
         val movedKeys = mutableListOf<String>()
         if (store.reviewPolicy(workflowId) == null) {
           reviewPolicyFromLegacyArtifacts(artifacts)?.let { policy ->
             store.persistReviewPolicy(workflowId, policy)
-            movedKeys += GOAL_REVIEW_POLICY_ARTIFACT_KEY
+            movedKeys += DurableWorkflowArtifactFamily.GOAL_REVIEW_POLICY.label()
           }
         }
         val durableAcceptances = store.outOfBandAcceptances(workflowId)
@@ -37,7 +39,7 @@ internal fun applyLegacyGoalRunnerControlLedgerMigration(connection: Connection)
           legacyAcceptances.values.forEach { acceptance ->
             store.persistOutOfBandAcceptance(workflowId, acceptance)
           }
-          movedKeys += GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
+          movedKeys += DurableWorkflowArtifactFamily.GOAL_OUT_OF_BAND_ACCEPTANCE.label()
         }
         if (movedKeys.isNotEmpty()) {
           connection.sqliteDiagnostics().recordMigrationNormalization(

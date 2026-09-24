@@ -1,4 +1,5 @@
 package skillbill.di.goal
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.agentrun.AgentRunGoalRunnerSubtaskLauncher
 import skillbill.infrastructure.sqlite.goalrunner.outcome.WorkflowGoalRunnerOutcomeStore

@@ -5,6 +5,8 @@ import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateRow
 import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateStore
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
+import skillbill.ports.workflow.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
@@ -16,6 +18,14 @@ import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
+internal val testWorkflowSnapshotValidator =
+  object : WorkflowSnapshotValidator {
+    override fun validate(
+      snapshot: WorkflowStateSnapshot,
+      slug: String,
+    ) = Unit
+  }
 
 internal fun assertRuntimeAndVerifyStateTransitions(
   store: WorkflowStateStore,
@@ -74,7 +84,8 @@ internal fun prepareConcurrentWorkflowTransitions(
   initial: WorkflowStateRow,
 ) {
   DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-    WorkflowStateStore(connection, Clock.systemUTC()).saveFeatureTaskRuntimeWorkflow(initial)
+    WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
+      .saveFeatureTaskRuntimeWorkflow(initial)
     connection.createStatement().use { statement ->
       statement.execute("CREATE TABLE workflow_transition_log (state_entered_at TEXT NOT NULL)")
       statement.execute(

@@ -1,4 +1,0 @@
-package skillbill.workflow.taskruntime.artifact
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind as ModelFeatureTaskRuntimeWireArtifactKind
-
-typealias FeatureTaskRuntimeWireArtifactKind = ModelFeatureTaskRuntimeWireArtifactKind

@@ -56,9 +56,9 @@ class RuntimeImplementationImportRulesTest {
       )
     val mustNotBeDetected =
       listOf(
-        "skillbill.install.model.InstallPlanWireValidator",
-        "skillbill.workflow.decomposition.DecompositionManifestValidator",
-        "skillbill.workflow.engine.WorkflowSnapshotValidator",
+        "skillbill.ports.install.InstallPlanWireValidator",
+        "skillbill.ports.workflow.decomposition.DecompositionManifestValidator",
+        "skillbill.ports.workflow.WorkflowSnapshotValidator",
         "skillbill.application.InstallService",
         "skillbill.infrastructure.contracts.install.InstallPlanSchemaPaths",
       )

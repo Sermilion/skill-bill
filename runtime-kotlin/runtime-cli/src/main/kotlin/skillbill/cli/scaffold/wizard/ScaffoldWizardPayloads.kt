@@ -1,15 +1,17 @@
 package skillbill.cli.scaffold.wizard
+
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.scaffold.commands.assistedPlatformProfile
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
+import skillbill.scaffold.model.SkillKind
 
 internal fun addOnWizardPayload(
   state: CliRunState,
   inputs: CliRunInputs,
 ): Map<String, Any?> =
   buildMap {
-    putScaffoldBase("add-on")
+    putScaffoldBase(SkillKind.ADD_ON.wireValue)
     put("platform", promptRequired(state, inputs, "Platform slug"))
     put("name", promptRequired(state, inputs, "Add-on name"))
     when (normalizeAddOnLocationMode(promptDefault(state, inputs, "Add-on source (native/external)", "native"))) {
@@ -24,10 +26,10 @@ internal fun agentAddonWizardPayload(
   inputs: CliRunInputs,
 ): Map<String, Any?> =
   buildMap {
-    putScaffoldBase("agent-addon")
+    putScaffoldBase(SkillKind.AGENT_ADDON.wireValue)
     put("slug", promptRequired(state, inputs, "Agent add-on slug"))
     put("description", promptRequired(state, inputs, "Description"))
-    inputs.liveStdout("Supported agents: ${InstallAgent.supportedIds.joinToString(", ")}\n")
+    inputs.liveStdout("Supported agents: ${SupportedAgent.supportedIds.joinToString(", ")}\n")
     put("agent_ids", requiredCommaSeparated(state, inputs, "Agent IDs (comma-separated)"))
     put("consumers", requiredCommaSeparated(state, inputs, "Consumers (comma-separated, supported: bill-feature)"))
   }
@@ -38,7 +40,7 @@ internal fun platformPackWizardPayload(
   platformPackPresets: Map<String, String>,
 ): Map<String, Any?> =
   buildMap {
-    putScaffoldBase("platform-pack")
+    putScaffoldBase(SkillKind.PLATFORM_PACK.wireValue)
     val platform = promptRequired(state, inputs, "Platform slug")
     put("platform", platform)
     promptOptional(state, inputs, "Display name").ifNotBlank { displayName -> put("display_name", displayName) }
@@ -85,7 +87,7 @@ internal fun assistedPlatformPackPayload(
   buildMap {
     val profile = assistedPlatformProfile(platformInput)
     val displayName = platformPackPresets[profile.slug] ?: profile.displayName
-    putScaffoldBase("platform-pack")
+    putScaffoldBase(SkillKind.PLATFORM_PACK.wireValue)
     put("platform", profile.slug)
     put("display_name", displayName)
     put("description", "$displayName platform pack for code review and quality checks.")

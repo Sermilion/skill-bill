@@ -1,6 +1,8 @@
 package skillbill.cli
+
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
+import skillbill.engine.goalrunner.status.completed
 import skillbill.engine.work.model.IdeStatusFreshness
 import skillbill.engine.work.model.IdeStatusLifecycleState
 import skillbill.engine.work.model.IdeStatusPlanning

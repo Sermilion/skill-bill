@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.review
+
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import kotlin.test.Test

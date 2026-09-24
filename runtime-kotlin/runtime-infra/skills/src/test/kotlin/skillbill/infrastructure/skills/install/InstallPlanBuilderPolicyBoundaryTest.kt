@@ -1,6 +1,5 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallPlanRequest
@@ -10,6 +9,7 @@ import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
 import skillbill.install.model.RuntimeDistributionInputs
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
@@ -126,7 +126,7 @@ class InstallPlanBuilderPolicyBoundaryTest {
         agentSelection =
           InstallAgentSelection(
             mode = InstallAgentSelectionMode.MANUAL,
-            manualAgents = setOf(InstallAgent.CODEX),
+            manualAgents = setOf(SupportedAgent.CODEX),
           ),
         platformPackSelection = platformPackSelection,
         telemetryLevel = InstallTelemetryLevel.ANONYMOUS,

@@ -1,4 +1,5 @@
 package skillbill.review.context.model.execution
+
 import skillbill.review.context.model.commit.ReviewAssignment
 
 enum class ReviewOperationKind(val wireValue: String) {

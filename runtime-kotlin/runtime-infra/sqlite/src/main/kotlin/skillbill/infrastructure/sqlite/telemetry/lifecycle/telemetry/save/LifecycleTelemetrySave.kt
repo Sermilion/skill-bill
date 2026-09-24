@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.save
+
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.duplicates.incrementDuplicateTerminalFinishedEvents
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.duplicates.lifecycleAlreadyFinished
@@ -6,6 +7,7 @@ import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.listJso
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.rowExists
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.toSqlInt
 import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.values.featureVerifyFinishedValues
+import skillbill.ports.workflow.save
 import skillbill.telemetry.model.FeatureVerifyFinishedRecord
 import skillbill.telemetry.model.FeatureVerifyStartedRecord
 import java.sql.Connection

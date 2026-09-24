@@ -1,5 +1,6 @@
 
 package skillbill.infrastructure.skills.scaffold.runtime.service
+
 import skillbill.infrastructure.skills.scaffold.rendering.defaultAreaFocus
 import skillbill.infrastructure.skills.scaffold.rendering.inferSkillDescription
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody

@@ -1,8 +1,10 @@
 
 package skillbill.engine
+
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.contracts.JsonCodec
+import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.planningprojection.producerProjectionGateReason
 import kotlin.test.Test
@@ -108,7 +110,7 @@ class FeatureTaskRuntimeProducerProjectionGateTest {
   )
 }
 
-private fun envelope(
+internal fun envelope(
   phaseId: String,
   producedOutputs: String,
 ): String =

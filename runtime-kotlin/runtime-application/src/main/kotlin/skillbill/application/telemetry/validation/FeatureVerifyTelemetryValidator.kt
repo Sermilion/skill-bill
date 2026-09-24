@@ -1,4 +1,5 @@
 package skillbill.application.telemetry.validation
+
 import skillbill.application.telemetry.model.FeatureVerifyFinishedRequest
 
 val auditResults = listOf("all_pass", "had_gaps", "skipped")

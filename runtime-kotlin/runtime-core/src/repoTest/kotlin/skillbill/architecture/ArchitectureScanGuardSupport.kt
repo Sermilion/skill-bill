@@ -505,7 +505,7 @@ private val SUPPRESSION_SCAN_ROOTS: List<String> =
     "runtime-kotlin/build-logic",
   )
 
-fun ArchitectureScanSupport.authoredSuppressions(
+internal fun ArchitectureScanSupport.authoredSuppressions(
   scanRoots: List<String> = SUPPRESSION_SCAN_ROOTS,
 ): List<AuthoredSuppressionSite> =
   scanRoots.flatMap { scanRoot ->
@@ -518,17 +518,17 @@ fun ArchitectureScanSupport.authoredSuppressions(
       }
   }
 
-fun ArchitectureScanSupport.authoredSuppressionsFromFile(
+internal fun ArchitectureScanSupport.authoredSuppressionsFromFile(
   relativePath: String,
   source: String,
 ): List<AuthoredSuppressionSite> = AuthoredSuppressionScanner.scan(relativePath, source.lineSequence())
 
-fun ArchitectureScanSupport.authoredSuppressionsInSource(
+internal fun ArchitectureScanSupport.authoredSuppressionsInSource(
   relativePath: String,
   source: String,
 ): List<AuthoredSuppressionSite> = AuthoredSuppressionScanner.scan(relativePath, source.lineSequence())
 
-fun ArchitectureScanSupport.suppressionViolations(
+internal fun ArchitectureScanSupport.suppressionViolations(
   suppressions: List<AuthoredSuppressionSite>,
   allowList: Set<Triple<String, String, String>>,
 ): List<String> =

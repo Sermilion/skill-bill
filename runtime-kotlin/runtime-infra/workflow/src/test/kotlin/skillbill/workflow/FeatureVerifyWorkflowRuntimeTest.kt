@@ -1,19 +1,22 @@
 package skillbill.workflow
-import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
+
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowContinueDecisionOverrides
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class FeatureVerifyWorkflowRuntimeTest {
   private val definition = FeatureVerifyWorkflowDefinition.definition
-  private val validator = WorkflowStateSchemaValidator()
-  private val engine = WorkflowEngine(validator) { "abc123" }
+  private val engine = WorkflowEngine()
 
   @Test
   fun `verify open completes steps before the initial step`() {
@@ -34,6 +37,7 @@ class FeatureVerifyWorkflowRuntimeTest {
         definition,
         running,
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.COMPLETED,
           currentStepId = "finish",
           stepUpdates =
@@ -57,6 +61,7 @@ class FeatureVerifyWorkflowRuntimeTest {
         definition,
         engine.openRecord(definition, "wfv-001", "fvr-001", "code_review"),
         WorkflowUpdateInput(
+          terminalInstant = Instant.EPOCH,
           workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "verdict",
           stepUpdates =
@@ -82,7 +87,12 @@ class FeatureVerifyWorkflowRuntimeTest {
         ),
       )
 
-    val decision = engine.continueDecision(definition, record)
+    val decision =
+      engine.continueDecision(
+        definition,
+        record,
+        overrides = WorkflowContinueDecisionOverrides(repositoryCheckpointIdentity = "abc123"),
+      )
 
     assertEquals("reopened", decision.view.continueStatus.wireValue)
     assertEquals(
@@ -110,15 +120,21 @@ class FeatureVerifyWorkflowRuntimeTest {
           ),
         artifactsPatch = null,
         sessionId = "",
+        terminalInstant = Instant.EPOCH,
       )
     val abandoned = pending.copy(workflowStatus = WorkflowStatus.ABANDONED)
 
-    assertEquals(null, WorkflowEngine.validateUpdate(definition, pending))
-    assertEquals(null, WorkflowEngine.validateUpdate(definition, abandoned))
+    val existing = engine.openRecord(definition, "wfv-validation", "fvr-001", "code_review")
+    assertEquals(WorkflowStatus.PENDING, engine.updateRecord(definition, existing, pending).workflowStatus)
+    assertEquals(WorkflowStatus.ABANDONED, engine.updateRecord(definition, existing, abandoned).workflowStatus)
     assertEquals("recover", engine.resumeView(definition, completedAs("abandoned")).resumeMode.wireValue)
+    val failure =
+      assertFailsWith<InvalidWorkflowStateSchemaError> {
+        engine.updateRecord(definition, existing, pending.copy(workflowStatus = WorkflowStatus.BLOCKED))
+      }
     assertEquals(
       "Invalid workflow_status 'blocked'. Allowed: pending, running, completed, failed, abandoned",
-      WorkflowEngine.validateUpdate(definition, pending.copy(workflowStatus = WorkflowStatus.BLOCKED)),
+      failure.message,
     )
   }
 
@@ -147,6 +163,7 @@ class FeatureVerifyWorkflowRuntimeTest {
       definition,
       engine.openRecord(definition, "wfv-terminal", "fvr-001", "gather_diff"),
       WorkflowUpdateInput(
+        terminalInstant = Instant.EPOCH,
         workflowStatus = WorkflowStatus.fromWire(status) ?: error("Unknown workflow status '$status'."),
         currentStepId = "finish",
         stepUpdates =

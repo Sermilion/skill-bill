@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.telemetry
+
 import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
 import skillbill.application.telemetry.lifecycle.noopGoalLifecycleTelemetryEmitter
 import skillbill.application.telemetry.model.GoalFinishedRequest
@@ -11,6 +12,7 @@ import skillbill.engine.goalrunner.RecordingOutcomeStore
 import skillbill.engine.goalrunner.RecordingPullRequestPort
 import skillbill.engine.goalrunner.RecordingSubtaskLauncher
 import skillbill.engine.goalrunner.completeOutcome
+import skillbill.engine.goalrunner.execution.core.fixedClock
 import skillbill.engine.goalrunner.execution.core.goalRunnerDeps
 import skillbill.engine.goalrunner.execution.core.testGoalRunner
 import skillbill.engine.goalrunner.execution.support.withWorkflowId

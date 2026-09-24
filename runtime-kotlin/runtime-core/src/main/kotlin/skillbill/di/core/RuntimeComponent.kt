@@ -1,4 +1,5 @@
 package skillbill.di.core
+
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.agentrun.AgentRunService
@@ -79,6 +80,7 @@ import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.ports.telemetry.transport.TelemetryConfigStore
 import skillbill.ports.telemetry.transport.TelemetryLevelMutator
 import skillbill.ports.validation.RepoValidationGateway
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import java.time.Clock
 
 @RuntimeSingleton
@@ -167,7 +169,9 @@ abstract class RuntimeComponent(
     context: EnvironmentContext,
     clock: Clock,
     diagnostics: RuntimeDiagnostics,
-  ): DatabaseSessionFactory = RuntimeBootstrapBindings.databaseSessionFactory(context, clock, diagnostics)
+    workflowSnapshotValidator: WorkflowSnapshotValidator,
+  ): DatabaseSessionFactory =
+    RuntimeBootstrapBindings.databaseSessionFactory(context, clock, diagnostics, workflowSnapshotValidator)
 
   @Provides
   fun interruptSignal(): InterruptSignalPort = JvmInterruptSignalPort

@@ -1,4 +1,5 @@
 package skillbill.di.workflow
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.skills.install.staging.staging.support
+
 import skillbill.infrastructure.skills.scaffold.authoring.normalizeMarkdownLineEndings
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files

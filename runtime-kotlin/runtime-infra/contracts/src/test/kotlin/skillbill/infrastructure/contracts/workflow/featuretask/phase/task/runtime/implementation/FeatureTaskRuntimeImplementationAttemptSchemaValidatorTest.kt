@@ -1,4 +1,5 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.implementation
+
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeImplementationAttemptSchemaError
 import kotlin.test.Test

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.stats.health
+
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.review.stats.workflow.loadRows
 import java.sql.Connection

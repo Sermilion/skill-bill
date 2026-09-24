@@ -1,4 +1,5 @@
 package skillbill.application.review.packet
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
@@ -26,8 +27,8 @@ import skillbill.review.context.model.launch.GovernedReviewLaunch
 import skillbill.review.context.model.launch.ReviewSpecialistSummary
 import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.context.model.packet.ReviewExpansionRecord
-import skillbill.review.context.model.packet.ReviewLaneReviewDisposition
 import skillbill.review.context.model.packet.ReviewPacketConsumerContract
+import skillbill.review.model.ReviewLaneReviewDisposition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

@@ -13,11 +13,11 @@ import skillbill.infrastructure.skills.scaffold.payload.resolvePlatformPackDefau
 import skillbill.infrastructure.skills.scaffold.payload.resolvePlatformPackSelection
 import skillbill.infrastructure.skills.scaffold.payload.validatePayloadVersion
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.PRE_SHELL_FAMILIES
-import skillbill.scaffold.policy.scaffold.APPROVED_CODE_REVIEW_AREAS
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_ADD_ON
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_CODE_REVIEW_AREA
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_HORIZONTAL
-import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
+import skillbill.scaffold.policy.APPROVED_CODE_REVIEW_AREAS
+import skillbill.scaffold.policy.SKILL_KIND_ADD_ON
+import skillbill.scaffold.policy.SKILL_KIND_CODE_REVIEW_AREA
+import skillbill.scaffold.policy.SKILL_KIND_HORIZONTAL
+import skillbill.scaffold.policy.SKILL_KIND_PLATFORM_PACK
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

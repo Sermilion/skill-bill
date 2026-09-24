@@ -1,4 +1,5 @@
 package skillbill.workflow.taskruntime.feature
+
 import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffProjectionValidator
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
@@ -7,7 +8,7 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHando
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeResolvedUpstreamOutputs
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeSharedReviewEvidenceReference
-import skillbill.workflow.taskruntime.noop.NoopFeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.noop.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -94,6 +95,6 @@ class FeatureTaskRuntimeSharedReviewEvidenceProjectionTest {
       resolvedCheckpoint = FeatureTaskRuntimeRepositoryCheckpoint(fingerprint = "fp"),
       sharedReviewEvidence = evidence,
       workflowId = "wftr-1",
-      planningProjectionValidator = NoopFeatureTaskRuntimeWireArtifactValidator,
+      planningProjectionValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator::validate,
     )
 }

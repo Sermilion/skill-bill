@@ -7,6 +7,7 @@ import skillbill.engine.goalrunner.model.GoalPreflightRequest
 import skillbill.engine.goalrunner.model.GoalPreflightResult
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
+import skillbill.goalrunner.model.GoalContinuation
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.model.DecompositionStatus

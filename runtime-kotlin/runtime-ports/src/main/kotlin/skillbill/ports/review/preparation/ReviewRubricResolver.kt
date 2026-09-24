@@ -1,4 +1,5 @@
 package skillbill.ports.review.preparation
+
 import skillbill.ports.review.model.ResolvedReviewRubric
 import skillbill.ports.review.model.ReviewOwnedFileEvidence
 import skillbill.scaffold.model.PlatformManifest

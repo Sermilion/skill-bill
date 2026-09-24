@@ -8,7 +8,7 @@ import skillbill.di.core.TransportContext
 import skillbill.di.core.WorkflowOpsContext
 import skillbill.di.core.create
 import skillbill.infrastructure.launcher.agentrun.PathExecutableLookup
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.model.EnvironmentContext
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
@@ -50,7 +50,7 @@ class AgentRunServiceRuntimeComponentTest {
         ),
       )
 
-    assertEquals(InstallAgent.JUNIE, result.resolution.effectiveAgent)
+    assertEquals(SupportedAgent.JUNIE, result.resolution.effectiveAgent)
     val facts = assertIs<AgentRunLaunchFacts>(result.launchOutcome)
     assertTrue(facts.spawnFailed)
     assertContains(facts.stderr, "'junie' is not on PATH")

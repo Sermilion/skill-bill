@@ -8,15 +8,11 @@ import skillbill.ports.work.model.LEGACY_FEATURE_TASK_PROSE_WORKFLOW_STATUSES
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.work.model.WorkItemKind
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.time.parsePersistedInstant
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import java.sql.Connection
 import java.sql.ResultSet
 import java.time.Instant
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 
 internal class SQLiteWorkListRepository(
   private val connection: Connection,
@@ -130,27 +126,23 @@ private val validWorkStates: Set<String> =
     FeatureTaskRuntimePhaseWorkflowDefinition.definition.workflowStatuses +
     FeatureVerifyWorkflowDefinition.definition.workflowStatuses
 
-private fun ResultSet.required(column: String): String {
+internal fun ResultSet.required(column: String): String {
   val value = getString(column) ?: invalid(getString(SharedPayloadKeys.WORKFLOW_ID).orEmpty(), "missing $column")
   if (value.isBlank()) invalid(getString(SharedPayloadKeys.WORKFLOW_ID).orEmpty(), "missing $column")
   if (value != value.trim()) invalid(getString(SharedPayloadKeys.WORKFLOW_ID).orEmpty(), "invalid $column '$value'")
   return value
 }
 
-private fun parseInstant(
+internal fun parseInstant(
   value: String,
   workflowId: String,
   column: String,
 ): Instant =
-  runCatching { Instant.parse(value) }
-    .recoverCatching { OffsetDateTime.parse(value).toInstant() }
-    .recoverCatching {
-      LocalDateTime.parse(value.replace(' ', 'T'), DateTimeFormatter.ISO_LOCAL_DATE_TIME).toInstant(ZoneOffset.UTC)
-    }
-    .getOrElse { error ->
-      if (error is DateTimeParseException) invalid(workflowId, "invalid $column '$value'", error)
-      throw error
-    }
+  try {
+    parsePersistedInstant(value)
+  } catch (error: IllegalArgumentException) {
+    invalid(workflowId, "invalid $column '$value'", error)
+  }
 
 private fun invalid(
   workflowId: String,

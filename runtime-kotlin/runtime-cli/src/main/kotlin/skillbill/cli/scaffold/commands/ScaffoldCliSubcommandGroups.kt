@@ -1,4 +1,5 @@
 package skillbill.cli.scaffold.commands
+
 import me.tatarka.inject.annotations.Inject
 
 @Inject

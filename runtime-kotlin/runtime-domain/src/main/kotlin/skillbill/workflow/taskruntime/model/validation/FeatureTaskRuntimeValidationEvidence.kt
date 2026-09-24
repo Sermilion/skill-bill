@@ -1,7 +1,9 @@
 package skillbill.workflow.taskruntime.model.validation
+
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 private const val MAX_VALIDATION_RESULTS = 50
 
@@ -106,7 +108,7 @@ data class FeatureTaskRuntimeValidationEvidence(
             result[ValidationEvidencePayloadKeys.COMMAND] as? String
               ?: invalid(sourceLabel, "results[$index].command must be a string.")
           val exitCode =
-            result[ValidationEvidencePayloadKeys.EXIT_CODE].asIntegerOrNull()
+            result[ValidationEvidencePayloadKeys.EXIT_CODE].asExactIntOrNull()
               ?: invalid(sourceLabel, "results[$index].exit_code must be an integer.")
           if (command.isBlank()) invalid(sourceLabel, "results[$index].command must be non-blank.")
           FeatureTaskRuntimeValidationCommandResult(command, exitCode)
@@ -124,12 +126,3 @@ data class FeatureTaskRuntimeValidationEvidence(
     ): Nothing = throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(sourceLabel, reason)
   }
 }
-
-private fun Any?.asIntegerOrNull(): Int? =
-  when (this) {
-    is Int -> this
-    is Long -> toInt().takeIf { it.toLong() == this }
-    is Short -> toInt()
-    is Byte -> toInt()
-    else -> null
-  }

@@ -1,10 +1,12 @@
 package skillbill.infrastructure.contracts.workflow.featuretask.handoff
+
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION
 import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.infrastructure.contracts.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.artifact.validateEnvelope
+import skillbill.ports.taskruntime.validateEnvelope
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -46,7 +48,7 @@ class FeatureTaskRuntimeHandoffEnvelopeSchemaValidatorTest {
     FeatureTaskRuntimeWireArtifactKind.entries.forEach { kind ->
       val error =
         assertFailsWith<RuntimeException> {
-          validator.validate(kind, emptyMap<String, Any?>(), kind.name)
+          validator.validate(kind, FeatureTaskRuntimeWorkflowArtifactMap.from(emptyMap<String, Any?>()), kind.name)
         }
       assertEquals(expectedErrors.getValue(kind), error::class.simpleName)
     }

@@ -1,12 +1,14 @@
 package skillbill.infrastructure.sqlite.review.stage.runtime
+
 import skillbill.infrastructure.sqlite.core.ops.bindAll
+import skillbill.infrastructure.sqlite.review.stats.ReviewFinishedTelemetryUpdateRequest
 import skillbill.infrastructure.sqlite.review.stats.ReviewStatsRuntime
-import skillbill.review.finding.TriageDecisionParser
 import skillbill.review.model.FeedbackRequest
 import skillbill.review.model.FeedbackTelemetryOptions
 import skillbill.review.model.NumberedFinding
 import skillbill.review.model.ReviewFinishedTelemetry
 import skillbill.review.model.TriageDecision
+import skillbill.review.parsing.TriageDecisionParser
 import java.sql.Connection
 
 internal object TriageRuntime {
@@ -31,6 +33,7 @@ internal object TriageRuntime {
     connection: Connection,
     request: FeedbackRequest,
     telemetryOptions: FeedbackTelemetryOptions = FeedbackTelemetryOptions(),
+    runtimeVersion: String,
   ): ReviewFinishedTelemetry? {
     validateFeedbackRequest(connection, request)
     request.findingIds.forEach { findingId ->
@@ -39,9 +42,13 @@ internal object TriageRuntime {
     return ReviewStatsRuntime.updateReviewFinishedTelemetryState(
       connection = connection,
       reviewRunId = request.reviewRunId,
-      enabled = telemetryOptions.enabled ?: false,
-      level = telemetryOptions.level ?: "off",
-      routedSkillPlatformSlugs = telemetryOptions.routedSkillPlatformSlugs,
+      request =
+        ReviewFinishedTelemetryUpdateRequest(
+          enabled = telemetryOptions.enabled ?: false,
+          level = telemetryOptions.level ?: "off",
+          routedSkillPlatformSlugs = telemetryOptions.routedSkillPlatformSlugs,
+        ),
+      runtimeVersion = runtimeVersion,
     )
   }
 }

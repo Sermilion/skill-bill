@@ -2,7 +2,7 @@ package skillbill.application.review.snapshot
 
 import skillbill.application.review.service.ReviewOutputAdmission
 import skillbill.application.review.service.classifyReviewOutput
-import skillbill.install.model.InstallAgent
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.review.model.ReviewProcessOutcome
 import kotlin.test.Test
@@ -56,7 +56,7 @@ class ReviewOutputClassificationTest {
 
   private fun facts(fixture: FactsFixture) =
     AgentRunLaunchFacts(
-      agent = InstallAgent.CODEX,
+      agent = SupportedAgent.CODEX,
       exitStatus = fixture.exitStatus,
       stdout = fixture.stdout,
       stderr = "",

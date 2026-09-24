@@ -11,8 +11,8 @@ import skillbill.infrastructure.launcher.agentrun.GovernedReviewLaunchCapability
 import skillbill.infrastructure.launcher.agentrun.JunieAgentRunCommandBuilder
 import skillbill.infrastructure.launcher.process.launch.AgentRunIdlePolicy
 import skillbill.infrastructure.skills.install.mcp.McpConfigFormat
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.MODEL_DIRECTIVE_CAPABLE_AGENTS
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.review.model.ReviewLaunchIsolationStrategy
 import skillbill.review.context.model.launch.ReviewConversationIsolation
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -372,7 +372,7 @@ class AgentRunCommandBuildersTest {
         request(),
       ).command
 
-    assertEquals(InstallAgent.JUNIE.id, command.first())
+    assertEquals(SupportedAgent.JUNIE.id, command.first())
   }
 
   @Test

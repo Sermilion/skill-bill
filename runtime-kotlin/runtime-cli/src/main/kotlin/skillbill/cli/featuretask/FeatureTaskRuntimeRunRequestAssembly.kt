@@ -16,8 +16,8 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuatio
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeModelAssignment
 import skillbill.experiment.model.ExperimentArmId
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
-import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
-import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.ValidationDepth
+import skillbill.workflow.model.goalreview.GoalSubtaskOperatorDecision
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path

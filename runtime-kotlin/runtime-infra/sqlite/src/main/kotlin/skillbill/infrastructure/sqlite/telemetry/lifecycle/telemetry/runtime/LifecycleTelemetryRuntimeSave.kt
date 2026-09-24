@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.runtime
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.infrastructure.sqlite.core.ops.bindAll
@@ -163,7 +164,7 @@ private fun bindFeatureTaskRuntimeFinishedUpdate(
   )
 }
 
-private fun List<String>?.namesJson(): String? = this?.takeIf { it.isNotEmpty() }?.let(::listJson)
+internal fun List<String>?.namesJson(): String? = this?.takeIf { it.isNotEmpty() }?.let(::listJson)
 
 private fun Any?.availabilityWire(): String =
   if (this == null) {

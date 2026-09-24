@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.planning
+
 import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity

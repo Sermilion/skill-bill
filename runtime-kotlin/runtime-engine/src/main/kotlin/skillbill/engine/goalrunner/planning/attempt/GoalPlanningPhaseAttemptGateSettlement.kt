@@ -6,7 +6,7 @@ import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.engine.goalrunner.planning.model.GoalPlanningProduceAttemptArgs
 import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
-import skillbill.workflow.goal.model.GoalProgressOutcome
+import skillbill.workflow.model.goalreview.GoalProgressOutcome
 
 internal data class PlanningProduceAdvanceArgs(
   val attemptArgs: GoalPlanningProduceAttemptArgs,

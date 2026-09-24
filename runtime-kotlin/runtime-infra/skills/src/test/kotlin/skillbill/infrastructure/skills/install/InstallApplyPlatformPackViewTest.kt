@@ -1,8 +1,8 @@
 package skillbill.infrastructure.skills.install
 
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyStatus
+import skillbill.install.model.SupportedAgent
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import kotlin.test.Test
@@ -19,7 +19,7 @@ class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
 
@@ -68,7 +68,7 @@ class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
 
@@ -101,7 +101,7 @@ class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("ios", "python"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
 
@@ -126,7 +126,7 @@ class InstallApplyPlatformPackViewTest : InstallApplyTestSupport() {
       planInstallForTest(
         fixture.request(
           selectedPlatforms = setOf("kotlin"),
-          agents = setOf(InstallAgent.CODEX),
+          agents = setOf(SupportedAgent.CODEX),
         ),
       )
 

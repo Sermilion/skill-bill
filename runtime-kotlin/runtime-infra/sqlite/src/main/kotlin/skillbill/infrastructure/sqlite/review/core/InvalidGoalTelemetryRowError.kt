@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review.core
+
 import skillbill.error.shellcontent.ShellContentContractException
 
 internal class InvalidGoalTelemetryRowError(

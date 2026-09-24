@@ -5,33 +5,38 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationFieldAdoption
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
 
 fun schemaError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)
 
-internal fun <T> decodeStrictKeyedArtifactMap(
+fun <T> decodeStrictKeyedArtifactMap(
   artifacts: Map<String, Any?>,
   artifactKey: String,
+  ignoreEntry: (String) -> Boolean = { false },
   decodeEntry: (String, Map<String, Any?>) -> T,
 ): Map<String, T> {
-  val raw = artifacts[artifactKey] ?: return emptyMap()
+  if (artifactKey !in artifacts) return emptyMap()
+  val raw = artifacts[artifactKey]
   val rawMap =
     raw as? Map<*, *>
       ?: schemaError("Feature-task-runtime artifact '$artifactKey' must decode to a map.")
-  return rawMap.entries.associate { (key, value) ->
-    val phaseId =
-      key as? String
-        ?: schemaError("Feature-task-runtime artifact '$artifactKey' must have string keys; found '$key'.")
-    val entryMap =
-      JsonCodec.anyToStringAnyMap(value)
-        ?: schemaError("Feature-task-runtime artifact '$artifactKey' entry for '$phaseId' must decode to a map.")
-    phaseId to decodeEntry(phaseId, entryMap)
+  return buildMap {
+    rawMap.forEach { (key, value) ->
+      val phaseId =
+        key as? String
+          ?: schemaError("Feature-task-runtime artifact '$artifactKey' must have string keys; found '$key'.")
+      if (ignoreEntry(phaseId)) return@forEach
+      val entryMap =
+        JsonCodec.anyToStringAnyMap(value)
+          ?: schemaError("Feature-task-runtime artifact '$artifactKey' entry for '$phaseId' must decode to a map.")
+      put(phaseId, decodeEntry(phaseId, entryMap))
+    }
   }
 }
 
@@ -41,7 +46,8 @@ internal fun phaseRecordsFrom(artifacts: Map<String, Any?>): Map<String, Feature
   }
 
 internal fun resolvedBranchFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch? {
-  val raw = artifacts[FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY] ?: return null
+  if (FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY !in artifacts) return null
+  val raw = artifacts[FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY]
   val entryMap =
     JsonCodec.anyToStringAnyMap(raw)
       ?: schemaError(
@@ -51,7 +57,8 @@ internal fun resolvedBranchFrom(artifacts: Map<String, Any?>): FeatureTaskRuntim
 }
 
 internal fun reviewGenerationFrom(artifacts: Map<String, Any?>): Int {
-  val raw = artifacts[FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY] ?: return 0
+  if (FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY !in artifacts) return 0
+  val raw = artifacts[FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY]
   val ordinal =
     when (raw) {
       is Int -> raw
@@ -67,7 +74,8 @@ internal fun reviewGenerationFrom(artifacts: Map<String, Any?>): Int {
 }
 
 internal fun operatorBlockRetryFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeOperatorBlockRetry? {
-  val raw = artifacts[FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY] ?: return null
+  if (FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY !in artifacts) return null
+  val raw = artifacts[FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY]
   val entryMap =
     JsonCodec.anyToStringAnyMap(raw)
       ?: schemaError(
@@ -83,7 +91,8 @@ internal fun operatorBlockRetryFrom(artifacts: Map<String, Any?>): FeatureTaskRu
 internal fun goalContinuationFieldAdoptionFrom(
   artifacts: Map<String, Any?>,
 ): FeatureTaskRuntimeGoalContinuationFieldAdoption? {
-  val raw = artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY] ?: return null
+  if (FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY !in artifacts) return null
+  val raw = artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY]
   val entryMap =
     JsonCodec.anyToStringAnyMap(raw)
       ?: schemaError(

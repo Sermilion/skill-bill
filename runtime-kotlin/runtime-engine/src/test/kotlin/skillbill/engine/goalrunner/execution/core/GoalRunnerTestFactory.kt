@@ -1,4 +1,5 @@
 package skillbill.engine.goalrunner.execution.core
+
 import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.realPlanningProjectionValidator
@@ -37,7 +38,9 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.UnitOfWorkDefaults
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
+import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
 import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
@@ -50,8 +53,6 @@ import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.specscratch.SpecScratchStore
 import skillbill.ports.workflow.specscratch.UnavailableSpecScratchStore
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseOutputValidator
 import java.nio.file.Path
 import java.time.Clock
 import kotlin.time.TimeSource

@@ -6,10 +6,10 @@ import skillbill.infrastructure.skills.install.apply.currentNativeAgentApplyCach
 import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgentLinkInventory
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.workflow.review.specialists.system.FileSystemReviewNativeAgentPreflight
-import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallApplyStatus
 import skillbill.install.model.NativeAgentApplyStatus
 import skillbill.install.model.NativeAgentProviderId
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.review.model.ReviewNativeAgentPreflightRequest
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -135,7 +135,7 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     Files.writeString(inventory, invalidInventory)
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
       )
 
     val result = applyInstallForTest(plan)
@@ -163,7 +163,7 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     val providerAgents = fixture.home.resolve(".codex/agents")
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
       )
 
     val result = applyInstallForTest(plan)
@@ -180,7 +180,7 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     Files.createDirectories(fixture.home.resolve(".codex"))
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
       )
     val result = applyInstallForTest(plan)
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
@@ -204,7 +204,7 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     Files.writeString(userFile, "user cursor file\n")
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CURSOR)),
       )
 
     val result = applyInstallForTest(plan)
@@ -239,7 +239,7 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     val repeat =
       applyInstallForTest(
         planInstallForTest(
-          fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
+          fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CURSOR)),
         ),
       )
 
@@ -274,7 +274,7 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     val result =
       applyInstallForTest(
         planInstallForTest(
-          fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
+          fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CURSOR)),
         ),
       )
 
@@ -297,7 +297,7 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     Files.createDirectories(fixture.home.resolve(".cursor"))
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CURSOR)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CURSOR)),
       )
     assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(plan).status)
     val installed =
@@ -325,7 +325,7 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     Files.createDirectories(fixture.home.resolve(".codex"))
     val plan =
       planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(InstallAgent.CODEX)),
+        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
       )
     val result = applyInstallForTest(plan)
     assertEquals(InstallApplyStatus.SUCCESS, result.status)

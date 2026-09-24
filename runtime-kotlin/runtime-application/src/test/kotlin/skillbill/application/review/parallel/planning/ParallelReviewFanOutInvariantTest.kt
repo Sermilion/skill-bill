@@ -4,6 +4,7 @@ import skillbill.application.review.model.ReviewPreparationRequest
 import skillbill.application.review.model.ReviewPreparationResult
 import skillbill.application.review.preparation.ReviewPreparationService
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
+import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.model.ReviewFactPorts
 import skillbill.ports.review.model.ReviewLaneSelection
 import skillbill.ports.review.model.ReviewScopeFacts
@@ -14,7 +15,7 @@ import skillbill.ports.review.preparation.ReviewLaneSelectionPort
 import skillbill.ports.review.preparation.ReviewLearningsPort
 import skillbill.ports.review.preparation.ReviewScopeResolverPort
 import skillbill.ports.review.preparation.ReviewStackRoutingPort
-import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.review.context.ReviewContextWireMap
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitLaneDecision
 import skillbill.review.context.model.commit.ReviewCommitLaneDisposition
@@ -31,7 +32,6 @@ import skillbill.review.context.model.hunk.ReviewRuleReference
 import skillbill.review.context.model.launch.GovernedReviewLaunch
 import skillbill.review.context.model.packet.ReviewLaneAssembledBundle
 import skillbill.review.context.model.packet.segmentAssembledBundle
-import skillbill.workflow.engine.model.ReviewContextWireMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

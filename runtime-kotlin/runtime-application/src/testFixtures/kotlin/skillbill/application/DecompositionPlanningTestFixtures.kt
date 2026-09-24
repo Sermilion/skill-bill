@@ -4,6 +4,7 @@ import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.model.DecompositionPlanningResultOptions
 import skillbill.application.decomposition.model.DecompositionPlanningSubtaskOptions
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.decomposition.DecompositionPlanningStackBranchWire
 import java.nio.file.Path

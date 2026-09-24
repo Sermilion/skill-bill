@@ -1,5 +1,4 @@
 package skillbill.infrastructure.host
-
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.host.jvm.resolveUserHome
 import skillbill.model.EnvironmentContext

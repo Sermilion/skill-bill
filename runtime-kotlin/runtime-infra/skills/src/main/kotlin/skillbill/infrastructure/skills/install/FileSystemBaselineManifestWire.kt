@@ -1,7 +1,9 @@
 package skillbill.infrastructure.skills.install
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.UnreadableBaselineManifestError
+import skillbill.infrastructure.skills.install.reconcile.skillRelativePath
 import skillbill.install.model.BaselineManifest
 import java.nio.file.Path
 

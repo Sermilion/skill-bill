@@ -1,8 +1,11 @@
 package skillbill.goalrunner
+
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequest
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
+import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 
 fun GoalRunnerSupervisionEvent.toPersistenceWire(): Any = toArtifactsMap()
 
@@ -20,7 +23,7 @@ internal fun GoalRunnerSupervisionEvent.toArtifactsMap(): Map<String, Any?> =
     "last_output_at" to lastOutputAt,
   )
 
-const val WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY = "goal_worker_subtask_request_outcomes"
+internal const val WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY = "goal_worker_subtask_request_outcomes"
 const val WORKER_SUBTASK_REQUEST_OUTCOME_LIMIT = 50
 
 fun GoalRunnerWorkerSubtaskRequestOutcome.toPersistenceWire(): Any = toArtifactMap()
@@ -68,9 +71,9 @@ internal fun GoalRunnerWorkerSubtaskRequest.toArtifactMap(): Map<String, Any?> =
   ).filterValues { value -> value != null }
 
 fun Any?.asGoalRunnerIntOrNull(): Int? =
-  when (this) {
-    is Int -> this
-    is Number -> toInt()
-    is String -> toIntOrNull()
-    else -> null
+  if (this == null) {
+    null
+  } else {
+    asExactIntOrNull()
+      ?: throw InvalidWorkflowStateSchemaError("Goal-runner durable integer must be exact.")
   }

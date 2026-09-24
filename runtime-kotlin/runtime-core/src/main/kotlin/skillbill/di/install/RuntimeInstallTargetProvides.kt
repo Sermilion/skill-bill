@@ -1,4 +1,5 @@
 package skillbill.di.install
+
 import me.tatarka.inject.annotations.Provides
 import skillbill.infrastructure.skills.install.FileSystemBaselineManifestPersistence
 import skillbill.infrastructure.skills.install.FileSystemInstallAgentTargets

@@ -1,5 +1,7 @@
 package skillbill.cli.featuretask
 
+import skillbill.application.decomposition.decompositionManifestPath
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeSubtaskOutcome

@@ -1,6 +1,7 @@
 package skillbill.engine.goalrunner.planning.context
 
 import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
+import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSharedContext

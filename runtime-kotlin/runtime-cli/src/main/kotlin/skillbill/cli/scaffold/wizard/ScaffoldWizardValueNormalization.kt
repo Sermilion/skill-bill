@@ -1,13 +1,15 @@
 package skillbill.cli.scaffold.wizard
+
+import skillbill.scaffold.model.SkillKind
 import skillbill.scaffold.model.command.isRetiredPartialScaffoldCommandKindAlias
 import skillbill.scaffold.model.command.rejectRetiredPartialScaffoldCommandKind
 
 internal fun normalizeWizardKind(value: String): String =
   when (value.trim().lowercase()) {
-    "1", "horizontal", "skill" -> "horizontal"
-    "2", "platform", "platform-pack", "pack" -> "platform-pack"
-    "3", "add-on", "addon" -> "add-on"
-    "4", "agent-addon", "agent-addon-skill" -> "agent-addon"
+    "1", "horizontal", "skill" -> SkillKind.HORIZONTAL.wireValue
+    "2", "platform", "platform-pack", "pack" -> SkillKind.PLATFORM_PACK.wireValue
+    "3", "add-on", "addon" -> SkillKind.ADD_ON.wireValue
+    "4", "agent-addon", "agent-addon-skill" -> SkillKind.AGENT_ADDON.wireValue
     else ->
       if (isRetiredPartialScaffoldCommandKindAlias(value)) {
         rejectRetiredPartialScaffoldCommandKind(value)

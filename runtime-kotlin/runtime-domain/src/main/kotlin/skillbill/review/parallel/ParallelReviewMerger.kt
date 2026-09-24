@@ -1,6 +1,6 @@
 package skillbill.review.parallel
+
 import skillbill.review.context.model.execution.structuredString
-import skillbill.review.finding.ReviewFindingActionability
 import skillbill.review.model.ParallelReviewLaneResult
 import skillbill.review.model.ParallelReviewMergeResult
 import skillbill.review.model.ParallelReviewMergedFinding
@@ -13,6 +13,7 @@ import skillbill.review.model.ReviewFindingVerdict
 import skillbill.review.model.ReviewLaneFindingVerdict
 import skillbill.review.model.ReviewScopeDisposition
 import skillbill.review.model.ReviewSeverityAdjustment
+import skillbill.review.parsing.ReviewFindingActionability
 
 object ParallelReviewMerger {
   fun merge(

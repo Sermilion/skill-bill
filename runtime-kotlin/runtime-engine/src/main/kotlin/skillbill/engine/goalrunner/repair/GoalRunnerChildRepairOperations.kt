@@ -7,11 +7,11 @@ import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildRepairApplyRequest
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildRepairApplyResult
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildWedgeDiagnosis
+import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.WorkflowSnapshotValidator
 import java.nio.file.Path
 import java.time.Clock
 
@@ -25,7 +25,7 @@ class GoalRunnerChildRepairOperations(
   private val decompositionManifestValidator: DecompositionManifestValidator,
   private val clock: Clock,
 ) : GoalRunnerChildRepairRunnerPort {
-  private val engine = WorkflowEngine(workflowSnapshotValidator)
+  private val engine = WorkflowEngine()
   private val workflowPersistence = FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator)
   private val wedgeDiagnosis = GoalRunnerChildRepairWedgeDiagnosis(gitOperations, clock)
   private val wedgeApplyLoop =

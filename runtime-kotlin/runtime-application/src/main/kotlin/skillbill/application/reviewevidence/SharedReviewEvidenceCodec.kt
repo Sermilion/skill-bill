@@ -1,4 +1,5 @@
 package skillbill.application.reviewevidence
+
 import skillbill.review.context.model.commit.ReviewCommitSource
 
 internal object SharedReviewEvidenceCodec {

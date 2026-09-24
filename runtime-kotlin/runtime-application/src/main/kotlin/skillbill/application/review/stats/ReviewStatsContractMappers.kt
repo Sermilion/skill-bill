@@ -1,4 +1,5 @@
 package skillbill.application.review.stats
+
 import skillbill.application.review.model.FeatureTaskRuntimeStatsResult
 import skillbill.application.review.model.FeatureVerifyStatsResult
 import skillbill.application.review.model.GoalStatsResult

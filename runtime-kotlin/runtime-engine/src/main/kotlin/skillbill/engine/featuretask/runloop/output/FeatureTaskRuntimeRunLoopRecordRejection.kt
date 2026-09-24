@@ -35,6 +35,7 @@ import skillbill.engine.featuretask.runner.LaunchResult
 import skillbill.engine.featuretask.runner.SCHEMA_GATE_DETAIL_MAX_CHARS
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
 import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
+import skillbill.engine.featuretask.runner.infraFailureReason
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition

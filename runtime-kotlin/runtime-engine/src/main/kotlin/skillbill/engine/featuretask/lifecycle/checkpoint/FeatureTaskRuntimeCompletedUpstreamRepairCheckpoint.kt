@@ -4,6 +4,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.subtask.CompletedUpstreamRepairRequest
 import skillbill.engine.featuretask.runner.missingUpstream
 import skillbill.engine.featuretask.runner.phaseDeclaration
+import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -12,10 +13,7 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.persistence.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
@@ -73,13 +71,15 @@ fun completedUpstreamRepairWorkflowUpdate(
     artifactsPatch =
       WorkflowArtifactPatch.from(
         mapOf(
-          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_RECORDS.entry(
             reopenedRecords.mapValues { (_, record) -> record.asWorkflowArtifactEntry() },
-          FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
+          ),
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_PHASE_LEDGER.entry(
             (request.ledger.map { it.asWorkflowArtifactEntry() } + retryEntry.asWorkflowArtifactEntry()).takeLast(
               FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
             ),
-          FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to
+          ),
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY.entry(
             mapOf(
               SharedPayloadKeys.PHASE_ID to request.resumePhaseId,
               "reason" to request.reason,
@@ -87,7 +87,8 @@ fun completedUpstreamRepairWorkflowUpdate(
               "previous_blocked_reason" to "completed_upstream_missing_output",
               "reopened_phase_ids" to phasesToReopen,
             ),
-          "goal_continuation_outcome" to null,
+          ),
+          DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME.entry(null),
         ),
       ),
     sessionId = "",
