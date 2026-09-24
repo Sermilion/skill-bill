@@ -356,11 +356,11 @@ class McpRuntimeTest {
     val defaultSkillPath = Path.of(defaultResult["skill_path"] as String)
     val explicitSkillPath = Path.of(explicitResult["skill_path"] as String)
     assertTrue(
-      defaultSkillPath.startsWith(invocationRoot.toAbsolutePath().normalize()),
+      pathIsUnderRoot(defaultSkillPath, invocationRoot),
       "default skill path $defaultSkillPath was not under $invocationRoot",
     )
     assertTrue(
-      explicitSkillPath.startsWith(explicitRoot.toAbsolutePath().normalize()),
+      pathIsUnderRoot(explicitSkillPath, explicitRoot),
       "explicit skill path $explicitSkillPath was not under $explicitRoot",
     )
   }
@@ -1377,6 +1377,21 @@ private fun goldenJson(
     expected = expected.replace(placeholder, value)
   }
   return expected
+}
+
+private fun pathIsUnderRoot(
+  path: Path,
+  root: Path,
+): Boolean {
+  val normalizedPath = path.toAbsolutePath().normalize()
+  var existingAncestor = normalizedPath
+  while (!Files.exists(existingAncestor)) {
+    existingAncestor = existingAncestor.parent ?: return false
+  }
+  val canonicalAncestor = existingAncestor.toRealPath()
+  val canonicalPath =
+    canonicalAncestor.resolve(existingAncestor.relativize(normalizedPath)).normalize()
+  return canonicalPath.startsWith(root.toRealPath())
 }
 
 private fun assertGoldenPayload(

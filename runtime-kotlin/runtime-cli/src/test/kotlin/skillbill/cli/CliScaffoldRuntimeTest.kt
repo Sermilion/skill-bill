@@ -73,11 +73,11 @@ class CliScaffoldRuntimeTest {
     val defaultSkillPath = Path.of(parseJsonObject(defaultResult.stdout).stringValue("skill_path"))
     val explicitSkillPath = Path.of(parseJsonObject(explicitResult.stdout).stringValue("skill_path"))
     assertTrue(
-      defaultSkillPath.startsWith(invocationRoot.toAbsolutePath().normalize()),
+      pathIsUnderRoot(defaultSkillPath, invocationRoot),
       "default skill path $defaultSkillPath was not under $invocationRoot",
     )
     assertTrue(
-      explicitSkillPath.startsWith(explicitRoot.toAbsolutePath().normalize()),
+      pathIsUnderRoot(explicitSkillPath, explicitRoot),
       "explicit skill path $explicitSkillPath was not under $explicitRoot",
     )
   }
@@ -727,6 +727,21 @@ private fun scaffoldResult(
   val result = CliRuntime.run(arguments, context)
   assertEquals(0, result.exitCode, result.stdout)
   return result
+}
+
+private fun pathIsUnderRoot(
+  path: Path,
+  root: Path,
+): Boolean {
+  val normalizedPath = path.toAbsolutePath().normalize()
+  var existingAncestor = normalizedPath
+  while (!Files.exists(existingAncestor)) {
+    existingAncestor = existingAncestor.parent ?: return false
+  }
+  val canonicalAncestor = existingAncestor.toRealPath()
+  val canonicalPath =
+    canonicalAncestor.resolve(existingAncestor.relativize(normalizedPath)).normalize()
+  return canonicalPath.startsWith(root.toRealPath())
 }
 
 private fun parseJsonObject(rawJson: String): JsonObject {
