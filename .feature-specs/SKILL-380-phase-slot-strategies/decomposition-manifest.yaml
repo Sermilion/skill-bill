@@ -11,8 +11,8 @@ current_subtask_intent:
   action: none
 subtasks:
   - id: 1
-    name: "Strategy contract, registry, and the two variant slots"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_1_strategy-contract-and-variant-slots.md"
+    name: "Pre-change behaviour fixtures"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_1_pre-change-fixtures.md"
     status: pending
     branch: null
     commit_sha: null
@@ -22,8 +22,8 @@ subtasks:
     linear_issue_id: null
     dependencies: []
   - id: 2
-    name: "Remaining slots and the no-phase-id guard"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_2_remaining-slots-and-guard.md"
+    name: "Slot skeleton, strategy contract, runner, state port, selection, and dispatch"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_2_slot-skeleton-and-dispatch.md"
     status: pending
     branch: null
     commit_sha: null
@@ -36,8 +36,8 @@ subtasks:
         optional: false
         skipped: false
   - id: 3
-    name: "Workflow profile contract and durable selection"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_3_workflow-profile-contract.md"
+    name: "code_review strategy inline (InlineReviewStrategy)"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_3_inline-review-strategy.md"
     status: pending
     branch: null
     commit_sha: null
@@ -50,8 +50,8 @@ subtasks:
         optional: false
         skipped: false
   - id: 4
-    name: "Specialist findings review strategy"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_4_specialist-review-strategy.md"
+    name: "Skeleton definitions, slot traversal, and the quality_gate strategies"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_4_skeleton-definitions-and-quality-gate.md"
     status: pending
     branch: null
     commit_sha: null
@@ -60,12 +60,12 @@ subtasks:
     last_resumable_step: null
     linear_issue_id: null
     dependencies:
-      - subtask_id: 3
+      - subtask_id: 2
         optional: false
         skipped: false
   - id: 5
-    name: "Isolated engine, phase:review, phase:validation"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_5_isolated-engine-review-validation.md"
+    name: "Remaining slots and the no-phase-id guard"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_5_remaining-slots-and-guard.md"
     status: pending
     branch: null
     commit_sha: null
@@ -77,9 +77,12 @@ subtasks:
       - subtask_id: 3
         optional: false
         skipped: false
+      - subtask_id: 4
+        optional: false
+        skipped: false
   - id: 6
-    name: "Isolated phase:plan and phase:implement"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_6_isolated-plan-and-implement.md"
+    name: "code_review strategy delegated (DelegatedReviewStrategy)"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_6_delegated-review-strategy.md"
     status: pending
     branch: null
     commit_sha: null
@@ -92,8 +95,8 @@ subtasks:
         optional: false
         skipped: false
   - id: 7
-    name: "Isolated phase:pr"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_7_isolated-pr.md"
+    name: "Run loop runs over PhaseRunState"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_7_run-loop-over-run-state.md"
     status: pending
     branch: null
     commit_sha: null
@@ -106,78 +109,8 @@ subtasks:
         optional: false
         skipped: false
   - id: 8
-    name: "Operation contract and operation:update-check"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_8_operation-contract-and-update-check.md"
-    status: pending
-    branch: null
-    commit_sha: null
-    workflow_id: null
-    blocked_reason: null
-    last_resumable_step: null
-    linear_issue_id: null
-    dependencies:
-      - subtask_id: 5
-        optional: false
-        skipped: false
-  - id: 9
-    name: "Checklist operations"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_9_checklist-operations.md"
-    status: pending
-    branch: null
-    commit_sha: null
-    workflow_id: null
-    blocked_reason: null
-    last_resumable_step: null
-    linear_issue_id: null
-    dependencies:
-      - subtask_id: 8
-        optional: false
-        skipped: false
-  - id: 10
-    name: "operation:pr-review-fix"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_10_pr-review-fix-operation.md"
-    status: pending
-    branch: null
-    commit_sha: null
-    workflow_id: null
-    blocked_reason: null
-    last_resumable_step: null
-    linear_issue_id: null
-    dependencies:
-      - subtask_id: 8
-        optional: false
-        skipped: false
-  - id: 11
-    name: "operation:verify"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_11_verify-operation.md"
-    status: pending
-    branch: null
-    commit_sha: null
-    workflow_id: null
-    blocked_reason: null
-    last_resumable_step: null
-    linear_issue_id: null
-    dependencies:
-      - subtask_id: 8
-        optional: false
-        skipped: false
-  - id: 12
-    name: "operation:release"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_12_release-operation.md"
-    status: pending
-    branch: null
-    commit_sha: null
-    workflow_id: null
-    blocked_reason: null
-    last_resumable_step: null
-    linear_issue_id: null
-    dependencies:
-      - subtask_id: 8
-        optional: false
-        skipped: false
-  - id: 13
-    name: "skill-bill dispatcher, retire listed skills, delete bill-monitor"
-    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_13_single-dispatcher-and-catalog.md"
+    name: "Short definitions, in-memory state, and phase review / validation"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_8_phase-review-and-validation.md"
     status: pending
     branch: null
     commit_sha: null
@@ -192,15 +125,68 @@ subtasks:
       - subtask_id: 7
         optional: false
         skipped: false
+  - id: 9
+    name: "The plan, implement, and pr definitions"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_9_phase-plan-implement-pr.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 8
+        optional: false
+        skipped: false
+  - id: 10
+    name: "Goal planning runs the goal-planning definition"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_10_goal-planning-definition.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 7
+        optional: false
+        skipped: false
       - subtask_id: 9
         optional: false
         skipped: false
-      - subtask_id: 10
+  - id: 11
+    name: "pr-description and boundary-history own their rules"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_11_pr-and-history-rules.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 5
+        optional: false
+        skipped: false
+      - subtask_id: 9
+        optional: false
+        skipped: false
+  - id: 12
+    name: "skill-bill dispatcher for the full run and phases"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_12_skill-bill-dispatcher.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 9
         optional: false
         skipped: false
       - subtask_id: 11
-        optional: false
-        skipped: false
-      - subtask_id: 12
         optional: false
         skipped: false

@@ -27,16 +27,17 @@ that reuses that behaviour without a workflow, and a single listed dispatcher:
 - one strategy contract that every slot's implementation satisfies
 - one `PhaseRunner` that executes a single step
 - a registry keyed by slot and strategy id
-- a workflow profile, validated against a schema and frozen into a skeleton run
-- isolated programs invoked as `phase:<name>`
+- one code-defined selection binding naming the strategy per slot (a developer choice, not operator config; revised 2026-09-25)
+- skeleton definitions: ordered subsets of the slots; phase runs (`phase <name>`) are short definitions on the same loop
 - operations invoked as `operation:<name>` with runtime pre/post
 - listed catalog exactly `skill-bill`; `bill-monitor` deleted
 
-Existing behaviour moves behind the contract unchanged. The default profile reproduces
-today's runs byte for byte. Only variants that exist today ship: two quality-gate
-strategies and, as a separable last step, the specialist review that feature-task used
-before 2026-09-11. The seam makes the next strategy one class, one registry line, and
-one profile value.
+Existing behaviour moves behind the contract unchanged. The production selection
+reproduces today's runs byte for byte, except the planned changes in the parent
+fixture ledger. Only variants that exist today ship: two quality-gate strategies and
+the specialist review that feature-task used before 2026-09-11, which the `review`
+`phase:review` runs. The seam makes the next strategy one class, one registry line,
+and one selection entry.
 
 ## Method and baseline
 
@@ -127,7 +128,7 @@ still uses the existing runner." `ParallelCodeReviewRunner` is still live for
 `ParallelCodeReviewResult`. The two review designs are the concrete case for swappable
 review.
 
-### Durable state and configuration relevant to a profile
+### Durable state relevant to strategy selection
 
 - **Run invariants** (`FeatureTaskRuntimeRunInvariantsPersistence.kt`, contract
   `0.1`) are frozen once at preparation (`FeatureTaskRuntimeRunPreparation.kt:261`).
@@ -161,15 +162,15 @@ review.
 
 | ID | Priority | Finding | Subtask |
 | --- | --- | --- | --- |
-| F-001 | High | Phase behaviour is dispatched by identity: `when (run.phaseId)` in `FeatureTaskRuntimeRunLoopPlanningBranch.runPreparedPhaseReady` (`:192-220`), a parallel `when` in `FeatureTaskRuntimeCurrentPhaseExecutionDeriver` (`:27-38`), and 250 engine phase-id references outside any per-phase owner | 1, 2 |
-| F-002 | High | Launch rules live in domain sets keyed by phase id, far from the behaviour: `MUTATING_PHASES`, `OUTPUT_RETRY_PHASES`, `singleAgentSessionOnly`, `GENERATION_SCOPED_PHASE_IDS` (`FeatureTaskRuntimePhaseWorkflowDefinition.kt:44-69`), `NON_FILE_MUTATING_PHASES` (`FeatureTaskRuntimeRunnerPolicies.kt:23`), `PROSE_PHASE_IDS` (`ProsePhaseOutputSynthesizer.kt:15-16`), and the read-only idle choice (`FeatureTaskRuntimeRunLoopLaunch.kt:283-312, 368-372`). They have drifted from the code: review, audit, validate, and write_history all edit files, but none is marked mutating | 1, 2 |
-| F-003 | High | Quality-gate selection is a strategy implemented as transition rewriting, projection filtering, and status skip rules across 27 files. `fromWire` silently maps unknown values to VALIDATE, and the CLI option is free-form | 1, 3 |
-| F-004 | Medium | The review seam exists but is global and not durable. `CodeReviewExecutionMode` is validated and pinned in 35 files but has no effect on the wired driver beyond accounting. The specialist review was removed from feature-task over a liveness bug, not a design decision against it | 1, 4 |
-| F-005 | Medium | Prompt task text is chosen from phase-keyed tables (`phaseDirectives`, `phaseTaskDirective`). The review entries and `reviewExecutionDirective` look unreachable because review bypasses the composer | 1, 2 |
-| F-006 | Medium | Nothing durable records how a phase ran, so resume cannot detect a strategy change, and telemetry cannot compare two strategies for the same slot | 3 |
+| F-001 | High | Phase behaviour is dispatched by identity: `when (run.phaseId)` in `FeatureTaskRuntimeRunLoopPlanningBranch.runPreparedPhaseReady` (`:192-220`), a parallel `when` in `FeatureTaskRuntimeCurrentPhaseExecutionDeriver` (`:27-38`), and 250 engine phase-id references outside any per-phase owner | 2, 5 |
+| F-002 | High | Launch rules live in domain sets keyed by phase id, far from the behaviour: `MUTATING_PHASES`, `OUTPUT_RETRY_PHASES`, `singleAgentSessionOnly`, `GENERATION_SCOPED_PHASE_IDS` (`FeatureTaskRuntimePhaseWorkflowDefinition.kt:44-69`), `NON_FILE_MUTATING_PHASES` (`FeatureTaskRuntimeRunnerPolicies.kt:23`), `PROSE_PHASE_IDS` (`ProsePhaseOutputSynthesizer.kt:15-16`), and the read-only idle choice (`FeatureTaskRuntimeRunLoopLaunch.kt:283-312, 368-372`). They have drifted from the code: review, audit, validate, and write_history all edit files, but none is marked mutating | 2, 5 |
+| F-003 | High | Quality-gate selection is a strategy implemented as transition rewriting, projection filtering, and status skip rules across 27 files. `fromWire` silently maps unknown values to VALIDATE, and the CLI option is free-form | 4 |
+| F-004 | Medium | The review seam exists but is global and not durable. `CodeReviewExecutionMode` is validated and pinned in 35 files but has no effect on the wired driver beyond accounting. The specialist review was removed from feature-task over a liveness bug, not a design decision against it | 3, 6 |
+| F-005 | Medium | Prompt task text is chosen from phase-keyed tables (`phaseDirectives`, `phaseTaskDirective`). The review entries and `reviewExecutionDirective` look unreachable because review bypasses the composer | 2, 5 |
+| F-006 | Medium | Nothing durable records how a phase ran, so resume cannot detect a strategy change, and telemetry cannot compare two strategies for the same slot | Deferred: selection is code (see Target design) |
 | F-007 | Low | `AGENTS.md` says the build gate starts no repair agents. `FeatureTaskRuntimeBuildGateCoordinator` runs up to one triage and three repair sessions (`:59-218, 328`), and the build prompt agrees with the code | Open question (see Limits) |
-| F-008 | High | The only way to run a phase is a skeleton workflow. Operators need isolated programs (`phase:plan`, `phase:review`, `phase:validation`, `phase:implement`, `phase:pr`) that share `PhaseRunner` and write no workflow row | 1, 5–7 |
-| F-009 | High | Listed `skills/bill-*` are prompt catalogs. Operators need one `/skill-bill` dispatcher, `operation:<name>` for non-phase jobs, and `bill-monitor` removed | 8–13 |
+| F-008 | High | The only way to run a phase is a skeleton workflow. Operators need isolated programs (`phase:plan`, `phase:review`, `phase:validation`, `phase:implement`, `phase:pr`) that share `PhaseRunner` and the same strategies, and write no workflow row | 4, 7–9 |
+| F-009 | High | Listed `skills/bill-*` are prompt catalogs. Operators need one `/skill-bill` dispatcher, `operation:<name>` for non-phase jobs, and `bill-monitor` removed | SKILL-380 subtask 12; SKILL-382; SKILL-383 |
 
 ## Target design
 
@@ -197,52 +198,64 @@ review.
   (the step run, state, observability) arrive as parameters. This matches SKILL-378
   subtask 2's step-class rule.
 - **Phase runner.** One `PhaseRunner` interface in the same package. It owns prompt
-  composition, agent launch, output validation, and the typed step outcome.
-  Skeleton persistence stays outside it. Isolated programs call it with an in-memory
-  context and never open `feature_task_workflows`.
+  composition, agent launch, output validation, and the typed step outcome. It is the
+  only way any step runs, in every definition and in operations.
+- **Skeleton definitions** (revised 2026-09-25). A definition is an ordered subset of
+  the nine canonical slots, in canonical order; a slot always runs all its steps.
+  Every run is a definition on the one run loop: `standalone` (nine slots),
+  `goal-child` (no `pull_request`, replacing today's `takeWhile` special case), and the
+  short `plan`, `review`, `validation`, `implement`, and `pr` definitions, and
+  `goal-planning` (shared preplan once, then per-subtask plans), which replaces the goal
+  planning sweep's own launch path. A slot always runs all its steps, so review finds and
+  fixes in every definition. Transitions
+  derive from the canonical graph; the only cross-slot rule, review's entry gate on
+  audit, applies only when audit is in the definition, and the one backward edge
+  (`review_fix`) lies inside `code_review`.
+- **Run state.** One `PhaseRunState` port for all run state: strategy-owned state and
+  every run-loop read and write (workflow snapshot, records, ledger, run invariants,
+  checkpoints, sessions, resume). The durable implementation wraps today's writers; the
+  in-memory one writes none of them and does not resume. That is the only difference
+  between a full run and a phase run.
 - **Strategies shipped:**
   - one per slot, wrapping today's behaviour
   - two for quality_gate: `pack-build` and `agent-validate`, replacing transition
     rewriting
-  - optionally, a second code_review strategy, `specialist-findings`, over
-    `ParallelCodeReviewRunner`
+  - two code_review strategies: `inline` (today's `last-commit-fix`, renamed, with a
+    per-call target; default everywhere) and `delegated` (the multi-agent review over
+    `ParallelCodeReviewRunner`). The existing review mode selects between them per
+    definition; full runs resolve every mode to `inline` for now
 
   Strategy ids are open vocabulary declared by the strategy class. Slot keys are
   closed.
 - **Registry.** One explicit `@Provides` in runtime-core lists every strategy. A lookup
   of an unknown `(slot, id)` pair raises a typed error.
-- **Workflow profile.** A slot-to-strategy-id map with a governed schema, set under
-  `workflow_profile` in `.skill-bill/config.yaml`. Slots the profile omits use each
-  slot's declared default.
-  - Precedence: per-run quality-gate override (CLI, env, or goal-runner stamp), then
-    repo profile, then defaults.
-  - The resolved map is validated against the registry and frozen into run
-    invariants at preparation.
-  - Resume uses the frozen map and blocks an explicit override that conflicts with it.
-  -     Isolated programs (subtask 5) read the same repo profile at invocation and do not
-    write it to run invariants. Isolated `phase:review` is the standalone driver and
-    ignores the skeleton `code_review` profile value.
-  - The run's finished telemetry reports the map.
+- **Strategy selection.** One code-defined `PhaseStrategySelection` binding next to
+  the registry maps every definition's slots to strategies. It is a developer choice, not operator config: no config key, flag, or
+  profile. The binding leaves room for a future `strategy:` parameter. Because
+  selection is code, the runtime version identifies it, so there is no frozen
+  strategy map, resume pin, or strategy telemetry field until a runtime-visible
+  choice exists (revised 2026-09-25).
 - **What stays in the domain graph.** Transitions and handoff projections stay
   declared there. A strategy may run only the steps and edges the graph declares for
   its slot. A strategy that needs a new step id or edge changes the workflow-state and
   projection contracts through the normal contract path. That limit is deliberate:
   durable bytes stay governed.
-- **Isolated programs.** Closed catalog invoked as `skill-bill [<intake>] phase:<name>`:
-  plan (transient preplan then plan, writes spec), review (today's standalone
-  `bill-code-review` / `ParallelCodeReviewRunner`, not `last-commit-fix`;
-  `mode:auto|inline|delegated` with omit and auto resolving to inline), validation
-  (`agent-validate` / today's `bill-code-check` collect-all), implement (spec required),
+- **Phase runs.** Short definitions invoked as `skill-bill phase <name> [<intake>]` (the
+  root CLI takes no positional tokens):
+  plan (`agent-preplan` then `agent-plan`, writes spec), review (the review step of
+  `inline` by default or `delegated` with `mode:delegated`;
+  `skill-bill code-review` routes through it), validation (`pack-build`, the
+  runtime-owned form of today's `bill-code-check` repair window), implement
+  (`implement-then-simplify`, spec required),
   pull_request (push the current local branch if it is ahead of the remote, then
   open the PR; fill a discovered repo pull-request template for the summary when
-  one exists; do not commit uncommitted work). No workflow row, no resume,
-  invocation-time profile for programs that are slot strategies. Isolated review
-  does not follow the skeleton `code_review` profile value. Isolated
-  `commit_push` is refused. IDE UI is a later caller of `IsolatedPhaseRequest`.
-- **Operations and catalog.** After this bundle the only listed skill is
+  one exists; do not commit uncommitted work). No workflow row, no resume. There is no
+  `commit_push` definition. IDE UI is a later caller of `PhaseRunEntry`.
+- **Operations and catalog** (split into SKILL-382 and SKILL-383 on 2026-09-25, so
+  each PR leaves main usable). After those bundles the only listed skill is
   `skill-bill`. Non-phase jobs are `operation:<name>` with Kotlin pre/post.
-  `bill-monitor` is deleted, not migrated. `bill-code-review-inline` stays
-  unlisted with `internal-for: skill-bill`. Pack specialists stay unlisted
+  `bill-monitor` is deleted, not migrated. `bill-code-review-inline` is
+  deleted if no caller remains, otherwise unlisted with `internal-for: skill-bill`. Pack specialists stay unlisted
   native-agents. Every current `skills/` tree is mapped in `spec.md`.
 
 ## Overlap with other bundles
@@ -262,18 +275,20 @@ The notes below describe files other bundles also touch. They are not a start ga
 | --- | --- | --- |
 | SKILL-378.2 | Its non-goal "Interfaces for step classes, a step framework, or per-run DI subcomponents"; its step classes are regrouped here | 378.2 stays as written. It should group phase-specific behaviour by the SKILL-380 slot where grouping is otherwise free. SKILL-380 records a decision that adds the one slot-strategy contract on top of the step-class rule. Its guards bind SKILL-380: no top-level function objects in `featuretask/runloop`, no collaborator-carrying `*Args`/`*Inputs`/`*Context`, at most six parameters, private inject properties |
 | SKILL-378.3 | Goal-runner step classes and the engine visibility pass | Independent. If it lands after SKILL-380, the `slot` packages follow its visibility rule: strategies are internal to runtime-engine except the contract the runtime-core registry needs |
-| SKILL-372.1 / 372.2 | Always-on update validation; typed artifact accessors; validators move to ports | SKILL-380 reads the frozen profile through a typed accessor when one exists, and through the current artifact API when it does not. |
+| SKILL-372.1 / 372.2 | Always-on update validation; typed artifact accessors; validators move to ports | SKILL-380 uses typed artifact accessors when they exist, and the current artifact API when they do not. |
 | SKILL-377.1 | Typed git results in commit_push and checkpoint code | SKILL-380 uses typed git results when they exist, and the current decode when they do not. |
-| SKILL-377.2 | Deletes `ReviewFactPorts` and the review-preparation interfaces, and changes `AgentRunLaunchFacts` termination | Independent of SKILL-380.1–3. If it lands before SKILL-380.4, the specialist strategy uses its preparation-facts value. It also conflicts with SKILL-379.1, which injected a real learnings resolver where 377.2 assumes a stub; 377.2 must keep that resolver |
+| SKILL-377.2 | Deletes `ReviewFactPorts` and the review-preparation interfaces, and changes `AgentRunLaunchFacts` termination | Independent of SKILL-380.1–3. If it lands before SKILL-380.6, the specialist strategy uses its preparation-facts value. It also conflicts with SKILL-379.1, which injected a real learnings resolver where 377.2 assumes a stub; 377.2 must keep that resolver |
 | SKILL-373.1–3 | DI provider style (`@JvmSynthetic` removal); architecture suite moves to `repoTest` | Independent. The new registry provider follows whatever provider style is current. The new guard rule moves with its host test |
-| SKILL-374.2 | Placement rule may move single-owner keys | `WorkflowProfilePayloadKeys` is read by infra host and engine, so it satisfies the rule in runtime-contracts |
+| SKILL-374.2 | Placement rule may move single-owner keys | SKILL-380 adds `OperationProposalPayloadKeys`; place it by the rule in force |
 | SKILL-375 | MCP settlement tools accept only prose phases | Independent. The settlement contract is unchanged |
 | SKILL-371, 376.2, 376.3, 372.3, 377.3 | CLI contracts, SQLite goal-runner move, package layout, aliases | Independent; rebase only |
 
-Architecture tests no bundle owns that pin today's phase structure:
-`FeatureTaskRuntimeBoundaryOwnershipArchitectureTest` and
-`FeatureTaskAuditRemainingCriteriaPackIndependenceArchitectureTest`. SKILL-380
-subtask 1 or 2 updates them, whichever first touches their subject.
+Tests no bundle owns that pin today's phase structure:
+`FeatureTaskAuditRemainingCriteriaPackIndependenceArchitectureTest` and
+`FeatureTaskRuntimeQualityGateRoutingTest` (runtime-domain tests). The
+`FeatureTaskRuntimeBoundaryOwnershipArchitectureTest` named here earlier does not exist
+(rechecked 2026-09-25). SKILL-380
+subtask 2 or 5 updates them, whichever first touches their subject.
 
 ## What stays unchanged
 
@@ -292,12 +307,13 @@ subtask 1 or 2 updates them, whichever first touches their subject.
 | Idea | Why not |
 | --- | --- |
 | Loading strategies from external jars or packs | No consumer. In-process classes plus a manifest cover today's variants |
-| Per-subtask or per-phase profile switching inside a run | No consumer, and it breaks resume invariants |
+| Per-subtask or per-phase strategy switching inside a run | No consumer, and it breaks resume invariants |
 | kotlin-inject `@IntoMap` multibinding | First use in the repo; an explicit provider list matches house style and reads as the catalog |
-| Generic user-defined slot graph (custom slots, custom order) | Contradicts "no generic workflow framework". The skeleton is fixed; only fillers vary |
-| Isolated execution that opens a workflow and resumes at one phase | Operator asked for a separate program, not a partial skeleton run |
-| Isolated `commit_push` | Uncommitted work must not become a commit through this path; `phase:pr` may push existing local commits, then open the PR |
-| Isolated `phase:review` following the skeleton `code_review` profile | Isolated review replaces `bill-code-review`; the skeleton default is `last-commit-fix` |
+| Generic user-defined slot graph (custom slots, custom order, operator-supplied definitions) | Contradicts "no generic workflow framework". Only ordered subsets of the nine slots, declared in code, are allowed |
+| Resume for phase runs | Not asked for; the durable state would provide it later without new design |
+| A `commit_push` phase definition | Uncommitted work must not become a commit through this path; `phase:pr` may push existing local commits, then open the PR |
+| Operator-facing `workflow_profile` config with a governed schema, frozen map, resume pin, and telemetry field | Strategies are a developer choice in code; no operator needs to pick one yet (revised 2026-09-25) |
+| A separate executor or launch path for phase runs | Two ways to run a phase; phase runs are short definitions on the same loop |
 | Keep `bill-monitor` as an operation | Operator asked it deleted; `skill-bill goal status` remains CLI |
 | Strategy A/B through the experiment framework | SKILL-378.1 deletes it; the finished-telemetry field is enough to compare |
 | A second strategy for every slot | Only quality_gate and code_review have real second variants |
@@ -310,7 +326,7 @@ subtask 1 or 2 updates them, whichever first touches their subject.
   deletions.
 - "Review directives unreachable" (F-005) is plausible. It needs a caller census after
   SKILL-378.2.
-- The specialist review hang from `d6651d94b` was not reproduced here. Subtask 4
+- The specialist review hang from `d6651d94b` was not reproduced here. Subtask 6
   starts by reproducing it.
 - **Open question for the owner (F-007):** whether `AGENTS.md`'s build paragraph or
   the build coordinator's three repair turns is the intended behaviour. SKILL-380
