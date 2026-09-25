@@ -302,12 +302,12 @@ class GoalPlanningPreparationStoreTest {
 
       store.markPrepared(record)
 
-      val recovered = store.findByGoalAndSubtask("goal-1", 1)
+      val recovered = store.preparationRecord.findByGoalAndSubtask("goal-1", 1)
       assertEquals(record.copy(createdAt = recovered!!.createdAt, updatedAt = recovered.updatedAt), recovered)
-      assertEquals(listOf(1), store.listPreparedByGoalOrdered("goal-1").map { it.subtaskId })
-      assertEquals(1, store.preparedCount("goal-1"))
-      assertEquals(2, store.firstMissingOrIncompleteSubtask("goal-1", listOf(1, 2, 3)))
-      val status = store.preparedStatus("goal-1", 1)
+      assertEquals(listOf(1), store.preparationRecord.listPreparedByGoalOrdered("goal-1").map { it.subtaskId })
+      assertEquals(1, store.preparationRecord.preparedCount("goal-1"))
+      assertEquals(2, store.preparationRecord.firstMissingOrIncompleteSubtask("goal-1", listOf(1, 2, 3)))
+      val status = store.preparationRecord.preparedStatus("goal-1", 1)
       assertEquals(GoalPlanningPreparationState.PREPARED, status?.preparationStatus)
       assertEquals(record.provenance, status?.provenance)
     }
@@ -322,8 +322,8 @@ class GoalPlanningPreparationStoreTest {
       store.markPrepared(record)
       store.markPrepared(record)
 
-      assertEquals(1, store.preparedCount("goal-1"))
-      val recovered = store.findByGoalAndSubtask("goal-1", 1)
+      assertEquals(1, store.preparationRecord.preparedCount("goal-1"))
+      val recovered = store.preparationRecord.findByGoalAndSubtask("goal-1", 1)
       assertEquals(record.preplanPayload, recovered?.preplanPayload)
     }
   }
@@ -338,8 +338,8 @@ class GoalPlanningPreparationStoreTest {
 
       assertEquals(2, store.deleteByGoal("goal-1"))
 
-      assertEquals(0, store.preparedCount("goal-1"))
-      assertEquals(1, store.preparedCount("goal-2"))
+      assertEquals(0, store.preparationRecord.preparedCount("goal-1"))
+      assertEquals(1, store.preparationRecord.preparedCount("goal-2"))
     }
   }
 
@@ -358,7 +358,7 @@ class GoalPlanningPreparationStoreTest {
 
       assertFailsWith<IncompatibleGoalPlanningPreparationRecoveryError> { store.markPrepared(conflicting) }
 
-      val recovered = store.findByGoalAndSubtask("goal-1", 1)
+      val recovered = store.preparationRecord.findByGoalAndSubtask("goal-1", 1)
       assertEquals(original.provenance.subSpecHash, recovered?.provenance?.subSpecHash)
       assertEquals(original.planPayload, recovered?.planPayload)
     }
@@ -380,7 +380,7 @@ class GoalPlanningPreparationStoreTest {
 
       assertFailsWith<IncompatibleGoalPlanningPreparationRecoveryError> { store.markPrepared(conflicting) }
 
-      val recovered = store.findByGoalAndSubtask("goal-1", 1)
+      val recovered = store.preparationRecord.findByGoalAndSubtask("goal-1", 1)
       assertEquals(original.repositoryIdentity, recovered?.repositoryIdentity)
       assertEquals(original.provenance, recovered?.provenance)
     }
@@ -397,7 +397,7 @@ class GoalPlanningPreparationStoreTest {
 
       assertFailsWith<IncompatibleGoalPlanningPreparationRecoveryError> { store.markPrepared(conflicting) }
 
-      val recovered = store.findByGoalAndSubtask("goal-1", 1)
+      val recovered = store.preparationRecord.findByGoalAndSubtask("goal-1", 1)
       assertEquals(original.normalizedIssueKey, recovered?.normalizedIssueKey)
       assertEquals(original.provenance, recovered?.provenance)
     }
@@ -410,10 +410,10 @@ class GoalPlanningPreparationStoreTest {
       store.markPrepared(preparationRecord(parentGoalWorkflowId = "goal-1", subtaskId = 1))
       store.markPrepared(preparationRecord(parentGoalWorkflowId = "goal-2", subtaskId = 1))
 
-      assertEquals(1, store.preparedCount("goal-1"))
-      assertEquals(1, store.preparedCount("goal-2"))
-      assertEquals(2, store.firstMissingOrIncompleteSubtask("goal-1", listOf(1, 2)))
-      assertNull(store.findByGoalAndSubtask("goal-1", 2))
+      assertEquals(1, store.preparationRecord.preparedCount("goal-1"))
+      assertEquals(1, store.preparationRecord.preparedCount("goal-2"))
+      assertEquals(2, store.preparationRecord.firstMissingOrIncompleteSubtask("goal-1", listOf(1, 2)))
+      assertNull(store.preparationRecord.findByGoalAndSubtask("goal-1", 2))
     }
   }
 
@@ -429,7 +429,7 @@ class GoalPlanningPreparationStoreTest {
         ),
       )
 
-      val recovered = store.findByGoalAndSubtask("goal-1", 1)
+      val recovered = store.preparationRecord.findByGoalAndSubtask("goal-1", 1)
       assertEquals("repo-root-realpath-v1:/repo-a", recovered?.repositoryIdentity)
     }
   }
@@ -441,9 +441,9 @@ class GoalPlanningPreparationStoreTest {
       store.markPrepared(preparationRecord(parentGoalWorkflowId = "goal-1", subtaskId = 3))
       store.markPrepared(preparationRecord(parentGoalWorkflowId = "goal-1", subtaskId = 1))
 
-      assertEquals(listOf(1, 3), store.listPreparedByGoalOrdered("goal-1").map { it.subtaskId })
-      assertEquals(2, store.preparedCount("goal-1"))
-      assertEquals(2, store.firstMissingOrIncompleteSubtask("goal-1", listOf(1, 2, 3, 4)))
+      assertEquals(listOf(1, 3), store.preparationRecord.listPreparedByGoalOrdered("goal-1").map { it.subtaskId })
+      assertEquals(2, store.preparationRecord.preparedCount("goal-1"))
+      assertEquals(2, store.preparationRecord.firstMissingOrIncompleteSubtask("goal-1", listOf(1, 2, 3, 4)))
     }
   }
 
@@ -455,8 +455,8 @@ class GoalPlanningPreparationStoreTest {
         store.markPrepared(preparationRecord(parentGoalWorkflowId = "goal-1", subtaskId = subtaskId))
       }
 
-      assertNull(store.firstMissingOrIncompleteSubtask("goal-1", listOf(1, 2, 3)))
-      assertNull(store.firstMissingOrIncompleteSubtask("goal-1", emptyList()))
+      assertNull(store.preparationRecord.firstMissingOrIncompleteSubtask("goal-1", listOf(1, 2, 3)))
+      assertNull(store.preparationRecord.firstMissingOrIncompleteSubtask("goal-1", emptyList()))
     }
   }
 
@@ -471,9 +471,9 @@ class GoalPlanningPreparationStoreTest {
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = GoalPlanningPreparationStore(connection)
-      assertEquals(1, store.preparedCount("goal-1"))
-      assertEquals(2, store.firstMissingOrIncompleteSubtask("goal-1", listOf(1, 2, 3)))
-      assertNotNull(store.findByGoalAndSubtask("goal-1", 1))
+      assertEquals(1, store.preparationRecord.preparedCount("goal-1"))
+      assertEquals(2, store.preparationRecord.firstMissingOrIncompleteSubtask("goal-1", listOf(1, 2, 3)))
+      assertNotNull(store.preparationRecord.findByGoalAndSubtask("goal-1", 1))
     }
   }
 
@@ -484,7 +484,7 @@ class GoalPlanningPreparationStoreTest {
       val record = preparationRecord(parentGoalWorkflowId = "goal-1", subtaskId = 1).copy(contractVersion = "0.2")
 
       assertFailsWith<InvalidGoalPlanningPreparationSchemaError> { store.markPrepared(record) }
-      assertNull(store.findByGoalAndSubtask("goal-1", 1))
+      assertNull(store.preparationRecord.findByGoalAndSubtask("goal-1", 1))
     }
   }
 }
@@ -541,7 +541,7 @@ class GoalPlanningPreparationStoreMutationTest {
         )
 
       assertFailsWith<InvalidGoalPlanningPreparationSchemaError> { store.markPrepared(record) }
-      assertNull(store.findByGoalAndSubtask("goal-1", 1))
+      assertNull(store.preparationRecord.findByGoalAndSubtask("goal-1", 1))
     }
   }
 
@@ -550,7 +550,7 @@ class GoalPlanningPreparationStoreMutationTest {
     DatabaseRuntime.ensureDatabase(tempDb()).use { connection ->
       val store = GoalPlanningPreparationStore(connection)
 
-      assertNull(store.preparedStatus("goal-1", 1))
+      assertNull(store.preparationRecord.preparedStatus("goal-1", 1))
     }
   }
 

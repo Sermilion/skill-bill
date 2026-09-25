@@ -1,12 +1,8 @@
 package skillbill.ports.experiment.publication
 
-import skillbill.ports.experiment.publication.model.ExperimentParentDeliveryRequest as ExperimentParentDeliveryRequestModel
-import skillbill.ports.experiment.publication.model.ExperimentPublicationAttempt as ExperimentPublicationAttemptModel
-import skillbill.ports.experiment.publication.model.ExperimentPublicationResult as ExperimentPublicationResultModel
-
-typealias ExperimentParentDeliveryRequest = ExperimentParentDeliveryRequestModel
-typealias ExperimentPublicationAttempt = ExperimentPublicationAttemptModel
-typealias ExperimentPublicationResult = ExperimentPublicationResultModel
+import skillbill.ports.experiment.publication.model.ExperimentParentDeliveryRequest
+import skillbill.ports.experiment.publication.model.ExperimentPublicationAttempt
+import skillbill.ports.experiment.publication.model.ExperimentPublicationResult
 
 interface ExperimentDeferredPublicationPort {
   fun recordDeferredAttempt(attempt: ExperimentPublicationAttempt)
@@ -16,7 +12,7 @@ interface ExperimentDeferredPublicationPort {
   fun publicationRecorded(
     pairId: String,
     commitSha: String,
-  ): Boolean = false
+  ): Boolean
 }
 
 fun interface ExperimentParentDeliveryPort {

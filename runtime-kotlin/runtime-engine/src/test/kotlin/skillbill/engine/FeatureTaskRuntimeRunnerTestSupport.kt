@@ -102,6 +102,7 @@ import skillbill.ports.persistence.UnitOfWorkDefaults
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.taskruntime.DERIVING_SHARED_EVIDENCE_RESOLVER
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSpecStatusWriter
@@ -183,8 +184,6 @@ import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome.
 import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome.PASSED
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.lang.Boolean.TYPE
-import java.lang.Double.TYPE as DoubleTYPE
-import java.lang.Long.TYPE as LongTYPE
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 import java.nio.file.Path
@@ -193,6 +192,8 @@ import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.TimeSource
+import java.lang.Double.TYPE as DoubleTYPE
+import java.lang.Long.TYPE as LongTYPE
 
 internal const val WORKFLOW_ID = "wftr-20260602-test-0001"
 internal const val SESSION_ID = "ftr-test-001"
@@ -632,7 +633,7 @@ internal data class RuntimeHarnessConfig(
     AcceptingFeatureTaskRuntimeWireArtifactValidator,
   val codeReviewMode: CodeReviewExecutionMode = CodeReviewExecutionMode.DEFAULT,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
-    FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
+    DERIVING_SHARED_EVIDENCE_RESOLVER,
   val diffResolver: DiffResolverPort =
     object : DiffResolverPortDefaults() {
       override fun runProcess(
@@ -664,7 +665,7 @@ private data class RuntimePhaseGatesDeps(
   val buildReceiptValidator: FeatureTaskRuntimeWireArtifactValidator =
     AcceptingFeatureTaskRuntimeWireArtifactValidator,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
-    FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
+    DERIVING_SHARED_EVIDENCE_RESOLVER,
   val diffResolver: DiffResolverPort =
     object : DiffResolverPortDefaults() {
       override fun runProcess(

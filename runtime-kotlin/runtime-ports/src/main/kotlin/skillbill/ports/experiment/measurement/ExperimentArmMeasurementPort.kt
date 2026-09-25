@@ -1,10 +1,6 @@
 package skillbill.ports.experiment.measurement
 
-import skillbill.ports.experiment.measurement.model.ExperimentArmMeasurement as ExperimentArmMeasurementModel
-import skillbill.ports.experiment.measurement.model.ExperimentMeasuredValue as ExperimentMeasuredValueModel
-
-typealias ExperimentArmMeasurement = ExperimentArmMeasurementModel
-typealias ExperimentMeasuredValue = ExperimentMeasuredValueModel
+import skillbill.ports.experiment.measurement.model.ExperimentArmMeasurement
 
 fun interface ExperimentArmMeasurementPort {
   fun measure(

@@ -10,7 +10,6 @@ import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import java.nio.file.Path
-import skillbill.workflow.decomposition.runtime.model.DecompositionManifestWriteResult as WorkflowDecompositionManifestWriteResult
 
 data class DecompositionManifestWriteRequest(
   val repoRoot: Path,
@@ -52,5 +51,3 @@ data class DecompositionManifestWorkflowProjectionInput(
   val runtimeUpdate: DecompositionManifestRuntimeUpdate = DecompositionManifestRuntimeUpdate(),
   val fileStore: DecompositionManifestStore,
 )
-
-typealias DecompositionManifestWriteResult = WorkflowDecompositionManifestWriteResult

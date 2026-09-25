@@ -2,8 +2,8 @@ package skillbill.engine.experiment.observation
 
 import skillbill.contracts.JsonCodec
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
-import skillbill.ports.experiment.pair.ExperimentPairPayload
-import skillbill.ports.experiment.pair.ExperimentPairPersistedState
+import skillbill.ports.experiment.pair.UnavailableExperimentPairOwner
+import skillbill.ports.experiment.pair.model.ExperimentPairPayload
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -14,11 +14,7 @@ class ExperimentObservationRecorderTest {
     var imported: ExperimentPairPayload? = null
     val recorder =
       ExperimentObservationRecorder(
-        object : ExperimentPairOwnerPort {
-          override fun load(pairId: String) = null
-
-          override fun save(state: ExperimentPairPersistedState) = Unit
-
+        object : ExperimentPairOwnerPort by UnavailableExperimentPairOwner {
           override fun importObservation(payload: ExperimentPairPayload): Boolean {
             imported = payload
             return true

@@ -8,10 +8,8 @@ import skillbill.infrastructure.skills.install.FileSystemInstallNativeAgentLinks
 import skillbill.infrastructure.skills.install.FileSystemInstallReconcile
 import skillbill.infrastructure.skills.install.FileSystemInstallReconcileApply
 import skillbill.infrastructure.skills.install.FileSystemInstallSkillLink
-import skillbill.infrastructure.skills.install.FileSystemInstalledWorkspaceBaselineStatus
 import skillbill.ports.install.agent.InstallAgentTargetPort
 import skillbill.ports.install.baseline.BaselineManifestPersistencePort
-import skillbill.ports.install.baseline.InstalledWorkspaceBaselineStatusPort
 import skillbill.ports.install.link.InstallSkillLinkPort
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.install.nativeagent.InstallNativeAgentLinkPort
@@ -28,11 +26,6 @@ internal interface RuntimeInstallTargetProvides {
   @Provides
   fun baselineManifestPersistencePort(adapter: FileSystemBaselineManifestPersistence): BaselineManifestPersistencePort =
     adapter
-
-  @Provides
-  fun installedWorkspaceBaselineStatusPort(
-    adapter: FileSystemInstalledWorkspaceBaselineStatus,
-  ): InstalledWorkspaceBaselineStatusPort = adapter
 
   @Provides
   fun installSkillLinkPort(adapter: FileSystemInstallSkillLink): InstallSkillLinkPort = adapter

@@ -1,10 +1,8 @@
 package skillbill.ports.experiment.selection
 
 import skillbill.experiment.model.ExperimentExecutionMode
+import skillbill.ports.experiment.selection.model.ExperimentLaunchSelection
 import java.nio.file.Path
-import skillbill.ports.experiment.selection.model.ExperimentLaunchSelection as ExperimentLaunchSelectionModel
-
-typealias ExperimentLaunchSelection = ExperimentLaunchSelectionModel
 
 interface ExperimentSelectionPort {
   fun resolveForLaunch(

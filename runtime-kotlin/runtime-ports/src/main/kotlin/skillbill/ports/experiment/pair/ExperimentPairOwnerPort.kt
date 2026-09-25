@@ -1,10 +1,7 @@
 package skillbill.ports.experiment.pair
 
-import skillbill.ports.experiment.pair.model.ExperimentPairPayload as ExperimentPairPayloadModel
-import skillbill.ports.experiment.pair.model.ExperimentPairPersistedState as ExperimentPairPersistedStateModel
-
-typealias ExperimentPairPersistedState = ExperimentPairPersistedStateModel
-typealias ExperimentPairPayload = ExperimentPairPayloadModel
+import skillbill.ports.experiment.pair.model.ExperimentPairPayload
+import skillbill.ports.experiment.pair.model.ExperimentPairPersistedState
 
 interface ExperimentPairOwnerPort {
   fun load(pairId: String): ExperimentPairPersistedState?
@@ -16,21 +13,21 @@ interface ExperimentPairOwnerPort {
   fun saveReport(
     pairId: String,
     reportPayload: ExperimentPairPayload,
-  ) = Unit
+  )
 
-  fun loadReport(pairId: String): ExperimentPairPayload? = null
+  fun loadReport(pairId: String): ExperimentPairPayload?
 
-  fun listReports(): List<ExperimentPairPayload> = emptyList()
+  fun listReports(): List<ExperimentPairPayload>
 
   fun acquireLease(
     pairId: String,
     ownerToken: String,
     nowEpochMillis: Long,
     leaseMillis: Long,
-  ): Boolean = true
+  ): Boolean
 
   fun releaseLease(
     pairId: String,
     ownerToken: String,
-  ) = Unit
+  )
 }

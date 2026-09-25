@@ -1,4 +1,4 @@
-package skillbill.ports.review.empty
+package skillbill.ports.review
 
 import skillbill.ports.review.preparation.ReviewAttributionPort
 

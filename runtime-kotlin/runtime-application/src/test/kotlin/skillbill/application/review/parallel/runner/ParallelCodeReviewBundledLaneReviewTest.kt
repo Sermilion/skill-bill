@@ -4,11 +4,11 @@ import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.application.review.model.ReviewPreparationRequest
 import skillbill.application.review.model.ReviewPreparationResult
 import skillbill.application.review.parallel.planning.criteriaReferences
-import skillbill.application.review.preparation.ReviewLaneSelection
-import skillbill.application.review.preparation.ReviewPreparationFacts
 import skillbill.application.review.preparation.ReviewPreparationService
-import skillbill.application.review.preparation.ReviewScopeFacts
-import skillbill.application.review.preparation.ReviewStackRoutingFacts
+import skillbill.application.review.preparation.model.ReviewLaneSelection
+import skillbill.application.review.preparation.model.ReviewPreparationFacts
+import skillbill.application.review.preparation.model.ReviewScopeFacts
+import skillbill.application.review.preparation.model.ReviewStackRoutingFacts
 import skillbill.application.runner
 import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.review.context.ReviewContextWireMap

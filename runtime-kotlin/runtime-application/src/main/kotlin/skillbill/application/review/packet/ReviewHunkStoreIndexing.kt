@@ -41,15 +41,7 @@ internal object ReviewHunkStoreIndexing {
           },
       )
     }
-    val root =
-      repoRoot ?: throw ReviewHunkEvidenceLocatorUnreadableError(
-        storePath,
-        "compose-time locator dereference requires a repository root",
-      )
-    val payload =
-      locatorReader?.readDiffPayload(
-        FeatureTaskRuntimeSharedEvidenceLocatorReadRequest(root, storePath),
-      ) ?: throw ReviewHunkEvidenceLocatorMissingError(storePath)
+    val payload = readLocatorPayload(storePath, repoRoot, locatorReader)
     val record = SharedReviewEvidenceCodec.decode(payload) ?: rawRecord(payload, storePath)
     val indexed = hunks.map { hunk -> indexHunk(hunk, record, storePath) }
     val byKey = indexed.associateBy { hunkKey(it) }
@@ -65,6 +57,21 @@ internal object ReviewHunkStoreIndexing {
           )
         },
     )
+  }
+
+  private fun readLocatorPayload(
+    storePath: String,
+    repoRoot: Path?,
+    locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort?,
+  ): String {
+    val root =
+      repoRoot ?: throw ReviewHunkEvidenceLocatorUnreadableError(
+        storePath,
+        "compose-time locator dereference requires a repository root",
+      )
+    return locatorReader?.readDiffPayload(
+      FeatureTaskRuntimeSharedEvidenceLocatorReadRequest(root, storePath),
+    ) ?: throw ReviewHunkEvidenceLocatorMissingError(storePath)
   }
 
   private fun rawRecord(

@@ -6,7 +6,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 object PortNullObjectCensus {
-  private val declaration = Regex("""(?<!data )\bobject\s+((?:Unavailable|Noop|Empty|Unconfigured)\w*)""")
+  private val declaration =
+    Regex(
+      """(?<!(?:data|enum|sealed|value) )\b(?:object|class)\s+((?:Unavailable|Noop|Empty|Unconfigured)\w*)""",
+    )
 
   fun namesIn(source: String): Set<String> = declaration.findAll(source).map { it.groupValues[1] }.toSet()
 }
@@ -20,6 +23,15 @@ class PortNullObjectAbsenceArchitectureTest {
       RuntimeModuleCatalog.declaredGradleModules
         .filter { moduleName -> moduleName != "runtime-infra" }
         .map { moduleName -> moduleMainKotlinRoot(moduleName) }
+    val infraMainRoots =
+      RuntimeModuleCatalog.declaredGradleModules
+        .filter { moduleName -> moduleName.startsWith("runtime-infra:") }
+        .map { moduleName -> moduleMainKotlinRoot(moduleName) }
+    assertEquals(
+      7,
+      infraMainRoots.size,
+      "Every runtime-infra module must contribute a scanned main source root.",
+    )
     val declarations =
       moduleMainRoots
         .flatMap { root ->
@@ -39,14 +51,22 @@ class PortNullObjectAbsenceArchitectureTest {
   }
 
   @Test
-  fun `the census flags a substitute declaration and ignores a sealed data object case`() {
+  fun `the census flags object and class substitutes and ignores data object and enum cases`() {
     assertEquals(
       setOf("NoopWorkflowGitOperations"),
       PortNullObjectCensus.namesIn("object NoopWorkflowGitOperations : WorkflowGitOperations"),
     )
     assertEquals(
+      setOf("NoopWorkflowGitOperations"),
+      PortNullObjectCensus.namesIn("class NoopWorkflowGitOperations : WorkflowGitOperations"),
+    )
+    assertEquals(
       emptySet(),
       PortNullObjectCensus.namesIn("  data object Empty : ValidationGateTriageResult"),
+    )
+    assertEquals(
+      emptySet(),
+      PortNullObjectCensus.namesIn("  enum class Unavailable : ReviewCheckpointFileIdentity"),
     )
   }
 
@@ -59,7 +79,10 @@ class PortNullObjectAbsenceArchitectureTest {
     val fixtureFiles = kotlinFilesUnderWithArchitectureAsserts(fixtureRoot)
     val declarations =
       fixtureFiles.flatMap { path ->
-        Regex("""(?m)^\s*(?:internal\s+)?object\s+((?:Unavailable|Noop|Empty|Unconfigured)[A-Za-z]\w*)\b""")
+        Regex(
+          """(?m)^\s*(?:internal\s+)?(?:object|class)\s+""" +
+            """((?:Unavailable|Noop|Empty|Unconfigured)[A-Za-z]\w*)\b""",
+        )
           .findAll(Files.readString(path))
           .map { match -> match.groupValues[1] to path }
           .toList()
@@ -77,7 +100,7 @@ class PortNullObjectAbsenceArchitectureTest {
               Files.readString(path).lineSequence().any { line ->
                 Regex("""\b${Regex.escape(name)}\b""").containsMatchIn(line) &&
                   !Regex(
-                    """^\s*(?:internal\s+)?object\s+${Regex.escape(name)}\b""",
+                    """^\s*(?:internal\s+)?(?:object|class)\s+${Regex.escape(name)}\b""",
                   ).containsMatchIn(line)
               }
             }

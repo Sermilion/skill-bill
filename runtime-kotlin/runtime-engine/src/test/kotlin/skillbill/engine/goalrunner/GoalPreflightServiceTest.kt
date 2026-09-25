@@ -29,8 +29,8 @@ import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigResult
-import skillbill.ports.experiment.selection.ExperimentLaunchSelection
 import skillbill.ports.experiment.selection.ExperimentSelectionPort
+import skillbill.ports.experiment.selection.model.ExperimentLaunchSelection
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStoreDefaults
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
@@ -42,13 +42,13 @@ import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-import skillbill.workflow.model.FeatureTaskWorkflowMode
 
 class GoalPreflightServiceTest {
   @Test

@@ -33,7 +33,7 @@ Live guard (F-001, F-004):
 - Extend the existing interface-default check so that, outside `fun interface` declarations, a default body that is a bare constant result fails. Constant results are `true`, `false`, `null`, `Unit`, empty collection constructors, and `WorkflowGitOperationResult.Ok`/`Failed`. The baseline stays empty.
 - Fix every violation the live guard reports. Expected: `IdeStatusProblemDetails` becomes a `@JvmInline value class` that keeps its private constructor, which avoids exposing a public raw map. Subtask 2 has already deleted `unbindListener`. If `ReviewMetricsDatabasePolicy` is still present and the guard reports it, delete it here.
 
-Documentation (F-011): update the `runtime-ports` Gradle Modules entry and the `FileLocation` sentence in `runtime-kotlin/ARCHITECTURE.md` to the landed state (`Path` is the port path type; `FileLocation` is a domain value with two bridges). Record the default-body rule and the flat git aggregate in `runtime-kotlin/agent/decisions.md`.
+Documentation (F-011): update the `runtime-ports` Gradle Modules entry and the `FileLocation` sentence in `../../../runtime-kotlin/ARCHITECTURE.md` to the landed state (`Path` is the port path type; `FileLocation` is a domain value with two bridges). Record the default-body rule and the flat git aggregate in `runtime-kotlin/agent/decisions.md`.
 
 ## Acceptance Criteria
 
@@ -44,7 +44,7 @@ Documentation (F-011): update the `runtime-ports` Gradle Modules entry and the `
 5. Fixtures prove that the extended interface-default check rejects a `true`-returning default and a `WorkflowGitOperationResult.Ok` default in a non-`fun` interface, and accepts a derived default and a `fun interface` default.
 6. Every case of `PortNullObjectAbsenceArchitectureTest` reads files from each root it names, including all seven `runtime-infra` modules and runtime-ports testFixtures, and fails on a missing root. A fixture proves the census flags a `class Noop…` declaration.
 7. Every runtime-ports test and testFixtures file sits in a package that exists in runtime-ports main.
-8. `runtime-kotlin/ARCHITECTURE.md` describes `Path` as the port path type and lists no removed ports item in the runtime-ports module entry.
+8. `../../../runtime-kotlin/ARCHITECTURE.md` describes `Path` as the port path type and lists no removed ports item in the runtime-ports module entry.
 
 ## Non-Goals
 

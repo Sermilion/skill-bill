@@ -48,6 +48,8 @@ import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.evidence.ReviewEvidenceBroker
 import skillbill.ports.review.evidence.ReviewEvidenceBrokerFactory
+import skillbill.ports.review.launch.NO_OP_REVIEW_LAUNCH_AGENT_STAGING
+import skillbill.ports.review.launch.NO_OP_REVIEW_NATIVE_AGENT_PREFLIGHT
 import skillbill.ports.review.launch.ReviewLaunchAgentStagingPort
 import skillbill.ports.review.launch.ReviewNativeAgentPreflightPort
 import skillbill.ports.review.model.ResolvedReviewRubric
@@ -64,6 +66,7 @@ import skillbill.ports.review.repository.ReviewSpecialistContractProvider
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.scaffold.model.PilotedPlatformPackProjection
+import skillbill.ports.taskruntime.DERIVING_SHARED_EVIDENCE_RESOLVER
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
@@ -241,10 +244,10 @@ fun parallelCodeReviewRunnerOf(
   reviewEvidenceBrokerFactory: ReviewEvidenceBrokerFactory,
   governedEvidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder,
   sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
-    FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
+    DERIVING_SHARED_EVIDENCE_RESOLVER,
   sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort? = null,
-  nativeAgentPreflight: ReviewNativeAgentPreflightPort = ReviewNativeAgentPreflightPort.NONE,
-  reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort = ReviewLaunchAgentStagingPort.NONE,
+  nativeAgentPreflight: ReviewNativeAgentPreflightPort = NO_OP_REVIEW_NATIVE_AGENT_PREFLIGHT,
+  reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort = NO_OP_REVIEW_LAUNCH_AGENT_STAGING,
   registerParse: (String) -> ParallelReviewParseResult = ParallelReviewFindingParser::parse,
   repositoryEnclosingRootPort: RepositoryEnclosingRootPort = CanonicalRepositoryRoot,
   originScopeKeyPort: RepositoryOriginScopeKeyPort = HARNESS_ORIGIN_UNAVAILABLE,

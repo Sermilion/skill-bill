@@ -3,6 +3,7 @@ package skillbill.ports.goalrunner.persistence.model
 import skillbill.goalrunner.model.GoalContinuation
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
+import skillbill.goalrunner.model.GoalRunnerWirePayload
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -19,7 +20,7 @@ data class HistoryArtifactAppend(
   val latestFamily: DurableWorkflowArtifactFamily?,
   val historyFamily: DurableWorkflowArtifactFamily,
   val retentionLimit: Int,
-  val entryMap: Any,
+  val entryMap: GoalRunnerWirePayload,
 )
 
 data class GoalContinuationCandidate(

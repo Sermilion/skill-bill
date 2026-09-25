@@ -6,7 +6,6 @@ import skillbill.goalrunner.model.GoalPlanningStatusState.NOT_STARTED
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
-import skillbill.ports.goalrunner.model.GoalPlanningPreparationStatus
 import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
@@ -97,35 +96,13 @@ interface GoalSubtaskPlanRepository {
   ): Int = listSubtaskPlansOrdered(expectedIdentity, orderedDescriptors).size
 }
 
-interface NormalizedGoalPlanningPreparationRepository :
-  SharedGoalPreplanRepository,
-  GoalSubtaskPlanRepository
-
 interface LegacyGoalPlanningPreparationRepository {
   fun markPrepared(record: GoalPlanningPreparationRecord)
-
-  fun findByGoalAndSubtask(
-    parentGoalWorkflowId: String,
-    subtaskId: Int,
-  ): GoalPlanningPreparationRecord?
-
-  fun listPreparedByGoalOrdered(parentGoalWorkflowId: String): List<GoalPlanningPreparationRecord>
-
-  fun preparedCount(parentGoalWorkflowId: String): Int
-
-  fun firstMissingOrIncompleteSubtask(
-    parentGoalWorkflowId: String,
-    orderedSubtaskIds: List<Int>,
-  ): Int?
-
-  fun preparedStatus(
-    parentGoalWorkflowId: String,
-    subtaskId: Int,
-  ): GoalPlanningPreparationStatus?
 
   fun deleteByGoal(parentGoalWorkflowId: String): Int
 }
 
 interface GoalPlanningPreparationRepository :
-  NormalizedGoalPlanningPreparationRepository,
+  SharedGoalPreplanRepository,
+  GoalSubtaskPlanRepository,
   LegacyGoalPlanningPreparationRepository

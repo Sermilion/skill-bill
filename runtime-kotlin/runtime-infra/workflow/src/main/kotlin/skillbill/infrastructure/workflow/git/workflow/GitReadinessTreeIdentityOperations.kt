@@ -34,19 +34,30 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
         "Readiness identity could not resolve origin/$baseBranch.",
       )
     if (baseRef !is WorkflowGitOperationResult.Ok) return WorkflowReadinessTreeIdentityResult.Failed(baseRef.error)
+    return resolveSourceTreeIdentity(
+      repoRoot,
+      workflowId,
+      baseRefSha = baseRef.value.orEmpty(),
+      headSha = head.value.orEmpty(),
+    )
+  }
+
+  private fun resolveSourceTreeIdentity(
+    repoRoot: Path,
+    workflowId: String,
+    baseRefSha: String,
+    headSha: String,
+  ): WorkflowReadinessTreeIdentityResult {
     val tree = computeSourceTreeSha(repoRoot, workflowId)
     if (tree !is WorkflowGitOperationResult.Ok) return WorkflowReadinessTreeIdentityResult.Failed(tree.error)
     val sourceTreeSha = tree.value.orEmpty().trim()
-    if (sourceTreeSha.isBlank()) {
-      return WorkflowReadinessTreeIdentityResult.Failed("Readiness identity resolved a blank source tree sha.")
+    return if (sourceTreeSha.isBlank()) {
+      WorkflowReadinessTreeIdentityResult.Failed("Readiness identity resolved a blank source tree sha.")
+    } else {
+      WorkflowReadinessTreeIdentityResult.Resolved(
+        ReadinessTreeIdentity(sourceTreeSha = sourceTreeSha, baseRefSha = baseRefSha, headSha = headSha),
+      )
     }
-    return WorkflowReadinessTreeIdentityResult.Resolved(
-      ReadinessTreeIdentity(
-        sourceTreeSha = sourceTreeSha,
-        baseRefSha = baseRef.value.orEmpty(),
-        headSha = head.value.orEmpty(),
-      ),
-    )
   }
 
   override fun readinessChangedPathsAgainstBase(

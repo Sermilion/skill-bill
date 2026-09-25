@@ -52,6 +52,7 @@ import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalAttemptLedgerEntry
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
+import skillbill.goalrunner.model.GoalRunnerWirePayload
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequest
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestRejectionReason
@@ -62,7 +63,6 @@ import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
-import skillbill.ports.goalrunner.model.GoalPlanningPreparationStatus
 import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
@@ -1978,11 +1978,13 @@ class GoalRunnerCommitShaRecoveryTest {
         issueKey = "SKILL-52.1",
         subtaskId = 1,
         output =
-          mapOf(
-            "status" to "blocked",
-            "workflow_id" to "wfl-child",
-            "last_resumable_step" to "implement",
-            "blocked_reason" to "prefixless terminal json",
+          GoalRunnerWirePayload.from(
+            mapOf(
+              "status" to "blocked",
+              "workflow_id" to "wfl-child",
+              "last_resumable_step" to "implement",
+              "blocked_reason" to "prefixless terminal json",
+            ),
           ),
       )
 
@@ -4255,25 +4257,6 @@ private class RecordingPlanningPreparations(
   ) = orderedDescriptors.mapNotNull { findSubtaskPlan(expectedIdentity, it.subtaskId, it.governedSubSpecPath) }
 
   override fun markPrepared(record: GoalPlanningPreparationRecord) = Unit
-
-  override fun findByGoalAndSubtask(
-    parentGoalWorkflowId: String,
-    subtaskId: Int,
-  ): GoalPlanningPreparationRecord? = null
-
-  override fun listPreparedByGoalOrdered(parentGoalWorkflowId: String) = emptyList<GoalPlanningPreparationRecord>()
-
-  override fun preparedCount(parentGoalWorkflowId: String) = 0
-
-  override fun firstMissingOrIncompleteSubtask(
-    parentGoalWorkflowId: String,
-    orderedSubtaskIds: List<Int>,
-  ) = null
-
-  override fun preparedStatus(
-    parentGoalWorkflowId: String,
-    subtaskId: Int,
-  ): GoalPlanningPreparationStatus? = null
 
   override fun deleteByGoal(parentGoalWorkflowId: String) = 0
 

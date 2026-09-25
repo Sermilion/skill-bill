@@ -5,11 +5,11 @@ import skillbill.application.review.packet.toAssignmentEnvelope
 import skillbill.application.review.packet.toIntegrationLaunchEnvelope
 import skillbill.application.review.packet.toLaunchEnvelope
 import skillbill.application.review.packet.toParentPacketEnvelope
-import skillbill.application.review.preparation.ReviewLaneSelection
-import skillbill.application.review.preparation.ReviewPreparationFacts
 import skillbill.application.review.preparation.ReviewPreparationService
-import skillbill.application.review.preparation.ReviewScopeFacts
-import skillbill.application.review.preparation.ReviewStackRoutingFacts
+import skillbill.application.review.preparation.model.ReviewLaneSelection
+import skillbill.application.review.preparation.model.ReviewPreparationFacts
+import skillbill.application.review.preparation.model.ReviewScopeFacts
+import skillbill.application.review.preparation.model.ReviewStackRoutingFacts
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError

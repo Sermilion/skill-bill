@@ -19,13 +19,13 @@ import skillbill.error.shellcontent.WorkflowIssueKeyConflictError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
-import skillbill.workflow.model.FeatureTaskWorkflowMode
 
 class WorkflowIssueKeyPersistenceTest {
   @Test

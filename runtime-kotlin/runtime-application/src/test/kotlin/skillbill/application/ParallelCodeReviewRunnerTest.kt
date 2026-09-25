@@ -48,6 +48,8 @@ import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.evidence.ReviewEvidenceBroker
 import skillbill.ports.review.evidence.ReviewEvidenceBrokerFactory
+import skillbill.ports.review.launch.NO_OP_REVIEW_LAUNCH_AGENT_STAGING
+import skillbill.ports.review.launch.NO_OP_REVIEW_NATIVE_AGENT_PREFLIGHT
 import skillbill.ports.review.launch.ReviewLaunchAgentStagingPort
 import skillbill.ports.review.launch.ReviewNativeAgentPreflightPort
 import skillbill.ports.review.model.ResolvedReviewRubric
@@ -1463,8 +1465,8 @@ internal data class RunnerFixtureConfig(
     },
   val database: RecordingReviewDatabase = RecordingReviewDatabase(),
   val budget: ReviewContextBudgetPolicy = ReviewContextBudgetPolicy.DEFAULT,
-  val nativeAgentPreflight: ReviewNativeAgentPreflightPort = ReviewNativeAgentPreflightPort.NONE,
-  val reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort = ReviewLaunchAgentStagingPort.NONE,
+  val nativeAgentPreflight: ReviewNativeAgentPreflightPort = NO_OP_REVIEW_NATIVE_AGENT_PREFLIGHT,
+  val reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort = NO_OP_REVIEW_LAUNCH_AGENT_STAGING,
   val evidenceEndpointRoot: Path? = null,
   val evidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder? = null,
   val registerParse: (String) -> ParallelReviewParseResult =
@@ -2061,7 +2063,7 @@ private fun fallbackManifest(): PlatformManifest =
 private fun cursorDelegatedRunner(
   launcher: GoalRunnerSubtaskLauncher,
   endpointRoot: Path,
-  nativeAgentPreflight: ReviewNativeAgentPreflightPort = ReviewNativeAgentPreflightPort.NONE,
+  nativeAgentPreflight: ReviewNativeAgentPreflightPort = NO_OP_REVIEW_NATIVE_AGENT_PREFLIGHT,
 ): ParallelCodeReviewRunner =
   createRunner(
     launcher,

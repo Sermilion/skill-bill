@@ -276,16 +276,24 @@ internal fun GoalRunnerFinalization.stageCommitAndPushAll(
     return "Goal finalization commit-all could not stage remaining worktree changes: ${staged.error}"
   }
   val message = "chore(${manifest.issueKey}): goal finalization commit-all on '$featureBranch'"
-  when (val commit = gitOperations.createCommit(request.repoRoot, message)) {
+  return when (val commit = gitOperations.createCommit(request.repoRoot, message)) {
     is WorkflowGitCommitResult.Failed ->
-      return "Goal finalization commit-all could not commit remaining worktree changes: ${commit.error}"
+      "Goal finalization commit-all could not commit remaining worktree changes: ${commit.error}"
     WorkflowGitCommitResult.NothingToCommit ->
-      return pushUnpushedFeatureBranchIfNeeded(featureBranch, request.repoRoot)
+      pushUnpushedFeatureBranchIfNeeded(featureBranch, request.repoRoot)
     is WorkflowGitCommitResult.Committed ->
       if (commit.commitSha.isBlank()) {
-        return pushUnpushedFeatureBranchIfNeeded(featureBranch, request.repoRoot)
+        pushUnpushedFeatureBranchIfNeeded(featureBranch, request.repoRoot)
+      } else {
+        pushCommittedFeatureBranch(request, featureBranch)
       }
   }
+}
+
+private fun GoalRunnerFinalization.pushCommittedFeatureBranch(
+  request: GoalRunnerRunRequest,
+  featureBranch: String,
+): String? {
   val pushed = gitOperations.pushBranch(request.repoRoot, featureBranch)
   return if (pushed is WorkflowGitOperationResult.Ok) {
     null

@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.persist
 
-import skillbill.contracts.JsonCodec
 import skillbill.engine.goalrunner.InMemoryGoalManifestStore
 import skillbill.engine.goalrunner.RecordingOutcomeStore
 import skillbill.engine.goalrunner.RecordingPullRequestPort
@@ -17,8 +16,6 @@ import skillbill.goalrunner.model.GoalRunnerLivenessState.IDLE
 import skillbill.goalrunner.model.GoalRunnerLivenessState.PROGRESSING
 import skillbill.goalrunner.model.GoalRunnerLivenessState.WORKING
 import skillbill.goalrunner.model.GoalRunnerProcessState.CONFIRMED_ALIVE
-import skillbill.goalrunner.model.GoalRunnerProcessState.IDLE as PROCESS_IDLE
-import skillbill.goalrunner.model.GoalRunnerProcessState.PROGRESSING as PROCESS_PROGRESSING
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
@@ -34,6 +31,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import skillbill.goalrunner.model.GoalRunnerProcessState.IDLE as PROCESS_IDLE
+import skillbill.goalrunner.model.GoalRunnerProcessState.PROGRESSING as PROCESS_PROGRESSING
 
 class GoalRunnerLedgerTest {
   @Test
@@ -171,7 +170,7 @@ class GoalRunnerLedgerTest {
     assertEquals("wfl-1", recovered.workflowId)
     assertEquals(
       "F-001",
-      JsonCodec.anyToStringAnyMap(recovered.output)?.get("notes_for_review"),
+      recovered.output["notes_for_review"],
     )
   }
 

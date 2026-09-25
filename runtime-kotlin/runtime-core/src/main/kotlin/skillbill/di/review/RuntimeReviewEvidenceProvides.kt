@@ -45,12 +45,6 @@ internal interface RuntimeReviewEvidenceProvides {
     adapter: FileSystemFeatureTaskRuntimeSharedEvidenceStore,
   ): FeatureTaskRuntimeSharedEvidenceLocatorReadPort = adapter
 
-  /** Review runners accept an absent reader; production always binds the filesystem store. */
-  @Provides
-  fun optionalSharedEvidenceLocatorReadPort(
-    port: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
-  ): FeatureTaskRuntimeSharedEvidenceLocatorReadPort? = port
-
   @Provides
   fun reviewSnapshotGateway(gateway: FileSystemReviewSnapshotGateway): ReviewSnapshotGateway = gateway
 

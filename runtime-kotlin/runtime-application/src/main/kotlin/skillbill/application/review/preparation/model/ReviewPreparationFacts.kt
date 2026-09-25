@@ -1,4 +1,4 @@
-package skillbill.application.review.preparation
+package skillbill.application.review.preparation.model
 
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitLaneRoutingMatrix

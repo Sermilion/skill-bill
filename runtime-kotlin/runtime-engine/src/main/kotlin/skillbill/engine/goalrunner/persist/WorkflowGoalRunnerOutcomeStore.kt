@@ -8,6 +8,7 @@ import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
+import skillbill.goalrunner.model.GoalRunnerWirePayload
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.validatedGoalReviewPasses
 import skillbill.ports.db.DatabaseSessionFactory
@@ -43,7 +44,7 @@ internal data class RecoverMissingResultPrefixTerminalOutcomeArgs(
   internal val workflowStates: WorkflowStateRepository,
   internal val family: WorkflowFamily,
   internal val record: WorkflowStateSnapshot,
-  internal val output: Any,
+  internal val output: GoalRunnerWirePayload,
   internal val issueKey: String,
   internal val subtaskId: Int,
   internal val workflowId: String,
@@ -109,7 +110,7 @@ class WorkflowGoalRunnerOutcomeStore
       workflowId: String,
       issueKey: String,
       subtaskId: Int,
-      output: Any,
+      output: GoalRunnerWirePayload,
     ): GoalRunnerStoredOutcome? = terminal.recoverMissingResultPrefixOutput(workflowId, issueKey, subtaskId, output)
 
     override fun goalSubtaskReviewState(workflowId: String): GoalSubtaskReviewState? =
@@ -239,7 +240,7 @@ internal class WorkflowGoalRunnerTerminalBridge(
     workflowId: String,
     issueKey: String,
     subtaskId: Int,
-    output: Any,
+    output: GoalRunnerWirePayload,
   ): GoalRunnerStoredOutcome? =
     database.transaction { unitOfWork ->
       val family = workflowFamilyFor(unitOfWork.workflowStates, workflowId) ?: return@transaction null

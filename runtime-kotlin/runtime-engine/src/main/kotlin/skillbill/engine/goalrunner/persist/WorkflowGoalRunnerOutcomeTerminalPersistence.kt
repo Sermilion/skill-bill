@@ -176,7 +176,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
     val workflowStates = args.workflowStates
     val family = args.family
     val record = args.record
-    val output = args.output
+    val output = args.output.payload
     val issueKey = args.issueKey
     val subtaskId = args.subtaskId
     val workflowId = args.workflowId

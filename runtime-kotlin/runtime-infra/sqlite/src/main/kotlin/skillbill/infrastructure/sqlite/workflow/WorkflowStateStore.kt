@@ -24,7 +24,6 @@ import java.time.Clock
 internal const val DELETE_GOAL_CHILD_FIRST_STATUS_INDEX: Int = 2
 internal const val MINIMUM_OWNER_TOKEN_LENGTH: Int = 16
 
-/** SQLite's compiled-in bound-parameter ceiling; `IN (...)` reads are chunked below it. */
 private const val WORKFLOW_ID_BATCH_SIZE: Int = 900
 
 internal class WorkflowStateStore private constructor(

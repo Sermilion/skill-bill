@@ -24,7 +24,7 @@ None of these is a production incident today, but F-001 means the listed rules a
 - Production: 254 Kotlin files, 7,351 lines, 111 packages (56 hold one file). 571 non-private top-level declarations: 272 data classes, 156 interfaces, 42 fun interfaces, 31 enums, 44 top-level functions, 21 typealiases, 2 objects, 1 sealed class, 1 class, 1 top-level `val`. None are `internal`.
 - Tests: 5 test files and 39 testFixtures files (1,758 lines).
 - Method: Python and grep censuses across every `runtime-*` module for declarations, implementers (supertype parsing plus SAM constructors), injection consumers, imports, interface default bodies, and DI bindings. I read in full every file a finding cites. I ran the four ports-related architecture tests (`PortsDeclarationArchitectureTest`, `PortNullObjectAbsenceArchitectureTest`, `RuntimeContractModuleImportRulesTest`, `PlanningProjectionNoopValidatorGuardTest`) to confirm F-001. I did not delegate a line-level review.
-- Context read: CLAUDE.md, ARCHITECTURE.md (Design Principles, Gradle Modules, Boundary Rules), `docs/code-principles.md`, and the runtime-ports entries in `runtime-kotlin/agent/decisions.md` (runtime-ports has no `agent/` directory of its own). The relevant entries are SKILL-358 (2026-09-18), SKILL-233 subtask 2 (a)-(c), the audit-gap remediation (2026-09-06), the guard recalibration (2026-09-04), and SKILL-231 subtask 3 (2026-09-03).
+- Context read: CLAUDE.md, ARCHITECTURE.md (Design Principles, Gradle Modules, Boundary Rules), `../../../docs/code-principles.md`, and the runtime-ports entries in `runtime-kotlin/agent/decisions.md` (runtime-ports has no `agent/` directory of its own). The relevant entries are SKILL-358 (2026-09-18), SKILL-233 subtask 2 (a)- (c), the audit-gap remediation (2026-09-06), the guard recalibration (2026-09-04), and SKILL-231 subtask 3 (2026-09-03).
 - Prior work on this module: SKILL-358 "runtime-ports boundaries and simplicity" (landed 2026-09-18, `8fd33cfd4`). I read its investigation and spec in full. "SKILL-358 landing check" below lists what landed. This bundle keeps SKILL-358's retention decisions except one, which F-005 supersedes with new evidence.
 - HEAD was still `dbf9f4830` at the gap pass.
 - Sibling work on the same baseline: SKILL-370 (application), SKILL-371 (CLI, including repair of other vacuous guards), SKILL-372 (domain, typed workflow aggregate), SKILL-373 (composition root, `RuntimeContext`, architecture-suite move to `src/repoTest`), SKILL-374 (contracts), SKILL-375 (MCP), SKILL-376 (infra, goal-runner coordination to engine), SKILL-378 (engine, including deletion of experiment support). This investigation does not repeat their findings. "Coordination" below lists each shared seam.
@@ -85,7 +85,7 @@ Priority reflects enforcement loss, correctness risk, and change cost. None is a
 
 Evidence:
 
-- `runtime-core/src/test/kotlin/skillbill/architecture/PortsDeclarationArchitectureTest.kt:10-16` computes `runtimeRoot` as the working directory's parent when the working directory name starts with `runtime-`. Under Gradle that is `runtime-kotlin/`. It then resolves `runtime-kotlin/runtime-ports/src/main/kotlin`, which yields `runtime-kotlin/runtime-kotlin/runtime-ports/...`. `scanPortsMainSource` returns an empty list when the directory is missing.
+- `runtime-core/src/test/kotlin/skillbill/architecture/PortsDeclarationArchitectureTest.kt:10-16` computes `runtimeRoot` as the working directory's parent when the working directory name starts with `runtime-`. Under Gradle that is `../../../runtime-kotlin`. It then resolves `runtime-kotlin/runtime-ports/src/main/kotlin`, which yields `runtime-kotlin/runtime-kotlin/runtime-ports/...`. `scanPortsMainSource` returns an empty list when the directory is missing.
 - `PortNullObjectAbsenceArchitectureTest.kt:59` has the same doubled prefix for `runtime-ports/src/testFixtures`. Its first test resolves module paths correctly.
 - A run of both tests at baseline passed. `PortsDeclarationArchitectureTest` took 0.038 s. Ports main source currently contains two top-level `object`s (`ReviewMetricsDatabasePolicy`, `ReadinessTreeIdentityPayloadCodec`) and one non-DTO top-level class (`IdeStatusProblemDetails`), each of which the test forbids.
 - The first case of `PortNullObjectAbsenceArchitectureTest` resolves `RuntimeModuleCatalog.declaredGradleModules` entries as directories. The seven `runtime-infra:<name>` entries contain a colon, `Files.isDirectory` drops them, and no infrastructure main source is scanned. An infra grep finds no hidden violation today. Its census regex matches only `object (Noop|Unavailable|Empty|Unconfigured)…`, so `class NoopExperimentNavigationSessionRunner` in engine main passes (F-012).
@@ -193,7 +193,7 @@ Fix: delete the unconsumed ports, their bindings, the component accessor, the de
 
 ### F-008. Medium. Nullable repositories hide a degradation
 
-Evidence: `UnitOfWork.kt:36-37` declares `rejectedOutputDiagnostics` and `rejectedOutputDiagnosticPermissions` nullable. The only production implementation (`SQLiteRepositories.kt:98-100`) is non-null. `GoalPlanningLogService.kt:63-64` returns `emptyList()` on null without a diagnostic record, contrary to `docs/observability-policy.md`. Application throws on the same null.
+Evidence: `UnitOfWork.kt:36-37` declares `rejectedOutputDiagnostics` and `rejectedOutputDiagnosticPermissions` nullable. The only production implementation (`SQLiteRepositories.kt:98-100`) is non-null. `GoalPlanningLogService.kt:63-64` returns `emptyList()` on null without a diagnostic record, contrary to `../../../docs/observability-policy.md`. Application throws on the same null.
 
 Fix: make both non-null and delete the null branches. Tests that need absence use a fixture repository.
 
@@ -265,7 +265,7 @@ Fix: throw the existing `InvalidGoalPlanningPreparationSchemaError`, or return n
 
 ## Over-engineering register
 
-Paths relative to `runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports`.
+Paths relative to `../../../runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports`.
 
 - `workflow/gitops/WorkflowGitOperations.kt`: 8 getters and 7 forwarders; plus 16 forwarders in 6 sibling files. Delete.
 - `workflow/gitops/readiness/ReadinessTreeIdentityGitOperations.kt`: `ReadinessTreeIdentityPayloadCodec`. Replaced by a typed result.
@@ -315,7 +315,7 @@ Estimate: roughly 700 to 1,000 production lines removed across ports, workflow a
 | Experiment support (`ports/experiment/**`, `ExperimentPairRepository`, experiment launcher fields, `NoopExperimentNavigationSessionRunner`, 19 of 21 ports typealiases) and companion-`val` detection in `PortNullObjectCensus` | SKILL-378 subtask 1, which deletes experiment support and runs before SKILL-370 | SKILL-377 starts after it and drops every experiment item. SKILL-377 keeps the scan-root fixes, `class` detection in the census, all seven non-experiment ports `NONE`s (F-012), and extending 378.1's companion-`val` rule, which 378 scopes to engine main, to runtime-ports main. SKILL-378 subtask 2 runs after 377.1, and 378.3 after 377.3 (alias recensus). No cycle. |
 | Raw-map rule over ports main (24 `Map<String, Any?>` occurrences in 7 files) | SKILL-371 subtask 1 ("any further violation the restored guards report") | Not duplicated here. `IdeStatusProblemDetails` is chosen as a value class so this spec adds no raw map. |
 | `ParallelCodeReviewInlineCoverageContinuation` package path | SKILL-370 F-009 renames `review/parallel/core/code/review/*` | The endpoint-close fix follows the file wherever SKILL-370 put it. |
-| Recorded decision 2026-09-06 (c), retained by SKILL-358 | This bundle | F-005 supersedes it. Subtask 2 records the superseding entry in `runtime-kotlin/agent/decisions.md`. |
+| Recorded decision 2026-09-06 (c), retained by SKILL-358 | This bundle | F-005 supersedes it. Subtask 2 records the superseding entry in `../../../runtime-kotlin/agent/decisions.md`. |
 | Goal-runner store implementations | SKILL-376 subtask 2 | No signature change here, apart from F-004 defaults and F-010 `Any`. |
 
 ## Limits

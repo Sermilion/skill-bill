@@ -60,7 +60,6 @@ import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
-import skillbill.ports.goalrunner.model.GoalPlanningPreparationStatus
 import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
@@ -3150,28 +3149,7 @@ private class InMemoryPreparationRepository(
     }
   }
 
-  override fun findByGoalAndSubtask(
-    parentGoalWorkflowId: String,
-    subtaskId: Int,
-  ): GoalPlanningPreparationRecord? = records[subtaskId]
-
-  override fun listPreparedByGoalOrdered(parentGoalWorkflowId: String): List<GoalPlanningPreparationRecord> =
-    records.values.toList().sortedBy { it.subtaskId }
-
-  override fun preparedCount(parentGoalWorkflowId: String): Int = records.size
-
-  override fun firstMissingOrIncompleteSubtask(
-    parentGoalWorkflowId: String,
-    orderedSubtaskIds: List<Int>,
-  ): Int? = orderedSubtaskIds.firstOrNull { id -> id !in records }
-
-  override fun preparedStatus(
-    parentGoalWorkflowId: String,
-    subtaskId: Int,
-  ): GoalPlanningPreparationStatus? =
-    records[subtaskId]?.let { record ->
-      GoalPlanningPreparationStatus(parentGoalWorkflowId, subtaskId, record.preparationStatus, record.provenance)
-    }
+  fun findBySubtask(subtaskId: Int): GoalPlanningPreparationRecord? = records[subtaskId]
 
   override fun deleteByGoal(parentGoalWorkflowId: String): Int {
     val matchingIds =
@@ -3295,8 +3273,7 @@ private class SweepHarness(
       "repo-root-realpath-v1:${fixtures.repoRoot.toRealPath()}",
     )
 
-  fun recordFor(subtaskId: Int): GoalPlanningPreparationRecord? =
-    fixtures.database.repository.findByGoalAndSubtask("wfl-parent", subtaskId)
+  fun recordFor(subtaskId: Int): GoalPlanningPreparationRecord? = fixtures.database.repository.findBySubtask(subtaskId)
 
   val manifestFileStore: CountingManifestFileStore get() = fixtures.manifestFileStore
 }

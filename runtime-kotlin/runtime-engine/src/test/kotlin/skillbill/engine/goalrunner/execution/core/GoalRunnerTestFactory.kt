@@ -28,6 +28,7 @@ import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.experiment.selection.NoExperimentSelection
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
+import skillbill.ports.goalrunner.planning.EMPTY_GOAL_PLANNING_CONTEXT_DISCOVERY
 import skillbill.ports.goalrunner.planning.GoalPlanningContextDiscovery
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
@@ -350,7 +351,7 @@ internal fun testGoalPlanningContextDiscovery(
       validationGuidance = "",
     )
   ) {
-    GoalPlanningContextDiscovery.NONE
+    EMPTY_GOAL_PLANNING_CONTEXT_DISCOVERY
   } else {
     object : GoalPlanningContextDiscovery {
       override fun loadPlanningContext(repoRoot: Path): GoalPlanningContext = context
@@ -359,7 +360,7 @@ internal fun testGoalPlanningContextDiscovery(
         repoRoot: Path,
         findingPaths: List<String>,
         loudFailOnCapExceeded: Boolean,
-      ) = GoalPlanningContextDiscovery.NONE.discoverForFindingPaths(
+      ) = EMPTY_GOAL_PLANNING_CONTEXT_DISCOVERY.discoverForFindingPaths(
         repoRoot,
         findingPaths,
         loudFailOnCapExceeded,

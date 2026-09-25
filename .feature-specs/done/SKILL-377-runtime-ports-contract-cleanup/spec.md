@@ -52,7 +52,7 @@ Next command: `skill-bill goal SKILL-377`.
 8. The unconsumed ports, bindings, component accessor, dead adapters, and dead declarations listed in investigation F-007 do not exist, and runtime-ports declares no kotlinx.serialization dependency.
 9. runtime-ports main declares no typealias and no `Any`-typed member in a port contract.
 10. `PortsDeclarationArchitectureTest` and every case of `PortNullObjectAbsenceArchitectureTest` fail on a missing scan root and assert they read at least one file per named root, including each `runtime-infra` module. The ports guard rejects a synthetic constant-result default in a non-`fun` interface, the null-object census flags a synthetic `class Noop…`, and both report no violations on the tree.
-11. `runtime-kotlin/ARCHITECTURE.md` and `runtime-kotlin/agent/decisions.md` describe the landed contracts, including `Path` as the port path type and an entry that supersedes decision 2026-09-06 (c).
+11. `../../../runtime-kotlin/ARCHITECTURE.md` and `runtime-kotlin/agent/decisions.md` describe the landed contracts, including `Path` as the port path type and an entry that supersedes decision 2026-09-06 (c).
 12. runtime-ports main declares no `NONE` companion that throws, is compared by identity, or has no main-source reference.
 13. No runtime-ports wire decoder throws a JDK exception type for an unknown token.
 
@@ -63,7 +63,7 @@ Next command: `skill-bill goal SKILL-377`.
 - If an experiment field, alias, or linked-worktree operation still blocks a criterion, remove it in this bundle.
 - If a scanner this bundle's criteria rely on still reads zero files, repair that scanner here.
 - Fix every violation this bundle's guards report, including public raw maps when those guards report them.
-- Follow `runtime-kotlin/ARCHITECTURE.md` Design Principles and `docs/code-principles.md`: no `//` comments in Kotlin, KDoc only on interfaces, wire keys through `*Keys` owners, and package sibling limits.
+- Follow `../../../runtime-kotlin/ARCHITECTURE.md` Design Principles and `docs/code-principles.md`: no `//` comments in Kotlin, KDoc only on interfaces, wire keys through `*Keys` owners, and package sibling limits.
 - CLI and MCP wire output, persisted bytes, schemas, and contract versions stay unchanged.
 - Keep every port that a consumer injects, the `UnitOfWork` shape, the goal-runner store role splits, and every SKILL-358 retention decision except 2026-09-06 (c).
 - Add no module, framework, dependency bag, parameter object beyond the one review-preparation value in AC 5, or architecture-test class. The scanner changes are extending the existing interface-default rule, adding `class` detection to the null-object census, and repairing a scanner that this bundle's criteria show is not reading files. Don't expand any baseline.

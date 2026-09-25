@@ -34,7 +34,7 @@ Decode error (F-013): `GoalPlanningPreparationState.fromWireValue` throws `Inval
 
 Review facts types: move `ReviewScopeFacts`, `ReviewStackRoutingFacts`, and `ReviewLaneSelection` into runtime-application beside `ReviewPreparationFacts`.
 
-Decision record: add a `runtime-kotlin/agent/decisions.md` entry that supersedes 2026-09-06 (c), with the evidence from investigation F-005.
+Decision record: add a `../../../runtime-kotlin/agent/decisions.md` entry that supersedes 2026-09-06 (c), with the evidence from investigation F-005.
 
 ## Acceptance Criteria
 
@@ -48,7 +48,7 @@ Decision record: add a `runtime-kotlin/agent/decisions.md` entry that supersedes
 8. `unbindListener` does not exist. A test that drives two coverage-continuation passes observes that the first endpoint's channel is closed before the run ends.
 9. `FeatureTaskRuntimeSharedEvidenceLocatorReadPort` declares no `NONE`, and no production code compares a locator reader by identity. Review preparation without a locator produces the same output as baseline.
 10. An unknown stored goal-planning preparation state raises `InvalidGoalPlanningPreparationSchemaError`, not `IllegalArgumentException`.
-11. `runtime-kotlin/agent/decisions.md` has an entry that supersedes decision 2026-09-06 (c) and names the family-keyed repository shape.
+11. `../../../runtime-kotlin/agent/decisions.md` has an entry that supersedes decision 2026-09-06 (c) and names the family-keyed repository shape.
 
 ## Non-Goals
 

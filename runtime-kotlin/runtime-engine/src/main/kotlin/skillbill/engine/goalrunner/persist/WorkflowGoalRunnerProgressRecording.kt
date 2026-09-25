@@ -12,6 +12,7 @@ import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_LIMIT
 import skillbill.goalrunner.model.GoalObservabilityRuntimeEventInput
 import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
+import skillbill.goalrunner.model.GoalRunnerWirePayload
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.progressEventFrom
 import skillbill.goalrunner.summarizeAttemptLedgerFromEntries
@@ -138,9 +139,9 @@ internal class WorkflowGoalRunnerProgressRecording(
     }
 
   override fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean {
-    val entryMap = request.event.toPersistenceWire()
+    val entryMap = GoalRunnerWirePayload.from(request.event.toPersistenceWire())
     goalProgressEventValidator.validateGoalProgressEvent(
-      entryMap,
+      entryMap.payload,
       DurableWorkflowArtifactFamily.GOAL_PROGRESS_LATEST_EVENT.label(),
     )
     return appendHistoryArtifact(
@@ -161,7 +162,7 @@ internal class WorkflowGoalRunnerProgressRecording(
         latestFamily = null,
         historyFamily = DurableWorkflowArtifactFamily.GOAL_ATTEMPT_LEDGER,
         retentionLimit = GOAL_ATTEMPT_LEDGER_LIMIT,
-        entryMap = request.entry.toPersistenceWire(),
+        entryMap = GoalRunnerWirePayload.from(request.entry.toPersistenceWire()),
       ),
     )
 
@@ -310,11 +311,11 @@ internal class WorkflowGoalRunnerProgressRecording(
           .orEmpty()
           .mapNotNull { item -> item as? Map<*, *> }
           .mapNotNull { item -> JsonCodec.anyToStringAnyMap(item) }
-      val updatedHistory = appendBoundedHistoryBySequence(existing, append.entryMap, append.retentionLimit)
+      val updatedHistory = appendBoundedHistoryBySequence(existing, append.entryMap.payload, append.retentionLimit)
       val patch =
         buildMap<String, Any?> {
           append.historyFamily.putInto(this, updatedHistory)
-          append.latestFamily?.putInto(this, append.entryMap)
+          append.latestFamily?.putInto(this, append.entryMap.payload)
         }
       val updated =
         engine.updateRecord(

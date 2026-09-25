@@ -63,7 +63,8 @@ class GoalPlanningPreparationRecordMappingTest {
         "contract_version" to "0.1",
       )
 
-    val error = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> { envelope.toGoalPlanningPreparationRecord() }
+    val error =
+      assertFailsWith<InvalidGoalPlanningPreparationSchemaError> { envelope.toGoalPlanningPreparationRecord() }
 
     assertEquals("preparation_status", error.fieldPath)
     assertEquals(".feature-specs/SKILL-128/spec_subtask_2.md", error.sourceLabel)

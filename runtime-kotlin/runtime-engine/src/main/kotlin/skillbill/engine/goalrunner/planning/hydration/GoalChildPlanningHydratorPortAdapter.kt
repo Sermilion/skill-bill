@@ -9,7 +9,9 @@ import skillbill.ports.goalrunner.runner.model.GoalChildPlanningHydrationRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import java.time.Clock
 
 @Inject
@@ -35,7 +37,7 @@ class GoalChildPlanningHydratorPortAdapter(
   private fun GoalChildPlanningHydration.toPortResult() =
     GoalChildPlanningHydrationResult(
       currentStepId = currentStepId,
-      stepUpdates = stepUpdates,
-      artifacts = artifacts,
+      stepUpdates = WorkflowStepUpdates.from(stepUpdates) ?: WorkflowStepUpdates.EMPTY,
+      artifacts = WorkflowArtifactPatch.from(artifacts) ?: WorkflowArtifactPatch.EMPTY,
     )
 }

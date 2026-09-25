@@ -6,12 +6,12 @@ import skillbill.application.review.model.ReviewPreparationResult
 import skillbill.application.review.model.ReviewRubricProjection
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
 import skillbill.application.review.model.ReviewWorkerKind
-import skillbill.application.review.preparation.ReviewLaneSelection
-import skillbill.application.review.preparation.ReviewPreparationFacts
 import skillbill.application.review.preparation.ReviewPreparationService
-import skillbill.application.review.preparation.ReviewScopeFacts
-import skillbill.application.review.preparation.ReviewStackRoutingFacts
 import skillbill.application.review.preparation.deriveSpecialistBudget
+import skillbill.application.review.preparation.model.ReviewLaneSelection
+import skillbill.application.review.preparation.model.ReviewPreparationFacts
+import skillbill.application.review.preparation.model.ReviewScopeFacts
+import skillbill.application.review.preparation.model.ReviewStackRoutingFacts
 import skillbill.application.reviewevidence.ResolvedCommitSequence
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.repository.RepositoryEnclosingRootPort

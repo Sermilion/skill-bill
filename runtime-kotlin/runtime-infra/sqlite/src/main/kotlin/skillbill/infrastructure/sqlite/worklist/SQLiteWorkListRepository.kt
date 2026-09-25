@@ -4,9 +4,9 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidWorkListRowError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.ports.work.WorkListRepository
-import skillbill.ports.work.model.LEGACY_FEATURE_TASK_PROSE_WORKFLOW_STATUSES
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.work.model.WorkItemKind
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.time.parsePersistedInstant
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
@@ -120,6 +120,17 @@ private fun ResultSet.toWorkItem(): WorkItem {
     stateEnteredAtEstimated = estimated,
   )
 }
+
+private val LEGACY_FEATURE_TASK_PROSE_WORKFLOW_STATUSES: Set<String> =
+  setOf(
+    WorkflowStatus.PENDING.wireValue,
+    WorkflowStatus.RUNNING.wireValue,
+    WorkflowStatus.COMPLETED.wireValue,
+    WorkflowStatus.FAILED.wireValue,
+    WorkflowStatus.ABANDONED.wireValue,
+    WorkflowStatus.BLOCKED.wireValue,
+    WorkflowStatus.PAUSED.wireValue,
+  )
 
 private val validWorkStates: Set<String> =
   LEGACY_FEATURE_TASK_PROSE_WORKFLOW_STATUSES +

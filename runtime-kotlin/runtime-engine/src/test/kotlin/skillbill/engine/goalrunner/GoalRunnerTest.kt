@@ -59,7 +59,6 @@ import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
 import skillbill.goalrunner.model.GoalObservabilityRuntimeEventInput
 import skillbill.goalrunner.model.GoalPlanningStatusReasons
-import skillbill.goalrunner.model.GoalPlanningStatusReasons.NOT_STARTED as NOT_STARTED_REASON
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalPlanningStatusState.BLOCKED
 import skillbill.goalrunner.model.GoalPlanningStatusState.NOT_STARTED
@@ -76,6 +75,7 @@ import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
+import skillbill.goalrunner.model.GoalRunnerWirePayload
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.goalrunner.planning.cascadeEligiblePlanSubtaskIds
@@ -195,6 +195,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import skillbill.goalrunner.model.GoalPlanningStatusReasons.NOT_STARTED as NOT_STARTED_REASON
 
 class GoalRunnerTest {
   @Test
@@ -4714,7 +4715,7 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
     workflowId: String,
     issueKey: String,
     subtaskId: Int,
-    output: Any,
+    output: GoalRunnerWirePayload,
   ): GoalRunnerStoredOutcome? {
     recoveredMissingResultPrefixOutputs +=
       RecoveredMissingResultPrefixOutput(
@@ -4850,7 +4851,7 @@ internal data class RecoveredMissingResultPrefixOutput(
   val workflowId: String,
   val issueKey: String,
   val subtaskId: Int,
-  val output: Any,
+  val output: GoalRunnerWirePayload,
 )
 
 internal data class ReconcileRequest(
@@ -5045,7 +5046,6 @@ private class RecordingGitOperations(
   ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(status = WorkflowGitOperationStatus.OK)
 }
 
-/** A git fake whose goal-subtask review capability is already ready, so subtask review never blocks a run. */
 private abstract class GoalReviewReadyGitOperations(
   private val baselineError: String? = null,
 ) : WorkflowGitOperationsTestBase() {
@@ -5589,7 +5589,6 @@ private object GoalTestEmptyWorkflowStateRepository : WorkflowStateRepositoryDef
     normalizedIssueKey: String,
     repositoryIdentity: String,
   ) = emptyList<FeatureTaskWorkflowCandidate>()
-
 }
 
 class GoalRunnerValidationQualityRetryTest {

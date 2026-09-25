@@ -221,8 +221,12 @@ sealed interface AgentRunTermination {
   data object SpawnFailed : AgentRunTermination
 }
 
-/** The status a settled process reported, or null when it never settled. Persisted and rendered as-is. */
-val AgentRunTermination.exitCode: Int? get() = (this as? AgentRunTermination.Exited)?.code
+val AgentRunTermination.exitCode: Int?
+  get() =
+    when (this) {
+      is AgentRunTermination.Exited -> code
+      AgentRunTermination.TimedOut, AgentRunTermination.Interrupted, AgentRunTermination.SpawnFailed -> null
+    }
 
 data class AgentRunLaunchFacts(
   override val agent: SupportedAgent,

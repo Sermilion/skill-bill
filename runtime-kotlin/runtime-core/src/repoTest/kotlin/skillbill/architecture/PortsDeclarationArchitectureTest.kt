@@ -58,6 +58,66 @@ class PortsDeclarationArchitectureTest {
     )
   }
 
+  @Test
+  fun `the interface default check rejects constant results outside fun interfaces`() {
+    val constantFixture =
+      """
+      interface ConstantDefaultPort {
+        fun enabled(): Boolean = true
+      }
+      """.trimIndent()
+    assertEquals(
+      listOf("Forbidden.kt: interface default body returns a constant result"),
+      interfaceDefaultBodyViolations("Forbidden.kt", constantFixture),
+    )
+
+    val gitResultFixture =
+      """
+      interface GitDefaultPort {
+        fun stage(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok("")
+      }
+      """.trimIndent()
+    assertEquals(
+      listOf("Forbidden.kt: interface default body returns a constant result"),
+      interfaceDefaultBodyViolations("Forbidden.kt", gitResultFixture),
+    )
+
+    val derivedFixture =
+      """
+      interface DerivedDefaultPort {
+        fun label(): String
+
+        fun shortLabel(): String = label().take(8)
+      }
+      """.trimIndent()
+    assertEquals(emptyList(), interfaceDefaultBodyViolations("Allowed.kt", derivedFixture))
+
+    val funInterfaceFixture =
+      """
+      fun interface ProbePort {
+        fun probe(): String?
+
+        fun fallbackProbe(): String? = null
+      }
+      """.trimIndent()
+    assertEquals(emptyList(), interfaceDefaultBodyViolations("Allowed.kt", funInterfaceFixture))
+
+    val nestedBraceFixture =
+      """
+      interface NestedBraceDefaultPort {
+        fun labels(): List<String>
+
+        fun firstLabel(): String? = labels().firstOrNull { it.isNotBlank() }
+
+        fun enabled(): Boolean = true
+      }
+      """.trimIndent()
+    assertEquals(
+      listOf("Forbidden.kt: interface default body returns a constant result"),
+      interfaceDefaultBodyViolations("Forbidden.kt", nestedBraceFixture),
+    )
+  }
+
   private fun scanPortsMainSource(): List<String> {
     val sourceFiles = kotlinFilesUnderWithArchitectureAsserts(portsMainRoot)
     return buildList {
@@ -128,24 +188,38 @@ class PortsDeclarationArchitectureTest {
     source: String,
   ): List<String> {
     val sourceWithoutCompanionBodies = removeCompanionBodies(source)
-    val interfaceBlocks =
-      Regex("""interface\s+\w+[^{]*\{([^}]*)\}""", RegexOption.DOT_MATCHES_ALL)
-        .findAll(sourceWithoutCompanionBodies)
-        .map { it.groupValues[1] }
-        .toList()
-    return interfaceBlocks.flatMap { body ->
-      if (
-        Regex(
-          """\bfun\s+\w+\s*\([^)]*\)[^={]*(?:=[^{]*\b(?:error|throw)\s*\(|\{[^}]*\b(?:error|throw)\b)""",
-          RegexOption.DOT_MATCHES_ALL,
-        ).containsMatchIn(body)
-      ) {
-        listOf("$fileName: interface default body uses error or throw")
-      } else {
-        emptyList()
+    return abstractInterfaceBodies(sourceWithoutCompanionBodies).flatMap { body ->
+      buildList {
+        if (
+          Regex(
+            """\bfun\s+\w+\s*\([^)]*\)[^={]*(?:=[^{]*\b(?:error|throw)\s*\(|\{[^}]*\b(?:error|throw)\b)""",
+            RegexOption.DOT_MATCHES_ALL,
+          ).containsMatchIn(body)
+        ) {
+          add("$fileName: interface default body uses error or throw")
+        }
+        if (constantDefaultBody.containsMatchIn(body)) {
+          add("$fileName: interface default body returns a constant result")
+        }
       }
     }
   }
+
+  private val constantDefaultBody =
+    Regex(
+      """\bfun\s+\w+\s*\([^)]*\)\s*(?::[^={\n]*)?=\s*""" +
+        """(?:true\b|false\b|null\b|Unit\b|""" +
+        """empty(?:List|Map|Set|Array)\(\)|listOf\(\)|mapOf\(\)|setOf\(\)|""" +
+        """WorkflowGitOperationResult\.(?:Ok|Failed)\b)""",
+    )
+
+  private fun abstractInterfaceBodies(source: String): List<String> =
+    Regex("""(?<!fun )\binterface\s+\w+[^{]*\{""")
+      .findAll(source)
+      .mapNotNull { match ->
+        matchingBrace(source, match.range.last)?.let { closing -> source.substring(match.range.last + 1, closing) }
+      }
+      .toList()
 
   private fun removeCompanionBodies(source: String): String {
     val ranges =

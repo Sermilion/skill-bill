@@ -317,15 +317,16 @@ runtime-core
   install-plan, scaffold, and skill-remove models/rules. Public domain data
   types live in area-owned `model` packages, including the
   `skillbill.model.FileLocation` value type that carries repo paths through domain
-  and port signatures without a `java.nio` dependency.
+  signatures without a `java.nio` dependency.
 - `runtime-ports`: `skillbill.model.EnvironmentContext`, the
   `skillbill.model.RuntimeVersion` packaged-version value type, persistence sessions,
   repositories, gateway interfaces, telemetry port interfaces, workflow git
   operations, decomposition-manifest file-store ports, port-owned model types,
-  the `skillbill.model.toPath` and `skillbill.ports.repository.toFileLocation` bridges that adapters use to turn
-  a `FileLocation` into a `java.nio.file.Path`, and shared payload projection for
+  and shared payload projection for
   boundary events that must be consumed by both application and infrastructure
-  adapters.
+  adapters. `java.nio.file.Path` is the path type in port signatures; the
+  `skillbill.model.toPath` and `skillbill.ports.repository.toFileLocation` bridges
+  convert between that `Path` and the `FileLocation` domain value.
 - `runtime-application`: CLI/MCP/shared use cases outside the engine run loop,
   workflow orchestration, telemetry lifecycle orchestration,
   presenter-to-contract mapping, and validated decomposition-manifest file/artifact projection through workflow ports.
@@ -838,8 +839,10 @@ silently bypass the journal boundary.
    or application services.
 4. Port packages must not depend on application, infrastructure, entry
    adapters, or composition roots. `runtime-ports/src/main` must not declare
-   top-level objects, non-DTO top-level classes, `(this as` casts, or interface
-   default bodies that `error` or `throw`; `PortsDeclarationArchitectureTest`
+   top-level objects, non-DTO top-level classes, `(this as` casts, interface
+   default bodies that `error` or `throw`, or — outside a `fun interface` —
+   interface default bodies that return a bare constant;
+   `PortsDeclarationArchitectureTest`
    enforces this beside `RuntimeContractModuleImportRulesTest`.
 5. Contracts packages must not depend on application, domain area packages,
    ports, infrastructure, entry adapters, or composition roots. `runtime-contracts`
@@ -1474,29 +1477,16 @@ and wire serialisation; they do not widen the port surface.
   `skillbill.scaffold.FileSystem*`. The
   `ImplementationOwnershipArchitectureTest.scaffoldPolicyPackagesMustNotImportInfraFs`
   test enforces this prospectively.
-- **Capability-port surface:** scaffold IO is split across five
-  capability-named ports under `skillbill.ports.scaffold.<capability>/`:
-  - `source/ScaffoldSourceLoaderPort` (with
-    `source/model/ScaffoldSourceLoaderModels`) — parses platform-pack
-    manifests from disk.
-  - `manifest/ScaffoldManifestPersistencePort` (with
-    `manifest/model/ScaffoldManifestPersistenceModels`) — owns the
-    `platform.yaml` read/snapshot/write/restore/render seams.
-  - `staging/ScaffoldGeneratedStagingPort` (with
-    `staging/model/ScaffoldGeneratedStagingModels`) — stages
-    scaffold-generated artifact files with rollback.
-  - `install/ScaffoldInstallLinkPort` (with
-    `install/model/ScaffoldInstallLinkModels`) — applies install links
-    to detected agent targets.
-  - `repo/ScaffoldRepoValidationPort` (with
-    `repo/model/ScaffoldRepoValidationModels`) — runs the post-stage
-    governed-skill validation seam.
-  - Each port has a matching `FileSystem<Capability>` adapter in
-    `runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/` that
-    delegates to the existing
-    `skillbill.infrastructure.skills.scaffold.authoring.AuthoringOperations`
-    IO seams. `FileSystemScaffoldGateway`
-    implements the typed `ScaffoldGateway` port.
+- **Scaffold IO surface:** `ScaffoldGateway` is the only scaffold IO port.
+  SKILL-377 deleted the per-capability scaffold ports that no caller
+  injected. `FileSystemScaffoldOrchestrator` in
+  `runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/install/scaffold/`
+  uses the concrete `adapters/FileSystemScaffoldSourceLoader` and
+  `adapters/FileSystemScaffoldRepoValidation` classes directly. The
+  `skillbill.ports.scaffold.source.model` and
+  `skillbill.ports.scaffold.repo.model` packages keep the result models that
+  `ScaffoldGateway` returns. `FileSystemScaffoldGateway` implements the typed
+  `ScaffoldGateway` port.
 - **Adapter-internal raw-map functions** (`Map<String, Any?>` only inside
   `scaffold/`; not part of `ScaffoldGateway`):
   - `adapters/FileSystemScaffoldRepoValidation.kt` — `internal`:

@@ -9,9 +9,9 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWorkflowProjectionInput
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
-import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
 import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
+import skillbill.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import java.nio.file.AtomicMoveNotSupportedException

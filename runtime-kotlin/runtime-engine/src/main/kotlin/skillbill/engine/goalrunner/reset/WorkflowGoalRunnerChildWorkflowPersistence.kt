@@ -1,7 +1,6 @@
 package skillbill.engine.goalrunner.reset
 
 import skillbill.application.workflow.decomposition.requireRuntimeModeForEngineWrite
-import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.engine.goalrunner.manifest.mergeConcurrentGoalProgress
@@ -22,7 +21,6 @@ import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskExecutionIdentityPolicy
@@ -235,14 +233,11 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
       WorkflowUpdateInput(
         workflowStatus = openedChild.workflowStatus,
         currentStepId = hydration.currentStepId,
-        stepUpdates =
-          WorkflowStepUpdates.from(
-            hydration.stepUpdates.mapNotNull { step -> JsonCodec.anyToStringAnyMap(step) },
-          ),
+        stepUpdates = hydration.stepUpdates,
         artifactsPatch =
           WorkflowArtifactPatch.from(
             LinkedHashMap(childWorkflowArtifacts(state, setup, parentWorkflowId)).apply {
-              JsonCodec.anyToStringAnyMap(hydration.artifacts)?.let(::putAll)
+              putAll(hydration.artifacts)
             },
           ),
         sessionId = openedChild.sessionId.orEmpty(),

@@ -28,6 +28,7 @@ import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
+import skillbill.goalrunner.model.GoalRunnerWirePayload
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
@@ -614,8 +615,7 @@ internal class IdeStatusWorkflowStates : WorkflowStateRepositoryDefaults() {
     limit: Int,
   ): List<WorkflowStateSnapshot> = rows(family).values.take(limit).map(WorkflowStateRecord::toSnapshot)
 
-  override fun latest(family: WorkflowFamily): WorkflowStateSnapshot? =
-    rows(family).values.lastOrNull()?.toSnapshot()
+  override fun latest(family: WorkflowFamily): WorkflowStateSnapshot? = rows(family).values.lastOrNull()?.toSnapshot()
 
   private fun rows(family: WorkflowFamily): MutableMap<String, WorkflowStateRecord> =
     when (family) {
@@ -707,7 +707,7 @@ internal object EmptyOutcomeStore : GoalRunnerWorkflowOutcomeStore {
     workflowId: String,
     issueKey: String,
     subtaskId: Int,
-    output: Any,
+    output: GoalRunnerWirePayload,
   ): GoalRunnerStoredOutcome? = null
 
   override fun authoritativeOutcomes(issueKey: String): Map<Int, GoalRunnerStoredOutcome> = emptyMap()
