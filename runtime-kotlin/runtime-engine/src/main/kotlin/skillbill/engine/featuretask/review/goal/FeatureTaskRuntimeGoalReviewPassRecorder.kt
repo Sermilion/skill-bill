@@ -17,7 +17,6 @@ import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
 import skillbill.goalrunner.subtaskreview.recordedVerdicts
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -34,7 +33,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
   fun reserveGoalReviewPass(workflowId: String): GoalSubtaskReviewPassReservation =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction GoalSubtaskReviewPassReservation.MissingState
       val artifacts = record.artifacts
       val state =
@@ -63,7 +62,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
     input: GoalSubtaskReviewInput,
   ): GoalSubtaskReviewState? =
     database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@transaction null
       val artifacts = record.artifacts
       val state =
         reviewStateFromArtifacts(artifacts)
@@ -97,7 +96,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
     transform: (GoalSubtaskReviewState) -> GoalSubtaskReviewState,
   ): GoalSubtaskReviewState? =
     database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@transaction null
       val state =
         reviewStateFromArtifacts(
           record.artifacts,
@@ -135,7 +134,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
 
   fun lastGoalReviewResult(workflowId: String): String? =
     database.read { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@read null
       val artifacts = record.artifacts
       val state =
         reviewStateFromArtifacts(artifacts)
@@ -158,7 +157,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
     request: GoalReviewPassCompletionRequest,
   ): GoalReviewPassWrite? {
     val record =
-      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
+      unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, request.workflowId)
         ?: return null
     val artifacts = record.artifacts
     val state = reviewStateFromArtifacts(artifacts) ?: return null

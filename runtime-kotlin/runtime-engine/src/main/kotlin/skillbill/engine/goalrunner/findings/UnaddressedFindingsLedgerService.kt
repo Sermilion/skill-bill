@@ -10,7 +10,6 @@ import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.goalrunner.model.UnaddressedFindingsLedger
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairLedger
@@ -45,7 +44,7 @@ class UnaddressedFindingsLedgerService(
       }
       unitOfWork.unaddressedFindings.workflowIdsForIssue(issueKey).flatMap { workflowId ->
         val record =
-          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
             ?: return@flatMap emptyList()
         val artifacts = record.artifacts
         val artifactFamily =
@@ -80,7 +79,7 @@ class UnaddressedFindingsLedgerService(
       }
       unitOfWork.unaddressedFindings.workflowIdsForIssue(issueKey).mapNotNull { workflowId ->
         val record =
-          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
             ?: return@mapNotNull null
         val state =
           runCatching {

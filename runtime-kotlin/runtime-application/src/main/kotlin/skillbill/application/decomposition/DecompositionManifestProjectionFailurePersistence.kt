@@ -3,7 +3,6 @@ package skillbill.application.decomposition
 import skillbill.application.decomposition.model.RetryDecompositionManifestProjectionArgs
 import skillbill.ports.workflow.decomposition.DecompositionManifestProjectionFailurePersistence
 import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 
@@ -19,7 +18,7 @@ internal fun retryDecompositionManifestProjectionFromAuthoritativeState(
   val workflowId = args.workflowId
   val artifacts =
     database.read { unitOfWork ->
-      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)?.artifacts
+      unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)?.artifacts
     } ?: return DecompositionManifestProjectionOutcome.Absent
   val outcome =
     decompositionManifestWriter.writeProjectionFromWorkflowState(

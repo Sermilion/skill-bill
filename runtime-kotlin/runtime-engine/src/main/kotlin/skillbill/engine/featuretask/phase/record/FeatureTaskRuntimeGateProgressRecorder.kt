@@ -4,7 +4,6 @@ import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
@@ -30,7 +29,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
 ) : FeatureTaskRuntimeReadinessEvidencePort {
   fun loadValidationGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
     database.read { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@read null
       val raw = DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS.value(record.artifacts)
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null
       decodeValidationGateProgressFromArtifact(artifact)
@@ -42,7 +41,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
   ) {
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: throw InvalidWorkflowStateSchemaError(
             "Cannot persist validation gate progress: workflow '$workflowId' is missing.",
           )
@@ -60,7 +59,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
 
   fun loadBuildGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
     database.read { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@read null
       val raw = DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_BUILD_GATE_PROGRESS.value(record.artifacts)
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null
       decodeValidationGateProgressFromArtifact(artifact)
@@ -68,7 +67,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
 
   fun loadGoalContinuationQualityGateSelection(workflowId: String): FeatureTaskRuntimeQualityGateSelection? =
     database.read { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@read null
       GoalSubtaskReviewArtifactDecoder.decodeContinuationOnly(
         record.artifacts,
       )
@@ -77,7 +76,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
 
   override fun loadReadinessEvidence(workflowId: String): FeatureTaskRuntimeReadinessEvidence? =
     database.read { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@read null
       val family = DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_READINESS_EVIDENCE
       val raw = family.value(record.artifacts)
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null
@@ -90,7 +89,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
   ) {
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: throw InvalidWorkflowStateSchemaError(
             "Cannot persist readiness evidence: workflow '$workflowId' is missing.",
           )
@@ -112,7 +111,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
   ) {
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: throw InvalidWorkflowStateSchemaError(
             "Cannot persist build gate progress: workflow '$workflowId' is missing.",
           )

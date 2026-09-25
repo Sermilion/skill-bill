@@ -2,9 +2,7 @@ package skillbill.ports.workflow.decomposition
 
 import skillbill.contracts.decomposition.DecompositionManifestProjectionFailurePayloadKeys
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -24,7 +22,7 @@ fun persistDecompositionManifestProjectionFailure(
 ): DecompositionManifestProjectionFailurePersistence {
   val family = WorkflowFamily.TASK_RUNTIME
   val existing =
-    family.get(unitOfWork.workflowStates, workflowId)
+    unitOfWork.workflowStates.get(family, workflowId)
       ?: return DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT
   val updated =
     engine.updateRecord(
@@ -48,7 +46,7 @@ fun persistDecompositionManifestProjectionFailure(
         sessionId = existing.sessionId.orEmpty(),
       ),
     )
-  family.save(unitOfWork.workflowStates, updated)
+  unitOfWork.workflowStates.save(family, updated)
   return DecompositionManifestProjectionFailurePersistence.PERSISTED
 }
 
@@ -59,7 +57,7 @@ fun clearDecompositionManifestProjectionFailure(
 ): DecompositionManifestProjectionFailurePersistence {
   val family = WorkflowFamily.TASK_RUNTIME
   val existing =
-    family.get(unitOfWork.workflowStates, workflowId)
+    unitOfWork.workflowStates.get(family, workflowId)
       ?: return DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT
   val updated =
     engine.updateRecord(
@@ -79,6 +77,6 @@ fun clearDecompositionManifestProjectionFailure(
         replaceArtifacts = true,
       ),
     )
-  family.save(unitOfWork.workflowStates, updated)
+  unitOfWork.workflowStates.save(family, updated)
   return DecompositionManifestProjectionFailurePersistence.PERSISTED
 }

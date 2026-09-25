@@ -7,7 +7,6 @@ import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -40,7 +39,7 @@ class FeatureTaskRuntimeGoalContinuationArtifactPatcher(
           sessionId = record.sessionId.orEmpty(),
         ),
       )
-    WorkflowFamily.TASK_RUNTIME.save(workflowStates, updated)
+    workflowStates.save(WorkflowFamily.TASK_RUNTIME, updated)
   }
 }
 

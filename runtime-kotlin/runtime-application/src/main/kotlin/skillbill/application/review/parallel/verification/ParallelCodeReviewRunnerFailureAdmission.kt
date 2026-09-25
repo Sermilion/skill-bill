@@ -12,6 +12,7 @@ import skillbill.application.review.parallel.runner.ParallelCodeReviewInlinePare
 import skillbill.application.review.parallel.runner.ParallelCodeReviewSoftRegisterAdmission
 import skillbill.goalrunner.terminalStatus
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.review.model.ParallelReviewLaneOutcome
 import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.review.context.model.accounting.ReviewAccountingTerminalOutcome
@@ -95,35 +96,35 @@ class ParallelCodeReviewRunnerFailureAdmission(
   }
 
   fun laneFailureReason(facts: AgentRunLaunchFacts): String? =
-    when {
-      facts.timedOut -> "agent timed out"
-      facts.spawnFailed ->
+    when (val termination = facts.termination) {
+      AgentRunTermination.TimedOut -> "agent timed out"
+      AgentRunTermination.SpawnFailed ->
         buildString {
           append("agent process failed to spawn")
-          agentFailureExcerpt(
-            facts.stderr,
-            facts.stdout,
-            PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH,
-          )?.let { excerpt ->
-            append(" — ${excerpt.lineSequence().first().take(PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH)}")
-          }
+          appendAgentFailureExcerpt(facts)
         }
-      facts.interrupted -> "agent was interrupted"
-      facts.exitStatus == null -> "agent exited with unknown status"
-      facts.exitStatus != 0 ->
-        buildString {
-          append("agent exited with status ${facts.exitStatus}")
-          agentFailureExcerpt(
-            facts.stderr,
-            facts.stdout,
-            PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH,
-          )?.let { excerpt ->
-            append(" — ${excerpt.lineSequence().first().take(PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH)}")
-          }
+      AgentRunTermination.Interrupted -> "agent was interrupted"
+      is AgentRunTermination.Exited ->
+        when {
+          termination.code != 0 ->
+            buildString {
+              append("agent exited with status ${termination.code}")
+              appendAgentFailureExcerpt(facts)
+            }
+          facts.stdoutTruncated -> "agent output exceeded the retention cap before completion"
+          else -> null
         }
-      facts.stdoutTruncated -> "agent output exceeded the retention cap before completion"
-      else -> null
     }
+
+  private fun StringBuilder.appendAgentFailureExcerpt(facts: AgentRunLaunchFacts) {
+    agentFailureExcerpt(
+      facts.stderr,
+      facts.stdout,
+      PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH,
+    )?.let { excerpt ->
+      append(" — ${excerpt.lineSequence().first().take(PARALLEL_REVIEW_STDERR_EXCERPT_MAX_LENGTH)}")
+    }
+  }
 
   private fun rejectedCandidateDiagnostic(parsed: ParallelReviewParseResult): String? {
     val rejection = parsed.rejections.firstOrNull() ?: return null
@@ -172,10 +173,10 @@ internal fun parallelCodeReviewInlineTerminalStatus(
 ): ReviewAccountingTerminalOutcome =
   when {
     disposition == ReviewLaneReviewDisposition.INCOMPLETE -> ReviewAccountingTerminalOutcome.INCOMPLETE
-    facts.timedOut -> ReviewAccountingTerminalOutcome.TIMEOUT
-    facts.interrupted -> ReviewAccountingTerminalOutcome.INTERRUPTED
-    facts.spawnFailed -> ReviewAccountingTerminalOutcome.SPAWN_FAILURE
-    facts.exitStatus != 0 -> ReviewAccountingTerminalOutcome.PROCESS_FAILURE
+    facts.termination == AgentRunTermination.TimedOut -> ReviewAccountingTerminalOutcome.TIMEOUT
+    facts.termination == AgentRunTermination.Interrupted -> ReviewAccountingTerminalOutcome.INTERRUPTED
+    facts.termination == AgentRunTermination.SpawnFailed -> ReviewAccountingTerminalOutcome.SPAWN_FAILURE
+    facts.termination != AgentRunTermination.Exited(0) -> ReviewAccountingTerminalOutcome.PROCESS_FAILURE
     else -> ReviewAccountingTerminalOutcome.COMPLETED
   }
 

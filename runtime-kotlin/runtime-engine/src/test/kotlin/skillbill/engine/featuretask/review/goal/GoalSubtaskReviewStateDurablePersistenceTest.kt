@@ -31,6 +31,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairOutcome
 import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceipt
@@ -148,7 +149,7 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
           sessionId = "fis-001",
         ),
       ).toRecord()
-    repository.saveFeatureTaskRuntimeWorkflow(seeded)
+    repository.saveFeatureTaskWorkflow(seeded, FeatureTaskWorkflowMode.RUNTIME)
     return FeatureTaskRuntimeGoalContinuationRecorder(
       FeatureTaskGitIntegrationDatabase(repository),
       NoopRuntimeDiagnostics,

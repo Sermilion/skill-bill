@@ -55,13 +55,16 @@ class GoalRunnerPurgePersistenceTest {
       goalChildWorkflow("wftr-standalone", parentId).copy(
         artifactsJson = goalContinuationArtifacts(parentId, 99),
       )
-    store.saveFeatureTaskRuntimeWorkflow(
+    store.saveFeatureTaskWorkflow(
       workflowRow(parentId, "ftr-parent", "bill-feature-task", "plan", FeatureTaskWorkflowMode.RUNTIME).copy(
         issueKey = "SKILL-245",
         artifactsJson = """{"decomposition_runtime":{"issue_key":"SKILL-245"}}""",
       ),
+      FeatureTaskWorkflowMode.RUNTIME,
     )
-    listOf(childOne, childTwo, standalone).forEach(store::saveFeatureTaskRuntimeWorkflow)
+    listOf(childOne, childTwo, standalone).forEach { row ->
+      store.saveFeatureTaskWorkflow(row, FeatureTaskWorkflowMode.RUNTIME)
+    }
     listOf(childOne, childTwo).forEach { row ->
       store.saveFeatureTaskExecutionIdentity(goalChildIdentity(row).copy(normalizedIssueKey = "SKILL-245"))
     }
@@ -88,10 +91,10 @@ class GoalRunnerPurgePersistenceTest {
     fixture: GoalPurgeFixture,
     outboxBefore: Int,
   ) {
-    assertNull(store.getFeatureTaskRuntimeWorkflow(fixture.parentId))
-    assertNull(store.getFeatureTaskRuntimeWorkflow(fixture.childOne))
-    assertNull(store.getFeatureTaskRuntimeWorkflow(fixture.childTwo))
-    assertNotNull(store.getFeatureTaskRuntimeWorkflow(fixture.standalone))
+    assertNull(store.getFeatureTaskWorkflowAsMode(fixture.parentId, FeatureTaskWorkflowMode.RUNTIME))
+    assertNull(store.getFeatureTaskWorkflowAsMode(fixture.childOne, FeatureTaskWorkflowMode.RUNTIME))
+    assertNull(store.getFeatureTaskWorkflowAsMode(fixture.childTwo, FeatureTaskWorkflowMode.RUNTIME))
+    assertNotNull(store.getFeatureTaskWorkflowAsMode(fixture.standalone, FeatureTaskWorkflowMode.RUNTIME))
     assertNotNull(store.getFeatureTaskExecutionIdentity(fixture.standalone))
     val workflowIds = listOf(fixture.parentId, fixture.childOne, fixture.childTwo)
     listOf(

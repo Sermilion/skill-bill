@@ -3,11 +3,13 @@ package skillbill.engine.goalrunner.planning.context
 import skillbill.engine.envelope
 import skillbill.engine.goalplanning.toEnvelopeMap
 import skillbill.engine.goalplanning.toGoalPlanningPreparationRecord
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class GoalPlanningPreparationRecordMappingTest {
   @Test
@@ -43,5 +45,27 @@ class GoalPlanningPreparationRecordMappingTest {
     assertEquals(record.provenance.phaseOutputContractId, provenanceMap["phase_output_contract_id"])
     assertEquals(record.provenance.phaseOutputContractVersion, provenanceMap["phase_output_contract_version"])
     assertEquals(record.copy(createdAt = roundTripped.createdAt, updatedAt = roundTripped.updatedAt), roundTripped)
+  }
+
+  @Test
+  fun `an unknown preparation status is rejected as a schema error, not a raw JDK exception`() {
+    val envelope =
+      mapOf<String, Any?>(
+        "parent_goal_workflow_id" to "goal-1",
+        "normalized_issue_key" to "SKILL-128",
+        "repository_identity" to "repo-root-realpath-v1:/repository",
+        "subtask_id" to 2,
+        "governed_sub_spec_path" to ".feature-specs/SKILL-128/spec_subtask_2.md",
+        "preparation_status" to "half-prepared",
+        "provenance" to emptyMap<String, Any?>(),
+        "preplan_payload" to "{}",
+        "plan_payload" to "{}",
+        "contract_version" to "0.1",
+      )
+
+    val error = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> { envelope.toGoalPlanningPreparationRecord() }
+
+    assertEquals("preparation_status", error.fieldPath)
+    assertEquals(".feature-specs/SKILL-128/spec_subtask_2.md", error.sourceLabel)
   }
 }

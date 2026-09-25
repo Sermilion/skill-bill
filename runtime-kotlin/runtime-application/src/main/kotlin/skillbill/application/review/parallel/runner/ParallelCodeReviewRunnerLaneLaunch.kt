@@ -48,7 +48,7 @@ class ParallelCodeReviewRunnerLaneLaunch(
   private val reviewEvidenceBrokerFactory: ReviewEvidenceBrokerFactory,
   private val governedEvidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder,
   private val reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort,
-  private val sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
+  private val sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort?,
   private val failureAdmission: ParallelCodeReviewRunnerFailureAdmission,
   private val activityStampWriter: AgentActivityStampWriter,
 ) {
@@ -347,7 +347,7 @@ private fun mergedBundle(
 private fun parentBrokerBinding(
   selected: List<ReviewSpecialistLaunchRequest>,
   repoRoot: Path,
-  locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
+  locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort?,
 ): ReviewEvidenceBrokerBinding {
   val primary = selected.minByOrNull { it.assignment.laneDecision.orderIndex } ?: selected.first()
   if (selected.size == 1) return brokerBinding(primary, repoRoot, locatorReader)
@@ -386,7 +386,7 @@ private fun parentBrokerBinding(
 private fun brokerBinding(
   launch: ReviewSpecialistLaunchRequest,
   repoRoot: Path,
-  locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
+  locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort?,
 ): ReviewEvidenceBrokerBinding {
   val assigned = launch.assignment.assignedHunks.toSet()
   return ReviewEvidenceBrokerBinding(

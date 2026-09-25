@@ -1,22 +1,22 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.workflow.featuretask.FeatureImplementWorkflowStateStore
+import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.infrastructure.sqlite.workflow.featuretask.FeatureTaskExecutionLookupStore
 import skillbill.infrastructure.sqlite.workflow.featuretask.FeatureTaskRuntimeWorkerStore
-import skillbill.infrastructure.sqlite.workflow.featuretask.FeatureTaskRuntimeWorkflowStateStore
 import skillbill.infrastructure.sqlite.workflow.featuretask.FeatureTaskWorkflowRowStore
 import skillbill.infrastructure.sqlite.workflow.featuretask.FeatureVerifyWorkflowStateStore
 import skillbill.infrastructure.sqlite.workflow.goalrunner.child.GoalChildWorkflowStore
-import skillbill.ports.workflow.FeatureImplementWorkflowStateRepository
 import skillbill.ports.workflow.FeatureTaskExecutionLookupRepository
 import skillbill.ports.workflow.FeatureTaskRuntimeWorkerRepository
-import skillbill.ports.workflow.FeatureTaskRuntimeWorkflowStateRepository
 import skillbill.ports.workflow.FeatureTaskWorkflowStateRepository
-import skillbill.ports.workflow.FeatureVerifyWorkflowStateRepository
 import skillbill.ports.workflow.GoalChildWorkflowStateRepository
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.toSnapshot
+import skillbill.ports.workflow.toRecord
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection
 import java.time.Clock
@@ -24,29 +24,100 @@ import java.time.Clock
 internal const val DELETE_GOAL_CHILD_FIRST_STATUS_INDEX: Int = 2
 internal const val MINIMUM_OWNER_TOKEN_LENGTH: Int = 16
 
+/** SQLite's compiled-in bound-parameter ceiling; `IN (...)` reads are chunked below it. */
+private const val WORKFLOW_ID_BATCH_SIZE: Int = 900
+
 internal class WorkflowStateStore private constructor(
-  connection: Connection,
-  clock: Clock,
-  workflowSnapshotValidator: WorkflowSnapshotValidator,
-  featureTaskStore: FeatureTaskWorkflowStateStore,
+  private val connection: Connection,
+  private val featureTaskStore: FeatureTaskWorkflowStateStore,
+  private val verifyStore: FeatureVerifyWorkflowStateStore,
 ) : WorkflowStateRepository,
   FeatureTaskWorkflowStateRepository by featureTaskStore,
   GoalChildWorkflowStateRepository by featureTaskStore,
-  FeatureTaskRuntimeWorkerRepository by featureTaskStore,
-  FeatureImplementWorkflowStateRepository by FeatureImplementWorkflowStateStore(connection),
-  FeatureVerifyWorkflowStateRepository by FeatureVerifyWorkflowStateStore(connection, clock, workflowSnapshotValidator),
-  FeatureTaskRuntimeWorkflowStateRepository by
-  FeatureTaskRuntimeWorkflowStateStore(connection, clock, workflowSnapshotValidator) {
+  FeatureTaskRuntimeWorkerRepository by featureTaskStore {
   constructor(
     connection: Connection,
     clock: Clock,
     workflowSnapshotValidator: WorkflowSnapshotValidator,
   ) : this(
     connection,
-    clock,
-    workflowSnapshotValidator,
     FeatureTaskWorkflowStateStore(connection, clock, workflowSnapshotValidator),
+    FeatureVerifyWorkflowStateStore(connection, clock, workflowSnapshotValidator),
   )
+
+  override fun save(
+    family: WorkflowFamily,
+    snapshot: WorkflowStateSnapshot,
+  ) {
+    val source =
+      when (family) {
+        WorkflowFamily.VERIFY -> verifyStore.getWorkflow(snapshot.workflowId)
+        WorkflowFamily.TASK_RUNTIME ->
+          featureTaskStore.getFeatureTaskWorkflowAsMode(snapshot.workflowId, FeatureTaskWorkflowMode.RUNTIME)
+      }
+    saveRecord(family, snapshot.toRecord(source))
+  }
+
+  override fun saveRecord(
+    family: WorkflowFamily,
+    record: WorkflowStateRecord,
+  ) {
+    when (family) {
+      WorkflowFamily.VERIFY -> verifyStore.saveWorkflow(record)
+      WorkflowFamily.TASK_RUNTIME ->
+        featureTaskStore.saveFeatureTaskWorkflow(record, FeatureTaskWorkflowMode.RUNTIME)
+    }
+  }
+
+  override fun get(
+    family: WorkflowFamily,
+    workflowId: String,
+  ): WorkflowStateSnapshot? =
+    when (family) {
+      WorkflowFamily.VERIFY -> verifyStore.getWorkflow(workflowId)
+      WorkflowFamily.TASK_RUNTIME ->
+        featureTaskStore.getFeatureTaskWorkflowAsMode(workflowId, FeatureTaskWorkflowMode.RUNTIME)
+    }?.toSnapshot()
+
+  override fun getAll(
+    family: WorkflowFamily,
+    workflowIds: Set<String>,
+  ): Map<String, WorkflowStateSnapshot> =
+    buildMap {
+      workflowIds.chunked(WORKFLOW_ID_BATCH_SIZE).forEach { batch ->
+        val records =
+          when (family) {
+            WorkflowFamily.VERIFY -> verifyStore.getWorkflows(batch.toSet())
+            WorkflowFamily.TASK_RUNTIME ->
+              connection.getFeatureTaskWorkflowRows(FeatureTaskWorkflowMode.RUNTIME, batch.toSet())
+          }
+        records.forEach { (workflowId, record) -> put(workflowId, record.toSnapshot()) }
+      }
+    }
+
+  override fun list(
+    family: WorkflowFamily,
+    limit: Int,
+  ): List<WorkflowStateSnapshot> =
+    when (family) {
+      WorkflowFamily.VERIFY -> verifyStore.listWorkflows(limit)
+      WorkflowFamily.TASK_RUNTIME -> featureTaskStore.listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, limit)
+    }.map(WorkflowStateRecord::toSnapshot)
+
+  override fun latest(family: WorkflowFamily): WorkflowStateSnapshot? = list(family, 1).firstOrNull()
+
+  override fun sessionSummary(
+    family: WorkflowFamily,
+    sessionId: String,
+  ): WorkflowContinueSessionSummary {
+    if (sessionId.isBlank()) {
+      return WorkflowContinueSessionSummary.EMPTY
+    }
+    return when (family) {
+      WorkflowFamily.VERIFY -> verifyStore.getSessionSummary(sessionId) ?: WorkflowContinueSessionSummary.EMPTY
+      WorkflowFamily.TASK_RUNTIME -> WorkflowContinueSessionSummary.EMPTY
+    }
+  }
 }
 
 internal class FeatureTaskWorkflowStateStore(

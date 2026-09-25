@@ -2,6 +2,8 @@ package skillbill.ports.persistence
 
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
+import skillbill.ports.diagnostics.UnavailableRejectedOutputDiagnosticPermissions
+import skillbill.ports.diagnostics.UnavailableRejectedOutputDiagnosticRepository
 import skillbill.ports.experiment.pair.ExperimentPairRepository
 import skillbill.ports.experiment.pair.UnavailableExperimentPairRepository
 import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
@@ -17,8 +19,10 @@ abstract class UnitOfWorkDefaults : UnitOfWork {
   open override val unaddressedFindings: UnaddressedFindingsRepository = UnavailableUnaddressedFindingsRepository
   open override val agentActivityStamps: AgentActivityStampRepository = EmptyAgentActivityStampRepository
   open override val worktreeEditJournal: WorktreeEditJournalRepository = EmptyWorktreeEditJournalRepository
-  open override val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository? = null
-  open override val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions? = null
+  open override val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository =
+    UnavailableRejectedOutputDiagnosticRepository
+  open override val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions =
+    UnavailableRejectedOutputDiagnosticPermissions
   open override val featureTaskPhaseSettlements: FeatureTaskPhaseSettlementRepository =
     UnavailableFeatureTaskPhaseSettlementRepository
   open override val experimentPairs: ExperimentPairRepository = UnavailableExperimentPairRepository

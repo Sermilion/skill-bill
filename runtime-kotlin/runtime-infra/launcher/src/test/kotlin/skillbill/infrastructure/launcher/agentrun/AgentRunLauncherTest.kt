@@ -13,6 +13,7 @@ import skillbill.ports.agentrun.model.AgentRunDeclaredProgressProbe
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.AgentRunProgressEmitter
 import skillbill.ports.agentrun.model.AgentRunProgressProbe
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.review.context.model.launch.ReviewConversationIsolation
@@ -212,8 +213,7 @@ class HeadlessAgentRunAdapterTest {
 
     val outcome = requireNotNull(adapters[SupportedAgent.CURSOR]).launch(skillRunRequest())
 
-    assertTrue(outcome.interrupted)
-    assertFalse(outcome.timedOut)
+    assertEquals(AgentRunTermination.Interrupted, outcome.termination)
     assertEquals("interrupted", outcome.stderr)
   }
 

@@ -5,7 +5,6 @@ import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatform
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.ORCHESTRATION_PLAYBOOKS
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.validatePointerTargetParity
 import skillbill.infrastructure.skills.scaffold.validation.review.headings
-import skillbill.ports.workflow.list
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
 import java.nio.file.Path

@@ -6,7 +6,6 @@ import skillbill.infrastructure.host.jvm.atomicMoveReplacing
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.platformpack.sourceKind
 import skillbill.model.toPath
-import skillbill.ports.workflow.list
 import skillbill.scaffold.policy.platformpack.externalPlatformPackTelemetryPayload
 import java.nio.file.Files
 import java.nio.file.LinkOption

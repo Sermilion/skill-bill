@@ -10,8 +10,7 @@ import java.time.Duration
 interface FeatureTaskRuntimeWorkerSupervisor {
   fun currentProcess(): FeatureTaskRuntimeProcessIdentity
 
-  fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership): FeatureTaskRuntimeProcessInspection =
-    FeatureTaskRuntimeProcessInspection.Unsupported("supervisor does not implement process inspection")
+  fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership): FeatureTaskRuntimeProcessInspection
 
   /**
    * Block until [ownership] is no longer [FeatureTaskRuntimeProcessInspection.ExactLive], or until

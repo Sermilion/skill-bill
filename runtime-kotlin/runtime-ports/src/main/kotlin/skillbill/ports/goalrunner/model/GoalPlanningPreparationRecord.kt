@@ -106,8 +106,6 @@ enum class GoalPlanningPreparationState(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWireValue(value: String): GoalPlanningPreparationState =
-      entries.singleOrNull { it.wireValue == value }
-        ?: throw IllegalArgumentException("Unsupported goal planning preparation status '$value'.")
+    fun fromWireValue(value: String): GoalPlanningPreparationState? = entries.singleOrNull { it.wireValue == value }
   }
 }

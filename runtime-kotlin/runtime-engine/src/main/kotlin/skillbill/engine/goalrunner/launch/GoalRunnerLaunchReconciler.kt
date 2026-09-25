@@ -31,6 +31,7 @@ import skillbill.ports.agentrun.model.AgentRunActivityStampSink
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.AgentRunWorktreeEditObserver
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
@@ -317,10 +318,10 @@ internal fun AgentRunLaunchOutcome.toGoalRunnerLaunchFacts(): GoalRunnerLaunchFa
   when (this) {
     is AgentRunLaunchFacts ->
       GoalRunnerLaunchFacts(
-        timedOut = timedOut,
-        interrupted = interrupted,
-        spawnFailed = spawnFailed,
-        exitStatus = exitStatus,
+        timedOut = termination == AgentRunTermination.TimedOut,
+        interrupted = termination == AgentRunTermination.Interrupted,
+        spawnFailed = termination == AgentRunTermination.SpawnFailed,
+        exitStatus = (termination as? AgentRunTermination.Exited)?.code,
         stderrExcerpt = stderrExcerpt(stderr, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS),
         liveness =
           liveness?.let { snapshot ->

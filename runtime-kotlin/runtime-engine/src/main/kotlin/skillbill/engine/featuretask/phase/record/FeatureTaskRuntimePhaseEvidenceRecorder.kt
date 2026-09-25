@@ -15,7 +15,6 @@ import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.validateQuarantineRecord
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.model.goalreview.appendBoundedHistoryBySequence
@@ -45,7 +44,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
   fun appendLedgerEntry(request: FeatureTaskRuntimePhaseLedgerRequest): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, request.workflowId)
           ?: return@transaction false
       val artifacts = record.artifacts
       val existingEntries = decodePhaseLedger(artifacts)
@@ -83,7 +82,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
   ): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction false
       val artifacts = record.artifacts
       val existing = quarantineEntriesFrom(artifacts)
@@ -112,7 +111,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
   fun loadQuarantinedRecords(workflowId: String): List<FeatureTaskRuntimeQuarantineEntry>? =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       quarantineEntriesFrom(record.artifacts)
     }
@@ -123,7 +122,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
   ): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction false
       val artifacts = record.artifacts
       if (resolvedBranchFromWorkflowArtifacts(artifacts) != null) {
@@ -144,7 +143,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
   fun loadResolvedBranch(workflowId: String): FeatureTaskRuntimeResolvedBranch? =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       resolvedBranchFromWorkflowArtifacts(record.artifacts)
     }
@@ -157,7 +156,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
   fun loadCheckpointIdentities(workflowId: String): List<FeatureTaskRuntimeCheckpointIdentity>? =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       checkpointIdentitiesFrom(record.artifacts)
     }
@@ -165,7 +164,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
   fun quarantineCheckpointIdentities(workflowId: String): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction false
       workflowPersistence.persistArtifactsPatch(
         unitOfWork.workflowStates,
@@ -185,7 +184,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
   ): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction false
       val resolved =
         resolvedBranchFromWorkflowArtifacts(record.artifacts)
@@ -228,7 +227,7 @@ fun FeatureTaskRuntimePhaseEvidenceRecorder.appendCheckpointIdentityAtCurrentVer
 ): Boolean =
   database.transaction { unitOfWork ->
     val record =
-      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, args.workflowId)
+      unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, args.workflowId)
         ?: return@transaction false
     val artifacts = record.artifacts
     val existing = checkpointIdentitiesFrom(artifacts)
@@ -270,7 +269,7 @@ fun FeatureTaskRuntimePhaseEvidenceRecorder.quarantineCheckpointIdentitiesOnVers
   val rejected =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       val artifacts = record.artifacts
       try {

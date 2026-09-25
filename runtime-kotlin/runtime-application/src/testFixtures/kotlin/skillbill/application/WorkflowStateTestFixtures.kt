@@ -1,5 +1,6 @@
 package skillbill.application
 
+import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
@@ -17,11 +18,13 @@ import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
-import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.ports.workflow.model.FeatureVerifySessionSummary
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.toSnapshot
+import skillbill.ports.workflow.toRecord
 import skillbill.review.model.ReviewFindingVerdict
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
@@ -103,6 +106,10 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
 
   fun executionIdentity(workflowId: String): FeatureTaskExecutionIdentity? = identities[workflowId]
 
+  fun verifyRecord(workflowId: String): WorkflowStateRecord? = verify[workflowId]
+
+  fun runtimeRecord(workflowId: String): WorkflowStateRecord? = taskRuntime[workflowId]
+
   fun overwriteExecutionIdentity(identity: FeatureTaskExecutionIdentity) {
     identities[identity.workflowId] = identity
   }
@@ -161,31 +168,12 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
     return true
   }
 
-  override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) {
+  private fun saveProseWorkflow(row: WorkflowStateRecord) {
     implement[row.workflowId] = row.copy(issueKey = row.issueKey ?: implement[row.workflowId]?.issueKey)
   }
 
-  override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) {
-    verify[row.workflowId] = row
-  }
-
-  override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? = implement[workflowId]
-
-  override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? = verify[workflowId]
-
-  override fun listFeatureImplementWorkflows(limit: Int): List<WorkflowStateRecord> =
+  private fun listProseWorkflows(limit: Int): List<WorkflowStateRecord> =
     implement.values.filter { it.mode == null || it.mode == FeatureTaskWorkflowMode.PROSE }.take(limit)
-
-  override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> = verify.values.toList().take(limit)
-
-  override fun latestFeatureImplementWorkflow(): WorkflowStateRecord? =
-    listFeatureImplementWorkflows(Int.MAX_VALUE).lastOrNull()
-
-  override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = verify.values.lastOrNull()
-
-  override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? = null
-
-  override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? = null
 
   override fun terminalizeLegacyProseFeatureTaskWorkflow(row: WorkflowStateRecord) {
     val existing =
@@ -213,8 +201,8 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
     mode: FeatureTaskWorkflowMode,
   ) {
     when (mode) {
-      FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
-      FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
+      FeatureTaskWorkflowMode.RUNTIME -> saveRuntimeWorkflow(row)
+      FeatureTaskWorkflowMode.PROSE -> saveProseWorkflow(row)
     }
   }
 
@@ -240,30 +228,92 @@ class InMemoryWorkflowStates : WorkflowStateRepositoryDefaults() {
     limit: Int,
   ): List<WorkflowStateRecord> =
     when (mode) {
-      FeatureTaskWorkflowMode.RUNTIME -> listFeatureTaskRuntimeWorkflows(limit)
-      FeatureTaskWorkflowMode.PROSE -> listFeatureImplementWorkflows(limit)
+      FeatureTaskWorkflowMode.RUNTIME -> listRuntimeWorkflows(limit)
+      FeatureTaskWorkflowMode.PROSE -> listProseWorkflows(limit)
     }
 
   override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
     listFeatureTaskWorkflows(mode, Int.MAX_VALUE).lastOrNull()
 
-  override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
+  private fun saveRuntimeWorkflow(row: WorkflowStateRecord) {
     if (failSaveWhen?.invoke(row) == true) {
       error("simulated process kill during the feature-task-runtime save")
     }
     taskRuntime[row.workflowId] = row.copy(issueKey = row.issueKey ?: taskRuntime[row.workflowId]?.issueKey)
   }
 
-  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? =
+  private fun getRuntimeWorkflow(workflowId: String): WorkflowStateRecord? =
     taskRuntime[workflowId] ?: implement[workflowId]?.takeIf { it.mode == FeatureTaskWorkflowMode.RUNTIME }
 
-  override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> =
+  private fun listRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> =
     (taskRuntime.values + implement.values.filter { it.mode == FeatureTaskWorkflowMode.RUNTIME })
       .distinctBy(WorkflowStateRecord::workflowId)
       .take(limit)
 
-  override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? =
-    listFeatureTaskRuntimeWorkflows(Int.MAX_VALUE).lastOrNull()
+  override fun save(
+    family: WorkflowFamily,
+    snapshot: WorkflowStateSnapshot,
+  ) {
+    val source =
+      when (family) {
+        WorkflowFamily.VERIFY -> verify[snapshot.workflowId]
+        WorkflowFamily.TASK_RUNTIME ->
+          getFeatureTaskWorkflowAsMode(snapshot.workflowId, FeatureTaskWorkflowMode.RUNTIME)
+      }
+    saveRecord(family, snapshot.toRecord(source))
+  }
+
+  override fun saveRecord(
+    family: WorkflowFamily,
+    record: WorkflowStateRecord,
+  ) {
+    when (family) {
+      WorkflowFamily.VERIFY -> verify[record.workflowId] = record
+      WorkflowFamily.TASK_RUNTIME -> saveFeatureTaskWorkflow(record, FeatureTaskWorkflowMode.RUNTIME)
+    }
+  }
+
+  override fun get(
+    family: WorkflowFamily,
+    workflowId: String,
+  ): WorkflowStateSnapshot? =
+    when (family) {
+      WorkflowFamily.VERIFY -> verify[workflowId]
+      WorkflowFamily.TASK_RUNTIME -> getFeatureTaskWorkflowAsMode(workflowId, FeatureTaskWorkflowMode.RUNTIME)
+    }?.toSnapshot()
+
+  override fun getAll(
+    family: WorkflowFamily,
+    workflowIds: Set<String>,
+  ): Map<String, WorkflowStateSnapshot> =
+    workflowIds.mapNotNull { workflowId ->
+      val record =
+        when (family) {
+          WorkflowFamily.VERIFY -> verify[workflowId]
+          WorkflowFamily.TASK_RUNTIME -> getRuntimeWorkflow(workflowId)
+        }
+      record?.let { workflowId to it.toSnapshot() }
+    }.toMap()
+
+  override fun list(
+    family: WorkflowFamily,
+    limit: Int,
+  ): List<WorkflowStateSnapshot> =
+    when (family) {
+      WorkflowFamily.VERIFY -> verify.values.toList().take(limit)
+      WorkflowFamily.TASK_RUNTIME -> listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, limit)
+    }.map(WorkflowStateRecord::toSnapshot)
+
+  override fun latest(family: WorkflowFamily): WorkflowStateSnapshot? =
+    when (family) {
+      WorkflowFamily.VERIFY -> verify.values.lastOrNull()
+      WorkflowFamily.TASK_RUNTIME -> latestFeatureTaskWorkflow(FeatureTaskWorkflowMode.RUNTIME)
+    }?.toSnapshot()
+
+  override fun sessionSummary(
+    family: WorkflowFamily,
+    sessionId: String,
+  ): WorkflowContinueSessionSummary = WorkflowContinueSessionSummary.EMPTY
 
   private val workerOwnershipById = mutableMapOf<String, FeatureTaskRuntimeWorkerOwnership>()
 

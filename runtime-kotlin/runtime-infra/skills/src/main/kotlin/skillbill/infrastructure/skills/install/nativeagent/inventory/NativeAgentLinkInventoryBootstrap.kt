@@ -3,7 +3,6 @@ package skillbill.infrastructure.skills.install.nativeagent.inventory
 import skillbill.error.core.InvalidNativeAgentLinkInventoryDecodeError
 import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
-import skillbill.ports.workflow.list
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

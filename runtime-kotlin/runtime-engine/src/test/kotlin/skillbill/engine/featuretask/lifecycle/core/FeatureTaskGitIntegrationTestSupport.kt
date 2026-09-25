@@ -16,12 +16,14 @@ import skillbill.ports.work.WorkListRepository
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
-import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.ports.workflow.model.FeatureVerifySessionSummary
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.toSnapshot
+import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.lang.Boolean.TYPE
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -55,37 +57,47 @@ internal class FeatureTaskGitIntegrationWorkflowRepository : WorkflowStateReposi
     repositoryIdentity: String,
   ): List<FeatureTaskWorkflowCandidate> = emptyList()
 
-  override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) = Unit
-
-  override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? = null
-
-  override fun listFeatureImplementWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun latestFeatureImplementWorkflow(): WorkflowStateRecord? = null
-
-  override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? = null
-
-  override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) = Unit
-
-  override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? = null
-
-  override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = null
-
-  override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? = null
-
-  override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
+  override fun saveFeatureTaskWorkflow(
+    row: WorkflowStateRecord,
+    mode: FeatureTaskWorkflowMode,
+  ) {
     taskRuntimeRows[row.workflowId] = row
   }
 
-  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? = taskRuntimeRows[workflowId]
+  override fun getFeatureTaskWorkflowAsMode(
+    workflowId: String,
+    mode: FeatureTaskWorkflowMode,
+  ): WorkflowStateRecord? = taskRuntimeRows[workflowId]
 
-  override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> =
-    taskRuntimeRows.values.toList().asReversed().take(limit)
+  override fun listFeatureTaskWorkflows(
+    mode: FeatureTaskWorkflowMode,
+    limit: Int,
+  ): List<WorkflowStateRecord> = taskRuntimeRows.values.toList().asReversed().take(limit)
 
-  override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? =
-    listFeatureTaskRuntimeWorkflows(1).firstOrNull()
+  override fun save(
+    family: WorkflowFamily,
+    snapshot: WorkflowStateSnapshot,
+  ) = saveRecord(family, snapshot.toRecord(taskRuntimeRows[snapshot.workflowId]))
+
+  override fun saveRecord(
+    family: WorkflowFamily,
+    record: WorkflowStateRecord,
+  ) {
+    taskRuntimeRows[record.workflowId] = record
+  }
+
+  override fun get(
+    family: WorkflowFamily,
+    workflowId: String,
+  ): WorkflowStateSnapshot? = taskRuntimeRows[workflowId]?.toSnapshot()
+
+  override fun list(
+    family: WorkflowFamily,
+    limit: Int,
+  ): List<WorkflowStateSnapshot> =
+    taskRuntimeRows.values.toList().asReversed().take(limit).map(WorkflowStateRecord::toSnapshot)
+
+  override fun latest(family: WorkflowFamily): WorkflowStateSnapshot? = list(family, 1).firstOrNull()
 
   override fun getFeatureTaskRuntimeWorkerOwnership(workflowId: String) = null
 }

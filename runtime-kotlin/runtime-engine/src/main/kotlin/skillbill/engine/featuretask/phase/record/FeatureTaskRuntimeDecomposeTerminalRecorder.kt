@@ -2,9 +2,7 @@ package skillbill.engine.featuretask.phase.record
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -29,7 +27,7 @@ class FeatureTaskRuntimeDecomposeTerminalRecorder(
   ): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction false
       val updated =
         engine.updateRecord(
@@ -51,14 +49,14 @@ class FeatureTaskRuntimeDecomposeTerminalRecorder(
             sessionId = record.sessionId.orEmpty(),
           ),
         )
-      WorkflowFamily.TASK_RUNTIME.save(unitOfWork.workflowStates, updated)
+      unitOfWork.workflowStates.save(WorkflowFamily.TASK_RUNTIME, updated)
       true
     }
 
   fun loadDecomposeTerminal(workflowId: String): FeatureTaskRuntimeDecomposeTerminal? =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       decomposeTerminalFromWorkflowArtifacts(record.artifacts)
     }

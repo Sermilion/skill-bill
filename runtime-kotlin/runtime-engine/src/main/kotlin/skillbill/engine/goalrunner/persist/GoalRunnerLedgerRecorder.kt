@@ -7,6 +7,7 @@ import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalAttemptLedgerEntry
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequest
@@ -100,15 +101,15 @@ class GoalRunnerLedgerRecorder(
       blockedReason = details.blockedReason?.takeIf(String::isNotBlank),
       latestLiveness = details.progress?.latestLivenessSignal,
       launchOutcome = launchFacts?.let(::launchFinalStatus),
-      timedOut = launchFacts?.timedOut,
-      interrupted = launchFacts?.interrupted,
+      timedOut = launchFacts?.let { it.termination == AgentRunTermination.TimedOut },
+      interrupted = launchFacts?.let { it.termination == AgentRunTermination.Interrupted },
       childSessionPath = launchFacts?.childSessionPath,
       childSessionId = launchFacts?.childSessionId,
       finalReconciledResult = details.finalReconciledResult?.takeIf(String::isNotBlank),
       stopReason = details.stopReason?.takeIf(String::isNotBlank),
       diagnosticClass = details.diagnosticClass?.takeIf(String::isNotBlank),
       currentStep = details.progress?.currentStepId?.takeIf(String::isNotBlank),
-      exitStatus = launchFacts?.exitStatus,
+      exitStatus = (launchFacts?.termination as? AgentRunTermination.Exited)?.code,
       recoverableJsonPresent = details.recoverableJsonPresent,
       nextSafeAction = details.nextSafeAction?.takeIf(String::isNotBlank),
       loopId = details.loopId?.takeIf(String::isNotBlank),
@@ -147,11 +148,11 @@ class GoalRunnerLedgerRecorder(
   }
 
   private fun launchFinalStatus(facts: AgentRunLaunchFacts): GoalAttemptLaunchOutcome =
-    when {
-      facts.spawnFailed -> GoalAttemptLaunchOutcome.SpawnFailed
-      facts.timedOut -> GoalAttemptLaunchOutcome.TimedOut
-      facts.interrupted -> GoalAttemptLaunchOutcome.Interrupted
-      else -> GoalAttemptLaunchOutcome.Exited(facts.exitStatus)
+    when (val termination = facts.termination) {
+      AgentRunTermination.SpawnFailed -> GoalAttemptLaunchOutcome.SpawnFailed
+      AgentRunTermination.TimedOut -> GoalAttemptLaunchOutcome.TimedOut
+      AgentRunTermination.Interrupted -> GoalAttemptLaunchOutcome.Interrupted
+      is AgentRunTermination.Exited -> GoalAttemptLaunchOutcome.Exited(termination.code)
     }
 }
 

@@ -8,7 +8,7 @@ import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimePhaseOutput
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.install.model.SupportedAgent.CLAUDE
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -315,13 +315,10 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
               if (phaseId != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
               auditAttempts += 1
               if (auditAttempts == 1) {
-                AgentRunLaunchFacts(
+                agentRunLaunchFacts(
                   agent = CLAUDE,
-                  exitStatus = 0,
                   stdout = excerpt,
                   stderr = "",
-                  timedOut = false,
-                  spawnFailed = false,
                   stdoutTruncated = true,
                   stdoutByteSize = fullStreamBytes,
                   stdoutSha256 = fullStreamDigest,
@@ -376,13 +373,10 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
               if (phaseId != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
               auditAttempts += 1
               if (auditAttempts == 1) {
-                AgentRunLaunchFacts(
+                agentRunLaunchFacts(
                   agent = CLAUDE,
-                  exitStatus = 0,
                   stdout = excerpt,
                   stderr = "",
-                  timedOut = false,
-                  spawnFailed = false,
                   stdoutTruncated = true,
                   stdoutByteSize = fullStreamBytes,
                   stdoutSha256 = fullStreamDigest,

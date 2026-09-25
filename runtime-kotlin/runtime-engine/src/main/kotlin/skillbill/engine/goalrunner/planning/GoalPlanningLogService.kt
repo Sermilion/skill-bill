@@ -61,9 +61,12 @@ class GoalPlanningLogService(
   private fun readRejections(parentWorkflowId: String): Map<String, RejectedOutputDiagnostic> =
     runCatching {
       database.transaction { unitOfWork ->
-        val repository = unitOfWork.rejectedOutputDiagnostics ?: return@transaction emptyList()
-        val permissions = unitOfWork.rejectedOutputDiagnosticPermissions ?: return@transaction emptyList()
-        RejectedOutputDiagnosticService(repository, permissions, diagnosticMetadataValidator, clock = clock)
+        RejectedOutputDiagnosticService(
+          unitOfWork.rejectedOutputDiagnostics,
+          unitOfWork.rejectedOutputDiagnosticPermissions,
+          diagnosticMetadataValidator,
+          clock = clock,
+        )
           .inspect(RejectedOutputDiagnosticSelector(workflowId = parentWorkflowId))
       }
     }

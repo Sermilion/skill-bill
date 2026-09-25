@@ -4,6 +4,7 @@ import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
@@ -149,7 +150,7 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
             checked += CRITERIA.first()
             Files.writeString(root.resolve("CalculatorTest.kt"), TEST_SOURCE)
             (facts("PRIVATE-PARTIAL-AUDIT") as AgentRunLaunchFacts).copy(
-              exitStatus = 1,
+              termination = AgentRunTermination.Exited(1),
               stderr = "agent process interrupted after writing the test",
             )
           } else {

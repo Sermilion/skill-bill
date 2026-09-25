@@ -40,7 +40,7 @@ internal class FileSystemReviewEvidenceBrokerReadState(
   val policy: ReviewOperationPolicy = init.policy
   val authorizedExpansionLedger: List<ReviewExpansionRecord> = init.authorizedExpansionLedger
   val projectedHunks: List<ReviewChangedHunk> = init.projectedHunks
-  val locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort = init.locatorReader
+  val locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort? = init.locatorReader
   val bodyExtractor: ReviewStoredHunkBodyExtractor = init.bodyExtractor
   val completeFileCheckpoint: Map<String, String?> = init.completeFileCheckpoint
   val hunkCommitById: Map<String, String> = init.hunkCommitById
@@ -202,7 +202,7 @@ private fun materializeAssignedHunk(
 ): String {
   val locator = hunk.evidenceLocator
   val body =
-    if (state.locatorReader !== FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE) {
+    if (state.locatorReader != null) {
       val payload =
         state.locatorReader.readDiffPayload(
           FeatureTaskRuntimeSharedEvidenceLocatorReadRequest(state.root, locator.storePath, locator.payloadFile),

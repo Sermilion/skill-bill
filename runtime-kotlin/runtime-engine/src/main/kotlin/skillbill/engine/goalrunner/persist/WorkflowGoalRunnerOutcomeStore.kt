@@ -26,10 +26,8 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -245,7 +243,7 @@ internal class WorkflowGoalRunnerTerminalBridge(
   ): GoalRunnerStoredOutcome? =
     database.transaction { unitOfWork ->
       val family = workflowFamilyFor(unitOfWork.workflowStates, workflowId) ?: return@transaction null
-      val record = family.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
+      val record = unitOfWork.workflowStates.get(family, workflowId) ?: return@transaction null
       terminalPersistence.recoverMissingResultPrefixTerminalOutcome(
         RecoverMissingResultPrefixTerminalOutcomeArgs(
           workflowStates = unitOfWork.workflowStates,
@@ -321,7 +319,7 @@ internal class WorkflowGoalRunnerReviewBridge(
             sessionId = record.sessionId.orEmpty(),
           ),
         )
-      WorkflowFamily.TASK_RUNTIME.save(unitOfWork.workflowStates, updated)
+      unitOfWork.workflowStates.save(WorkflowFamily.TASK_RUNTIME, updated)
       true
     }
 }

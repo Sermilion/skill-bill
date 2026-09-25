@@ -8,13 +8,13 @@ import skillbill.infrastructure.launcher.process.launch.testAgentRunProcessReque
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.AgentRunOutputStream
+import skillbill.ports.agentrun.model.AgentRunTermination
 import java.nio.file.Path
+import java.security.MessageDigest
 import kotlin.test.Test
 import kotlin.test.assertContains
-import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
@@ -81,9 +81,7 @@ class AgentRunLauncherProcessTest {
       requireNotNull(
         headlessAgentRunAdapters(timeoutRunner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.CODEX],
       ).launch(skillRunRequest())
-    assertTrue(timeout.timedOut)
-    assertFalse(timeout.spawnFailed)
-    assertEquals(null, timeout.exitStatus)
+    assertEquals(AgentRunTermination.TimedOut, timeout.termination)
 
     val spawnRunner =
       RecordingAgentRunProcessRunner(
@@ -101,13 +99,12 @@ class AgentRunLauncherProcessTest {
       requireNotNull(
         headlessAgentRunAdapters(spawnRunner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.CODEX],
       ).launch(skillRunRequest())
-    assertFalse(spawnFailure.timedOut)
-    assertTrue(spawnFailure.spawnFailed)
+    assertEquals(AgentRunTermination.SpawnFailed, spawnFailure.termination)
     assertEquals("missing executable", spawnFailure.stderr)
   }
 
   @Test
-  fun `plain launch facts retain decoded body bytes`() {
+  fun `plain launch facts retain the decoded body byte size and digest`() {
     val rawBytes = byteArrayOf(0, 13, 10, -1, 42)
     val runner =
       RecordingAgentRunProcessRunner(
@@ -127,7 +124,8 @@ class AgentRunLauncherProcessTest {
       requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[SupportedAgent.CODEX])
         .launch(skillRunRequest())
 
-    assertContentEquals(rawBytes, facts.stdoutBytes)
+    assertEquals(rawBytes.size.toLong(), facts.stdoutByteSize)
+    assertEquals(baselineSha256Hex(rawBytes), facts.stdoutSha256)
   }
 
   @Test
@@ -151,7 +149,8 @@ class AgentRunLauncherProcessTest {
         .launch(skillRunRequest())
 
     assertEquals("""{"status":"blocked"}""", facts.stdout)
-    assertContentEquals(facts.stdout.encodeToByteArray(), facts.stdoutBytes)
+    assertEquals(20L, facts.stdoutByteSize)
+    assertEquals(baselineSha256Hex(facts.stdout.encodeToByteArray()), facts.stdoutSha256)
   }
 
   @Test
@@ -231,3 +230,6 @@ class AgentRunLauncherProcessTest {
     assertEquals("prompt over stdin", result.stdout)
   }
 }
+
+private fun baselineSha256Hex(bytes: ByteArray): String =
+  MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }

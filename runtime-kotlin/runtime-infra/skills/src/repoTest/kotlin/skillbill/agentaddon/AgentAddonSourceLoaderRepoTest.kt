@@ -2,7 +2,6 @@ package skillbill.agentaddon
 
 import skillbill.infrastructure.skills.agentaddon.requireAgentAddon
 import skillbill.model.toPath
-import skillbill.ports.workflow.list
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test

@@ -32,6 +32,7 @@ import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFinding
 import skillbill.goalrunner.subtaskreview.verificationBoundaryFindingPaths
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
@@ -471,14 +472,15 @@ object FeatureTaskRuntimeRunLoopLaunch {
               LaunchResult.infraFailure(
                 it,
                 fileManifest,
-                childNeverLaunched = outcome.spawnFailed || !outcome.processStarted,
+                childNeverLaunched =
+                  outcome.termination == AgentRunTermination.SpawnFailed || !outcome.processStarted,
                 childOutput = featureTaskRuntimeChildOutput(outcome),
               )
             }
           ?: LaunchResult.captured(
             CapturedPhaseOutput(
               text = outcome.stdout,
-              bytes = outcome.stdoutBytes,
+              bytes = outcome.stdout.encodeToByteArray(),
               truncated = outcome.stdoutTruncated,
               byteSize = outcome.stdoutByteSize,
               sha256 = outcome.stdoutSha256,

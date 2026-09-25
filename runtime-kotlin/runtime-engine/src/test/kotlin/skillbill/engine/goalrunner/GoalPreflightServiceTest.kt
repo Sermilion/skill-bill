@@ -48,6 +48,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 
 class GoalPreflightServiceTest {
   @Test
@@ -64,7 +65,7 @@ class GoalPreflightServiceTest {
 
     assertEquals("new_work", result.verdict)
     assertTrue(result.manifestMissing)
-    assertEquals(emptyList(), states.listFeatureTaskRuntimeWorkflows())
+    assertEquals(emptyList(), states.listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME))
   }
 
   @Test
@@ -96,7 +97,7 @@ class GoalPreflightServiceTest {
     assertEquals(listOf(1, 2), gate.subtasks.map { it.id })
     assertEquals("requires subtask 1", gate.subtasks[1].dependencies.single().note)
     assertEquals(2, gate.expectedFirstRunnableSubtask)
-    assertEquals(emptyList(), states.listFeatureTaskRuntimeWorkflows())
+    assertEquals(emptyList(), states.listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME))
   }
 
   @Test
@@ -292,7 +293,7 @@ class GoalPreflightServiceTest {
       )
     }
 
-    assertEquals(emptyList(), states.listFeatureTaskRuntimeWorkflows())
+    assertEquals(emptyList(), states.listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME))
   }
 
   @Test

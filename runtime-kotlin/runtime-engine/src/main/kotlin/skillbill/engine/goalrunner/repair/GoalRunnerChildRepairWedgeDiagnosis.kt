@@ -11,7 +11,6 @@ import skillbill.engine.goalrunner.model.GoalRunnerWedgeClass
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeFinding
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.model.WorkflowFamily
@@ -45,7 +44,7 @@ class GoalRunnerChildRepairWedgeDiagnosis(
     repoRoot: Path,
   ): GoalRunnerChildWedgeDiagnosis {
     val record =
-      WorkflowFamily.TASK_RUNTIME.get(workflowStates, workflowId)
+      workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
         ?: return healthyDiagnosis(subtaskId, workflowId)
     val artifacts = record.artifacts
     val wedges = mutableListOf<GoalRunnerWedgeFinding>()

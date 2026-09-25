@@ -17,6 +17,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequ
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.artifact.phaseRecordsFromWorkflowArtifacts
@@ -34,7 +35,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
   @Test
   fun `reads progress from task runtime workflows without probing prose mode`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(taskRuntimeWorkflowRecord("wftr-task-runtime"))
+    workflows.saveFeatureTaskWorkflow(taskRuntimeWorkflowRecord("wftr-task-runtime"), RUNTIME)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -51,7 +52,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
   @Test
   fun `appends attempt ledger entries to task runtime workflows without probing prose mode`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(taskRuntimeWorkflowRecord("wftr-task-runtime"))
+    workflows.saveFeatureTaskWorkflow(taskRuntimeWorkflowRecord("wftr-task-runtime"), RUNTIME)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -73,8 +74,8 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
       )
 
     assertTrue(recorded)
-    assertNull(workflows.getFeatureImplementWorkflow("wftr-task-runtime"))
-    val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-task-runtime")).toSnapshot()
+    assertEquals(RUNTIME, workflows.getFeatureTaskWorkflow("wftr-task-runtime")?.mode)
+    val saved = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-task-runtime", RUNTIME)).toSnapshot()
     val artifacts = saved.artifacts.toMap()
     val ledger = artifacts["goal_attempt_ledger"] as List<*>
     val entry = ledger.single() as Map<*, *>
@@ -85,7 +86,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
   @Test
   fun `appends worker subtask request outcomes to task runtime workflows`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(taskRuntimeWorkflowRecord("wftr-task-runtime"))
+    workflows.saveFeatureTaskWorkflow(taskRuntimeWorkflowRecord("wftr-task-runtime"), RUNTIME)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -106,8 +107,8 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
       )
 
     assertTrue(recorded)
-    assertNull(workflows.getFeatureImplementWorkflow("wftr-task-runtime"))
-    val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-task-runtime")).toSnapshot()
+    assertEquals(RUNTIME, workflows.getFeatureTaskWorkflow("wftr-task-runtime")?.mode)
+    val saved = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-task-runtime", RUNTIME)).toSnapshot()
     val artifacts = saved.artifacts.toMap()
     val outcomes = artifacts["goal_worker_subtask_request_outcomes"] as List<*>
     val rejected = outcomes.single() as Map<*, *>
@@ -128,7 +129,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
         unresolvedFindingCount = 0,
         findings = emptyList(),
       )
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       goalReviewWorkflowRecord(
         workflowId = "wftr-goal-review",
         state = state,
@@ -137,6 +138,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
           {"verdict":"changes_requested","produced_outputs":{}}
           """.trimIndent(),
       ),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -169,7 +171,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
         unresolvedFindingCount = 0,
         findings = emptyList(),
       )
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       goalReviewWorkflowRecord(
         workflowId = "wftr-goal-review-prose",
         state = state,
@@ -178,6 +180,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
           [F-001] Major | path="runtime-kotlin/Example.kt" | line=10 | description=example finding in prose.
           """.trimIndent(),
       ),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -194,8 +197,9 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
   @Test
   fun `evidence-based reconcile keeps a running subtask with recent declared progress`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       runtimeCandidateRecord("wftr-alive", declaredProgressTimestamp = Instant.now()),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -211,18 +215,19 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
       )
 
     assertTrue(outcomes.isEmpty(), "a live subtask must not be reconciled into a terminal outcome")
-    val alive = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-alive")).toSnapshot()
+    val alive = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-alive", RUNTIME)).toSnapshot()
     assertEquals("running", alive.workflowStatus.wireValue, "a live subtask must not be marked blocked")
   }
 
   @Test
   fun `evidence-based reconcile blocks a running subtask with no liveness past the staleness window`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       runtimeCandidateRecord(
         "wftr-stale",
         declaredProgressTimestamp = Instant.now().minus(2, ChronoUnit.HOURS),
       ),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -240,18 +245,19 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     val outcome = requireNotNull(outcomes[1])
     assertEquals(GoalRunnerTerminalStatus.BLOCKED, outcome.status)
     assertEquals("wftr-stale", outcome.workflowId)
-    val stale = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale")).toSnapshot()
+    val stale = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-stale", RUNTIME)).toSnapshot()
     assertEquals("blocked", stale.workflowStatus.wireValue)
   }
 
   @Test
   fun `evidence-based reconcile blocks a running subtask whose only liveness is an old sqlite updatedAt`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       runtimeCandidateRecordNoDeclaredEvent(
         "wftr-old-updatedat",
         updatedAt = outcomeStoreSqliteTimestamp(Instant.now().minus(2, ChronoUnit.HOURS)),
       ),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -269,18 +275,19 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     val outcome = requireNotNull(outcomes[1])
     assertEquals(GoalRunnerTerminalStatus.BLOCKED, outcome.status)
     assertEquals("wftr-old-updatedat", outcome.workflowId)
-    val stale = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-old-updatedat")).toSnapshot()
+    val stale = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-old-updatedat", RUNTIME)).toSnapshot()
     assertEquals("blocked", stale.workflowStatus.wireValue)
   }
 
   @Test
   fun `evidence-based reconcile keeps a running subtask whose only liveness is a recent sqlite updatedAt`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       runtimeCandidateRecordNoDeclaredEvent(
         "wftr-recent-updatedat",
         updatedAt = outcomeStoreSqliteTimestamp(Instant.now().minus(5, ChronoUnit.MINUTES)),
       ),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -296,15 +303,16 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
       )
 
     assertTrue(outcomes.isEmpty(), "a recent updated_at must keep the subtask out of a terminal outcome")
-    val alive = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-recent-updatedat")).toSnapshot()
+    val alive = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-recent-updatedat", RUNTIME)).toSnapshot()
     assertEquals("running", alive.workflowStatus.wireValue, "a recently-updated subtask must not be marked blocked")
   }
 
   @Test
   fun `evidence-based reconcile keeps a running subtask with genuinely empty liveness`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       runtimeCandidateRecordNoDeclaredEvent("wftr-empty-liveness", updatedAt = null),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -320,14 +328,14 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
       )
 
     assertTrue(outcomes.isEmpty(), "empty-liveness must bias to alive, not produce a terminal outcome")
-    val alive = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-empty-liveness")).toSnapshot()
+    val alive = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-empty-liveness", RUNTIME)).toSnapshot()
     assertEquals("running", alive.workflowStatus.wireValue, "empty-liveness must not be marked blocked")
   }
 
   @Test
   fun `a crashed goal child with an expired lease and dead process reconciles to a resumable outcome`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(crashedChildRecord("wftr-crashed-child"))
+    workflows.saveFeatureTaskWorkflow(crashedChildRecord("wftr-crashed-child"), RUNTIME)
     workflows.seedWorkerOwnership(expiredLeaseOwnership("wftr-crashed-child"))
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -349,7 +357,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     assertEquals("implement", reconciled.lastResumableStep)
     assertEquals(
       "pending",
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-crashed-child")).workflowStatus,
+      requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-crashed-child", RUNTIME)).workflowStatus,
     )
     assertNull(workflows.getFeatureTaskRuntimeWorkerOwnership("wftr-crashed-child"))
   }
@@ -357,7 +365,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
   @Test
   fun `operator resume reopens a running review phase left on a blocked child`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(tornBlockedReviewRecord("wftr-torn-review"))
+    workflows.saveFeatureTaskWorkflow(tornBlockedReviewRecord("wftr-torn-review"), RUNTIME)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -372,7 +380,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
       ),
     )
 
-    val updated = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-torn-review"))
+    val updated = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-torn-review", RUNTIME))
     assertEquals("running", updated.workflowStatus)
     assertEquals("review", updated.currentStepId)
     val review =
@@ -384,7 +392,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
   @Test
   fun `a goal child with a live lease or live process is never reconciled and yields no outcome`() {
     val liveLease = InMemoryWorkflowStates()
-    liveLease.saveFeatureTaskRuntimeWorkflow(crashedChildRecord("wftr-live-lease"))
+    liveLease.saveFeatureTaskWorkflow(crashedChildRecord("wftr-live-lease"), RUNTIME)
     liveLease.seedWorkerOwnership(expiredLeaseOwnership("wftr-live-lease", expiresAt = "2999-01-01T00:00:30Z"))
     val liveLeaseStore =
       testWorkflowGoalRunnerOutcomeStore(
@@ -395,11 +403,14 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     assertNull(
       liveLeaseStore.recoverAndPersistTerminalOutcome("wftr-live-lease", "SKILL-87.1", 1, Path.of(".")),
     )
-    assertEquals("running", requireNotNull(liveLease.getFeatureTaskRuntimeWorkflow("wftr-live-lease")).workflowStatus)
+    assertEquals(
+      "running",
+      requireNotNull(liveLease.getFeatureTaskWorkflowAsMode("wftr-live-lease", RUNTIME)).workflowStatus,
+    )
     assertNotNull(liveLease.getFeatureTaskRuntimeWorkerOwnership("wftr-live-lease"))
 
     val liveProcess = InMemoryWorkflowStates()
-    liveProcess.saveFeatureTaskRuntimeWorkflow(crashedChildRecord("wftr-live-process"))
+    liveProcess.saveFeatureTaskWorkflow(crashedChildRecord("wftr-live-process"), RUNTIME)
     liveProcess.seedWorkerOwnership(expiredLeaseOwnership("wftr-live-process"))
     val liveProcessStore =
       testWorkflowGoalRunnerOutcomeStore(
@@ -412,7 +423,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     )
     assertEquals(
       "running",
-      requireNotNull(liveProcess.getFeatureTaskRuntimeWorkflow("wftr-live-process")).workflowStatus,
+      requireNotNull(liveProcess.getFeatureTaskWorkflowAsMode("wftr-live-process", RUNTIME)).workflowStatus,
     )
   }
 }

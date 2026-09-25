@@ -46,8 +46,8 @@ class RejectedOutputCliRuntimeTest {
       sqliteDatabaseSessionFactory(userHome = home, dbPathOverride = db.toString(), environment = emptyMap())
     database.transaction { unitOfWork ->
       RejectedOutputDiagnosticService(
-        repository = requireNotNull(unitOfWork.rejectedOutputDiagnostics),
-        permissions = requireNotNull(unitOfWork.rejectedOutputDiagnosticPermissions),
+        repository = unitOfWork.rejectedOutputDiagnostics,
+        permissions = unitOfWork.rejectedOutputDiagnosticPermissions,
         metadataValidator = { },
         clock = Clock.systemUTC(),
       ).record(
@@ -155,8 +155,8 @@ class RejectedOutputCliRuntimeTest {
     return database.transaction { unitOfWork ->
       val service =
         RejectedOutputDiagnosticService(
-          repository = requireNotNull(unitOfWork.rejectedOutputDiagnostics),
-          permissions = requireNotNull(unitOfWork.rejectedOutputDiagnosticPermissions),
+          repository = unitOfWork.rejectedOutputDiagnostics,
+          permissions = unitOfWork.rejectedOutputDiagnosticPermissions,
           metadataValidator = { },
           clock = Clock.tick(Clock.systemUTC(), Duration.ofSeconds(1)),
         )

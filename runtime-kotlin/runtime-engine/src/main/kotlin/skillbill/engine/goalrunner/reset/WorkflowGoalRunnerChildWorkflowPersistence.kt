@@ -13,10 +13,8 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.WorkflowEngine
@@ -54,7 +52,7 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
     requireConsistentChildSetup(state, setup)
     val expectedIdentity = expectedChildIdentity(setup)
     val parentUpdated = updateParentForChildWorkflow(unitOfWork, state)
-    val existingChild = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, setup.workflowId)
+    val existingChild = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, setup.workflowId)
     if (existingChild != null) {
       val persistedIdentity = unitOfWork.workflowStates.getFeatureTaskExecutionIdentity(setup.workflowId)
       if (persistedIdentity != expectedIdentity) {
@@ -74,8 +72,8 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
         existingChild
       }
     if (existingChild == null) {
-      WorkflowFamily.TASK_RUNTIME.saveRecord(
-        unitOfWork.workflowStates,
+      unitOfWork.workflowStates.saveRecord(
+        WorkflowFamily.TASK_RUNTIME,
         childUpdated.toRecord().copy(issueKey = normalizeRequiredIssueKey(state.manifest.issueKey)),
       )
       val identity = expectedIdentity
@@ -83,7 +81,7 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
       unitOfWork.workflowStates.saveFeatureTaskExecutionIdentity(identity)
     }
     val refreshedParent =
-      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentUpdated.workflowId) ?: parentUpdated
+      unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, parentUpdated.workflowId) ?: parentUpdated
     return SavedGoalChildWorkflow(
       state =
         GoalRunnerManifestState(
@@ -203,8 +201,8 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
           replaceArtifacts = true,
         ),
       )
-    WorkflowFamily.TASK_RUNTIME.saveRecord(
-      unitOfWork.workflowStates,
+    unitOfWork.workflowStates.saveRecord(
+      WorkflowFamily.TASK_RUNTIME,
       parentUpdated.toRecord().copy(issueKey = normalizeRequiredIssueKey(state.manifest.issueKey)),
     )
     return parentUpdated

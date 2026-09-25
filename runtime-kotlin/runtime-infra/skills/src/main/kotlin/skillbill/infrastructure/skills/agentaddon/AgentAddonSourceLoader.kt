@@ -9,7 +9,6 @@ import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.MissingAgentAddonDeclarationError
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.workflow.list
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.NoSuchFileException

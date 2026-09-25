@@ -95,14 +95,6 @@ interface GoalSubtaskPlanRepository {
     expectedIdentity: GoalPlanningIdentity,
     orderedDescriptors: List<GovernedGoalSubtaskDescriptor>,
   ): Int = listSubtaskPlansOrdered(expectedIdentity, orderedDescriptors).size
-
-  fun firstMissingPlan(
-    expectedIdentity: GoalPlanningIdentity,
-    orderedDescriptors: List<GovernedGoalSubtaskDescriptor>,
-  ): Int? {
-    val prepared = listSubtaskPlansOrdered(expectedIdentity, orderedDescriptors).mapTo(mutableSetOf()) { it.subtaskId }
-    return orderedDescriptors.firstOrNull { it.subtaskId !in prepared }?.subtaskId
-  }
 }
 
 interface NormalizedGoalPlanningPreparationRepository :

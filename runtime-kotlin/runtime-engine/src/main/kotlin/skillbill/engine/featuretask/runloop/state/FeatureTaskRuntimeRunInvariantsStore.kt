@@ -5,7 +5,6 @@ import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
@@ -24,7 +23,7 @@ class FeatureTaskRuntimeRunInvariantsStore(
     proposed?.let { persistOrUpdateAgentAddons(workflowId, it) }
     return database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       runInvariantsFrom(record.artifacts)
     }
@@ -36,7 +35,7 @@ class FeatureTaskRuntimeRunInvariantsStore(
   ) {
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction
       val artifacts = record.artifacts
       val existing = runInvariantsFrom(artifacts)

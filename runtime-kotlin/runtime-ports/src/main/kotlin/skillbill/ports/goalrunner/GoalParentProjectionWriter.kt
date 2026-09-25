@@ -4,7 +4,6 @@ import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
@@ -51,8 +50,8 @@ class GoalParentProjectionWriter(
           replaceArtifacts = true,
         ),
       )
-    WorkflowFamily.TASK_RUNTIME.saveRecord(
-      unitOfWork.workflowStates,
+    unitOfWork.workflowStates.saveRecord(
+      WorkflowFamily.TASK_RUNTIME,
       updated.toRecord().copy(issueKey = normalizeRequiredIssueKey(manifest.issueKey)),
     )
   }

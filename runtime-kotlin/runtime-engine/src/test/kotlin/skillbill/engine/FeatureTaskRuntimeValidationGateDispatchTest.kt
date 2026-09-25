@@ -6,8 +6,9 @@ import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.runloop.state.validationPassedFromEnvelope
 import skillbill.install.model.SupportedAgent
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.validation.ValidationGateRunner
 import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
@@ -163,13 +164,11 @@ class FeatureTaskRuntimeValidationGateDispatchTest {
   fun `failed validation process cannot complete using a successful-looking final response`() {
     val harness =
       validationHarness {
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = SupportedAgent.CLAUDE,
-          exitStatus = 1,
+          termination = AgentRunTermination.Exited(1),
           stdout = validJsonOutput("validate"),
           stderr = "Validation process failed.",
-          timedOut = false,
-          spawnFailed = false,
         )
       }
 
@@ -183,13 +182,11 @@ class FeatureTaskRuntimeValidationGateDispatchTest {
   fun `provider limit leaves validate paused without recording a completed check`() {
     val harness =
       validationHarness {
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = SupportedAgent.CLAUDE,
-          exitStatus = 1,
+          termination = AgentRunTermination.Exited(1),
           stdout = "",
           stderr = "You've hit your usage limit",
-          timedOut = false,
-          spawnFailed = false,
         )
       }
 

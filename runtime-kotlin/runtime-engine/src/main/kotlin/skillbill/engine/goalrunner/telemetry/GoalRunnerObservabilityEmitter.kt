@@ -8,6 +8,7 @@ import skillbill.goalrunner.model.GoalRunnerLaunchFacts
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
+import skillbill.ports.agentrun.model.exitCode
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
@@ -162,7 +163,7 @@ internal class GoalRunnerObservabilityEmitter(
           livenessClass = GoalRunnerObservabilityLivenessClass.WORKER_OUTPUT_SUMMARY,
           activitySummary =
             "stdout_chars=${facts.stdout.length}; stderr_chars=${facts.stderr.length}; " +
-              "exit_status=${facts.exitStatus ?: "none"}$stderrDetail",
+              "exit_status=${facts.termination.exitCode ?: "none"}$stderrDetail",
         ),
     )
   }

@@ -10,9 +10,7 @@ import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.nonCompleteStoredOutcomeIsCorroborated
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
@@ -44,7 +42,7 @@ internal class WorkflowGoalRunnerStaleBlockedOutcomeDisplacement(
     subtaskId: Int,
   ): DisplacementContext? {
     val family = workflowFamilyFor(workflowStates, workflowId) ?: return null
-    val record = family.get(workflowStates, workflowId) ?: return null
+    val record = workflowStates.get(family, workflowId) ?: return null
     val artifacts = record.artifacts
     val continuation =
       DurableWorkflowArtifacts.fromMap(artifacts).goalContinuation()
@@ -112,7 +110,7 @@ internal class WorkflowGoalRunnerStaleBlockedOutcomeDisplacement(
           sessionId = context.record.sessionId.orEmpty(),
         ),
       )
-    context.family.save(workflowStates, updated)
+    workflowStates.save(context.family, updated)
   }
 
   private data class DisplacementContext(

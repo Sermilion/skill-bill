@@ -112,7 +112,7 @@ class IdeStatusReadSnapshotConcurrencyTest {
     }
     database.transaction { unitOfWork ->
 
-      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(foreignChildWorkflow())
+      unitOfWork.workflowStates.saveFeatureTaskWorkflow(foreignChildWorkflow(), FeatureTaskWorkflowMode.RUNTIME)
       unitOfWork.workflowStates.saveFeatureTaskExecutionIdentity(foreignChildIdentity())
       unitOfWork.goalRunnerControls.persistControlState(
         GOAL_WORKFLOW_ID,

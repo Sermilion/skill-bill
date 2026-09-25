@@ -2,6 +2,7 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
+import skillbill.infrastructure.sqlite.workflow.featuretask.FeatureVerifyWorkflowStateStore
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.WorkflowSnapshotValidator
@@ -10,6 +11,7 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.sql.Connection
@@ -27,25 +29,31 @@ internal val testWorkflowSnapshotValidator =
     ) = Unit
   }
 
+internal fun verifyWorkflowStore(connection: Connection): FeatureVerifyWorkflowStateStore =
+  FeatureVerifyWorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
+
 internal fun assertRuntimeAndVerifyStateTransitions(
-  store: WorkflowStateStore,
+  connection: Connection,
   initial: WorkflowStateRecord,
   startedAt: String,
 ) {
+  val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
+  val verify = verifyWorkflowStore(connection)
   val runtimeInitial =
     initial.copy(
       workflowId = "wftr-state-entry",
       sessionId = "ftr-state-entry",
-      mode = FeatureTaskWorkflowMode.RUNTIME,
+      mode = RUNTIME,
     )
-  store.saveFeatureTaskRuntimeWorkflow(runtimeInitial)
-  val runtimeInserted = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry"))
+  store.saveFeatureTaskWorkflow(runtimeInitial, RUNTIME)
+  val runtimeInserted = assertNotNull(store.getFeatureTaskWorkflowAsMode("wftr-state-entry", RUNTIME))
   assertEquals(startedAt, runtimeInserted.stateEnteredAt)
 
-  store.saveFeatureTaskRuntimeWorkflow(
+  store.saveFeatureTaskWorkflow(
     runtimeInserted.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue, currentStepId = "plan"),
+    RUNTIME,
   )
-  val runtimeTransitioned = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry"))
+  val runtimeTransitioned = assertNotNull(store.getFeatureTaskWorkflowAsMode("wftr-state-entry", RUNTIME))
   assertTrue(Instant.parse(runtimeTransitioned.stateEnteredAt).isAfter(Instant.parse(startedAt)))
   assertEquals(false, runtimeTransitioned.stateEnteredAtEstimated)
 
@@ -63,18 +71,18 @@ internal fun assertRuntimeAndVerifyStateTransitions(
       updatedAt = null,
       finishedAt = null,
     )
-  store.saveFeatureVerifyWorkflow(verifyInitial)
-  val verifyInserted = assertNotNull(store.getFeatureVerifyWorkflow("wfv-state-entry"))
+  verify.saveWorkflow(verifyInitial)
+  val verifyInserted = assertNotNull(verify.getWorkflow("wfv-state-entry"))
   assertEquals(startedAt, verifyInserted.stateEnteredAt)
 
-  store.saveFeatureVerifyWorkflow(verifyInitial.copy(currentStepId = "code_review"))
-  val verifySameStatus = assertNotNull(store.getFeatureVerifyWorkflow("wfv-state-entry"))
+  verify.saveWorkflow(verifyInitial.copy(currentStepId = "code_review"))
+  val verifySameStatus = assertNotNull(verify.getWorkflow("wfv-state-entry"))
   assertEquals(startedAt, verifySameStatus.stateEnteredAt)
 
-  store.saveFeatureVerifyWorkflow(
+  verify.saveWorkflow(
     verifySameStatus.copy(workflowStatus = WorkflowStatus.COMPLETED.wireValue, currentStepId = "finish"),
   )
-  val verifyTransitioned = assertNotNull(store.getFeatureVerifyWorkflow("wfv-state-entry"))
+  val verifyTransitioned = assertNotNull(verify.getWorkflow("wfv-state-entry"))
   assertTrue(Instant.parse(verifyTransitioned.stateEnteredAt).isAfter(Instant.parse(startedAt)))
   assertEquals(false, verifyTransitioned.stateEnteredAtEstimated)
 }
@@ -85,7 +93,7 @@ internal fun prepareConcurrentWorkflowTransitions(
 ) {
   DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
     WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
-      .saveFeatureTaskRuntimeWorkflow(initial)
+      .saveFeatureTaskWorkflow(initial, RUNTIME)
     connection.createStatement().use { statement ->
       statement.execute("CREATE TABLE workflow_transition_log (state_entered_at TEXT NOT NULL)")
       statement.execute(
@@ -108,16 +116,17 @@ internal fun seedRunningRowWithLease(
   ownerToken: String,
   expiresAt: String,
 ) {
-  store.saveFeatureTaskRuntimeWorkflow(
+  store.saveFeatureTaskWorkflow(
     workflowRow(
       workflowId,
       "ftr-$workflowId",
       "bill-feature-task",
       "implement",
-      FeatureTaskWorkflowMode.RUNTIME,
+      RUNTIME,
     ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue),
+    RUNTIME,
   )
-  val updatedAt = requireNotNull(store.getFeatureTaskRuntimeWorkflow(workflowId)).updatedAt
+  val updatedAt = requireNotNull(store.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME)).updatedAt
   val ownership = workerOwnership(workflowId, generation = 1, ownerToken = ownerToken).copy(expiresAt = expiresAt)
   check(store.acquireFeatureTaskRuntimeWorker(ownership, updatedAt))
 }
@@ -223,39 +232,6 @@ internal fun auditRepairArtifactsJson(contractVersion: String = "0.2"): String =
   }}
   """.trimIndent()
 
-internal fun insertFeatureImplementSession(connection: Connection) {
-  connection.prepareStatement(
-    """
-    INSERT INTO feature_implement_sessions (
-      session_id,
-      issue_key_provided,
-      issue_key_type,
-      spec_input_types,
-      spec_word_count,
-      feature_size,
-      feature_name,
-      rollout_needed,
-      acceptance_criteria_count,
-      open_questions_count,
-      spec_summary
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """.trimIndent(),
-  ).use { statement ->
-    statement.setString(1, "fis-session")
-    statement.setInt(2, 1)
-    statement.setString(3, "other")
-    statement.setString(4, """["markdown_file"]""")
-    statement.setInt(5, 123)
-    statement.setString(6, "MEDIUM")
-    statement.setString(7, "workflow-runtime")
-    statement.setInt(8, 0)
-    statement.setInt(9, 6)
-    statement.setInt(10, 0)
-    statement.setString(11, "Port workflow runtime")
-    statement.executeUpdate()
-  }
-}
-
 internal fun insertFeatureVerifySession(connection: Connection) {
   connection.prepareStatement(
     """
@@ -306,7 +282,7 @@ internal fun goalChildWorkflow(
     sessionId = "ftr-$workflowId",
     workflowName = "bill-feature-task",
     currentStepId = "preplan",
-    mode = FeatureTaskWorkflowMode.RUNTIME,
+    mode = RUNTIME,
   ).copy(
     artifactsJson =
       """{"goal_continuation":{"issue_key":"SKILL-128","subtask_id":1,"parent_workflow_id":"$parentWorkflowId"}}""",
@@ -318,6 +294,6 @@ internal fun goalChildIdentity(row: WorkflowStateRecord): FeatureTaskExecutionId
     normalizedIssueKey = "SKILL-128",
     repositoryIdentity = "repo",
     governedSpecPath = ".feature-specs/SKILL-128/spec.md",
-    mode = FeatureTaskWorkflowMode.RUNTIME,
+    mode = RUNTIME,
     routeScope = FeatureTaskRouteScope.GOAL_CHILD,
   )

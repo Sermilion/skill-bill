@@ -10,7 +10,6 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.work.model.WorkItem
 import skillbill.ports.work.model.WorkItemKind
 import skillbill.ports.workflow.WorkflowSnapshotValidator
-import skillbill.ports.workflow.getAll
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.WorkflowEngine
 
@@ -39,7 +38,7 @@ class WorkListService(
   ) {
     work.groupBy(::workflowFamily).forEach { (family, items) ->
       family ?: return@forEach
-      val snapshots = family.getAll(unitOfWork.workflowStates, items.mapTo(linkedSetOf(), WorkItem::workflowId))
+      val snapshots = unitOfWork.workflowStates.getAll(family, items.mapTo(linkedSetOf(), WorkItem::workflowId))
       items.forEach { item ->
         val snapshot =
           snapshots[item.workflowId]

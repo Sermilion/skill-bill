@@ -12,6 +12,7 @@ import skillbill.application.review.snapshot.reviewPack
 import skillbill.application.runner
 import skillbill.goalrunner.terminalStatus
 import skillbill.install.model.SupportedAgent
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointHandle
@@ -231,7 +232,7 @@ class ParallelCodeReviewEvidenceBoundaryTest {
                   }
                 }
             },
-          response = { RecordedWorkerResponse(spawnFailed = true, processStarted = false, exitStatus = null) },
+          response = { RecordedWorkerResponse(termination = AgentRunTermination.SpawnFailed, processStarted = false) },
         ),
         ReviewRecorder(),
       ).run(

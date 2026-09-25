@@ -2,9 +2,11 @@ package skillbill.ports.agentrun
 
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.install.model.SupportedAgent
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
+import skillbill.ports.agentrun.model.reviewProcessOutcome
+import skillbill.ports.review.model.ReviewProcessOutcome
 import skillbill.workflow.model.ValidationDepth
 import java.nio.file.Path
 import kotlin.test.Test
@@ -60,30 +62,6 @@ class AgentRunLauncherModelsTest {
   }
 
   @Test
-  fun `launch facts do not allow terminal process status on timeout or spawn failure`() {
-    assertFailsWith<IllegalArgumentException> {
-      AgentRunLaunchFacts(
-        agent = SupportedAgent.CODEX,
-        exitStatus = 1,
-        stdout = "",
-        stderr = "timeout",
-        timedOut = true,
-        spawnFailed = false,
-      )
-    }
-    assertFailsWith<IllegalArgumentException> {
-      AgentRunLaunchFacts(
-        agent = SupportedAgent.CODEX,
-        exitStatus = 1,
-        stdout = "",
-        stderr = "spawn failed",
-        timedOut = false,
-        spawnFailed = true,
-      )
-    }
-  }
-
-  @Test
   fun `goal observability record requests validate runtime-owned identity fields`() {
     GoalRunnerObservabilityRecordRequest(
       workflowId = "wfl-1",
@@ -109,6 +87,33 @@ class AgentRunLauncherModelsTest {
         sequenceNumber = 1,
         timestamp = "2026-06-01T00:00:00Z",
       )
+    }
+  }
+
+  @Test
+  fun `review process outcome maps each termination and lets truncation apply only to an exit`() {
+    val expectations =
+      listOf(
+        Triple(AgentRunTermination.TimedOut, true, ReviewProcessOutcome.TIMED_OUT),
+        Triple(AgentRunTermination.TimedOut, false, ReviewProcessOutcome.TIMED_OUT),
+        Triple(AgentRunTermination.Interrupted, true, ReviewProcessOutcome.INTERRUPTED),
+        Triple(AgentRunTermination.Interrupted, false, ReviewProcessOutcome.INTERRUPTED),
+        Triple(AgentRunTermination.SpawnFailed, true, ReviewProcessOutcome.UNAVAILABLE),
+        Triple(AgentRunTermination.SpawnFailed, false, ReviewProcessOutcome.UNAVAILABLE),
+        Triple(AgentRunTermination.Exited(0), true, ReviewProcessOutcome.INVALID_OUTPUT),
+        Triple(AgentRunTermination.Exited(1), true, ReviewProcessOutcome.INVALID_OUTPUT),
+        Triple(AgentRunTermination.Exited(1), false, ReviewProcessOutcome.NON_ZERO_EXIT),
+        Triple(AgentRunTermination.Exited(0), false, ReviewProcessOutcome.ZERO_EXIT),
+      )
+
+    expectations.forEach { (termination, truncated, expected) ->
+      val facts =
+        agentRunLaunchFacts(
+          agent = SupportedAgent.CLAUDE,
+          termination = termination,
+          stdoutTruncated = truncated,
+        )
+      assertEquals(expected, facts.reviewProcessOutcome(), "$termination truncated=$truncated")
     }
   }
 }

@@ -3,7 +3,6 @@ package skillbill.infrastructure.skills.scaffold
 import org.yaml.snakeyaml.Yaml
 import skillbill.error.shellcontent.InvalidValidationGateDeclarationError
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.parseValidationGate
-import skillbill.ports.workflow.list
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test

@@ -1,6 +1,7 @@
 package skillbill.engine.featuretask.runloop.state
 
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 
 const val FEATURE_TASK_RUNTIME_PROCESS_FAILURE_RULE: String = "process-failure"
 
@@ -31,8 +32,8 @@ internal fun featureTaskRuntimeChildOutput(facts: AgentRunLaunchFacts): FeatureT
   FeatureTaskRuntimeChildOutput(
     stdout = facts.stdout,
     stderr = facts.stderr,
-    exitStatus = facts.exitStatus,
-    timedOut = facts.timedOut,
-    interrupted = facts.interrupted,
-    spawnFailed = facts.spawnFailed,
+    exitStatus = (facts.termination as? AgentRunTermination.Exited)?.code,
+    timedOut = facts.termination == AgentRunTermination.TimedOut,
+    interrupted = facts.termination == AgentRunTermination.Interrupted,
+    spawnFailed = facts.termination == AgentRunTermination.SpawnFailed,
   ).takeUnless(FeatureTaskRuntimeChildOutput::isEmpty)

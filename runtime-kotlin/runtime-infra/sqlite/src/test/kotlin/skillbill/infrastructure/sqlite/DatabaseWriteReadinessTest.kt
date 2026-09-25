@@ -9,7 +9,7 @@ import skillbill.infrastructure.sqlite.core.migration.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.schema.DatabaseIdentity
 import skillbill.infrastructure.sqlite.core.schema.DatabaseWriteReadinessGate
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
@@ -50,21 +50,21 @@ class DatabaseWriteReadinessTest {
       )
 
     database.transaction { unitOfWork ->
-      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-readiness-1"))
+      unitOfWork.workflowStates.saveFeatureTaskWorkflow(sampleWorkflow("wftr-readiness-1"), RUNTIME)
     }
     database.transaction { unitOfWork ->
-      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-readiness-2"))
+      unitOfWork.workflowStates.saveFeatureTaskWorkflow(sampleWorkflow("wftr-readiness-2"), RUNTIME)
     }
     database.selfManagedWrite { unitOfWork ->
-      assertNotNull(unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow("wftr-readiness-1"))
+      assertNotNull(unitOfWork.workflowStates.getFeatureTaskWorkflowAsMode("wftr-readiness-1", RUNTIME))
     }
 
     relocateDatabaseFromPath(dbPath, tempDir.resolve("metrics-archived.db"))
     database.transaction { unitOfWork ->
-      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-readiness-3"))
+      unitOfWork.workflowStates.saveFeatureTaskWorkflow(sampleWorkflow("wftr-readiness-3"), RUNTIME)
     }
     assertNotNull(
-      database.read { it.workflowStates.getFeatureTaskRuntimeWorkflow("wftr-readiness-3") },
+      database.read { it.workflowStates.getFeatureTaskWorkflowAsMode("wftr-readiness-3", RUNTIME) },
     )
   }
 
@@ -171,10 +171,10 @@ class DatabaseWriteReadinessTest {
 
     Files.delete(invalidPath)
     database.transaction { unitOfWork ->
-      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-recovered"))
+      unitOfWork.workflowStates.saveFeatureTaskWorkflow(sampleWorkflow("wftr-recovered"), RUNTIME)
     }
     assertNotNull(
-      database.read { it.workflowStates.getFeatureTaskRuntimeWorkflow("wftr-recovered") },
+      database.read { it.workflowStates.getFeatureTaskWorkflowAsMode("wftr-recovered", RUNTIME) },
     )
   }
 
@@ -200,6 +200,6 @@ class DatabaseWriteReadinessTest {
       startedAt = "2026-09-18T00:00:00Z",
       updatedAt = "2026-09-18T00:00:00Z",
       finishedAt = null,
-      mode = FeatureTaskWorkflowMode.RUNTIME,
+      mode = RUNTIME,
     )
 }

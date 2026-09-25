@@ -27,10 +27,10 @@ internal object ReviewHunkStoreIndexing {
     commitUnits: List<ReviewCommitUnit>,
     storePath: String?,
     repoRoot: Path?,
-    locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
+    locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort?,
   ): IndexedReviewHunks {
     if (storePath.isNullOrBlank()) {
-      if (locatorReader !== FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE) {
+      if (locatorReader != null) {
         throw ReviewHunkEvidenceLocatorMissingError(storePath.orEmpty())
       }
       return IndexedReviewHunks(
@@ -47,9 +47,9 @@ internal object ReviewHunkStoreIndexing {
         "compose-time locator dereference requires a repository root",
       )
     val payload =
-      locatorReader.readDiffPayload(
+      locatorReader?.readDiffPayload(
         FeatureTaskRuntimeSharedEvidenceLocatorReadRequest(root, storePath),
-      )
+      ) ?: throw ReviewHunkEvidenceLocatorMissingError(storePath)
     val record = SharedReviewEvidenceCodec.decode(payload) ?: rawRecord(payload, storePath)
     val indexed = hunks.map { hunk -> indexHunk(hunk, record, storePath) }
     val byKey = indexed.associateBy { hunkKey(it) }

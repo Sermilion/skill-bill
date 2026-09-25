@@ -2,7 +2,6 @@ package skillbill.ports.workflow
 
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeCrashReconciliationCandidate
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
-import skillbill.ports.featuretask.model.parseFeatureTaskRuntimeWorkerLeaseInstant
 
 interface FeatureTaskRuntimeWorkerRepository {
   fun getFeatureTaskRuntimeWorkerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership?
@@ -37,13 +36,7 @@ interface FeatureTaskRuntimeWorkerRepository {
     ownerToken: String,
     generation: Long,
     nowInstant: String,
-  ): Boolean {
-    val current = getFeatureTaskRuntimeWorkerOwnership(workflowId) ?: return false
-    if (current.ownerToken != ownerToken || current.generation != generation) return false
-    val now = parseFeatureTaskRuntimeWorkerLeaseInstant(workflowId, "now_instant", nowInstant)
-    if (current.expiresAtInstant.isAfter(now)) return false
-    return releaseFeatureTaskRuntimeWorker(workflowId, ownerToken, generation)
-  }
+  ): Boolean
 
   /**
    * Non-terminal runtime rows whose worker lease has already expired as of [nowInstant] (an

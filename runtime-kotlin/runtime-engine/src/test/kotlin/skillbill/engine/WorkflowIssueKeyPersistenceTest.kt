@@ -25,6 +25,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 
 class WorkflowIssueKeyPersistenceTest {
   @Test
@@ -71,9 +72,9 @@ class WorkflowIssueKeyPersistenceTest {
         service.open(WorkflowServiceOpenArgs(kind = WorkflowFamilyKind.VERIFY, issueKey = " SKILL-119 ")),
       )
 
-    assertEquals("SKILL-117", assertNotNull(workflows.getFeatureTaskRuntimeWorkflow(firstRuntime.workflowId)).issueKey)
-    assertEquals("SKILL-118", assertNotNull(workflows.getFeatureTaskRuntimeWorkflow(secondRuntime.workflowId)).issueKey)
-    assertEquals("SKILL-119", assertNotNull(workflows.getFeatureVerifyWorkflow(verify.workflowId)).issueKey)
+    assertEquals("SKILL-117", assertNotNull(workflows.runtimeRecord(firstRuntime.workflowId)).issueKey)
+    assertEquals("SKILL-118", assertNotNull(workflows.runtimeRecord(secondRuntime.workflowId)).issueKey)
+    assertEquals("SKILL-119", assertNotNull(workflows.verifyRecord(verify.workflowId)).issueKey)
   }
 
   @Test
@@ -130,7 +131,7 @@ class WorkflowIssueKeyPersistenceTest {
     recorder.ensureWorkflowOpen("wftr-117", "session-117", issueKey = " SKILL-117 ")
     recorder.ensureWorkflowOpen("wftr-117", "session-117", issueKey = "SKILL-117")
 
-    val healed = assertNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-117"))
+    val healed = assertNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-117", FeatureTaskWorkflowMode.RUNTIME))
     assertEquals("SKILL-117", healed.issueKey)
 
     val conflict =
@@ -140,6 +141,6 @@ class WorkflowIssueKeyPersistenceTest {
     assertEquals("wftr-117", conflict.workflowId)
     assertEquals("SKILL-117", conflict.persistedIssueKey)
     assertEquals("SKILL-118", conflict.requestedIssueKey)
-    assertEquals("SKILL-117", assertNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-117")).issueKey)
+    assertEquals("SKILL-117", assertNotNull(workflows.runtimeRecord("wftr-117")).issueKey)
   }
 }

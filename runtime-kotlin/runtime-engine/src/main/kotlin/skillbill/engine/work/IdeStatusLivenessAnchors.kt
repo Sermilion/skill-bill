@@ -3,7 +3,6 @@ package skillbill.engine.work
 import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.work.model.WorkItem
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import java.time.Instant
 
@@ -18,9 +17,9 @@ class IdeStatusLivenessAnchors(
     val fromWorkflow =
       when (family) {
         IdeStatusWorkflowFamily.FEATURE_TASK_RUNTIME ->
-          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, item.workflowId)
+          unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, item.workflowId)
         IdeStatusWorkflowFamily.FEATURE_VERIFY ->
-          WorkflowFamily.VERIFY.get(unitOfWork.workflowStates, item.workflowId)
+          unitOfWork.workflowStates.get(WorkflowFamily.VERIFY, item.workflowId)
         IdeStatusWorkflowFamily.FEATURE_GOAL -> null
       }?.updatedAt
         ?: latestGoalChildUpdatedAt(item, family)

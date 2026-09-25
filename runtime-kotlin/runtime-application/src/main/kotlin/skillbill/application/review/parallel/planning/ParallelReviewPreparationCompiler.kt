@@ -6,35 +6,27 @@ import skillbill.application.review.model.ReviewPreparationResult
 import skillbill.application.review.model.ReviewRubricProjection
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
 import skillbill.application.review.model.ReviewWorkerKind
+import skillbill.application.review.preparation.ReviewLaneSelection
+import skillbill.application.review.preparation.ReviewPreparationFacts
 import skillbill.application.review.preparation.ReviewPreparationService
+import skillbill.application.review.preparation.ReviewScopeFacts
+import skillbill.application.review.preparation.ReviewStackRoutingFacts
 import skillbill.application.review.preparation.deriveSpecialistBudget
 import skillbill.application.reviewevidence.ResolvedCommitSequence
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.model.ReviewExpansionAuthorizationRequest
-import skillbill.ports.review.model.ReviewFactPorts
-import skillbill.ports.review.model.ReviewLaneSelection
-import skillbill.ports.review.model.ReviewScopeFacts
-import skillbill.ports.review.model.ReviewStackRoutingFacts
-import skillbill.ports.review.preparation.ReviewBuildTestFactsPort
-import skillbill.ports.review.preparation.ReviewGuidancePort
-import skillbill.ports.review.preparation.ReviewLaneSelectionPort
-import skillbill.ports.review.preparation.ReviewLearningsPort
-import skillbill.ports.review.preparation.ReviewScopeResolverPort
-import skillbill.ports.review.preparation.ReviewStackRoutingPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.review.context.model.commit.ReviewCommitLaneRoutingMatrix
 import skillbill.review.context.model.execution.ReviewLaneDecision
 import skillbill.review.context.model.execution.SpecIntentAbsenceReason
 import skillbill.review.context.model.execution.SpecIntentResolution
 import skillbill.review.context.model.hunk.ReviewBaselineUntrackedPolicy
-import skillbill.review.context.model.hunk.ReviewBuildTestFact
 import skillbill.review.context.model.hunk.ReviewChangedHunk
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.hunk.ReviewLearningsReference
 import skillbill.review.context.model.hunk.ReviewRevision
-import skillbill.review.context.model.hunk.ReviewRuleReference
 import skillbill.review.plan.ReviewCommitLaneRoutingPolicy
 import skillbill.review.plan.model.ReviewLaunchLane
 import skillbill.review.plan.model.ReviewRoutedLane
@@ -48,8 +40,7 @@ internal object ParallelReviewPreparationCompiler {
     budget: ReviewContextBudgetPolicy,
     envelopeValidator: ReviewContextEnvelopeValidator,
     specialistContract: String,
-    hunkLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort =
-      FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE,
+    hunkLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort? = null,
   ): List<ReviewSpecialistLaunchRequest> {
     val hunks = input.commitSequence.units.flatMap { it.hunks }
     val candidates = specialistRoutes(input)
@@ -145,7 +136,7 @@ internal object ParallelReviewPreparationCompiler {
 
   private fun prepareReview(compileInput: PrepareReviewCompileInput) =
     ReviewPreparationService(
-      reviewFactPorts(compileInput.input, compileInput.hunks, compileInput.selection),
+      reviewPreparationFacts(compileInput.input, compileInput.hunks, compileInput.selection),
       compileInput.envelopeValidator,
       compileInput.hunkLocatorReader,
     ).prepare(
@@ -162,63 +153,32 @@ internal object ParallelReviewPreparationCompiler {
       ),
     )
 
-  private fun reviewFactPorts(
+  private fun reviewPreparationFacts(
     input: ParallelReviewPreparationInput,
     hunks: List<ReviewChangedHunk>,
     selection: ReviewLaneSelection,
-  ): ReviewFactPorts {
+  ): ReviewPreparationFacts {
     val decisions = selection.decisions
-    val scope =
-      ReviewScopeFacts(
-        input.repositoryEnclosingRootPort.repositoryIdentity(input.repoRoot),
-        input.baseRevision,
-        input.headRevision,
-        "authoritative supplied parallel-review diff",
-        hunks,
-        input.commitSequence.units,
-        input.commitSequence.coverageFact,
-      )
-    val routing =
-      ReviewStackRoutingFacts(
-        input.stack,
-        input.routedPacks.joinToString("+"),
-        decisions.flatMap { it.addOns }.distinct(),
-        decisions.flatMap { it.originLayerChains }.flatten().distinct(),
-      )
-    return ReviewFactPorts(
+    return ReviewPreparationFacts(
       scope =
-        object : ReviewScopeResolverPort {
-          override fun resolveScope(reviewId: String) = scope
-        },
+        ReviewScopeFacts(
+          input.repositoryEnclosingRootPort.repositoryIdentity(input.repoRoot),
+          input.baseRevision,
+          input.headRevision,
+          "authoritative supplied parallel-review diff",
+          hunks,
+          input.commitSequence.units,
+          input.commitSequence.coverageFact,
+        ),
       stackRouting =
-        object : ReviewStackRoutingPort {
-          override fun resolveStackRouting(scope: ReviewScopeFacts) = routing
-        },
-      guidance =
-        object : ReviewGuidancePort {
-          override fun resolveMatchedRules(
-            scope: ReviewScopeFacts,
-            routing: ReviewStackRoutingFacts,
-          ) = emptyList<ReviewRuleReference>()
-        },
-      learnings =
-        object : ReviewLearningsPort {
-          override fun resolveLearnings(
-            scope: ReviewScopeFacts,
-            routing: ReviewStackRoutingFacts,
-          ) = input.learningsReferences
-        },
-      buildTestFacts =
-        object : ReviewBuildTestFactsPort {
-          override fun resolveBuildTestFacts(scope: ReviewScopeFacts) = emptyList<ReviewBuildTestFact>()
-        },
-      laneSelection =
-        object : ReviewLaneSelectionPort {
-          override fun decideLanes(
-            scope: ReviewScopeFacts,
-            routing: ReviewStackRoutingFacts,
-          ) = selection
-        },
+        ReviewStackRoutingFacts(
+          input.stack,
+          input.routedPacks.joinToString("+"),
+          decisions.flatMap { it.addOns }.distinct(),
+          decisions.flatMap { it.originLayerChains }.flatten().distinct(),
+        ),
+      laneSelection = selection,
+      learningsReferences = input.learningsReferences,
     )
   }
 
@@ -301,7 +261,7 @@ private data class PrepareReviewCompileInput(
   val selection: ReviewLaneSelection,
   val revisionId: String,
   val envelopeValidator: ReviewContextEnvelopeValidator,
-  val hunkLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
+  val hunkLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort?,
 )
 
 internal fun criteriaReferences(

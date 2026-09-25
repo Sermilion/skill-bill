@@ -80,9 +80,10 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
-import skillbill.ports.workflow.model.FeatureImplementSessionSummary
-import skillbill.ports.workflow.model.FeatureVerifySessionSummary
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.toSnapshot
+import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.review.model.FeatureTaskRuntimeWorkflowStats
 import skillbill.review.model.FeatureVerifyWorkflowStats
@@ -108,8 +109,11 @@ import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
@@ -1143,7 +1147,7 @@ internal fun decodeStepsForTest(
   repository: InMemoryWorkflowStateRepository,
   workflowId: String,
 ): List<Pair<String, String>> {
-  val stepsJson = requireNotNull(repository.getFeatureTaskRuntimeWorkflow(workflowId)).stepsJson
+  val stepsJson = requireNotNull(repository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME)).stepsJson
   val element = JsonCodec.json.parseToJsonElement(stepsJson)
   return (JsonCodec.jsonElementToValue(element) as List<*>).map { raw ->
     val item = raw as Map<*, *>
@@ -1163,7 +1167,7 @@ internal fun assertRuntimeWorkflowRow(
   currentStepId: String,
   workflowStatus: String,
 ) {
-  val row = requireNotNull(repository.getFeatureTaskRuntimeWorkflow(workflowId))
+  val row = requireNotNull(repository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME))
   assertEquals(currentStepId, row.currentStepId)
   assertEquals(workflowStatus, row.workflowStatus)
 }
@@ -1188,50 +1192,25 @@ internal fun testWorkflowService(
 internal fun loadTestDecompositionManifest(path: Path) =
   loadDecompositionManifest(path, FileSystemDecompositionManifestFileStore(), DecompositionManifestSchemaValidator())
 
-internal class InMemoryWorkflowStateRepository(
-  private val implementSessionSummary: FeatureImplementSessionSummary? = null,
-  private val verifySessionSummary: FeatureVerifySessionSummary? = null,
-) : WorkflowStateRepositoryDefaults() {
+internal class InMemoryWorkflowStateRepository : WorkflowStateRepositoryDefaults() {
   private val implementRows = linkedMapOf<String, WorkflowStateRecord>()
   private val verifyRows = linkedMapOf<String, WorkflowStateRecord>()
   private val taskRuntimeRows = linkedMapOf<String, WorkflowStateRecord>()
   var failNextRuntimeSave: Boolean = false
-
-  override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) {
-    implementRows[row.workflowId] = row
-  }
-
-  override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) {
-    verifyRows[row.workflowId] = row
-  }
-
-  override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? = implementRows[workflowId]
-
-  override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? = verifyRows[workflowId]
-
-  override fun listFeatureImplementWorkflows(limit: Int): List<WorkflowStateRecord> =
-    implementRows.values.toList().asReversed().take(limit)
-
-  override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> =
-    verifyRows.values.toList().asReversed().take(limit)
-
-  override fun latestFeatureImplementWorkflow(): WorkflowStateRecord? = listFeatureImplementWorkflows(1).firstOrNull()
-
-  override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = listFeatureVerifyWorkflows(1).firstOrNull()
-
-  override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? =
-    implementSessionSummary?.takeIf { it.sessionId == sessionId }
-
-  override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? =
-    verifySessionSummary?.takeIf { it.sessionId == sessionId }
 
   override fun saveFeatureTaskWorkflow(
     row: WorkflowStateRecord,
     mode: FeatureTaskWorkflowMode,
   ) {
     when (mode) {
-      FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
-      FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
+      RUNTIME -> {
+        if (failNextRuntimeSave) {
+          failNextRuntimeSave = false
+          error("save failed")
+        }
+        taskRuntimeRows[row.workflowId] = row
+      }
+      PROSE -> implementRows[row.workflowId] = row
     }
   }
 
@@ -1243,7 +1222,7 @@ internal class InMemoryWorkflowStateRepository(
     mode: FeatureTaskWorkflowMode,
   ): WorkflowStateRecord? =
     getFeatureTaskWorkflow(workflowId)?.also { row ->
-      val actualMode = row.mode ?: FeatureTaskWorkflowMode.PROSE
+      val actualMode = row.mode ?: PROSE
       if (actualMode != mode) {
         throw InvalidWorkflowStateSchemaError("Unexpected feature-task workflow mode.")
       }
@@ -1254,28 +1233,65 @@ internal class InMemoryWorkflowStateRepository(
     limit: Int,
   ): List<WorkflowStateRecord> =
     when (mode) {
-      FeatureTaskWorkflowMode.RUNTIME -> listFeatureTaskRuntimeWorkflows(limit)
-      FeatureTaskWorkflowMode.PROSE -> listFeatureImplementWorkflows(limit)
-    }
+      RUNTIME -> taskRuntimeRows
+      PROSE -> implementRows
+    }.values.toList().asReversed().take(limit)
 
   override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
     listFeatureTaskWorkflows(mode, Int.MAX_VALUE).firstOrNull()
 
-  override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
-    if (failNextRuntimeSave) {
-      failNextRuntimeSave = false
-      error("save failed")
-    }
-    taskRuntimeRows[row.workflowId] = row
+  override fun save(
+    family: WorkflowFamily,
+    snapshot: WorkflowStateSnapshot,
+  ) {
+    val source =
+      when (family) {
+        WorkflowFamily.VERIFY -> verifyRows[snapshot.workflowId]
+        WorkflowFamily.TASK_RUNTIME -> taskRuntimeRows[snapshot.workflowId]
+      }
+    saveRecord(family, snapshot.toRecord(source))
   }
 
-  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? = taskRuntimeRows[workflowId]
+  override fun saveRecord(
+    family: WorkflowFamily,
+    record: WorkflowStateRecord,
+  ) {
+    when (family) {
+      WorkflowFamily.VERIFY -> verifyRows[record.workflowId] = record
+      WorkflowFamily.TASK_RUNTIME -> saveFeatureTaskWorkflow(record, RUNTIME)
+    }
+  }
 
-  override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> =
-    taskRuntimeRows.values.toList().asReversed().take(limit)
+  override fun get(
+    family: WorkflowFamily,
+    workflowId: String,
+  ): WorkflowStateSnapshot? = record(family, workflowId)?.toSnapshot()
 
-  override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? =
-    listFeatureTaskRuntimeWorkflows(1).firstOrNull()
+  override fun getAll(
+    family: WorkflowFamily,
+    workflowIds: Set<String>,
+  ): Map<String, WorkflowStateSnapshot> =
+    workflowIds.mapNotNull { id -> record(family, id)?.let { id to it.toSnapshot() } }.toMap()
+
+  override fun list(
+    family: WorkflowFamily,
+    limit: Int,
+  ): List<WorkflowStateSnapshot> =
+    when (family) {
+      WorkflowFamily.VERIFY -> verifyRows.values.toList().asReversed().take(limit)
+      WorkflowFamily.TASK_RUNTIME -> listFeatureTaskWorkflows(RUNTIME, limit)
+    }.map(WorkflowStateRecord::toSnapshot)
+
+  override fun latest(family: WorkflowFamily): WorkflowStateSnapshot? = list(family, 1).firstOrNull()
+
+  private fun record(
+    family: WorkflowFamily,
+    workflowId: String,
+  ): WorkflowStateRecord? =
+    when (family) {
+      WorkflowFamily.VERIFY -> verifyRows[workflowId]
+      WorkflowFamily.TASK_RUNTIME -> taskRuntimeRows[workflowId]
+    }
 }
 
 internal class FakeWorkflowGitOperations(
@@ -1446,7 +1462,7 @@ internal fun corruptDurableEnvelope(
   workflowId: String,
   corrupt: (Map<String, Any?>) -> Map<String, Any?>,
 ) {
-  val record = requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId))
+  val record = requireNotNull(workflowRepository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME))
   val artifacts = decodeArtifactsForTest(record.artifactsJson).toMutableMap()
   val briefings =
     requireNotNull(
@@ -1459,8 +1475,9 @@ internal fun corruptDurableEnvelope(
     )
   briefings["implement"] = briefing
   artifacts[FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY] = briefings
-  workflowRepository.saveFeatureTaskRuntimeWorkflow(
+  workflowRepository.saveFeatureTaskWorkflow(
     record.copy(artifactsJson = JsonCodec.mapToJsonString(artifacts)),
+    RUNTIME,
   )
 }
 

@@ -8,7 +8,6 @@ import skillbill.infrastructure.skills.scaffold.authoring.renderAuthoringTarget
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.pointer.renderPointer
 import skillbill.model.toPath
-import skillbill.ports.workflow.list
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.isDirectory

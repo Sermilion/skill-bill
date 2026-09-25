@@ -6,6 +6,7 @@ import skillbill.infrastructure.launcher.process.launch.AgentRunProcessExperimen
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessLaunchFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessProbeFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRequest
+import skillbill.infrastructure.launcher.process.launch.AgentRunProcessResult
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessReviewFields
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessRunner
 import skillbill.infrastructure.launcher.process.launch.AgentRunProcessTimingFields
@@ -16,6 +17,7 @@ import skillbill.install.model.SupportedAgent
 import skillbill.install.model.agentLauncherUnavailableMessage
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.SkillRunRequest
 import java.nio.file.Path
 
@@ -60,13 +62,9 @@ internal class ProcessAgentRunAdapter(
       }
     return AgentRunLaunchFacts(
       agent = agent,
-      exitStatus = result.exitStatus,
+      termination = result.termination(),
       stdout = normalizedStdout,
-      stdoutBytes = decodedBodyBytes,
       stderr = result.stderr,
-      timedOut = result.timedOut,
-      interrupted = result.interrupted,
-      spawnFailed = result.spawnFailed,
       liveness = result.liveness,
       processStarted = result.processStarted,
       mcpStartupObserved = result.mcpStartupObserved,
@@ -112,11 +110,11 @@ internal class ProcessAgentRunAdapter(
     message: String,
   ) = AgentRunLaunchFacts(
     agent = agent,
-    exitStatus = null,
+    termination = AgentRunTermination.SpawnFailed,
     stdout = "",
     stderr = message,
-    timedOut = false,
-    spawnFailed = true,
+    stdoutByteSize = 0,
+    stdoutSha256 = launcherSha256Hex(ByteArray(0)),
     childSessionPath = command.workingDirectory.toString(),
     childSessionId = childSessionId(agent, request, command.workingDirectory),
   )
@@ -187,6 +185,17 @@ internal class ProcessAgentRunAdapter(
       append(workingDirectory.fileName?.toString() ?: workingDirectory.toString())
     }
 }
+
+private fun AgentRunProcessResult.termination(): AgentRunTermination =
+  when {
+    spawnFailed -> AgentRunTermination.SpawnFailed
+    interrupted -> AgentRunTermination.Interrupted
+    timedOut -> AgentRunTermination.TimedOut
+    else ->
+      AgentRunTermination.Exited(
+        requireNotNull(exitStatus) { "A settled agent process must report an exit status." },
+      )
+  }
 
 data class DecodedAgentRunOutput(
   val text: String,

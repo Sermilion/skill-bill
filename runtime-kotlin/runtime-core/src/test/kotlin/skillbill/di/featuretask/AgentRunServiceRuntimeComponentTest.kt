@@ -13,6 +13,7 @@ import skillbill.model.EnvironmentContext
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.SkillRunRequest
 import java.nio.file.Files
 import kotlin.test.Test
@@ -52,7 +53,7 @@ class AgentRunServiceRuntimeComponentTest {
 
     assertEquals(SupportedAgent.JUNIE, result.resolution.effectiveAgent)
     val facts = assertIs<AgentRunLaunchFacts>(result.launchOutcome)
-    assertTrue(facts.spawnFailed)
+    assertEquals(AgentRunTermination.SpawnFailed, facts.termination)
     assertContains(facts.stderr, "'junie' is not on PATH")
   }
 
@@ -111,7 +112,7 @@ class AgentRunServiceRuntimeComponentTest {
       )
 
     val facts = assertIs<AgentRunLaunchFacts>(result.launchOutcome)
-    assertTrue(facts.spawnFailed)
+    assertEquals(AgentRunTermination.SpawnFailed, facts.termination)
     assertContains(facts.stderr, "'junie' is not on PATH")
     assertFalse(Files.exists(marker))
     assertEquals(listOf("junie"), lookupRequests)

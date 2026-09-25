@@ -5,7 +5,6 @@ import skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentS
 import skillbill.infrastructure.skills.scaffold.rendering.renderFrontmatter
 import skillbill.infrastructure.skills.scaffold.rendering.renderSubagentSpawnRuntimeNotes
 import skillbill.infrastructure.skills.scaffold.validation.shape.parseSkillFrontmatter
-import skillbill.ports.workflow.list
 import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.GovernedAddonSelection
 import java.nio.file.Files

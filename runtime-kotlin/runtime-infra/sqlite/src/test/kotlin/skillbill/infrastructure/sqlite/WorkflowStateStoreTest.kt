@@ -10,11 +10,13 @@ import skillbill.infrastructure.sqlite.workflow.FEATURE_TASK_RUNTIME_WORKFLOW_CO
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskRouteScope
-import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
 import java.nio.file.Files
@@ -54,7 +56,7 @@ class WorkflowStateStoreTest {
           "ftr-malformed-continuation",
           "bill-feature-task",
           "plan",
-          FeatureTaskWorkflowMode.RUNTIME,
+          RUNTIME,
         ).copy(
           artifactsJson =
             """{"${DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION.label()}":{""" +
@@ -63,9 +65,9 @@ class WorkflowStateStoreTest {
         )
 
       assertFailsWith<InvalidWorkflowStateSchemaError> {
-        store.saveFeatureTaskRuntimeWorkflow(row)
+        store.saveFeatureTaskWorkflow(row, RUNTIME)
       }
-      assertEquals(null, store.getFeatureTaskRuntimeWorkflow(row.workflowId))
+      assertEquals(null, store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME))
     }
   }
 
@@ -75,23 +77,25 @@ class WorkflowStateStoreTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
 
-      store.saveFeatureTaskRuntimeWorkflow(
+      store.saveFeatureTaskWorkflow(
         workflowRow(
           "wftr-goal-parent",
           "ftr-goal",
           "bill-feature-task",
           "plan",
-          FeatureTaskWorkflowMode.RUNTIME,
+          RUNTIME,
         )
           .copy(
             issueKey = "SKILL-128",
             workflowStatus = WorkflowStatus.PAUSED.wireValue,
             artifactsJson = """{"plan":{"mode":"decompose"},"decomposition_runtime":{"issue_key":"SKILL-128"}}""",
           ),
+        RUNTIME,
       )
-      store.saveFeatureTaskRuntimeWorkflow(
-        workflowRow("wftr-legacy", "ftr-legacy", "bill-feature-task", "plan", FeatureTaskWorkflowMode.RUNTIME)
+      store.saveFeatureTaskWorkflow(
+        workflowRow("wftr-legacy", "ftr-legacy", "bill-feature-task", "plan", RUNTIME)
           .copy(issueKey = "SKILL-128", workflowStatus = WorkflowStatus.PAUSED.wireValue),
+        RUNTIME,
       )
 
       val candidates = store.findStandaloneFeatureTaskCandidates("SKILL-128", "repo")
@@ -108,7 +112,7 @@ class WorkflowStateStoreTest {
       val workflow = goalChildWorkflow("wftr-child", "wftr-parent")
       val identity = goalChildIdentity(workflow)
 
-      store.saveFeatureTaskRuntimeWorkflow(workflow)
+      store.saveFeatureTaskWorkflow(workflow, RUNTIME)
       store.saveFeatureTaskExecutionIdentity(identity)
 
       assertEquals(identity, store.getFeatureTaskExecutionIdentity(identity.workflowId))
@@ -124,7 +128,7 @@ class WorkflowStateStoreTest {
       val target = goalChildWorkflow("wftr-target", "wftr-parent")
       val siblingGoal = goalChildWorkflow("wftr-other-goal", "wftr-other-parent")
       val standalone = goalChildWorkflow("wftr-standalone", "wftr-parent")
-      listOf(target, siblingGoal, standalone).forEach(store::saveFeatureTaskRuntimeWorkflow)
+      listOf(target, siblingGoal, standalone).forEach { row -> store.saveFeatureTaskWorkflow(row, RUNTIME) }
       listOf(target, siblingGoal).forEach { row -> store.saveFeatureTaskExecutionIdentity(goalChildIdentity(row)) }
       store.saveFeatureTaskExecutionIdentity(
         goalChildIdentity(standalone).copy(routeScope = FeatureTaskRouteScope.STANDALONE),
@@ -132,9 +136,9 @@ class WorkflowStateStoreTest {
 
       assertEquals(1, store.deleteGoalChildWorkflowsByParent("wftr-parent"))
 
-      assertEquals(null, store.getFeatureTaskRuntimeWorkflow(target.workflowId))
-      assertNotNull(store.getFeatureTaskRuntimeWorkflow(siblingGoal.workflowId))
-      assertNotNull(store.getFeatureTaskRuntimeWorkflow(standalone.workflowId))
+      assertEquals(null, store.getFeatureTaskWorkflowAsMode(target.workflowId, RUNTIME))
+      assertNotNull(store.getFeatureTaskWorkflowAsMode(siblingGoal.workflowId, RUNTIME))
+      assertNotNull(store.getFeatureTaskWorkflowAsMode(standalone.workflowId, RUNTIME))
     }
   }
 
@@ -150,7 +154,7 @@ class WorkflowStateStoreTest {
         goalChildWorkflow("wftr-pending", "wftr-parent")
           .copy(workflowStatus = WorkflowStatus.PENDING.wireValue)
       listOf(completed, pending).forEach { workflow ->
-        store.saveFeatureTaskRuntimeWorkflow(workflow)
+        store.saveFeatureTaskWorkflow(workflow, RUNTIME)
         store.saveFeatureTaskExecutionIdentity(goalChildIdentity(workflow))
       }
 
@@ -163,8 +167,8 @@ class WorkflowStateStoreTest {
           scope = GoalChildWorkflowDeletionScope.TERMINAL_ONLY,
         ),
       )
-      assertEquals(null, store.getFeatureTaskRuntimeWorkflow(completed.workflowId))
-      assertNotNull(store.getFeatureTaskRuntimeWorkflow(pending.workflowId))
+      assertEquals(null, store.getFeatureTaskWorkflowAsMode(completed.workflowId, RUNTIME))
+      assertNotNull(store.getFeatureTaskWorkflowAsMode(pending.workflowId, RUNTIME))
     }
   }
 
@@ -178,9 +182,10 @@ class WorkflowStateStoreTest {
 
       seedRunningRowWithLease(store, "wftr-live", "owner-token-live00001", expiresAt = "2999-01-01T00:00:00Z")
 
-      store.saveFeatureTaskRuntimeWorkflow(
-        workflowRow("wftr-done", "ftr-done", "bill-feature-task", "implement", FeatureTaskWorkflowMode.RUNTIME)
+      store.saveFeatureTaskWorkflow(
+        workflowRow("wftr-done", "ftr-done", "bill-feature-task", "implement", RUNTIME)
           .copy(workflowStatus = WorkflowStatus.COMPLETED.wireValue),
+        RUNTIME,
       )
 
       val candidates = store.findFeatureTaskRuntimeCrashReconciliationCandidates("2026-07-14T10:06:00Z")
@@ -201,13 +206,13 @@ class WorkflowStateStoreTest {
           "ftr-crash",
           "bill-feature-task",
           "implement",
-          FeatureTaskWorkflowMode.RUNTIME,
+          RUNTIME,
         ).copy(
           workflowStatus = WorkflowStatus.RUNNING.wireValue,
           artifactsJson = """{"phase_records":{"preplan":"done"}}""",
         )
-      store.saveFeatureTaskRuntimeWorkflow(row)
-      val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
+      store.saveFeatureTaskWorkflow(row, RUNTIME)
+      val updatedAt = assertNotNull(store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME)).updatedAt
       val ownership = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-crash0001")
       assertTrue(store.acquireFeatureTaskRuntimeWorker(ownership, updatedAt))
 
@@ -221,7 +226,7 @@ class WorkflowStateStoreTest {
         )
 
       assertTrue(reconciled)
-      val after = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId))
+      val after = assertNotNull(store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME))
       assertEquals("pending", after.workflowStatus)
       assertEquals("implement", after.currentStepId)
       assertEquals(row.artifactsJson, after.artifactsJson)
@@ -246,10 +251,10 @@ class WorkflowStateStoreTest {
           "ftr-fence",
           "bill-feature-task",
           "implement",
-          FeatureTaskWorkflowMode.RUNTIME,
+          RUNTIME,
         ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue)
-      store.saveFeatureTaskRuntimeWorkflow(row)
-      val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
+      store.saveFeatureTaskWorkflow(row, RUNTIME)
+      val updatedAt = assertNotNull(store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME)).updatedAt
       val ownership = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-fence0001")
       assertTrue(store.acquireFeatureTaskRuntimeWorker(ownership, updatedAt))
 
@@ -272,7 +277,7 @@ class WorkflowStateStoreTest {
 
       assertEquals(false, wrongToken)
       assertEquals(false, wrongGeneration)
-      assertEquals("running", assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).workflowStatus)
+      assertEquals("running", assertNotNull(store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME)).workflowStatus)
       assertEquals(ownership, store.getFeatureTaskRuntimeWorkerOwnership(row.workflowId))
     }
   }
@@ -288,10 +293,10 @@ class WorkflowStateStoreTest {
           sessionId = "ftr-worker",
           workflowName = "bill-feature-task",
           currentStepId = "implement",
-          mode = FeatureTaskWorkflowMode.RUNTIME,
+          mode = RUNTIME,
         ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue)
-      store.saveFeatureTaskRuntimeWorkflow(row)
-      val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
+      store.saveFeatureTaskWorkflow(row, RUNTIME)
+      val updatedAt = assertNotNull(store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME)).updatedAt
       val initial = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-0001")
 
       assertTrue(store.acquireFeatureTaskRuntimeWorker(initial, updatedAt))
@@ -307,6 +312,80 @@ class WorkflowStateStoreTest {
   }
 
   @Test
+  fun `expiry-guarded worker release keeps a lease that has not reached its expiry instant`() {
+    val dbPath = Files.createTempDirectory("runtime-worker-expiry").resolve("metrics.db")
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
+      val row =
+        workflowRow(
+          workflowId = "wftr-expiry",
+          sessionId = "ftr-expiry",
+          workflowName = "bill-feature-task",
+          currentStepId = "implement",
+          mode = RUNTIME,
+        ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue)
+      store.saveFeatureTaskWorkflow(row, RUNTIME)
+      val updatedAt = assertNotNull(store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME)).updatedAt
+      val ownership = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-0005")
+      assertTrue(store.acquireFeatureTaskRuntimeWorker(ownership, updatedAt))
+
+      assertEquals(
+        false,
+        store.releaseFeatureTaskRuntimeWorkerIfExpired(
+          row.workflowId,
+          ownership.ownerToken,
+          ownership.generation,
+          "2026-07-14T10:04:59Z",
+        ),
+      )
+      assertEquals(ownership, store.getFeatureTaskRuntimeWorkerOwnership(row.workflowId))
+
+      assertTrue(
+        store.releaseFeatureTaskRuntimeWorkerIfExpired(
+          row.workflowId,
+          ownership.ownerToken,
+          ownership.generation,
+          ownership.expiresAt,
+        ),
+      )
+      assertEquals(null, store.getFeatureTaskRuntimeWorkerOwnership(row.workflowId))
+    }
+  }
+
+  @Test
+  fun `expiry-guarded worker release keeps a lease a heartbeat extended past the original expiry`() {
+    val dbPath = Files.createTempDirectory("runtime-worker-expiry-heartbeat").resolve("metrics.db")
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
+      val row =
+        workflowRow(
+          workflowId = "wftr-expiry-heartbeat",
+          sessionId = "ftr-expiry-heartbeat",
+          workflowName = "bill-feature-task",
+          currentStepId = "implement",
+          mode = RUNTIME,
+        ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue)
+      store.saveFeatureTaskWorkflow(row, RUNTIME)
+      val updatedAt = assertNotNull(store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME)).updatedAt
+      val ownership = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-0006")
+      assertTrue(store.acquireFeatureTaskRuntimeWorker(ownership, updatedAt))
+      val extended = ownership.copy(heartbeatAt = "2026-07-14T10:04:00Z", expiresAt = "2026-07-14T10:09:00Z")
+      assertTrue(store.heartbeatFeatureTaskRuntimeWorker(extended))
+
+      assertEquals(
+        false,
+        store.releaseFeatureTaskRuntimeWorkerIfExpired(
+          row.workflowId,
+          ownership.ownerToken,
+          ownership.generation,
+          ownership.expiresAt,
+        ),
+      )
+      assertEquals(extended, store.getFeatureTaskRuntimeWorkerOwnership(row.workflowId))
+    }
+  }
+
+  @Test
   fun `runtime worker takeover reservation is single caller CAS`() {
     val dbPath = Files.createTempDirectory("runtime-worker-contention").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
@@ -317,10 +396,10 @@ class WorkflowStateStoreTest {
           sessionId = "ftr-contention",
           workflowName = "bill-feature-task",
           currentStepId = "implement",
-          mode = FeatureTaskWorkflowMode.RUNTIME,
+          mode = RUNTIME,
         ).copy(workflowStatus = WorkflowStatus.PAUSED.wireValue)
-      store.saveFeatureTaskRuntimeWorkflow(row)
-      val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
+      store.saveFeatureTaskWorkflow(row, RUNTIME)
+      val updatedAt = assertNotNull(store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME)).updatedAt
       val ownership = workerOwnership(row.workflowId, generation = 4, ownerToken = "owner-token-0004")
       assertTrue(store.acquireFeatureTaskRuntimeWorker(ownership, updatedAt))
 
@@ -340,10 +419,10 @@ class WorkflowStateStoreTest {
           sessionId = "ftr-invalid-lease",
           workflowName = "bill-feature-task",
           currentStepId = "implement",
-          mode = FeatureTaskWorkflowMode.RUNTIME,
+          mode = RUNTIME,
         ).copy(workflowStatus = WorkflowStatus.PAUSED.wireValue)
-      store.saveFeatureTaskRuntimeWorkflow(row)
-      val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
+      store.saveFeatureTaskWorkflow(row, RUNTIME)
+      val updatedAt = assertNotNull(store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME)).updatedAt
       assertTrue(
         store.acquireFeatureTaskRuntimeWorker(
           workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-0001"),
@@ -393,7 +472,7 @@ class WorkflowStateStoreTest {
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
 
-      store.saveFeatureVerifyWorkflow(
+      verifyWorkflowStore(connection).saveWorkflow(
         WorkflowStateRecord(
           workflowId = "wfv-001",
           sessionId = "fvr-001",
@@ -409,7 +488,7 @@ class WorkflowStateStoreTest {
         ),
       )
 
-      val saved = assertNotNull(store.getFeatureVerifyWorkflow("wfv-001"))
+      val saved = assertNotNull(verifyWorkflowStore(connection).getWorkflow("wfv-001"))
       assertEquals("bill-feature-verify", saved.workflowName)
       assertEquals("0.1", saved.contractVersion)
       assertEquals("code_review", saved.currentStepId)
@@ -429,19 +508,20 @@ class WorkflowStateStoreTest {
           sessionId = "ftr-terminal",
           workflowName = "bill-feature-task",
           currentStepId = "preplan",
-          mode = FeatureTaskWorkflowMode.RUNTIME,
+          mode = RUNTIME,
         )
 
-      store.saveFeatureTaskRuntimeWorkflow(initialRow)
-      store.saveFeatureTaskRuntimeWorkflow(
+      store.saveFeatureTaskWorkflow(initialRow, RUNTIME)
+      store.saveFeatureTaskWorkflow(
         initialRow.copy(
           workflowStatus = WorkflowStatus.ABANDONED.wireValue,
           currentStepId = "pr",
           finishedAt = "",
         ),
+        RUNTIME,
       )
 
-      val saved = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-terminal"))
+      val saved = assertNotNull(store.getFeatureTaskWorkflowAsMode("wftr-terminal", RUNTIME))
       assertEquals("abandoned", saved.workflowStatus)
       assertNotNull(saved.finishedAt)
     }
@@ -459,15 +539,16 @@ class WorkflowStateStoreTest {
           sessionId = "ftr-paused-parent",
           workflowName = "bill-feature-task",
           currentStepId = "plan",
-          mode = FeatureTaskWorkflowMode.RUNTIME,
+          mode = RUNTIME,
         ).copy(artifactsJson = """{"plan":{"mode":"decompose"}}""")
 
-      store.saveFeatureTaskRuntimeWorkflow(initialRow)
-      store.saveFeatureTaskRuntimeWorkflow(
+      store.saveFeatureTaskWorkflow(initialRow, RUNTIME)
+      store.saveFeatureTaskWorkflow(
         initialRow.copy(workflowStatus = WorkflowStatus.PAUSED.wireValue, finishedAt = null),
+        RUNTIME,
       )
 
-      val saved = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-paused-parent"))
+      val saved = assertNotNull(store.getFeatureTaskWorkflowAsMode("wftr-paused-parent", RUNTIME))
       assertEquals("wftr-paused-parent", saved.workflowId)
       assertEquals("paused", saved.workflowStatus)
       assertEquals("plan", saved.currentStepId)
@@ -491,29 +572,30 @@ class WorkflowStateStoreLifecycleTest {
           sessionId = "ftr-state-entry-main",
           workflowName = "bill-feature-task",
           currentStepId = "preplan",
-          mode = FeatureTaskWorkflowMode.RUNTIME,
+          mode = RUNTIME,
         ).copy(startedAt = startedAt)
 
-      store.saveFeatureTaskRuntimeWorkflow(initial)
-      val inserted = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry-main"))
+      store.saveFeatureTaskWorkflow(initial, RUNTIME)
+      val inserted = assertNotNull(store.getFeatureTaskWorkflowAsMode("wftr-state-entry-main", RUNTIME))
       assertEquals(startedAt, inserted.startedAt)
       assertEquals(startedAt, inserted.stateEnteredAt)
       assertEquals(false, inserted.stateEnteredAtEstimated)
 
-      store.saveFeatureTaskRuntimeWorkflow(initial.copy(currentStepId = "plan", artifactsJson = "{\"plan\":{}}"))
-      val sameStatus = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry-main"))
+      store.saveFeatureTaskWorkflow(initial.copy(currentStepId = "plan", artifactsJson = "{\"plan\":{}}"), RUNTIME)
+      val sameStatus = assertNotNull(store.getFeatureTaskWorkflowAsMode("wftr-state-entry-main", RUNTIME))
       assertEquals(startedAt, sameStatus.stateEnteredAt)
       assertEquals(false, sameStatus.stateEnteredAtEstimated)
 
-      store.saveFeatureTaskRuntimeWorkflow(
+      store.saveFeatureTaskWorkflow(
         sameStatus.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue, currentStepId = "plan"),
+        RUNTIME,
       )
-      val transitioned = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry-main"))
+      val transitioned = assertNotNull(store.getFeatureTaskWorkflowAsMode("wftr-state-entry-main", RUNTIME))
       assertEquals("blocked", transitioned.workflowStatus)
       assertTrue(Instant.parse(transitioned.stateEnteredAt).isAfter(Instant.parse(startedAt)))
       assertEquals(false, transitioned.stateEnteredAtEstimated)
 
-      assertRuntimeAndVerifyStateTransitions(store, initial, startedAt)
+      assertRuntimeAndVerifyStateTransitions(connection, initial, startedAt)
     }
   }
 
@@ -523,22 +605,23 @@ class WorkflowStateStoreLifecycleTest {
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
-      store.saveFeatureTaskRuntimeWorkflow(
+      store.saveFeatureTaskWorkflow(
         workflowRow(
           workflowId = "wftr-insert",
           sessionId = "ftr-insert",
           workflowName = "bill-feature-task",
           currentStepId = "preplan",
-          mode = FeatureTaskWorkflowMode.RUNTIME,
+          mode = RUNTIME,
         ),
+        RUNTIME,
       )
-      store.saveFeatureVerifyWorkflow(
+      verifyWorkflowStore(connection).saveWorkflow(
         workflowRow("wfv-insert", "fvr-insert", "bill-feature-verify", "collect_inputs"),
       )
 
       listOf(
-        assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-insert")),
-        assertNotNull(store.getFeatureVerifyWorkflow("wfv-insert")),
+        assertNotNull(store.getFeatureTaskWorkflowAsMode("wftr-insert", RUNTIME)),
+        assertNotNull(verifyWorkflowStore(connection).getWorkflow("wfv-insert")),
       ).forEach { inserted ->
         assertEquals(inserted.startedAt, inserted.stateEnteredAt)
         assertEquals(false, inserted.stateEnteredAtEstimated)
@@ -556,7 +639,7 @@ class WorkflowStateStoreLifecycleTest {
         sessionId = "ftr-concurrent-state-entry",
         workflowName = "bill-feature-task",
         currentStepId = "preplan",
-        mode = FeatureTaskWorkflowMode.RUNTIME,
+        mode = RUNTIME,
       ).copy(startedAt = "2999-05-01T12:00:00.123456789Z")
 
     prepareConcurrentWorkflowTransitions(dbPath, initial)
@@ -573,8 +656,9 @@ class WorkflowStateStoreLifecycleTest {
             DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
               connection.createStatement().use { it.execute("PRAGMA busy_timeout = 5000") }
               WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
-                .saveFeatureTaskRuntimeWorkflow(
+                .saveFeatureTaskWorkflow(
                   initial.copy(workflowStatus = status, currentStepId = "plan"),
+                  RUNTIME,
                 )
             }
           }
@@ -613,18 +697,19 @@ class WorkflowStateStoreLifecycleTest {
       val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
 
       listOf("wftr-001", "wftr-002", "wftr-003").forEachIndexed { index, workflowId ->
-        store.saveFeatureTaskRuntimeWorkflow(
+        store.saveFeatureTaskWorkflow(
           workflowRow(
             workflowId = workflowId,
             sessionId = "ftr-00$index",
             workflowName = "bill-feature-task",
             currentStepId = "preplan",
-            mode = FeatureTaskWorkflowMode.RUNTIME,
+            mode = RUNTIME,
           ),
+          RUNTIME,
         )
       }
       listOf("wfv-001", "wfv-002").forEachIndexed { index, workflowId ->
-        store.saveFeatureVerifyWorkflow(
+        verifyWorkflowStore(connection).saveWorkflow(
           workflowRow(
             workflowId = workflowId,
             sessionId = "fvr-00$index",
@@ -634,10 +719,32 @@ class WorkflowStateStoreLifecycleTest {
         )
       }
 
-      assertEquals(listOf("wftr-003", "wftr-002"), store.listFeatureTaskRuntimeWorkflows(2).map { it.workflowId })
-      assertEquals("wftr-003", store.latestFeatureTaskRuntimeWorkflow()?.workflowId)
-      assertEquals(listOf("wfv-002", "wfv-001"), store.listFeatureVerifyWorkflows(10).map { it.workflowId })
-      assertEquals("wfv-002", store.latestFeatureVerifyWorkflow()?.workflowId)
+      assertEquals(listOf("wftr-003", "wftr-002"), store.listFeatureTaskWorkflows(RUNTIME, 2).map { it.workflowId })
+      assertEquals("wftr-003", store.latestFeatureTaskWorkflow(RUNTIME)?.workflowId)
+      assertEquals(listOf("wfv-002", "wfv-001"), store.list(WorkflowFamily.VERIFY, 10).map { it.workflowId })
+      assertEquals("wfv-002", store.latest(WorkflowFamily.VERIFY)?.workflowId)
+    }
+  }
+
+  @Test
+  fun `snapshot lookups chunk id sets larger than the SQLite bind limit`() {
+    val dbPath = Files.createTempDirectory("runtime-kotlin-db-workflow-batch").resolve("metrics.db")
+
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
+      val workflowIds =
+        (0 until 950).map { index ->
+          val workflowId = "wftr-batch-$index"
+          store.saveFeatureTaskWorkflow(
+            workflowRow(workflowId, "ftr-batch-$index", "bill-feature-task", "plan", RUNTIME),
+            RUNTIME,
+          )
+          workflowId
+        }
+
+      val snapshots = store.getAll(WorkflowFamily.TASK_RUNTIME, workflowIds.toSet())
+
+      assertEquals(workflowIds.toSet(), snapshots.keys)
     }
   }
 
@@ -654,7 +761,7 @@ class WorkflowStateStoreLifecycleTest {
           workflowId = "wftr-001",
           sessionId = "ftr-001",
           workflowName = "bill-feature-task",
-          mode = FeatureTaskWorkflowMode.RUNTIME,
+          mode = RUNTIME,
           contractVersion = "",
           workflowStatus = WorkflowStatus.RUNNING.wireValue,
           currentStepId = "plan",
@@ -665,21 +772,21 @@ class WorkflowStateStoreLifecycleTest {
           finishedAt = null,
         )
 
-      store.saveFeatureTaskRuntimeWorkflow(initialRow)
+      store.saveFeatureTaskWorkflow(initialRow, RUNTIME)
 
-      val saved = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-001"))
+      val saved = assertNotNull(store.getFeatureTaskWorkflowAsMode("wftr-001", RUNTIME))
       assertEquals(FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION, saved.contractVersion)
       assertEquals("bill-feature-task", saved.workflowName)
-      assertEquals(FeatureTaskWorkflowMode.RUNTIME, saved.mode)
+      assertEquals(RUNTIME, saved.mode)
       assertEquals("bill-feature", saved.implementationSkill)
       assertEquals("plan", saved.currentStepId)
       assertEquals(artifactsJson, saved.artifactsJson)
 
       assertFailsWith<InvalidWorkflowStateSchemaError> {
-        store.getFeatureImplementWorkflow("wftr-001")
+        store.getFeatureTaskWorkflowAsMode("wftr-001", PROSE)
       }
-      assertEquals(null, store.getFeatureVerifyWorkflow("wftr-001"))
-      assertEquals(FeatureTaskWorkflowMode.RUNTIME, store.getFeatureTaskWorkflow("wftr-001")?.mode)
+      assertEquals(null, store.get(WorkflowFamily.VERIFY, "wftr-001"))
+      assertEquals(RUNTIME, store.getFeatureTaskWorkflow("wftr-001")?.mode)
     }
   }
 
@@ -695,20 +802,20 @@ class WorkflowStateStoreLifecycleTest {
           sessionId = "ftr-audit-repair",
           workflowName = "bill-feature-task",
           currentStepId = "implement",
-          mode = FeatureTaskWorkflowMode.RUNTIME,
+          mode = RUNTIME,
         ).copy(artifactsJson = auditRepairArtifactsJson())
 
-      store.saveFeatureTaskRuntimeWorkflow(row)
+      store.saveFeatureTaskWorkflow(row, RUNTIME)
 
       assertEquals(
         auditRepairArtifactsJson(),
-        assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).artifactsJson,
+        assertNotNull(store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME)).artifactsJson,
       )
 
-      store.saveFeatureTaskRuntimeWorkflow(row.copy(artifactsJson = auditRepairArtifactsJson("9.9")))
+      store.saveFeatureTaskWorkflow(row.copy(artifactsJson = auditRepairArtifactsJson("9.9")), RUNTIME)
       assertEquals(
         auditRepairArtifactsJson("9.9"),
-        assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).artifactsJson,
+        assertNotNull(store.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME)).artifactsJson,
         "SQLite must preserve incompatible identity for production mapping to reject at runtime use.",
       )
     }
@@ -726,18 +833,19 @@ class WorkflowStateStoreLifecycleTest {
           sessionId = "ftr-started",
           workflowName = "bill-feature-task",
           currentStepId = "plan",
-          mode = FeatureTaskWorkflowMode.RUNTIME,
+          mode = RUNTIME,
         )
 
-      store.saveFeatureTaskRuntimeWorkflow(initialRow)
-      val firstStartedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-started")).startedAt
+      store.saveFeatureTaskWorkflow(initialRow, RUNTIME)
+      val firstStartedAt = assertNotNull(store.getFeatureTaskWorkflowAsMode("wftr-started", RUNTIME)).startedAt
       assertNotNull(firstStartedAt)
 
-      store.saveFeatureTaskRuntimeWorkflow(
+      store.saveFeatureTaskWorkflow(
         initialRow.copy(currentStepId = "implement", startedAt = "2099-01-01 00:00:00"),
+        RUNTIME,
       )
 
-      val resaved = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-started"))
+      val resaved = assertNotNull(store.getFeatureTaskWorkflowAsMode("wftr-started", RUNTIME))
       assertEquals(firstStartedAt, resaved.startedAt)
       assertEquals("implement", resaved.currentStepId)
     }
@@ -751,21 +859,22 @@ class WorkflowStateStoreLifecycleTest {
       val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
 
       listOf("wftr-001", "wftr-002", "wftr-003").forEachIndexed { index, workflowId ->
-        store.saveFeatureTaskRuntimeWorkflow(
+        store.saveFeatureTaskWorkflow(
           workflowRow(
             workflowId = workflowId,
             sessionId = "ftr-00$index",
             workflowName = "bill-feature-task",
             currentStepId = "plan",
-            mode = FeatureTaskWorkflowMode.RUNTIME,
+            mode = RUNTIME,
           ),
+          RUNTIME,
         )
       }
 
-      assertEquals(listOf("wftr-003", "wftr-002"), store.listFeatureTaskRuntimeWorkflows(2).map { it.workflowId })
-      assertEquals("wftr-003", store.latestFeatureTaskRuntimeWorkflow()?.workflowId)
-      assertTrue(store.listFeatureImplementWorkflows(10).isEmpty())
-      assertTrue(store.listFeatureVerifyWorkflows(10).isEmpty())
+      assertEquals(listOf("wftr-003", "wftr-002"), store.listFeatureTaskWorkflows(RUNTIME, 2).map { it.workflowId })
+      assertEquals("wftr-003", store.latestFeatureTaskWorkflow(RUNTIME)?.workflowId)
+      assertTrue(store.listFeatureTaskWorkflows(PROSE, 10).isEmpty())
+      assertTrue(store.list(WorkflowFamily.VERIFY, 10).isEmpty())
     }
   }
 
@@ -774,17 +883,10 @@ class WorkflowStateStoreLifecycleTest {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-workflow-sessions").resolve("metrics.db")
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      insertFeatureImplementSession(connection)
       insertFeatureVerifySession(connection)
 
-      val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
-      val implementSummary = assertNotNull(store.getFeatureImplementSessionSummary("fis-session"))
-      val verifySummary = assertNotNull(store.getFeatureVerifySessionSummary("fvr-session"))
+      val verifySummary = assertNotNull(verifyWorkflowStore(connection).getSessionSummary("fvr-session"))
 
-      assertEquals(true, implementSummary.issueKeyProvided)
-      assertEquals(listOf("markdown_file"), implementSummary.specInputTypes)
-      assertEquals("workflow-runtime", implementSummary.featureName)
-      assertEquals("Port workflow runtime", implementSummary.specSummary)
       assertEquals(4, verifySummary.acceptanceCriteriaCount)
       assertEquals(true, verifySummary.rolloutRelevant)
       assertEquals("Verify workflow runtime", verifySummary.specSummary)
@@ -814,19 +916,19 @@ class WorkflowStateStoreLifecycleTest {
 
       val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
 
-      val prose = assertNotNull(store.getFeatureImplementWorkflow("wfl-legacy-prose-001"))
-      assertEquals(FeatureTaskWorkflowMode.PROSE, prose.mode)
+      val prose = assertNotNull(store.getFeatureTaskWorkflowAsMode("wfl-legacy-prose-001", PROSE))
+      assertEquals(PROSE, prose.mode)
       assertEquals("bill-feature-task-prose", prose.implementationSkill)
       assertEquals(FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION, prose.contractVersion)
 
       val generic = assertNotNull(store.getFeatureTaskWorkflow("wfl-legacy-prose-001"))
-      assertEquals(FeatureTaskWorkflowMode.PROSE, generic.mode)
+      assertEquals(PROSE, generic.mode)
       assertFailsWith<InvalidWorkflowStateSchemaError> {
-        store.getFeatureTaskRuntimeWorkflow("wfl-legacy-prose-001")
+        store.getFeatureTaskWorkflowAsMode("wfl-legacy-prose-001", RUNTIME)
       }
 
       assertFailsWith<ProseFeatureTaskWorkflowWriteRefusedError> {
-        store.saveFeatureImplementWorkflow(prose)
+        store.saveFeatureTaskWorkflow(prose, PROSE)
       }
     }
   }
@@ -865,12 +967,12 @@ class WorkflowStateStoreLifecycleTest {
       )
 
       val saved = assertNotNull(store.getFeatureTaskWorkflow("wfl-legacy-prose-term-001"))
-      assertEquals(FeatureTaskWorkflowMode.PROSE, saved.mode)
+      assertEquals(PROSE, saved.mode)
       assertEquals("abandoned", saved.workflowStatus)
       assertContains(saved.artifactsJson, "retain-me")
       assertContains(saved.artifactsJson, "operator_abandonment")
       assertFailsWith<ProseFeatureTaskWorkflowWriteRefusedError> {
-        store.saveFeatureImplementWorkflow(saved)
+        store.saveFeatureTaskWorkflow(saved, PROSE)
       }
     }
   }

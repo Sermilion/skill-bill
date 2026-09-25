@@ -143,7 +143,6 @@ class GoalPlanningPreparationStoreTest {
 
       assertEquals(listOf(1, 2), store.listSubtaskPlansOrdered(identity(), descriptors).map { it.subtaskId })
       assertEquals(2, store.preparedPlanCount(identity(), descriptors))
-      assertEquals(3, store.firstMissingPlan(identity(), descriptors))
 
       assertFailsWith<IncompatibleGoalPlanningPreparationRecoveryError> {
         store.listSubtaskPlansOrdered(
@@ -168,7 +167,6 @@ class GoalPlanningPreparationStoreTest {
       assertNotNull(store.findSharedPreplan(identity()))
       val descriptors = listOf(descriptor(1, 0), descriptor(2, 1))
       assertEquals(1, store.preparedPlanCount(identity(), descriptors))
-      assertEquals(2, store.firstMissingPlan(identity(), listOf(descriptor(1, 0), descriptor(2, 1))))
       assertFailsWith<IncompatibleGoalPlanningPreparationRecoveryError> {
         store.checkpointSharedPreplan(
           sharedCheckpoint().copy(provenance = provenance().copy(parentSpecHash = "f".repeat(64))),

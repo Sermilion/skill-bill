@@ -14,6 +14,7 @@ import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.work.model.WorkItemKind
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.time.Instant
@@ -169,7 +170,7 @@ class IdeStatusServiceGoalProjectionTest {
     val fixture = gitRepoFixture("ide-status-planning-non-goal")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"), FeatureTaskWorkflowMode.PROSE)
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-active", identity))
     val database =
       TrackingDatabase(
@@ -384,7 +385,7 @@ class IdeStatusServiceGoalProjectionTest {
     val fixture = gitRepoFixture("ide-status-pause-non-goal")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"), FeatureTaskWorkflowMode.PROSE)
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-active", identity))
     val database =
       TrackingDatabase(

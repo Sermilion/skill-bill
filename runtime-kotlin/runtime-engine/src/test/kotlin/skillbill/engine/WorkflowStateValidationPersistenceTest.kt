@@ -5,7 +5,7 @@ import skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.ports.workflow.model.toSnapshot
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowStepUpdates
@@ -41,11 +41,13 @@ class WorkflowStateValidationPersistenceTest {
         "test-runtime-version",
       )
     database.transaction { unit ->
-      unit.workflowStates.saveFeatureVerifyWorkflow(
+      unit.workflowStates.saveRecord(
+        WorkflowFamily.VERIFY,
         engine.openRecord(definition, "wfv-strict", "", "gather_diff").toRecord(),
       )
     }
-    val before = database.read { assertNotNull(it.workflowStates.getFeatureVerifyWorkflow("wfv-strict")) }
+    val before = database.read { assertNotNull(it.workflowStates.get(WorkflowFamily.VERIFY, "wfv-strict")) }
+    val beforeRow = before.toRecord()
     val valid = WorkflowUpdateInput(WorkflowStatus.RUNNING, "gather_diff", null, null, "")
     val invalidInputs =
       listOf(
@@ -63,27 +65,28 @@ class WorkflowStateValidationPersistenceTest {
     invalidInputs.forEach { input ->
       assertFailsWith<InvalidWorkflowStateSchemaError> {
         database.transaction { unit ->
-          val source = assertNotNull(unit.workflowStates.getFeatureVerifyWorkflow("wfv-strict"))
-          val updated = engine.updateRecord(definition, source.toSnapshot(), input)
-          unit.workflowStates.saveFeatureVerifyWorkflow(updated.toRecord(source))
+          val source = assertNotNull(unit.workflowStates.get(WorkflowFamily.VERIFY, "wfv-strict"))
+          unit.workflowStates.save(WorkflowFamily.VERIFY, engine.updateRecord(definition, source, input))
         }
       }
-      assertEquals(before, database.read { it.workflowStates.getFeatureVerifyWorkflow("wfv-strict") })
+      assertEquals(beforeRow, database.read { it.workflowStates.get(WorkflowFamily.VERIFY, "wfv-strict")?.toRecord() })
     }
     val invalidRows =
       listOf(
-        before.copy(contractVersion = "999"),
-        before.copy(currentStepId = "undeclared"),
-        before.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue),
-        before.copy(artifactsJson = "{"),
-        before.copy(stepsJson = """[{"step_id":"gather_diff","status":"running","attempt_count":-1}]"""),
-        before.copy(stepsJson = """[{"step_id":"gather_diff","status":"running","attempt_count":1,"rogue":true}]"""),
+        beforeRow.copy(contractVersion = "999"),
+        beforeRow.copy(currentStepId = "undeclared"),
+        beforeRow.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue),
+        beforeRow.copy(artifactsJson = "{"),
+        beforeRow.copy(stepsJson = """[{"step_id":"gather_diff","status":"running","attempt_count":-1}]"""),
+        beforeRow.copy(
+          stepsJson = """[{"step_id":"gather_diff","status":"running","attempt_count":1,"rogue":true}]""",
+        ),
       )
     invalidRows.forEach { invalid ->
       assertFailsWith<InvalidWorkflowStateSchemaError> {
-        database.transaction { it.workflowStates.saveFeatureVerifyWorkflow(invalid) }
+        database.transaction { it.workflowStates.saveRecord(WorkflowFamily.VERIFY, invalid) }
       }
-      assertEquals(before, database.read { it.workflowStates.getFeatureVerifyWorkflow("wfv-strict") })
+      assertEquals(beforeRow, database.read { it.workflowStates.get(WorkflowFamily.VERIFY, "wfv-strict")?.toRecord() })
     }
   }
 }

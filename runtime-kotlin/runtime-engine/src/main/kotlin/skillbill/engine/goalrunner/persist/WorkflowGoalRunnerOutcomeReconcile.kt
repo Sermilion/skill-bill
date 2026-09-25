@@ -14,7 +14,6 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.ports.workflow.list
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
@@ -149,7 +148,7 @@ internal class WorkflowGoalRunnerOutcomeReconcile(
     repoRoot: Path? = null,
   ): List<GoalContinuationCandidate> =
     listOf(WorkflowFamily.TASK_RUNTIME).flatMap { family ->
-      family.list(workflowStates, Int.MAX_VALUE).mapNotNull { snapshot ->
+      workflowStates.list(family, Int.MAX_VALUE).mapNotNull { snapshot ->
         engine.snapshotView(family.definition, snapshot)
         val artifacts = snapshot.artifacts
         val goalContinuation = DurableWorkflowArtifacts.fromMap(artifacts).goalContinuation() ?: return@mapNotNull null

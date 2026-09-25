@@ -10,6 +10,7 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeHeartbeatPlan
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeHeartbeatTick
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 import java.time.Clock
@@ -73,7 +74,7 @@ class FeatureTaskRuntimeWorkerCoordinator(
       val existing = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkerOwnership(workflowId)
       if (existing != null) return@selfManagedWrite UnownedClaim.Recover(existing)
       val row =
-        unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)
+        unitOfWork.workflowStates.getFeatureTaskWorkflowAsMode(workflowId, FeatureTaskWorkflowMode.RUNTIME)
           ?: throw InvalidWorkflowStateSchemaError("Feature-task runtime worker workflow '$workflowId' is missing.")
       if (row.workflowStatus.workflowStatus() in TERMINAL_WORKFLOW_STATUSES) {
         error(

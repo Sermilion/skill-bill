@@ -23,13 +23,11 @@ import skillbill.goalrunner.nonCompleteStoredOutcomeIsCorroborated
 import skillbill.goalrunner.toPersistenceWire
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRequest
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputFailureReason
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
@@ -56,7 +54,7 @@ class GoalRunnerChildRepairWedgeApplyLoop(
     if (request.wedgeClasses.isEmpty()) return GoalRunnerChildRepairApplyResult()
     val workflowStates = request.unitOfWork.workflowStates
     var record =
-      WorkflowFamily.TASK_RUNTIME.get(workflowStates, request.workflowId)
+      workflowStates.get(WorkflowFamily.TASK_RUNTIME, request.workflowId)
         ?: return GoalRunnerChildRepairApplyResult()
     var artifacts = record.artifacts
     val state =
@@ -79,7 +77,7 @@ class GoalRunnerChildRepairWedgeApplyLoop(
       FeatureTaskRuntimeWorkflowArtifactPatches.goalChildRepairEvidence(priorEvidence + state.evidenceEntries),
     )
     workflowPersistence.persistArtifactsPatch(workflowStates, record, state.patch)
-    val updated = WorkflowFamily.TASK_RUNTIME.get(workflowStates, request.workflowId) ?: record
+    val updated = workflowStates.get(WorkflowFamily.TASK_RUNTIME, request.workflowId) ?: record
     return GoalRunnerChildRepairApplyResult(
       repairs = state.applied,
       manifestProjectionArtifacts = state.manifestProjectionArtifacts,
@@ -385,7 +383,7 @@ internal fun applyCompletedUpstreamChildRepairWedge(
       ),
     )
   val updated = engine.updateRecord(WorkflowFamily.TASK_RUNTIME.definition, state.record, input)
-  WorkflowFamily.TASK_RUNTIME.save(workflowStates, updated)
+  workflowStates.save(WorkflowFamily.TASK_RUNTIME, updated)
   state.record = updated
   state.artifacts = updated.artifacts
   state.workingContinuation = continuationArtifactFromMap(state.artifacts)

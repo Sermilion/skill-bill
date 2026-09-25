@@ -31,10 +31,7 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.validateGoalObservabilityEvent
 import skillbill.ports.taskruntime.validateGoalProgressEvent
 import skillbill.ports.workflow.WorkflowSnapshotValidator
-import skillbill.ports.workflow.get
-import skillbill.ports.workflow.list
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
@@ -69,7 +66,7 @@ internal class WorkflowGoalRunnerProgressRecording(
   override fun progress(workflowId: String): GoalRunnerWorkflowProgress? =
     database.read { unitOfWork ->
       val family = workflowFamilyFor(unitOfWork.workflowStates, workflowId) ?: return@read null
-      val record = family.get(unitOfWork.workflowStates, workflowId) ?: return@read null
+      val record = unitOfWork.workflowStates.get(family, workflowId) ?: return@read null
       workflowSnapshotValidator.validate(record, family.definition.workflowName)
       val steps = record.steps
       val artifacts = record.artifacts.filterKeys(PROGRESS_POLL_ARTIFACT_KEYS::contains)
@@ -112,7 +109,7 @@ internal class WorkflowGoalRunnerProgressRecording(
         workflowFamilyFor(unitOfWork.workflowStates, request.workflowId)
           ?: return@transaction false
       val record =
-        family.get(unitOfWork.workflowStates, request.workflowId)
+        unitOfWork.workflowStates.get(family, request.workflowId)
           ?: return@transaction false
       val artifacts = record.artifacts
       val observabilityPatch =
@@ -136,7 +133,7 @@ internal class WorkflowGoalRunnerProgressRecording(
             sessionId = record.sessionId.orEmpty(),
           ),
         )
-      family.save(unitOfWork.workflowStates, updated)
+      unitOfWork.workflowStates.save(family, updated)
       true
     }
 
@@ -174,7 +171,7 @@ internal class WorkflowGoalRunnerProgressRecording(
         workflowFamilyFor(unitOfWork.workflowStates, workflowId)
           ?: return@transaction emptyList()
       val record =
-        family.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(family, workflowId)
           ?: return@transaction emptyList()
       (DurableWorkflowArtifactFamily.GOAL_PROGRESS_RUN_HISTORY.value(record.artifacts) as? List<*>)
         .orEmpty()
@@ -195,7 +192,7 @@ internal class WorkflowGoalRunnerProgressRecording(
         workflowFamilyFor(unitOfWork.workflowStates, workflowId)
           ?: return@transaction false
       val record =
-        family.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(family, workflowId)
           ?: return@transaction false
       val artifacts = record.artifacts
       val existing =
@@ -221,7 +218,7 @@ internal class WorkflowGoalRunnerProgressRecording(
             sessionId = record.sessionId.orEmpty(),
           ),
         )
-      family.save(unitOfWork.workflowStates, updated)
+      unitOfWork.workflowStates.save(family, updated)
       true
     }
 
@@ -232,7 +229,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       var maxProgress: Int? = null
       val backwardEdgeCounts = mutableMapOf<String, Int>()
       listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
-        family.list(unitOfWork.workflowStates, Int.MAX_VALUE).forEach { snapshot ->
+        unitOfWork.workflowStates.list(family, Int.MAX_VALUE).forEach { snapshot ->
           val artifacts = snapshot.artifacts
           if (DurableWorkflowArtifacts.fromMap(artifacts).goalContinuation()?.issueKey != normalizedIssueKey) {
             return@forEach
@@ -264,7 +261,7 @@ internal class WorkflowGoalRunnerProgressRecording(
   override fun childWorkflowLoopIterations(workflowId: String): Map<String, Int> =
     database.read { unitOfWork ->
       val family = workflowFamilyFor(unitOfWork.workflowStates, workflowId) ?: return@read emptyMap()
-      val record = family.get(unitOfWork.workflowStates, workflowId) ?: return@read emptyMap()
+      val record = unitOfWork.workflowStates.get(family, workflowId) ?: return@read emptyMap()
       val artifacts = record.artifacts
       val result = mutableMapOf<String, Int>()
       phaseRecordsFromWorkflowArtifacts(artifacts).values.forEach { phaseRecord ->
@@ -281,7 +278,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       val entries =
         buildList {
           listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
-            family.list(unitOfWork.workflowStates, Int.MAX_VALUE).forEach { snapshot ->
+            unitOfWork.workflowStates.list(family, Int.MAX_VALUE).forEach { snapshot ->
               val artifacts = snapshot.artifacts
               if (
                 DurableWorkflowArtifacts.fromMap(artifacts).goalContinuation()?.issueKey != normalizedIssueKey
@@ -305,7 +302,7 @@ internal class WorkflowGoalRunnerProgressRecording(
         workflowFamilyFor(unitOfWork.workflowStates, append.workflowId)
           ?: return@transaction false
       val record =
-        family.get(unitOfWork.workflowStates, append.workflowId)
+        unitOfWork.workflowStates.get(family, append.workflowId)
           ?: return@transaction false
       val artifacts = record.artifacts
       val existing =
@@ -331,7 +328,7 @@ internal class WorkflowGoalRunnerProgressRecording(
             sessionId = record.sessionId.orEmpty(),
           ),
         )
-      family.save(unitOfWork.workflowStates, updated)
+      unitOfWork.workflowStates.save(family, updated)
       true
     }
 }

@@ -13,11 +13,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.encodeManifestWireMap
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
-import skillbill.ports.workflow.saveRecord
-import skillbill.ports.workflow.sessionSummary
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
@@ -43,7 +39,7 @@ internal fun WorkflowEngine.continueExistingWorkflow(
 ): ContinuationStepResult {
   var record = initialRecord
   val workflowId = initialRecord.workflowId
-  val sessionSummary = family.sessionSummary(unitOfWork.workflowStates, record.sessionId.orEmpty())
+  val sessionSummary = unitOfWork.workflowStates.sessionSummary(family, record.sessionId.orEmpty())
   var decision =
     continueDecision(
       family.definition,
@@ -78,8 +74,8 @@ internal fun WorkflowEngine.continueExistingWorkflow(
         reopenInput
       }
     val reopened = updateRecord(family.definition, record, effectiveInput)
-    family.save(unitOfWork.workflowStates, reopened)
-    record = family.get(unitOfWork.workflowStates, workflowId) ?: reopened
+    unitOfWork.workflowStates.save(family, reopened)
+    record = unitOfWork.workflowStates.get(family, workflowId) ?: reopened
     val reopenValidator = args.validator
     if (family == WorkflowFamily.TASK_RUNTIME && reopenValidator != null) {
       projectionOwnerWorkflowId = resolveDecompositionProjectionOwner(record, unitOfWork)
@@ -153,8 +149,8 @@ fun WorkflowEngine.alignSubtaskResumeStep(
         sessionId = record.sessionId.orEmpty(),
       ),
     )
-  WorkflowFamily.TASK_RUNTIME.save(unitOfWork.workflowStates, updated)
-  return WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, record.workflowId) ?: updated
+  unitOfWork.workflowStates.save(WorkflowFamily.TASK_RUNTIME, updated)
+  return unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, record.workflowId) ?: updated
 }
 
 private fun WorkflowEngine.resumeAlignment(
@@ -212,8 +208,8 @@ fun WorkflowEngine.persistParentDecompositionRuntime(
         replaceArtifacts = true,
       ),
     )
-  WorkflowFamily.TASK_RUNTIME.saveRecord(
-    unitOfWork.workflowStates,
+  unitOfWork.workflowStates.saveRecord(
+    WorkflowFamily.TASK_RUNTIME,
     updatedParent.toRecord().copy(issueKey = manifest.issueKey),
   )
 }

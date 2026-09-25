@@ -31,8 +31,9 @@ import skillbill.config.model.RepoLocalConfig
 import skillbill.error.shellcontent.MissingInstalledNativeAgentError
 import skillbill.goalrunner.terminalStatus
 import skillbill.install.model.SupportedAgent
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
@@ -234,13 +235,10 @@ class ParallelCodeReviewRunnerTest {
     val blockedOutput = "Review blocked: MCP tool call requires approval, but approval policy is never."
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-          exitStatus = 0,
           stdout = blockedOutput,
           stderr = "",
-          timedOut = false,
-          spawnFailed = false,
         )
       }
 
@@ -261,13 +259,11 @@ class ParallelCodeReviewRunnerTest {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
         val agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = agent,
-          exitStatus = null,
+          termination = AgentRunTermination.TimedOut,
           stdout = "",
           stderr = "",
-          timedOut = true,
-          spawnFailed = false,
         )
       }
     val runner = runner(launcher)
@@ -288,13 +284,11 @@ class ParallelCodeReviewRunnerTest {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
         val agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = agent,
-          exitStatus = null,
+          termination = AgentRunTermination.SpawnFailed,
           stdout = "",
           stderr = "",
-          timedOut = false,
-          spawnFailed = true,
         )
       }
     val runner = runner(launcher)
@@ -506,13 +500,10 @@ class ParallelCodeReviewRunnerTest {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
         simulateGovernedEvidenceReads(request.skillRunRequest)
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-          exitStatus = 0,
           stdout = "- [F-001] Major | High | path=\"A.kt\" | line=1 | Inline finding",
           stderr = "",
-          timedOut = false,
-          spawnFailed = false,
         )
       }
     val runner = runner(launcher, diffResolver = RecordingDiffResolver(default = diffFor("A.kt")))
@@ -607,22 +598,17 @@ class ParallelCodeReviewRunnerTest {
         val agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
         val prompt = request.skillRunRequest.promptOverride.orEmpty()
         if (prompt.contains(architectureRubric)) {
-          AgentRunLaunchFacts(
+          agentRunLaunchFacts(
             agent = agent,
-            exitStatus = 1,
+            termination = AgentRunTermination.Exited(1),
             stdout = "",
             stderr = "boom",
-            timedOut = false,
-            spawnFailed = false,
           )
         } else {
-          AgentRunLaunchFacts(
+          agentRunLaunchFacts(
             agent = agent,
-            exitStatus = 0,
             stdout = "Testing issue\nverdict: changes_requested",
             stderr = "",
-            timedOut = false,
-            spawnFailed = false,
           )
         }
       }
@@ -1077,14 +1063,11 @@ class ParallelCodeReviewRunnerFailureTest {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
         val agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = agent,
-          exitStatus = null,
+          termination = AgentRunTermination.Interrupted,
           stdout = "",
           stderr = "",
-          timedOut = false,
-          interrupted = true,
-          spawnFailed = false,
         )
       }
     val runner = runner(launcher, diffResolver = RecordingDiffResolver(default = diffFor("A.kt")))
@@ -1100,13 +1083,11 @@ class ParallelCodeReviewRunnerFailureTest {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
         val agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = agent,
-          exitStatus = null,
+          termination = AgentRunTermination.TimedOut,
           stdout = "- [F-001] Major | High | path=\"A.kt\" | line=1 | Should not appear in merge",
           stderr = "",
-          timedOut = true,
-          spawnFailed = false,
         )
       }
     val runner = runner(launcher, diffResolver = RecordingDiffResolver(default = diffFor("A.kt")))
@@ -1138,13 +1119,11 @@ class ParallelCodeReviewRunnerFailureTest {
   fun `coordinator timeout cancels blocking lane and produces failed outcome`() {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-          exitStatus = null,
+          termination = AgentRunTermination.TimedOut,
           stdout = "",
           stderr = "",
-          timedOut = true,
-          spawnFailed = false,
         )
       }
     val runner = runner(launcher, diffResolver = RecordingDiffResolver(default = diffFor("A.kt")))
@@ -1166,13 +1145,10 @@ class ParallelCodeReviewRunnerFailureTest {
         if (request.invokedAgentId == "claude") {
           UnsupportedAgentRunLaunch(agent = agent, reason = "not configured for this repo")
         } else {
-          AgentRunLaunchFacts(
+          agentRunLaunchFacts(
             agent = agent,
-            exitStatus = 0,
             stdout = "",
             stderr = "",
-            timedOut = false,
-            spawnFailed = false,
           )
         }
       }
@@ -1188,13 +1164,11 @@ class ParallelCodeReviewRunnerFailureTest {
   fun `nonzero exit status includes sanitized stderr excerpt in failure reason`() {
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-          exitStatus = 1,
+          termination = AgentRunTermination.Exited(1),
           stdout = "",
           stderr = "Error: command failed with detail",
-          timedOut = false,
-          spawnFailed = false,
         )
       }
     val runner = runner(launcher, diffResolver = RecordingDiffResolver(default = diffFor("A.kt")))
@@ -1327,13 +1301,10 @@ class ParallelCodeReviewRunnerFailureTest {
       createRunner(
         ParallelSubtaskLauncher(
           outcome =
-            AgentRunLaunchFacts(
+            agentRunLaunchFacts(
               agent = SupportedAgent.fromNormalizedId("claude", label = "agentId"),
-              exitStatus = 0,
               stdout = "[F-001] Major | High | path=\"src/Main.kt\" | line=3 | Transaction is not rolled back.",
               stderr = "",
-              timedOut = false,
-              spawnFailed = false,
             ),
         ),
         RunnerFixtureConfig(
@@ -1786,13 +1757,10 @@ private fun ParallelCodeReviewRequest.detectingRevisions() = copy(baseRevision =
 private fun alwaysSuccessLauncher(stdout: String = "NO_FINDINGS") =
   GoalRunnerSubtaskLauncher { request ->
     simulateGovernedEvidenceReads(request.skillRunRequest)
-    AgentRunLaunchFacts(
+    agentRunLaunchFacts(
       agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-      exitStatus = 0,
       stdout = stdout,
       stderr = "",
-      timedOut = false,
-      spawnFailed = false,
     )
   }
 
@@ -1919,13 +1887,10 @@ private class ParallelSubtaskLauncher(
   override fun launch(request: GoalRunnerSubtaskLaunchRequest): AgentRunLaunchOutcome {
     requests += request
     simulateGovernedEvidenceReads(request.skillRunRequest)
-    return outcome ?: AgentRunLaunchFacts(
+    return outcome ?: agentRunLaunchFacts(
       agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-      exitStatus = 0,
       stdout = "NO_FINDINGS",
       stderr = "",
-      timedOut = false,
-      spawnFailed = false,
     )
   }
 }

@@ -4,7 +4,7 @@ import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.sql.DriverManager
@@ -33,16 +33,16 @@ class DatabaseWriteMaintenanceRegressionTest {
     DriverManager.registerDriver(delegate)
     try {
       database.transaction { unitOfWork ->
-        unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-maintenance-1"))
+        unitOfWork.workflowStates.saveFeatureTaskWorkflow(sampleWorkflow("wftr-maintenance-1"), RUNTIME)
       }
       val before = recordingDriver.categories.toSet()
       recordingDriver.clear()
 
       database.transaction { unitOfWork ->
-        unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-maintenance-2"))
+        unitOfWork.workflowStates.saveFeatureTaskWorkflow(sampleWorkflow("wftr-maintenance-2"), RUNTIME)
       }
       database.selfManagedWrite { unitOfWork ->
-        unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-maintenance-3"))
+        unitOfWork.workflowStates.saveFeatureTaskWorkflow(sampleWorkflow("wftr-maintenance-3"), RUNTIME)
       }
       val after = recordingDriver.categories.toSet()
 
@@ -80,6 +80,6 @@ class DatabaseWriteMaintenanceRegressionTest {
       startedAt = null,
       updatedAt = null,
       finishedAt = null,
-      mode = FeatureTaskWorkflowMode.RUNTIME,
+      mode = RUNTIME,
     )
 }

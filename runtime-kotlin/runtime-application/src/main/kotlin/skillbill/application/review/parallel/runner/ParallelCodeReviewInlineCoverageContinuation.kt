@@ -84,7 +84,7 @@ internal class ParallelCodeReviewInlineCoverageContinuation(
                 ),
               )
             }
-            endpoint.unbindListener()
+            endpoint.close()
             endpoint =
               governedEvidenceEndpointBinder.bind(
                 bound.broker.accounting().lane,

@@ -4,7 +4,9 @@ import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.install.model.SupportedAgent
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -84,19 +86,13 @@ class FeatureTaskRuntimeAuditAcListRetryTest {
   fun `process failure overrides an empty result and never retries or advances review`() {
     val outcomes =
       listOf(
-        "nonzero exit" to auditFacts(stdout = auditSatisfiedOutput(), exitStatus = 1),
-        "timeout" to auditFacts(stdout = auditSatisfiedOutput(), exitStatus = null, timedOut = true),
-        "interruption" to auditFacts(stdout = auditSatisfiedOutput(), exitStatus = null, interrupted = true),
+        "nonzero exit" to auditFacts(auditSatisfiedOutput(), AgentRunTermination.Exited(1)),
+        "timeout" to auditFacts(auditSatisfiedOutput(), AgentRunTermination.TimedOut),
+        "interruption" to auditFacts(auditSatisfiedOutput(), AgentRunTermination.Interrupted),
         "missing final response" to
-          auditFacts(
-            stdout = auditSatisfiedOutput().replace("\"value\": \"[]\"", "\"value_missing\": \"yes\""),
-            exitStatus = 0,
-          ),
+          auditFacts(auditSatisfiedOutput().replace("\"value\": \"[]\"", "\"value_missing\": \"yes\"")),
         "whitespace-only final response" to
-          auditFacts(
-            stdout = auditSatisfiedOutput().replace("\"value\": \"[]\"", "\"value\": \"   \""),
-            exitStatus = 0,
-          ),
+          auditFacts(auditSatisfiedOutput().replace("\"value\": \"[]\"", "\"value\": \"   \"")),
       )
 
     outcomes.forEach { (label, outcome) ->
@@ -194,7 +190,7 @@ class FeatureTaskRuntimeAuditAcListRetryTest {
         auditLaunches += 1
         when (auditLaunches) {
           1 -> facts(auditRemainingAcOutput(remainingHint))
-          2 -> auditFacts(stdout = auditSatisfiedOutput(), exitStatus = 1)
+          2 -> auditFacts(auditSatisfiedOutput(), AgentRunTermination.Exited(1))
           else -> facts(auditSatisfiedOutput())
         }
       }
@@ -289,18 +285,13 @@ class FeatureTaskRuntimeAuditAcListRetryTest {
 
   private fun auditFacts(
     stdout: String,
-    exitStatus: Int?,
-    timedOut: Boolean = false,
-    interrupted: Boolean = false,
+    termination: AgentRunTermination = AgentRunTermination.Exited(0),
   ): AgentRunLaunchFacts =
-    AgentRunLaunchFacts(
+    agentRunLaunchFacts(
       agent = SupportedAgent.CLAUDE,
-      exitStatus = exitStatus,
+      termination = termination,
       stdout = stdout,
       stderr = "",
-      timedOut = timedOut,
-      interrupted = interrupted,
-      spawnFailed = false,
     )
 
   private fun seedPlanningUpstreamPhases(harness: RunnerHarness) {

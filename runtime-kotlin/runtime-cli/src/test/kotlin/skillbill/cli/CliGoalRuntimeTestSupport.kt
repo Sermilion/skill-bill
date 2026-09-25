@@ -9,7 +9,7 @@ import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.AgentRunOutputStream
@@ -435,13 +435,10 @@ internal class GoalFixtureAgentRunLauncher(
     } else {
       completeSubtaskWorkflow(workflowId, subtaskId, Path.of(selectedDbPath))
     }
-    return AgentRunLaunchFacts(
+    return agentRunLaunchFacts(
       agent = SupportedAgent.CODEX,
-      exitStatus = 0,
       stdout = "captured child $subtaskId",
       stderr = "",
-      timedOut = false,
-      spawnFailed = false,
     )
   }
 
@@ -451,13 +448,10 @@ internal class GoalFixtureAgentRunLauncher(
         .find(skillRequest.promptOverride.orEmpty())
         ?.groupValues?.get(1)
         ?: "preplan"
-    return AgentRunLaunchFacts(
+    return agentRunLaunchFacts(
       agent = SupportedAgent.CODEX,
-      exitStatus = 0,
       stdout = phasePlanningPayload(phaseId),
       stderr = "",
-      timedOut = false,
-      spawnFailed = false,
     )
   }
 

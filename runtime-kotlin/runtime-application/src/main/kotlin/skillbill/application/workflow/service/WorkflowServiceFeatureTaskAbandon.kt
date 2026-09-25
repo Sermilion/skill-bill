@@ -9,7 +9,6 @@ import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -59,7 +58,7 @@ internal class WorkflowServiceFeatureTaskAbandon(
         sessionId = "",
       )
     val updated = engine.updateRecord(family.definition, existing, input)
-    family.save(unitOfWork.workflowStates, updated)
+    unitOfWork.workflowStates.save(family, updated)
     return buildUpdateOk(
       engine,
       family.definition,

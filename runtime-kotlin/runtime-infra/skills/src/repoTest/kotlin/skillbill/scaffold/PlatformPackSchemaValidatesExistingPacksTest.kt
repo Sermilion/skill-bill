@@ -6,7 +6,6 @@ import com.networknt.schema.JsonSchema
 import com.networknt.schema.JsonSchemaFactory
 import com.networknt.schema.SpecVersion
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.PlatformPackSchemaPaths
-import skillbill.ports.workflow.list
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import java.nio.file.Path

@@ -14,6 +14,7 @@ import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerSelection
 import skillbill.goalrunner.model.GoalRunnerSubtaskAction
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
@@ -123,7 +124,7 @@ internal fun recordLaunchObservabilityAndLedger(
         launchOutcome = launchOutcome,
         diagnosticClass =
           (launchOutcome as? AgentRunLaunchFacts)?.takeIf {
-            it.spawnFailed || it.interrupted || it.timedOut || (it.exitStatus != null && it.exitStatus != 0)
+            it.termination != AgentRunTermination.Exited(0)
           }?.let { "child_process_failed" },
         recoverableJsonPresent = null,
         nextSafeAction = "read_terminal_workflow_state",
@@ -139,7 +140,7 @@ internal fun recordLaunchObservabilityAndLedger(
         launchOutcome = launchOutcome,
         diagnosticClass =
           (launchOutcome as? AgentRunLaunchFacts)?.takeIf {
-            it.spawnFailed || it.interrupted || it.timedOut || (it.exitStatus != null && it.exitStatus != 0)
+            it.termination != AgentRunTermination.Exited(0)
           }?.let { "child_process_failed" },
         recoverableJsonPresent = null,
         nextSafeAction = "read_terminal_workflow_state",

@@ -24,7 +24,7 @@ fun workflowFamilyFor(
       FeatureTaskWorkflowMode.PROSE, null -> throw LegacyProseWorkflowError(workflowId, featureTaskRow.issueKey)
     }
   }
-  return if (workflowStates.getFeatureVerifyWorkflow(workflowId) != null) {
+  return if (workflowStates.get(WorkflowFamily.VERIFY, workflowId) != null) {
     WorkflowFamily.VERIFY
   } else {
     null

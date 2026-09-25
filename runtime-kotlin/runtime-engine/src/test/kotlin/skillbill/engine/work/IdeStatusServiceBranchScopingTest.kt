@@ -16,8 +16,10 @@ import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.work.model.WorkItemKind
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Instant
@@ -144,7 +146,7 @@ class IdeStatusServiceBranchScopingTest {
     val fixture = gitRepoFixture("ide-status-stable-start")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-stable", "2026-08-06T10:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-stable", "2026-08-06T10:00:00Z"), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-stable", identity))
     val database =
       TrackingDatabase(
@@ -170,7 +172,7 @@ class IdeStatusServiceBranchScopingTest {
   fun `unbound verify work is excluded without same-repo issue correlation`() {
     val fixture = gitRepoFixture("ide-status-verify-unbound")
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureVerifyWorkflow(verifyRecord("w-verify", "2026-08-06T11:00:00Z"))
+    workflows.saveRecord(WorkflowFamily.VERIFY, verifyRecord("w-verify", "2026-08-06T11:00:00Z"))
     val database =
       TrackingDatabase(
         work = listOf(workItem("w-verify", WorkItemKind.FEATURE_VERIFY, "running", "2026-08-06T11:00:00Z")),
@@ -191,8 +193,8 @@ class IdeStatusServiceBranchScopingTest {
   fun `verify work for another repo issue correlation is not selected`() {
     val fixture = gitRepoFixture("ide-status-verify-other")
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureVerifyWorkflow(verifyRecord("w-verify", "2026-08-06T11:00:00Z"))
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-foreign", "2026-08-06T10:00:00Z"))
+    workflows.saveRecord(WorkflowFamily.VERIFY, verifyRecord("w-verify", "2026-08-06T11:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-foreign", "2026-08-06T10:00:00Z"), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(
       identityFor("w-foreign", "repo-root-realpath-v1:/other-repo"),
     )
@@ -221,8 +223,8 @@ class IdeStatusServiceBranchScopingTest {
     val fixture = gitRepoFixture("ide-status-verify-correlated")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureVerifyWorkflow(verifyRecord("w-verify", "2026-08-06T11:00:00Z"))
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-runtime", "2026-08-06T09:00:00Z", currentStep = "pr"))
+    workflows.saveRecord(WorkflowFamily.VERIFY, verifyRecord("w-verify", "2026-08-06T11:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-runtime", "2026-08-06T09:00:00Z", currentStep = "pr"), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-runtime", identity))
     val database =
       TrackingDatabase(
@@ -251,7 +253,7 @@ class IdeStatusServiceBranchScopingTest {
     val fixture = gitRepoFixture("ide-status-branch-scope", branch = "feat/OTHER-9-unrelated")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-active", identity))
     val database =
       TrackingDatabase(
@@ -273,7 +275,7 @@ class IdeStatusServiceBranchScopingTest {
     val fixture = gitRepoFixture("ide-status-branch-token", branch = "feat/SKILL-14-prefix")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-active", identity))
     val database =
       TrackingDatabase(
@@ -294,7 +296,7 @@ class IdeStatusServiceBranchScopingTest {
     val fixture = gitRepoFixture("ide-status-branch-detached", branch = null)
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-active", identity))
     val database =
       TrackingDatabase(
@@ -316,7 +318,7 @@ class IdeStatusServiceBranchScopingTest {
     val fixture = gitRepoFixture("ide-status-branch-protected", branch = "main")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z"), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-active", identity))
     val database =
       TrackingDatabase(
@@ -480,7 +482,7 @@ class IdeStatusServiceBranchScopingTest {
     childUpdatedAt: String,
   ): TrackingDatabase {
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-child", childUpdatedAt))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-child", childUpdatedAt), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(
       identityFor("w-child", identity).copy(routeScope = FeatureTaskRouteScope.GOAL_CHILD),
     )
@@ -507,9 +509,10 @@ class IdeStatusServiceBranchScopingTest {
     childCurrentStep: String = "implement",
   ): TrackingDatabase {
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       runtimeRecord("w-child", "2026-08-06T11:00:00Z", currentStep = childCurrentStep)
         .copy(startedAt = childStarted.toString(), artifactsJson = childArtifactsJson),
+      PROSE,
     )
     workflows.saveFeatureTaskExecutionIdentity(
       identityFor("w-child", identity).copy(routeScope = FeatureTaskRouteScope.GOAL_CHILD),

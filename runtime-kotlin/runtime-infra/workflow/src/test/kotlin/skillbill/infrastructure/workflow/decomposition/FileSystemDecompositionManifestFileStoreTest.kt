@@ -3,7 +3,6 @@ package skillbill.infrastructure.workflow.decomposition
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.ports.workflow.list
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.security.MessageDigest

@@ -41,9 +41,7 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
 import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
@@ -364,7 +362,7 @@ class WorkflowGoalRunnerManifestStore
     ): CodeReviewExecutionMode =
       database.transaction { unitOfWork ->
         val record =
-          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
+          unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, parentWorkflowId)
             ?: error("Goal parent workflow '$parentWorkflowId' no longer exists.")
         val existing = unitOfWork.goalRunnerControls.reviewPolicy(parentWorkflowId)?.codeReviewMode
         if (existing != null) {
@@ -391,7 +389,7 @@ class WorkflowGoalRunnerManifestStore
     ): GoalRunnerReviewPolicy =
       database.transaction { unitOfWork ->
         val record =
-          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
+          unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, parentWorkflowId)
             ?: error("Goal parent workflow '$parentWorkflowId' no longer exists.")
         val existing = unitOfWork.goalRunnerControls.reviewPolicy(parentWorkflowId)
         if (existing == policy) {
@@ -415,7 +413,7 @@ class WorkflowGoalRunnerManifestStore
     ): GoalRunnerOutOfBandAcceptance =
       database.transaction { unitOfWork ->
         val record =
-          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
+          unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, parentWorkflowId)
             ?: error("Goal parent workflow '$parentWorkflowId' no longer exists.")
         unitOfWork.goalRunnerControls.persistOutOfBandAcceptance(parentWorkflowId, acceptance)
         parentProjection.rewrite(unitOfWork, record)

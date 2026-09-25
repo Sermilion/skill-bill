@@ -59,6 +59,7 @@ import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
 import skillbill.goalrunner.model.GoalObservabilityRuntimeEventInput
 import skillbill.goalrunner.model.GoalPlanningStatusReasons
+import skillbill.goalrunner.model.GoalPlanningStatusReasons.NOT_STARTED as NOT_STARTED_REASON
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalPlanningStatusState.BLOCKED
 import skillbill.goalrunner.model.GoalPlanningStatusState.NOT_STARTED
@@ -81,10 +82,12 @@ import skillbill.goalrunner.planning.cascadeEligiblePlanSubtaskIds
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.install.model.SupportedAgent
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunProgressEmission
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -148,10 +151,11 @@ import skillbill.ports.workflow.gitops.model.WorkflowPathContentIdentitiesResult
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
-import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.ports.workflow.model.FeatureVerifySessionSummary
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.toSnapshot
+import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionDependency
@@ -191,7 +195,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-import skillbill.goalrunner.model.GoalPlanningStatusReasons.NOT_STARTED as NOT_STARTED_REASON
 
 class GoalRunnerTest {
   @Test
@@ -248,7 +251,7 @@ class GoalRunnerTest {
     workflowId: String,
   ) {
     database.transaction { unitOfWork ->
-      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(
+      unitOfWork.workflowStates.saveFeatureTaskWorkflow(
         WorkflowStateRecord(
           workflowId = workflowId,
           sessionId = "goal-parent-session",
@@ -264,6 +267,7 @@ class GoalRunnerTest {
           mode = FeatureTaskWorkflowMode.RUNTIME,
           issueKey = "SKILL-352",
         ),
+        FeatureTaskWorkflowMode.RUNTIME,
       )
     }
   }
@@ -536,7 +540,7 @@ class GoalRunnerTest {
       RecordingSubtaskLauncher { request ->
         val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
         store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-        launchFacts(interrupted = true)
+        launchFacts(AgentRunTermination.Interrupted)
       }
     val runner =
       testGoalRunner(
@@ -603,7 +607,7 @@ class GoalRunnerTest {
       RecordingSubtaskLauncher { request ->
         val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
         store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-        launchFacts(timedOut = true)
+        launchFacts(AgentRunTermination.TimedOut)
       }
     val outcomes = RecordingOutcomeStore()
     val runner = testGoalRunner(goalRunnerDeps(store, launcher, outcomes, RecordingPullRequestPort()))
@@ -1760,14 +1764,11 @@ class GoalRunnerNoTerminalOutcomeDiagnosisTest {
       RecordingSubtaskLauncher { request ->
         val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
         store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = SupportedAgent.CLAUDE,
-          exitStatus = 1,
+          termination = AgentRunTermination.Exited(1),
           stdout = "diagnostic only",
           stderr = "Error: usage limit reached before persisting terminal outcome",
-          timedOut = false,
-          interrupted = false,
-          spawnFailed = false,
         )
       }
     val outcomes = RecordingOutcomeStore()
@@ -1793,14 +1794,11 @@ class GoalRunnerNoTerminalOutcomeDiagnosisTest {
       RecordingSubtaskLauncher { request ->
         val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
         store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = SupportedAgent.CLAUDE,
-          exitStatus = 1,
+          termination = AgentRunTermination.Exited(1),
           stdout = "diagnostic only",
           stderr = stderr,
-          timedOut = false,
-          interrupted = false,
-          spawnFailed = false,
         )
       }
     val runner = testGoalRunner(goalRunnerDeps(store, launcher, RecordingOutcomeStore(), RecordingPullRequestPort()))
@@ -4018,13 +4016,10 @@ class GoalRunnerLedgerRecorderSeedingTest {
         subtaskId = 1,
         progress = null,
         launchOutcome =
-          AgentRunLaunchFacts(
+          agentRunLaunchFacts(
             agent = SupportedAgent.CLAUDE,
-            exitStatus = 0,
             stdout = "",
             stderr = "",
-            timedOut = false,
-            spawnFailed = false,
           ),
         diagnosticClass = null,
         recoverableJsonPresent = null,
@@ -5137,19 +5132,15 @@ private fun workerSubtaskRequestJson(
 }
 
 internal fun launchFacts(
-  timedOut: Boolean = false,
-  interrupted: Boolean = false,
+  termination: AgentRunTermination = AgentRunTermination.Exited(0),
   stdout: String = "diagnostic only",
   stderr: String = "",
 ): AgentRunLaunchFacts =
-  AgentRunLaunchFacts(
+  agentRunLaunchFacts(
     agent = SupportedAgent.CLAUDE,
-    exitStatus = if (timedOut || interrupted) null else 0,
+    termination = termination,
     stdout = stdout,
     stderr = stderr,
-    timedOut = timedOut,
-    interrupted = interrupted,
-    spawnFailed = false,
   )
 
 internal fun DecompositionManifest.withWorkflowId(
@@ -5461,37 +5452,49 @@ private class GoalStatusSeedableWorkflowStateRepository : WorkflowStateRepositor
     return ownershipRows[workflowId]
   }
 
-  override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
+  override fun saveFeatureTaskWorkflow(
+    row: WorkflowStateRecord,
+    mode: FeatureTaskWorkflowMode,
+  ) {
     taskRuntimeRows[row.workflowId] = row
   }
 
-  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? = taskRuntimeRows[workflowId]
+  override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? = taskRuntimeRows[workflowId]
 
-  override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> =
-    taskRuntimeRows.values.toList().asReversed().take(limit)
+  override fun getFeatureTaskWorkflowAsMode(
+    workflowId: String,
+    mode: FeatureTaskWorkflowMode,
+  ): WorkflowStateRecord? = taskRuntimeRows[workflowId]
 
-  override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? =
-    listFeatureTaskRuntimeWorkflows(1).firstOrNull()
+  override fun listFeatureTaskWorkflows(
+    mode: FeatureTaskWorkflowMode,
+    limit: Int,
+  ): List<WorkflowStateRecord> = taskRuntimeRows.values.toList().asReversed().take(limit)
 
-  override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) = Unit
+  override fun save(
+    family: WorkflowFamily,
+    snapshot: WorkflowStateSnapshot,
+  ) = saveRecord(family, snapshot.toRecord(taskRuntimeRows[snapshot.workflowId]))
 
-  override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) = Unit
+  override fun saveRecord(
+    family: WorkflowFamily,
+    record: WorkflowStateRecord,
+  ) {
+    taskRuntimeRows[record.workflowId] = record
+  }
 
-  override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? = null
+  override fun get(
+    family: WorkflowFamily,
+    workflowId: String,
+  ): WorkflowStateSnapshot? = taskRuntimeRows[workflowId]?.toSnapshot()
 
-  override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? = null
+  override fun list(
+    family: WorkflowFamily,
+    limit: Int,
+  ): List<WorkflowStateSnapshot> =
+    taskRuntimeRows.values.toList().asReversed().take(limit).map(WorkflowStateRecord::toSnapshot)
 
-  override fun listFeatureImplementWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun latestFeatureImplementWorkflow(): WorkflowStateRecord? = null
-
-  override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = null
-
-  override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? = null
-
-  override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? = null
+  override fun latest(family: WorkflowFamily): WorkflowStateSnapshot? = list(family, 1).firstOrNull()
 }
 
 private object GoalTestNoopSnapshotValidator : WorkflowSnapshotValidator {
@@ -5587,33 +5590,6 @@ private object GoalTestEmptyWorkflowStateRepository : WorkflowStateRepositoryDef
     repositoryIdentity: String,
   ) = emptyList<FeatureTaskWorkflowCandidate>()
 
-  override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) = Unit
-
-  override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? = null
-
-  override fun listFeatureImplementWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun latestFeatureImplementWorkflow(): WorkflowStateRecord? = null
-
-  override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? = null
-
-  override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) = Unit
-
-  override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? = null
-
-  override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = null
-
-  override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? = null
-
-  override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) = Unit
-
-  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? = null
-
-  override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
-
-  override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? = null
 }
 
 class GoalRunnerValidationQualityRetryTest {

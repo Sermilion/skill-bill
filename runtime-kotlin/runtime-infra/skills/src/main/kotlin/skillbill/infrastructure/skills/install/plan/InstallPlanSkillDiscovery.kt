@@ -16,7 +16,6 @@ import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.workflow.list
 import skillbill.scaffold.model.PlatformManifest
 import java.io.FileNotFoundException
 import java.nio.file.Files

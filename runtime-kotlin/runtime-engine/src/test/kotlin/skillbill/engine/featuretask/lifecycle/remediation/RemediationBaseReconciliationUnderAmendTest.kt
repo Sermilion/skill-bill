@@ -24,6 +24,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
@@ -395,7 +396,7 @@ class RemediationBaseReconciliationUnderAmendTest {
       )
 
     assertIs<RemediationBaseCoherent>(result)
-    val artifacts = assertNotNull(repository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson
+    val artifacts = assertNotNull(repository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME)).artifactsJson
     assertFalse(
       artifacts.contains("\"contract_version\":\"0.1\"") &&
         !artifacts.contains("feature_task_runtime_checkpoint_identities_quarantine"),
@@ -447,7 +448,7 @@ class RemediationBaseReconciliationUnderAmendTest {
           sessionId = "fis-001",
         ),
       ).toRecord()
-    repository.saveFeatureTaskRuntimeWorkflow(seeded)
+    repository.saveFeatureTaskWorkflow(seeded, RUNTIME)
     return FeatureTaskRuntimeGoalContinuationRecorder(
       FeatureTaskGitIntegrationDatabase(repository),
       NoopRuntimeDiagnostics,

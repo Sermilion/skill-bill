@@ -24,12 +24,10 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.findDecomposedParentOrCorruptFallback
 import skillbill.ports.workflow.decomposition.resolveDecompositionManifest
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionContinuationSelector
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
@@ -162,11 +160,11 @@ class DecompositionWorkflowContinuation(
           replaceArtifacts = true,
         ),
       )
-    WorkflowFamily.TASK_RUNTIME.saveRecord(
-      unitOfWork.workflowStates,
+    unitOfWork.workflowStates.saveRecord(
+      WorkflowFamily.TASK_RUNTIME,
       imported.toRecord().copy(issueKey = issueKey),
     )
-    return WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, imported.workflowId) ?: imported
+    return unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, imported.workflowId) ?: imported
   }
 
   private fun continueManifest(
@@ -276,7 +274,7 @@ class DecompositionWorkflowContinuation(
     unitOfWork: UnitOfWork,
   ): WorkflowStateSnapshot? =
     subtask.workflowId
-      ?.let { workflowId -> WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) }
+      ?.let { workflowId -> unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) }
       ?: sequenceOf(
         unitOfWork.workflowStates.listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, Int.MAX_VALUE),
         unitOfWork.workflowStates.listFeatureTaskWorkflows(FeatureTaskWorkflowMode.PROSE, Int.MAX_VALUE),
@@ -315,7 +313,7 @@ class DecompositionWorkflowContinuation(
     val record =
       selection.workflowId
         .takeIf(String::isNotBlank)
-        ?.let { WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, it) }
+        ?.let { unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, it) }
     return if (record == null) {
       missingSubtaskWorkflowResult(selection, unitOfWork)
     } else {
@@ -404,12 +402,12 @@ class DecompositionWorkflowContinuation(
           sessionId = parentRecord.sessionId.orEmpty(),
         ),
       )
-    WorkflowFamily.TASK_RUNTIME.saveRecord(
-      unitOfWork.workflowStates,
+    unitOfWork.workflowStates.saveRecord(
+      WorkflowFamily.TASK_RUNTIME,
       started.toRecord().copy(issueKey = issueKey),
     )
     engine.persistParentDecompositionRuntime(parentRecord, updatedManifest, unitOfWork, validator)
-    val saved = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: started
+    val saved = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: started
     return engine.continueExistingWorkflow(
       WorkflowFamily.TASK_RUNTIME,
       saved,

@@ -1,16 +1,13 @@
-package skillbill.ports.review.model
+package skillbill.application.review.preparation
 
-import skillbill.ports.review.preparation.ReviewBuildTestFactsPort
-import skillbill.ports.review.preparation.ReviewGuidancePort
-import skillbill.ports.review.preparation.ReviewLaneSelectionPort
-import skillbill.ports.review.preparation.ReviewLearningsPort
-import skillbill.ports.review.preparation.ReviewScopeResolverPort
-import skillbill.ports.review.preparation.ReviewStackRoutingPort
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitLaneRoutingMatrix
 import skillbill.review.context.model.commit.ReviewCommitUnit
 import skillbill.review.context.model.execution.ReviewLaneDecision
+import skillbill.review.context.model.hunk.ReviewBuildTestFact
 import skillbill.review.context.model.hunk.ReviewChangedHunk
+import skillbill.review.context.model.hunk.ReviewLearningsReference
+import skillbill.review.context.model.hunk.ReviewRuleReference
 
 data class ReviewScopeFacts(
   val repositoryIdentity: String,
@@ -34,11 +31,11 @@ data class ReviewStackRoutingFacts(
   val composedLayers: List<String>,
 )
 
-data class ReviewFactPorts(
-  val scope: ReviewScopeResolverPort,
-  val stackRouting: ReviewStackRoutingPort,
-  val guidance: ReviewGuidancePort,
-  val learnings: ReviewLearningsPort,
-  val buildTestFacts: ReviewBuildTestFactsPort,
-  val laneSelection: ReviewLaneSelectionPort,
+data class ReviewPreparationFacts(
+  val scope: ReviewScopeFacts,
+  val stackRouting: ReviewStackRoutingFacts,
+  val laneSelection: ReviewLaneSelection,
+  val matchedRules: List<ReviewRuleReference> = emptyList(),
+  val learningsReferences: List<ReviewLearningsReference> = emptyList(),
+  val buildTestFacts: List<ReviewBuildTestFact> = emptyList(),
 )

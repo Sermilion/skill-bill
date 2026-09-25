@@ -63,7 +63,7 @@ class FeatureTaskRuntimeCrashReconcilerTest {
     assertEquals(1, first.reconciledCount)
     assertEquals(mapOf("lease_expired" to 1), first.reasonClassCounts)
     assertEquals(0, second.reconciledCount)
-    assertEquals("pending", repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID)?.workflowStatus)
+    assertEquals("pending", repository.getFeatureTaskWorkflowAsMode(WORKFLOW_ID, RUNTIME)?.workflowStatus)
     assertEquals(null, repository.getFeatureTaskRuntimeWorkerOwnership(WORKFLOW_ID))
   }
 
@@ -81,7 +81,7 @@ class FeatureTaskRuntimeCrashReconcilerTest {
     val result = reconciler.reconcile()
 
     assertEquals(0, result.reconciledCount)
-    assertEquals("running", repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID)?.workflowStatus)
+    assertEquals("running", repository.getFeatureTaskWorkflowAsMode(WORKFLOW_ID, RUNTIME)?.workflowStatus)
   }
 
   @Test
@@ -100,7 +100,7 @@ class FeatureTaskRuntimeCrashReconcilerTest {
         )
 
       assertEquals(0, reconciler.reconcile().reconciledCount)
-      assertEquals("running", repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID)?.workflowStatus)
+      assertEquals("running", repository.getFeatureTaskWorkflowAsMode(WORKFLOW_ID, RUNTIME)?.workflowStatus)
     }
   }
 
@@ -142,12 +142,12 @@ class FeatureTaskRuntimeCrashReconcilerTest {
 
     assertEquals(0, result.reconciledCount)
     assertEquals(mapOf("reconcile_fault" to 1), result.reasonClassCounts)
-    assertEquals("running", repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID)?.workflowStatus)
+    assertEquals("running", repository.getFeatureTaskWorkflowAsMode(WORKFLOW_ID, RUNTIME)?.workflowStatus)
   }
 
   private fun crashCandidateRepository(): InMemoryRuntimeWorkflowRepository =
     InMemoryRuntimeWorkflowRepository().apply {
-      saveFeatureTaskRuntimeWorkflow(
+      saveFeatureTaskWorkflow(
         WorkflowStateRecord(
           workflowId = WORKFLOW_ID,
           sessionId = SESSION_ID,
@@ -162,6 +162,7 @@ class FeatureTaskRuntimeCrashReconcilerTest {
           finishedAt = null,
           mode = RUNTIME,
         ),
+        RUNTIME,
       )
       seedWorkerOwnership(
         FeatureTaskRuntimeWorkerOwnership(

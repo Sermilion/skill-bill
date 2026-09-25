@@ -1,6 +1,5 @@
 package skillbill.infrastructure.skills.skillremove
 
-import skillbill.ports.workflow.list
 import skillbill.skillremove.model.ManifestEdit
 import skillbill.skillremove.model.ManifestEditKind
 import skillbill.skillremove.model.SkillRemovalTarget

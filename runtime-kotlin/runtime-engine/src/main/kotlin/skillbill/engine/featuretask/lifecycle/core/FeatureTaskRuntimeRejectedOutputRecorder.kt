@@ -17,7 +17,6 @@ import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.diagnostics.model.evidenceKey
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
@@ -178,10 +177,7 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
     return try {
       val evidence =
         database.read { unitOfWork ->
-          val repository =
-            unitOfWork.rejectedOutputDiagnostics
-              ?: throw RejectedOutputDiagnosticError.Persistence("repository-unavailable")
-          repository.readProducerOutput(workflowId, phaseId, attempt, agentId, generation)
+          unitOfWork.rejectedOutputDiagnostics.readProducerOutput(workflowId, phaseId, attempt, agentId, generation)
         }
       if (evidence == null) {
         FeatureTaskRuntimeProducerOutputRead.Absent
@@ -272,7 +268,7 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
     runCatching {
       database.transaction { unitOfWork ->
         val record =
-          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
             ?: return@transaction
         val existing =
           decodeDiagnosticSignalsFromArtifact(
@@ -294,26 +290,19 @@ internal class FeatureTaskRuntimeRejectedOutputRecorder(
   fun loadDiagnosticSignals(workflowId: String): List<FeatureTaskRuntimeDiagnosticSignal> =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read emptyList()
       decodeDiagnosticSignalsFromArtifact(
         DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS.value(record.artifacts),
       )
     }
 
-  private fun diagnosticService(unitOfWork: UnitOfWork): RejectedOutputDiagnosticService {
-    val repository =
-      unitOfWork.rejectedOutputDiagnostics
-        ?: throw RejectedOutputDiagnosticError.Persistence("repository-unavailable")
-    val permissions =
-      unitOfWork.rejectedOutputDiagnosticPermissions
-        ?: throw RejectedOutputDiagnosticError.Permission("permissions-unavailable")
-    return RejectedOutputDiagnosticService(
-      repository = repository,
-      permissions = permissions,
+  private fun diagnosticService(unitOfWork: UnitOfWork): RejectedOutputDiagnosticService =
+    RejectedOutputDiagnosticService(
+      repository = unitOfWork.rejectedOutputDiagnostics,
+      permissions = unitOfWork.rejectedOutputDiagnosticPermissions,
       metadataValidator = rejectedOutputDiagnosticMetadataValidator,
       producerEvidenceValidator = producerOutputEvidenceValidator,
       clock = clock,
     )
-  }
 }

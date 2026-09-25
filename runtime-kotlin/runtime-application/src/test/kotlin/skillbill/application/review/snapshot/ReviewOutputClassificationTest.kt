@@ -3,7 +3,8 @@ package skillbill.application.review.snapshot
 import skillbill.application.review.service.ReviewOutputAdmission
 import skillbill.application.review.service.classifyReviewOutput
 import skillbill.install.model.SupportedAgent
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.review.model.ReviewProcessOutcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,7 +13,7 @@ class ReviewOutputClassificationTest {
   @Test fun `only a normal zero-exit envelope can be admitted or repaired`() {
     val valid =
       classifyReviewOutput(
-        facts(FactsFixture(exitStatus = 0, stdout = "NO_FINDINGS")),
+        facts(stdout = "NO_FINDINGS"),
         resultEnvelopeValid = true,
       )
     assertEquals(ReviewProcessOutcome.ZERO_EXIT, valid.processOutcome)
@@ -20,24 +21,24 @@ class ReviewOutputClassificationTest {
 
     val repairable =
       classifyReviewOutput(
-        facts(FactsFixture(exitStatus = 0, stdout = "not-an-envelope")),
+        facts(stdout = "not-an-envelope"),
         resultEnvelopeValid = false,
       )
     assertEquals(ReviewOutputAdmission.SCHEMA_REPAIR_ELIGIBLE, repairable.admission)
   }
 
   @Test fun `empty zero-exit output is a missing result and is not repairable`() {
-    val classification = classifyReviewOutput(facts(FactsFixture(exitStatus = 0)), resultEnvelopeValid = false)
+    val classification = classifyReviewOutput(facts(), resultEnvelopeValid = false)
     assertEquals(ReviewOutputAdmission.REJECTED, classification.admission)
   }
 
   @Test fun `process and lifecycle failures are never admitted through schema repair`() {
     listOf(
-      facts(FactsFixture(timedOut = true)),
-      facts(FactsFixture(interrupted = true)),
-      facts(FactsFixture(exitStatus = 7)),
-      facts(FactsFixture(spawnFailed = true)),
-      facts(FactsFixture(exitStatus = 0, stdoutTruncated = true)),
+      facts(AgentRunTermination.TimedOut),
+      facts(AgentRunTermination.Interrupted),
+      facts(AgentRunTermination.Exited(7)),
+      facts(AgentRunTermination.SpawnFailed),
+      facts(stdoutTruncated = true),
     ).forEach { launchFacts ->
       val classification = classifyReviewOutput(launchFacts, resultEnvelopeValid = false)
       assertEquals(ReviewOutputAdmission.REJECTED, classification.admission)
@@ -45,24 +46,14 @@ class ReviewOutputClassificationTest {
     }
   }
 
-  private data class FactsFixture(
-    val exitStatus: Int? = null,
-    val stdout: String = "",
-    val timedOut: Boolean = false,
-    val interrupted: Boolean = false,
-    val spawnFailed: Boolean = false,
-    val stdoutTruncated: Boolean = false,
+  private fun facts(
+    termination: AgentRunTermination = AgentRunTermination.Exited(0),
+    stdout: String = "",
+    stdoutTruncated: Boolean = false,
+  ) = agentRunLaunchFacts(
+    agent = SupportedAgent.CODEX,
+    termination = termination,
+    stdout = stdout,
+    stdoutTruncated = stdoutTruncated,
   )
-
-  private fun facts(fixture: FactsFixture) =
-    AgentRunLaunchFacts(
-      agent = SupportedAgent.CODEX,
-      exitStatus = fixture.exitStatus,
-      stdout = fixture.stdout,
-      stderr = "",
-      timedOut = fixture.timedOut,
-      interrupted = fixture.interrupted,
-      spawnFailed = fixture.spawnFailed,
-      stdoutTruncated = fixture.stdoutTruncated,
-    )
 }

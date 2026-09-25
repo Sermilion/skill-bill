@@ -3,7 +3,8 @@ package skillbill.engine.featuretask.review.core
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.install.model.SupportedAgent
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
@@ -24,13 +25,10 @@ class FeatureTaskLastCommitReviewDriverTest {
       FeatureTaskLastCommitReviewDriver(
         GoalRunnerSubtaskLauncher { launch ->
           captured += launch
-          AgentRunLaunchFacts(
+          agentRunLaunchFacts(
             agent = SupportedAgent.CURSOR,
-            exitStatus = 0,
             stdout = "reviewed last commit\nverdict: approved",
             stderr = "",
-            timedOut = false,
-            spawnFailed = false,
           )
         },
       )
@@ -62,13 +60,10 @@ class FeatureTaskLastCommitReviewDriverTest {
     val driver =
       FeatureTaskLastCommitReviewDriver(
         GoalRunnerSubtaskLauncher {
-          AgentRunLaunchFacts(
+          agentRunLaunchFacts(
             agent = SupportedAgent.CURSOR,
-            exitStatus = 0,
             stdout = "- [F-001] Blocker | High | src/main/App.kt:42 | remaining defect\nverdict: changes_requested",
             stderr = "",
-            timedOut = false,
-            spawnFailed = false,
           )
         },
       )
@@ -88,13 +83,11 @@ class FeatureTaskLastCommitReviewDriverTest {
     val driver =
       FeatureTaskLastCommitReviewDriver(
         GoalRunnerSubtaskLauncher {
-          AgentRunLaunchFacts(
+          agentRunLaunchFacts(
             agent = SupportedAgent.CURSOR,
-            exitStatus = null,
+            termination = AgentRunTermination.TimedOut,
             stdout = "",
             stderr = "",
-            timedOut = true,
-            spawnFailed = false,
           )
         },
       )

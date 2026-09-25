@@ -4,7 +4,6 @@ import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -30,7 +29,7 @@ fun taskRuntimeRecordOrNull(
   workflowId: String,
 ): WorkflowStateSnapshot? =
   try {
-    WorkflowFamily.TASK_RUNTIME.get(workflowStates, workflowId)
+    workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
   } catch (error: InvalidWorkflowStateSchemaError) {
     if (error.message.orEmpty().contains("mode='")) {
       null

@@ -109,7 +109,8 @@ import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.goalreview.GOAL_PROGRESS_HISTORY_LIMIT
 import skillbill.workflow.model.goalreview.GoalProgressEvent
@@ -202,8 +203,8 @@ class WorkflowServiceTest {
         ),
       )
 
-    val firstSession = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(first.workflowId)).sessionId
-    val secondSession = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(second.workflowId)).sessionId
+    val firstSession = requireNotNull(workflows.getFeatureTaskWorkflowAsMode(first.workflowId, RUNTIME)).sessionId
+    val secondSession = requireNotNull(workflows.getFeatureTaskWorkflowAsMode(second.workflowId, RUNTIME)).sessionId
     assertEquals("ftr-${first.workflowId}", firstSession)
     assertEquals("ftr-${second.workflowId}", secondSession)
     assertTrue(firstSession != secondSession)
@@ -244,7 +245,7 @@ class WorkflowServiceTest {
 
     assertEquals("abandoned", abandoned.acknowledgement.workflowStatus.wireValue)
     assertEquals(listOf("operator_abandonment"), abandoned.acknowledgement.updatedArtifactKeys)
-    val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId)).toSnapshot()
+    val saved = requireNotNull(workflows.getFeatureTaskWorkflowAsMode(opened.workflowId, RUNTIME)).toSnapshot()
     assertEquals("abandoned", saved.workflowStatus.wireValue)
     assertContains(JsonCodec.mapToJsonString(saved.artifacts.toMap()), "Superseded after a deterministic policy block.")
     val repeated =
@@ -271,7 +272,7 @@ class WorkflowServiceTest {
         clock = Clock.systemUTC(),
       )
     val historyArtifact = """{"plan":{"mode":"decompose"},"history_note":"retain-me"}"""
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       WorkflowStateRecord(
         workflowId = "wfl-legacy-prose-parent",
         sessionId = "fis-legacy-prose-parent",
@@ -284,10 +285,11 @@ class WorkflowServiceTest {
         startedAt = null,
         updatedAt = null,
         finishedAt = null,
-        mode = FeatureTaskWorkflowMode.PROSE,
+        mode = PROSE,
         implementationSkill = "bill-feature-task-prose",
         issueKey = "SKILL-179",
       ),
+      PROSE,
     )
 
     val abandoned =
@@ -299,7 +301,7 @@ class WorkflowServiceTest {
     assertEquals(listOf("operator_abandonment"), abandoned.acknowledgement.updatedArtifactKeys)
     val saved = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-legacy-prose-parent"))
     assertEquals("abandoned", saved.workflowStatus)
-    assertEquals(FeatureTaskWorkflowMode.PROSE, saved.mode)
+    assertEquals(PROSE, saved.mode)
     assertContains(saved.artifactsJson, "Retire legacy prose goal parent.")
     assertContains(saved.artifactsJson, "retain-me")
     val repeated =
@@ -344,7 +346,7 @@ class WorkflowServiceTest {
 
     assertEquals("abandoned", abandoned.acknowledgement.workflowStatus.wireValue)
     assertEquals(listOf("operator_abandonment"), abandoned.acknowledgement.updatedArtifactKeys)
-    val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId)).toSnapshot()
+    val saved = requireNotNull(workflows.getFeatureTaskWorkflowAsMode(opened.workflowId, RUNTIME)).toSnapshot()
     assertContains(JsonCodec.mapToJsonString(saved.artifacts.toMap()), "Operator abandoned the goal.")
     assertTrue(saved.workflowStatus.wireValue in FeatureTaskRuntimePhaseWorkflowDefinition.definition.terminalStatuses)
     assertTrue(WorkflowStatus.PAUSED.wireValue in FeatureTaskRuntimePhaseWorkflowDefinition.definition.workflowStatuses)
@@ -406,7 +408,7 @@ class WorkflowServiceTest {
         ),
       )
     assertEquals(listOf("operator_identity_repair"), repaired.acknowledgement.updatedArtifactKeys)
-    val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId)).toSnapshot()
+    val saved = requireNotNull(workflows.getFeatureTaskWorkflowAsMode(opened.workflowId, RUNTIME)).toSnapshot()
     assertContains(JsonCodec.mapToJsonString(saved.artifacts.toMap()), "Repair a legacy identity.")
   }
 
@@ -592,7 +594,7 @@ class WorkflowServiceTest {
         "ftr-001",
         "preplan",
       ).toRecord()
-    workflows.saveFeatureTaskRuntimeWorkflow(record)
+    workflows.saveFeatureTaskWorkflow(record, RUNTIME)
     val loudFailValidator =
       object : WorkflowSnapshotValidator {
         override fun validate(
@@ -632,7 +634,7 @@ class WorkflowServiceTest {
         "ftr-001",
         "preplan",
       ).toRecord()
-    workflows.saveFeatureTaskRuntimeWorkflow(opened)
+    workflows.saveFeatureTaskWorkflow(opened, RUNTIME)
     val loudFailValidator =
       object : WorkflowSnapshotValidator {
         override fun validate(
@@ -678,7 +680,7 @@ class WorkflowServiceTest {
         ),
       )
     assertContains(result.error, "snapshot fails schema validation")
-    assertEquals(opened, workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId))
+    assertEquals(opened, workflows.getFeatureTaskWorkflowAsMode(opened.workflowId, RUNTIME))
   }
 
   @Test
@@ -763,7 +765,7 @@ class WorkflowServiceTest {
         "session",
         "preplan",
       ).toRecord().copy(artifactsJson = "{")
-    workflows.saveFeatureTaskRuntimeWorkflow(row)
+    workflows.saveFeatureTaskWorkflow(row, RUNTIME)
     val database = FakeDatabaseSessionFactory(workflows)
     val service = newService(workflows)
     val progress = testWorkflowGoalRunnerOutcomeStore(database, testWorkflowSnapshotValidator)
@@ -774,7 +776,7 @@ class WorkflowServiceTest {
       service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, row.workflowId)
     }
     assertFailsWith<InvalidWorkflowStateSchemaError> { progress.progress(row.workflowId) }
-    assertEquals(row, workflows.getFeatureTaskRuntimeWorkflow(row.workflowId))
+    assertEquals(row, workflows.getFeatureTaskWorkflowAsMode(row.workflowId, RUNTIME))
   }
 
   private fun newService(workflows: InMemoryWorkflowStates = InMemoryWorkflowStates()): WorkflowService {
@@ -812,7 +814,7 @@ class WorkflowServiceDecomposedParentTest {
     val workflows = InMemoryWorkflowStates()
     val childRuntime = decompositionRuntime(status = "blocked")
     val parentRuntime = decompositionRuntime(status = "in_progress")
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
         artifactsPatch =
@@ -823,8 +825,9 @@ class WorkflowServiceDecomposedParentTest {
             ),
           ),
       ),
+      PROSE,
     )
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-parent",
         artifactsPatch =
@@ -836,6 +839,7 @@ class WorkflowServiceDecomposedParentTest {
             ),
           ),
       ),
+      RUNTIME,
     )
 
     val selected = workflows.findDecomposedParentWorkflow("SKILL-52.1")
@@ -846,7 +850,7 @@ class WorkflowServiceDecomposedParentTest {
   @Test
   fun `decomposed parent lookup ignores goal-continuation child workflows even when child plan is decompose`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
         artifactsPatch =
@@ -867,8 +871,9 @@ class WorkflowServiceDecomposedParentTest {
             ),
           ),
       ),
+      PROSE,
     )
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-parent",
         artifactsPatch =
@@ -880,6 +885,7 @@ class WorkflowServiceDecomposedParentTest {
             ),
           ),
       ),
+      RUNTIME,
     )
 
     val selected = workflows.findDecomposedParentWorkflow("SKILL-52.1")
@@ -890,7 +896,7 @@ class WorkflowServiceDecomposedParentTest {
   @Test
   fun `decomposed parent lookup prefers active runtime over completed lineage for same issue key`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-completed-discovery",
         artifactsPatch =
@@ -902,8 +908,9 @@ class WorkflowServiceDecomposedParentTest {
             ),
           ),
       ),
+      RUNTIME,
     )
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-active-implementation",
         artifactsPatch =
@@ -915,6 +922,7 @@ class WorkflowServiceDecomposedParentTest {
             ),
           ),
       ),
+      RUNTIME,
     )
 
     val selected = workflows.findDecomposedParentWorkflow("SKILL-52.1")
@@ -938,7 +946,7 @@ class WorkflowServiceDecomposedParentTest {
             ),
           ),
       )
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-abandoned-stale",
         artifactsPatch =
@@ -951,6 +959,7 @@ class WorkflowServiceDecomposedParentTest {
           ),
         workflowStatus = WorkflowStatus.ABANDONED,
       ),
+      RUNTIME,
     )
     val currentManifest =
       staleLineage.copy(
@@ -1000,7 +1009,7 @@ class WorkflowServiceDecomposedParentTest {
             ),
           ),
       )
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-abandoned-progressed",
         artifactsPatch =
@@ -1013,6 +1022,7 @@ class WorkflowServiceDecomposedParentTest {
           ),
         workflowStatus = WorkflowStatus.ABANDONED,
       ),
+      RUNTIME,
     )
     val currentManifest =
       progressedLineage.copy(
@@ -1052,7 +1062,7 @@ class WorkflowServiceDecomposedParentTest {
             ),
           ),
       )
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-paused-parent",
         artifactsPatch =
@@ -1065,6 +1075,7 @@ class WorkflowServiceDecomposedParentTest {
           ),
         workflowStatus = WorkflowStatus.PAUSED,
       ),
+      RUNTIME,
     )
     val currentManifest =
       pausedLineage.copy(
@@ -1092,7 +1103,7 @@ class WorkflowServiceDecomposedParentTest {
   fun `decomposed parent lookup rejects multiple active runtimes for same issue key`() {
     val workflows = InMemoryWorkflowStates()
     listOf("wfl-active-a", "wfl-active-b").forEach { workflowId ->
-      workflows.saveFeatureTaskRuntimeWorkflow(
+      workflows.saveFeatureTaskWorkflow(
         workflowRecord(
           workflowId = workflowId,
           artifactsPatch =
@@ -1104,6 +1115,7 @@ class WorkflowServiceDecomposedParentTest {
               ),
             ),
         ),
+        RUNTIME,
       )
     }
 
@@ -1236,7 +1248,7 @@ class WorkflowServiceGoalManifestStoreTest {
     assertEquals(imported.parentWorkflowId, resumed.parentWorkflowId)
     assertEquals(
       1,
-      workflows.listFeatureTaskRuntimeWorkflows(Int.MAX_VALUE).size,
+      workflows.listFeatureTaskWorkflows(RUNTIME, Int.MAX_VALUE).size,
       "Resume must reuse the persisted parent row rather than minting a second one.",
     )
     assertEquals(
@@ -1299,7 +1311,7 @@ class WorkflowServiceGoalManifestStoreTest {
       ),
     )
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-parent",
         artifactsPatch =
@@ -1311,6 +1323,7 @@ class WorkflowServiceGoalManifestStoreTest {
             ),
           ),
       ),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerManifestStore(
@@ -1461,7 +1474,7 @@ class WorkflowServiceGoalManifestStoreTest {
         currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
         subtasks = decompositionRuntime(status = "in_progress").subtasks.map { it.copy(status = "pending") },
       )
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-parent",
         artifactsPatch =
@@ -1473,6 +1486,7 @@ class WorkflowServiceGoalManifestStoreTest {
             ),
           ),
       ),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerManifestStore(
@@ -1497,7 +1511,7 @@ class WorkflowServiceGoalManifestStoreTest {
       )
 
     assertEquals("complete", result.state.manifest.status)
-    val persisted = workflows.getFeatureTaskRuntimeWorkflow("wfl-parent")
+    val persisted = workflows.getFeatureTaskWorkflowAsMode("wfl-parent", RUNTIME)
     val persistedManifest =
       requireNotNull(persisted).toSnapshot()
         .decompositionRuntime()
@@ -1575,7 +1589,7 @@ class WorkflowGoalStatusProjectionTest {
     val workflows = InMemoryWorkflowStates()
     val controls = RecordingGoalRunnerControlRepository()
     val manifest = decompositionRuntime(status = "in_progress")
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       WorkflowStateRecord(
         workflowId = "wfl-prose-parent",
         sessionId = "fis-prose-parent",
@@ -1595,10 +1609,11 @@ class WorkflowGoalStatusProjectionTest {
         startedAt = null,
         updatedAt = null,
         finishedAt = null,
-        mode = FeatureTaskWorkflowMode.PROSE,
+        mode = PROSE,
         implementationSkill = "bill-feature-task-prose",
         issueKey = "SKILL-52.1",
       ),
+      PROSE,
     )
     controls.persistControlState(
       "wfl-prose-parent",
@@ -1623,7 +1638,7 @@ class WorkflowGoalStatusProjectionTest {
     requireNotNull(projection)
     assertTrue(projection.paused)
     assertEquals("runner_interrupted", projection.pauseReason)
-    assertEquals(FeatureTaskWorkflowMode.PROSE, workflows.getFeatureTaskWorkflow("wfl-prose-parent")?.mode)
+    assertEquals(PROSE, workflows.getFeatureTaskWorkflow("wfl-prose-parent")?.mode)
   }
 
   private fun saveCompleteGoalParent(workflows: InMemoryWorkflowStates) {
@@ -1643,7 +1658,7 @@ class WorkflowGoalStatusProjectionTest {
             ),
           ),
       )
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-parent",
         artifactsPatch =
@@ -1655,6 +1670,7 @@ class WorkflowGoalStatusProjectionTest {
             ),
           ),
       ),
+      RUNTIME,
     )
   }
 
@@ -1684,7 +1700,7 @@ class WorkflowGoalStatusProjectionTest {
           sessionId = "ftr-stale",
         ),
       )
-    workflows.saveFeatureImplementWorkflow(running.toRecord())
+    workflows.saveFeatureTaskWorkflow(running.toRecord(), PROSE)
   }
 
   private fun saveAuthoritativeCompleteChild(workflows: InMemoryWorkflowStates) {
@@ -1713,7 +1729,7 @@ class WorkflowGoalStatusProjectionTest {
           sessionId = "ftr-done",
         ),
       )
-    workflows.saveFeatureImplementWorkflow(complete.toRecord())
+    workflows.saveFeatureTaskWorkflow(complete.toRecord(), PROSE)
   }
 
   private fun goalContinuationArtifact(): Map<String, Any?> =
@@ -1820,7 +1836,7 @@ class GoalRunnerCommitShaRecoveryTest {
   @Test
   fun `goal runner outcome store completes blocked commit push when remote contains head`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(blockedCommitPush("wfl-child"))
+    workflows.saveFeatureTaskWorkflow(blockedCommitPush("wfl-child"), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         database = FakeDatabaseSessionFactory(workflows),
@@ -1842,7 +1858,7 @@ class GoalRunnerCommitShaRecoveryTest {
   @Test
   fun `goal runner outcome store preserves blocked commit push when remote does not contain head`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(blockedCommitPush("wfl-child"))
+    workflows.saveFeatureTaskWorkflow(blockedCommitPush("wfl-child"), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         database = FakeDatabaseSessionFactory(workflows),
@@ -1860,7 +1876,7 @@ class GoalRunnerCommitShaRecoveryTest {
   @Test
   fun `goal runner outcome store backfills missing commit sha from measured git head`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(commitPushCompletedWithoutCommitSha("wfl-child"))
+    workflows.saveFeatureTaskWorkflow(commitPushCompletedWithoutCommitSha("wfl-child"), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         database = FakeDatabaseSessionFactory(workflows),
@@ -1878,7 +1894,7 @@ class GoalRunnerCommitShaRecoveryTest {
   @Test
   fun `goal runner outcome store durably persists the measured completion`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(commitPushCompletedWithoutCommitSha("wfl-child"))
+    workflows.saveFeatureTaskWorkflow(commitPushCompletedWithoutCommitSha("wfl-child"), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         database = FakeDatabaseSessionFactory(workflows),
@@ -1897,7 +1913,7 @@ class GoalRunnerCommitShaRecoveryTest {
   @Test
   fun `goal runner outcome store stays blocked when measured git head is unavailable`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(commitPushCompletedWithoutCommitSha("wfl-child"))
+    workflows.saveFeatureTaskWorkflow(commitPushCompletedWithoutCommitSha("wfl-child"), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         database = FakeDatabaseSessionFactory(workflows),
@@ -1914,7 +1930,7 @@ class GoalRunnerCommitShaRecoveryTest {
   @Test
   fun `goal runner outcome store does not measure git head without a repo root`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(commitPushCompletedWithoutCommitSha("wfl-child"))
+    workflows.saveFeatureTaskWorkflow(commitPushCompletedWithoutCommitSha("wfl-child"), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         database = FakeDatabaseSessionFactory(workflows),
@@ -1931,7 +1947,7 @@ class GoalRunnerCommitShaRecoveryTest {
   @Test
   fun `goal runner outcome store persists recovered missing result prefix terminal envelope`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
         artifactsPatch =
@@ -1948,6 +1964,7 @@ class GoalRunnerCommitShaRecoveryTest {
             ),
           ),
       ),
+      PROSE,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -1981,7 +1998,7 @@ class GoalRunnerCommitShaRecoveryTest {
   @Test
   fun `reconciliation backfills a pre-existing complete-without-sha outcome from measured git head`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(completeWithoutShaOutcome("wfl-child"))
+    workflows.saveFeatureTaskWorkflow(completeWithoutShaOutcome("wfl-child"), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         database = FakeDatabaseSessionFactory(workflows),
@@ -2002,7 +2019,7 @@ class GoalRunnerCommitShaRecoveryTest {
   @Test
   fun `reconciliation without a repo root leaves a complete-without-sha outcome unmeasured`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(completeWithoutShaOutcome("wfl-child"))
+    workflows.saveFeatureTaskWorkflow(completeWithoutShaOutcome("wfl-child"), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         database = FakeDatabaseSessionFactory(workflows),
@@ -2258,7 +2275,7 @@ class WorkflowGoalRunnerOutcomeStoreTest {
   @Test
   fun `goal runner outcome store reads durable blocked continuation outcome`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
         artifactsPatch =
@@ -2285,6 +2302,7 @@ class WorkflowGoalRunnerOutcomeStoreTest {
           ),
         workflowStatus = WorkflowStatus.BLOCKED.wireValue,
       ),
+      PROSE,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -2306,8 +2324,8 @@ class WorkflowGoalRunnerReconciliationTest {
   fun `goal runner outcome reconciliation closes stale running child in favor of authoritative terminal workflow`() {
     val workflows = InMemoryWorkflowStates()
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
-    workflows.saveFeatureImplementWorkflow(staleRunningChildRecord(definition).toRecord())
-    workflows.saveFeatureImplementWorkflow(authoritativeCompleteChildRecord(definition).toRecord())
+    workflows.saveFeatureTaskWorkflow(staleRunningChildRecord(definition).toRecord(), PROSE)
+    workflows.saveFeatureTaskWorkflow(authoritativeCompleteChildRecord(definition).toRecord(), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -2360,7 +2378,7 @@ class WorkflowGoalRunnerReconciliationTest {
           sessionId = "ftr-001",
         ),
       )
-    workflows.saveFeatureImplementWorkflow(running.toRecord())
+    workflows.saveFeatureTaskWorkflow(running.toRecord(), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -2412,7 +2430,7 @@ class WorkflowGoalRunnerReconciliationTest {
           sessionId = "ftr-001",
         ),
       )
-    workflows.saveFeatureImplementWorkflow(running.toRecord())
+    workflows.saveFeatureTaskWorkflow(running.toRecord(), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -2431,8 +2449,8 @@ class WorkflowGoalRunnerReconciliationTest {
   fun `goal runner outcome reconciliation keeps active retry when only blocked sibling exists`() {
     val workflows = InMemoryWorkflowStates()
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
-    workflows.saveFeatureImplementWorkflow(blockedSiblingChildRecord(definition).toRecord())
-    workflows.saveFeatureImplementWorkflow(activeRetryChildRecord(definition).toRecord())
+    workflows.saveFeatureTaskWorkflow(blockedSiblingChildRecord(definition).toRecord(), PROSE)
+    workflows.saveFeatureTaskWorkflow(activeRetryChildRecord(definition).toRecord(), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -2488,7 +2506,7 @@ class WorkflowGoalRunnerReconciliationTest {
           sessionId = "ftr-001",
         ),
       )
-    workflows.saveFeatureImplementWorkflow(running.toRecord())
+    workflows.saveFeatureTaskWorkflow(running.toRecord(), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -2555,7 +2573,7 @@ class WorkflowGoalRunnerReconciliationTest {
           sessionId = "ftr-001",
         ),
       )
-    workflows.saveFeatureTaskRuntimeWorkflow(crashed.toRecord())
+    workflows.saveFeatureTaskWorkflow(crashed.toRecord(), RUNTIME)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -2565,7 +2583,7 @@ class WorkflowGoalRunnerReconciliationTest {
     val blockedStep = store.markBlocked("wftr-child", "no terminal outcome", "preplan")
 
     assertEquals("implement", blockedStep)
-    val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-child")).toSnapshot()
+    val saved = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-child", RUNTIME)).toSnapshot()
     assertEquals("implement", saved.currentStepId)
     val steps = decodeWorkflowStepsForTest(saved.steps)
     assertEquals("completed", steps.getValue("preplan"))
@@ -2610,7 +2628,7 @@ class WorkflowGoalRunnerReconciliationTest {
           sessionId = "ftr-002",
         ),
       )
-    workflows.saveFeatureTaskRuntimeWorkflow(crashed.toRecord())
+    workflows.saveFeatureTaskWorkflow(crashed.toRecord(), RUNTIME)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -2620,7 +2638,7 @@ class WorkflowGoalRunnerReconciliationTest {
     val blockedStep = store.markBlocked("wftr-clean-review", "no terminal outcome", "preplan")
 
     assertEquals("audit", blockedStep)
-    val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-clean-review")).toSnapshot()
+    val saved = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-clean-review", RUNTIME)).toSnapshot()
     assertEquals("audit", saved.currentStepId)
     val steps = decodeWorkflowStepsForTest(saved.steps)
     assertEquals("pending", steps.getValue("implement_fix"))
@@ -2665,7 +2683,7 @@ class WorkflowGoalRunnerReconciliationTest {
           sessionId = "ftr-003",
         ),
       )
-    workflows.saveFeatureTaskRuntimeWorkflow(crashed.toRecord())
+    workflows.saveFeatureTaskWorkflow(crashed.toRecord(), RUNTIME)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -2675,7 +2693,7 @@ class WorkflowGoalRunnerReconciliationTest {
     val blockedStep = store.markBlocked("wftr-mid-fix", "no terminal outcome", "preplan")
 
     assertEquals("implement_fix", blockedStep)
-    val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-mid-fix")).toSnapshot()
+    val saved = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-mid-fix", RUNTIME)).toSnapshot()
     assertEquals("implement_fix", saved.currentStepId)
     val steps = decodeWorkflowStepsForTest(saved.steps)
     assertEquals("completed", steps.getValue("review"))
@@ -2849,7 +2867,7 @@ class WorkflowGoalRunnerProgressStoreTest {
   @Test
   fun `goal runner progress keeps declared liveness when goal observability latest event is malformed`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
         artifactsPatch =
@@ -2874,6 +2892,7 @@ class WorkflowGoalRunnerProgressStoreTest {
             ),
           ),
       ),
+      PROSE,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -2906,7 +2925,7 @@ class WorkflowGoalRunnerProgressStoreTest {
   @Test
   fun `goal runner progress returns declared progress when unrelated artifact keys are oversized`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
         artifactsPatch =
@@ -2930,6 +2949,7 @@ class WorkflowGoalRunnerProgressStoreTest {
             ),
           ),
       ),
+      PROSE,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -2949,7 +2969,7 @@ class WorkflowGoalRunnerProgressStoreTest {
   @Test
   fun `goal runner outcome store appends worker subtask request outcomes`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(workflowRecord("wfl-child", emptyMap()))
+    workflows.saveFeatureTaskWorkflow(workflowRecord("wfl-child", emptyMap()), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -3013,7 +3033,7 @@ class WorkflowGoalRunnerProgressStoreTest {
   @Test
   fun `record progress event accumulates append-only and mirrors latest-event key`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(workflowRecord("wfl-child", emptyMap()))
+    workflows.saveFeatureTaskWorkflow(workflowRecord("wfl-child", emptyMap()), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -3035,7 +3055,7 @@ class WorkflowGoalRunnerProgressStoreTest {
   @Test
   fun `record progress event prunes oldest entry at retention limit in sequence order`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(workflowRecord("wfl-child", emptyMap()))
+    workflows.saveFeatureTaskWorkflow(workflowRecord("wfl-child", emptyMap()), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -3071,7 +3091,7 @@ class WorkflowGoalRunnerProgressStoreTest {
   @Test
   fun `record progress event loud-fails through the schema validator at the write seam`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(workflowRecord("wfl-child", emptyMap()))
+    workflows.saveFeatureTaskWorkflow(workflowRecord("wfl-child", emptyMap()), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         database = FakeDatabaseSessionFactory(workflows),
@@ -3106,7 +3126,7 @@ class WorkflowGoalRunnerProgressStoreTest {
   @Test
   fun `record attempt ledger entry prunes oldest in sequence order at retention limit`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(workflowRecord("wfl-child", emptyMap()))
+    workflows.saveFeatureTaskWorkflow(workflowRecord("wfl-child", emptyMap()), PROSE)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         FakeDatabaseSessionFactory(workflows),
@@ -3131,7 +3151,7 @@ class WorkflowGoalRunnerProgressStoreTest {
   @Test
   fun `ledger sequence watermarks report the persisted max across continuation children`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         "wfl-child",
         mapOf(
@@ -3145,6 +3165,7 @@ class WorkflowGoalRunnerProgressStoreTest {
             ),
         ),
       ),
+      PROSE,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -3169,7 +3190,7 @@ class WorkflowGoalRunnerProgressStoreTest {
   @Test
   fun `direct progress recording owner preserves public progress events and ledger summary`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         "wfl-child",
         mapOf(
@@ -3183,6 +3204,7 @@ class WorkflowGoalRunnerProgressStoreTest {
             ),
         ),
       ),
+      PROSE,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -3225,7 +3247,7 @@ class WorkflowGoalRunnerProgressStoreTest {
           sessionId = "ftr-001",
         ),
       )
-    workflows.saveFeatureImplementWorkflow(running.toRecord())
+    workflows.saveFeatureTaskWorkflow(running.toRecord(), PROSE)
     val database = FakeDatabaseSessionFactory(workflows)
 
     val aligned =
@@ -3269,7 +3291,7 @@ class WorkflowGoalRunnerProgressStoreTest {
           ),
       ).copy(issueKey = manifest.issueKey)
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(parent)
+    workflows.saveFeatureTaskWorkflow(parent, PROSE)
     val controls = RecordingGoalRunnerControlRepository()
 
     FakeDatabaseSessionFactory(workflows, goalRunnerControls = controls).transaction { unitOfWork ->
@@ -3458,7 +3480,7 @@ private fun scopedReplanStore(
   workflows: RecordingGoalChildDeletionWorkflowStates,
   manifest: DecompositionManifest,
 ): GoalRunnerManifestStore {
-  workflows.saveFeatureTaskRuntimeWorkflow(
+  workflows.saveFeatureTaskWorkflow(
     workflowRecord(
       workflowId = "wfl-parent",
       artifactsPatch =
@@ -3470,6 +3492,7 @@ private fun scopedReplanStore(
           ),
         ),
     ),
+    RUNTIME,
   )
   return testWorkflowGoalRunnerManifestStore(
     database = FakeDatabaseSessionFactory(workflows),
@@ -3533,9 +3556,9 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     val harness = hydrationHarness()
 
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
-    val first = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val first = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
-    val resumed = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val resumed = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
 
     assertEquals(first, resumed, "duplicate resume must be a byte-identical no-op")
     assertEquals("implement", resumed.currentStepId)
@@ -3551,7 +3574,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
 
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
 
-    val child = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val child = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     listOf("preplan", "plan").forEach { phaseId ->
       assertContains(child.artifactsJson, """"phase_id":"$phaseId"""")
       assertContains(child.stepsJson, """"step_id":"$phaseId","status":"completed","attempt_count":1""")
@@ -3571,7 +3594,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     val recoveredStore = harness.newStore()
     recoveredStore.saveNewChildWorkflow(harness.state, harness.setup)
 
-    val child = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val child = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     assertEquals("implement", child.currentStepId)
     assertContains(child.stepsJson, "\"step_id\":\"preplan\",\"status\":\"completed\"")
     assertContains(child.stepsJson, "\"step_id\":\"plan\",\"status\":\"completed\"")
@@ -3583,8 +3606,8 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
     harness.store.saveNewChildWorkflow(harness.state, harness.setupFor(2))
 
-    val first = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID)).artifactsJson
-    val second = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow("wfl-child-2")).artifactsJson
+    val first = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME)).artifactsJson
+    val second = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode("wfl-child-2", RUNTIME)).artifactsJson
     assertContains(first, "shared preplan prose for hydration")
     assertContains(second, "shared preplan prose for hydration")
     assertContains(first, "owned-plan-one")
@@ -3600,7 +3623,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
       assertFailsWith<RuntimeException>(variant) {
         harness.store.saveNewChildWorkflow(harness.state, harness.setup)
       }
-      assertNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID), variant)
+      assertNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME), variant)
       assertNull(harness.workflows.executionIdentity(CHILD_ID), variant)
     }
   }
@@ -3619,7 +3642,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
       }
 
     assertContains(error.reason, "value")
-    assertNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    assertNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     assertNull(harness.workflows.executionIdentity(CHILD_ID))
   }
 
@@ -3627,11 +3650,11 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
   fun `resume accepts a child whose imported plan phase was repaired by its own fix loop`() {
     val harness = hydrationHarness()
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
-    harness.workflows.saveFeatureTaskRuntimeWorkflow(repairedPlanPhase(harness))
+    harness.workflows.saveFeatureTaskWorkflow(repairedPlanPhase(harness), RUNTIME)
 
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
 
-    val resumed = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val resumed = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     assertContains(resumed.artifactsJson, "repaired-plan-one")
     assertEquals("implement", resumed.currentStepId)
   }
@@ -3640,7 +3663,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
   fun `regenerated parent planning does not block resume or replace child outputs`() {
     val harness = hydrationHarness()
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
-    val imported = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val imported = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     val shared = requireNotNull(harness.preparations.shared)
     val preplanPayload = shared.preplanPayload.replace("shared preplan prose", "updated preplan prose")
     harness.preparations.shared =
@@ -3658,7 +3681,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
 
     harness.newStore().saveNewChildWorkflow(harness.state, harness.setup)
 
-    assertEquals(imported, harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    assertEquals(imported, harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
   }
 
   @Test
@@ -3675,11 +3698,11 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
       )
 
     harness.store.saveNewChildWorkflow(harness.state, changed)
-    val imported = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val imported = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
 
     harness.newStore().saveNewChildWorkflow(harness.state, harness.setup)
 
-    val resumed = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val resumed = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     assertEquals(imported.artifactsJson, resumed.artifactsJson)
     assertEquals("implement", resumed.currentStepId)
   }
@@ -3688,7 +3711,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
   fun `resume rejects a child whose import provenance no longer matches and names the divergence`() {
     val harness = hydrationHarness()
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
-    val child = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val child = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     val artifacts =
       JsonCodec.parseObjectOrNull(child.artifactsJson)
         ?.let(JsonCodec::jsonElementToValue)
@@ -3702,8 +3725,9 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
         .toMutableMap()
     importArtifact["parent_goal_workflow_id"] = "wfl-some-other-parent"
     artifacts["goal_planning_import"] = importArtifact
-    harness.workflows.saveFeatureTaskRuntimeWorkflow(
+    harness.workflows.saveFeatureTaskWorkflow(
       child.copy(artifactsJson = JsonCodec.mapToJsonString(artifacts)),
+      RUNTIME,
     )
 
     val error =
@@ -3718,11 +3742,12 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
   fun `resume rejects a child that carries no goal planning import artifact`() {
     val harness = hydrationHarness()
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
-    val child = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val child = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     val artifacts = parseChildArtifacts(child)
     artifacts.remove("goal_planning_import")
-    harness.workflows.saveFeatureTaskRuntimeWorkflow(
+    harness.workflows.saveFeatureTaskWorkflow(
       child.copy(artifactsJson = JsonCodec.mapToJsonString(artifacts)),
+      RUNTIME,
     )
 
     val error =
@@ -3755,15 +3780,16 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
   fun `resume rejects a child whose planning ledger prefix no longer matches the import`() {
     val harness = hydrationHarness()
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
-    val child = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val child = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     val artifacts = parseChildArtifacts(child)
     val ledger = (artifacts["feature_task_runtime_phase_ledger"] as List<*>).toMutableList()
     val firstEntry = (ledger[0] as Map<*, *>).toMutableMap()
     firstEntry["action"] = "retry"
     ledger[0] = firstEntry
     artifacts["feature_task_runtime_phase_ledger"] = ledger
-    harness.workflows.saveFeatureTaskRuntimeWorkflow(
+    harness.workflows.saveFeatureTaskWorkflow(
       child.copy(artifactsJson = JsonCodec.mapToJsonString(artifacts)),
+      RUNTIME,
     )
 
     val error =
@@ -3778,10 +3804,11 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
   fun `resume rejects a child whose completed plan phase is missing its output artifact`() {
     val harness = hydrationHarness()
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
-    val child = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val child = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     val artifacts = mutatePhaseRecord(child, "plan") { it.also { m -> m.remove("output_artifact") } }
-    harness.workflows.saveFeatureTaskRuntimeWorkflow(
+    harness.workflows.saveFeatureTaskWorkflow(
       child.copy(artifactsJson = JsonCodec.mapToJsonString(artifacts)),
+      RUNTIME,
     )
 
     val error =
@@ -3796,7 +3823,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
   fun `resume accepts a child whose plan phase is in the fix loop with output moved to rejected`() {
     val harness = hydrationHarness()
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
-    val child = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val child = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     val artifacts =
       mutatePhaseRecord(child, "plan") { planRecord ->
         val output = planRecord.remove("output_artifact")
@@ -3812,16 +3839,17 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
         "\"step_id\":\"plan\",\"status\":\"running\"",
       )
     assertNotEquals(child.stepsJson, quarantinedStepsJson)
-    harness.workflows.saveFeatureTaskRuntimeWorkflow(
+    harness.workflows.saveFeatureTaskWorkflow(
       child.copy(
         artifactsJson = JsonCodec.mapToJsonString(artifacts),
         stepsJson = quarantinedStepsJson,
       ),
+      RUNTIME,
     )
 
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
 
-    val resumed = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val resumed = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     assertEquals("implement", resumed.currentStepId)
   }
 
@@ -3850,7 +3878,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
   }
 
   private fun repairedPlanPhase(harness: HydrationHarness): WorkflowStateRecord {
-    val child = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val child = requireNotNull(harness.workflows.getFeatureTaskWorkflowAsMode(CHILD_ID, RUNTIME))
     val artifacts =
       JsonCodec.parseObjectOrNull(child.artifactsJson)
         ?.let(JsonCodec::jsonElementToValue)
@@ -4015,7 +4043,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
   ): HydrationHarness {
     val workflows = InMemoryWorkflowStates()
     val manifest = hydrationManifest(twoSubtasks)
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         "goal-parent",
         mapOf(
@@ -4023,6 +4051,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
             testDecompositionManifestValidator.encodeManifestWireMap(manifest),
         ),
       ),
+      RUNTIME,
     )
     val preparations = RecordingPlanningPreparations()
     if (variant != "missing") preparations.shared = sharedCheckpoint()

@@ -60,10 +60,11 @@ import skillbill.ports.work.model.WorkItemKind
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
-import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.ports.workflow.model.FeatureVerifySessionSummary
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.toSnapshot
+import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
@@ -145,9 +146,10 @@ internal fun goalWithLaunchedChildDatabase(
   childCurrentStep: String = "implement",
 ): TrackingDatabase {
   val workflows = IdeStatusWorkflowStates()
-  workflows.saveFeatureImplementWorkflow(
+  workflows.saveFeatureTaskWorkflow(
     runtimeRecord("w-child", "2026-08-06T11:00:00Z", currentStep = childCurrentStep)
       .copy(startedAt = childStarted.toString(), artifactsJson = childArtifactsJson),
+    FeatureTaskWorkflowMode.PROSE,
   )
   workflows.saveFeatureTaskExecutionIdentity(
     identityFor("w-child", identity).copy(routeScope = FeatureTaskRouteScope.GOAL_CHILD),
@@ -555,18 +557,11 @@ internal class IdeStatusWorkflowStates : WorkflowStateRepositoryDefaults() {
       it.normalizedIssueKey == normalizedIssueKey && it.routeScope == FeatureTaskRouteScope.GOAL_CHILD
     }
 
-  override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) {
-    implement[row.workflowId] = row
-  }
-
   override fun saveFeatureTaskWorkflow(
     row: WorkflowStateRecord,
     mode: FeatureTaskWorkflowMode,
   ) {
-    when (mode) {
-      FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
-      FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
-    }
+    implement[row.workflowId] = row
   }
 
   override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? = implement[workflowId]
@@ -591,37 +586,42 @@ internal class IdeStatusWorkflowStates : WorkflowStateRepositoryDefaults() {
   override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
     listFeatureTaskWorkflows(mode, Int.MAX_VALUE).lastOrNull()
 
-  override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? = implement[workflowId]
+  override fun save(
+    family: WorkflowFamily,
+    snapshot: WorkflowStateSnapshot,
+  ) = saveRecord(family, snapshot.toRecord(rows(family)[snapshot.workflowId]))
 
-  override fun listFeatureImplementWorkflows(limit: Int): List<WorkflowStateRecord> =
-    implement.values.toList().take(limit)
-
-  override fun latestFeatureImplementWorkflow(): WorkflowStateRecord? = implement.values.lastOrNull()
-
-  override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? = null
-
-  override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) {
-    verify[row.workflowId] = row
+  override fun saveRecord(
+    family: WorkflowFamily,
+    record: WorkflowStateRecord,
+  ) {
+    rows(family)[record.workflowId] = record
   }
 
-  override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? = verify[workflowId]
+  override fun get(
+    family: WorkflowFamily,
+    workflowId: String,
+  ): WorkflowStateSnapshot? = rows(family)[workflowId]?.toSnapshot()
 
-  override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> = verify.values.toList().take(limit)
+  override fun getAll(
+    family: WorkflowFamily,
+    workflowIds: Set<String>,
+  ): Map<String, WorkflowStateSnapshot> =
+    workflowIds.mapNotNull { id -> rows(family)[id]?.let { id to it.toSnapshot() } }.toMap()
 
-  override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = verify.values.lastOrNull()
+  override fun list(
+    family: WorkflowFamily,
+    limit: Int,
+  ): List<WorkflowStateSnapshot> = rows(family).values.take(limit).map(WorkflowStateRecord::toSnapshot)
 
-  override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? = null
+  override fun latest(family: WorkflowFamily): WorkflowStateSnapshot? =
+    rows(family).values.lastOrNull()?.toSnapshot()
 
-  override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
-    implement[row.workflowId] = row
-  }
-
-  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? = implement[workflowId]
-
-  override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> =
-    implement.values.toList().take(limit)
-
-  override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? = implement.values.lastOrNull()
+  private fun rows(family: WorkflowFamily): MutableMap<String, WorkflowStateRecord> =
+    when (family) {
+      WorkflowFamily.VERIFY -> verify
+      WorkflowFamily.TASK_RUNTIME -> implement
+    }
 }
 
 internal class StubGoalManifestStore(
@@ -709,6 +709,8 @@ internal object EmptyOutcomeStore : GoalRunnerWorkflowOutcomeStore {
     subtaskId: Int,
     output: Any,
   ): GoalRunnerStoredOutcome? = null
+
+  override fun authoritativeOutcomes(issueKey: String): Map<Int, GoalRunnerStoredOutcome> = emptyMap()
 
   override fun reconcileAuthoritativeOutcomes(
     issueKey: String,
