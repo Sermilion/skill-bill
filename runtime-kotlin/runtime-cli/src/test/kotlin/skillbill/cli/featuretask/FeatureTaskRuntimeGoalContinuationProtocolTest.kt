@@ -6,7 +6,6 @@ import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
-import skillbill.experiment.model.ExperimentArmId
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
@@ -34,11 +33,6 @@ class FeatureTaskRuntimeGoalContinuationProtocolTest {
                 ValidationDepth.FULL.wireValue,
               FeatureTaskRuntimeGoalContinuationLaunchTokens.QUALITY_GATE_SELECTION_ENV to
                 FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue,
-              FeatureTaskRuntimeGoalContinuationLaunchTokens.GOAL_EXPERIMENT_ARM_ID_ENV to
-                ExperimentArmId.TREATMENT.wireValue,
-              FeatureTaskRuntimeGoalContinuationLaunchTokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV to
-                "capability-a,capability-b",
-              FeatureTaskRuntimeGoalContinuationLaunchTokens.DEFER_REMOTE_PUBLICATION_ENV to "true",
             ),
           repositoryRoot = fixture.repositoryRoot,
           userHome = fixture.home,
@@ -66,13 +60,6 @@ class FeatureTaskRuntimeGoalContinuationProtocolTest {
     assertEquals(CodeReviewExecutionMode.AUTO, request.goalContinuation?.codeReviewMode)
     assertEquals(ValidationDepth.FULL, request.goalContinuation?.validationDepth)
     assertEquals(FeatureTaskRuntimeQualityGateSelection.BUILD, request.goalContinuation?.qualityGateSelection)
-    assertEquals(ExperimentArmId.TREATMENT, request.goalContinuation?.experimentArmId)
-    assertEquals(
-      setOf("capability-a", "capability-b"),
-      request.goalContinuation?.experimentTreatmentCapabilities,
-    )
-    assertEquals(true, request.goalContinuation?.deferRemotePublication)
-    assertEquals(true, request.deferRemotePublication)
     assertEquals(
       GoalSubtaskReviewBaseline("a".repeat(40), listOf("existing.txt")),
       request.goalContinuation?.reviewBaseline,
@@ -109,9 +96,6 @@ class FeatureTaskRuntimeGoalContinuationProtocolTest {
       mapOf(
         tokens.VALIDATION_DEPTH_ENV to ValidationDepth.FULL.wireValue,
         tokens.QUALITY_GATE_SELECTION_ENV to FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue,
-        tokens.GOAL_EXPERIMENT_ARM_ID_ENV to ExperimentArmId.TREATMENT.wireValue,
-        tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV to "capability-a,capability-b",
-        tokens.DEFER_REMOTE_PUBLICATION_ENV to "true",
       )
 
     CommandLineParser.parseAndRun(command, argv) { it.run() }
@@ -126,9 +110,6 @@ class FeatureTaskRuntimeGoalContinuationProtocolTest {
     assertEquals(CodeReviewExecutionMode.AUTO, continuation.codeReviewMode)
     assertEquals(ValidationDepth.FULL, continuation.validationDepth)
     assertEquals(FeatureTaskRuntimeQualityGateSelection.BUILD, continuation.qualityGateSelection)
-    assertEquals(ExperimentArmId.TREATMENT, continuation.experimentArmId)
-    assertEquals(setOf("capability-a", "capability-b"), continuation.experimentTreatmentCapabilities)
-    assertEquals(true, continuation.deferRemotePublication)
     assertEquals(
       GoalSubtaskReviewBaseline("a".repeat(40), listOf("existing.txt")),
       continuation.reviewBaseline,

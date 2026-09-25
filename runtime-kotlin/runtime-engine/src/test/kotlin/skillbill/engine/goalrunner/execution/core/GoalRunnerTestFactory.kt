@@ -110,7 +110,6 @@ internal fun testGoalRunnerWiring(params: GoalRunnerTestWiringParams): GoalRunne
       executionCoordinator = DIRECT_GOAL_RUNNER_EXECUTION_COORDINATOR,
       phaseRecorder = params.phaseRecorder,
       unaddressedFindingsLedgerService = params.unaddressedFindingsLedgerService,
-      experimentSelection = NoExperimentSelection,
     )
   val launchBoundaries =
     GoalRunnerSubtaskLaunchBoundaries(
@@ -159,7 +158,6 @@ internal data class GoalRunnerTestInputs(
           executionCoordinator = executionCoordinator,
           phaseRecorder = phaseRecorder,
           unaddressedFindingsLedgerService = unaddressedFindingsLedgerService,
-          experimentSelection = NoExperimentSelection,
         ),
       launchBoundaries =
         GoalRunnerSubtaskLaunchBoundaries(

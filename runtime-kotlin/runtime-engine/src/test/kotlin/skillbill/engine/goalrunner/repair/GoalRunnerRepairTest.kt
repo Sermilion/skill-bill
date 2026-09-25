@@ -696,6 +696,50 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
   fun `repairing completed upstream missing output reopens verify_findings and clears implement_fix block`() {
     val workflows = InMemoryWorkflowStates()
     val workflowId = "wftr-repair-apply-unsettled-upstream"
+    seedUnsettledUpstreamChild(workflows, workflowId)
+    val store =
+      repairStore(
+        workflows,
+        git = ReachableGit(),
+        clock = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC),
+      )
+
+    val applied =
+      store.applyChildWedgeRepairs(
+        GoalRunnerChildWedgeRepairRequest(
+          workflowId = workflowId,
+          issueKey = ISSUE_KEY,
+          subtaskId = 1,
+          wedgeClasses = listOf(GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT),
+          repoRoot = Path.of("."),
+        ),
+      )
+
+    assertEquals(1, applied.repairs.size)
+    assertEquals("verify_findings", applied.repairs.single().field)
+    val updated = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId))
+    assertEquals("running", updated.workflowStatus)
+    assertEquals("verify_findings", updated.currentStepId)
+    val updatedArtifacts = decodeWorkflowArtifactsForTest(updated.artifactsJson)
+    val records = phaseRecordsFromWorkflowArtifacts(updatedArtifacts)
+    assertEquals("pending", records.getValue("verify_findings").status.wireValue)
+    assertEquals("pending", records.getValue("implement_fix").status.wireValue)
+    assertEquals("2026-07-27T12:00Z", operatorBlockRetryFromWorkflowArtifacts(updatedArtifacts)?.retriedAt)
+    assertEquals(
+      Instant.parse("2026-07-27T12:00:00Z"),
+      phaseLedgerFromWorkflowArtifacts(updatedArtifacts).last().timestamp,
+    )
+    val evidence =
+      (decodeWorkflowArtifactsForTest(updated.artifactsJson)[GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY] as List<*>)
+        .single() as Map<*, *>
+    assertEquals("completed_upstream_missing_output", evidence["wedge_class"])
+    assertEquals("verify_findings", evidence["field"])
+  }
+
+  private fun seedUnsettledUpstreamChild(
+    workflows: InMemoryWorkflowStates,
+    workflowId: String,
+  ) {
     seedRepairParent(workflows, workflowId)
     val artifacts =
       linkedMapOf<String, Any?>(

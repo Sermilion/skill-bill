@@ -221,13 +221,6 @@ class RuntimeArchitectureTest {
             "FeatureTaskExecutionIdentitySchemaPaths",
             "FeatureTaskRuntimeWorkerOwnershipSchemaPaths",
           ),
-        "ExperimentSchemaPaths.kt" to
-          setOf(
-            "ExperimentDescriptorSchemaPaths",
-            "ExperimentObservationSchemaPaths",
-            "ExperimentPairSchemaPaths",
-            "ExperimentReportSchemaPaths",
-          ),
         "GoalSchemaPaths.kt" to
           setOf(
             "GoalPlanningPreparationSchemaPaths",

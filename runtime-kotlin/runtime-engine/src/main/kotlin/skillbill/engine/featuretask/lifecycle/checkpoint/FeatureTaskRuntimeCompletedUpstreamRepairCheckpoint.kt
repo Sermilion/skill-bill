@@ -1,7 +1,7 @@
 package skillbill.engine.featuretask.lifecycle.checkpoint
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 import skillbill.engine.featuretask.model.subtask.CompletedUpstreamRepairRequest
 import skillbill.engine.featuretask.runner.missingUpstream
 import skillbill.engine.featuretask.runner.phaseDeclaration
@@ -20,7 +20,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerE
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 private const val COMPLETED_UPSTREAM_MISSING_OUTPUT_BLOCK_REASON = "completed_upstream_missing_output"
 
@@ -86,7 +86,7 @@ fun completedUpstreamRepairWorkflowUpdate(
             FeatureTaskRuntimeOperatorBlockRetry(
               phaseId = request.resumePhaseId,
               reason = request.reason,
-              retriedAt = OffsetDateTime.now(request.clock).toString(),
+              retriedAt = request.clock.instant().atOffset(ZoneOffset.UTC).toString(),
             ).asWorkflowArtifactEntry(
               previousBlockedReason = COMPLETED_UPSTREAM_MISSING_OUTPUT_BLOCK_REASON,
               reopenedPhaseIds = phasesToReopen,
@@ -102,7 +102,7 @@ fun completedUpstreamRepairRetryEntry(request: CompletedUpstreamRepairRequest): 
   FeatureTaskRuntimePhaseLedgerEntry(
     action = FeatureTaskRuntimePhaseLedgerAction.RETRY,
     sequenceNumber = (request.ledger.maxOfOrNull { it.sequenceNumber } ?: -1) + 1,
-    timestamp = OffsetDateTime.now(request.clock).toString(),
+    timestamp = request.clock.instant().atOffset(ZoneOffset.UTC).toString(),
     phaseId = request.resumePhaseId,
     attemptCount = requireNotNull(request.phaseRecords[request.resumePhaseId]).attemptCount,
     resolvedAgentId = requireNotNull(request.phaseRecords[request.resumePhaseId]).resolvedAgentId,

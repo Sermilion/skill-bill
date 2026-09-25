@@ -151,10 +151,12 @@ class PortNullObjectAbsenceArchitectureTest {
   private fun testOnlyCompanionNullObjects(): List<String> =
     PortNullObjectCensus.testOnlyCompanionNullObjectsIn(
       declaringSources =
-        kotlinFiles(runtimeRoot.resolve("${PortNullObjectCensus.COMPANION_VAL_MODULE}/src/main"))
+        ArchitectureScanSupport.kotlinFilesUnder(
+          runtimeRoot.resolve("${PortNullObjectCensus.COMPANION_VAL_MODULE}/src/main"),
+        )
           .associate { path -> "${runtimeRoot.relativize(path)}" to Files.readString(path) },
       mainSources =
-        kotlinFiles(runtimeRoot.resolve("runtime-kotlin"))
+        ArchitectureScanSupport.kotlinFilesUnder(runtimeRoot.resolve("runtime-kotlin"))
           .filter { path -> "${Path.of("src", "main")}" in path.toString() }
           .map(Files::readString),
     )

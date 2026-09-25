@@ -3499,17 +3499,16 @@ class GoalRunnerAcceptResetTest {
   private fun acceptingStatusService(
     store: InMemoryGoalManifestStore,
     clock: Clock = testHarnessClock,
-  ) =
-    testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      clock = clock,
-      ports =
-        GoalRunnerStatusTestPorts(
-          gitOperations = AcceptGitOperations(),
-        ),
-    )
+  ) = testGoalRunnerStatusService(
+    manifestStore = store,
+    outcomeStore = RecordingOutcomeStore(),
+    phaseRecorder = goalTestPhaseRecorder(),
+    clock = clock,
+    ports =
+      GoalRunnerStatusTestPorts(
+        gitOperations = AcceptGitOperations(),
+      ),
+  )
 
   private fun acceptRequest(
     commitSha: String,

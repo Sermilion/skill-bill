@@ -123,19 +123,6 @@ internal fun MutableList<String>.addGoalContinuationArguments(context: SkillRunG
   add(context.codeReviewMode.wireValue)
   add(tokens.QUALITY_GATE_SELECTION_FLAG)
   add(context.qualityGateSelection.wireValue)
-  context.experimentArmId?.let { arm ->
-    add(tokens.GOAL_EXPERIMENT_ARM_ID_FLAG)
-    add(arm.wireValue)
-  }
-  if (context.experimentTreatmentCapabilities.isNotEmpty()) {
-    context.experimentTreatmentCapabilities.forEach { capability ->
-      add(tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_FLAG)
-      add(capability)
-    }
-  }
-  if (context.deferRemotePublication) {
-    add(tokens.DEFER_REMOTE_PUBLICATION_FLAG)
-  }
   context.reviewBaseline?.let { baseline ->
     add(tokens.GOAL_REVIEW_BASE_SHA_FLAG)
     add(baseline.reviewBaseSha)

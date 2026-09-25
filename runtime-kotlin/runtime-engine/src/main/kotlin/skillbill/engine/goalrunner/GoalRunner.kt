@@ -42,26 +42,6 @@ class GoalRunner(
   private val executionCoordinator = runBoundaries.executionCoordinator
 
   fun run(request: GoalRunnerRunRequest): GoalRunnerRunReport {
-    refuseSelectedExperiments(request)
-    return runWithoutExperiments(request)
-  }
-
-  private fun refuseSelectedExperiments(request: GoalRunnerRunRequest) {
-    if (request.experimentsParameter == null) return
-    val selection =
-      runBoundaries.experimentSelection.resolveForLaunch(
-        repoRoot = request.repoRoot,
-        parameter = request.experimentsParameter,
-        mode = ExperimentExecutionMode.GOAL_PAIR,
-        savedSelection = request.savedExperimentSelection,
-      )
-    if (selection.normalizedNames.isEmpty()) return
-    val refusal = ExperimentPairExecutionUnavailableError(selection.normalizedNames)
-    diagnostics.error(refusal.message.orEmpty(), refusal)
-    throw refusal
-  }
-
-  private fun runWithoutExperiments(request: GoalRunnerRunRequest): GoalRunnerRunReport {
     val loadedState =
       manifestStore.loadByIssueKey(request.issueKey, request.repoRoot)
         ?: return unknownGoal(request.issueKey)

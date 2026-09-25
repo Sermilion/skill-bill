@@ -23,7 +23,12 @@ class SQLiteDatabaseSessionFactoryBusyTranslationTest {
 
     val thrown =
       assertFailsWith<DatabaseBusyError> {
-        database.transaction { throw SQLiteException("The database file is locked", SQLiteErrorCode.SQLITE_BUSY) }
+        database.transaction {
+          throw SQLiteException(
+            "[SQLITE_BUSY] The database file is locked (database is locked)",
+            SQLiteErrorCode.SQLITE_BUSY,
+          )
+        }
       }
 
     val cause = thrown.cause

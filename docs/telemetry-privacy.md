@@ -209,17 +209,6 @@ no agent output.
 This event is enqueued regardless of level, once per legacy `skillbill_review_finished` outbox row
 the review-health materializer regenerates. It records the migration, not the review.
 
-### `experiment.completed`
-
-| Field | off | anonymous | full | Source |
-|-------|-----|-----------|------|--------|
-| `pair_id` | — | SHA-256 of the pair id | ✓ | `ExperimentTelemetryPayloadBuilder.build` |
-| `cohort` | — | ✓ | ✓ | `ExperimentTelemetryPayloadBuilder.build` |
-| `metrics` (keys containing `source`, `query`, `path`, `secret`, `credential`, or `token` are dropped, recursively) | — | ✓ | ✓ | `ExperimentTelemetryPayloadBuilder.build` |
-
-Consent is read from a top-level `telemetry_level` key in the config file, not from
-`telemetry.level`, so an ordinary install never emits this event.
-
 ### `skillbill_quality_check_started` / `skillbill_quality_check_finished`
 
 | Field | off | anonymous | full | Source |

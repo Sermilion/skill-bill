@@ -574,7 +574,7 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     durableCommitSha: String?,
     paths: List<String>,
     sequenceNumber: Int = 0,
-  ):FeatureTaskRuntimeSubtaskFinalisationResult =
+  ): FeatureTaskRuntimeSubtaskFinalisationResult =
     FeatureTaskRuntimeSubtaskFinalisation(
       gitOperations = realGitOps(),
       repoRoot = fixture.root,

@@ -19,7 +19,7 @@ class CliExperimentsSurfaceRemovalTest {
       val rejected = CliRuntime.run(argv, fixture.context(launcher = launcher))
 
       assertEquals(1, rejected.exitCode, rejected.stdout)
-      assertContains(rejected.stdout, "--experiments")
+      assertContains(rejected.stdout + rejected.stderr, "--experiments")
     }
   }
 

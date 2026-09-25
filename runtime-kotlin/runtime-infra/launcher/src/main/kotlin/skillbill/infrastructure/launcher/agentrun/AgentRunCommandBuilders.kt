@@ -109,16 +109,6 @@ internal fun goalContinuationEnvironment(request: SkillRunRequest): Map<String, 
         put(tokens.CODE_REVIEW_MODE_ENV, context.codeReviewMode.wireValue)
         put(tokens.VALIDATION_DEPTH_ENV, context.validationDepth.wireValue)
         put(tokens.QUALITY_GATE_SELECTION_ENV, context.qualityGateSelection.wireValue)
-        context.experimentArmId?.let { put(tokens.GOAL_EXPERIMENT_ARM_ID_ENV, it.wireValue) }
-        if (context.experimentTreatmentCapabilities.isNotEmpty()) {
-          put(
-            tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV,
-            context.experimentTreatmentCapabilities.joinToString(","),
-          )
-        }
-        if (context.deferRemotePublication) {
-          put(tokens.DEFER_REMOTE_PUBLICATION_ENV, "true")
-        }
       }
   }.orEmpty()
 

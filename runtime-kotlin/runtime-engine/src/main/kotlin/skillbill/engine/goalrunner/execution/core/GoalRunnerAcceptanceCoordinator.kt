@@ -16,7 +16,7 @@ import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.Path
 import java.time.Clock
-import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 class GoalRunnerAcceptanceCoordinator(
   private val manifestStore: GoalRunnerManifestStore,
@@ -41,7 +41,7 @@ class GoalRunnerAcceptanceCoordinator(
         subtaskId = request.subtaskId,
         commitSha = resolvedSha,
         reason = request.reason,
-        acceptedAt = OffsetDateTime.now(clock).toString(),
+        acceptedAt = clock.instant().atOffset(ZoneOffset.UTC).toString(),
       )
     manifestStore.persistOutOfBandAcceptance(loaded.parentWorkflowId, acceptance)
     val refreshed = manifestStore.loadDurableByIssueKey(request.issueKey) ?: loaded

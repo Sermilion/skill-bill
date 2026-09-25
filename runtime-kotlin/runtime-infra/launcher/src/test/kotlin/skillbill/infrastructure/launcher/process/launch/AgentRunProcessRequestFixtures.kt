@@ -43,9 +43,6 @@ internal class TestAgentRunProcessRequestBuilder {
   var reviewEvidenceBroker: ReviewEvidenceBroker? = null
   var reviewEvidenceEndpoint: GovernedReviewEvidenceEndpointHandle? = null
   var spawnAuthorization: AgentRunSpawnAuthorization? = null
-  var treatmentCapabilitiesEnabled: Set<String> = emptySet()
-  var treatmentCapabilitiesDenied: Set<String> = emptySet()
-  var denyRemotePublication: Boolean = false
 
   fun build(
     command: List<String>,
@@ -90,12 +87,6 @@ internal class TestAgentRunProcessRequestBuilder {
           reviewEvidenceBroker = reviewEvidenceBroker,
           reviewEvidenceEndpoint = reviewEvidenceEndpoint,
           spawnAuthorization = spawnAuthorization,
-        ),
-      experimentCapabilities =
-        AgentRunProcessExperimentCapabilityFields(
-          treatmentCapabilitiesEnabled = treatmentCapabilitiesEnabled,
-          treatmentCapabilitiesDenied = treatmentCapabilitiesDenied,
-          denyRemotePublication = denyRemotePublication,
         ),
     )
 }

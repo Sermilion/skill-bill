@@ -48,6 +48,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.nio.file.Path
 import java.time.Clock
+import kotlin.random.Random
 
 class WorkflowGoalRunnerManifestStore
   @Inject
@@ -57,6 +58,7 @@ class WorkflowGoalRunnerManifestStore
     private val decompositionManifestValidator: DecompositionManifestValidator,
     private val decompositionManifestStore: DecompositionManifestStore,
     private val clock: Clock,
+    private val random: Random,
     private val decompositionManifestWriter: DecompositionManifestProjectionWriter,
     private val repositoryRoot: RepositoryRoot,
     private val planningHydrator: GoalChildPlanningHydratorPort,
@@ -72,6 +74,7 @@ class WorkflowGoalRunnerManifestStore
         engine,
         parentProjection,
         clock,
+        random,
       )
     private val projectionPersistence =
       WorkflowGoalRunnerManifestProjectionPersistence(

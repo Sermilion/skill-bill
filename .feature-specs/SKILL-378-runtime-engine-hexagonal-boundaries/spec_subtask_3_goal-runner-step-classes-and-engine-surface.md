@@ -103,6 +103,13 @@ to the path filter of `RuntimeRawMapArchitectureTest`.
 
 ## Dependency notes
 
+Planning note: the goal plans every subtask before it runs any, so this plan is
+written before subtask 2 and the step-class follow-up land. Plan against the
+shapes they specify (the acyclic rule and `FeatureTaskRuntimeRunLoopPhaseBlocking`
+from subtask 2, the step-class rule and facade from the follow-up), not the
+current tree. Their absence at planning time is not a blocker. Implementation
+starts only after both have landed, and it rechecks every anchor then.
+
 Depends on the step-class follow-up (`followup_feature-task-step-classes.md`: facade shape and guard), which follows subtask 2. It does not wait for another issue. Restructure the goal-runner classes where they live, including coordination classes that are still in sqlite only when this subtask's criteria require editing them in place. If raw-map or inbound-API scanners still skip files, repair those scanners here so criteria 7 and 9 observe real source. Reconcile diverged private copies that this subtask restructures when a criterion requires one definition. Delete aliases and rename ports types that this subtask's surface criteria still trip over. If slot packages already exist, include them in the visibility pass.
 
 ## Validation strategy

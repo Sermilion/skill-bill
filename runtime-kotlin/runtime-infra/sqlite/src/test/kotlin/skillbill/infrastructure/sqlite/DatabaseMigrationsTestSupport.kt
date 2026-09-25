@@ -1231,6 +1231,7 @@ internal fun goalRunSessionInsert(workflowId: String): String =
     finished_duration_ms, subtasks_complete, subtasks_blocked, subtasks_skipped
   ) VALUES ('$workflowId', 'SKILL-378', '2026-09-21', '2026-09-21', 'completed', 1, 1, 0, 0)
   """.trimIndent()
+
 const val VERSION_KEYED_SCHEMA_MIGRATIONS_SQL: String =
   """
     CREATE TABLE schema_migrations (

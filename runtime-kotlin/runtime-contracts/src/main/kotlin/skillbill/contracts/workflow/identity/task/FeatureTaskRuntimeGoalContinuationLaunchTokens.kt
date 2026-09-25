@@ -15,9 +15,6 @@ object FeatureTaskRuntimeGoalContinuationLaunchTokens {
   const val CODE_REVIEW_MODE_ENV: String = "SKILL_BILL_CODE_REVIEW_MODE"
   const val VALIDATION_DEPTH_ENV: String = "SKILL_BILL_VALIDATION_DEPTH"
   const val QUALITY_GATE_SELECTION_ENV: String = "SKILL_BILL_QUALITY_GATE_SELECTION"
-  const val GOAL_EXPERIMENT_ARM_ID_ENV: String = "SKILL_BILL_GOAL_EXPERIMENT_ARM_ID"
-  const val GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV: String = "SKILL_BILL_GOAL_EXPERIMENT_TREATMENT_CAPABILITIES"
-  const val DEFER_REMOTE_PUBLICATION_ENV: String = "SKILL_BILL_DEFER_REMOTE_PUBLICATION"
 
   const val GOAL_PARENT_ISSUE_KEY_FLAG: String = "--goal-parent-issue-key"
   const val GOAL_SUBTASK_ID_FLAG: String = "--goal-subtask-id"
@@ -31,7 +28,4 @@ object FeatureTaskRuntimeGoalContinuationLaunchTokens {
   const val QUALITY_GATE_SELECTION_FLAG: String = "--quality-gate-selection"
   const val WORKFLOW_ID_FLAG: String = "--workflow-id"
   const val AGENT_ADDON_SELECTION_JSON_FLAG: String = "--agent-addon-selection-json"
-  const val GOAL_EXPERIMENT_ARM_ID_FLAG: String = "--goal-experiment-arm-id"
-  const val GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_FLAG: String = "--goal-experiment-treatment-capabilities"
-  const val DEFER_REMOTE_PUBLICATION_FLAG: String = "--defer-remote-publication"
 }

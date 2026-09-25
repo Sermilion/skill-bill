@@ -9,8 +9,10 @@ internal const val FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY: String =
 const val FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_REASON_MAX_LENGTH: Int = 1000
 internal const val FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_REASON_KEY: String = "reason"
 internal const val FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_RETRIED_AT_KEY: String = "retried_at"
-internal const val FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_PREVIOUS_BLOCKED_REASON_KEY: String = "previous_blocked_reason"
-internal const val FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_REOPENED_PHASE_IDS_KEY: String = "reopened_phase_ids"
+internal const val FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_PREVIOUS_BLOCKED_REASON_KEY: String =
+  "previous_blocked_reason"
+internal const val FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_REOPENED_PHASE_IDS_KEY: String =
+  "reopened_phase_ids"
 
 internal const val FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY: String =
   "goal_continuation_field_adoption"

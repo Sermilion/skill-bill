@@ -17,7 +17,7 @@ class GoalRunExitCodeTest {
         issueKey = "SKILL-371",
         attemptedSubtasks = emptyList(),
         pullRequestUrl = null,
-        pullRequestStatus = GoalPullRequestStatus.DEFERRED,
+        pullRequestStatus = GoalPullRequestStatus.OPENED,
         subtasksCompleted = 1,
         subtasksPending = 0,
         subtasksBlocked = 0,

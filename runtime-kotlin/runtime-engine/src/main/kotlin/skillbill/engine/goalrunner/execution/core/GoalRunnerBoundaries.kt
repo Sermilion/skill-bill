@@ -26,7 +26,6 @@ data class GoalRunnerRunBoundaries(
   val executionCoordinator: GoalRunnerExecutionCoordinator,
   val phaseRecorder: FeatureTaskRuntimePhaseRecorder?,
   val unaddressedFindingsLedgerService: UnaddressedFindingsLedgerService?,
-  val experimentSelection: ExperimentSelectionPort,
 )
 
 @Inject

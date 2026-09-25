@@ -20,6 +20,7 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import java.time.Clock
+import kotlin.random.Random
 
 data class OutcomeStoreTestArtifactPorts(
   val goalObservabilityEventValidator: FeatureTaskRuntimeWireArtifactValidator =
@@ -47,6 +48,7 @@ fun engineWorkflowGoalRunnerManifestStore(
     decompositionManifestValidator = decompositionManifestValidator,
     decompositionManifestStore = decompositionManifestStore,
     clock = clock,
+    random = Random.Default,
     decompositionManifestWriter = decompositionManifestWriter,
     repositoryRoot = repositoryRoot,
     planningHydrator = planningHydrator,
