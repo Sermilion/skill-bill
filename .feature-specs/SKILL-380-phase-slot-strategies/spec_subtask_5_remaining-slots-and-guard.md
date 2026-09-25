@@ -51,6 +51,12 @@ today are measured by the runtime after the step:
   (status, summary, prose value, optional verdict, failure disposition when not
   completed) for every step except the three `code_review` steps. Drop
   `produced_outputs` shapes and `derived_notes` from those prompts.
+- Extend the durable settlement directive `c42bc4886` added for preplan, plan, and
+  implement (`settlementDirective`, pinned `workflow_id` and `attempt`) to every step
+  that now settles with the uniform output, whenever `PhaseRunState` supplies a
+  settlement target. Delete `SETTLEMENT_PHASE_IDS` and `settlesThroughMcp`; the target
+  and the strategy decide. With no target the prompt carries only the minimal
+  final-object instruction.
 - Shrink phase-output contract validation for those steps to status, non-blank value,
   and failure disposition. Follow the governed-contract rules for the phase-output
   contract: bump its version, keep a parity test, and keep older stored envelopes

@@ -133,10 +133,15 @@ Every step of every composition goes in and comes out the same way.
 **Today.** Every step prompt ends with the shared `outputContract()` section: a final
 JSON object checked by a "validated schema gate" against the phase-output contract
 (`contract_version`, `phase_id`, `status`, `failure_disposition`, `summary`,
-`produced_outputs` with per-step required shapes, `derived_notes`, `verdict`). Preplan,
-plan, implement, simplify, and audit put prose in `produced_outputs.value` and may also
-settle through the MCP tools `feature_task_phase_complete` / `feature_task_phase_block`,
-which accept only those five step ids. `ProsePhaseOutputSynthesizer` recovers their
+`produced_outputs` with per-step required shapes, `derived_notes`, `verdict`). Since
+`c42bc4886` (2026-09-25), preplan, plan, and implement prompts carry a durable
+settlement directive (`FeatureTaskRuntimePhasePromptSettlementDirectives`, keyed by its
+own `SETTLEMENT_PHASE_IDS`): they pin `workflow_id` and `attempt` from a
+`FeatureTaskRuntimePhaseSettlementTarget` and finish through the MCP tools
+`feature_task_phase_complete` / `feature_task_phase_block` with one prose value, the
+printed envelope demoted to a fallback. Simplify and audit put prose in
+`produced_outputs.value` of the printed envelope. The MCP tools accept only those five
+prose step ids. `ProsePhaseOutputSynthesizer` recovers their
 final object leniently, but only for those five ids, and it hard-codes audit's verdict
 rules.
 
@@ -148,12 +153,18 @@ rules.
 - **Output:** the settlement shape (`SettlementEnvelopeRequest`): a status
   (`completed`, `blocked`, `failed`), one prose `value`, a `summary`, an optional
   one-word `verdict`, and `failure_disposition` when not completed.
-- **Channel:** a minimal final object with only those fields, which the runner reads
-  leniently for any step name, including phase-run steps and operation steps that
-  have no workflow. In the skeleton the MCP settlement tools stay an accepted
-  alternative; their accepted set grows with each step that moves (subtasks 4 and 5),
-  and `feature_task_phase_block` gains the optional `verdict` the settlement request
-  already carries.
+- **Channel, from `PhaseRunState`:** the state supplies the settlement target.
+  - Durable runs have one (workflow id and attempt), so every step that settles with
+    the uniform output finishes through the MCP settlement tools, as preplan, plan, and
+    implement already do. The printed minimal object stays a fallback.
+  - In-memory and goal-planning runs, and operation steps, have no workflow, so they
+    get no target and finish with the minimal final object, which the runner reads
+    leniently for any step name.
+  - The tools' accepted set grows with each step that moves (subtasks 4 and 5), and
+    `feature_task_phase_block` gains the optional `verdict` the settlement request
+    already carries.
+  - `SETTLEMENT_PHASE_IDS` goes: whether a step settles through the tools follows from
+    the state's target and the step's strategy, not from a phase-id set.
 - **No schema on agent-written content.** The runner checks only the status, a
   non-blank value, and `failure_disposition` when not completed. Phase-output contract
   validation shrinks to that for every step except the three `code_review` steps. The

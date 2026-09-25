@@ -45,9 +45,9 @@ new `RuntimeComponent` accessor, and `PhaseRunRequest`, `PhaseRunResult`, and
 Telemetry uses `invocation_id`, no `workflow_id`; every start, finish, fail, and
 fallback emits a record.
 
-**Settlement.** Steps run without a workflow, so they settle only through the minimal
-final object that subtask 5 made readable for any step name (parent "Phase input and
-output").
+**Settlement.** The in-memory state supplies no settlement target, so steps get no
+MCP settlement directive and settle through the minimal final object that subtask 5
+made readable for any step name (parent "Phase input and output").
 
 **`phase review` (self-sufficient: finds and fixes).** Runs the `review` definition:
 the whole `code_review` slot, exactly as a full run does. It edits the worktree, creates

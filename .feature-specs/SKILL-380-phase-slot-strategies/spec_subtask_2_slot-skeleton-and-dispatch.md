@@ -53,7 +53,10 @@ KDoc.
   - Output: the parent "Phase input and output" shape (status, prose value, summary,
     optional verdict, failure disposition when not completed). In this subtask the
     runner keeps today's channels unchanged: the shared output-contract section, the
-    MCP settlement tools for the five prose steps, and today's final-object recovery.
+    durable settlement directive and MCP tools for preplan, plan, and implement
+    (`c42bc4886`), and today's final-object recovery. `PhaseRunState` supplies the
+    settlement target (`FeatureTaskRuntimePhaseSettlementTarget`) that the directive
+    pins.
     Subtask 5 replaces the output section and generalizes recovery to any step name.
   - The runner never decodes a step-specific envelope. Review, verify_findings,
     implement_fix, validate, write_history, and pr still emit structured envelopes
