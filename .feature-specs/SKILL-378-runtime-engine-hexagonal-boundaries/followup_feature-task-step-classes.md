@@ -48,7 +48,7 @@ class that mutates them, exposed read-only.
 Delete each `*Args`/`*Inputs`/`*Context` bag under `featuretask` that becomes
 unnecessary. A bag survives only as a named value with no collaborator field.
 
-**Guards and docs.** Widen subtask 3's step-class rule in
+**Guards and docs.** Widen the goal-runner follow-up's step-class rule in
 `RuntimeEngineBoundaryArchitectureTest` to `skillbill.engine.featuretask`.
 The rule fails when `featuretask/runloop` declares a top-level `object` with
 functions, or when a bag class under `skillbill.engine.featuretask` has a
@@ -103,7 +103,7 @@ form and the 2026-09-17 bag census. `LongParameterList.functionThreshold` stays 
 
 ## Dependency notes
 
-Runs after subtask 3, which introduces the step-class rule for `skillbill.engine.goalrunner`;
+Runs after `followup_goal-runner-step-classes-and-engine-surface.md`, which introduces the step-class rule for `skillbill.engine.goalrunner`;
 subtask 2 made the run-loop graph acyclic. It does not wait for another
 issue. Restructure the feature-task call sites that exist now. Use typed
 snapshots, artifact accessors, and git results when they are already on the
@@ -124,7 +124,7 @@ infra-sqlite suites, and `bill-unit-test-value-check`.
 
 ## Next path
 
-This is the last SKILL-378 step; subtask 3 has already landed.
+This is the last SKILL-378 step.
 
 ## Spec Path
 

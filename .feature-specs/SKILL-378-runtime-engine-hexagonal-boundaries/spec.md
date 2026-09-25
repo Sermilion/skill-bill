@@ -33,14 +33,14 @@ sequence numbers.
 | Finding | Priority | Summary | Subtask |
 | --- | --- | --- | --- |
 | F-001 | High | Experiment support has no reachable experiment | 1 |
-| F-002 | High | Procedural run loop and goal runner: stateless objects, 134 bags, public getters, hand-built collaborators | 2 (feature task), 3 (goal runner) |
+| F-002 | High | Procedural run loop and goal runner: stateless objects, 134 bags, public getters, hand-built collaborators | 2 and feature-task follow-up (feature task), goal-runner follow-up (goal runner) |
 | F-003 | High (plausible) | Progress/ledger sequence numbers allocated by independent in-memory counters | 3 |
 | F-004 | Medium | `[SQLITE_BUSY]` message text classifies live failures | 2 |
-| F-005 | Medium | 265 public types with no outside consumer; visibility guard inert | 3 |
+| F-005 | Medium | 265 public types with no outside consumer; visibility guard inert | goal-runner follow-up |
 | F-006 | Medium | Four durable reads swallow failures | 3 |
 | F-007 | Medium | Goal runner reads through the run loop's write facade | 3 |
 | F-008 | Medium | Guards skip the engine; six test-only null objects; three ambient clock reads | 1 |
-| F-009 | Low | 38 re-export typealiases | 3 |
+| F-009 | Low | 38 re-export typealiases | goal-runner follow-up |
 | F-010 | Low | Inline wire keys (the unused serialization dependency belongs to SKILL-374) | 2 |
 
 ## Acceptance Criteria
@@ -84,11 +84,11 @@ sequence numbers.
 
 ## Executable scope
 
-Three goal subtasks plus one follow-up spec that runs after subtask 3.
-The goal was already launched with three subtasks, and the runtime cannot add
-one, so the follow-up runs outside the goal once it completes. Subtask 3
-introduces the step-class rule for the goal runner; the follow-up extends it to
-`featuretask`.
+Three goal subtasks plus two follow-up specs that run after the goal, in order:
+`followup_goal-runner-step-classes-and-engine-surface.md` (goal-runner step
+classes, aliases, visibility, raw maps; introduces the step-class rule), then
+`followup_feature-task-step-classes.md` (widens the rule to `featuretask`). The
+goal was already launched with three subtasks and the runtime cannot add one.
 
 1. Delete experiment support and close engine guard gaps
    (`spec_subtask_1_delete-experiments-and-close-inner-layer-gaps.md`).
@@ -109,12 +109,12 @@ introduces the step-class rule for the goal runner; the follow-up extends it to
    the conversion to classes is a mechanical implement pass. It is split
    from subtask 2 because two attempts at doing both in one pass blocked on
    the cycles.
-3. Goal-runner step classes, sequences, reads, and engine surface
-   (`spec_subtask_3_goal-runner-step-classes-and-engine-surface.md`). It covers a
-   second area of about 8,000 lines, plus goal-runner coordination files if they
-   have already moved into the engine. It introduces the step-class rule for the goal runner, which the
-   follow-up then extends to `featuretask`. The alias, visibility, and raw-map work closes the public
-   surface after both restructurings.
+3. Goal-runner sequences, reads, and silent reads
+   (`spec_subtask_3_goal-runner-step-classes-and-engine-surface.md`; the file
+   name predates the split). Sequence allocation in the write, a read-only phase
+   query, and typed or recorded silent reads. Its step-class, alias, visibility,
+   and raw-map scope moved to the goal-runner follow-up after one implement pass
+   carried only the sequence work.
 
 This bundle runs on the current tree. It does not wait for a subtask of another issue.
 
