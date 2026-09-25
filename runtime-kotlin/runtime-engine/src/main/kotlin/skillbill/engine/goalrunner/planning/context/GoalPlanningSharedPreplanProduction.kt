@@ -7,7 +7,6 @@ import skillbill.application.decomposition.specSource
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.planning.attempt.producePhase
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseContext

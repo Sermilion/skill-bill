@@ -24,8 +24,8 @@ import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
+import skillbill.error.core.ShellContentContractException
 import skillbill.error.shellcontent.ReviewAggregationIntegrityError
-import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.workflow.model.goalreview.toReviewAccountingBoundedJson
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes

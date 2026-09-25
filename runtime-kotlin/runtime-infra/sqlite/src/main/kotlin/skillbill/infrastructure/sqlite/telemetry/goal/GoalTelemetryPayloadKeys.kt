@@ -1,0 +1,25 @@
+package skillbill.infrastructure.sqlite.telemetry.goal
+
+object GoalTelemetryPayloadKeys {
+  const val SUBTASK_TOTAL: String = "subtask_total"
+  const val RESUMED: String = "resumed"
+  const val STARTED_AT: String = "started_at"
+  const val FINISHED_AT: String = "finished_at"
+  const val SUBTASKS_COMPLETE: String = "subtasks_complete"
+  const val SUBTASKS_BLOCKED: String = "subtasks_blocked"
+  const val SUBTASKS_SKIPPED: String = "subtasks_skipped"
+  const val STOP_REASON: String = "stop_reason"
+  const val PARENT_WORKFLOW_ID: String = "parent_workflow_id"
+  const val TOTAL_INVOCATIONS: String = "total_invocations"
+  const val TOTAL_BLOCKS: String = "total_blocks"
+  const val TOTAL_RESUMES: String = "total_resumes"
+  const val FIRST_STARTED_AT: String = "first_started_at"
+  const val ATTEMPT_COUNT: String = "attempt_count"
+  const val BLOCKED_REASON: String = "blocked_reason"
+  const val SUBTASK_NAME: String = "subtask_name"
+  const val FINALIZING_AGENT_ID: String = "finalizing_agent_id"
+  const val PARTICIPATING_AGENT_IDS: String = "participating_agent_ids"
+  const val BOUNDARY_HISTORY_WRITTEN: String = "boundary_history_written"
+  const val BOUNDARY_HISTORY_VALUE: String = "boundary_history_value"
+  const val FEATURE_NAME: String = "feature_name"
+}

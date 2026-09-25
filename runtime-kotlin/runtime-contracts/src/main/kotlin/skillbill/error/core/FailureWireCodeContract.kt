@@ -1,8 +1,5 @@
 package skillbill.error.core
 
-import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
-import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
-import skillbill.error.shellcontent.ShellContentContractException
 import kotlin.enums.EnumEntries
 
 interface FailureWireCode {
@@ -15,9 +12,6 @@ class UnrecognizedFailureWireCodeError(
 ) : ShellContentContractException(
     "Unrecognized failure wire code '$rejectedToken' for hierarchy '$hierarchy'.",
   )
-
-fun coarseFailureKindForPhaseOutputWireCode(wireCode: String): FeatureTaskRuntimePhaseOutputFailureKind =
-  FeatureTaskRuntimePhaseOutputFailureCode.fromWire(wireCode).coarseFailureKind
 
 fun <E> Array<E>.failureWireByValue(
   value: String,

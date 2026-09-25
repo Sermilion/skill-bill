@@ -3,7 +3,7 @@ package skillbill.mcp.workflow
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 
 internal fun WorkflowContinueResult.Standard.toStandardMcpMap(): Map<String, Any?> =
   standardMcpContinueMap(view, dbPath)

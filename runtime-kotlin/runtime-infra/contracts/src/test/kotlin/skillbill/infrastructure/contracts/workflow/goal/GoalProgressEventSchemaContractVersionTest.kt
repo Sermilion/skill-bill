@@ -3,7 +3,7 @@ package skillbill.infrastructure.contracts.workflow.goal
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.goal.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
-import skillbill.contracts.workflow.goal.GoalProgressEventSchemaPaths
+import skillbill.infrastructure.contracts.locator.GoalProgressEventSchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

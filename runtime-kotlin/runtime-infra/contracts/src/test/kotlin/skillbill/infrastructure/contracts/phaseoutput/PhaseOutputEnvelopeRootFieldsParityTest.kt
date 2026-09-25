@@ -1,7 +1,7 @@
 package skillbill.infrastructure.contracts.phaseoutput
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.infrastructure.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputWireSchema
 import kotlin.test.Test
 import kotlin.test.assertEquals

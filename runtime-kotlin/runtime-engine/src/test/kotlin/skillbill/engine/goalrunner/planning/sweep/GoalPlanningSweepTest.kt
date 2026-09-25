@@ -7,8 +7,8 @@ import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
-import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID
+import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_SCHEMA_ID
 import skillbill.engine.PlanningProjectionFixtures
 import skillbill.engine.disposition
 import skillbill.engine.envelope
@@ -3131,7 +3131,7 @@ private class InMemoryPreparationRepository(
       GoalPlanningContractProvenance(
         record.provenance.parentSpecHash,
         record.provenance.decompositionManifestHash,
-        GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+        GOAL_PLANNING_PREPARATION_SCHEMA_ID,
       )
     sharedPreplan =
       SharedGoalPreplanCheckpoint(
@@ -3634,8 +3634,8 @@ private fun recoverabilityCheckpoint(
     GoalPlanningContractProvenance(
       parentSpecHash = sha256HexUtf8(parentSpec),
       decompositionManifestHash = "manifest-hash",
-      planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
-      phaseOutputContractId = FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID,
+      planningContractId = GOAL_PLANNING_PREPARATION_SCHEMA_ID,
+      phaseOutputContractId = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID,
     )
   return SharedGoalPreplanCheckpoint(
     identity = GoalPlanningIdentity("wfl-parent", "SKILL-56", "repo-root-realpath-v1:/tmp/fixture"),

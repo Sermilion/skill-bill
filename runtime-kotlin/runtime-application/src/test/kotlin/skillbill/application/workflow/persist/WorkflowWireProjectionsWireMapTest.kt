@@ -1,8 +1,8 @@
 package skillbill.application.workflow.persist
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowCompactContinueView
 import skillbill.workflow.engine.model.WorkflowContinuationFieldMap

@@ -2,12 +2,12 @@ package skillbill.infrastructure.contracts.workflow.featuretask
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeReadinessEvidenceSchemaPaths
-import skillbill.contracts.workflow.identity.evidence.ReadinessEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError
+import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimeReadinessEvidenceSchemaPaths
 import skillbill.testing.repoRootFromTest
 import skillbill.workflow.taskruntime.artifact.decodeReadinessEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessCheckStatus
+import skillbill.workflow.taskruntime.model.validation.ReadinessEvidencePayloadKeys
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals

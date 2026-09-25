@@ -1,6 +1,14 @@
 package skillbill.architecture
 
-import skillbill.contracts.workflow.featuretask.DecompositionManifestSchemaPaths
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.review.ReviewFindingPayloadKeys
+import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
+import skillbill.contracts.review.ReviewVerificationSignalKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+import skillbill.infrastructure.contracts.locator.DecompositionManifestSchemaPaths
+import skillbill.infrastructure.sqlite.telemetry.SqliteReviewTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.telemetry.goal.GoalTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.SqliteLifecycleTelemetryMaterializationPayloadKeys
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -17,6 +25,62 @@ class WireVocabularyArchitectureTest {
     )
     assertEquals(0, report.remainingViolationCount)
     assertEquals(report.baselineViolationCount, report.remainingViolationCount)
+  }
+
+  @Test
+  fun `sqlite adapter key objects restate no shared payload key value`() {
+    val sharedValues =
+      payloadKeyValues(
+        SharedPayloadKeys::class.java,
+        LifecycleTelemetryPayloadKeys::class.java,
+        GoalTelemetryPayloadKeys::class.java,
+        ReviewFindingPayloadKeys::class.java,
+        ReviewFinishedTelemetryPayloadKeys::class.java,
+        ReviewVerificationSignalKeys::class.java,
+      )
+    val adapterOwners =
+      listOf(
+        SqliteLifecycleTelemetryMaterializationPayloadKeys::class.java,
+        SqliteReviewTelemetryPayloadKeys::class.java,
+      )
+
+    val restatements =
+      adapterOwners.flatMap { owner ->
+        (payloadKeyValues(owner) intersect sharedValues).sorted().map { value -> "${owner.simpleName}:$value" }
+      }
+
+    assertEquals(
+      emptyList(),
+      restatements,
+      "SQLite adapter key objects must reference the shared owner instead of restating its wire value",
+    )
+  }
+
+  @Test
+  fun `sqlite seams keep governing the values their adapter key objects handed to shared owners`() {
+    val reviewKeys =
+      WireVocabularyGovernedSeamInventory.closedSchemaPropertyKeys(
+        WireVocabularyGovernedSeamInventory.SQLITE_REVIEW_TELEMETRY_AUTHORITY,
+      )
+    val materializationKeys =
+      WireVocabularyGovernedSeamInventory.closedSchemaPropertyKeys(
+        WireVocabularyGovernedSeamInventory.SQLITE_TELEMETRY_MATERIALIZATION_AUTHORITY,
+      )
+
+    assertTrue(
+      reviewKeys.containsAll(
+        setOf("event_name", "gaps_found", "finished_at", "parent_workflow_id", "blocked_reason", "workflow_id"),
+      ),
+      "sqlite-review-telemetry lost a governed value when SqliteReviewTelemetryPayloadKeys dropped it",
+    )
+    assertTrue(
+      "session_id" !in reviewKeys && "audit_gap_measurement_grain" !in reviewKeys,
+      "sqlite-review-telemetry must not absorb lifecycle-only keys it never governed",
+    )
+    assertTrue(
+      materializationKeys.containsAll(setOf("event_name", "blocked_reason", "session_id", "workflow_id")),
+      "sqlite-telemetry-materialization lost a governed value when its adapter key object dropped it",
+    )
   }
 
   @Test

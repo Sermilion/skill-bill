@@ -2,6 +2,7 @@ package skillbill.contracts.workflow.featuretask
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
+import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimeCheckpointIdentitySchemaPaths
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

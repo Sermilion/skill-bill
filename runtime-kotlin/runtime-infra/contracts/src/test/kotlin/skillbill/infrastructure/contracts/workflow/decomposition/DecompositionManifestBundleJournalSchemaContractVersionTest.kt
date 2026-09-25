@@ -3,7 +3,7 @@ package skillbill.infrastructure.contracts.workflow.decomposition
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.decomposition.BUNDLE_JOURNAL_CONTRACT_VERSION
-import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
+import skillbill.infrastructure.contracts.locator.DecompositionManifestBundleJournalSchemaPaths
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import java.security.MessageDigest

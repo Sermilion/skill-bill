@@ -1,5 +1,7 @@
 package skillbill.error.shellcontent
 
+import skillbill.error.core.ShellContentContractException
+
 class InvalidInstallPlanSchemaError(
   val fieldPath: String,
   val reason: String,

@@ -2,7 +2,6 @@ package skillbill.infrastructure.workflow.decomposition
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.decomposition.DecompositionManifestBundleJournalPayloadKeys
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.infrastructure.host.jvm.atomicMoveReplacing

@@ -2,24 +2,22 @@ package skillbill.infrastructure.sqlite.telemetry.lifecycle
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.telemetry.AGENT_CONTEXT_MEASUREMENT_GRAIN_DISTINCT_PER_RUN
-import skillbill.contracts.telemetry.AUDIT_GAP_MEASUREMENT_GRAIN_PER_RUN
-import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleSessionCompletion
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.infrastructure.sqlite.core.ops.InternalSqliteDiagnostics
 import skillbill.infrastructure.sqlite.core.ops.degradedValuePreview
 import skillbill.infrastructure.sqlite.core.ops.recordDegradedValue
+import skillbill.infrastructure.sqlite.telemetry.goal.GoalTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.telemetry.redaction.redactIssueKey
 import skillbill.infrastructure.sqlite.telemetry.redaction.redactIssueKeyReferences
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.review.attribution.normalizeRoutedSkill
 import skillbill.review.attribution.normalizeStackLabel
 import skillbill.telemetry.model.PrDescriptionGeneratedRecord
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys as RevTelKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys as LifeKeys
-import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys as MatKeys
+import skillbill.infrastructure.sqlite.telemetry.SqliteReviewTelemetryPayloadKeys as RevTelKeys
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.SqliteLifecycleTelemetryMaterializationPayloadKeys as MatKeys
 
 internal fun featureTaskRuntimeStartedPayload(
   row: Map<String, Any?>,

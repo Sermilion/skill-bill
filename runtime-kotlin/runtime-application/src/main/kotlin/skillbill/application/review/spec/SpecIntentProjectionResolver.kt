@@ -5,7 +5,7 @@ import skillbill.application.decomposition.branchName
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.decomposition.repoRelativePath
 import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
-import skillbill.contracts.issuekey.issueKeyFromBranch
+import skillbill.contracts.issuekey.TRACKER_STYLE_ISSUE_KEY_PATTERN
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.model.toPath
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
@@ -42,7 +42,7 @@ class SpecIntentProjectionResolver(
         ),
       )
     }
-    val issueKey = issueKeyFromBranch(request.branchName)
+    val issueKey = TRACKER_STYLE_ISSUE_KEY.find(request.branchName)?.value?.uppercase()
     val fromManifest = resolveManifest(request, issueKey, degradations)
     if (fromManifest != null) return withDegradations(fromManifest, degradations)
     if (issueKey == null) {
@@ -211,6 +211,7 @@ class SpecIntentProjectionResolver(
     const val MANIFEST_UNREADABLE_REASON = "manifest_unreadable"
     const val PARENT_SPEC_UNAVAILABLE_SEAM = "SpecIntentProjectionResolver.parent_spec_unavailable"
     const val PARENT_SPEC_UNAVAILABLE_REASON = "parent_spec_unavailable"
+    val TRACKER_STYLE_ISSUE_KEY = Regex("(?i)$TRACKER_STYLE_ISSUE_KEY_PATTERN")
 
     fun prefix(specPath: String): String {
       val directory = specPath.substringBeforeLast('/', "")

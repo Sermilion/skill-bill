@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.networknt.schema.JsonSchema
 import skillbill.error.core.InvalidNativeAgentLinkInventoryDecodeError
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.infrastructure.contracts.sha256Hex
 import skillbill.infrastructure.skills.install.nativeagent.parseEmbeddedLogicalName
 import skillbill.install.model.SupportedAgent

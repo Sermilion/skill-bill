@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite.review.accounting
 
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.telemetry.SqliteReviewTelemetryPayloadKeys
 
 private const val LEGACY_EVIDENCE_UNREVIEWABLE_SEGMENT_ID: String = "evidence-unreviewable"
 

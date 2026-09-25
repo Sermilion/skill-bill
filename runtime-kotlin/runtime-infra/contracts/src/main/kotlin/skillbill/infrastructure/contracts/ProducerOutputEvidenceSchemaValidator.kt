@@ -3,8 +3,8 @@ import com.networknt.schema.JsonSchema
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.output.PRODUCER_OUTPUT_EVIDENCE_CONTRACT_VERSION
-import skillbill.contracts.workflow.identity.output.ProducerOutputEvidenceSchemaPaths
 import skillbill.error.shellcontent.InvalidProducerOutputEvidenceSchemaError
+import skillbill.infrastructure.contracts.locator.ProducerOutputEvidenceSchemaPaths
 import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 

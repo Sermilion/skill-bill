@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.runtime.validation
 
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.declaredCodeReviewSkillNames
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack

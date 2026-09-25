@@ -1,7 +1,5 @@
 package skillbill.error.core
 
-import skillbill.error.shellcontent.ShellContentContractException
-
 class MalformedJsonTextError(cause: Throwable) : ShellContentContractException(
   "JSON text is malformed: ${cause.message.orEmpty()}",
   cause,
@@ -12,5 +10,3 @@ class JsonWrongRootTypeError(expectedRoot: String) : ShellContentContractExcepti
 )
 
 class UnsupportedJsonValueError(message: String) : ShellContentContractException(message)
-
-class JsonIntegerOutOfRangeError(message: String) : ShellContentContractException(message)

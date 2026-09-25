@@ -1,5 +1,7 @@
 package skillbill.error.shellcontent
 
+import skillbill.error.core.ShellContentContractException
+
 class InvalidAgentAddonSchemaError(
   val sourceLabel: String,
   val reason: String,

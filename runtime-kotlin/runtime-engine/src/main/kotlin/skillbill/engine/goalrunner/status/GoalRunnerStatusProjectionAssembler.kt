@@ -20,7 +20,7 @@ import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
 import skillbill.engine.goalrunner.planning.model.GoalPlanningStatusAlignRequest
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningStatusReasonCoherence
 import skillbill.engine.goalrunner.planning.recovery.resolveChildExecutionLiveness
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.goalrunner.model.GoalRunnerStatusProjection

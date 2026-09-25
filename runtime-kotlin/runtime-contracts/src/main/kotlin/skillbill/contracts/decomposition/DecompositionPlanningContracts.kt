@@ -5,8 +5,6 @@ import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import java.math.BigDecimal
 import java.math.BigInteger
 
-const val DECOMPOSITION_PLANNING_CONTRACT_VERSION: String = "1"
-
 data class DecompositionPlanningDependencyWire(
   val subtaskId: Int,
   val optional: Boolean = false,

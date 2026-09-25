@@ -1,5 +1,7 @@
 package skillbill.error.shellcontent
 
+import skillbill.error.core.ShellContentContractException
+
 class UnaddressedFindingsLedgerAbsentError(message: String) : ShellContentContractException(message)
 
 class InvalidUnaddressedFindingsLedgerSchemaError(message: String) : ShellContentContractException(message)

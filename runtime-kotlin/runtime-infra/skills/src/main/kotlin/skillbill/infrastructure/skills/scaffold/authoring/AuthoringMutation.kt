@@ -1,7 +1,7 @@
 package skillbill.infrastructure.skills.scaffold.authoring
 
+import skillbill.error.core.ShellContentContractException
 import skillbill.error.core.SkillBillRuntimeException
-import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
 import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill

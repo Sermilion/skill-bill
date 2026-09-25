@@ -3,7 +3,7 @@ package skillbill.infrastructure.skills.install.nativeagent.inventory
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.nativeagent.NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION
 import skillbill.error.core.InvalidNativeAgentLinkInventoryWriteError
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.infrastructure.host.jvm.atomicMoveReplacing
 import java.io.IOException
 import java.nio.file.Files

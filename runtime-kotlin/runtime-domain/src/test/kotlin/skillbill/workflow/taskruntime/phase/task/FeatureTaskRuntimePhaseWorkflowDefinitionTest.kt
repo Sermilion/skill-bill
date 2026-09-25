@@ -1,7 +1,7 @@
 package skillbill.workflow.taskruntime.phase.task
 
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.workflow.workflow.WORKFLOW_STATE_CONTRACT_VERSION
+import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot

@@ -40,6 +40,90 @@ class ApplicationPackageAcyclicityArchitectureTest {
   }
 
   @Test
+  fun `runtime-contracts cycle scan sees error and contracts subpackage back edges`() {
+    val scanCase =
+      PrincipleEnforcementInventory.moduleArchitectureScanCases
+        .single { scanCase -> scanCase.moduleName == "runtime-contracts" }
+    val root = Files.createTempDirectory("architecture-contracts-subpackage-cycle")
+    try {
+      writeContractsSubpackageFixture(root, errorCoreImportsShellContent = false)
+      assertEquals(
+        emptyList(),
+        ArchitectureScanSupport.packageCycleViolations(
+          baselineCycles = emptySet(),
+          scanRoot = root.toString(),
+          packagePrefix = scanCase.packagePrefix,
+          granularity = scanCase.packageCycleGranularity,
+        ),
+      )
+      writeContractsSubpackageFixture(root, errorCoreImportsShellContent = true)
+      assertEquals(
+        listOf(
+          "New package cycle not in baseline: " +
+            "skillbill.contracts.review <-> skillbill.contracts.workflow.featuretask",
+          "New package cycle not in baseline: skillbill.error.core <-> skillbill.error.shellcontent",
+        ),
+        ArchitectureScanSupport.packageCycleViolations(
+          baselineCycles = emptySet(),
+          scanRoot = root.toString(),
+          packagePrefix = scanCase.packagePrefix,
+          granularity = scanCase.packageCycleGranularity,
+        ),
+      )
+    } finally {
+      root.toFile().deleteRecursively()
+    }
+  }
+
+  private fun writeContractsSubpackageFixture(
+    root: Path,
+    errorCoreImportsShellContent: Boolean,
+  ) {
+    val errorBackEdge =
+      if (errorCoreImportsShellContent) "import skillbill.error.shellcontent.ShellContentFailure" else ""
+    val contractsBackEdge =
+      if (errorCoreImportsShellContent) "import skillbill.contracts.workflow.featuretask.FeatureTaskKeys" else ""
+    writeFixtureFile(
+      root,
+      "skillbill/error/core/CoreFailure.kt",
+      listOf("package skillbill.error.core", errorBackEdge, "open class CoreFailure"),
+    )
+    writeFixtureFile(
+      root,
+      "skillbill/error/shellcontent/ShellContentFailure.kt",
+      listOf(
+        "package skillbill.error.shellcontent",
+        "import skillbill.error.core.CoreFailure",
+        "class ShellContentFailure : CoreFailure()",
+      ),
+    )
+    writeFixtureFile(
+      root,
+      "skillbill/contracts/review/ReviewKeys.kt",
+      listOf("package skillbill.contracts.review", contractsBackEdge, "object ReviewKeys"),
+    )
+    writeFixtureFile(
+      root,
+      "skillbill/contracts/workflow/featuretask/FeatureTaskKeys.kt",
+      listOf(
+        "package skillbill.contracts.workflow.featuretask",
+        "import skillbill.contracts.review.ReviewKeys",
+        "object FeatureTaskKeys",
+      ),
+    )
+  }
+
+  private fun writeFixtureFile(
+    root: Path,
+    relativePath: String,
+    lines: List<String>,
+  ) {
+    val file = root.resolve(relativePath)
+    Files.createDirectories(file.parent)
+    file.writeText(lines.joinToString("\n"))
+  }
+
+  @Test
   fun `runtime-core package cycles equal the recorded census`() {
     assertPackageCyclesMatchBaseline("runtime-core")
   }

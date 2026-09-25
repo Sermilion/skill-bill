@@ -2,10 +2,10 @@ package skillbill.workflow.failureidentity
 
 import skillbill.error.core.FailureWireCode
 import skillbill.error.core.UnrecognizedFailureWireCodeError
-import skillbill.error.core.coarseFailureKindForPhaseOutputWireCode
+import skillbill.error.featuretask.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
-import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
-import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureKind
+import skillbill.error.featuretask.coarseFailureKindForPhaseOutputWireCode
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import kotlin.test.Test
 import kotlin.test.assertEquals

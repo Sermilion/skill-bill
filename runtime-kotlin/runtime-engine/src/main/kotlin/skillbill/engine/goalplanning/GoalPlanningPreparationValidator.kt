@@ -3,7 +3,7 @@ package skillbill.engine.goalplanning
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID
 import skillbill.engine.planningprojection.requireValidPlanningProjection
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
@@ -90,7 +90,7 @@ class GoalPlanningPreparationValidator(
       record.provenance.parentSpecHash.isBlank() -> "provenance.parent_spec_hash is required"
       record.provenance.subSpecHash.isBlank() -> "provenance.sub_spec_hash is required"
       record.provenance.decompositionManifestHash.isBlank() -> "provenance.decomposition_manifest_hash is required"
-      record.provenance.phaseOutputContractId != FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID ->
+      record.provenance.phaseOutputContractId != FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID ->
         "provenance.phase_output_contract_id must be the feature-task-runtime phase output schema id"
       record.provenance.phaseOutputContractVersion != FEATURE_TASK_RUNTIME_CONTRACT_VERSION ->
         "provenance.phase_output_contract_version must be '$FEATURE_TASK_RUNTIME_CONTRACT_VERSION'; existing " +

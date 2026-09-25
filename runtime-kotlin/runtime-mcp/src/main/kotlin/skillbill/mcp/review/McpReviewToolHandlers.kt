@@ -5,11 +5,7 @@ import skillbill.application.learning.toLearningRecordContract
 import skillbill.application.learning.toLearningResolveContract
 import skillbill.application.review.service.toReviewFinishedTelemetryPayload
 import skillbill.contracts.learning.LearningPayloadKeys
-import skillbill.contracts.mcp.McpLearningsSkippedContract
-import skillbill.contracts.mcp.McpOrchestratedPayloadContract
-import skillbill.contracts.mcp.McpReviewImportSkippedContract
 import skillbill.contracts.mcp.McpToolPayloadKeys
-import skillbill.contracts.mcp.McpTriageSkippedContract
 import skillbill.learnings.model.LearningScope
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.McpToolArguments

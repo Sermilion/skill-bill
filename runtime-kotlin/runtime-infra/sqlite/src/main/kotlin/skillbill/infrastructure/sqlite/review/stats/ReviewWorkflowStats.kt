@@ -1,9 +1,9 @@
 package skillbill.infrastructure.sqlite.review.stats
 
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
-import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.telemetry.SqliteReviewTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.telemetry.goal.GoalTelemetryPayloadKeys
 import skillbill.review.model.FeatureTaskRuntimeWorkflowStats
 import skillbill.review.model.FeatureVerifyWorkflowStats
 import java.sql.Connection

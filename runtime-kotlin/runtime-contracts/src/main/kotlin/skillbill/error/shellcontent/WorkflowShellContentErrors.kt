@@ -1,5 +1,7 @@
 package skillbill.error.shellcontent
 
+import skillbill.error.core.ShellContentContractException
+
 open class InvalidWorkflowStateSchemaError(
   message: String,
   cause: Throwable? = null,
@@ -41,15 +43,6 @@ class InvalidRejectedOutputDiagnosticSchemaError(message: String) :
   ShellContentContractException(message)
 
 class InvalidProducerOutputEvidenceSchemaError(message: String) :
-  ShellContentContractException(message)
-
-class InvalidGoalPlanningDiscoveryExclusionsSchemaError(message: String) :
-  ShellContentContractException(message)
-
-class InvalidGoalVerificationBoundaryCapsSchemaError(message: String) :
-  ShellContentContractException(message)
-
-class InvalidIssueKeySchemaError(message: String) :
   ShellContentContractException(message)
 
 class GoalVerificationBoundaryCapExceededError(message: String) :

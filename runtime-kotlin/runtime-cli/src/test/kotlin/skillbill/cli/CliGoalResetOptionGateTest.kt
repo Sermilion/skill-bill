@@ -1,11 +1,11 @@
 package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
+import skillbill.cli.goal.control.GoalRunnerResetPayloadKeys
 import skillbill.cli.goal.control.goalResetText
 import skillbill.cli.goal.control.toGoalResetCliMap
 import skillbill.cli.goal.core.goalResetExitCode
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.goalrunner.GoalRunnerResetPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerResetResult
 import skillbill.engine.goalrunner.model.GoalRunnerResetSnapshot
 import kotlin.test.Test

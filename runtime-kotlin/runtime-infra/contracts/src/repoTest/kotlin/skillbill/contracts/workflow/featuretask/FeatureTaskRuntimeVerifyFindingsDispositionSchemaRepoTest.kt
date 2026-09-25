@@ -1,7 +1,7 @@
 package skillbill.contracts.workflow.featuretask
 
 import org.yaml.snakeyaml.Yaml
-import skillbill.contracts.goalplanning.GoalVerificationBoundaryCaps
+import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test
@@ -66,7 +66,7 @@ class FeatureTaskRuntimeVerifyFindingsDispositionSchemaRepoTest {
     val properties = dispositionItems["properties"] as Map<*, *>
     assertTrue(properties.containsKey("boundary_context_unavailable"))
     val selectedHeadings = properties["selected_boundary_headings"] as Map<*, *>
-    assertEquals(GoalVerificationBoundaryCaps.maxSelectedBodies, selectedHeadings["maxItems"])
+    assertEquals(GoalPlanningContext.VERIFICATION_MAX_SELECTED_BODIES, selectedHeadings["maxItems"])
     val provenance = (selectedHeadings["items"] as Map<*, *>)["\$ref"] as String
     assertEquals("#/\$defs/verificationBoundaryHeadingProvenance", provenance)
   }

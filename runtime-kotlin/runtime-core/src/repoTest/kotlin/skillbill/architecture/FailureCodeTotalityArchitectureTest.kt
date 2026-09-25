@@ -1,9 +1,9 @@
 package skillbill.architecture
 
 import skillbill.error.core.FailureWireCode
+import skillbill.error.featuretask.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
-import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
-import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import kotlin.test.Test
 import kotlin.test.assertEquals

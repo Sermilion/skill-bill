@@ -11,7 +11,7 @@ import skillbill.application.review.snapshot.harnessRequest
 import skillbill.application.review.snapshot.reviewHarness
 import skillbill.application.review.snapshot.reviewPack
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.contracts.learning.LearningPayloadKeys
 import skillbill.learnings.model.LearningRecord
 import skillbill.learnings.model.LearningScope
 import skillbill.ports.repository.RepositoryOriginScopeKeyPort
@@ -72,12 +72,12 @@ class ParallelReviewLearningsDeliveryTest {
     val telemetryRow = persistedSessionRow(sessionJson)
     assertEquals(
       result.appliedLearnings,
-      telemetryRow[SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNINGS],
+      telemetryRow[LearningPayloadKeys.APPLIED_LEARNINGS],
       "Finished-review telemetry reads applied_learnings from this row; it must match the printed summary.",
     )
     assertEquals(
       listOf("L-001", "L-002", "L-003"),
-      JsonCodec.anyToStringList(telemetryRow[SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNING_REFERENCES]),
+      JsonCodec.anyToStringList(telemetryRow[LearningPayloadKeys.APPLIED_LEARNING_REFERENCES]),
     )
   }
 
@@ -89,7 +89,7 @@ class ParallelReviewLearningsDeliveryTest {
     assertEquals(1, recorder.savedSessionLearnings.size, "An empty resolution still owns one session_learnings row.")
     val (sessionId, sessionJson) = recorder.savedSessionLearnings.single()
     assertEquals(result.reviewSessionId, sessionId)
-    assertEquals("none", persistedSessionRow(sessionJson)[SqliteReviewTelemetryPayloadKeys.APPLIED_LEARNINGS])
+    assertEquals("none", persistedSessionRow(sessionJson)[LearningPayloadKeys.APPLIED_LEARNINGS])
   }
 
   @Test fun `a repository without an origin remote still resolves global and skill learnings`() {

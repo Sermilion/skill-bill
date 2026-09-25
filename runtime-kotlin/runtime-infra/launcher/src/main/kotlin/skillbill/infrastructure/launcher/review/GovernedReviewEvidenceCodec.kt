@@ -3,9 +3,6 @@ package skillbill.infrastructure.launcher.review
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.JsonPayloadContract
 import skillbill.contracts.review.GovernedReviewEvidenceContracts
-import skillbill.contracts.review.GovernedReviewEvidencePayloadKeys
-import skillbill.contracts.review.GovernedReviewToolSpecList
-import skillbill.contracts.review.GovernedReviewWirePayload
 import skillbill.error.core.InvalidGovernedReviewEvidenceRequestError
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewEvidenceBatchResult

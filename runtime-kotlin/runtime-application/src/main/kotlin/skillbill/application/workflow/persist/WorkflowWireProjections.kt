@@ -3,7 +3,7 @@ package skillbill.application.workflow.persist
 import skillbill.contracts.JsonPayloadContract
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.WorkflowCompactContinueView
 import skillbill.workflow.engine.model.WorkflowContinuationArtifactSummary
 import skillbill.workflow.engine.model.WorkflowContinueView

@@ -1,6 +1,6 @@
 package skillbill.workflow.taskruntime.handoff
 
-import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
+import skillbill.error.featuretask.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeCompactReferenceKind

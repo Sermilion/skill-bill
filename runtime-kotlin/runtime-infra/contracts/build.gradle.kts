@@ -206,4 +206,9 @@ governedResources {
     "experiment-report-schema.yaml",
     "SKILL-366: canonical experiment report schema",
   )
+  copy(
+    "copyIssueKeySchema",
+    "issue-key-schema.yaml",
+    "canonical issue-key schema",
+  )
 }

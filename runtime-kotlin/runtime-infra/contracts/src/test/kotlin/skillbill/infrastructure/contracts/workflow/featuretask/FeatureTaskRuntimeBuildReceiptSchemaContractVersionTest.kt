@@ -3,8 +3,8 @@ package skillbill.infrastructure.contracts.workflow.featuretask
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeBuildReceiptSchemaPaths
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeBuildReceiptSchemaError
+import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimeBuildReceiptSchemaPaths
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test

@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.planning
 
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
@@ -63,7 +63,7 @@ private fun provenanceFailure(record: GoalPlanningPreparationRecord): String? =
     record.provenance.parentSpecHash.isBlank() -> "provenance.parent_spec_hash is required"
     record.provenance.subSpecHash.isBlank() -> "provenance.sub_spec_hash is required"
     record.provenance.decompositionManifestHash.isBlank() -> "provenance.decomposition_manifest_hash is required"
-    record.provenance.phaseOutputContractId != FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID ->
+    record.provenance.phaseOutputContractId != FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID ->
       "provenance.phase_output_contract_id must be the feature-task-runtime phase output schema id"
     record.provenance.phaseOutputContractVersion != FEATURE_TASK_RUNTIME_CONTRACT_VERSION ->
       "provenance.phase_output_contract_version must be '$FEATURE_TASK_RUNTIME_CONTRACT_VERSION'"

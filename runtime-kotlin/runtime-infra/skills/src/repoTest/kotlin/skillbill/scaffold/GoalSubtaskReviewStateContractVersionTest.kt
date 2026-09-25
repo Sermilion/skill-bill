@@ -3,7 +3,7 @@ package skillbill.scaffold
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.identity.subtask.GOAL_SUBTASK_REVIEW_STATE_CONTRACT_VERSION
-import skillbill.contracts.workflow.identity.subtask.GoalSubtaskReviewStateSchemaPaths
+import skillbill.infrastructure.contracts.locator.GoalSubtaskReviewStateSchemaPaths
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.Test

@@ -1,6 +1,6 @@
 package skillbill.infrastructure.workflow.goalplanning
 
-import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
+import skillbill.goalrunner.planning.GoalPlanningExcludedPaths
 import skillbill.review.model.requireRepositoryRelativePath
 import java.nio.file.Files
 import java.nio.file.Path
@@ -14,7 +14,7 @@ internal fun goalPlanningIncluded(
 ): Pair<Path, String>? {
   val canonical = candidate.toRealPathOrNull()?.takeIf { path -> path.startsWith(repoRoot) } ?: return null
   val relative = repoRoot.relativize(canonical).joinToString("/")
-  if (relative.isEmpty() || GoalPlanningDiscoveryExclusions.isExcluded(relative)) return null
+  if (relative.isEmpty() || GoalPlanningExcludedPaths.isExcluded(relative)) return null
   return canonical to relative
 }
 
@@ -22,7 +22,7 @@ internal fun goalPlanningIncludedRegularFile(
   repoRoot: Path,
   relativePath: String,
 ): Path? {
-  if (relativePath.isBlank() || GoalPlanningDiscoveryExclusions.isExcluded(relativePath)) return null
+  if (relativePath.isBlank() || GoalPlanningExcludedPaths.isExcluded(relativePath)) return null
   val (canonical, canonicalRelative) = goalPlanningIncluded(repoRoot, repoRoot.resolve(relativePath)) ?: return null
   if (canonicalRelative != relativePath) return null
   return canonical.takeIf { path -> Files.isRegularFile(path) }
@@ -68,7 +68,7 @@ internal fun goalPlanningOwningAgentDirectory(
   findingPath: String,
 ): Path? {
   val normalized = goalPlanningNormalizeFindingPath(findingPath) ?: return null
-  if (GoalPlanningDiscoveryExclusions.isExcluded(normalized)) return null
+  if (GoalPlanningExcludedPaths.isExcluded(normalized)) return null
   val segments = normalized.split("/")
   for (segmentCount in segments.size downTo 0) {
     val prefix = segments.take(segmentCount).joinToString("/")

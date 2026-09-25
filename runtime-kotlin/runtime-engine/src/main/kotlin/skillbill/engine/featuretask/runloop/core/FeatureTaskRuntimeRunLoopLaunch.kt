@@ -25,7 +25,6 @@ import skillbill.engine.featuretask.runner.infraFailureReason
 import skillbill.engine.featuretask.runner.providerLimitPauseReason
 import skillbill.engine.featuretask.runner.providerLimitSignal
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
-import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseBriefingFramingError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
@@ -540,8 +539,6 @@ object FeatureTaskRuntimeRunLoopLaunch {
         )
       } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {
         rejectedHandoffLaunch(recorder, run, state, error, measurementContext)
-      } catch (error: InvalidFeatureTaskRuntimePhaseBriefingFramingError) {
-        rejectedBriefingLaunch(recorder, run, state, error, measurementContext)
       } catch (error: InvalidFeatureTaskRuntimePlanningProjectionSchemaError) {
         rejectedPlanningProjectionLaunch(recorder, run, state, error, measurementContext)
       } catch (error: InvalidWorkflowStateSchemaError) {
@@ -568,27 +565,6 @@ object FeatureTaskRuntimeRunLoopLaunch {
         message =
           "Feature-task-runtime phase '${run.phaseId}' could not build its declared handoff " +
             "projection: ${error.message}",
-      ),
-    )
-
-  private fun rejectedBriefingLaunch(
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    error: InvalidFeatureTaskRuntimePhaseBriefingFramingError,
-    context: LaunchRejectionMeasurementContext,
-  ): LaunchPreparationRejected =
-    launchPreparationRejected(
-      recorder,
-      LaunchPreparationRejectedArgs(
-        run = run,
-        state = state,
-        classification = FeatureTaskRuntimeProjectionFailureClassification.BUDGET_OVERFLOW,
-        sourceLabel = "phase_briefing",
-        measurement = context,
-        message =
-          "Feature-task-runtime phase '${run.phaseId}' could not fit its launch briefing under " +
-            "the byte ceiling: ${error.message}",
       ),
     )
 

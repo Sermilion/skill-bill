@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.validation.shape
 
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.infrastructure.skills.scaffold.authoring.AuthoringRenderResult
 import skillbill.infrastructure.skills.scaffold.authoring.AuthoringTarget
 import skillbill.infrastructure.skills.scaffold.authoring.discoverTargets

@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite.telemetry
 
-import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.telemetry.goal.emitGoalIssueFinished
 import skillbill.infrastructure.sqlite.telemetry.goal.nextGoalStateEnteredAtSql
@@ -207,7 +207,7 @@ private fun staleSessionIds(
     statement.executeQuery().use { resultSet ->
       buildList {
         while (resultSet.next()) {
-          add(resultSet.getString(SqliteLifecycleTelemetryMaterializationPayloadKeys.SESSION_ID))
+          add(resultSet.getString(LifecycleTelemetryPayloadKeys.SESSION_ID))
         }
       }
     }

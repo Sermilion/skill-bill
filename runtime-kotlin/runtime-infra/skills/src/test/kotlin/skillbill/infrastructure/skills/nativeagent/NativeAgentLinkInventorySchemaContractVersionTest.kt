@@ -2,7 +2,7 @@ package skillbill.infrastructure.skills.nativeagent
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.nativeagent.NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION
-import skillbill.contracts.nativeagent.NativeAgentLinkInventorySchemaPaths
+import skillbill.infrastructure.contracts.locator.NativeAgentLinkInventorySchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

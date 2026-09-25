@@ -1,7 +1,7 @@
 package skillbill.infrastructure.contracts
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 
 object WorkflowStateSnapshotWireMapper {

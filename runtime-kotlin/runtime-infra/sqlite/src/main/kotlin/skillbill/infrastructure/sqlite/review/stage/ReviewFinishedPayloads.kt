@@ -1,10 +1,11 @@
 package skillbill.infrastructure.sqlite.review.stage
 
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.review.stats.reviewPlatformSlug
 import skillbill.infrastructure.sqlite.review.stats.summarizeFindingRows
+import skillbill.infrastructure.sqlite.telemetry.SqliteReviewTelemetryPayloadKeys
 import skillbill.learnings.model.LearningScope
 import skillbill.review.attribution.normalizeRoutedSkill
 import skillbill.review.attribution.normalizeScopeType
@@ -96,14 +97,14 @@ internal fun buildLearningsSection(
       entries =
         (
           learningsData?.get(
-            SqliteReviewTelemetryPayloadKeys.LEARNINGS,
+            ReviewFinishedTelemetryPayloadKeys.LEARNINGS,
           ) as? List<*>
         )?.filterIsInstance<Map<String, Any?>>() ?: emptyList(),
       includeText = level == "full",
     )
   val scopeCounts =
     defaultScopeCounts + (
-      (learningsData?.get(SqliteReviewTelemetryPayloadKeys.SCOPE_COUNTS) as? Map<*, *>)
+      (learningsData?.get(ReviewFinishedTelemetryPayloadKeys.SCOPE_COUNTS) as? Map<*, *>)
         ?.filterKeys { it is String }
         ?.mapKeys { it.key as String }
         ?.mapValues { entry -> (entry.value as? Number)?.toInt() ?: 0 }
@@ -133,15 +134,15 @@ internal fun learningsEntries(
   entries.map { entry ->
     if (includeText) {
       ReviewLearningEntry(
-        reference = entry[SqliteReviewTelemetryPayloadKeys.REFERENCE]?.toString(),
-        scope = entry[SqliteReviewTelemetryPayloadKeys.SCOPE]?.toString(),
-        title = entry[SqliteReviewTelemetryPayloadKeys.TITLE]?.toString(),
-        ruleText = entry[SqliteReviewTelemetryPayloadKeys.RULE_TEXT]?.toString(),
+        reference = entry[ReviewFinishedTelemetryPayloadKeys.REFERENCE]?.toString(),
+        scope = entry[ReviewFinishedTelemetryPayloadKeys.SCOPE]?.toString(),
+        title = entry[ReviewFinishedTelemetryPayloadKeys.TITLE]?.toString(),
+        ruleText = entry[ReviewFinishedTelemetryPayloadKeys.RULE_TEXT]?.toString(),
       )
     } else {
       ReviewLearningEntry(
-        reference = entry[SqliteReviewTelemetryPayloadKeys.REFERENCE]?.toString(),
-        scope = entry[SqliteReviewTelemetryPayloadKeys.SCOPE]?.toString(),
+        reference = entry[ReviewFinishedTelemetryPayloadKeys.REFERENCE]?.toString(),
+        scope = entry[ReviewFinishedTelemetryPayloadKeys.SCOPE]?.toString(),
       )
     }
   }

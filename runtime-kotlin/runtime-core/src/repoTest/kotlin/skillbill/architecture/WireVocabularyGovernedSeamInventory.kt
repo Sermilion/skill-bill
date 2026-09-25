@@ -4,23 +4,23 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.application.decomposition.repoRelativePath
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
-import skillbill.contracts.experiment.ExperimentDescriptorSchemaPaths
-import skillbill.contracts.experiment.ExperimentObservationSchemaPaths
-import skillbill.contracts.experiment.ExperimentPairSchemaPaths
-import skillbill.contracts.experiment.ExperimentReportSchemaPaths
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
-import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
-import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
 import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
-import skillbill.contracts.workflow.featuretask.DecompositionManifestSchemaPaths
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeReadinessEvidenceSchemaPaths
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
+import skillbill.infrastructure.contracts.locator.DecompositionManifestBundleJournalSchemaPaths
+import skillbill.infrastructure.contracts.locator.DecompositionManifestSchemaPaths
+import skillbill.infrastructure.contracts.locator.ExperimentDescriptorSchemaPaths
+import skillbill.infrastructure.contracts.locator.ExperimentObservationSchemaPaths
+import skillbill.infrastructure.contracts.locator.ExperimentPairSchemaPaths
+import skillbill.infrastructure.contracts.locator.ExperimentReportSchemaPaths
+import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimeReadinessEvidenceSchemaPaths
+import skillbill.infrastructure.sqlite.telemetry.SqliteReviewTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.telemetry.goal.GoalTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.SqliteLifecycleTelemetryMaterializationPayloadKeys
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import kotlin.test.assertTrue
@@ -48,8 +48,8 @@ internal object WireVocabularyGovernedSeamInventory {
             "engine/goalrunner/manifest/WorkflowGoalRunnerManifest",
             "engine/goalrunner/persist/GoalContinuationArtifactCodec.kt",
             "engine/goalrunner/planning/GoalPlanningShared",
-            "contracts/goalplanning/GoalPlanningSharedContextPacketPayloadKeys",
-            "contracts/workflow/ImplementationReturnContractPayloadKeys",
+            "engine/goalrunner/planning/context/GoalPlanningSharedContextPacketPayloadKeys",
+            "engine/goalrunner/model/ImplementationReturnContractPayloadKeys",
             "cli/workflow/WorkflowContinueCliBranchMapsDecomposition",
           ),
       ),
@@ -68,7 +68,7 @@ internal object WireVocabularyGovernedSeamInventory {
           listOf(
             "workflow/taskruntime/model/validation/FeatureTaskRuntimeReadinessEvidence",
             "workflow/taskruntime/artifact/FeatureTaskRuntimeWorkflowArtifactWire",
-            "contracts/workflow/identity/evidence/ReadinessEvidencePayloadKeys",
+            "workflow/taskruntime/model/validation/ReadinessEvidencePayloadKeys",
             "engine/featuretask/validation/FeatureTaskRuntimeReadinessGateCoordinator",
             "engine/featuretask/validation/ReadinessCheckSelection",
             "engine/featuretask/phase/record/FeatureTaskRuntimeGateProgressRecorder",
@@ -153,7 +153,6 @@ internal object WireVocabularyGovernedSeamInventory {
         schemaRepoRelativePath = TELEMETRY_PROXY_AUTHORITY,
         governedRelativePathMarkers =
           listOf(
-            "contracts/telemetry/TelemetryProxyContracts",
             "infrastructure/http/",
             "cli/telemetry/TelemetryCliResultMappers",
           ),
@@ -255,17 +254,14 @@ internal object WireVocabularyGovernedSeamInventory {
       ReviewFindingPayloadKeys::class.java,
       ReviewFinishedTelemetryPayloadKeys::class.java,
       ReviewVerificationSignalKeys::class.java,
-    )
-
-  private fun payloadKeyValues(vararg owners: Class<*>): Set<String> =
-    owners.flatMap { owner ->
-      owner.declaredFields
-        .filter { field -> field.type == String::class.java }
-        .map { field ->
-          field.isAccessible = true
-          field.get(null) as String
-        }
-    }.toSet()
+    ) +
+      setOf(
+        LifecycleTelemetryPayloadKeys.EVENT_NAME,
+        LifecycleTelemetryPayloadKeys.GAPS_FOUND,
+        GoalTelemetryPayloadKeys.FINISHED_AT,
+        GoalTelemetryPayloadKeys.PARENT_WORKFLOW_ID,
+        GoalTelemetryPayloadKeys.BLOCKED_REASON,
+      )
 
   private fun goalContinuationArtifactGovernedKeys(): Set<String> =
     setOf(
@@ -347,3 +343,13 @@ internal object WireVocabularyGovernedSeamInventory {
     return YAMLMapper().readTree(Files.readString(path))
   }
 }
+
+internal fun payloadKeyValues(vararg owners: Class<*>): Set<String> =
+  owners.flatMap { owner ->
+    owner.declaredFields
+      .filter { field -> field.type == String::class.java }
+      .map { field ->
+        field.isAccessible = true
+        field.get(null) as String
+      }
+  }.toSet()

@@ -1,7 +1,8 @@
 package skillbill.infrastructure.sqlite.review.stats
 
 import skillbill.contracts.review.ReviewFindingPayloadKeys
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
+import skillbill.infrastructure.sqlite.telemetry.SqliteReviewTelemetryPayloadKeys
 import skillbill.review.model.FindingOutcomeType
 
 private val reviewHealthSources = listOf("standalone", "embedded", "malformed", UNKNOWN_REVIEW_HEALTH_SOURCE)
@@ -13,7 +14,7 @@ internal fun aggregateLatestOutcomeCounts(payloads: List<ReviewHealthPayload>): 
     val latestOutcomeCounts = payload.payload[SqliteReviewTelemetryPayloadKeys.LATEST_OUTCOME_COUNTS] as? Map<*, *>
     if (latestOutcomeCounts == null) {
       reviewFindingDetails(payload.payload).forEach { detail ->
-        addOutcomeCount(counts, detail[SqliteReviewTelemetryPayloadKeys.OUTCOME_TYPE]?.toString().orEmpty(), 1)
+        addOutcomeCount(counts, detail[ReviewFinishedTelemetryPayloadKeys.OUTCOME_TYPE]?.toString().orEmpty(), 1)
       }
     } else {
       latestOutcomeCounts.forEach { (key, value) -> addOutcomeCount(counts, key?.toString().orEmpty(), value.asInt()) }
@@ -76,7 +77,7 @@ internal fun aggregateCategorySeverityCrossTab(payloads: List<ReviewHealthPayloa
       val severity =
         normalizeFindingDetailValue(
           "severity",
-          detail[SqliteReviewTelemetryPayloadKeys.SEVERITY]?.toString().orEmpty(),
+          detail[ReviewFinishedTelemetryPayloadKeys.SEVERITY]?.toString().orEmpty(),
         )
       if (category.isNotBlank() && severity.isNotBlank()) {
         crossTab.getOrPut(category) { mutableMapOf() }[severity] =
@@ -99,11 +100,11 @@ private fun addOutcomeCount(
 
 private fun reviewFindingDetails(payload: Map<String, Any?>): List<Map<*, *>> {
   val accepted =
-    (payload[SqliteReviewTelemetryPayloadKeys.ACCEPTED_FINDING_DETAILS] as? List<*>)
+    (payload[ReviewFinishedTelemetryPayloadKeys.ACCEPTED_FINDING_DETAILS] as? List<*>)
       .orEmpty()
       .filterIsInstance<Map<*, *>>()
   val rejected =
-    (payload[SqliteReviewTelemetryPayloadKeys.REJECTED_FINDING_DETAILS] as? List<*>)
+    (payload[ReviewFinishedTelemetryPayloadKeys.REJECTED_FINDING_DETAILS] as? List<*>)
       .orEmpty()
       .filterIsInstance<Map<*, *>>()
   return accepted + rejected

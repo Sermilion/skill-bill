@@ -2,7 +2,7 @@ package skillbill.mcp.workflow
 
 import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.model.goalreview.GoalObservabilityEvent

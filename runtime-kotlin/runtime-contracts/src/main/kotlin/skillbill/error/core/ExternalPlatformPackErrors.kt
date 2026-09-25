@@ -1,7 +1,5 @@
 package skillbill.error.core
 
-import skillbill.error.shellcontent.ShellContentContractException
-
 class ExternalPlatformPackConfigError(
   message: String,
   cause: Throwable? = null,

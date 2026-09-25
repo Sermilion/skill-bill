@@ -3,8 +3,9 @@ package skillbill.infrastructure.contracts.workflow.issue
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.contracts.issuekey.ISSUE_KEY_SCHEMA_ID
-import skillbill.contracts.issuekey.ISSUE_KEY_SCHEMA_RESOURCE
+
+internal const val ISSUE_KEY_SCHEMA_ID: String = "https://skill-bill.dev/contracts/issue-key-schema.yaml"
+private const val ISSUE_KEY_SCHEMA_RESOURCE: String = "skillbill/infrastructure/contracts/issue-key-schema.yaml"
 
 internal fun JsonNode.inlineIssueKeySchemaRefs(): JsonNode {
   inlineIssueKeySchemaRefsIn(this, issueKeySchemaBody())
@@ -15,7 +16,7 @@ private fun issueKeySchemaBody(): JsonNode {
   val stream =
     checkNotNull(
       Thread.currentThread().contextClassLoader.getResourceAsStream(ISSUE_KEY_SCHEMA_RESOURCE)
-        ?: IssueKeyShapeClasspath::class.java.classLoader.getResourceAsStream(ISSUE_KEY_SCHEMA_RESOURCE),
+        ?: IssueKeySchemaClasspath::class.java.classLoader.getResourceAsStream(ISSUE_KEY_SCHEMA_RESOURCE),
     ) { "issue-key schema is missing from the classpath at $ISSUE_KEY_SCHEMA_RESOURCE" }
   val raw = stream.use { YAMLMapper().readTree(it) }
   check(raw is ObjectNode) { "issue-key schema must be an object" }
@@ -46,4 +47,4 @@ private fun inlineIssueKeySchemaRefsIn(
   }
 }
 
-private object IssueKeyShapeClasspath
+private object IssueKeySchemaClasspath

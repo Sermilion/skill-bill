@@ -3,7 +3,7 @@ package skillbill.infrastructure.contracts.experiment
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.experiment.EXPERIMENT_PAIR_CONTRACT_VERSION
-import skillbill.contracts.experiment.ExperimentPairSchemaPaths
+import skillbill.infrastructure.contracts.locator.ExperimentPairSchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

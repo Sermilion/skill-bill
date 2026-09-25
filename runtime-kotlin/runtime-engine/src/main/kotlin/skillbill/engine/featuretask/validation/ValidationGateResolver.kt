@@ -2,7 +2,7 @@ package skillbill.engine.featuretask.validation
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.review.plan.ReviewStackRouting
 import skillbill.review.plan.model.ReviewRoutingChangedFile

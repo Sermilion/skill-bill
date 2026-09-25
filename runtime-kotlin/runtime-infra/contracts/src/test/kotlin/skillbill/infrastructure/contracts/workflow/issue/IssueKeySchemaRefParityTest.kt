@@ -2,10 +2,9 @@ package skillbill.infrastructure.contracts.workflow.issue
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.contracts.issuekey.ISSUE_KEY_SCHEMA_ID
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimeCheckpointIdentitySchemaPaths
-import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
-import skillbill.contracts.workflow.identity.task.FeatureTaskExecutionIdentitySchemaPaths
+import skillbill.infrastructure.contracts.locator.FeatureTaskExecutionIdentitySchemaPaths
+import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimeCheckpointIdentitySchemaPaths
+import skillbill.infrastructure.contracts.locator.GoalPlanningPreparationSchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

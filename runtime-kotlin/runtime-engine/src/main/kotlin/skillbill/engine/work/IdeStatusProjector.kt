@@ -20,7 +20,7 @@ import skillbill.engine.work.model.IdeStatusProgress
 import skillbill.engine.work.model.IdeStatusSnapshot
 import skillbill.engine.work.model.IdeStatusStep
 import skillbill.engine.work.model.IdeStatusWorkflowFamily
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalPlanningStatusState
 import skillbill.goalrunner.model.GoalRunnerStatusProjection

@@ -1,7 +1,6 @@
 package skillbill.infrastructure.sqlite.review.stats
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.infrastructure.sqlite.review.core.requireBooleanInt
 import skillbill.infrastructure.sqlite.review.core.requireEnum
@@ -10,6 +9,7 @@ import skillbill.infrastructure.sqlite.review.core.requireNonNegativeInt
 import skillbill.infrastructure.sqlite.review.core.requireNonNegativeLong
 import skillbill.infrastructure.sqlite.review.core.requirePositiveInt
 import skillbill.infrastructure.sqlite.review.core.requirePresentString
+import skillbill.infrastructure.sqlite.telemetry.goal.GoalTelemetryPayloadKeys
 import skillbill.review.model.GoalBlockedSubtaskSummary
 import skillbill.review.model.GoalModeStats
 import skillbill.review.model.GoalRunSummary

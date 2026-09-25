@@ -2,8 +2,8 @@ package skillbill.infrastructure.skills.scaffold
 
 import org.junit.jupiter.api.io.TempDir
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.config.ExternalPlatformPackConfigKeys
 import skillbill.error.core.ExternalPlatformPackOverlayError
+import skillbill.infrastructure.skills.externalplatformpack.ExternalPlatformPackConfigKeys
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext

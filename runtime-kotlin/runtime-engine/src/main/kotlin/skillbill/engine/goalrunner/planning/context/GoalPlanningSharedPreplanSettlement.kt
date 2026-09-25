@@ -1,7 +1,6 @@
 package skillbill.engine.goalrunner.planning.context
 
-import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
-import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
+import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_SCHEMA_ID
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSharedContext
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.engine.goalrunner.planning.model.RefreshStaleSharedPreplanArgs
@@ -184,7 +183,7 @@ internal fun DefaultGoalPlanningSweep.currentProvenance(shared: GoalPlanningShar
   GoalPlanningContractProvenance(
     shared.parentSpecHash,
     shared.decompositionManifestHash,
-    GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+    GOAL_PLANNING_PREPARATION_SCHEMA_ID,
   )
 
 internal fun DefaultGoalPlanningSweep.classifyRecoverability(

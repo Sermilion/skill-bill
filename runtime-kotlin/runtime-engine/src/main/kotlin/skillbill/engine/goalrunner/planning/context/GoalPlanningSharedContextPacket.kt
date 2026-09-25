@@ -4,9 +4,8 @@ import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
-import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
+import skillbill.goalrunner.planning.GoalPlanningExcludedPaths
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
@@ -174,7 +173,7 @@ object GoalPlanningSharedContextPacket {
     val retained =
       catalog.filter { entry ->
         val sourcePath = (entry as? Map<*, *>)?.get(GoalPlanningSharedContextPacketPayloadKeys.SOURCE_PATH) as? String
-        sourcePath != null && !GoalPlanningDiscoveryExclusions.isExcluded(sourcePath)
+        sourcePath != null && !GoalPlanningExcludedPaths.isExcluded(sourcePath)
       }
     if (retained.size == catalog.size) return packet
     if (packet[GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256] !=

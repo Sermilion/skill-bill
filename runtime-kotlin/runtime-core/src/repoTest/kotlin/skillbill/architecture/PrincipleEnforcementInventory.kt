@@ -38,7 +38,7 @@ object PrincipleEnforcementInventory {
       packagePrefix = packagePrefixForModule(moduleName),
       packageCycleBaseline = packageCycleBaselineForModule(moduleName, baselineStem),
       packageCycleGranularity =
-        if (moduleName == "runtime-domain") {
+        if (moduleName == "runtime-domain" || moduleName == "runtime-contracts") {
           ArchitectureScanSupport.PackageCycleGranularity.EXACT_PACKAGE_SCC
         } else {
           ArchitectureScanSupport.PackageCycleGranularity.FIRST_SEGMENT_MUTUAL_PAIR
@@ -57,7 +57,6 @@ object PrincipleEnforcementInventory {
       "runtime-ports" -> "skillbill.ports."
       "runtime-mcp" -> "skillbill.mcp."
       "runtime-core" -> "skillbill.di."
-      "runtime-contracts" -> "skillbill.contracts."
       else -> RuntimeModuleCatalog.moduleMainPackageRoots[moduleName]?.let { "$it." } ?: "skillbill."
     }
 
@@ -359,26 +358,6 @@ object PrincipleEnforcementInventory {
           "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/core/" +
             "FeatureTaskRuntimeRepositoryCheckpoint.kt",
         functionNames = setOf("fromWire"),
-      ),
-      ArchitectureScanSupport.ParseBoundarySite(
-        relativePath =
-          "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/goalplanning/" +
-            "GoalVerificationBoundaryCaps.kt",
-        functionNames = setOf("parse", "requiredPositiveInt", "requireKnownKeysOnly", "requireSupportedVersion"),
-      ),
-      ArchitectureScanSupport.ParseBoundarySite(
-        relativePath =
-          "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/goalplanning/" +
-            "GoalPlanningDiscoveryExclusions.kt",
-        functionNames =
-          setOf(
-            "parse",
-            "requiredStringList",
-            "requireKnownKeysOnly",
-            "requireSupportedVersion",
-            "requireBareDirectoryName",
-            "requireNormalizedRoot",
-          ),
       ),
       ArchitectureScanSupport.ParseBoundarySite(
         relativePath =

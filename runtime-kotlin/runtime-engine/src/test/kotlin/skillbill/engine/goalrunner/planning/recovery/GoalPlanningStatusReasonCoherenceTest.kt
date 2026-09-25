@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.planning.recovery
 
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
-import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID
+import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_SCHEMA_ID
 import skillbill.engine.goalrunner.planning.remedies.alignPlanningStatusWithLaunchRecoverability
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningIncludeSharedPreplanRemedy
 import skillbill.engine.goalrunner.planning.remedies.goalPlanningIncompatibleProvenanceStopReason
@@ -92,7 +92,7 @@ class GoalPlanningStatusReasonCoherenceTest {
       GoalPlanningContractProvenance(
         parentSpecHash = "a".repeat(64),
         decompositionManifestHash = "b".repeat(64),
-        planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+        planningContractId = GOAL_PLANNING_PREPARATION_SCHEMA_ID,
       )
 
     val aligned =
@@ -121,7 +121,7 @@ class GoalPlanningStatusReasonCoherenceTest {
       GoalPlanningContractProvenance(
         parentSpecHash = "a".repeat(64),
         decompositionManifestHash = "b".repeat(64),
-        planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
+        planningContractId = GOAL_PLANNING_PREPARATION_SCHEMA_ID,
       )
 
     val aligned =
@@ -181,8 +181,8 @@ class GoalPlanningStatusReasonCoherenceTest {
           GoalPlanningContractProvenance(
             parentSpecHash = sha256HexUtf8(parentSpec),
             decompositionManifestHash = "stored-manifest",
-            planningContractId = GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID,
-            phaseOutputContractId = FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID,
+            planningContractId = GOAL_PLANNING_PREPARATION_SCHEMA_ID,
+            phaseOutputContractId = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID,
           ),
         payloadSha256 = sha256HexUtf8(phasePayload("preplan")),
         preplanPayload = phasePayload("preplan"),

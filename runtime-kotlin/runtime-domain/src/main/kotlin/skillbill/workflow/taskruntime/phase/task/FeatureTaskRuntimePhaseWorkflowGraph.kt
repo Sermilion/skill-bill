@@ -1,6 +1,6 @@
 package skillbill.workflow.taskruntime.phase.task
 
-import skillbill.contracts.workflow.workflow.WORKFLOW_STATE_CONTRACT_VERSION
+import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus

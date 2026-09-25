@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.planning.context
 
-import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import kotlin.test.Test
 import kotlin.test.assertFailsWith

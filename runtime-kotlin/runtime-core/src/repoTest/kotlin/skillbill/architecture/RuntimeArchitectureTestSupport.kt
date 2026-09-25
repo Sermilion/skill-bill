@@ -829,6 +829,8 @@ internal object RuntimeArchitectureScanConstants {
       "com.networknt.",
       "com.fasterxml.jackson.",
       "java.nio.file.Files",
+      "org.yaml.",
+      "java.io.",
     )
   val contractsForbiddenSourceReferences: List<String> =
     listOf(
@@ -836,6 +838,9 @@ internal object RuntimeArchitectureScanConstants {
       "com.fasterxml.jackson.",
       "java.nio.file.Files",
       "Files.",
+      "org.yaml.",
+      "java.io.",
+      "getResourceAsStream",
     )
   val directFileIoImports: List<String> =
     listOf(

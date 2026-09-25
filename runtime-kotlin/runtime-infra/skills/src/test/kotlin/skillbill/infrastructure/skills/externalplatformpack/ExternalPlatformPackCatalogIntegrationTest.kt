@@ -2,7 +2,6 @@ package skillbill.infrastructure.skills.externalplatformpack
 
 import org.junit.jupiter.api.io.TempDir
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.config.ExternalPlatformPackConfigKeys
 import skillbill.contracts.config.ExternalPlatformPackTelemetryPayloadKeys
 import skillbill.error.core.AmbiguousExternalPlatformPackError
 import skillbill.error.core.ExternalPlatformPackConfigError

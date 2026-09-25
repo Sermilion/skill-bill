@@ -1,10 +1,11 @@
 package skillbill.infrastructure.sqlite.review.stage
 
 import skillbill.contracts.review.ReviewFindingPayloadKeys
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
+import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.review.stats.acceptedFindingOutcomeTypes
 import skillbill.infrastructure.sqlite.review.stats.rejectedFindingOutcomeTypes
+import skillbill.infrastructure.sqlite.telemetry.SqliteReviewTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.worklist.required
 import skillbill.ports.review.model.ReviewIntegrationPassRecord
 import skillbill.review.context.model.packet.toStoredSegmentIdList
@@ -177,7 +178,7 @@ internal fun queryReviewLaneEffectiveness(
           )
         counters.getOrPut(key) {
           mutableListOf()
-        } += resultSet.getString(SqliteReviewTelemetryPayloadKeys.OUTCOME_TYPE).orEmpty()
+        } += resultSet.getString(ReviewFinishedTelemetryPayloadKeys.OUTCOME_TYPE).orEmpty()
       }
     }
   }

@@ -4,13 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
 import me.tatarka.inject.annotations.Inject
-import skillbill.contracts.logSchemaLoadFailure
-import skillbill.contracts.workflow.workflow.WORKFLOW_STATE_CONTRACT_VERSION
-import skillbill.contracts.workflow.workflow.WorkflowStateSchemaPaths
+import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
 import skillbill.infrastructure.contracts.WorkflowStateSnapshotWireMapper
+import skillbill.infrastructure.contracts.locator.WorkflowStateSchemaPaths
+import skillbill.infrastructure.contracts.locator.logSchemaLoadFailure
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import java.util.logging.Level

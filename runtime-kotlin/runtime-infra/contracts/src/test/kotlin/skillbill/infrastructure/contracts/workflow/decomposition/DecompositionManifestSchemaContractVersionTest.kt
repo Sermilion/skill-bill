@@ -3,7 +3,7 @@ package skillbill.infrastructure.contracts.workflow.decomposition
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.featuretask.DECOMPOSITION_MANIFEST_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.DecompositionManifestSchemaPaths
+import skillbill.infrastructure.contracts.locator.DecompositionManifestSchemaPaths
 import java.security.MessageDigest
 import kotlin.test.Test
 import kotlin.test.assertEquals

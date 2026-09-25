@@ -1,7 +1,7 @@
 package skillbill.ports.workflow.model
 
-import skillbill.contracts.workflow.workflow.WorkflowTimestampPayloadKeys
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowTimestampPayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.time.parsePersistedInstant

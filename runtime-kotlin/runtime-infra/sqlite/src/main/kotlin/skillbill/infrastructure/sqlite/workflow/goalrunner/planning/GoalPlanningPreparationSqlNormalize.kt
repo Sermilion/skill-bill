@@ -1,9 +1,9 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.planning
 
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePhaseOutputSchemaPaths
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID
 import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
-import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths
+import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_SCHEMA_ID
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
@@ -86,11 +86,11 @@ internal fun normalizedProvenanceFailure(provenance: GoalPlanningContractProvena
       "provenance.parent_spec_hash" to "parent_spec_hash must be a lowercase SHA-256"
     !provenance.decompositionManifestHash.isSha256() ->
       "provenance.decomposition_manifest_hash" to "decomposition_manifest_hash must be a lowercase SHA-256"
-    provenance.planningContractId != GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID ->
+    provenance.planningContractId != GOAL_PLANNING_PREPARATION_SCHEMA_ID ->
       "provenance.planning_contract_id" to "planning_contract_id is incompatible"
     provenance.planningContractVersion != GOAL_PLANNING_PREPARATION_CONTRACT_VERSION ->
       "provenance.planning_contract_version" to "planning_contract_version is incompatible"
-    provenance.phaseOutputContractId != FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID ->
+    provenance.phaseOutputContractId != FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID ->
       "provenance.phase_output_contract_id" to "phase_output_contract_id is incompatible"
     provenance.phaseOutputContractVersion != FEATURE_TASK_RUNTIME_CONTRACT_VERSION ->
       "provenance.phase_output_contract_version" to

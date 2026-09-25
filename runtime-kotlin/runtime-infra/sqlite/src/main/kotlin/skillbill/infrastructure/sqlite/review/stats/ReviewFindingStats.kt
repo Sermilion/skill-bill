@@ -3,7 +3,6 @@ package skillbill.infrastructure.sqlite.review.stats
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.review.model.FindingOutcomeRow
 import skillbill.review.model.FindingOutcomeType
@@ -128,12 +127,12 @@ internal fun queryLatestFindingOutcomes(
             FindingOutcomeRow(
               reviewRunId = resultSet.getString(ReviewVerificationSignalKeys.REVIEW_RUN_ID),
               findingId = resultSet.getString(ReviewFindingPayloadKeys.FINDING_ID),
-              severity = resultSet.getString(SqliteReviewTelemetryPayloadKeys.SEVERITY),
-              confidence = resultSet.getString(SqliteReviewTelemetryPayloadKeys.CONFIDENCE),
+              severity = resultSet.getString(ReviewFinishedTelemetryPayloadKeys.SEVERITY),
+              confidence = resultSet.getString(ReviewFinishedTelemetryPayloadKeys.CONFIDENCE),
               issueCategory = resultSet.getString(ReviewFindingPayloadKeys.ISSUE_CATEGORY),
-              location = resultSet.getString(SqliteReviewTelemetryPayloadKeys.LOCATION),
-              description = resultSet.getString(SqliteReviewTelemetryPayloadKeys.DESCRIPTION),
-              outcomeType = resultSet.getString(SqliteReviewTelemetryPayloadKeys.OUTCOME_TYPE).orEmpty(),
+              location = resultSet.getString(ReviewFinishedTelemetryPayloadKeys.LOCATION),
+              description = resultSet.getString(ReviewFinishedTelemetryPayloadKeys.DESCRIPTION),
+              outcomeType = resultSet.getString(ReviewFinishedTelemetryPayloadKeys.OUTCOME_TYPE).orEmpty(),
               note = resultSet.getString(ReviewFinishedTelemetryPayloadKeys.NOTE).orEmpty(),
             ),
           )

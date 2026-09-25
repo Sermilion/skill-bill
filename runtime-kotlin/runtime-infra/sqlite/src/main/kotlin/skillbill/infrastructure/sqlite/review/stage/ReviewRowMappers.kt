@@ -4,7 +4,6 @@ import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewFinishedTelemetryPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.review.model.ImportedFinding
 import skillbill.review.model.NumberedFinding
@@ -20,11 +19,11 @@ import java.sql.ResultSet
 internal fun ResultSet.toImportedFinding(): ImportedFinding =
   ImportedFinding(
     findingId = getString(ReviewFindingPayloadKeys.FINDING_ID),
-    severity = getString(SqliteReviewTelemetryPayloadKeys.SEVERITY),
-    confidence = getString(SqliteReviewTelemetryPayloadKeys.CONFIDENCE),
+    severity = getString(ReviewFinishedTelemetryPayloadKeys.SEVERITY),
+    confidence = getString(ReviewFinishedTelemetryPayloadKeys.CONFIDENCE),
     issueCategory = getString(ReviewFindingPayloadKeys.ISSUE_CATEGORY),
-    location = getString(SqliteReviewTelemetryPayloadKeys.LOCATION),
-    description = getString(SqliteReviewTelemetryPayloadKeys.DESCRIPTION),
+    location = getString(ReviewFinishedTelemetryPayloadKeys.LOCATION),
+    description = getString(ReviewFinishedTelemetryPayloadKeys.DESCRIPTION),
     findingText = getString("finding_text"),
     laneSkillName = getString("lane_skill_name"),
   )
@@ -51,10 +50,10 @@ internal fun ResultSet.toNumberedFinding(number: Int): NumberedFinding =
   NumberedFinding(
     number = number,
     findingId = getString(ReviewFindingPayloadKeys.FINDING_ID),
-    severity = getString(SqliteReviewTelemetryPayloadKeys.SEVERITY),
-    confidence = getString(SqliteReviewTelemetryPayloadKeys.CONFIDENCE),
-    location = getString(SqliteReviewTelemetryPayloadKeys.LOCATION),
-    description = getString(SqliteReviewTelemetryPayloadKeys.DESCRIPTION),
+    severity = getString(ReviewFinishedTelemetryPayloadKeys.SEVERITY),
+    confidence = getString(ReviewFinishedTelemetryPayloadKeys.CONFIDENCE),
+    location = getString(ReviewFinishedTelemetryPayloadKeys.LOCATION),
+    description = getString(ReviewFinishedTelemetryPayloadKeys.DESCRIPTION),
     claimVerdict =
       getString(ReviewFindingPayloadKeys.CLAIM_VERDICT)
         ?.trim()

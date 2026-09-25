@@ -64,10 +64,13 @@ class RuntimeArchitectureTest {
       import com.networknt.schema.JsonSchemaFactory
       import com.fasterxml.jackson.databind.ObjectMapper
       import java.nio.file.Files
+      import org.yaml.snakeyaml.Yaml
+      import java.io.InputStream
 
       object ContractsLeak {
         fun read() {
           Files.readString(somePath)
+          javaClass.getResourceAsStream("/skillbill/contract.yaml")
         }
       }
       """.trimIndent()
@@ -77,9 +80,11 @@ class RuntimeArchitectureTest {
         "com.networknt.schema.JsonSchemaFactory",
         "com.fasterxml.jackson.databind.ObjectMapper",
         "java.nio.file.Files",
+        "org.yaml.snakeyaml.Yaml",
+        "java.io.InputStream",
       ),
       fixture.imports,
-      "Production RuntimeArchitectureScanConstants.importPattern must parse the fixture's three " +
+      "Production RuntimeArchitectureScanConstants.importPattern must parse the fixture's five " +
         "forbidden imports from source.",
     )
     assertFailsWith<AssertionError>(
@@ -97,7 +102,8 @@ class RuntimeArchitectureTest {
     assertEquals(
       RuntimeArchitectureScanConstants.contractsForbiddenSourceReferences,
       sourceViolations,
-      "Contracts purity source scanner must report each banned reference (incl. the `Files.` call site).",
+      "Contracts purity source scanner must report each banned reference (incl. the `Files.` call site and " +
+        "the classpath `getResourceAsStream` loader).",
     )
   }
 
@@ -178,6 +184,73 @@ class RuntimeArchitectureTest {
   }
 
   @Test
+  fun `schema locators live in infrastructure packages, never in the shared contracts kernel`() {
+    val locatorDeclaration = Regex("""^\s*(?:internal\s+)?object\s+(\w*SchemaPaths)\b""", RegexOption.MULTILINE)
+    val misplaced =
+      declaredMainSourceFiles()
+        .flatMap { file ->
+          locatorDeclaration.findAll(file.source).map { match -> file to match.groupValues[1] }
+        }
+        .filterNot { (file, _) -> file.packageName.startsWith("skillbill.infrastructure.") }
+        .map { (file, locator) -> "${file.relativePath}:$locator" }
+        .sorted()
+
+    assertEquals(
+      emptyList(),
+      misplaced,
+      "Schema locators belong to the infrastructure module that stages the canonical YAML resources " +
+        "(skillbill.infrastructure.contracts.locator), not to runtime-contracts",
+    )
+
+    val contractsSourceRoot =
+      runtimeArchitectureRoot.resolve("${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-contracts")}/src")
+    val kernelLocators =
+      ArchitectureScanSupport.kotlinFilesUnder(contractsSourceRoot)
+        .flatMap { path -> locatorDeclaration.findAll(Files.readString(path)).map { match -> match.groupValues[1] } }
+    assertEquals(emptyList(), kernelLocators, "runtime-contracts/src must declare no *SchemaPaths object")
+
+    val locatorPackageRoot =
+      moduleMainKotlinRoot("runtime-infra:contracts").resolve("skillbill/infrastructure/contracts/locator")
+    val expectedLocatorFamilies =
+      mapOf(
+        "DecompositionSchemaPaths.kt" to
+          setOf("DecompositionManifestSchemaPaths", "DecompositionManifestBundleJournalSchemaPaths"),
+        "FeatureTaskRuntimeSchemaPaths.kt" to
+          setOf(
+            "FeatureTaskRuntimePhaseOutputSchemaPaths",
+            "FeatureTaskExecutionIdentitySchemaPaths",
+            "FeatureTaskRuntimeWorkerOwnershipSchemaPaths",
+          ),
+        "ExperimentSchemaPaths.kt" to
+          setOf(
+            "ExperimentDescriptorSchemaPaths",
+            "ExperimentObservationSchemaPaths",
+            "ExperimentPairSchemaPaths",
+            "ExperimentReportSchemaPaths",
+          ),
+        "GoalSchemaPaths.kt" to
+          setOf(
+            "GoalPlanningPreparationSchemaPaths",
+            "GoalProgressEventSchemaPaths",
+            "GoalObservabilityEventSchemaPaths",
+            "GoalSubtaskReviewStateSchemaPaths",
+          ),
+        "InstallSchemaPaths.kt" to
+          setOf("InstallPlanSchemaPaths", "NativeAgentLinkInventorySchemaPaths", "AgentAddonSchemaPaths"),
+        "OutputEvidenceSchemaPaths.kt" to
+          setOf("ProducerOutputEvidenceSchemaPaths", "RejectedOutputDiagnosticSchemaPaths"),
+        "ReviewContextSchemaPaths.kt" to setOf("ReviewContextSchemaPaths"),
+        "WorkflowSchemaPaths.kt" to setOf("WorkflowStateSchemaPaths", "IdeStatusSchemaPaths"),
+      )
+    expectedLocatorFamilies.forEach { (fileName, expectedLocators) ->
+      val path = locatorPackageRoot.resolve(fileName)
+      assertTrue(Files.exists(path), "Missing schema locator family file: ${runtimeArchitectureRoot.relativize(path)}")
+      val declared = locatorDeclaration.findAll(Files.readString(path)).map { match -> match.groupValues[1] }.toSet()
+      assertTrue(declared.containsAll(expectedLocators), "$fileName must declare $expectedLocators, found $declared")
+    }
+  }
+
+  @Test
   fun `telemetry ports and adapters are explicit package surfaces`() {
     val portFiles =
       listOf(
@@ -202,7 +275,7 @@ class RuntimeArchitectureTest {
       "java.nio.file.Files",
     )
     assertContains(
-      Files.readString(sourcePath("skillbill/contracts/telemetry/TelemetryProxyContracts.kt")),
+      Files.readString(sourcePath("skillbill/infrastructure/http/TelemetryProxyContracts.kt")),
       "data class TelemetryProxyBatchEvent",
     )
     assertContains(

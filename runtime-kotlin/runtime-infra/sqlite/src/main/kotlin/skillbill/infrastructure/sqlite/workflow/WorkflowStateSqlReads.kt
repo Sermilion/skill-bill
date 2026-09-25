@@ -2,8 +2,8 @@ package skillbill.infrastructure.sqlite.workflow
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.error.core.ShellContentContractException
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.FeatureTaskWorkflowMode

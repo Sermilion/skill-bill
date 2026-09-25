@@ -2,7 +2,7 @@ package skillbill.infrastructure.contracts.workflow.goal
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.identity.subtask.GOAL_SUBTASK_REVIEW_STATE_CONTRACT_VERSION
-import skillbill.contracts.workflow.identity.subtask.GoalSubtaskReviewStateSchemaPaths
+import skillbill.infrastructure.contracts.locator.GoalSubtaskReviewStateSchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

@@ -1,6 +1,6 @@
 package skillbill.workflow.taskruntime.handoff
 
-import skillbill.error.shellcontent.FeatureTaskRuntimeHandoffProjectionFailureKind
+import skillbill.error.featuretask.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.BUILD
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.VALIDATE

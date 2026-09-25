@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.contracts.workflow.workflow.WORKFLOW_STATE_CONTRACT_VERSION
+import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.error.shellcontent.ProseFeatureTaskWorkflowWriteRefusedError

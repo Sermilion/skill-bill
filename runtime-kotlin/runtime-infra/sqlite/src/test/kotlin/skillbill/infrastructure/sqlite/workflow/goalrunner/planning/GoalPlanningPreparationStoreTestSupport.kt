@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.planning
 
-import skillbill.contracts.workflow.goal.GoalPlanningPreparationSchemaPaths.EXPECTED_SCHEMA_ID
+import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_SCHEMA_ID
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
@@ -21,7 +21,7 @@ internal fun provenance() =
   GoalPlanningContractProvenance(
     parentSpecHash = "a".repeat(64),
     decompositionManifestHash = "b".repeat(64),
-    planningContractId = EXPECTED_SCHEMA_ID,
+    planningContractId = GOAL_PLANNING_PREPARATION_SCHEMA_ID,
   )
 
 internal fun sharedCheckpoint() =

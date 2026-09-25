@@ -1,7 +1,6 @@
 package skillbill.workflow.taskruntime.model.validation
 
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_READINESS_EVIDENCE_CONTRACT_VERSION
-import skillbill.contracts.workflow.identity.evidence.ReadinessEvidencePayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError
 import skillbill.workflow.model.persistence.artifact.asExactIntOrNull
 

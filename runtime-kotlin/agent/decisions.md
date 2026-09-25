@@ -11,6 +11,72 @@ Reason: The guard stops writers from producing entries the finding-verification 
 Alternatives considered: Raising the cap (moves the cliff, and the 32 KB verification total budget still binds); catching the error in the prompt path only (drops the evidence and keeps the crash risk in other callers).
 Revisit when: verification needs whole entries it cannot fit, or the caps change.
 
+## [2026-09-24] runtime-contracts is a shared kernel: single-owner declarations move to their owner (SKILL-374 subtask 2)
+
+`runtime-contracts` had become the default home for anything more than one file
+touched, so adapter DTOs, module-local `*Keys` objects, and schema locators sat in
+the leaf every module compiles against: an MCP response or SQLite column change
+recompiled the whole runtime.
+
+**Decision.** A declaration stays in `runtime-contracts` only when two or more
+production modules read or write it, or a `runtime-ports` signature exposes it.
+Everything else moves to its one owner: the MCP skipped-result DTOs to
+`runtime-mcp`, the telemetry-proxy request DTOs to `runtime-infra/http`, the
+governed-review wire payloads to `runtime-infra/launcher`, the SQLite
+materialization and review key objects to `runtime-infra/sqlite`, the goal
+purge/reset key objects to `runtime-cli`, and so on. Every `*SchemaPaths`
+locator — plus `logSchemaLoadFailure` — moves to
+`skillbill.infrastructure.contracts.locator` in `runtime-infra/contracts`, the
+module that stages the canonical YAML; `RuntimeArchitectureTest` now fails any
+locator declared outside an `skillbill.infrastructure.*` package. Where an inner
+layer only read a locator's `EXPECTED_SCHEMA_ID`, it reads a top-level
+`*_SCHEMA_ID` constant in `runtime-contracts` instead, so ports, engine, and
+sqlite no longer depend on the locator at all.
+
+The move is package-and-module only: class names, member names, wire values, and
+`toPayload()` output are byte-identical, and no Gradle module edge was added.
+
+**Trade-off.** A declaration that gains a second production reader must move
+back, paid when sharing appears rather than up front. In exchange the kernel's
+contents are evidence of sharing, and adapter vocabulary recompiles only the
+adapter.
+
+**Corollary (F-003).** The two SQLite key objects restated dozens of values that
+`SharedPayloadKeys`, `LifecycleTelemetryPayloadKeys`, `GoalTelemetryPayloadKeys`,
+`ReviewFindingPayloadKeys`, `ReviewFinishedTelemetryPayloadKeys`, and
+`ReviewVerificationSignalKeys` already owned. Those members are gone and the
+adapters reference the shared owner; `WireVocabularyArchitectureTest` asserts the
+zero overlap. `event_name` was restated in three objects with no shared owner at
+all, so it is now `LifecycleTelemetryPayloadKeys.EVENT_NAME` — genuinely shared
+between `runtime-mcp` and `runtime-infra/sqlite`.
+
+**Supersedes.** This entry supersedes the 2026-05-28 clause "The pure
+`*SchemaPaths` and `*_CONTRACT_VERSION` constants stay in `runtime-contracts`"
+for the `*SchemaPaths` locators only. The clause still holds for the
+`*_CONTRACT_VERSION` constants and for the two record-identity schema IDs
+(`GOAL_PLANNING_PREPARATION_SCHEMA_ID`, `FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID`),
+which ports, engine, and sqlite all read.
+
+**What stays, and why.** `JsonPayloadContract` stays in `runtime-contracts`
+unchanged. It is the typed carrier that keeps raw `Map<String, Any?>` out of
+inner-layer signatures. `runtime-ports` signatures expose it
+(`IdeStatusValidator.toWirePayload`, `IdeStatusProblemDetails`,
+`ReviewFinishedTelemetryPayload`), and application mappers, infra:contracts, and
+infra:launcher use it too, so the placement rule keeps it shared. The learning,
+review, lifecycle, doctor, and install-plan DTOs with a public
+`toPayload(): Map<String, Any?>` also stay. Application or domain code builds
+them and CLI or MCP calls `toPayload()`, so each has two production readers.
+They can't move inward either: `RuntimeRawMapArchitectureTest` forbids a public
+raw-map member in application, domain, and ports. `McpToolPayloadKeys` stays
+because `runtime-infra/sqlite` reads `REVIEW_SESSION_ID` from it, which makes
+two production readers.
+
+**Exception under the no-new-edge rule.** `JvmSystemClock` has one production
+reader (`runtime-core`), but tests in four other modules use it; moving it would
+add test edges to the composition root, so it stays as the ambient clock seam.
+
+---
+
 ## [2026-09-24] The architecture suite is a repository-contract suite with declared inputs
 
 The architecture suite reads governed sources across the whole repository, not
@@ -1670,7 +1736,9 @@ and `DecompositionManifestValidator` (runtime-domain `skillbill.workflow`).
 Wire each port to an infra-fs adapter through `RuntimeComponent` with
 `@Provides @JvmSynthetic internal`, exactly like every other infra adapter.
 The pure `*SchemaPaths` and `*_CONTRACT_VERSION` constants stay in
-`runtime-contracts`; the networknt + Jackson dependencies and the three schema
+`runtime-contracts` (**superseded for `*SchemaPaths` by the 2026-09-24 SKILL-374
+entry: the locators now live with the module that stages the resources**); the
+networknt + Jackson dependencies and the three schema
 `Copy` tasks move with the validators to `runtime-infra/fs`. The library choice
 is unchanged.
 
@@ -1955,6 +2023,7 @@ serialization in a module that must declare interfaces and DTOs only.
 The edge narrows from `api` to `implementation` and every module that names a kotlinx type declares
 the dependency itself. `JsonCodec` still exposes `JsonObject` and `JsonElement`, so the declaration
 is not optional for its consumers; making that explicit is the point.
+Superseded by: runtime-contracts exports kotlinx-serialization-json as `api` (2026-09-24)
 
 ## [2026-09-06] Audit-gap remediation: interface segregation restored, second ports wave, Path migration scoped out (SKILL-233 implement attempt 2)
 
@@ -2127,3 +2196,45 @@ Decision: A subtree uses the fewest noun-family packages that keep every package
 Reason: Twelve files is the point at which a package stops being readable in one screen; below it, a child package adds a name to remember and buys nothing. A test package with no production twin is a claim about structure that the production tree does not make.
 
 Alternatives considered: Add an architecture guard for stutter paths and orphan test packages (rejected: this bundle sets the layout; a guard that pins it is a separate decision about what is worth failing the build for). A flat package per module (rejected: several infra modules hold well over twelve files and would lose every meaningful grouping).
+
+## [2026-09-24] runtime-contracts holds compile-time constants, not ambient YAML loaders
+
+Context: `GoalVerificationBoundaryCaps`, `GoalPlanningDiscoveryExclusions`, `IssueKeyShape`, and `PackagedContractYamlNumbers` read checked-in YAML off the classpath from inside `runtime-contracts`, which forced SnakeYAML, `java.io`, and three `Copy` tasks staging canonical schemas into the module's own resources. The values were fixed at build time and never varied per run.
+
+Decision: Each value is now a Kotlin `const val` owned by the layer that reads it: verification caps and reporting bounds live beside the planning group in `GoalPlanningContext` (runtime-ports), the discovery exclusion list is `GoalPlanningExcludedPaths` (runtime-domain), and issue-key shape is `skillbill.contracts.issuekey.IssueKeys`. `runtime-contracts/build.gradle.kts` declares only `kotlinx-serialization-json`; the `issue-key-schema.yaml` classpath resource moved to `runtime-infra/contracts` `governedResources`, which is where `IssueKeySchemaRefInlining` reads it. `IssueKeySchemaLengthRepoTest` in `runtime-infra/contracts/src/repoTest` pins the schema's `minLength` to 1 and `maxLength` to `MAX_ISSUE_KEY_LENGTH`.
+
+Reason: A contracts module that loads files has an I/O dependency and a resource-staging build graph for data that a constant expresses exactly. The parity direction is preserved — a repo test still asserts the canonical YAML agrees with the Kotlin bound — but the runtime no longer pays for it.
+
+Supersedes: the SKILL-174 pattern in `agent/history.md` 2026-08-09 ("follow this pattern for any future repo-owned contract the runtime must read"). Build-time constants are Kotlin constants, not packaged YAML read at runtime. It also reverses SKILL-349's retention decision (`runtime-contracts/agent/history.md`, SKILL-349 subtask 2), which kept the packaged-YAML loaders and rejected moving them behind a port as too large a dependency change. The evidence SKILL-349 did not weigh: the three loaders plus `PackagedContractYamlNumbers` were 468 lines, with 389 lines of tests, three `Copy` tasks, and a SnakeYAML dependency re-implementing JSON Schema rules (`type: integer`, `minimum`, `uniqueItems`) to deliver about 30 values that were already baked into the jar. The planning caps for the same seven fields were already `const val` in runtime-ports, and the caps and exclusions YAML had no reader besides the loaders. This decision needs neither a port nor a move.
+
+Alternatives considered: Keep the loaders and cache the parse (rejected: the I/O dependency and the `Copy` tasks stay). Generate the constants from YAML at build time (rejected: a code generator for four fixed values, and the generated source still needs the parity test).
+
+## [2026-09-24] runtime-contracts exports kotlinx-serialization-json as `api`
+
+Context: Decision (e) of the 2026-09-06 "Ports evacuation and inward-layer purity" entry narrowed the `runtime-contracts` kotlinx edge to `implementation` and had every module that names a kotlinx type declare it. The edge is `api` again, and runtime-engine and runtime-infra/http still declared `implementation(libs.kotlinx.serialization.json)` without importing anything from `kotlinx.serialization`.
+
+Decision: `runtime-contracts` keeps `api(libs.kotlinx.serialization.json)`, because `JsonCodec` exposes `JsonObject` and `JsonElement` in its public signatures and every consumer of those signatures needs the type on its compile classpath. The redundant declarations in runtime-engine and runtime-infra/http are removed. runtime-ports' declaration is left to SKILL-377. This supersedes 2026-09-06 (e).
+
+Reason: A type in a public signature is part of the module's API. Declaring the library `implementation` and asking each consumer to re-declare it adds Gradle lines without isolating anything, and it leaves stale copies behind once a consumer stops using kotlinx directly.
+
+Alternatives considered: Keep `implementation` and per-consumer declarations (rejected: the exported types make the edge transitive in practice). Hide kotlinx behind contract-owned JSON types (rejected: a wrapper layer over a stable library for no consumer benefit).
+
+## [2026-09-24] The `skillbill.error` packages are acyclic; the base exception sits in `core`
+
+Context: `skillbill.error.core` imported `ShellContentContractException` and `FeatureTaskRuntimePhaseOutputFailureKind` from `skillbill.error.shellcontent`, `shellcontent` imported `InvalidFeatureTaskRuntimeHandoffProjectionContext` from `skillbill.error.featuretask`, and `featuretask` imported back into `shellcontent`. Every error package depended on every other.
+
+Decision: `ShellContentContractException` moved to `skillbill.error.core` next to `SkillBillRuntimeException`. The two coarse failure-kind enums and `coarseFailureKindForPhaseOutputWireCode` moved to `skillbill.error.featuretask`. The dependency direction is now `core <- featuretask <- shellcontent`, with `goalrunner` and `learning` depending only on `core`.
+
+Reason: The base exception and the wire-code contract are the shared root of the hierarchy, so they belong in the root package. The failure-kind enums are feature-task vocabulary that the shell-content errors consume, not the reverse.
+
+Alternatives considered: Leave the cycle and widen the baseline (rejected: the cycle was the reason the contracts module could not be scanned at exact-package granularity). Merge all error packages into one (rejected: loses the per-surface grouping that makes the hierarchy navigable).
+
+## [2026-09-24] runtime-contracts is scanned for cycles at exact-package granularity and banned from I/O
+
+Context: `runtime-contracts` was scanned with `FIRST_SEGMENT_MUTUAL_PAIR` under the `skillbill.contracts.` prefix, so the `skillbill.error.*` cycle was outside the scan entirely, and the purity lock banned only networknt, Jackson, and `java.nio.file.Files`.
+
+Decision: `PrincipleEnforcementInventory.moduleArchitectureScanCase` gives `runtime-contracts` `EXACT_PACKAGE_SCC` under the default `skillbill.` prefix, with the baseline left empty. `contractsForbiddenImports` adds `org.yaml.` and `java.io.`; `contractsForbiddenSourceReferences` adds those plus `getResourceAsStream`, and the `ContractsLeak` synthetic fixture grew to exercise each new entry.
+
+Reason: The guard has to cover the whole module and the whole class of ambient loading, not one library and one entry point. An empty baseline is the statement that the module is acyclic today and will fail loudly if it stops being.
+
+Alternatives considered: Seed the baseline with the current state (rejected: nothing is left to baseline). Ban `java.` wholesale (rejected: `java.util` and friends are legitimate in a pure data module).

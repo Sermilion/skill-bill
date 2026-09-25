@@ -78,7 +78,7 @@ import skillbill.engine.featuretask.runloop.state.validationRemainingDetail
 import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.engine.featuretask.runner.terminalBlockedReasonFrom
 import skillbill.engine.goalrunner.status.completed
-import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOutputFailureKind
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.ports.diagnostics.RuntimeDiagnostics

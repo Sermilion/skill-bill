@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.networknt.schema.JsonSchema
 import com.networknt.schema.ValidationMessage
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION
-import skillbill.contracts.workflow.featuretask.FeatureTaskRuntimePlanningProjectionsSchemaPaths
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 import skillbill.infrastructure.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.contracts.CompiledSchemaRequest
+import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimePlanningProjectionsSchemaPaths
 import skillbill.infrastructure.contracts.review.MAX_REPORTED_VIOLATIONS
 
 object FeatureTaskRuntimePlanningProjectionSchemaValidator {

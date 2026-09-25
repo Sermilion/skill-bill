@@ -10,7 +10,7 @@ import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.application.workflow.persist.WorkflowWireProjections
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.mcp.McpToolPayloadKeys
-import skillbill.contracts.workflow.workflow.WorkflowWirePayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 
 internal fun WorkflowContinueResult.toMcpMap(): Map<String, Any?> =
   when (this) {

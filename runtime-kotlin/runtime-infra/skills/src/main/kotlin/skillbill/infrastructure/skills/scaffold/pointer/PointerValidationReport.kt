@@ -1,6 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.pointer
 
-import skillbill.error.shellcontent.ShellContentContractException
+import skillbill.error.core.ShellContentContractException
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.model.toPath
 import skillbill.ports.workflow.list

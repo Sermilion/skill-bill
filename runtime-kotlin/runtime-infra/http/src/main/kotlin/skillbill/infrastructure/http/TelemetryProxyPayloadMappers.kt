@@ -1,8 +1,6 @@
 package skillbill.infrastructure.http
 
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.telemetry.TelemetryProxyBatchEvent
-import skillbill.contracts.telemetry.TelemetryProxyBatchPayload
 import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.telemetry.model.TelemetrySettings
