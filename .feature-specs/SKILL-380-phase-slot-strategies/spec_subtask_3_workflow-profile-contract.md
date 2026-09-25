@@ -103,6 +103,8 @@ configurable, durable run state.
 - Per-run overrides for slots other than `quality_gate`, and profile selection through platform packs.
 - Per-phase-record strategy ids.
 - New strategies.
+- Isolated profile freezing. Isolated programs (subtask 5) resolve the repo profile at
+  invocation and never write run invariants.
 
 ## Dependency notes
 
@@ -142,7 +144,9 @@ infra-host, infra-contracts, and infra-sqlite suites. Run
 
 ## Next path
 
-Continue to `spec_subtask_4_specialist-review-strategy.md`.
+Continue to `spec_subtask_4_specialist-review-strategy.md` (skippable) or
+`spec_subtask_5_isolated-engine-review-validation.md`. Wave B does not wait on
+subtask 4.
 
 ## Spec Path
 

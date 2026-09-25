@@ -63,3 +63,144 @@ subtasks:
       - subtask_id: 3
         optional: false
         skipped: false
+  - id: 5
+    name: "Isolated engine, phase:review, phase:validation"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_5_isolated-engine-review-validation.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 3
+        optional: false
+        skipped: false
+  - id: 6
+    name: "Isolated phase:plan and phase:implement"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_6_isolated-plan-and-implement.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 5
+        optional: false
+        skipped: false
+  - id: 7
+    name: "Isolated phase:pr"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_7_isolated-pr.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 5
+        optional: false
+        skipped: false
+  - id: 8
+    name: "Operation contract and operation:update-check"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_8_operation-contract-and-update-check.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 5
+        optional: false
+        skipped: false
+  - id: 9
+    name: "Checklist operations"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_9_checklist-operations.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 8
+        optional: false
+        skipped: false
+  - id: 10
+    name: "operation:pr-review-fix"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_10_pr-review-fix-operation.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 8
+        optional: false
+        skipped: false
+  - id: 11
+    name: "operation:verify"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_11_verify-operation.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 8
+        optional: false
+        skipped: false
+  - id: 12
+    name: "operation:release"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_12_release-operation.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 8
+        optional: false
+        skipped: false
+  - id: 13
+    name: "skill-bill dispatcher, retire listed skills, delete bill-monitor"
+    spec_path: ".feature-specs/SKILL-380-phase-slot-strategies/spec_subtask_13_single-dispatcher-and-catalog.md"
+    status: pending
+    branch: null
+    commit_sha: null
+    workflow_id: null
+    blocked_reason: null
+    last_resumable_step: null
+    linear_issue_id: null
+    dependencies:
+      - subtask_id: 6
+        optional: false
+        skipped: false
+      - subtask_id: 7
+        optional: false
+        skipped: false
+      - subtask_id: 9
+        optional: false
+        skipped: false
+      - subtask_id: 10
+        optional: false
+        skipped: false
+      - subtask_id: 11
+        optional: false
+        skipped: false
+      - subtask_id: 12
+        optional: false
+        skipped: false

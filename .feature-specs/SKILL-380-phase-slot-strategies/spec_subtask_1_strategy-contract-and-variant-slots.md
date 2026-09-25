@@ -45,9 +45,17 @@ run-loop harness. Every later subtask diffs against these fixtures.
   - its entry step
   - the `PhaseStepPolicy` of each step
 
-  It runs one step, using the existing per-call run facts, and returns the existing
-  phase outcome type. Collaborators come through the constructor. Keep the interface
-  to what the run loop calls.
+  It runs one step by calling `PhaseRunner`, using the existing per-call run facts,
+  and returns the existing phase outcome type. Collaborators come through the
+  constructor. Keep the interface to what the run loop calls.
+- `PhaseRunner` is one interface, with KDoc, in the same package. It executes one
+  step: prompt composition, agent launch, output validation, and typed outcome.
+  Collaborators come through the constructor. Per-call facts stay parameters.
+  Skeleton persistence (phase records, ledger, run invariants) is not inside
+  `PhaseRunner`; the skeleton run loop wraps it. Isolated execution (subtask 5) uses
+  the same runner with an in-memory context and no workflow writer.
+  `FeatureTaskRuntimeRunLoopPhaseRunner` stays review-specific until this extraction;
+  it is not the public contract.
 - `ResolvedWorkflowProfile` is an in-memory value mapping every slot to a strategy.
   In this subtask it is resolved from the built-in slot defaults plus today's
   quality-gate selection: `BUILD` selects `pack-build`, `VALIDATE` selects
@@ -120,6 +128,7 @@ run-loop harness. Every later subtask diffs against these fixtures.
 - Record the decision in `runtime-kotlin/agent/decisions.md`:
   - a fixed slot skeleton with in-process strategies
   - the one strategy interface added on top of SKILL-378.2's step-class rule
+  - one `PhaseRunner` shared by skeleton strategies and isolated programs
   - explicit provider registration
 - Update `FeatureTaskRuntimeBoundaryOwnershipArchitectureTest` if it pins the deleted
   sets or routing.
@@ -127,7 +136,7 @@ run-loop harness. Every later subtask diffs against these fixtures.
 ## Acceptance Criteria
 
 1. `PhaseSlot` exists in runtime-domain with the nine wire values in skeleton order. A test proves that every id in `FeatureTaskRuntimePhaseIds.all` belongs to exactly one slot and that every slot owns at least one step.
-2. `PhaseStrategy` and `PhaseStrategyRegistry` exist in `skillbill.engine.featuretask.slot`. The runtime-core registry provider lists at least one strategy for every slot, and two for `quality_gate`.
+2. `PhaseStrategy`, `PhaseRunner`, and `PhaseStrategyRegistry` exist in `skillbill.engine.featuretask.slot`. The runtime-core registry provider lists at least one strategy for every slot, and two for `quality_gate`. Every registered strategy executes its steps through `PhaseRunner`.
 3. Constructing the registry with a duplicate `(slot, id)` pair, or with a strategy that declares a step outside its slot, raises the typed error. Looking up an unknown pair raises the typed error. Each case has a test.
 4. `runPreparedPhaseReady` and `FeatureTaskRuntimeCurrentPhaseExecutionDeriver` contain no branch on a phase id, and every step launch goes through a registry lookup.
 5. `MUTATING_PHASES`, `isMutatingPhase`, `OUTPUT_RETRY_PHASES`, `retriesOnInvalidOutput`, `singleAgentSessionOnly`, `GENERATION_SCOPED_PHASE_IDS`, `NON_FILE_MUTATING_PHASES`, and `FeatureTaskRuntimeQualityGateRouting` no longer exist, and each strategy's declared `PhaseStepPolicy` equals today's value for its steps.
@@ -141,12 +150,14 @@ run-loop harness. Every later subtask diffs against these fixtures.
 - Moving the other seven slots' special cases and prompt tables (subtask 2).
 - The profile contract, config key, durable freezing, CLI loud-fail, and telemetry field (subtask 3).
 - A second review strategy (subtask 4).
+- Isolated programs, CLI, operations, or listed-skill retirement (subtasks 5–13).
 - Changing any policy value, loop cap, retry budget, prompt text, or stored byte.
 - Goal-runner and goal-planning code.
 
 ## Dependency notes
 
-- No dependency inside this bundle, and none on another issue. Subtasks 2, 3, and 4 depend on this subtask.
+- No dependency inside this bundle, and none on another issue. Subtask 2 depends
+  on this subtask. Subtask 5 depends on 3.
 - Use typed git results, typed artifacts, and the current call shape, whichever is on the tree.
 - Use the learnings delivery that is already on the tree.
 

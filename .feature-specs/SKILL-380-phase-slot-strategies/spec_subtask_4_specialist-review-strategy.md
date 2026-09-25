@@ -74,7 +74,7 @@ add the strategy, what it does differently, and how to select it.
 - Depends on subtask 3: profile selection, resume pinning, and the telemetry field.
 - Use the learnings delivery that is on the tree.
 - Use the review-preparation type and `AgentRunLaunchFacts` termination that exist now. If this strategy introduces a caller, update that caller when those types change inside this commit only as far as this subtask's criteria require.
-- Skippable: subtasks 1–3 are complete without it. The manifest marks its dependency on subtask 3 as non-optional, but the subtask itself can be marked skipped.
+- Skippable: waves A (1–3), B, C, and D are complete without it. The manifest marks its dependency on subtask 3 as non-optional, but the subtask itself can be marked skipped.
 
 ## Validation strategy
 
@@ -99,7 +99,7 @@ launcher suites. Run `bill-unit-test-value-check` on changed tests.
 
 ## Next path
 
-After the last subtask, `skill-bill goal SKILL-380` completes the goal and opens the PR.
+Continue to `spec_subtask_5_isolated-engine-review-validation.md`. Waves B–D do not depend on this subtask.
 
 ## Spec Path
 

@@ -20,13 +20,17 @@ Design Principles rule "Extend manifest-driven packs and injected process strate
 instead of adding identity branches to shared runners"
 (`runtime-kotlin/ARCHITECTURE.md`, Dependencies And Responsibilities).
 
-The fix gives the existing skeleton a behaviour side:
+The fix gives the existing skeleton a behaviour side, a second execution mode
+that reuses that behaviour without a workflow, and a single listed dispatcher:
 
 - a fixed, ordered set of phase slots
 - one strategy contract that every slot's implementation satisfies
+- one `PhaseRunner` that executes a single step
 - a registry keyed by slot and strategy id
-- a workflow profile, validated against a schema and frozen into the run, that picks
-  one strategy per slot
+- a workflow profile, validated against a schema and frozen into a skeleton run
+- isolated programs invoked as `phase:<name>`
+- operations invoked as `operation:<name>` with runtime pre/post
+- listed catalog exactly `skill-bill`; `bill-monitor` deleted
 
 Existing behaviour moves behind the contract unchanged. The default profile reproduces
 today's runs byte for byte. Only variants that exist today ship: two quality-gate
@@ -164,6 +168,8 @@ review.
 | F-005 | Medium | Prompt task text is chosen from phase-keyed tables (`phaseDirectives`, `phaseTaskDirective`). The review entries and `reviewExecutionDirective` look unreachable because review bypasses the composer | 1, 2 |
 | F-006 | Medium | Nothing durable records how a phase ran, so resume cannot detect a strategy change, and telemetry cannot compare two strategies for the same slot | 3 |
 | F-007 | Low | `AGENTS.md` says the build gate starts no repair agents. `FeatureTaskRuntimeBuildGateCoordinator` runs up to one triage and three repair sessions (`:59-218, 328`), and the build prompt agrees with the code | Open question (see Limits) |
+| F-008 | High | The only way to run a phase is a skeleton workflow. Operators need isolated programs (`phase:plan`, `phase:review`, `phase:validation`, `phase:implement`, `phase:pr`) that share `PhaseRunner` and write no workflow row | 1, 5–7 |
+| F-009 | High | Listed `skills/bill-*` are prompt catalogs. Operators need one `/skill-bill` dispatcher, `operation:<name>` for non-phase jobs, and `bill-monitor` removed | 8–13 |
 
 ## Target design
 
@@ -186,10 +192,14 @@ review.
     read-only idle), as a domain value
   - its task directive per step
 
-  It executes one step at a time and returns the existing phase outcome type.
-  Collaborators arrive through the constructor. Per-call facts (the step run, state,
-  observability) arrive as parameters. This matches SKILL-378 subtask 2's
-  step-class rule.
+  It executes one step at a time by calling `PhaseRunner` and returns the existing
+  phase outcome type. Collaborators arrive through the constructor. Per-call facts
+  (the step run, state, observability) arrive as parameters. This matches SKILL-378
+  subtask 2's step-class rule.
+- **Phase runner.** One `PhaseRunner` interface in the same package. It owns prompt
+  composition, agent launch, output validation, and the typed step outcome.
+  Skeleton persistence stays outside it. Isolated programs call it with an in-memory
+  context and never open `feature_task_workflows`.
 - **Strategies shipped:**
   - one per slot, wrapping today's behaviour
   - two for quality_gate: `pack-build` and `agent-validate`, replacing transition
@@ -209,12 +219,31 @@ review.
   - The resolved map is validated against the registry and frozen into run
     invariants at preparation.
   - Resume uses the frozen map and blocks an explicit override that conflicts with it.
+  -     Isolated programs (subtask 5) read the same repo profile at invocation and do not
+    write it to run invariants. Isolated `phase:review` is the standalone driver and
+    ignores the skeleton `code_review` profile value.
   - The run's finished telemetry reports the map.
 - **What stays in the domain graph.** Transitions and handoff projections stay
   declared there. A strategy may run only the steps and edges the graph declares for
   its slot. A strategy that needs a new step id or edge changes the workflow-state and
   projection contracts through the normal contract path. That limit is deliberate:
   durable bytes stay governed.
+- **Isolated programs.** Closed catalog invoked as `skill-bill [<intake>] phase:<name>`:
+  plan (transient preplan then plan, writes spec), review (today's standalone
+  `bill-code-review` / `ParallelCodeReviewRunner`, not `last-commit-fix`;
+  `mode:auto|inline|delegated` with omit and auto resolving to inline), validation
+  (`agent-validate` / today's `bill-code-check` collect-all), implement (spec required),
+  pull_request (push the current local branch if it is ahead of the remote, then
+  open the PR; fill a discovered repo pull-request template for the summary when
+  one exists; do not commit uncommitted work). No workflow row, no resume,
+  invocation-time profile for programs that are slot strategies. Isolated review
+  does not follow the skeleton `code_review` profile value. Isolated
+  `commit_push` is refused. IDE UI is a later caller of `IsolatedPhaseRequest`.
+- **Operations and catalog.** After this bundle the only listed skill is
+  `skill-bill`. Non-phase jobs are `operation:<name>` with Kotlin pre/post.
+  `bill-monitor` is deleted, not migrated. `bill-code-review-inline` stays
+  unlisted with `internal-for: skill-bill`. Pack specialists stay unlisted
+  native-agents. Every current `skills/` tree is mapped in `spec.md`.
 
 ## Overlap with other bundles
 
@@ -266,6 +295,10 @@ subtask 1 or 2 updates them, whichever first touches their subject.
 | Per-subtask or per-phase profile switching inside a run | No consumer, and it breaks resume invariants |
 | kotlin-inject `@IntoMap` multibinding | First use in the repo; an explicit provider list matches house style and reads as the catalog |
 | Generic user-defined slot graph (custom slots, custom order) | Contradicts "no generic workflow framework". The skeleton is fixed; only fillers vary |
+| Isolated execution that opens a workflow and resumes at one phase | Operator asked for a separate program, not a partial skeleton run |
+| Isolated `commit_push` | Uncommitted work must not become a commit through this path; `phase:pr` may push existing local commits, then open the PR |
+| Isolated `phase:review` following the skeleton `code_review` profile | Isolated review replaces `bill-code-review`; the skeleton default is `last-commit-fix` |
+| Keep `bill-monitor` as an operation | Operator asked it deleted; `skill-bill goal status` remains CLI |
 | Strategy A/B through the experiment framework | SKILL-378.1 deletes it; the finished-telemetry field is enough to compare |
 | A second strategy for every slot | Only quality_gate and code_review have real second variants |
 | Per-phase-record `strategy_id` | The frozen run-level map already names every step's strategy |
