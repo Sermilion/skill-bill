@@ -1,5 +1,6 @@
 plugins {
   id("skillbill.jvm-library")
+  id("skillbill.repo-test")
   id("skillbill.quality")
   id("skillbill.governed-resources")
 }
@@ -19,6 +20,16 @@ dependencies {
   testImplementation(testFixtures(project(":runtime-infra:skills")))
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.kotlin.test)
+}
+
+tasks.named<Test>("repoTest") {
+  inputs.files(
+    fileTree(rootProject.layout.projectDirectory.dir("..")) {
+      include("**/agent/history.md", "**/agent/decisions.md")
+      exclude("**/build/**", "**/.gradle/**", "**/node_modules/**", ".git/**")
+    },
+  ).withPathSensitivity(PathSensitivity.RELATIVE)
+    .withPropertyName("boundaryMemoryFiles")
 }
 
 governedResources {

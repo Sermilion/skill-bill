@@ -33,11 +33,6 @@ internal fun resolveBoundaryHeading(input: BoundaryHeadingResolutionInput): Boun
   val body = goalPlanningTruncateToUtf8Bytes(entry.body, input.caps.maxBodyBytes)
   val bodyBytes = goalPlanningUtf8Size(body)
   if (body.length < entry.body.length) {
-    if (input.loudFailOnCapExceeded) {
-      throwBoundaryCapExceeded(
-        "finding verification boundary body resolution exceeded max_body_bytes for heading '${input.headingId}'",
-      )
-    }
     input.state.truncated = true
   }
   if (input.state.totalBytes + bodyBytes > input.caps.maxTotalBodyBytes) {

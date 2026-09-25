@@ -1,6 +1,6 @@
 # runtime-application decisions
 
-## 2026-09-23 — Type-surface declarations stay public when only their names are module-local (SKILL-370)
+## [2026-09-23] Type-surface declarations stay public when only their names are module-local (SKILL-370)
 
 **Context.** The visibility sweep narrowed every runtime-application top-level declaration whose
 name no other module mentions. A name census alone overstates what is safe: a result or request
@@ -18,7 +18,7 @@ constructor parameter types stay public because runtime-core's generated compone
 failures (rejected: churn against the same criterion). Widening the census to treat any signature
 mention as external (rejected: it would keep module-local helper functions public too).
 
-## 2026-08-10 — Validate-phase gate execution is runtime-owned (SKILL-180)
+## [2026-08-10] Validate-phase gate execution is runtime-owned (SKILL-180)
 
 **Context.** Validate previously instructed the agent to invoke `bill-code-check`, so gate-run
 count, batching, and terminal cache-bypass evidence were unobservable and unenforceable.

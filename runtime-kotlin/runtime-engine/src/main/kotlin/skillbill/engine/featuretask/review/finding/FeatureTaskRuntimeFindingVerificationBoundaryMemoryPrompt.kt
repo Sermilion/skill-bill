@@ -3,6 +3,7 @@ package skillbill.engine.featuretask.review.finding
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFindingBoundaryMemorySection
 import skillbill.error.shellcontent.GoalVerificationBoundaryCapExceededError
+import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryBodyResolutionCaps
 import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
 import java.nio.file.Path
@@ -77,6 +78,12 @@ fun FeatureTaskRuntimeFindingVerificationBoundaryMemory.resolvedBodiesPromptSect
         appendLine("#### ${body.headingId}")
         appendLine(body.heading)
         appendLine(body.body)
+      }
+      if (resolved.truncated) {
+        appendLine(
+          "Truncated: at least one body above exceeded max_body_bytes " +
+            "(${GoalPlanningBoundaryBodyResolutionCaps.VERIFICATION.maxBodyBytes}) and ends at that limit.",
+        )
       }
       if (resolved.unresolvedHeadingIds.isNotEmpty()) {
         appendLine(

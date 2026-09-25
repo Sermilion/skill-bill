@@ -4,6 +4,13 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-25] Boundary memory entries are capped at 4096 bytes; verification truncates oversized bodies
+Context: A SKILL-374 goal child crashed in verify_findings because one selected decisions.md entry exceeded the verification `max_body_bytes` (4096). The per-body cap loud-failed with `GoalVerificationBoundaryCapExceededError`, which the resolved-bodies prompt path did not catch, so the child exited 1 without a durable block. The repo also held 15 entries above the cap, and 38 legacy `## <date> — <title>` headings that the parser folded into the preceding dated entry (one "entry" measured 68 KB).
+Decision: (1) Every `agent/history.md` and `agent/decisions.md` entry body is at most the verification `max_body_bytes`, measured the way `BoundaryMemoryHeadingParser` splits entries; `BoundaryMemoryEntrySizeRepoTest` in `:runtime-infra:workflow:repoTest` enforces it, and both boundary skills state the limit. (2) Under verification caps an oversized body is truncated at `max_body_bytes`, marks the resolution `truncated`, and the prompt says so; it no longer throws. This supersedes the SKILL-202 subtask 3 rule "loud-fail rather than truncate" for the per-body cap only; `max_selected_bodies` and `max_total_body_bytes` still loud-fail. (3) Legacy headings became `## [<date>] <title>` so each is its own addressable entry, and oversized entries were condensed without changing their headings.
+Reason: The guard stops writers from producing entries the finding-verification step cannot read in full, and truncation keeps one old or hand-written entry from crashing a goal. A truncated body is still useful evidence, and the prompt flags the cut, so the verifier is never misled.
+Alternatives considered: Raising the cap (moves the cliff, and the 32 KB verification total budget still binds); catching the error in the prompt path only (drops the evidence and keeps the crash risk in other callers).
+Revisit when: verification needs whole entries it cannot fit, or the caps change.
+
 ## [2026-09-24] The architecture suite is a repository-contract suite with declared inputs
 
 The architecture suite reads governed sources across the whole repository, not
@@ -322,7 +329,7 @@ Decision: Keep `runtime-kotlin/ARCHITECTURE.md` as general module, ownership, an
 Reason: A guideline that lists current files and issue keys goes stale the moment the tree moves, and it stops being usable as architecture.
 Alternatives considered: Keep per-file tables in the document and pin them with phrase tests.
 
-## 2026-09-16 — SKILL-350 subtask 1: component invocation snapshot and launcher lookup wiring
+## [2026-09-16] SKILL-350 subtask 1: component invocation snapshot and launcher lookup wiring
 
 **Context.** Generated CLI and MCP graphs call parent `runtimeContext()` and
 scoped providers directly. Re-entering `RuntimeBootstrapBindings` on each call
@@ -354,7 +361,7 @@ Decision: List every local `v[0-9]*` tag, take the newest stable `X.Y.Z`, and se
 Reason: Patch is the unit that follows a patch release. Ancestry hides tags that exist but were not merged as the tagged commit. Treating same-base SNAPSHOT as newer would hide that class of tag mistakes instead of advancing the version.
 Alternatives considered: Auto-bump minor after every release; override SemVer so `X.Y.Z-SNAPSHOT` is newer than `X.Y.Z`.
 
-## 2026-09-16 — SKILL-347 subtask 3: review composition, stateless update check, adapter census
+## [2026-09-16] SKILL-347 subtask 3: review composition, stateless update check, adapter census
 
 **Context.** Subtask 3 collapses review runner wiring, deletes production-unused
 telemetry and review adapters, removes feature-preparation aliases, and makes
@@ -390,7 +397,7 @@ adaptation is not a rename.
 composition root owns lane launch wiring, retired adapter files stay absent from
 production main, and update-check parser flags stay out of service fields.
 
-## 2026-09-16 — JVM interrupt restoration stays in outer infrastructure
+## [2026-09-16] JVM interrupt restoration stays in outer infrastructure
 
 **Context.** `InterruptSignalPort` is the inward contract for restoring the
 thread interrupt flag after `InterruptedException`. A JVM implementation in
@@ -405,7 +412,7 @@ the port explicitly.
 **Reason.** Mechanism belongs in outer adapters; application code keeps
 cooperative failure propagation without selecting environment APIs.
 
-## 2026-09-14 — Validate is collect-all, fix, exit; runtime confirms
+## [2026-09-14] Validate is collect-all, fix, exit; runtime confirms
 
 **Context.** Validate blocked on agent `validation-evidence` JSON (schema cap=1)
 even when the agent had finished. Fallback (`agentRunValidateFallback`) still
@@ -425,7 +432,7 @@ installed platform pack declares `validation_gate`, and findings remaining after
 2026-08-20 agent-run confirmation. Agent collect-all stays; confirmation is
 runtime-owned.
 
-## 2026-09-14 — SKILL-238 subtask 2: what survives the single-implementation collapse
+## [2026-09-14] SKILL-238 subtask 2: what survives the single-implementation collapse
 
 **Context.** The YAGNI sweep removes same-module interfaces that name exactly one
 data bag and application services that only rename a port. Two calls in that sweep
@@ -469,7 +476,7 @@ Revisit when: a second implementation of one of these collapsed groups appears, 
 which point reintroduce the interface rather than branching inside the data class.
 
 
-## 2026-09-14 — SKILL-52.5 subtask 7: zero-tolerance raw-map enforcement
+## [2026-09-14] SKILL-52.5 subtask 7: zero-tolerance raw-map enforcement
 
 **Context.** SKILL-52.1 introduced `@OpenBoundaryMap` plus a Kotlin FQN
 allow-list with ARCHITECTURE.md / SKILL-52.2 inventory parity. Subtasks 2–6
@@ -983,7 +990,7 @@ Reason: Suite proof stays one collect-all confirmation run; per-finding Gradle o
 Alternatives considered: Agent-run full_gate_command or per-test substantiation — rejected. Bumping persistence contract versions for additive plan/receipt keys — rejected; absent keys decode empty.
 Revisit when: confirmation closure needs a different identity key than exact module|ruleOrTestId|message|location.
 
-## 2026-08-10 — Review remediation gate is Blocker or Major (SKILL-178)
+## [2026-08-10] Review remediation gate is Blocker or Major (SKILL-178)
 
 Context: Governed skill content and content-lock tests still stated the old
 Blocker-only reopen rule after subtasks 1–3 widened runtime severity gates so
@@ -1004,7 +1011,7 @@ in this sweep — rejected; out of scope and breaks durable decode.
 Revisit when: disposition obligations widen from prior-Blocker ids to every
 addressed finding in the review-execution directive itself.
 
-## 2026-08-10 — Validate-phase build/test/gate execution is runtime-owned (SKILL-180)
+## [2026-08-10] Validate-phase build/test/gate execution is runtime-owned (SKILL-180)
 
 Context: Validate previously told the agent to invoke `bill-code-check`, so
 gate-run count, batching, and terminal cache-bypass evidence were claims rather
@@ -1022,7 +1029,7 @@ Audit and repair evidence remain read-only repository facts.
 Alternatives considered: Agent-reported gate_run_count (rejected). Hardcoded
 Gradle cache flags in the runtime (rejected; packs declare bypass argv).
 
-## 2026-08-10 — producer_output_evidence identity includes agent_id (SKILL-176)
+## [2026-08-10] producer_output_evidence identity includes agent_id (SKILL-176)
 
 Context: Re-entering a phase attempt under a different agent (SKILL-15
 `review:0:2`) crashed retention: the four-part key already held another
@@ -1044,7 +1051,7 @@ rejected; hides the identity bug and is out of scope.
 Revisit when: evidence must be shared across producers for one attempt without
 agent scoping.
 
-## 2026-08-10 — remediation checkpoint sha and branch tip stay paired (SKILL-176)
+## [2026-08-10] remediation checkpoint sha and branch tip stay paired (SKILL-176)
 
 Context: On SKILL-15, remediation checkpoint `73993c8` was recorded as
 `remediation_base_sha`, then the branch tip moved to sibling `9d814e8` (same
@@ -1080,234 +1087,73 @@ seam; migrate/backfill historical rows — rejected, heal at read/resume only.
 Revisit when: a runtime-owned history rewrite (amend/rebase) is introduced, at
 which point that path must call the same paired base update.
 
-## 2026-08-09 — runtime is the only feature engine; prose and OpenCode/zcode are removed from the product (SKILL-175)
+## [2026-08-09] runtime is the only feature engine; prose and OpenCode/zcode are removed from the product (SKILL-175)
 
-Context: Runtime became the default feature engine and now owns the guarantees
-prose cannot deliver: DB-owned phase loop, shared preplan hydration, projection
-budgets, worker leases, agent-independent resume. Keeping prose alongside it
-means a second product with weaker semantics — dual skills, MCP tools, a CLI
-workflow family, telemetry events, IDE status enums, and runtime↔prose parity
-locks. OpenCode and zcode are install-first-class but feature-runtime refused,
-and their refusal message points operators at prose. This entry **supersedes**
-the 2026-06-27 entry "opencode is prose-only: runtime mode refuses whenever the
-resolved agent is opencode" in full. That entry's body is left intact as
-history; its stance no longer governs.
+Context: Runtime owns guarantees prose cannot deliver (DB-owned phase loop,
+preplan hydration, projection budgets, worker leases, agent-independent resume).
+Keeping prose meant a second, weaker product: dual skills, MCP tools, CLI,
+telemetry, IDE enums, parity locks. OpenCode/zcode were runtime-refused with a
+refusal pointing at prose. Supersedes the 2026-06-27 "opencode is prose-only"
+entry in full.
 
 Decision:
+1. Runtime is the sole feature engine; no `mode:prose`/`mode:runtime` selector.
+2. The prose surface is deleted, not renamed: prose runners,
+   `feature_task_prose_*` / legacy `feature_implement_*` / `goal_prose_*` MCP
+   tools, `skill-bill workflow` (`TASK_PROSE`), `implement-stats`,
+   `FeatureImplement*`, `WorkflowFamily.IMPLEMENT`, IDE `feature-task-prose`.
+3. OpenCode and zcode leave the product entirely, explicitly with no refuse tier
+   or "unsupported agents" list. `RUNTIME_REFUSED_AGENTS`, its message,
+   `isRuntimeRefusedAgent`, and `InstallAgent.OPENCODE`/`ZCODE` are deleted.
+4. A future OpenCode return is a new integration from a working headless
+   driver, never an un-delete, shim, or prose fallback.
+5. Cutover is dependency-ordered because prose shares `feature_task_workflows`
+   with runtime via the `mode` column. No parity tests survive.
 
-1. **Runtime is the sole feature execution engine.** There is no mode selector
-   on feature entry — no `mode:prose`, no `mode:runtime`, no engine choice
-   exposed by skills, CLI, or MCP.
-2. **The prose engine surface is deleted, not renamed.** The legacy prose
-   workflow and subtask-runner surfaces, `feature_task_prose_*` / legacy
-   `feature_implement_*` / `goal_prose_*` MCP tools, the `skill-bill workflow`
-   family (`TASK_PROSE`), `implement-stats`, `FeatureImplement*`,
-   `WorkflowFamily.IMPLEMENT`, and the IDE `feature-task-prose` family go away.
-   Nothing is renamed forward into a runtime-flavoured equivalent.
-3. **OpenCode and zcode are removed from the product entirely.** They are not
-   kept as install targets, not kept as detection signals, and **must not be
-   preserved as a permanent refuse tier or an "unsupported agents" list** —
-   that prohibition is explicit, not implied. `RUNTIME_REFUSED_AGENTS`,
-   `RUNTIME_REFUSED_AGENT_MESSAGE`, and `isRuntimeRefusedAgent` are **deleted**,
-   not rewritten to carry a different rejection reason. `InstallAgent.OPENCODE`
-   and `InstallAgent.ZCODE` and their provider/link/MCP/native-agent cases are
-   deleted with them.
-4. **A future OpenCode return is a clean new integration, never an un-delete.**
-   It starts from a working headless driver and a real runtime child model,
-   with no compatibility shim carried forward from this cut and no prose
-   fallback.
-5. **The cutover is dependency-ordered, not a single sweep.** Prose shares
-   `feature_task_workflows` with runtime through the `mode` column, so that
-   table is never dropped blindly; the order is stance → callers + OpenCode/zcode
-   purge → prose skill deletion → MCP/telemetry → CLI → persistence/IDE →
-   tests/docs, and the row policy below governs every persistence step.
-6. **No dual maintenance survives this feature.** Runtime↔prose parity tests and
-   any "must work on both paths" requirement are retired; runtime is the sole
-   authority and no future change re-establishes a second engine to keep in
-   lockstep.
+In-flight prose rows (binding on subtask 6): quarantine + loud-fail resume,
+never reinterpretation or a rewriting migration.
+- `feature_task_workflows` `mode = 'prose'` rows stay readable; resume paths
+  raise a typed error naming `skill-bill goal <KEY>`. Both `'prose'` CHECKs stay
+  (`DatabaseSchema.kt`, avoiding a table rebuild; `DatabaseMigrations.kt` for
+  `feature_task_execution_identities`). Writes refuse `'prose'`.
+- `feature_implement_sessions`: read-only, no writer, stats removed,
+  `StaleSessionReconciler` ignores it. `goal_run_sessions` keep recorded `mode`;
+  prose sessions are not resumable.
+- Decode paths stay as legacy read-only values, overriding SKILL-175 spec rows
+  that said "Remove": `FeatureTaskWorkflowMode.PROSE`, `decodeIdentityMode`, the
+  identity-schema `prose` enum, `WorkItemKind.FEATURE_TASK_PROSE` (states from a
+  frozen literal set once `FeatureImplement*` is gone). Deleting them turns the
+  refusal into an opaque schema error and makes
+  `SQLiteWorkListRepository.list()` throw on one legacy row.
+- Quarantine lives in read/resume code; appending to an applied migration is a
+  no-op on existing DBs.
+- Trap: the prose issue-key backfill in `recoverGoalContinuationWorkflowIssueKeys`
+  is a read-side repair; keep it. The refusal goes in
+  `FeatureTaskContinuationLookupService.lookup`, not in `WorkflowStateStore`
+  candidate or delete/count queries.
 
-### In-flight prose row policy (binding on subtask 6)
+Scope: only the product mode `prose` goes; English "prose" wording stays. The
+`opencode`/`zcode` grep allowlist is the SKILL-175 spec folder and
+`.feature-specs/done/**`. Subtask 3 precondition: re-home governed briefing text
+into `FeatureTaskRuntimePhaseBriefingAssembler` before deleting the prose
+agents holding its only copy.
 
-The policy is **quarantine + loud-fail resume**. It is never silent
-reinterpretation of a prose row as a runtime row, and it is never a one-shot
-migration that rewrites historical rows. Subtask 6 implements exactly this, and
-must not re-decide it. The three row populations each get a distinct rule:
+Reason: two engines on one `mode` column double maintenance while only one
+honours the durability guarantees. A refuse tier advertises nonexistent support.
+Quarantine keeps history truthful and fails loud instead of half-running.
 
-1. **`feature_task_workflows` rows with `mode = 'prose'`.** Rows remain readable
-   for history. Every resume/continue/update path that encounters one **must**
-   raise a typed error naming the runtime re-run path (`skill-bill goal <KEY>`)
-   rather than degrading or reinterpreting. Two distinct `mode` CHECK
-   constraints spell `'prose'`, and **both must retain it**, for different
-   reasons:
-   - `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/core/DatabaseSchema.kt:359`
-     is the `feature_task_workflows` CHECK — the one this rule exists to
-     protect. Retaining `'prose'` here is what avoids a SQLite table rebuild
-     and keeps quarantined rows insert-compatible with their own history.
-   - `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/core/DatabaseMigrations.kt:50`
-     is the `feature_task_execution_identities` CHECK — a different table
-     (`DatabaseMigrations.kt` never creates `feature_task_workflows`; it
-     references it only as an FK target at lines 55 and 89). Retaining
-     `'prose'` here is what the identity-schema retention paragraph below
-     depends on, so `decodeIdentityMode` can still decode a quarantined row.
+Alternatives considered: install-only OpenCode/zcode with a redirect (fake
+tier); migrating prose rows (state not equivalent, cannot resume); renaming
+prose to a runtime variant (dead code under a new name).
 
-   Both are legacy read-only values; every **write** path must refuse `'prose'`
-   above the schema.
-2. **`feature_implement_sessions` rows and their stats builders.** The table and
-   its rows are retained as read-only history. There **must** be no live writer.
-   The stats surfaces built on it (`FeatureImplement*Stats`,
-   `implement-stats`) are removed, and `StaleSessionReconciler` /
-   `StaleReconciliationCandidateQuery` **must** stop treating those sessions as
-   reconciliation candidates.
-3. **`goal_run_sessions` prose attribution.** Existing rows keep their recorded
-   `mode` value verbatim. No new prose attribution is ever written, and goal
-   continuation **must not** treat a prose-attributed session as resumable.
+Non-goals: an OpenCode/zcode runtime; rewriting done specs or history; review
+`mode:inline|delegated|auto`; cleaning user symlinks under `~/.config/opencode`
+or `~/.zcode`.
 
-**Override of parent inventory rows.** This policy **supersedes** five rows of
-the parent inventory in
-`.feature-specs/SKILL-175-remove-prose-opencode-runtime-support/spec.md`: section
-D's `FeatureTaskWorkflowMode.PROSE` / `mode` CHECK including `prose` ("Remove
-after migration") and section D's shared `feature_task_workflows` prose branch as
-it applies to reads, and section E's `feature-task-execution-identity-schema.yaml`
-`prose` enum ("Remove"). Where they conflict, this entry governs. Concretely, the
-mode **decode** path — `FeatureTaskWorkflowMode.PROSE`, its `wireValue` /
-`fromWireValue` lookup, and `decodeIdentityMode` in
-`runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/workflow/WorkflowStateStore.kt:560`
-— and the identity-schema `prose` enum value **must both be retained as legacy
-read-only values**. A quarantined row must decode successfully so the refusal is
-raised as the typed runtime re-run error from rule 1 above, not as
-`InvalidFeatureTaskExecutionIdentitySchemaError("mode 'prose' is not supported")`
-from the schema decoder. Deleting the enum value or the schema enum would convert
-the mandated loud, actionable refusal into an opaque schema-decode failure and
-would make history rows unreadable. Only the **write** and **resume** paths drop
-prose.
+Revisit when: a working headless OpenCode/zcode driver can sustain the runtime
+child model, or prose-quarantine loud-fails keep firing long after the cut.
 
-The same rationale extends to a **third decode path over the same retained rows**,
-which supersedes two further parent rows: `spec.md:107`
-(`FeatureImplementWorkflowDefinition` + `FeatureImplement*` stack → "Remove") and
-`spec.md:112` (`WorkItemKind.FEATURE_TASK_PROSE` → "Remove"), **as they apply to
-the work-list read path only**.
-`runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/worklist/SQLiteWorkListRepository.kt`
-maps `mode = 'prose'` to the wire kind `feature-task-prose` (line ~42) and builds
-`validWorkStates` (line ~120) from
-`FeatureImplementWorkflowDefinition.definition.workflowStatuses`. Deleting either
-symbol outright makes `list()` throw on **any** database holding a single legacy
-prose row — failing the entire work-list read rather than degrading that one row,
-which is the opposite of the mandated per-row refusal and breaks rule 1's
-readability guarantee. Therefore:
-
-- `WorkItemKind.FEATURE_TASK_PROSE` and its `feature-task-prose` wire value are
-  **retained as legacy read-only values**, exactly like
-  `FeatureTaskWorkflowMode.PROSE`. A quarantined row lists; acting on it raises
-  the typed runtime re-run error.
-- Once the `FeatureImplement*` stack is deleted, the retained
-  `FEATURE_TASK_PROSE` kind resolves its valid states from a **frozen literal set
-  of the historical prose workflow statuses**, declared alongside the retained
-  kind rather than by importing a workflow definition. It is a closed constant
-  used only to keep history rows decodable — not a surviving workflow definition,
-  and nothing dispatches on it.
-
-Everything else on `spec.md:107` and `:112` — the prose runner, its services,
-skills, MCP tools, and any dispatch on the kind — is deleted as the parent rows
-say.
-
-Already-installed databases reach the quarantined state **through the read and
-resume code paths, not through an appended migration body**: appending a
-statement to a migration that has already been applied is a silent no-op on
-existing DBs, so a schema-side quarantine would never reach any real user's
-database. The refusal therefore lives in the store/service read path, which every
-existing DB executes on the next run.
-
-Two separate `mode = 'prose'` surfaces sit near goal continuation and **must not
-be confused for each other**:
-
-1. **The issue-key backfill branch**, `mode = 'prose' AND ...goal_continuation.enabled`
-   inside `recoverGoalContinuationWorkflowIssueKeys` at
-   `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/core/DatabaseColumnMigrations.kt:188`.
-   This is an `UPDATE` that backfills `issue_key` from `artifacts_json`; it is
-   **not** a continuation-candidacy predicate and removing it does not stop any
-   row from being resumed. It **must be retained**, because rule 1 guarantees
-   quarantined prose rows stay readable for history, and a legacy prose row
-   whose `issue_key` was never backfilled would otherwise surface in the work
-   list with a null `issueKey`. Backfilling an identifier is a read-side repair,
-   not a prose write path, so it does not violate the "no new prose writes" rule.
-2. **The real continuation candidacy path**, `findGoalChildFeatureTaskCandidates`
-   at `runtime-kotlin/runtime-infra/sqlite/src/main/kotlin/skillbill/db/workflow/WorkflowStateStore.kt:342`,
-   delegating to the private `findFeatureTaskCandidates` query at `:362-403`,
-   which selects on `identities.route_scope` (`'goal_child'`) plus repository
-   identity and issue key. It does inspect `workflows.mode`, but only in the
-   `standalone` branch (`:378`), so a legacy `mode = 'prose'` goal-child row is
-   returned as a resume candidate today. The refusal from rule 1 does **not**
-   belong in this query, and emphatically not in the deletion/count statements
-   nearby (`deleteGoalChildWorkflowsByParent` `:294`,
-   `deleteGoalChildWorkflow` `:311`, `countGoalChildIdentities` `:351`) — those
-   run during ordinary goal cleanup and history counting, which rule 1 requires
-   to keep working for quarantined prose rows.
-
-   The refusal belongs **one layer up**, in
-   `runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/featuretask/FeatureTaskContinuationLookupService.kt`,
-   on the candidate list returned by `lookup` (`:60-77`): a candidate whose
-   workflow decodes to `FeatureTaskWorkflowMode.PROSE` raises the typed runtime
-   re-run error instead of being handed back as resumable. That placement covers
-   both route scopes through one seam, keeps the store a pure read, and leaves
-   delete/count paths untouched. Subtask 6 adds the refusal there, not in the
-   store and not in the column migration.
-
-### Keep/delete heuristic and grep allowlist
-
-English "prose" wording is **out of deletion scope**. Only the product mode named
-`prose` is deleted. Concrete keep examples, all present in the tree today:
-
-- `AGENTS.md` writing guidance: "Write direct, active prose".
-- `orchestration/contracts/native-agent-composition-schema.yaml`: "the governed
-  prose already…" — "governed prose" means authored skill/pack body text.
-- `skills/bill-pr-review-fix/content.md`: "write 1-3 sentences in plain prose" —
-  review/PR reply language.
-- `orchestration/contracts/review-context-schema.yaml`: "a bounded prose summary".
-- `orchestration/contracts/platform-pack-schema.yaml`: "Optional prose
-  tie-breakers" and "Short prose describing the area's specialist focus."
-
-The allowlist for `opencode` / `zcode` product-token greps is exactly
-`.feature-specs/SKILL-175-remove-prose-opencode-runtime-support/**` and
-`.feature-specs/done/**`. There is no live product keep-list: any other hit is a
-removal surface.
-
-### Ordering precondition on subtask 3
-
-Runtime phase prompt directives currently lockstep with the prose native agents,
-so one native-agent source holds the only copy of some governed briefing text.
-Before the prose source is deleted, the governed briefing text **must** first be
-re-homed into the runtime phase-briefing composition in
-`runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/featuretask/FeatureTaskRuntimePhaseBriefingAssembler.kt`
-(with `FeatureTaskRuntimeBriefingRendering.kt`). This is an ordering precondition
-on subtask 3, not a suggestion: deletion before re-homing loses the only
-surviving copy.
-
-Reason: two engines sharing `feature_task_workflows.mode` doubles the
-maintenance surface while only one of them can honour the durability guarantees
-the product sells. A permanent refuse tier for OpenCode/zcode would keep agent
-matrix noise and advertise a support level that does not exist. Quarantine over
-migration keeps history truthful and makes the failure loud at the exact moment
-an operator would otherwise get a half-executed run.
-
-Alternatives considered: (a) keep OpenCode/zcode as install-only targets with a
-refuse-and-redirect message — rejected, it is a fake support tier and the
-redirect target no longer exists; (b) one-shot migration of prose rows to
-runtime — rejected, the two engines' durable state is not equivalent and a
-rewritten row cannot actually resume; (c) rename the prose stack to a runtime
-variant — rejected, it preserves dead code paths under new names.
-
-Non-goals: implementing an OpenCode or zcode feature runtime; deleting English
-"prose" wording; rewriting historical `.feature-specs/done/**` archives or git
-history; changing review `mode:inline|delegated|auto`; guaranteeing cleanup of
-symlinks already written to user machines under `~/.config/opencode` or
-`~/.zcode` (release-note guidance only).
-
-Revisit when: someone brings a working headless OpenCode (or zcode) driver that
-can sustain the runtime child model, at which point it enters as a new
-integration; or when telemetry shows prose-quarantine loud-fails still firing
-long after the cut, which would mean the operator message is not landing.
-
-## 2026-08-08 — link and compile toolchain pin is JDK 21 (SKILL-166)
+## [2026-08-08] link and compile toolchain pin is JDK 21 (SKILL-166)
 
 Context: The Kotlin runtime compiled and linked against JDK 17 while the
 intellij-plugin and host JDKs had already moved to 21.
@@ -1320,7 +1166,7 @@ Reason: One pinned toolchain across compile, jlink, CI, and release docs
 avoids mixed-JDK drift; membership of `IMAGE_MODULES` needed no add/remove on
 the JDK 21 module graph.
 
-## 2026-08-07 — reject audit/review single-pass merge (SKILL-164)
+## [2026-08-07] reject audit/review single-pass merge (SKILL-164)
 
 Context: Checkpoint-keyed shared review evidence made it tempting to collapse
 `audit` and `review` into one agent pass over the same derived artifact.
@@ -1340,7 +1186,7 @@ shared evidence — rejected for the four reasons above.
 
 Revisit when: none; settled for this feature.
 
-## 2026-08-11 — Non-terminal-only plan cascade with provenance restamp (SKILL-181)
+## [2026-08-11] Non-terminal-only plan cascade with provenance restamp (SKILL-181)
 
 Context: SKILL-160 cascaded every sibling plan under `--include-shared-preplan`
 because `recoveryProgress` re-validates all ordered plans against the governing
@@ -1375,7 +1221,7 @@ cascade-everything — rejected by WE-4719 cost.
 
 Revisit when: none; settles the SKILL-160 revisit clause.
 
-## 2026-08-05 — `--include-shared-preplan` cascades every sibling plan row (SKILL-160)
+## [2026-08-05] `--include-shared-preplan` cascades every sibling plan row (SKILL-160)
 
 Context: Discarding the goal-wide shared preplan while leaving sibling
 `goal_subtask_plans` rows would provenance-mismatch those survivors against the
@@ -1415,7 +1261,7 @@ read after completion.
 **Superseded by 2026-08-11 SKILL-181 decision** (non-terminal-only cascade +
 restamp). Kept for history.
 
-## 2026-07-04 — internal skills are file-read sidecars; repo paths did not move (SKILL-102)
+## [2026-07-04] internal skills are file-read sidecars; repo paths did not move (SKILL-102)
 
 Context: The feature-execution dispatch targets needed to stop appearing in every
 agent's skill list because they are selected by `bill-feature`, not user entry
@@ -1452,68 +1298,52 @@ Revisit when: A supported agent gains a first-class invocable-but-hidden skill
 state, or when internal skills need to be surfaced in a maintainer-only listing
 view (the parent spec's deferred open question).
 
-## 2026-06-27 — opencode is prose-only: runtime mode refuses whenever the resolved agent is opencode
+## [2026-06-27] opencode is prose-only: runtime mode refuses whenever the resolved agent is opencode
 
 Context: A real run (NEWS-141, workflow `wftr-20260626-193556-a4lk`) proved the
-runtime-driven phase loop is non-viable under opencode for two independent
-reasons: (A) the Kotlin runtime driver runs the whole phase loop synchronously in
-one foreground process, but opencode's Bash tool hard-kills foreground commands
-at 120 000 ms — a single phase (preplan) took ~241 s, so the driver is guillotined
-before even one phase completes; and (B) even with a longer budget, the nested
-`opencode run` emits valid contract JSON that the runtime never captures back (the
-opencode builder used `usePtyStdio=true` + opencode's formatted/TUI output, so the
-phase-output JSON cannot be parsed out of the ANSI stream), leaving the phase
-`running` and wedging the loop. opencode is the highest-churn, lowest-usage
-runtime target, so fixing either bug is not worth it.
+runtime phase loop non-viable under opencode for two independent reasons: (A)
+the Kotlin driver runs the whole loop in one foreground process, and opencode's
+Bash tool hard-kills foreground commands at 120 000 ms, while one phase
+(preplan) took ~241 s; (B) the nested `opencode run` emits valid contract JSON
+the runtime cannot harvest (the builder used `usePtyStdio=true` and opencode's
+TUI output buries the JSON in ANSI), so the phase stays `running` and the loop
+wedges. opencode is the highest-churn, lowest-usage target; fixing either bug
+is not worth it.
 
-Decision: opencode is prose-only. Runtime mode refuses, loudly and at the
-boundary, whenever the resolved runtime agent is opencode by ANY route — host-agent
-detection, `SKILL_BILL_AGENT=opencode`, `--agent opencode`,
-`--phase-agent plan=opencode`, `--agent-override opencode` on the feature-task CLI, plus the invoked agent and `--agent-override`
-on the goal CLI — failing fast before opening a workflow, resolving a branch, or
-spawning a phase. The single source of truth is one domain set,
-`skillbill.install.model.RUNTIME_REFUSED_AGENTS` (`{OPENCODE}`), with the predicate
-`isRuntimeRefusedAgent` and `OPENCODE_RUNTIME_REFUSAL_MESSAGE` derived from it; every
-layer consumes that set so re-enabling an agent's runtime path is a one-line change
-rather than scattered edits that drift. Enforcement is defense-in-depth over two
-layers: (L1) the runtime CLI preflights — feature-task, goal, and
-`code-review` — all funnel their reachable agent ids through one shared gate
-`skillbill.cli.core.refuseRuntimeRefusedAgents`, which throws a `UsageError` with the
-actionable message naming the governed prose alternative and the prose mode;
-(L2) the launcher source-disablement —
-`OpencodeAgentRunCommandBuilder` is removed and `headlessAgentRunAdapters` filters out
-`RUNTIME_REFUSED_AGENTS`, so `FileSystemAgentRunLauncher` yields
-`UnsupportedAgentRunLaunch` for opencode (mirroring copilot) as an unbypassable
-backstop even if a CLI guard is bypassed, and that deep path carries the same
-actionable `OPENCODE_RUNTIME_REFUSAL_MESSAGE` (not a generic reason) so it is as
-legible as the preflight. The message is centralized in `runtime-domain` (a plain
-const is inert data, allowed by the 2026-05-24 boundary decision) and consumed by
-both the CLI and the launcher, so every refusal emits byte-identical wording.
+Decision: opencode is prose-only. Runtime mode refuses loudly at the boundary
+whenever the resolved agent is opencode by any route (host detection,
+`SKILL_BILL_AGENT`, `--agent`, `--phase-agent`, `--agent-override` on the
+feature-task and goal CLIs), before opening a workflow, resolving a branch, or
+spawning a phase. Single source of truth: `skillbill.install.model.RUNTIME_REFUSED_AGENTS`
+(`{OPENCODE}`), with `isRuntimeRefusedAgent` and `OPENCODE_RUNTIME_REFUSAL_MESSAGE`
+derived from it, so re-enabling is a one-line change. Two enforcement layers:
+(L1) feature-task, goal, and `code-review` preflights funnel through
+`skillbill.cli.core.refuseRuntimeRefusedAgents`, throwing a `UsageError` naming
+the prose alternative; (L2) `OpencodeAgentRunCommandBuilder` is removed and
+`headlessAgentRunAdapters` filters the set, so `FileSystemAgentRunLauncher`
+yields `UnsupportedAgentRunLaunch` (like copilot) with the same message as an
+unbypassable backstop. The message is a `runtime-domain` const (inert data,
+allowed by the 2026-05-24 boundary decision), so every refusal is byte-identical.
 
-Reason: opencode stays fully usable in prose mode, which runs the identical
-governed phase loop in-session with none of the 120s-kill / PTY-harvest problems.
-Failing loudly with an actionable message (instead of silently degrading or
-wedging) tells the user exactly which path to take. The host-agent DETECTION
-(`InvokingAgentContextResolver`) and the `InstallAgent` enum are intentionally
-retained: opencode must stay detectable (to refuse) and installable/scaffoldable
-(MCP into the user-level opencode config directory, generated opencode agents); only the runtime
-LAUNCH path is disabled. No app-layer guard is added (`AgentRunService` /
-`FeatureTaskRuntimeRunner` / `GoalRunner` are unguarded) so their
-resolution/recording tests stay green and the launcher backstop remains the single
-spawner chokepoint. Standalone `code-review` runs the same shared preflight on the
-resolved parent agent, so an opencode parent refuses upfront with the actionable
-message instead of degrading to a silent one-lane review.
+Reason: prose runs the same governed loop in-session without the 120s-kill or
+PTY-harvest problems, and a loud actionable refusal beats silent wedging.
+Detection (`InvokingAgentContextResolver`) and the `InstallAgent` enum stay so
+opencode is still detectable (to refuse) and installable; only the runtime
+launch path is disabled. No app-layer guard in `AgentRunService`,
+`FeatureTaskRuntimeRunner`, or `GoalRunner`, keeping the launcher the single
+spawner chokepoint. Standalone `code-review` preflights the resolved parent
+agent instead of degrading to a silent one-lane review.
 
-Non-goals: no change to opencode install/scaffold/MCP, prose orchestration, or
-telemetry (all byte-for-byte unchanged); no change to runtime support for claude,
-codex, or junie; no removal of opencode from detection or the install enum; no
-schema/data migration and no feature flag (refusal-only).
+Non-goals: no change to opencode install/scaffold/MCP, prose orchestration,
+telemetry, or runtime support for claude, codex, junie; no migration or flag.
 
-Revisit when: opencode gains a non-TTY harvestable headless mode and a foreground
-budget longer than 120s, at which point re-registering an opencode runtime adapter
-and dropping the preflights becomes viable.
+Revisit when: opencode gains a non-TTY harvestable headless mode and a
+foreground budget over 120s.
 
-## 2026-06-26 — SQLite runs in WAL with a busy_timeout for concurrent runs
+Superseded by: 2026-08-09 "runtime is the only feature engine; prose and
+OpenCode/zcode are removed from the product (SKILL-175)".
+
+## [2026-06-26] SQLite runs in WAL with a busy_timeout for concurrent runs
 
 Context: All runtimes share one global review metrics SQLite file in the user skill-bill state directory,
 and nothing prevents concurrent runs (e.g. two goals for two projects at once).
@@ -1541,7 +1371,7 @@ idempotent.
 Revisit when: the DB is moved off a local filesystem (WAL needs shared-memory
 support), or measured contention shows 5s is the wrong timeout.
 
-## 2026-09-19 — Idle execution liveness is not operator pause (SKILL-362)
+## [2026-09-19] Idle execution liveness is not operator pause (SKILL-362)
 
 Context: IDE status treated expired parent execution leases and idle
 `execution_liveness` as `lifecycle_state: paused` even when `GoalRunnerControlState.paused`
@@ -1566,7 +1396,7 @@ Relative to 2026-06-26: `PRAGMA busy_timeout` remains
 journal persistence adds three total `selfManagedWrite` attempts on `SQLITE_BUSY`; the
 SQLite pragma value itself is unchanged.
 
-## 2026-06-12 — Retain split `skillbill.contracts.*` package for validator moves
+## [2026-06-12] Retain split `skillbill.contracts.*` package for validator moves
 
 Context: SKILL-52.4 F16 leaves contract DTOs/constants/helpers in
 `runtime-contracts` while concrete schema/coherence validators compile from
@@ -1580,7 +1410,7 @@ ownership pattern.
 Revisit when: Resource paths/import compatibility can be migrated cleanly, or
 JPMS/module packaging becomes an active target.
 
-## 2026-06-12 — Keep `runtime-infra/fs` as one adapter module
+## [2026-06-12] Keep `runtime-infra/fs` as one adapter module
 
 Context: SKILL-52.4 F17 considered splitting `runtime-infra/fs` into smaller
 Gradle modules after validator and filesystem/process ownership moved behind
@@ -1594,7 +1424,7 @@ Revisit when: Infra-fs package ownership, file count, or build/runtime ownership
 pressure makes module-level separation cheaper than the current single adapter
 module.
 
-## 2026-05-29 — Ship desktop installers UNSIGNED for v1
+## [2026-05-29] Ship desktop installers UNSIGNED for v1
 
 **Context.** SKILL-55 subtask 2 produces native desktop installers (`.dmg`,
 `.msi`, `.deb`, `.rpm`) via Compose's jpackage integration, each bundling its own
@@ -1629,7 +1459,7 @@ specific.
 subtask 6 embeds them in the launch FAQ. Keep the wording above as the single
 source of truth.
 
-## 2026-05-29 — Artifact FILENAME, not embedded version, is the source of truth (macOS diverges)
+## [2026-05-29] Artifact FILENAME, not embedded version, is the source of truth (macOS diverges)
 
 **Context.** SKILL-55 subtask 2 derives the embedded jpackage `--app-version` from
 `project.version` (`0.1.0-SNAPSHOT`). jpackage requires a strict numeric
@@ -1658,7 +1488,7 @@ making it the only consistent, honest resolution key.
 token (`SkillBill-<project.version>-<os>-<arch>.<ext>`); do NOT parse the embedded
 installer version.
 
-## 2026-05-29 — Non-modular jlink images via Badass Runtime, not Badass JLink
+## [2026-05-29] Non-modular jlink images via Badass Runtime, not Badass JLink
 
 **Context.** SKILL-55 subtask 1 needs self-contained, per-OS runtime images of
 `runtime-cli` / `runtime-mcp` that run with no system JDK. The runtime modules are
@@ -1693,7 +1523,7 @@ rejected to avoid re-implementing module resolution, launcher generation, and
 per-OS zipping that Badass Runtime already provides. Badass JLink (the plan's
 first choice) was rejected because it fundamentally cannot link a non-modular app.
 
-## 2026-05-24 — Runtime paths stay inert outside adapters and composition
+## [2026-05-24] Runtime paths stay inert outside adapters and composition
 
 **Context.** SKILL-52.1 tightened hexagonal boundaries while several public
 application/domain/port models still need to carry `java.nio.file.Path` values
@@ -1707,7 +1537,7 @@ system-property reads outside adapters or composition.
 weaker, while allowing `Path` operations that touch the host would leak adapter
 responsibilities back into domain and port code.
 
-## 2026-05-24 — Preserve dual install-plan validation after policy extraction
+## [2026-05-24] Preserve dual install-plan validation after policy extraction
 
 **Context.** SKILL-52.1 moved install planning toward typed policy and
 capability ports, but install-plan wire maps still cross two independent
@@ -1720,7 +1550,7 @@ builder seam and CLI emission seam after the refactor.
 assemble or project a payload after planning; validating both seams preserves
 the existing loud-fail contract instead of relying on one earlier check.
 
-## 2026-05-24 — Runtime-core retains only generated DI public ABI edges
+## [2026-05-24] Runtime-core retains only generated DI public ABI edges
 
 **Context.** The runtime-core shrink makes the module a composition root rather
 than an implementation umbrella, but Kotlin-Inject generated components expose
@@ -1735,7 +1565,7 @@ contracts closure, and no infrastructure or entrypoint API edges.
 callers, but documenting and testing the narrow edge prevents runtime-core from
 growing back into a compatibility umbrella.
 
-## 2026-05-18 — Platform-pack manifest validation moves to a canonical JSON Schema
+## [2026-05-18] Platform-pack manifest validation moves to a canonical JSON Schema
 
 **Context.** Before SKILL-47 the rules describing
 `platform-packs/<slug>/platform.yaml` lived only inside
@@ -1780,7 +1610,7 @@ schema document alone describes the full contract.
 - Wrapping the validator behind `PlatformPackSchemaValidator` keeps the
   library choice local — swapping it later means rewriting one Kotlin file.
 
-## 2026-05-19 — Install-plan validates at BOTH builder and CLI seams (diverges from 2a)
+## [2026-05-19] Install-plan validates at BOTH builder and CLI seams (diverges from 2a)
 
 **Context.** SKILL-48 subtask 2a (workflow-state) wired schema validation at a
 single seam — the canonical `Canonical*` parse path — and relied on that one
@@ -1821,7 +1651,7 @@ the thin application method `InstallService.validateInstallPlanWire`). See the
 2026-05-28 entry for the relocation and the 2026-05-29 external-schema entry for
 the source-of-truth and parity guarantee.
 
-## 2026-05-28 — Schema validators move from runtime-contracts to runtime-infra/fs, reached through domain ports
+## [2026-05-28] Schema validators move from runtime-contracts to runtime-infra/fs, reached through domain ports
 
 **Context.** SKILL-52.3 closes the runtime hexagon leak: the foundational
 `runtime-contracts` leaf owned three networknt + Jackson + filesystem schema
@@ -1872,7 +1702,7 @@ below (subtask 5).
 
 ---
 
-## 2026-05-29 — External schemas are the source of truth, copied into the runtime at build time (SKILL-52.3 subtask 5)
+## [2026-05-29] External schemas are the source of truth, copied into the runtime at build time (SKILL-52.3 subtask 5)
 
 Context: Each runtime contract schema (`install-plan`, `workflow-state`,
 `decomposition-manifest`, `platform-pack`, `native-agent-composition`,
@@ -1908,7 +1738,7 @@ Revisit when: a schema needs to diverge between the runtime and the
 orchestration tooling, or when the runtime is published as a standalone
 artifact without access to `../orchestration/contracts/`.
 
-## 2026-05-29 — SKILL-52.3 subtask 4: application wire seam + open-boundary reconciliation
+## [2026-05-29] SKILL-52.3 subtask 4: application wire seam + open-boundary reconciliation
 
 **Decisions.**
 
@@ -1945,7 +1775,7 @@ method is `@OpenBoundaryMap`-annotated and documented in the allow-list +
 `open_extension` inventory because the raw-map architecture scanner walks
 `runtime-ports`.
 
-## 2026-06-04 — Goal telemetry: writes on LifecycleTelemetryRepository, goalStats() on WorkflowStatsRepository
+## [2026-06-04] Goal telemetry: writes on LifecycleTelemetryRepository, goalStats() on WorkflowStatsRepository
 
 **Context.** SKILL-66 Subtask 2 adds persistence for the goal telemetry event
 family (`goal_started`, `goal_subtask_finished`, `goal_finished`). Acceptance
@@ -1975,77 +1805,53 @@ read lives one port over, exactly as `featureTaskRuntimeStats()` does.
 **Consumers.** Subtask 3 calls the three write methods from `GoalRunner`;
 Subtask 4 reads `goalStats()` for the `goal_stats` MCP tool and `goal-stats` CLI.
 
-## 2026-06-05 — Goal runtime telemetry: loud-fail, per-segment run-session id, and resume dedup (SKILL-66 Subtask 3)
+## [2026-06-05] Goal runtime telemetry: loud-fail, per-segment run-session id, and resume dedup (SKILL-66 Subtask 3)
 
-**Context.** SKILL-66 Subtask 3 wires goal lifecycle emission
-(`goal_started`/`goal_subtask_finished`/`goal_finished`) into `GoalRunner`. Four
-decisions had to be settled: how the runtime distinguishes per-segment run
-sessions from stable per-subtask children, how a resumed run avoids
-double-counting, what `attempt_count` means, and how a telemetry write failure is
-handled relative to the best-effort observability/ledger writes that surround it.
+Context: SKILL-66 Subtask 3 wires `goal_started`/`goal_subtask_finished`/
+`goal_finished` into `GoalRunner`. Four questions: per-segment sessions vs
+stable per-subtask children, resume double-counting, what `attempt_count`
+means, and how a telemetry write failure relates to the best-effort
+observability/ledger writes around it.
 
-**Decisions.**
+Decision:
+1. Loud-fail, not best-effort. Emission goes through the seam
+   `GoalLifecycleTelemetryEmitter`, implemented by `LifecycleTelemetryService`
+   via `enabledStandaloneResult -> database.transaction`. When telemetry is
+   enabled, a throwing write fails `GoalRunner.run`; it is deliberately not
+   wrapped in `runCatching` like `GoalRunnerObservabilityEmitter` /
+   `GoalRunnerLedgerRecorder`. Disabled is a silent no-op, and the default
+   `GoalLifecycleTelemetryEmitter.NONE` keeps non-telemetry runs byte-equivalent.
+2. (D1) `goal_started`/`goal_finished` carry
+   `"<parentWorkflowId>:seg:<segmentStartedAt>"`, captured once at loop start
+   from the injected clock: deterministic under a fake clock, unique per
+   segment, never colliding with child `wfl-N` ids. This gives exactly one per
+   run segment across resumes.
+3. (D2) `goal_subtask_finished.workflow_id` is the stable child id (`wfl-N`), or
+   `"<issueKey>:subtask:<id>"` for a never-launched terminal (projection skip).
+   With the DB dedup key `(issue_key, subtask_id, workflow_id)` (`ON CONFLICT DO
+   NOTHING`), a subtask emits at most one terminal event. The runner also
+   snapshots `priorTerminal` at loop start and emits only for subtasks turning
+   terminal within the current segment.
+4. (D4) `attempt_count` is runtime-owned and per-segment: occurrences in the
+   in-memory `attempted` list, at least 1 (1 today). Rejected: the child-progress
+   `attemptCount` (counts step retries, nullable, extra read) and the ledger (no
+   per-subtask count).
+5. (D5) One `sweepTerminal` pass after each iteration and before `goal_finished`
+   emits for every newly terminal subtask, covering `complete`, `blocked`, and
+   `skipped` (set only by external manifest projection, so no per-site hook can
+   catch it). `goal_finished` counts come from the final manifest.
 
-1. **Loud-fail, NOT best-effort.** Goal telemetry flows through a new
-   application seam `GoalLifecycleTelemetryEmitter`, implemented by
-   `LifecycleTelemetryService` via the existing `enabledStandaloneResult ->
-   database.transaction` path. When telemetry is **enabled**, a repository write
-   that throws propagates out of the emitter and out of `GoalRunner.run`, failing
-   the run (AC4, parent AC5). It is deliberately NOT wrapped in `runCatching`
-   like `GoalRunnerObservabilityEmitter`/`GoalRunnerLedgerRecorder`, whose writes
-   are best-effort by design. When telemetry is **disabled** the seam is a silent
-   no-op (no write, no throw), preserving the disabled-vs-enabled-failure
-   distinction. The default `GoalLifecycleTelemetryEmitter.NONE` keeps emission
-   purely additive so non-telemetry runs stay byte-equivalent (parent AC8).
+Reason: silently dropped telemetry would make goal stats untrustworthy;
+observability/ledger stay best-effort because they are diagnostic, not the
+metric of record. Separating the segment session id from the child id makes
+"one per segment" and "no double-count on resume" hold without a cross-segment
+counter.
 
-2. **(D1) Per-segment run-session `workflow_id`.** `goal_started`/`goal_finished`
-   carry `"<parentWorkflowId>:seg:<segmentStartedAt>"`, where `segmentStartedAt`
-   is captured once at loop start from the injected clock. It is deterministic
-   under a fake clock, unique per segment (the clock advances between resume
-   segments), and can never collide with the stable child `wfl-N` ids (which
-   never contain `:seg:`). This is what makes "exactly one per run segment" hold
-   across resumes.
+Consumers (Subtask 4 stats): dedupe `goal_subtask_finished` by `(issue_key,
+subtask_id, child workflow_id)`; `goal_started`/`goal_finished` are per-segment
+and grouped by `issue_key`; `attempt_count` is per-segment.
 
-3. **(D2 + resume dedup) `goal_subtask_finished.workflow_id` = stable child id.**
-   Each `goal_subtask_finished` carries the subtask's durable child workflow id
-   (`wfl-N`); a never-launched terminal (a projection-driven skip) falls back to
-   a stable `"<issueKey>:subtask:<id>"`. Combined with the persistence-layer
-   dedup key `(issue_key, subtask_id, workflow_id)` (Subtask 2's
-   `ON CONFLICT DO NOTHING`), a subtask contributes at most one terminal event
-   across all segments. The runtime also snapshots `priorTerminal` (ids already
-   terminal at loop start) and only emits for subtasks reaching terminal status
-   *within the current segment*, so a resumed run never re-emits earlier
-   segments' work even before the DB dedup applies.
-
-4. **(D4) `attempt_count` is runtime-owned and per-segment.** It is the number of
-   times the subtask id appears in the runner-owned in-memory `attempted` list,
-   coerced to at least 1. Under the current one-attempt-per-subtask-per-segment
-   loop it resolves to 1; cross-segment accumulation is out of scope and the
-   dedup above prevents inflation. The child-progress `attemptCount` (reflects
-   child *step* retries, nullable, costs an extra read) and the durable ledger
-   (no per-subtask attempt count) were both rejected.
-
-5. **(D5) Centralized transition-detector for terminal emission.** A single
-   `sweepTerminal` pass over the manifest after each iteration (and once before
-   `goal_finished`) emits for each newly-terminal subtask. This uniformly covers
-   `complete`, `blocked`, AND `skipped` — the last is set only by external
-   manifest projection, never by the loop, so no per-emit-site hook could catch
-   it. `goal_finished` subtask counts are computed independently from the final
-   manifest (`count { status == ... }`), not from any merged report field.
-
-**Reason.** Telemetry that silently drops writes would make the goal stats
-surface (Subtask 4) untrustworthy, so the write failure is loud; the
-observability/ledger streams remain best-effort because they are diagnostic, not
-the metric of record. Splitting the per-segment session id from the per-subtask
-child id is what lets "exactly one per segment" and "never double-count on
-resume" both hold without a stateful cross-segment counter.
-
-**Consumers.** Subtask 4 stats expectations: `goal_subtask_finished` dedupes by
-`(issue_key, subtask_id, child workflow_id)`; `goal_started`/`goal_finished` are
-per-segment (distinct `:seg:` ids) and stats group by `issue_key`;
-`attempt_count` is per-segment (1 today).
-
-## 2026-07-05 — pack skills internalize by flattening into one parent; baseline co-presence is loud-fail (SKILL-104)
+## [2026-07-05] pack skills internalize by flattening into one parent; baseline co-presence is loud-fail (SKILL-104)
 
 Context: SKILL-102's internal-skill mechanism deliberately loud-failed `internal-for` on
 platform-pack skills. The code-review family (34 stack skills across ios/kotlin/kmp/python) needs
@@ -2078,7 +1884,7 @@ the plan, not an independent re-scan of `platform-packs/`), so the three staging
 builder, apply, link-skill fallback) each thread the selected pack skills. The link-skill flow
 refuses internal skills upstream and never reaches the pack-sidecar path.
 
-## 2026-08-10 — Runtime-owned validate gate (SKILL-180)
+## [2026-08-10] Runtime-owned validate gate (SKILL-180)
 
 **Decision.** Validate-phase build/test/gate execution moves to the runtime via pack-declared
 `validation_gate` argv. The agent receives a bounded finding projection and must not invoke the
@@ -2152,64 +1958,55 @@ is not optional for its consumers; making that explicit is the point.
 
 ## [2026-09-06] Audit-gap remediation: interface segregation restored, second ports wave, Path migration scoped out (SKILL-233 implement attempt 2)
 
-**(a) `GoalRunnerManifestStore` is a composite of six segregated interfaces again, superseding decision (b) of the 2026-09-06 subtask-2 entry.**
-Flattening the port into ~35 abstract members put it at 34 functions against detekt's
-`TooManyFunctions` threshold of 11 for interfaces. The six groupings (`GoalRunnerManifestLookup`,
-`…PauseOps`, `…ExecutionLease`, `…ControlCommands`, `…PersistenceCommands`, `…ReviewCommands`) are
-declared in `runtime-ports` and `GoalRunnerManifestStore` extends all six, so every consumer import
-and every fake is unchanged and no default bodies came back.
-Alternative rejected: a `@Suppress("TooManyFunctions")` on the port — the audit forbids clearing a
-gap with a new suppression, exemption, or baseline entry, and the threshold is measuring a real
-cohesion problem.
+(a) `GoalRunnerManifestStore` is again a composite of six segregated interfaces,
+superseding decision (b) of the 2026-09-06 subtask-2 entry. The flattened port
+had 34 functions against detekt's interface `TooManyFunctions` threshold of 11.
+The six (`GoalRunnerManifestLookup`, `…PauseOps`, `…ExecutionLease`,
+`…ControlCommands`, `…PersistenceCommands`, `…ReviewCommands`) live in
+`runtime-ports`; consumers and fakes are unchanged and no default bodies returned.
+Rejected: `@Suppress("TooManyFunctions")`; the audit forbids clearing a gap with
+a suppression, exemption, or baseline, and the threshold flags real cohesion loss.
 
-**(b) Snapshot wire projection is adapter work; the domain port takes the typed record.**
-`WorkflowEngine.validatedSnapshotMap` built a `linkedMapOf<String, Any?>` inside `runtime-domain`.
-`WorkflowSnapshotValidator.validate` now takes `WorkflowStateSnapshot`, and the canonical wire
-shape (`workflow_id, session_id, workflow_name, contract_version, workflow_status, current_step_id,
-steps, artifacts, started_at, updated_at, finished_at`, plus `mode` when present) is built by
-`skillbill.infrastructure.fs.WorkflowStateSnapshotWireMapper`. The seven remaining wire maps left
-`skillbill.workflow.engine.WorkflowEngineWireMaps` for
-`skillbill.application.workflow.WorkflowWireProjections`; `artifactSummaryMap` became private rather
-than earning an eighth allow-list row.
+(b) Snapshot wire projection is adapter work; the domain port takes the typed
+record. `WorkflowSnapshotValidator.validate` takes `WorkflowStateSnapshot`
+instead of a map built in `runtime-domain`; the canonical wire shape is built by
+`skillbill.infrastructure.fs.WorkflowStateSnapshotWireMapper`. The other wire
+maps moved from `skillbill.workflow.engine.WorkflowEngineWireMaps` to
+`skillbill.application.workflow.WorkflowWireProjections`; `artifactSummaryMap`
+went private rather than earning another allow-list row.
 
-**(c) A lenient integer coercion is declared privately in the domain rather than reusing `asExactIntOrNull`.**
-`AttemptLedgerWorkflowDecoding` needs Int→this, Number→toInt(), String→toIntOrNull(), else null.
-`asExactIntOrNull` rejects lossy numbers by design; widening it to serve both call sites would make
-one caller's leniency the other caller's silent truncation.
+(c) `AttemptLedgerWorkflowDecoding` declares a private lenient integer coercion
+(Int, Number.toInt(), String.toIntOrNull(), else null) instead of reusing
+`asExactIntOrNull`, which rejects lossy numbers by design; widening it would
+turn one caller's leniency into the other's silent truncation.
 
-**(d) Duplicated ports/application basenames collapse into `runtime-domain` only when the shared code is free of port types.**
-Nineteen ports files moved to `runtime-domain` and thirteen application duplicates were deleted this
-round (39 unresolved ports-vs-application basename pairs down to 19; non-interface files outside
-`runtime-ports/**/model/` down from 47 to 24, and their line count from 6,599 to 5,069). Two port
-parameters (`ReviewRepository`, `UnitOfWork`) became the narrowest function type,
-`(String) -> List<ReviewFindingVerdict>`. Nine pairs (`AttemptLedgerDecoding`,
-`AttemptLedgerAccumulator`, `AttemptLedgerProgressEvents`, `GoalTerminalOutcomeDerivation`,
-`GoalObservabilityArtifacts`, and the DTOs they carry) were byte-identical modulo package and were
-reachable from `runtime-infra/sqlite` on the ports side and from `runtime-core` on the application
-side, so neither copy could be deleted in favour of the other: nine pure DTOs
-(`GoalRunnerObservabilityRecordRequest`, `GoalRunnerProgressEvent`, `GoalObservabilityProgressEvent`,
-`GoalRunnerAttemptLedgerSummary`, `BuildDeclaredGoalProgressEventArgs`, `GoalContinuation`,
-`GoalObservabilityWorktreeActivity`, `GoalObservabilityProgressInput`,
-`GoalObservabilityRuntimeEventInput`) moved to `skillbill.goalrunner.model` in `runtime-domain`
-first. Each collapsed pair also removed a duplicated `@OpenBoundaryMap` allow-list row: the
-duplication was being paid twice, once in code and once in `ARCHITECTURE.md`.
+(d) Duplicated ports/application basenames collapse into `runtime-domain` only
+when the shared code is free of port types. This round moved 19 ports files to
+`runtime-domain` and deleted 13 application duplicates (unresolved pairs 39 to
+19). `ReviewRepository` and `UnitOfWork` parameters became the function type
+`(String) -> List<ReviewFindingVerdict>`. Nine byte-identical pairs
+(`AttemptLedgerDecoding`, `AttemptLedgerAccumulator`,
+`AttemptLedgerProgressEvents`, `GoalTerminalOutcomeDerivation`,
+`GoalObservabilityArtifacts`, and their DTOs) were reachable from
+`runtime-infra/sqlite` via ports and from `runtime-core` via application, so
+neither copy could go until their pure DTOs moved to `skillbill.goalrunner.model`
+in `runtime-domain`. Each collapse also removed a duplicate `@OpenBoundaryMap`
+allow-list row in `ARCHITECTURE.md`.
 
-**(e) The `java.nio.file` half of AC-009 is a subtask, not a step inside this phase; `kotlinx.serialization` and `StandardCharsets` are closed and guarded.**
-`runtime-domain` no longer imports `kotlinx.serialization` (4 files) or
-`java.nio.charset.StandardCharsets` (8 files), and `RuntimeContractModuleImportRulesTest` now bans
-`java.io.`, `java.nio.charset.`, `com.fasterxml.`, `kotlinx.serialization.`, and `org.yaml.` in
-`runtime-domain` — a strict tightening with no baseline. `java.nio.file` remains in 15 files, which
-declare 85 Path-carrying types referenced from 306 files across nine modules (`runtime-infra/fs` 147,
-`runtime-application` 62, `runtime-domain` 45, `runtime-ports` 22, `runtime-cli` 16, `runtime-core`
-8, `runtime-infra/http` 3, `runtime-mcp` 2, `runtime-infra/sqlite` 1). Introducing `FileLocation` and
-pushing `Paths.get`/`normalize`/`resolve` into `runtime-infra/fs` changes call sites, not just
-imports, so it cannot land behind a single green gate inside one phase.
-Consequence: the remaining 19 ports/application basename pairs stay. Twelve of them
-(`DecompositionManifest*`, `DecompositionWorkflowRuntimeLookup*`) depend on
-`DecompositionManifestStore`, whose seven members take `java.nio.file.Path`; the rest carry
-`WorkflowStateRepository`, `WorkflowStateRecord`, or `WorkflowFamily`. Both groups unblock only after
-the `FileLocation` migration.
-Revisit when: `FileLocation` lands — then re-run the pair census and expect the twelve
+(e) The `java.nio.file` half of AC-009 is its own subtask; `kotlinx.serialization`
+and `StandardCharsets` are closed and guarded. `RuntimeContractModuleImportRulesTest`
+now bans `java.io.`, `java.nio.charset.`, `com.fasterxml.`,
+`kotlinx.serialization.`, and `org.yaml.` in `runtime-domain`, with no baseline.
+`java.nio.file` remains in 15 domain files declaring 85 Path-carrying types used
+from 306 files across nine modules. Introducing `FileLocation` and pushing
+`Paths.get`/`normalize`/`resolve` into `runtime-infra/fs` changes call sites,
+not just imports, so it cannot land behind one green gate in a phase.
+Consequence: the remaining 19 pairs stay. Twelve (`DecompositionManifest*`,
+`DecompositionWorkflowRuntimeLookup*`) depend on `DecompositionManifestStore`,
+whose seven members take `Path`; the rest carry `WorkflowStateRepository`,
+`WorkflowStateRecord`, or `WorkflowFamily`. Both groups wait on `FileLocation`.
+
+Revisit when: `FileLocation` lands; re-run the pair census and expect the twelve
 decomposition pairs to collapse in one move.
 
 ## [2026-09-18] Ledger-stamped user_version and migrate-on-access retirement (SKILL-356 subtask 3)

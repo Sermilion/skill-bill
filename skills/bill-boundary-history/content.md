@@ -51,6 +51,7 @@ Acceptance criteria: <count>/<count> implemented
 - If the file does not exist, create it along with any missing parent directories.
 - Newest entry first.
 - Max 15 lines per entry.
+- Entry body at most 4096 UTF-8 bytes, measured from the `## [<date>] <title>` heading to the next such heading (subheadings and undated `##` lines count as body). `BoundaryMemoryEntrySizeRepoTest` fails the build above that, and finding verification truncates longer bodies at the limit. Condense, or split into separate dated entries.
 - No fixed entry cap.
 - Keep older entries when they still provide reusable context; prune or merge only entries that are obsolete, redundant, or too noisy to help future feature work.
 - No code snippets; focus on reusable context for future feature work.

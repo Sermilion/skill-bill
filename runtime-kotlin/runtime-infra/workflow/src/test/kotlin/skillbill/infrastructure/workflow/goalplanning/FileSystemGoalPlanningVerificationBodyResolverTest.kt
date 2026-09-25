@@ -12,6 +12,7 @@ import java.time.ZoneOffset
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class FileSystemGoalPlanningVerificationBodyResolverTest {
   @Test
@@ -47,7 +48,7 @@ class FileSystemGoalPlanningVerificationBodyResolverTest {
   }
 
   @Test
-  fun `per body byte cap loud fails instead of truncating under verification caps`() {
+  fun `per body byte cap truncates the body under verification caps`() {
     val repo = Files.createTempDirectory("goal-verification-body-bytes")
     val agent = Files.createDirectories(repo.resolve("modules/a/agent"))
     val bigBody = "x".repeat(GoalVerificationBoundaryCaps.maxBodyBytes + 64)
@@ -58,7 +59,7 @@ class FileSystemGoalPlanningVerificationBodyResolverTest {
     val catalog = catalogOf(repo)
     val headingId = catalog.single().headingId
 
-    assertFailsWith<GoalVerificationBoundaryCapExceededError> {
+    val resolved =
       FileSystemGoalPlanningBoundaryBodyResolver().resolve(
         repo,
         listOf(headingId),
@@ -66,7 +67,13 @@ class FileSystemGoalPlanningVerificationBodyResolverTest {
         caps = GoalPlanningBoundaryBodyResolutionCaps.VERIFICATION,
         loudFailOnCapExceeded = true,
       )
-    }
+
+    assertTrue(resolved.truncated)
+    assertEquals(emptyList(), resolved.unresolvedHeadingIds)
+    assertEquals(
+      GoalVerificationBoundaryCaps.maxBodyBytes,
+      resolved.bodies.single().body.toByteArray(Charsets.UTF_8).size,
+    )
   }
 
   private fun catalogOf(repo: Path): List<GoalPlanningBoundaryHeading> =

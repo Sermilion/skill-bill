@@ -48,6 +48,7 @@ Superseded by: Rotate session store to Redis (2026-01-15)
 ## Format Rules
 
 - Max 10 lines per entry.
+- Entry body at most 4096 UTF-8 bytes, measured from the `## [<date>] <title>` heading to the next such heading (subheadings and undated `##` lines count as body). `BoundaryMemoryEntrySizeRepoTest` fails the build above that, and finding verification truncates longer bodies at the limit. Condense, or split into separate dated entries.
 - Newest entry first (reverse chronological).
 - No code snippets; describe patterns and choices in plain language.
 - One decision per entry — if the user describes multiple decisions, write separate entries.
