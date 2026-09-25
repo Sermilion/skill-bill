@@ -84,9 +84,11 @@ sequence numbers.
 
 ## Executable scope
 
-Three goal subtasks plus one follow-up spec that runs between subtasks 2 and 3.
+Three goal subtasks plus one follow-up spec that runs after subtask 3.
 The goal was already launched with three subtasks, and the runtime cannot add
-one, so the follow-up runs outside the goal while it is paused after subtask 2.
+one, so the follow-up runs outside the goal once it completes. Subtask 3
+introduces the step-class rule for the goal runner; the follow-up extends it to
+`featuretask`.
 
 1. Delete experiment support and close engine guard gaps
    (`spec_subtask_1_delete-experiments-and-close-inner-layer-gaps.md`).
@@ -101,7 +103,7 @@ one, so the follow-up runs outside the goal while it is paused after subtask 2.
    state-read primitives go into one leaf, and the residual cycles are broken
    by direction. An acyclic guard pins the result. The typed busy exception and
    the wire-key removal already landed here.
-- Follow-up: feature-task step classes
+- Follow-up (runs after subtask 3): feature-task step classes
    (`followup_feature-task-step-classes.md`). `featuretask` holds
    about 26,000 lines, and the run loop alone is 14,532. With the graph acyclic,
    the conversion to classes is a mechanical implement pass. It is split
@@ -110,8 +112,8 @@ one, so the follow-up runs outside the goal while it is paused after subtask 2.
 3. Goal-runner step classes, sequences, reads, and engine surface
    (`spec_subtask_3_goal-runner-step-classes-and-engine-surface.md`). It covers a
    second area of about 8,000 lines, plus goal-runner coordination files if they
-   have already moved into the engine. It needs the follow-up's facade shape for
-   the read query. The alias, visibility, and raw-map work closes the public
+   have already moved into the engine. It introduces the step-class rule for the goal runner, which the
+   follow-up then extends to `featuretask`. The alias, visibility, and raw-map work closes the public
    surface after both restructurings.
 
 This bundle runs on the current tree. It does not wait for a subtask of another issue.

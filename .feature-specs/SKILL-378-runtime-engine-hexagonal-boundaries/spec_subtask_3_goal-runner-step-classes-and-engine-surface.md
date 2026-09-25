@@ -8,8 +8,15 @@ Issue key: SKILL-378
 Resolves investigation F-002 for `skillbill.engine.goalrunner`, plus F-003,
 F-005, F-006, F-007, and F-009, and the raw-map part of F-008.
 
-**Step classes.** Apply the step-class follow-up's rule to `goalrunner/execution`, `planning`,
-`launch`, `repair`, `status`, and `preflight`. Delete `GoalRunnerSharedArgs.kt`.
+**Step classes.** The step-class rule: a class's constructor takes the collaborators it
+uses (recorders, emitters, stores, gates, diagnostics, clock, git operations); per-call
+facts stay parameters; no top-level `object` with functions; no `*Args`/`*Inputs`/`*Context`
+bag with a collaborator-typed constructor parameter; pure functions over domain values stay
+top-level; no forwarding class, step interface, framework, or per-run DI subcomponent.
+This subtask introduces the rule and applies it to `goalrunner/execution`, `planning`,
+`launch`, `repair`, `status`, and `preflight`. The step-class follow-up
+(`followup_feature-task-step-classes.md`) runs after this subtask and extends the same
+rule to `skillbill.engine.featuretask`. Delete `GoalRunnerSharedArgs.kt`.
 Collaborators such as `GoalRunnerObservabilityEmitter` and `GoalRunnerLedgerRecorder`
 move into the constructors of the classes that use them. Replace the 32
 `DefaultGoalPlanningSweep.*` extensions and their `Produce*Args`/`GoalPlanning*Context`
@@ -20,9 +27,12 @@ and other goal-runner `@Inject` classes private. `GoalRunnerStatusService`,
 `GoalPreflightService`, `GoalPlanningPreparationCheckpoint`,
 `GoalChildPlanningHydratorPortAdapter`, and `GoalRunnerChildRepairOperations` take
 their collaborators as constructor parameters where kotlin-inject can resolve
-them. Extend the follow-up's step-class rule and the engine inject-property rule
-to `skillbill.engine.goalrunner`, including the classes SKILL-376 subtask 2 moved
-into it.
+them. Add the step-class rule to the existing `RuntimeEngineBoundaryArchitectureTest`
+scoped to `skillbill.engine.goalrunner`, written so the follow-up can widen its scope
+to `featuretask` by adding a package root. Extend SKILL-370's inject-property rule in
+`InjectConstructorDefaultsArchitectureTest` to `skillbill.engine.goalrunner`, including
+the classes SKILL-376 subtask 2 moved into it. Keep subtask 2's acyclic run-loop rule
+passing.
 
 **Sequences.** Each stream's SQLite repository (progress, ledger, observability)
 gets one method that inserts the row and assigns its sequence as the stream's
@@ -70,9 +80,9 @@ to the path filter of `RuntimeRawMapArchitectureTest`.
    `DefaultGoalPlanningSweep`'s own declares a `DefaultGoalPlanningSweep.` extension.
 2. The step-class rule scans `skillbill.engine.goalrunner` and fails on a
    synthetic `FooArgs(val ledger: GoalRunnerLedgerRecorder)` there. The
-   inject-property rule covers all of runtime-engine with an empty baseline and
-   fails on a synthetic goal-runner `@Inject` class with a public collaborator
-   property.
+   inject-property rule covers `skillbill.engine.goalrunner` with an empty baseline
+   and fails on a synthetic goal-runner `@Inject` class with a public collaborator
+   property. `skillbill.engine.featuretask` is left to the step-class follow-up.
 3. A test that records planning attempts and progress events for one workflow
    in one run, through the production recorders, reads back distinct, strictly
    increasing progress sequence numbers. The same holds across two recorder
@@ -103,14 +113,10 @@ to the path filter of `RuntimeRawMapArchitectureTest`.
 
 ## Dependency notes
 
-Planning note: the goal plans every subtask before it runs any, so this plan is
-written before subtask 2 and the step-class follow-up land. Plan against the
-shapes they specify (the acyclic rule and `FeatureTaskRuntimeRunLoopPhaseBlocking`
-from subtask 2, the step-class rule and facade from the follow-up), not the
-current tree. Their absence at planning time is not a blocker. Implementation
-starts only after both have landed, and it rechecks every anchor then.
-
-Depends on the step-class follow-up (`followup_feature-task-step-classes.md`: facade shape and guard), which follows subtask 2. It does not wait for another issue. Restructure the goal-runner classes where they live, including coordination classes that are still in sqlite only when this subtask's criteria require editing them in place. If raw-map or inbound-API scanners still skip files, repair those scanners here so criteria 7 and 9 observe real source. Reconcile diverged private copies that this subtask restructures when a criterion requires one definition. Delete aliases and rename ports types that this subtask's surface criteria still trip over. If slot packages already exist, include them in the visibility pass.
+Depends on subtask 2 (landed: acyclic run-loop graph, `FeatureTaskRuntimeRunLoopPhaseBlocking`).
+The step-class follow-up has not run and runs after this subtask; do not wait for it,
+and do not convert `featuretask` run-loop objects here. The read query is built over the
+existing `FeatureTaskRuntimePhaseRecorder` parts as they are now. It does not wait for another issue. Restructure the goal-runner classes where they live, including coordination classes that are still in sqlite only when this subtask's criteria require editing them in place. If raw-map or inbound-API scanners still skip files, repair those scanners here so criteria 7 and 9 observe real source. Reconcile diverged private copies that this subtask restructures when a criterion requires one definition. Delete aliases and rename ports types that this subtask's surface criteria still trip over. If slot packages already exist, include them in the visibility pass.
 
 ## Validation strategy
 
@@ -124,7 +130,9 @@ MCP, core, and infra-sqlite suites, and `bill-unit-test-value-check`.
 
 ## Next path
 
-Goal complete. If the child-repair or planning-hydrator ports still block this subtask's surface criteria, collapse them in this commit.
+Goal complete. Then run the step-class follow-up
+(`followup_feature-task-step-classes.md`), which extends this subtask's step-class rule
+to `featuretask`. If the child-repair or planning-hydrator ports still block this subtask's surface criteria, collapse them in this commit.
 
 ## Spec Path
 
