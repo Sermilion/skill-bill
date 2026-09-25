@@ -208,7 +208,7 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
       )
       val launch =
         with(FeatureTaskRuntimeRunLoopLaunch) {
-          context.launchAndCapture(run, state, priorCorrection)
+          context.launchAndCapture(run, state, iteration, priorCorrection)
         }
       return FeatureTaskRuntimeRunLoopRecordRejection.settleRecordRejectionLaunchOutcome(context, args, launch)
     }

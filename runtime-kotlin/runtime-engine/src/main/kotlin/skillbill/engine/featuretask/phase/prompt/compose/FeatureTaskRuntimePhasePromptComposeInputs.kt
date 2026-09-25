@@ -2,6 +2,7 @@ package skillbill.engine.featuretask.phase.prompt.compose
 
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeImplementationContinuation
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseSettlementTarget
 import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
@@ -37,4 +38,5 @@ data class FeatureTaskRuntimePhasePromptComposeInputs(
   val repairLedger: FeatureTaskRuntimeRepairLedger? = null,
   val priorReviewContext: FeatureTaskRuntimePriorReviewContext? = null,
   val auditRetryFocusHint: String? = null,
+  val phaseSettlement: FeatureTaskRuntimePhaseSettlementTarget? = null,
 )

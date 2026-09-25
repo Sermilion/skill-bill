@@ -97,6 +97,6 @@ fun phasePromptTrailingSections(
     ) {
       gateRepairNoOutputSchemaDirective(inputs.briefing.phaseId, inputs.validationGateTriage)
     } else {
-      outputContract(inputs.briefing)
+      outputContract(inputs.briefing, inputs.phaseSettlement)
     },
   )

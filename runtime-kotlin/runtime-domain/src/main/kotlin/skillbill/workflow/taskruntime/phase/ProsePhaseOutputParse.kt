@@ -2,6 +2,7 @@ package skillbill.workflow.taskruntime.phase
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.workflow.taskruntime.model.handoff.envelope.SettlementStatus
 
 internal object ProsePhaseOutputParse {
@@ -27,6 +28,8 @@ internal object ProsePhaseOutputParse {
   ): Boolean {
     val parsedPhase = parsed[SharedPayloadKeys.PHASE_ID]?.toString()
     if (parsedPhase != null && parsedPhase != phaseId) return false
+    val parsedVersion = parsed[SharedPayloadKeys.CONTRACT_VERSION]?.toString()?.trim()
+    if (parsedVersion != null && parsedVersion != FEATURE_TASK_RUNTIME_CONTRACT_VERSION) return false
     val parsedStatus = parsed[SharedPayloadKeys.STATUS]?.toString()?.trim()?.lowercase()
     return parsedStatus == null || canonicalStatus(parsedStatus) != null
   }

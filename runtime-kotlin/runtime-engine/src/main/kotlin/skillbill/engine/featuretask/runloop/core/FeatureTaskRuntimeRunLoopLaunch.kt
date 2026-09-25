@@ -130,6 +130,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
   internal fun FeatureTaskRuntimeRunLoopContext.launchAndCapture(
     run: PhaseRun,
     state: FeatureTaskRuntimeRunState,
+    iteration: Int,
     priorCorrection: PriorAttemptCorrection? = null,
   ): LaunchResult {
     val before =
@@ -144,7 +145,8 @@ object FeatureTaskRuntimeRunLoopLaunch {
       }
     val prepared =
       when (
-        val preparation = FeatureTaskRuntimeRunLoopLaunch.prepareLaunchForCapture(this, run, state, priorCorrection)
+        val preparation =
+          FeatureTaskRuntimeRunLoopLaunch.prepareLaunchForCapture(this, run, state, iteration, priorCorrection)
       ) {
         is PreparedLaunchReady -> preparation.value
         is LaunchPreparationRejected -> return preparation.result
@@ -209,6 +211,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
     context: FeatureTaskRuntimeRunLoopContext,
     run: PhaseRun,
     state: FeatureTaskRuntimeRunState,
+    iteration: Int?,
     priorCorrection: PriorAttemptCorrection?,
   ): LaunchPreparation {
     with(context) {
@@ -225,6 +228,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
         DeclaredLaunchArgs(
           run,
           state,
+          iteration,
           priorCorrection,
           measurementContext,
         ),
@@ -533,6 +537,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
           FeatureTaskRuntimeRunLoopOutputPersistence.prepareLaunch(
             context,
             run = run,
+            iteration = args.iteration,
             priorCorrection = priorCorrection,
             repositoryCheckpoint = measurementContext.repositoryCheckpoint,
           ),

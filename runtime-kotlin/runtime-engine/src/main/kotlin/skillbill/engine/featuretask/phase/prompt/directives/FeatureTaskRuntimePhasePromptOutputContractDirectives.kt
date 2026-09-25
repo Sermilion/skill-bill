@@ -2,18 +2,38 @@ package skillbill.engine.featuretask.phase.prompt.directives
 
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseSettlementTarget
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseProjectionShapes
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
 import skillbill.review.model.ReviewIssueCategory
 import skillbill.workflow.model.goalreview.GoalSubtaskCommitFocusedAccounting
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
-fun outputContract(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
+fun outputContract(
+  briefing: FeatureTaskRuntimePhaseLaunchBriefing,
+  settlement: FeatureTaskRuntimePhaseSettlementTarget? = null,
+): String {
+  val phaseId = briefing.phaseId
+  val settlementSection = settlementDirective(phaseId, settlement)
+  val envelopeSection = envelopeContract(briefing, fallback = settlementSection.isNotEmpty())
+  return if (settlementSection.isEmpty()) envelopeSection else settlementSection + "\n\n" + envelopeSection
+}
+
+private fun envelopeContract(
+  briefing: FeatureTaskRuntimePhaseLaunchBriefing,
+  fallback: Boolean,
+): String {
   val phaseId = briefing.phaseId
   val producedOutputsAddendum = producedOutputsAddendum(briefing)
   val verdictContractLine = verdictContractLine(phaseId)
+  val heading =
+    if (fallback) {
+      "## Fallback final output (validated schema gate; only when the settlement tools are unavailable)"
+    } else {
+      "## Required final output (validated schema gate)"
+    }
   return """
-    ## Required final output (validated schema gate)
+    $heading
     End your response with exactly one JSON object as the last thing you emit. Prefer a raw
     object with nothing after it; a single ```json fenced block is also accepted. The runtime
     extracts that object and blocks the run if it does not validate against the phase-output

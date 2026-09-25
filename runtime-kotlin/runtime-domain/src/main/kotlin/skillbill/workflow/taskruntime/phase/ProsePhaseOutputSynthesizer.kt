@@ -66,9 +66,10 @@ object ProsePhaseOutputSynthesizer {
     phaseId: String,
     status: String,
   ): Pair<String, String?>? {
-    val existingValue = ProsePhaseOutputRecover.directValue(parsed)
-    val value = existingValue ?: ProsePhaseOutputRecover.recoverLegacyValue(parsed) ?: return null
-    if (existingValue != null && phaseId != PHASE_AUDIT) return null
+    val value =
+      ProsePhaseOutputRecover.directValue(parsed)
+        ?: ProsePhaseOutputRecover.recoverLegacyValue(parsed)
+        ?: return null
     val verdict =
       if (phaseId == PHASE_AUDIT) {
         if (status == SettlementStatus.COMPLETED.wireValue) {

@@ -90,7 +90,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
       is RuntimeOwnedReviewBlocked -> prepared.outcome
       is RuntimeOwnedReviewReady -> {
         with(FeatureTaskRuntimeRunLoopLaunch) {
-          FeatureTaskRuntimeRunLoopLaunch.prepareLaunchForCapture(context, prepared.run, state, null)
+          FeatureTaskRuntimeRunLoopLaunch.prepareLaunchForCapture(context, prepared.run, state, null, null)
         }
         with(FeatureTaskRuntimeRunLoopReview) {
           reviewContext.executePreparedReviewDriver(prepared)

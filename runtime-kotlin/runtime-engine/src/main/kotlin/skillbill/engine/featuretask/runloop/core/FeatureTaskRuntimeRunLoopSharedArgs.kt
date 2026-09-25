@@ -398,6 +398,7 @@ internal data class CheckpointCommitMessageArgs(
 internal data class DeclaredLaunchArgs(
   val run: PhaseRun,
   val state: FeatureTaskRuntimeRunState,
+  val iteration: Int?,
   val priorCorrection: PriorAttemptCorrection?,
   val context: LaunchRejectionMeasurementContext,
 )

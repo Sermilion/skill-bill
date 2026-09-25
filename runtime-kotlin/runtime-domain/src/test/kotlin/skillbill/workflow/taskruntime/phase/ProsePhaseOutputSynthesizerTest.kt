@@ -38,6 +38,46 @@ class ProsePhaseOutputSynthesizerTest {
   }
 
   @Test
+  fun `direct value beside a mistyped optional field synthesizes a clean envelope`() {
+    val raw =
+      """
+      {
+        "contract_version": "0.6",
+        "phase_id": "implement",
+        "status": "completed",
+        "summary": "Consolidated the run loop.",
+        "produced_outputs": { "value": "{\"changed\":[\"RunLoop.kt\"]}" },
+        "derived_notes": ["validate owes the compile", "counts came from git ls-tree"]
+      }
+      """.trimIndent()
+
+    val map = envelopeMap(assertNotNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "implement")))
+    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(map["produced_outputs"]))
+    assertEquals("{\"changed\":[\"RunLoop.kt\"]}", produced["value"])
+    assertEquals("completed", map["status"])
+    assertNull(map["derived_notes"])
+  }
+
+  @Test
+  fun `direct value with no status or summary synthesizes a completed envelope`() {
+    val raw =
+      """
+      Final static verification is complete.
+
+      ```json
+      {"contract_version":"0.6","phase_id":"implement",
+       "produced_outputs":{"value":"{\"summary\":\"Deleted the dead ports.\",\"tests_executed\":[]}"}}
+      ```
+      """.trimIndent()
+
+    val map = envelopeMap(assertNotNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "implement")))
+    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(map["produced_outputs"]))
+    assertEquals("{\"summary\":\"Deleted the dead ports.\",\"tests_executed\":[]}", produced["value"])
+    assertEquals("completed", map["status"])
+    assertTrue((map["summary"] as? String).orEmpty().isNotBlank())
+  }
+
+  @Test
   fun `simplification_receipt sibling persists as bounded simplify prose`() {
     val raw =
       """
@@ -135,6 +175,22 @@ class ProsePhaseOutputSynthesizerTest {
       """.trimIndent()
 
     assertNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "preplan"))
+  }
+
+  @Test
+  fun `incompatible contract version rejects instead of rewriting it`() {
+    val raw =
+      """
+      {
+        "contract_version": "9.9",
+        "phase_id": "plan",
+        "status": "completed",
+        "summary": "Future contract.",
+        "produced_outputs": { "value": "plan prose" }
+      }
+      """.trimIndent()
+
+    assertNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "plan"))
   }
 
   @Test

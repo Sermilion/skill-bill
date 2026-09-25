@@ -8,6 +8,7 @@ import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
 import skillbill.engine.featuretask.lifecycle.continuation.reviewState
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseSettlementTarget
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.phase.GoalReviewPhaseCompletionRequest
 import skillbill.engine.featuretask.persist.RuntimeOwnedFactUnavailable
@@ -261,6 +262,7 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
   internal fun prepareLaunch(
     context: FeatureTaskRuntimeRunLoopContext,
     run: PhaseRun,
+    iteration: Int?,
     priorCorrection: PriorAttemptCorrection?,
     repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint?,
   ): PreparedLaunch {
@@ -299,9 +301,11 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
         FeatureTaskRuntimeRunLoopOutputPersistence.composeLaunchPrompt(
           context,
           run,
-          handoff,
-          priorCorrection,
-          briefing,
+          FeatureTaskRuntimeRunLoopOutputPersistence
+            .composeLaunchPromptInputs(context, run, handoff, priorCorrection, briefing)
+            .copy(
+              phaseSettlement = iteration?.let { FeatureTaskRuntimePhaseSettlementTarget(run.request.workflowId, it) },
+            ),
         )
       return PreparedLaunch(briefing, prompt)
     }
@@ -342,20 +346,10 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
   private fun composeLaunchPrompt(
     context: FeatureTaskRuntimeRunLoopContext,
     run: PhaseRun,
-    handoff: FeatureTaskRuntimePhaseHandoff,
-    priorCorrection: PriorAttemptCorrection?,
-    briefing: FeatureTaskRuntimePhaseLaunchBriefing,
+    inputs: FeatureTaskRuntimePhasePromptComposeInputs,
   ): String {
     with(context) {
-      return FeatureTaskRuntimePhasePromptComposer.compose(
-        FeatureTaskRuntimeRunLoopOutputPersistence.composeLaunchPromptInputs(
-          context,
-          run,
-          handoff,
-          priorCorrection,
-          briefing,
-        ),
-      ) +
+      return FeatureTaskRuntimePhasePromptComposer.compose(inputs) +
         FeatureTaskRuntimeRunLoopLaunch.verifyFindingsSpecIntentSection(state, recorder, session, phaseGates, run)
     }
   }

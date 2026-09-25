@@ -11,6 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class FeatureTaskRuntimePhaseOutputWireSchemaTest {
   private val wellFormed =
@@ -882,6 +883,26 @@ class FeatureTaskRuntimePhaseOutputWireSchemaEnvelopeTest {
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
       FeatureTaskRuntimePhaseOutputSchemaValidator().validatePhaseOutputText(envelope, "build")
     }
+  }
+
+  @Test
+  fun `implement prose value without status or summary settles as a synthesized completed envelope`() {
+    val envelope =
+      """{"contract_version":"0.6","phase_id":"implement","produced_outputs":{"value":""" +
+        """"{\"subtask_id\":\"3\",\"summary\":\"Deleted the dead ports.\",\"tests_executed\":[]}"}}"""
+    val capture =
+      "Final static verification is complete: every acceptance criterion was confirmed by reading the tree.\n\n" +
+        "```json\n$envelope\n```\n"
+
+    val normalized = FeatureTaskRuntimePhaseOutputSchemaValidator().normalizePhaseOutput(capture, "implement")
+
+    val settled = normalized.envelopeWireMap()
+    assertEquals("completed", settled["status"])
+    assertTrue((settled["summary"] as? String).orEmpty().isNotBlank())
+    assertEquals(
+      mapOf("value" to """{"subtask_id":"3","summary":"Deleted the dead ports.","tests_executed":[]}"""),
+      settled["produced_outputs"],
+    )
   }
 
   @Test
