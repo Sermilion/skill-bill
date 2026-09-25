@@ -77,7 +77,7 @@ sequence numbers.
     Public engine types are those another module imports or the runtime-core
     component needs.
 12. The raw-map guard scans runtime-engine main and passes.
-13. `runtime-kotlin/ARCHITECTURE.md` states the step-class rule and the engine's
+13. `../../../runtime-kotlin/ARCHITECTURE.md` states the step-class rule and the engine's
     inner-layer rules as current state, and `runtime-kotlin/agent/decisions.md`
     records the experiment removal and the step-class rule superseding the
     2026-09-15 helper-input form and the 2026-09-17 bag census.
@@ -104,11 +104,11 @@ goal was already launched with three subtasks and the runtime cannot add one.
    by direction. An acyclic guard pins the result. The typed busy exception and
    the wire-key removal already landed here.
 - Follow-up (runs after subtask 3): feature-task step classes
-   (`followup_feature-task-step-classes.md`). `featuretask` holds
-   about 26,000 lines, and the run loop alone is 14,532. With the graph acyclic,
-   the conversion to classes is a mechanical implement pass. It is split
-   from subtask 2 because two attempts at doing both in one pass blocked on
-   the cycles.
+  (`followup_feature-task-step-classes.md`). `featuretask` holds
+  about 26,000 lines, and the run loop alone is 14,532. With the graph acyclic,
+  the conversion to classes is a mechanical implement pass. It is split
+  from subtask 2 because two attempts at doing both in one pass blocked on
+  the cycles.
 3. Goal-runner sequences, reads, and silent reads
    (`spec_subtask_3_goal-runner-step-classes-and-engine-surface.md`; the file
    name predates the split). Sequence allocation in the write, a read-only phase
@@ -120,7 +120,7 @@ This bundle runs on the current tree. It does not wait for a subtask of another 
 
 ## Constraints
 
-- Read `runtime-kotlin/ARCHITECTURE.md` Design Principles and
+- Read `../../../runtime-kotlin/ARCHITECTURE.md` Design Principles and
   `docs/code-principles.md` first. No `//` comments, KDoc only on interfaces,
   1,200-line and 40-function ceilings, package sibling ceilings, and wire keys
   from owning `*Keys` objects.

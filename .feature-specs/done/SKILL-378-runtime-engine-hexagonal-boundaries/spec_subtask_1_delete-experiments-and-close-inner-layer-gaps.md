@@ -8,7 +8,7 @@ Issue key: SKILL-378
 Resolves investigation F-001 and F-008.
 
 **Delete experiment support.** Start with a fresh census:
-case-insensitive `experiment` over `runtime-kotlin/**/src`, `orchestration/contracts`,
+case-insensitive `experiment` over `runtime-kotlin/**/src`, `../../../orchestration/contracts`,
 `skills`, `docs`, and `README.md`. Ignore unrelated "experimental" wording
 (delegated review, feature-task runtime schema comments). Delete:
 
@@ -78,7 +78,7 @@ Append a named migration after the SKILL-366 entries that drops
    companion `val NONE` and passes on the tree.
 7. The six named null objects are declared under runtime-engine `src/testFixtures`
    and absent from `src/main`.
-8. `runtime-kotlin/agent/decisions.md` records the removal: the reason, what was
+8. `../../../runtime-kotlin/agent/decisions.md` records the removal: the reason, what was
    removed, the retained migrations, and the revisit condition (a defined
    experiment with a consumer).
 

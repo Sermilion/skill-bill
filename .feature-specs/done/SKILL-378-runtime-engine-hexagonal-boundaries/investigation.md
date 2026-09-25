@@ -29,7 +29,7 @@ engine. No new module, interface hierarchy, framework, or architecture-test clas
   The working tree carried concurrent sessions' uncommitted edits: `detekt.yml`,
   two engine prompt/probe files, build-logic files, and a re-recorded
   `runtime-engine-ambient-clock-baseline.txt`.
-- Read first: `CLAUDE.md`, `runtime-kotlin/ARCHITECTURE.md` (Design Principles,
+- Read first: `../../../CLAUDE.md`, `runtime-kotlin/ARCHITECTURE.md` (Design Principles,
   Gradle Modules, Package Ownership, Boundary Rules, Guardrails),
   `docs/code-principles.md`, `runtime-engine/agent/history.md`,
   `featuretask/agent/decisions.md` and `history.md`, `goalrunner/agent/history.md`,
@@ -145,10 +145,10 @@ SKILL-352's retention decisions stay: the recorder facade stays concrete, the
 | --- | --- | --- |
 | `RuntimeLayerBoundaryArchitectureTest` "application domain and ports avoid direct file IO" | `sourceFiles()` relative to repo root; filter `runtime-kotlin/runtime-{application,domain,ports}/src/main/kotlin/` | Reads files. Engine excluded by filter. |
 | `PortNullObjectAbsenceArchitectureTest` | module dir parent, `<module>/src/main` for non-nested modules | Reads engine. Regex matches only `object (Noop|Unavailable|Empty|Unconfigured)\w*`, so it misses companion `val` and `class`. SKILL-377 subtask 3 also edits it. |
-| `RuntimeRawMapArchitectureTest` | filter `runtime-application/src/main/kotlin/` against paths starting `runtime-kotlin/` | Scans nothing (vacuous). SKILL-371 subtask 1 repairs it. |
+| `RuntimeRawMapArchitectureTest` | filter `runtime-application/src/main/kotlin/` against paths starting `../../../runtime-kotlin` | Scans nothing (vacuous). SKILL-371 subtask 1 repairs it. |
 | `RuntimeApplicationAmbientClockArchitectureTest` | per-module test methods | No engine method. `runtime-engine-ambient-clock-baseline.txt` is written by the recorder and read by nothing. |
 | `InjectConstructorDefaultsArchitectureTest` | per-module baselines | Engine has no case (`PrincipleEnforcementInventory.injectDefaultsBaselineForModule` returns `null`). |
-| `RuntimeEngineBoundaryArchitectureTest` visibility case | `runtime-kotlin/runtime-engine/src/main/kotlin` | Reads files. `includeDefaultPublic = false` makes it inert (see SKILL-352 AC12). |
+| `RuntimeEngineBoundaryArchitectureTest` visibility case | `../../../runtime-kotlin/runtime-engine/src/main/kotlin` | Reads files. `includeDefaultPublic = false` makes it inert (see SKILL-352 AC12). |
 | `FeatureTaskRuntimeParameterBagArchitectureTest`, `FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest` | `runtime-kotlin/runtime-engine/...` | Read files. They pin names and source strings of the procedural form. |
 | `RuntimeEngineInboundApiTest` | consumer roots | Vacuous per SKILL-371 F-001. SKILL-371 repairs it. |
 
@@ -173,7 +173,7 @@ contracts 334, domain 201, core 164, infra-contracts 134, cli 104, host 37,
 launcher 25), about 2,700 test lines, four `experiment-*-schema.yaml`
 contracts, two named migrations, a `skill-bill experiments` group, `--experiments`
 on `goal` and `goal preflight`, an `experiments` config key, and text in
-`skills/bill-feature/content.md`.
+`../../../skills/bill-feature/content.md`.
 
 It also holds every engine filesystem IO site (`Files.walk/list/readAllBytes`
 in `ExperimentPairCoordinator.kt:772–806`, `ExperimentFrozenSpecBundle.kt`,
@@ -283,7 +283,7 @@ Evidence.
 - `DurableGoalPlanningRejectionRecorder.record` (`GoalPlanningRejectionRecorder.kt:21`):
   a bare `runCatching`.
 
-`docs/observability-policy.md` requires a record for each.
+`../../../docs/observability-policy.md` requires a record for each.
 
 Fix: typed failure or one bounded record through `RuntimeDiagnosticsBestEffortWarning`,
 with interrupts rethrown.

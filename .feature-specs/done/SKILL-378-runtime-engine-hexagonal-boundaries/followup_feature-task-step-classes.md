@@ -88,7 +88,7 @@ form and the 2026-09-17 bag census. `LongParameterList.functionThreshold` stays 
    checkpoint identity, resume from durable records, validate and review gates,
    commit finalization), with test changes limited to construction and imports.
 9. ARCHITECTURE.md states the step-class rule without file tables or ticket
-    keys, and `agent/decisions.md` records the superseding decision.
+   keys, and `../../../agent/decisions.md` records the superseding decision.
 
 ## Non-goals
 
