@@ -21,7 +21,8 @@ object FeatureTaskRuntimePhaseProjectionShapes {
     innerJsonExample: String,
     trailingNotes: String,
   ): String =
-    "\n    - Required produced_outputs shape: non-blank value string, optional prompt. Put the JSON " +
+    "\n    - Required produced_outputs shape: non-blank value string, optional prompt (omit the prompt " +
+      "key when there is no directive; never set it to null). Put the JSON " +
       "object below INSIDE value as a JSON string; do not emit those fields as sibling keys on " +
       "produced_outputs. The runtime does not validate the inner shape; the next phase reads value " +
       "as structured prose and interprets it. Extra keys beside value are allowed.\n" +

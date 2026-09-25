@@ -29,6 +29,35 @@ class FeatureTaskRuntimePhaseOutputWireSchemaTest {
   }
 
   @Test
+  fun `a null optional prompt directive is normalized away instead of failing the gate`() {
+    val nullPrompt =
+      """
+      {"contract_version":"0.6","phase_id":"plan","status":"completed","summary":"Planned.",
+       "produced_outputs":{"value":"Ordered implementation plan prose.","prompt":null}}
+      """.trimIndent()
+
+    val normalized = FeatureTaskRuntimePhaseOutputWireSchema.normalizePhaseOutput(nullPrompt, "plan")
+
+    assertEquals(
+      mapOf("value" to "Ordered implementation plan prose."),
+      normalized.envelopeWireMap()["produced_outputs"],
+    )
+  }
+
+  @Test
+  fun `a blank prompt directive still fails the gate`() {
+    val blankPrompt =
+      """
+      {"contract_version":"0.6","phase_id":"plan","status":"completed","summary":"Planned.",
+       "produced_outputs":{"value":"Ordered implementation plan prose.","prompt":" "}}
+      """.trimIndent()
+
+    assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
+      FeatureTaskRuntimePhaseOutputWireSchema.normalizePhaseOutput(blankPrompt, "plan")
+    }
+  }
+
+  @Test
   fun `adapter repair result is followed by the existing phase schema path`() {
     val malformed =
       """{"contract_version":"0.6","phase_id":"plan","status":"completed","summary":"ok",""" +

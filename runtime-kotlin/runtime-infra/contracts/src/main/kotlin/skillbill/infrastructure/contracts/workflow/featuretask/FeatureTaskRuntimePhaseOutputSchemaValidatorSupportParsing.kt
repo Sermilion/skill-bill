@@ -171,3 +171,18 @@ internal fun dropSpuriousAuditCompletedVerdict(parsed: MutableMap<String, Any?>)
     parsed.remove(SharedPayloadKeys.VERDICT)
   }
 }
+
+internal fun dropNullProducedOutputsPrompt(
+  parsed: MutableMap<String, Any?>,
+  sourceLabel: String,
+) {
+  val producedOutputs = parsed[SharedPayloadKeys.PRODUCED_OUTPUTS] as? Map<*, *> ?: return
+  if (!producedOutputs.containsKey(SharedPayloadKeys.PROMPT) || producedOutputs[SharedPayloadKeys.PROMPT] != null) {
+    return
+  }
+  parsed[SharedPayloadKeys.PRODUCED_OUTPUTS] = producedOutputs.filterKeys { it != SharedPayloadKeys.PROMPT }
+  featureTaskRuntimePhaseOutputLog.log(
+    Level.WARNING,
+    "Phase '$sourceLabel' emitted produced_outputs.prompt as null; treating the optional directive as absent.",
+  )
+}

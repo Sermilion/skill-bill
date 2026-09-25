@@ -65,6 +65,7 @@ object FeatureTaskRuntimePhaseOutputWireSchema {
     val node = readPhaseOutputObjectNode(phaseOutputText, sourceLabel)
     val parsed = phaseOutputObjectNodeToMap(node, sourceLabel).toMutableMap()
     dropSpuriousAuditCompletedVerdict(parsed)
+    dropNullProducedOutputsPrompt(parsed, sourceLabel)
     validate(parsed, sourceLabel)
     return NormalizedFeatureTaskRuntimePhaseOutput(
       canonicalJson = mapper.writeValueAsString(parsed),

@@ -1,0 +1,436 @@
+Parallel Configuration Cache is an incubating feature.
+Calculating task graph as no cached configuration is available for tasks: check
+
+> Configure project :build-logic:convention
+The ReportingExtension.file(String) method has been deprecated. This is scheduled to be removed in Gradle 10. Please use the getBaseDirectory().file(String) or getBaseDirectory().dir(String) method instead. Consult the upgrading guide for further information: https://docs.gradle.org/9.3.0/userguide/upgrading_version_9.html#reporting_extension_file
+
+> Task :build-logic:convention:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :build-logic:convention:compileKotlin UP-TO-DATE
+> Task :build-logic:convention:compileJava NO-SOURCE
+> Task :build-logic:convention:pluginDescriptors UP-TO-DATE
+> Task :build-logic:convention:processResources UP-TO-DATE
+> Task :build-logic:convention:classes UP-TO-DATE
+> Task :build-logic:convention:jar UP-TO-DATE
+> Task :runtime-contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-domain:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-ports:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-domain:processResources NO-SOURCE
+> Task :runtime-ports:processResources NO-SOURCE
+> Task :runtime-infra:contracts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-infra:host:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-infra:skills:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-infra:workflow:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-domain:processTestFixturesResources NO-SOURCE
+> Task :runtime-ports:processTestFixturesResources NO-SOURCE
+> Task :runtime-contracts:compileKotlin UP-TO-DATE
+> Task :runtime-infra:contracts:copyAgentAddonSchema UP-TO-DATE
+> Task :runtime-contracts:compileJava NO-SOURCE
+> Task :runtime-infra:contracts:copyDecompositionManifestBundleJournalSchema UP-TO-DATE
+> Task :runtime-contracts:processResources NO-SOURCE
+> Task :runtime-contracts:classes UP-TO-DATE
+> Task :runtime-contracts:jar UP-TO-DATE
+> Task :runtime-infra:contracts:copyDecompositionManifestSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyExperimentDescriptorSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyExperimentObservationSchema UP-TO-DATE
+> Task :runtime-domain:compileKotlin UP-TO-DATE
+> Task :runtime-domain:compileJava NO-SOURCE
+> Task :build-logic:spotlessInternalRegisterDependencies
+> Task :runtime-domain:classes UP-TO-DATE
+> Task :runtime-infra:contracts:copyExperimentPairSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyExperimentReportSchema UP-TO-DATE
+> Task :runtime-domain:jar UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskExecutionIdentitySchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimeBuildReceiptSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimeCheckpointIdentitySchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimeHandoffEnvelopeSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimeImplementationAttemptSchema UP-TO-DATE
+> Task :runtime-ports:compileKotlin UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimePersistenceSchema UP-TO-DATE
+> Task :runtime-ports:compileJava NO-SOURCE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimePhaseHandoffSchema UP-TO-DATE
+> Task :runtime-ports:classes UP-TO-DATE
+> Task :runtime-ports:jar UP-TO-DATE
+> Task :runtime-ports:compileTestFixturesKotlin UP-TO-DATE
+> Task :runtime-ports:compileTestFixturesJava NO-SOURCE
+> Task :runtime-infra:host:compileKotlin UP-TO-DATE
+> Task :runtime-infra:host:compileJava NO-SOURCE
+> Task :runtime-ports:testFixturesClasses UP-TO-DATE
+> Task :runtime-ports:testFixturesJar UP-TO-DATE
+> Task :runtime-infra:host:processResources UP-TO-DATE
+> Task :runtime-infra:host:classes UP-TO-DATE
+> Task :runtime-infra:host:jar UP-TO-DATE
+> Task :runtime-infra:skills:processResources NO-SOURCE
+> Task :runtime-infra:workflow:copySpecialistContract
+> Task :runtime-infra:workflow:processResources
+> Task :spotlessInternalRegisterDependencies UP-TO-DATE
+> Task :runtime-domain:compileTestFixturesKotlin FROM-CACHE
+> Task :runtime-domain:compileTestFixturesJava NO-SOURCE
+> Task :runtime-domain:testFixturesClasses UP-TO-DATE
+> Task :runtime-domain:testFixturesJar
+> Task :runtime-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-engine:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-infra:http:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-infra:http:compileKotlin FROM-CACHE
+> Task :runtime-infra:http:compileJava NO-SOURCE
+> Task :runtime-infra:launcher:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-infra:sqlite:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-infra:contracts:compileKotlin FROM-CACHE
+> Task :runtime-infra:contracts:compileJava NO-SOURCE
+> Task :runtime-infra:sqlite:compileKotlin FROM-CACHE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimePhaseLaunchBriefingSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimePhaseOutputSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimePlanningProjectionsSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimeProjectionMeasurementSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimeQuarantineSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimeReadinessEvidenceSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimeSharedEvidenceProjectionSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimeValidationEvidenceSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyFeatureTaskRuntimeWorkerOwnershipSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyGoalObservabilityEventSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyGoalPlanningPreparationSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyGoalProgressEventSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyGoalSubtaskReviewStateSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyIdeStatusSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyInstallPlanSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyIssueKeySchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyNativeAgentCompositionSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyNativeAgentLinkInventorySchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyPlatformPackSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyProducerOutputEvidenceSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyRejectedOutputDiagnosticSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyReviewContextSchema UP-TO-DATE
+> Task :runtime-infra:contracts:copyWorkflowStateSchema UP-TO-DATE
+> Task :runtime-infra:contracts:processResources UP-TO-DATE
+> Task :runtime-infra:contracts:classes UP-TO-DATE
+> Task :runtime-infra:contracts:jar
+> Task :runtime-infra:sqlite:compileJava NO-SOURCE
+> Task :runtime-infra:sqlite:processResources NO-SOURCE
+> Task :runtime-infra:sqlite:classes UP-TO-DATE
+> Task :runtime-infra:sqlite:jar
+> Task :build-logic:convention:detekt
+> Task :build-logic:convention:spotlessKotlin FROM-CACHE
+> Task :build-logic:convention:spotlessKotlinCheck UP-TO-DATE
+> Task :build-logic:convention:spotlessKotlinGradle FROM-CACHE
+> Task :build-logic:convention:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :build-logic:convention:spotlessCheck UP-TO-DATE
+> Task :runtime-infra:sqlite:compileTestFixturesKotlin FROM-CACHE
+> Task :runtime-cli:detekt
+> Task :runtime-cli:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-infra:sqlite:compileTestFixturesJava NO-SOURCE
+> Task :runtime-engine:processResources NO-SOURCE
+> Task :runtime-infra:http:processResources NO-SOURCE
+> Task :runtime-infra:launcher:processResources NO-SOURCE
+> Task :runtime-infra:http:classes UP-TO-DATE
+> Task :runtime-infra:sqlite:processTestFixturesResources NO-SOURCE
+> Task :runtime-infra:sqlite:testFixturesClasses UP-TO-DATE
+> Task :runtime-infra:sqlite:testFixturesJar
+> Task :runtime-infra:http:jar
+> Task :runtime-application:detekt
+> Task :runtime-application:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-cli:spotlessKotlin UP-TO-DATE
+> Task :runtime-cli:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-application:compileKotlin UP-TO-DATE
+> Task :runtime-application:compileJava NO-SOURCE
+> Task :runtime-application:processResources NO-SOURCE
+> Task :runtime-application:classes UP-TO-DATE
+> Task :runtime-cli:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-application:jar UP-TO-DATE
+> Task :runtime-application:processTestFixturesResources NO-SOURCE
+> Task :runtime-application:processTestResources NO-SOURCE
+> Task :runtime-application:processRepoTestResources NO-SOURCE
+> Task :runtime-application:spotlessKotlin UP-TO-DATE
+> Task :runtime-application:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-application:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-application:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-application:spotlessCheck UP-TO-DATE
+> Task :runtime-cli:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-cli:spotlessCheck UP-TO-DATE
+> Task :runtime-contracts:detekt
+> Task :runtime-contracts:spotlessKotlin UP-TO-DATE
+> Task :runtime-contracts:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-contracts:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-contracts:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-contracts:spotlessCheck UP-TO-DATE
+> Task :runtime-contracts:compileTestKotlin FROM-CACHE
+> Task :runtime-contracts:compileTestJava NO-SOURCE
+> Task :runtime-contracts:processTestResources NO-SOURCE
+> Task :runtime-contracts:testClasses UP-TO-DATE
+> Task :runtime-contracts:test FROM-CACHE
+> Task :runtime-contracts:check
+> Task :runtime-core:detekt
+> Task :runtime-engine:processTestFixturesResources NO-SOURCE
+> Task :runtime-core:spotlessKotlin UP-TO-DATE
+> Task :runtime-core:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-core:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-core:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-core:spotlessCheck UP-TO-DATE
+> Task :runtime-domain:detekt
+> Task :runtime-domain:spotlessKotlin UP-TO-DATE
+> Task :runtime-domain:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-domain:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-domain:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-domain:spotlessCheck UP-TO-DATE
+> Task :build-logic:convention:compileTestKotlin FROM-CACHE
+> Task :build-logic:convention:compileTestJava NO-SOURCE
+> Task :build-logic:convention:pluginUnderTestMetadata
+> Task :build-logic:convention:processTestResources NO-SOURCE
+> Task :build-logic:convention:testClasses UP-TO-DATE
+> Task :build-logic:convention:test FROM-CACHE
+> Task :build-logic:convention:validatePlugins FROM-CACHE
+> Task :build-logic:convention:check
+> Task :runtime-domain:compileTestKotlin FROM-CACHE
+> Task :runtime-domain:compileTestJava NO-SOURCE
+> Task :runtime-domain:processTestResources NO-SOURCE
+> Task :runtime-domain:testClasses UP-TO-DATE
+> Task :runtime-domain:test FROM-CACHE
+> Task :runtime-domain:check
+> Task :runtime-infra:check UP-TO-DATE
+> Task :runtime-mcp:detekt
+> Task :runtime-mcp:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :runtime-mcp:copyTelemetryEventSchema
+> Task :runtime-mcp:spotlessKotlin UP-TO-DATE
+> Task :runtime-mcp:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-mcp:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-mcp:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-mcp:spotlessCheck UP-TO-DATE
+> Task :runtime-ports:detekt
+> Task :runtime-ports:spotlessKotlin UP-TO-DATE
+> Task :runtime-ports:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-ports:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-ports:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-ports:spotlessCheck UP-TO-DATE
+> Task :runtime-ports:compileTestKotlin FROM-CACHE
+> Task :runtime-ports:compileTestJava NO-SOURCE
+> Task :runtime-ports:processTestResources NO-SOURCE
+> Task :runtime-ports:testClasses UP-TO-DATE
+> Task :runtime-ports:test FROM-CACHE
+> Task :runtime-ports:check
+> Task :runtime-engine:detekt
+> Task :runtime-engine:spotlessKotlin UP-TO-DATE
+> Task :runtime-engine:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-engine:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-engine:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-engine:spotlessCheck UP-TO-DATE
+> Task :runtime-engine:processTestResources NO-SOURCE
+> Task :runtime-infra:host:compileTestFixturesKotlin UP-TO-DATE
+> Task :runtime-infra:host:compileTestFixturesJava NO-SOURCE
+> Task :runtime-infra:host:processTestFixturesResources NO-SOURCE
+> Task :runtime-infra:host:testFixturesClasses UP-TO-DATE
+> Task :runtime-infra:host:testFixturesJar UP-TO-DATE
+> Task :runtime-infra:contracts:detekt
+> Task :runtime-infra:contracts:compileTestKotlin UP-TO-DATE
+> Task :runtime-infra:contracts:compileTestJava NO-SOURCE
+> Task :runtime-infra:contracts:processTestResources NO-SOURCE
+> Task :runtime-infra:contracts:testClasses UP-TO-DATE
+> Task :runtime-infra:host:detekt
+> Task :runtime-infra:contracts:processRepoTestResources NO-SOURCE
+> Task :runtime-infra:contracts:spotlessKotlin UP-TO-DATE
+> Task :runtime-infra:contracts:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-infra:contracts:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-infra:contracts:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-infra:contracts:spotlessCheck UP-TO-DATE
+> Task :runtime-infra:contracts:compileRepoTestKotlin
+> Task :runtime-infra:host:spotlessKotlin UP-TO-DATE
+> Task :runtime-infra:host:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-infra:host:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-infra:host:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-infra:host:spotlessCheck UP-TO-DATE
+> Task :runtime-infra:host:compileTestKotlin FROM-CACHE
+> Task :runtime-infra:host:compileTestJava NO-SOURCE
+> Task :runtime-infra:host:processTestResources NO-SOURCE
+> Task :runtime-infra:host:testClasses UP-TO-DATE
+> Task :runtime-infra:host:test FROM-CACHE
+> Task :runtime-infra:host:check
+> Task :runtime-infra:http:detekt
+> Task :runtime-infra:http:spotlessKotlin UP-TO-DATE
+> Task :runtime-infra:http:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-infra:http:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-infra:http:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-infra:http:spotlessCheck UP-TO-DATE
+> Task :runtime-infra:http:compileTestKotlin FROM-CACHE
+> Task :runtime-infra:http:compileTestJava NO-SOURCE
+> Task :runtime-infra:http:processTestResources NO-SOURCE
+> Task :runtime-infra:http:testClasses UP-TO-DATE
+> Task :runtime-infra:http:test FROM-CACHE
+> Task :runtime-infra:http:check
+> Task :runtime-infra:launcher:detekt
+> Task :runtime-infra:launcher:spotlessKotlin UP-TO-DATE
+> Task :runtime-infra:launcher:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-infra:launcher:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-infra:launcher:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-infra:launcher:spotlessCheck UP-TO-DATE
+> Task :runtime-infra:launcher:processTestResources NO-SOURCE
+> Task :runtime-infra:skills:detekt
+> Task :runtime-infra:skills:processTestFixturesResources NO-SOURCE
+> Task :runtime-infra:skills:processTestResources
+> Task :runtime-infra:skills:processRepoTestResources NO-SOURCE
+> Task :runtime-infra:skills:spotlessKotlin UP-TO-DATE
+> Task :runtime-infra:skills:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-infra:skills:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-infra:skills:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-infra:skills:spotlessCheck UP-TO-DATE
+> Task :runtime-infra:sqlite:detekt
+> Task :runtime-infra:sqlite:spotlessKotlin UP-TO-DATE
+> Task :runtime-infra:sqlite:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-infra:sqlite:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-infra:sqlite:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-infra:sqlite:spotlessCheck UP-TO-DATE
+> Task :runtime-infra:sqlite:compileTestKotlin FROM-CACHE
+> Task :runtime-infra:sqlite:compileTestJava NO-SOURCE
+> Task :runtime-infra:sqlite:processTestResources
+> Task :runtime-infra:sqlite:testClasses
+> Task :runtime-infra:sqlite:test FROM-CACHE
+> Task :runtime-infra:sqlite:check
+> Task :runtime-infra:workflow:detekt
+> Task :runtime-infra:workflow:processTestResources
+> Task :runtime-infra:workflow:processRepoTestResources NO-SOURCE
+> Task :runtime-infra:workflow:spotlessKotlin UP-TO-DATE
+> Task :runtime-infra:workflow:spotlessKotlinCheck UP-TO-DATE
+> Task :runtime-infra:workflow:spotlessKotlinGradle UP-TO-DATE
+> Task :runtime-infra:workflow:spotlessKotlinGradleCheck UP-TO-DATE
+> Task :runtime-infra:workflow:spotlessCheck UP-TO-DATE
+> Task :runtime-infra:skills:compileKotlin
+> Task :runtime-infra:skills:compileJava NO-SOURCE
+> Task :runtime-infra:skills:classes UP-TO-DATE
+> Task :runtime-infra:skills:jar
+> Task :runtime-infra:contracts:test
+> Task :runtime-infra:contracts:compileRepoTestJava NO-SOURCE
+> Task :runtime-infra:contracts:repoTestClasses UP-TO-DATE
+> Task :runtime-infra:launcher:compileKotlin FROM-CACHE
+> Task :runtime-infra:launcher:compileJava NO-SOURCE
+> Task :runtime-infra:launcher:classes UP-TO-DATE
+> Task :runtime-infra:launcher:jar
+> Task :runtime-infra:launcher:compileTestKotlin FROM-CACHE
+> Task :runtime-infra:launcher:compileTestJava NO-SOURCE
+> Task :runtime-infra:launcher:testClasses UP-TO-DATE
+> Task :runtime-infra:workflow:compileKotlin
+> Task :runtime-infra:workflow:compileJava NO-SOURCE
+> Task :runtime-engine:compileKotlin
+> Task :runtime-infra:workflow:classes
+> Task :runtime-infra:workflow:jar
+> Task :runtime-engine:compileJava NO-SOURCE
+> Task :runtime-infra:contracts:repoTest
+> Task :runtime-engine:classes UP-TO-DATE
+> Task :runtime-engine:jar
+> Task :runtime-infra:contracts:check
+> Task :runtime-infra:skills:compileTestFixturesKotlin FROM-CACHE
+> Task :runtime-infra:skills:compileTestFixturesJava NO-SOURCE
+> Task :runtime-infra:skills:testFixturesClasses UP-TO-DATE
+> Task :runtime-infra:skills:testFixturesJar
+> Task :runtime-application:compileTestFixturesKotlin
+> Task :runtime-application:compileTestFixturesJava NO-SOURCE
+> Task :runtime-application:testFixturesClasses UP-TO-DATE
+> Task :runtime-application:testFixturesJar
+> Task :runtime-application:compileTestKotlin FROM-CACHE
+> Task :runtime-application:compileTestJava NO-SOURCE
+> Task :runtime-application:testClasses UP-TO-DATE
+> Task :runtime-application:compileRepoTestKotlin
+> Task :runtime-application:compileRepoTestJava NO-SOURCE
+> Task :runtime-application:repoTestClasses UP-TO-DATE
+> Task :runtime-application:repoTest
+> Task :runtime-infra:skills:compileTestKotlin
+> Task :runtime-engine:compileTestFixturesKotlin FROM-CACHE
+> Task :runtime-engine:compileTestFixturesJava NO-SOURCE
+> Task :runtime-engine:testFixturesClasses UP-TO-DATE
+> Task :runtime-engine:testFixturesJar
+> Task :runtime-core:kspKotlin
+> Task :runtime-infra:launcher:test
+> Task :runtime-core:compileKotlin
+> Task :runtime-infra:launcher:check
+> Task :runtime-infra:skills:compileTestJava NO-SOURCE
+> Task :runtime-infra:skills:testClasses
+> Task :runtime-core:processResources
+> Task :runtime-core:compileJava NO-SOURCE
+> Task :runtime-cli:kspKotlin FROM-CACHE
+> Task :runtime-cli:compileKotlin FROM-CACHE
+> Task :runtime-cli:compileJava NO-SOURCE
+> Task :runtime-cli:processResources NO-SOURCE
+> Task :runtime-cli:classes UP-TO-DATE
+> Task :runtime-cli:jar
+> Task :runtime-infra:skills:compileRepoTestKotlin
+> Task :runtime-core:classes
+> Task :runtime-core:jar
+> Task :runtime-core:kspTestFixturesKotlin FROM-CACHE
+> Task :runtime-core:compileTestFixturesKotlin FROM-CACHE
+> Task :runtime-core:compileTestFixturesJava NO-SOURCE
+> Task :runtime-core:processTestFixturesResources NO-SOURCE
+> Task :runtime-core:testFixturesClasses UP-TO-DATE
+> Task :runtime-core:testFixturesJar
+> Task :runtime-application:test
+> Task :runtime-application:check
+> Task :runtime-mcp:kspKotlin FROM-CACHE
+> Task :runtime-mcp:compileKotlin FROM-CACHE
+> Task :runtime-mcp:compileJava NO-SOURCE
+> Task :runtime-mcp:processResources
+> Task :runtime-mcp:classes
+> Task :runtime-mcp:jar
+> Task :runtime-core:kspTestKotlin
+> Task :runtime-cli:kspTestKotlin
+> Task :runtime-mcp:kspTestKotlin
+> Task :runtime-cli:processTestResources
+> Task :runtime-core:processTestResources NO-SOURCE
+> Task :runtime-mcp:compileTestKotlin
+> Task :runtime-mcp:compileTestJava NO-SOURCE
+> Task :runtime-mcp:processTestResources
+> Task :runtime-mcp:testClasses
+> Task :runtime-core:compileTestKotlin
+> Task :runtime-core:compileTestJava NO-SOURCE
+> Task :runtime-core:testClasses UP-TO-DATE
+> Task :runtime-mcp:kspRepoTestKotlin
+> Task :runtime-core:kspRepoTestKotlin
+> Task :runtime-cli:compileTestKotlin
+> Task :runtime-cli:compileTestJava NO-SOURCE
+> Task :runtime-cli:testClasses
+> Task :runtime-engine:compileTestKotlin
+> Task :runtime-cli:kspRepoTestKotlin
+> Task :runtime-engine:compileTestJava NO-SOURCE
+> Task :runtime-engine:testClasses UP-TO-DATE
+> Task :runtime-mcp:compileRepoTestKotlin
+> Task :runtime-mcp:compileRepoTestJava NO-SOURCE
+> Task :runtime-mcp:processRepoTestResources NO-SOURCE
+> Task :runtime-mcp:repoTestClasses UP-TO-DATE
+> Task :runtime-core:test
+> Task :runtime-mcp:repoTest
+> Task :runtime-core:processRepoTestResources NO-SOURCE
+> Task :runtime-core:compileRepoTestKotlin
+> Task :runtime-core:compileRepoTestJava NO-SOURCE
+> Task :runtime-core:repoTestClasses UP-TO-DATE
+> Task :runtime-cli:test
+> Task :runtime-engine:test
+> Task :runtime-cli:compileRepoTestKotlin
+> Task :runtime-cli:compileRepoTestJava NO-SOURCE
+> Task :runtime-cli:processRepoTestResources NO-SOURCE
+> Task :runtime-cli:repoTestClasses UP-TO-DATE
+> Task :runtime-engine:check
+> Task :runtime-infra:skills:compileRepoTestJava NO-SOURCE
+> Task :runtime-infra:skills:repoTestClasses UP-TO-DATE
+> Task :runtime-mcp:test
+> Task :runtime-mcp:check
+> Task :runtime-core:repoTest
+> Task :runtime-core:check
+> Task :runtime-cli:repoTest
+> Task :runtime-infra:workflow:compileTestKotlin
+> Task :runtime-infra:workflow:compileTestJava NO-SOURCE
+> Task :runtime-infra:workflow:testClasses
+> Task :runtime-infra:workflow:compileRepoTestKotlin
+
+> Task :runtime-cli:validateAgentConfigs
+Agent-config validation passed.
+Validated 112 skills, 16 governed add-on files, 9 platform packs, 88 native agents, README catalog, skill references, and workflow contracts.
+
+> Task :runtime-cli:check
+> Task :runtime-infra:skills:repoTest
+> Task :runtime-infra:workflow:test
+> Task :runtime-infra:workflow:compileRepoTestJava NO-SOURCE
+> Task :runtime-infra:workflow:repoTestClasses UP-TO-DATE
+> Task :runtime-infra:workflow:repoTest
+> Task :runtime-infra:workflow:check
+> Task :runtime-infra:skills:test
+> Task :runtime-infra:skills:check
+> Task :check
+
+[Incubating] Problems report is available at: file:///private/tmp/claude-502/-Users-braian-gapur-IdeaProjects-skill-bill/0bb6aac6-e365-4975-9718-04fa7c39771f/scratchpad/main-fix/runtime-kotlin/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 1m 26s
+240 actionable tasks: 86 executed, 33 from cache, 121 up-to-date
+Configuration cache entry discarded because incompatible tasks were found: 'task `:build-logic:convention:compileTestKotlin` of type `org.jetbrains.kotlin.gradle.tasks.KotlinCompile`', 'task `:build-logic:convention:test` of type `org.gradle.api.tasks.testing.Test`'.
