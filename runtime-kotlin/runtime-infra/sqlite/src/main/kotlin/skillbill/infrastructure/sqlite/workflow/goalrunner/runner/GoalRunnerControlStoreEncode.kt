@@ -5,7 +5,6 @@ import skillbill.contracts.workflow.workflow.WorkflowTimestampPayloadKeys
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.goalrunner.model.parseExecutionLeaseInstant
-import skillbill.infrastructure.sqlite.goalrunner.control.executionLease
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import java.time.Instant

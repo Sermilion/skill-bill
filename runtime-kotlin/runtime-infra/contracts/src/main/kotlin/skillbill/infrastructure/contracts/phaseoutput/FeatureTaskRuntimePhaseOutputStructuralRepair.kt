@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.infrastructure.contracts.sha256Hex
-import skillbill.infrastructure.contracts.workflow.featuretask.phase.task.runtime.phase.balancedTopLevelObjectSpans
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairOperation

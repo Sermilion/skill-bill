@@ -5,6 +5,7 @@ import skillbill.infrastructure.skills.agentaddon.discoverAgentAddons
 import skillbill.infrastructure.skills.nativeagent.composition.NATIVE_AGENT_SOURCE_DIR
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.skills.scaffold.authoring.parseInternalForFrontmatter
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.SKILL_CLASSES_DIR
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.discoverSkillClasses
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.resolveSkillClass
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
@@ -153,7 +154,7 @@ internal fun validateFeatureAddonDeclarations(
   issues: MutableList<String>,
 ) {
   val staticTargets = supportingFileTargets(root).keys
-  val classes = runCatching { discoverSkillClasses(root) }.getOrDefault(emptyList())
+  val classes = if (root.resolve(SKILL_CLASSES_DIR).isDirectory()) discoverSkillClasses(root) else emptyList()
   val featureClassPointers =
     resolveSkillClass("bill-feature", classes)
       ?.pointers

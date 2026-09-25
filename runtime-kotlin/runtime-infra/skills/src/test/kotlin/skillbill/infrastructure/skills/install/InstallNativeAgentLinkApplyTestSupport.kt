@@ -1,6 +1,5 @@
 package skillbill.infrastructure.skills.install
 
-import skillbill.model.EnvironmentContext
 import java.nio.file.Path
 
 open class InstallNativeAgentLinkApplyTestSupport : InstallApplyTestSupport() {
@@ -18,10 +17,4 @@ open class InstallNativeAgentLinkApplyTestSupport : InstallApplyTestSupport() {
       ]}
       """.trimIndent()
   }
-
-  protected fun preflightContext(home: Path): EnvironmentContext =
-    EnvironmentContext(
-      userHome = home,
-      environment = installTestEnvironment(home),
-    )
 }

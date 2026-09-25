@@ -23,7 +23,7 @@ import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore
 import skillbill.infrastructure.workflow.filesystem.FileSystemDiffResolver
 import skillbill.infrastructure.workflow.review.broker.FileSystemReviewEvidenceBroker
-import skillbill.infrastructure.workflow.review.specialists.review.ClasspathReviewSpecialistContractProvider
+import skillbill.infrastructure.workflow.review.specialists.ClasspathReviewSpecialistContractProvider
 import skillbill.install.model.SupportedAgent
 import skillbill.learnings.model.LearningRecord
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts

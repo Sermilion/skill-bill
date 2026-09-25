@@ -5,7 +5,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode
 import skillbill.error.core.DatabaseAccessError
 import skillbill.error.core.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.core.migration.DatabaseMigration
-import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
+import skillbill.infrastructure.sqlite.core.migration.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.schema.DatabaseIdentity
 import skillbill.infrastructure.sqlite.core.schema.DatabaseWriteReadinessGate
 import skillbill.ports.workflow.model.WorkflowStateRecord

@@ -1,7 +1,7 @@
 package skillbill.engine
 
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
+import skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics

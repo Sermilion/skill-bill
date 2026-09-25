@@ -1,0 +1,85 @@
+package skillbill.engine.goalrunner.repair
+
+import me.tatarka.inject.annotations.Inject
+import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
+import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
+import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairStore
+import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildRepairApplyRequest
+import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildRepairApplyResult
+import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildWedgeDiagnosis
+import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildWedgeDiagnosisRequest
+import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildWedgeRepairRequest
+import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
+import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
+import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
+import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
+import skillbill.workflow.engine.WorkflowEngine
+
+class WorkflowGoalRunnerChildRepairStore
+  @Inject
+  constructor(
+    private val database: DatabaseSessionFactory,
+    private val childRepairExecutor: GoalRunnerChildRepairRunnerPort,
+    private val decompositionManifestValidator: DecompositionManifestValidator,
+    private val decompositionManifestStore: DecompositionManifestStore,
+    private val decompositionManifestWriter: DecompositionManifestProjectionWriter,
+  ) : GoalRunnerChildRepairStore {
+    private val engine = WorkflowEngine()
+
+    override fun diagnoseChildWedges(request: GoalRunnerChildWedgeDiagnosisRequest): GoalRunnerChildWedgeDiagnosis =
+      database.read { unitOfWork ->
+        childRepairExecutor.diagnose(
+          workflowStates = unitOfWork.workflowStates,
+          workflowId = request.workflowId,
+          issueKey = request.issueKey,
+          subtaskId = request.subtaskId,
+          repoRoot = request.repoRoot,
+        )
+      }
+
+    override fun applyChildWedgeRepairs(request: GoalRunnerChildWedgeRepairRequest): GoalRunnerChildRepairApplyResult {
+      val result =
+        database.transaction { unitOfWork ->
+          childRepairExecutor.apply(
+            GoalRunnerChildRepairApplyRequest(
+              unitOfWork = unitOfWork,
+              workflowId = request.workflowId,
+              issueKey = request.issueKey,
+              subtaskId = request.subtaskId,
+              wedgeClasses = request.wedgeClasses,
+              repoRoot = request.repoRoot,
+              wedgeFindings = request.wedgeFindings,
+            ),
+          )
+        }
+      result.manifestProjectionArtifacts?.let { artifacts ->
+        when (
+          val outcome =
+            decompositionManifestWriter.writeProjectionFromWorkflowState(
+              repoRoot = request.repoRoot,
+              artifacts = artifacts,
+              validator = decompositionManifestValidator,
+              fileStore = decompositionManifestStore,
+            )
+        ) {
+          is DecompositionManifestProjectionOutcome.Failed ->
+            database.transaction { unitOfWork ->
+              persistDecompositionManifestProjectionFailure(
+                engine,
+                unitOfWork,
+                request.workflowId,
+                outcome,
+              )
+            }
+          is DecompositionManifestProjectionOutcome.Written ->
+            database.transaction { unitOfWork ->
+              clearDecompositionManifestProjectionFailure(engine, unitOfWork, request.workflowId)
+            }
+          DecompositionManifestProjectionOutcome.Absent -> Unit
+        }
+      }
+      return result
+    }
+  }

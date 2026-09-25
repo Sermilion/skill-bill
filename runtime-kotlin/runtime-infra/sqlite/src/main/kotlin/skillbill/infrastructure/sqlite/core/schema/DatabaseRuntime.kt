@@ -3,7 +3,7 @@ package skillbill.infrastructure.sqlite.core.schema
 import org.sqlite.SQLiteConfig
 import skillbill.error.core.DatabaseAccessError
 import skillbill.error.core.DatabaseAccessOperation
-import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
+import skillbill.infrastructure.sqlite.core.migration.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.ops.InternalSqliteDiagnostics
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.nio.file.Files
@@ -25,7 +25,7 @@ internal object DatabaseRuntime {
   const val BUSY_TIMEOUT_MILLIS: Int = 5000
   const val SELF_MANAGED_WRITE_BUSY_ATTEMPTS: Int = 3
 
-  private var writeReadinessGate = DatabaseWriteReadinessGate()
+  private val writeReadinessGate = DatabaseWriteReadinessGate()
 
   fun ensureWriteReady(
     path: Path,

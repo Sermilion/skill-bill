@@ -1,0 +1,104 @@
+package skillbill.infrastructure.sqlite.core.migration
+
+import skillbill.infrastructure.sqlite.core.ops.bindAll
+import java.sql.Connection
+
+internal object MigrationLedger {
+  class State(
+    val tableExists: Boolean,
+    val versionKeyed: Boolean,
+    val appliedNames: Set<String>,
+  ) {
+    fun hasPendingWork(migrationNames: List<String>): Boolean =
+      when {
+        !tableExists -> true
+
+        versionKeyed -> true
+        else -> migrationNames.any { name -> name !in appliedNames }
+      }
+  }
+
+  fun readState(connection: Connection): State {
+    val exists = tableExists(connection)
+    return State(
+      tableExists = exists,
+      versionKeyed = exists && versionIsPrimaryKey(connection),
+      appliedNames = if (exists) appliedNames(connection) else emptySet(),
+    )
+  }
+
+  fun ensureNameKeyed(connection: Connection) {
+    if (!tableExists(connection)) return
+    if (!versionIsPrimaryKey(connection)) return
+
+    connection.createStatement().use { statement ->
+      statement.execute("ALTER TABLE schema_migrations RENAME TO schema_migrations_version_keyed")
+      statement.execute(
+        """
+        CREATE TABLE schema_migrations (
+          name TEXT PRIMARY KEY,
+          version INTEGER NOT NULL,
+          applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """.trimIndent(),
+      )
+      statement.execute(
+        """
+        INSERT INTO schema_migrations (name, version, applied_at)
+        SELECT name, version, applied_at FROM schema_migrations_version_keyed
+        """.trimIndent(),
+      )
+      statement.execute("DROP TABLE schema_migrations_version_keyed")
+    }
+  }
+
+  fun appliedNames(connection: Connection): Set<String> =
+    connection.prepareStatement(
+      """
+      SELECT name
+      FROM schema_migrations
+      ORDER BY version
+      """.trimIndent(),
+    ).use { statement ->
+      statement.executeQuery().use { resultSet ->
+        buildSet {
+          while (resultSet.next()) {
+            add(resultSet.getString("name"))
+          }
+        }
+      }
+    }
+
+  fun record(
+    connection: Connection,
+    migration: DatabaseMigration,
+  ) {
+    connection.prepareStatement(
+      """
+      INSERT INTO schema_migrations (version, name)
+      VALUES (?, ?)
+      """.trimIndent(),
+    ).use { statement ->
+      statement.bindAll(migration.version, migration.name)
+      statement.executeUpdate()
+    }
+  }
+
+  private fun tableExists(connection: Connection): Boolean =
+    connection.prepareStatement(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
+    ).use { statement ->
+      statement.executeQuery().use { resultSet -> resultSet.next() }
+    }
+
+  private fun versionIsPrimaryKey(connection: Connection): Boolean =
+    connection.prepareStatement(
+      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
+    ).use { statement ->
+      statement.executeQuery().use { resultSet ->
+        resultSet.next() &&
+          Regex("""\bversion\s+INTEGER\s+PRIMARY\s+KEY\b""", RegexOption.IGNORE_CASE)
+            .containsMatchIn(resultSet.getString("sql").orEmpty())
+      }
+    }
+}

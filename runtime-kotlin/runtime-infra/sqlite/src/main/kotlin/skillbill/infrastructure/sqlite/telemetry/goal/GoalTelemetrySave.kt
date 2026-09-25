@@ -2,8 +2,8 @@ package skillbill.infrastructure.sqlite.telemetry.goal
 
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.core.ops.sqliteDiagnostics
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.listJson
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.sql.toSqlInt
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.listJson
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.toSqlInt
 import skillbill.telemetry.model.GoalFinishedRecord
 import skillbill.telemetry.model.GoalIssueFinishedRecord
 import skillbill.telemetry.model.GoalStartedRecord

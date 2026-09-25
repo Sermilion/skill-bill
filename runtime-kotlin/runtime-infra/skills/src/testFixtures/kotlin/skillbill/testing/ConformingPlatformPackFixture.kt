@@ -26,7 +26,7 @@ internal fun assertConcreteAndManifestFallbackSelected(
   assertEquals((fallbackSlugs + concreteSlug + additionalSlugs).sorted(), plan.selectedPlatformSlugs)
 }
 
-internal fun seedConformingPlatformPack(
+fun seedConformingPlatformPack(
   repoRoot: Path,
   slug: String,
   areaNames: List<String> = listOf("architecture"),

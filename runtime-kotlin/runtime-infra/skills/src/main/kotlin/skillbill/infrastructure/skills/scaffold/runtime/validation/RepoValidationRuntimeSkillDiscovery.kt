@@ -115,7 +115,10 @@ internal fun validatePlatformPacks(
   return validCount
 }
 
-internal fun discoverPortableReviewSkills(root: Path): Set<String> {
+internal fun discoverPortableReviewSkills(
+  root: Path,
+  issues: MutableList<String>,
+): Set<String> {
   val packsRoot = root.resolve("platform-packs")
   if (!packsRoot.isDirectory()) {
     return emptySet()
@@ -128,11 +131,17 @@ internal fun discoverPortableReviewSkills(root: Path): Set<String> {
       .forEach { packRoot ->
         reviewSkills +=
           runCatching { loadPlatformManifest(packRoot).declaredCodeReviewSkillNames() }
+            .onFailure { error ->
+              issues += "${packRoot.relativeTo(root)}/platform.yaml: ${describeDiscoveryFailure(error)}"
+            }
             .getOrDefault(emptySet())
       }
   }
   return reviewSkills
 }
+
+internal fun describeDiscoveryFailure(error: Throwable): String =
+  error.message?.takeIf(String::isNotBlank) ?: error::class.simpleName.orEmpty()
 
 internal fun discoverAllAddonFiles(root: Path): List<Path> {
   val containers = listOf(root.resolve("skills"), root.resolve("platform-packs"))

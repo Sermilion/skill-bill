@@ -3,7 +3,7 @@ package skillbill.infrastructure.contracts
 import skillbill.contracts.workflow.goal.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.goal.GoalProgressEventSchemaPaths
 import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
-import skillbill.infrastructure.contracts.workflow.goal.progress.GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE
+import skillbill.infrastructure.contracts.workflow.goal.GOAL_PROGRESS_EVENT_SCHEMA_CLASSPATH_RESOURCE
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains

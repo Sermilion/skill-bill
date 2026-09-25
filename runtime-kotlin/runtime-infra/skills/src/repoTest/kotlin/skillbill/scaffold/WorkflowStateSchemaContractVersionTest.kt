@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.contracts.workflow.workflow.WorkflowStateSchemaPaths
-import skillbill.infrastructure.contracts.workflow.workflow.WorkflowStateSchemaValidator
+import skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.testing.repoRootFromTest
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition

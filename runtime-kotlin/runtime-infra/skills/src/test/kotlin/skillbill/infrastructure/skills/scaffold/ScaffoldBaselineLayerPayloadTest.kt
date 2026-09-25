@@ -6,7 +6,7 @@ import skillbill.infrastructure.skills.scaffold.rendering.inferSkillDescription
 import skillbill.infrastructure.skills.scaffold.rendering.renderContentBody
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.TemplateContext
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.supportingFileTargets
-import skillbill.infrastructure.skills.scaffold.runtime.service.standalone.scaffold
+import skillbill.infrastructure.skills.scaffold.runtime.service.scaffold
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.policy.platformpack.model.PlatformPackManifestRenderRequest

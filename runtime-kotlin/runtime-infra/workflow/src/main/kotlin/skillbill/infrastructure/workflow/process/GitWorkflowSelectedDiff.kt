@@ -5,7 +5,6 @@ import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
-import java.io.BufferedReader
 import java.nio.file.Path
 
 internal fun appendSelectedDiffHunks(
@@ -94,37 +93,6 @@ internal data class BoundedDiffLine(
       output.append(text.take(remaining))
     }
   }
-}
-
-internal fun BufferedReader.readBoundedDiffLine(maxBytes: Int): BoundedDiffLine? {
-  val line = StringBuilder()
-  var bytes = 0
-  var sawContent = false
-  var truncated = false
-  var complete = false
-  while (!complete) {
-    val next = read()
-    when {
-      next == -1 -> complete = true
-      next.toChar() == '\n' -> {
-        sawContent = true
-        complete = true
-      }
-      else -> {
-        sawContent = true
-        val char = next.toChar()
-        val charBytes = char.toString().toByteArray().size
-        if (bytes + charBytes > maxBytes) {
-          truncated = true
-          complete = true
-        } else {
-          line.append(char)
-          bytes += charBytes
-        }
-      }
-    }
-  }
-  return if (sawContent) BoundedDiffLine(line.toString(), truncated = truncated) else null
 }
 
 internal class SelectedDiffBudget(

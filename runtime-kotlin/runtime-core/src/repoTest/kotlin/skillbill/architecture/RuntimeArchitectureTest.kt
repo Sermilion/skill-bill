@@ -317,7 +317,7 @@ class RuntimeArchitectureTest {
       sourceFiles().filter { file ->
         file.relativePath.endsWith("featuretask/lifecycle/core/FeatureTaskRuntimeCrashReconciler.kt") ||
           file.relativePath.endsWith("featuretask/lifecycle/core/FeatureTaskRuntimeWorkerCoordinator.kt") ||
-          file.relativePath.endsWith("goalrunner/outcome/WorkflowGoalRunnerOutcomeStore.kt")
+          file.relativePath.endsWith("goalrunner/persist/WorkflowGoalRunnerOutcomeStore.kt")
       }
     assertTrue(reconciliationSources.isNotEmpty(), "crash-reconciliation source scan must be non-vacuous.")
     assertTrue(

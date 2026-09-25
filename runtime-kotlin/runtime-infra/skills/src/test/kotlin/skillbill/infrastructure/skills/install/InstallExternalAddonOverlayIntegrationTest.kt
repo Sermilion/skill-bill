@@ -1,7 +1,7 @@
 
 package skillbill.infrastructure.skills.install
 
-import skillbill.infrastructure.skills.install.nativeagent.install.native.installNativeAgentCompositionContext
+import skillbill.infrastructure.skills.install.nativeagent.installNativeAgentCompositionContext
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderRequest
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider

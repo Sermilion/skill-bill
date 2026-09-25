@@ -7,6 +7,7 @@ import skillbill.infrastructure.host.jvm.GateJvmStartupFailureException
 import skillbill.infrastructure.host.jvm.GateJvmUnresolvedException
 import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
 import skillbill.infrastructure.host.jvm.applyTo
+import skillbill.infrastructure.host.process.BoundedExternalProcessOutput
 import skillbill.infrastructure.host.process.BoundedExternalProcessRequest
 import skillbill.infrastructure.host.process.BoundedExternalProcessRunner
 import skillbill.ports.validation.ValidationGateRunner
@@ -41,9 +42,8 @@ class FileSystemValidationGateRunner(
             workingDirectory = request.repoRoot,
             environment = baselineEnvironment,
             clearEnvironment = true,
-            redirectOutputFile = outputFile,
             deadlineSeconds = GATE_TIMEOUT_MINUTES * 60L,
-            outputCapBytes = null,
+            output = BoundedExternalProcessOutput.RedirectToFile(outputFile),
           ),
         )
       if (processResult.timedOut) {

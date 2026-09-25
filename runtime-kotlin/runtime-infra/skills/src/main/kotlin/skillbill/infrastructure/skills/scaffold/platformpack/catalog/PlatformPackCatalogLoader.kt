@@ -3,13 +3,13 @@ package skillbill.infrastructure.skills.scaffold.platformpack.catalog
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.core.AmbiguousExternalPlatformPackError
 import skillbill.error.core.ExternalPlatformPackConfigError
-import skillbill.infrastructure.skills.install.nativeagent.install.native.sourceKind
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.childDirectories
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.validatePlatformPack
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.validatePlatformPackCompositions
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.validatePlatformPackFallbacks
+import skillbill.infrastructure.skills.scaffold.platformpack.sourceKind
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.install.model.ExternalPlatformPackSource
 import skillbill.model.toPath

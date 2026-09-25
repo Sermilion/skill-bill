@@ -35,14 +35,14 @@ internal fun ProcessWaitLoop.pollProgress(): ProcessWait? {
 }
 
 internal fun ProcessWaitLoop.pollDeclaredProgress(nowNanos: Long) {
-  val read = request.declaredProgressProbe.readDeclaredProgress(degradation)
+  val read = request.probes.declaredProgressProbe.readDeclaredProgress(degradation)
   if (read.failed) return
   val snapshot = read.value ?: return
   val previousSequence = declaredTracker.latestEvent?.sequenceNumber
   declaredTracker.observe(snapshot, nowNanos)
   val latest = declaredTracker.latestEvent
   if (latest != null && latest.sequenceNumber != previousSequence) {
-    request.activityStampSink.safeStamp(AgentActivityLabel.TOOL_STREAM)
+    request.probes.activityStampSink.safeStamp(AgentActivityLabel.TOOL_STREAM)
   }
 }
 
@@ -65,7 +65,8 @@ internal fun ProcessWaitLoop.declaredProgressWait(nowNanos: Long): ProcessWait? 
       )
     GoalRunnerLivenessState.IDLE ->
       if (idleTimeoutNanos != null && nowNanos - declaredTracker.lastAdvanceNanos >= idleTimeoutNanos) {
-        val processLiveWithinWindow = request.idlePolicy.extendIdleWindow(idleSignals(idleTimeoutNanos, nowNanos))
+        val processLiveWithinWindow =
+          request.probes.idlePolicy.extendIdleWindow(idleSignals(idleTimeoutNanos, nowNanos))
         if (processLiveWithinWindow) {
           null
         } else {
@@ -96,7 +97,8 @@ internal fun ProcessWaitLoop.legacyIdleWait(nowNanos: Long): ProcessWait? =
       fileActivityWindowStartNanos?.let { windowStart ->
         nowNanos - windowStart < fileActivityGraceNanos
       } == true
-    val processLiveWithinWindow = request.idlePolicy.extendIdleWindow(idleSignals(idleTimeoutNanos, nowNanos))
+    val processLiveWithinWindow =
+      request.probes.idlePolicy.extendIdleWindow(idleSignals(idleTimeoutNanos, nowNanos))
     if (graceActive || processLiveWithinWindow) {
       null
     } else {

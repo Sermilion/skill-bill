@@ -2,6 +2,8 @@ package skillbill.infrastructure.sqlite.core.schema
 
 import java.sql.Connection
 
+internal const val FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION: String = "0.3"
+
 internal object DatabaseSchema {
   val tableNames: Set<String> =
     setOf(

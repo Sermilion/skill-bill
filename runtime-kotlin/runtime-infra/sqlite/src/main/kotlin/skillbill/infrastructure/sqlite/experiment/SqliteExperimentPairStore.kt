@@ -7,14 +7,16 @@ import skillbill.contracts.experiment.ExperimentObservationPayloadKeys
 import skillbill.contracts.experiment.ExperimentPairPayloadKeys
 import skillbill.error.shellcontent.ExperimentIsolationCapabilityRefusalError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.runtime.namesJson
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.namesJson
 import skillbill.ports.experiment.pair.ExperimentPairRepository
 import skillbill.ports.experiment.pair.model.ExperimentObservationImport
 import skillbill.ports.experiment.pair.model.ExperimentPairPayload
 import java.sql.Connection
+import java.time.Clock
 
 internal class SqliteExperimentPairStore(
   private val connection: Connection,
+  private val clock: Clock,
 ) : ExperimentPairRepository {
   override fun loadPairPayload(pairId: String): Pair<String, ExperimentPairPayload>? =
     connection.prepareStatement(
@@ -246,7 +248,7 @@ internal class SqliteExperimentPairStore(
       connection.prepareStatement(
         "SELECT 1 FROM experiment_pair_leases WHERE pair_id IN ($pairPlaceholders) AND expires_at > ? LIMIT 1",
       ).use { statement ->
-        statement.bindAll(pairIds + System.currentTimeMillis())
+        statement.bindAll(pairIds + clock.millis())
         statement.executeQuery().use { rows -> rows.next() }
       }
     if (liveLease) {

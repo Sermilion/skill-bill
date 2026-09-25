@@ -28,7 +28,7 @@ class FileSystemAgentRunLauncher internal constructor(
     databasePath = databaseSessionFactory.resolveDbPath(),
   )
 
-  private val adapters: Map<SupportedAgent, AgentRunAdapter> =
+  private val adapters: Map<SupportedAgent, ProcessAgentRunAdapter> =
     headlessAgentRunAdapters(processRunner, executableLookup, databasePath)
 
   override fun launch(request: AgentRunLaunchRequest): AgentRunLaunchOutcome {

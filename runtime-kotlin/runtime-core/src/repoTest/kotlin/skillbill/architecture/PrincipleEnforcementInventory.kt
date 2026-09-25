@@ -58,7 +58,7 @@ object PrincipleEnforcementInventory {
       "runtime-mcp" -> "skillbill.mcp."
       "runtime-core" -> "skillbill.di."
       "runtime-contracts" -> "skillbill.contracts."
-      else -> "skillbill."
+      else -> RuntimeModuleCatalog.moduleMainPackageRoots[moduleName]?.let { "$it." } ?: "skillbill."
     }
 
   private fun packageCycleBaselineForModule(

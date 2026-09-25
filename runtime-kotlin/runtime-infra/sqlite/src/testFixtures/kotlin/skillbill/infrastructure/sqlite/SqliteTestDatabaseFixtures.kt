@@ -2,10 +2,12 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.infrastructure.sqlite.core.schema.DatabasePaths
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.GoalPlanningPreparationStore
+import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.GoalRunnerControlStore
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
+import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
 import java.nio.file.Files
 import java.nio.file.Path
@@ -50,6 +52,15 @@ fun withGoalPlanningPreparationRepository(
 ) {
   ensureTestDatabase(dbPath).use { connection ->
     block(GoalPlanningPreparationStore(connection))
+  }
+}
+
+fun withGoalRunnerControlRepository(
+  dbPath: Path,
+  block: (GoalRunnerControlRepository) -> Unit,
+) {
+  ensureTestDatabase(dbPath).use { connection ->
+    block(GoalRunnerControlStore(connection))
   }
 }
 

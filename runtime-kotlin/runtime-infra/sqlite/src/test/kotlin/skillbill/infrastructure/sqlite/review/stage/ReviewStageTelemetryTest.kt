@@ -1,17 +1,17 @@
 package skillbill.infrastructure.sqlite.review.stage
 
-import skillbill.SAMPLE_REVIEW
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.telemetry.TelemetryOutboxEvent
+import skillbill.infrastructure.sqlite.SAMPLE_REVIEW
 import skillbill.infrastructure.sqlite.SQLiteReviewRunCompletenessRepository
-import skillbill.infrastructure.sqlite.core.migration.migrations.DatabaseMigrations
+import skillbill.infrastructure.sqlite.core.migration.DatabaseMigrations
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
-import skillbill.infrastructure.sqlite.review.stage.runtime.TriageRuntime
 import skillbill.infrastructure.sqlite.review.stats.ReviewFinishedPayloadBuildRequest
 import skillbill.infrastructure.sqlite.review.stats.ReviewStatsRuntime
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.tempDbConnection
 import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
 import skillbill.review.context.model.claim.ReviewClaimVerdictAdmission
 import skillbill.review.context.model.launch.ReviewSpecAdjudicationAdmission
@@ -36,7 +36,6 @@ import skillbill.review.model.ReviewStageDegradationSelectionRequest
 import skillbill.review.model.ReviewStageReached
 import skillbill.review.parsing.ReviewParser
 import skillbill.review.stage.ReviewStageDegradationSelection
-import skillbill.tempDbConnection
 import java.sql.Connection
 import java.time.Clock
 import kotlin.test.Test

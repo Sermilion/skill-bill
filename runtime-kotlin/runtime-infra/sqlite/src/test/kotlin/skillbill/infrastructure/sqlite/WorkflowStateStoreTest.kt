@@ -5,12 +5,12 @@ import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeWorkerOwnershipSche
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.error.shellcontent.ProseFeatureTaskWorkflowWriteRefusedError
 import skillbill.infrastructure.sqlite.core.schema.DatabaseRuntime
-import skillbill.infrastructure.sqlite.workflow.workflow.FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION
-import skillbill.infrastructure.sqlite.workflow.workflow.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION
-import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateRow
-import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateStore
+import skillbill.infrastructure.sqlite.workflow.FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION
+import skillbill.infrastructure.sqlite.workflow.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION
+import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
+import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskRouteScope
@@ -394,7 +394,7 @@ class WorkflowStateStoreTest {
       val store = WorkflowStateStore(connection, Clock.systemUTC(), testWorkflowSnapshotValidator)
 
       store.saveFeatureVerifyWorkflow(
-        WorkflowStateRow(
+        WorkflowStateRecord(
           workflowId = "wfv-001",
           sessionId = "fvr-001",
           workflowName = "bill-feature-verify",
@@ -650,7 +650,7 @@ class WorkflowStateStoreLifecycleTest {
       val artifactsJson = taskRuntimeArtifactsJson
 
       val initialRow =
-        WorkflowStateRow(
+        WorkflowStateRecord(
           workflowId = "wftr-001",
           sessionId = "ftr-001",
           workflowName = "bill-feature-task",

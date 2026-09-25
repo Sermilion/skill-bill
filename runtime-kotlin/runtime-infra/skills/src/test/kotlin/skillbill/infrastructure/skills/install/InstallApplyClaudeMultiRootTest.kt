@@ -1,8 +1,8 @@
 package skillbill.infrastructure.skills.install
 
 import org.junit.jupiter.api.Assumptions
-import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentOperations
-import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest
+import skillbill.infrastructure.skills.install.nativeagent.link.InstallNativeAgentOperations
+import skillbill.infrastructure.skills.install.nativeagent.link.NativeAgentLinkRequest
 import skillbill.infrastructure.skills.install.runtime.InstallOperations
 import skillbill.infrastructure.skills.nativeagent.support.CLAUDE_CONFIG_DIR_ENV
 import skillbill.install.model.InstallAgentLinkStatus

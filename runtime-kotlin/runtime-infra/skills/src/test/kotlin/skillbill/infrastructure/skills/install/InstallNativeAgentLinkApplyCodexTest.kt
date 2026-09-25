@@ -1,21 +1,17 @@
 package skillbill.infrastructure.skills.install
 
 import skillbill.error.core.InvalidNativeAgentLinkInventoryDecodeError
-import skillbill.error.shellcontent.MissingInstalledNativeAgentError
 import skillbill.infrastructure.skills.install.apply.currentNativeAgentApplyCacheRoot
 import skillbill.infrastructure.skills.install.nativeagent.inventory.NativeAgentLinkInventory
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentProvider
-import skillbill.infrastructure.workflow.review.specialists.system.FileSystemReviewNativeAgentPreflight
 import skillbill.install.model.InstallApplyStatus
 import skillbill.install.model.NativeAgentApplyStatus
 import skillbill.install.model.NativeAgentProviderId
 import skillbill.install.model.SupportedAgent
-import skillbill.ports.review.model.ReviewNativeAgentPreflightRequest
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.attribute.PosixFilePermission
 import kotlin.test.Test
-import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -78,42 +74,6 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
   }
 
   @Test
-  fun `preflight rejects stale Codex inventory when provider root disappeared`() {
-    val fixture = setupApplyFixture()
-    val cacheRoot =
-      currentNativeAgentApplyCacheRoot(
-        fixture.home,
-        fixture.repoRoot.resolve("platform-packs"),
-        fixture.repoRoot.resolve("skills"),
-      )
-    val inventory = fixture.home.resolve(".skill-bill/native-agent-link-inventory.json")
-    Files.createDirectories(inventory.parent)
-    Files.writeString(
-      inventory,
-      inventoryJson(
-        logicalName = "bill-code-review-worker",
-        installedPath = fixture.home.resolve(".agents/agents/bill-code-review-worker.toml"),
-        cacheTargetPath = cacheRoot.resolve("codex-agents/bill-code-review-worker.toml"),
-        sourceRoot = fixture.repoRoot,
-      ),
-    )
-
-    val error =
-      assertFailsWith<MissingInstalledNativeAgentError> {
-        FileSystemReviewNativeAgentPreflight(preflightContext(fixture.home)).verify(
-          ReviewNativeAgentPreflightRequest(
-            repoRoot = fixture.repoRoot,
-            agentIds = listOf("codex"),
-            logicalNames = listOf("bill-code-review-worker"),
-          ),
-        )
-      }
-
-    assertTrue(error.message.orEmpty().contains("active provider directory is missing"))
-    assertEquals("skill-bill install apply", error.repairCommand)
-  }
-
-  @Test
   fun `failed first reconciliation restores absent provider root cache metadata and inventory`() {
     val fixture = setupApplyFixture()
     Files.createDirectories(fixture.home.resolve(".codex"))
@@ -172,26 +132,6 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     assertFalse(Files.exists(nativeAgentCache, LinkOption.NOFOLLOW_LINKS))
     assertFalse(Files.exists(providerAgents, LinkOption.NOFOLLOW_LINKS))
     assertEquals("not-json", Files.readString(inventory))
-  }
-
-  @Test
-  fun `preflight accepts the current installed-skills native-agent generation`() {
-    val fixture = setupApplyFixture()
-    Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan =
-      planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
-      )
-    val result = applyInstallForTest(plan)
-    assertEquals(InstallApplyStatus.SUCCESS, result.status)
-
-    FileSystemReviewNativeAgentPreflight(preflightContext(fixture.home)).verify(
-      ReviewNativeAgentPreflightRequest(
-        repoRoot = fixture.repoRoot,
-        agentIds = listOf("codex"),
-        logicalNames = listOf("bill-code-review-worker"),
-      ),
-    )
   }
 
   @Test
@@ -288,58 +228,6 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
     assertEquals(
       NativeAgentProvider.Cursor.cacheArtifactPath(currentRoot, logicalName),
       readSymlinkTarget(installed),
-    )
-  }
-
-  @Test
-  fun `cursor preflight fails with the repair command when a managed link is deleted`() {
-    val fixture = setupApplyFixture()
-    Files.createDirectories(fixture.home.resolve(".cursor"))
-    val plan =
-      planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CURSOR)),
-      )
-    assertEquals(InstallApplyStatus.SUCCESS, applyInstallForTest(plan).status)
-    val installed =
-      fixture.home.resolve(".cursor/agents")
-        .resolve(NativeAgentProvider.Cursor.fileName("bill-code-review-worker"))
-    Files.delete(installed)
-
-    val failure =
-      assertFailsWith<MissingInstalledNativeAgentError> {
-        FileSystemReviewNativeAgentPreflight(preflightContext(fixture.home)).verify(
-          ReviewNativeAgentPreflightRequest(
-            repoRoot = fixture.repoRoot,
-            agentIds = listOf("cursor"),
-            logicalNames = listOf("bill-code-review-worker"),
-          ),
-        )
-      }
-
-    assertContains(failure.message.orEmpty(), "skill-bill install apply")
-  }
-
-  @Test
-  fun `preflight accepts installed native agents after source checkout is removed`() {
-    val fixture = setupApplyFixture()
-    Files.createDirectories(fixture.home.resolve(".codex"))
-    val plan =
-      planInstallForTest(
-        fixture.request(selectedPlatforms = setOf("kotlin"), agents = setOf(SupportedAgent.CODEX)),
-      )
-    val result = applyInstallForTest(plan)
-    assertEquals(InstallApplyStatus.SUCCESS, result.status)
-    Files.walk(fixture.repoRoot).use { paths ->
-      paths.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists)
-    }
-    val reviewedRepo = Files.createTempDirectory("skillbill-reviewed-repo").also(tempDirs::add)
-
-    FileSystemReviewNativeAgentPreflight(preflightContext(fixture.home)).verify(
-      ReviewNativeAgentPreflightRequest(
-        repoRoot = reviewedRepo,
-        agentIds = listOf("codex"),
-        logicalNames = listOf("bill-code-review-worker"),
-      ),
     )
   }
 }

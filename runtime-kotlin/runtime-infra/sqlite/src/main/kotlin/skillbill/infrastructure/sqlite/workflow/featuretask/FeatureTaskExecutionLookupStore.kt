@@ -4,7 +4,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.workflow.workflow.getFeatureTaskWorkflowRow
+import skillbill.infrastructure.sqlite.workflow.getFeatureTaskWorkflowRow
 import skillbill.ports.workflow.FeatureTaskExecutionLookupRepository
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.workflow.model.FeatureTaskExecutionIdentity

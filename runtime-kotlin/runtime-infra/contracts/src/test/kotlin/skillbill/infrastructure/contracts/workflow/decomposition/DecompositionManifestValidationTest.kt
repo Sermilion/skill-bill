@@ -6,7 +6,6 @@ import skillbill.application.decomposition.executionModel
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.JsonCodec
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
-import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.decodeManifest
@@ -28,7 +27,7 @@ import kotlin.test.assertTrue
 class DecompositionManifestValidationTest {
   private val realDecompositionManifestValidator: DecompositionManifestValidator =
     DecompositionManifestSchemaValidator()
-  private val fileStore = FileSystemDecompositionManifestFileStore()
+  private val fileStore = YamlEncodingDecompositionManifestStore()
 
   @Test
   fun `valid same branch manifest passes with default execution model`() {

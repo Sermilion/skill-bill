@@ -13,8 +13,6 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-internal typealias TelemetryOutboxRow = TelemetryOutboxRecord
-
 private const val ROW_COLUMNS =
   "id, event_name, payload_json, created_at, synced_at, last_error, skill_bill_version, " +
     "event_uuid, delivery_attempts"

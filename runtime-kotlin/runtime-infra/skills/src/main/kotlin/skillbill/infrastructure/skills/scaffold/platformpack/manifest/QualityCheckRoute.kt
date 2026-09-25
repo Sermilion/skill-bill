@@ -1,7 +1,6 @@
 package skillbill.infrastructure.skills.scaffold.platformpack.manifest
 
 import skillbill.error.shellcontent.MissingValidationGateError
-import skillbill.infrastructure.skills.externaladdon.basename
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackDiscoveryContext
 import skillbill.scaffold.model.PlatformManifest

@@ -1,9 +1,10 @@
 package skillbill.infrastructure.workflow.filesystem
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.infrastructure.host.process.BoundedExternalProcessOutput
 import skillbill.infrastructure.host.process.BoundedExternalProcessRequest
 import skillbill.infrastructure.host.process.BoundedExternalProcessRunner
-import skillbill.infrastructure.workflow.review.specialists.checkpoint.checkpointFileIdentity
+import skillbill.infrastructure.workflow.review.specialists.checkpointFileIdentity
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import java.io.IOException
@@ -42,9 +43,8 @@ class FileSystemDiffResolver : DiffResolverPort {
           BoundedExternalProcessRequest(
             argv = args,
             workingDirectory = workDir,
-            redirectOutputFile = outputFile,
             deadlineSeconds = PROCESS_TIMEOUT_SECONDS,
-            outputCapBytes = null,
+            output = BoundedExternalProcessOutput.RedirectToFile(outputFile),
           ),
         )
       if (result.timedOut || result.launchFailure) {

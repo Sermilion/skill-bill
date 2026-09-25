@@ -1,9 +1,9 @@
 package skillbill.infrastructure.skills.nativeagent
 
-import skillbill.infrastructure.skills.install.nativeagent.install.native.toNativeAgentPlatformPack
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionTarget
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionTargetSource
 import skillbill.infrastructure.skills.nativeagent.discovery.discoverNativeAgentSourceEntries
+import skillbill.infrastructure.skills.nativeagent.platformpack.toNativeAgentPlatformPack
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderOverrides
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentInstallRenderRequest
 import skillbill.infrastructure.skills.nativeagent.rendering.NativeAgentOperations

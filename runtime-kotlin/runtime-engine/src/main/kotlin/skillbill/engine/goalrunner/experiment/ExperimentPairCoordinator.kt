@@ -921,7 +921,7 @@ class ExperimentPairCoordinator(
       ?.firstOrNull { outcome -> outcome[ExperimentPairPayloadKeys.ARM_ID] == arm.wireValue }
 }
 
-private fun ExperimentPairPayload.toMap(): Map<String, Any?> =
+internal fun ExperimentPairPayload.toMap(): Map<String, Any?> =
   JsonCodec.anyToStringAnyMap(
     JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(toJson()))),
   ) ?: error("Experiment pair payload must decode to an object.")

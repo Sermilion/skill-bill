@@ -3,10 +3,13 @@ package skillbill.infrastructure.skills.scaffold.runtime.validation
 import skillbill.infrastructure.skills.nativeagent.composition.NativeAgentCompositionContext
 import skillbill.infrastructure.skills.nativeagent.rendering.discoverRepoNativeAgentSourceEntries
 import skillbill.infrastructure.skills.nativeagent.validation.validateRepoNativeAgents
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.SKILL_CLASSES_DIR
+import skillbill.infrastructure.skills.scaffold.platformpack.loader.skillclass.discoverSkillClasses
 import skillbill.infrastructure.skills.scaffold.platformpack.substanceaudit.PlatformPackSubstanceAudit
 import skillbill.infrastructure.skills.scaffold.pointer.validateGeneratedArtifactGuard
 import skillbill.infrastructure.skills.scaffold.validation.shape.validateGovernedSkillDrift
 import java.nio.file.Path
+import kotlin.io.path.isDirectory
 
 internal data class RepoValidationCollected(
   val issues: MutableList<String>,
@@ -27,8 +30,21 @@ internal fun collectRepoValidationIssues(
   val skillNames = (skillFiles.keys + platformSkillFiles.keys).toSortedSet()
   val addonFiles = discoverAllAddonFiles(root)
   val platformPacks = validatePlatformPacks(root, issues)
-  val portableReviewSkills = discoverPortableReviewSkills(root)
-  val nativeAgentSources = runCatching { discoverRepoNativeAgentSourceEntries(root) }.getOrDefault(emptyList())
+  val portableReviewSkills = discoverPortableReviewSkills(root, issues)
+  val nativeAgentSources =
+    runCatching { discoverRepoNativeAgentSourceEntries(root) }
+      .onFailure { error -> issues += "native agent sources: ${describeDiscoveryFailure(error)}" }
+      .getOrDefault(emptyList())
+  skillClassDiscoveryFailure(root)?.let { error ->
+    issues += "$SKILL_CLASSES_DIR: ${describeDiscoveryFailure(error)}"
+    return RepoValidationCollected(
+      issues = issues,
+      skillNames = skillNames,
+      addonCount = addonFiles.size,
+      platformPackCount = platformPacks,
+      nativeAgentCount = nativeAgentSources.size,
+    )
+  }
   validateInstallableSkills(skillFiles, root, issues, portableReviewSkills, validateSourceSidecars = true)
   validateInstallableSkills(platformSkillFiles, root, issues, portableReviewSkills, validateSourceSidecars = false)
   validateInternalSidecarCollisions(skillFiles + platformSkillFiles, issues)
@@ -70,6 +86,13 @@ internal fun collectRepoValidationIssues(
     nativeAgentCount = nativeAgentSources.size,
   )
 }
+
+private fun skillClassDiscoveryFailure(root: Path): Throwable? =
+  if (root.resolve(SKILL_CLASSES_DIR).isDirectory()) {
+    runCatching { discoverSkillClasses(root) }.exceptionOrNull()
+  } else {
+    null
+  }
 
 private fun validateInstallableSkills(
   skillFiles: Map<String, Path>,

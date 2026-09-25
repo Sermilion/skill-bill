@@ -3,8 +3,8 @@ package skillbill.infrastructure.sqlite.telemetry.goal
 import skillbill.contracts.telemetry.TelemetryOutboxEvent
 import skillbill.infrastructure.sqlite.core.ops.bindAll
 import skillbill.infrastructure.sqlite.core.ops.sqliteDiagnostics
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.emit.enqueueTelemetry
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.maps.stringOrEmpty
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.enqueueTelemetry
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.stringOrEmpty
 import skillbill.infrastructure.sqlite.telemetry.redaction.telemetryRedactionSalt
 import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import java.sql.Connection

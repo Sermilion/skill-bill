@@ -1,8 +1,7 @@
 package skillbill.install
 
-import skillbill.infrastructure.skills.install.staging.staging.installed.StageInstalledSkillInput
-import skillbill.infrastructure.skills.install.staging.staging.installed.stageInstalledSkill
-import skillbill.infrastructure.skills.install.staging.staging.stageInstalledSkill
+import skillbill.infrastructure.skills.install.staging.StageInstalledSkillInput
+import skillbill.infrastructure.skills.install.staging.stageInstalledSkill
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformManifest
 import skillbill.model.toPath
 import skillbill.testing.repoRootFromTest

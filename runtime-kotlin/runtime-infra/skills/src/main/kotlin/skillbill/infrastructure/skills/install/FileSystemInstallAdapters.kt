@@ -3,7 +3,7 @@ package skillbill.infrastructure.skills.install
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.skills.install.apply.InstallCleanupOperations
 import skillbill.infrastructure.skills.install.mcp.McpRegistrationOperations
-import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentOperations
+import skillbill.infrastructure.skills.install.nativeagent.link.InstallNativeAgentOperations
 import skillbill.infrastructure.skills.install.plan.buildInstallStagingIntent
 import skillbill.infrastructure.skills.install.plan.codexAgentsPath
 import skillbill.infrastructure.skills.install.plan.collectInstallPlanningFacts
@@ -14,7 +14,7 @@ import skillbill.infrastructure.skills.install.reconcile.applyReconciliation
 import skillbill.infrastructure.skills.install.reconcile.computeReconciliationPlan
 import skillbill.infrastructure.skills.install.runtime.InstallOperations
 import skillbill.infrastructure.skills.install.runtime.linkInstalledSkill
-import skillbill.infrastructure.skills.install.staging.staging.installedSkillsCacheRoot
+import skillbill.infrastructure.skills.install.staging.installedSkillsCacheRoot
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.install.agent.InstallAgentTargetPort
@@ -68,8 +68,8 @@ import skillbill.ports.install.reconcile.model.InstallReconcileRequest
 import skillbill.ports.install.reconcile.model.InstallReconcileResult
 import skillbill.ports.system.HostPlatformPort
 import skillbill.ports.telemetry.transport.TelemetryConfigStore
-import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkOverrides as FsNativeAgentLinkOverrides
-import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest as FsNativeAgentLinkRequest
+import skillbill.infrastructure.skills.install.nativeagent.link.NativeAgentLinkOverrides as FsNativeAgentLinkOverrides
+import skillbill.infrastructure.skills.install.nativeagent.link.NativeAgentLinkRequest as FsNativeAgentLinkRequest
 
 @Inject
 class FileSystemInstallPlanningFacts(

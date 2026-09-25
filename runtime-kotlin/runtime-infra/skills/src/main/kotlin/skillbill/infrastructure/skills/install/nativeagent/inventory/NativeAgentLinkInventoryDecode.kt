@@ -6,7 +6,7 @@ import com.networknt.schema.JsonSchema
 import skillbill.error.core.InvalidNativeAgentLinkInventoryDecodeError
 import skillbill.error.shellcontent.ShellContentContractException
 import skillbill.infrastructure.contracts.sha256Hex
-import skillbill.infrastructure.skills.install.nativeagent.install.agent.parseEmbeddedLogicalName
+import skillbill.infrastructure.skills.install.nativeagent.parseEmbeddedLogicalName
 import skillbill.install.model.SupportedAgent
 import java.io.IOException
 import java.nio.file.Files

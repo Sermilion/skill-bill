@@ -14,6 +14,7 @@ import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWi
 import skillbill.engine.featuretask.phase.record.featureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.execution.core.GoalRunnerStatusTestPorts
 import skillbill.engine.goalrunner.execution.core.testGoalRunnerStatusService
+import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerChildRepairStore
 import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerOutcomeStore
 import skillbill.engine.goalrunner.goalTestPhaseRecorder
 import skillbill.engine.goalrunner.manifest
@@ -23,6 +24,7 @@ import skillbill.engine.goalrunner.model.GoalRunnerRepairRequest
 import skillbill.engine.goalrunner.model.GoalRunnerRepairStatus
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeClass
 import skillbill.engine.goalrunner.persist.OutcomeStoreTestArtifactPorts
+import skillbill.engine.goalrunner.persist.WorkflowGoalRunnerOutcomeStore
 import skillbill.engine.goalrunner.status.GoalRunnerStatusService
 import skillbill.goalrunner.goalContinuationOutcome
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_STOP
@@ -753,14 +755,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     seedRepairParent(workflows, workflowId)
     saveBlockedUnsettledUpstreamChild(workflows, workflowId)
     val manifestStore = InMemoryRepairManifestFileStore()
-    val store =
-      testWorkflowGoalRunnerOutcomeStore(
-        FakeDatabaseSessionFactory(workflows),
-        artifactPorts =
-          OutcomeStoreTestArtifactPorts(
-            decompositionManifestStore = manifestStore,
-          ),
-      )
+    val store = repairStore(workflows, manifestStore = manifestStore)
 
     val applied =
       store.applyChildWedgeRepairs(
@@ -1480,7 +1475,7 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
       ports =
         GoalRunnerStatusTestPorts(
           workerSupervisor = context.workerSupervisor,
-          childRepairStore = context.store as GoalRunnerChildRepairStore,
+          childRepairStore = context.store,
         ),
     )
   }
@@ -1488,7 +1483,7 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
   private data class Issue342RepairServiceContext(
     val workflows: InMemoryWorkflowStates,
     val workflowId: String,
-    val store: GoalRunnerWorkflowOutcomeStore,
+    val store: RepairTestStore,
     val controlState: GoalRunnerControlState,
     val manifestStore: MutableRepairManifestStore = MutableRepairManifestStore(workflowId, controlState),
     val workerSupervisor: FeatureTaskRuntimeWorkerSupervisor = NoopFeatureTaskRuntimeWorkerSupervisor,
@@ -1617,18 +1612,35 @@ internal abstract class GoalRunnerRepairFixtures {
     )
   }
 
+  protected class RepairTestStore(
+    outcomeStore: WorkflowGoalRunnerOutcomeStore,
+    childRepairStore: WorkflowGoalRunnerChildRepairStore,
+  ) : GoalRunnerWorkflowOutcomeStore by outcomeStore,
+    GoalRunnerChildRepairStore by childRepairStore
+
   protected fun repairStore(
     workflows: InMemoryWorkflowStates,
     git: WorkflowGitOperations = NoopWorkflowGitOperations,
-  ) = testWorkflowGoalRunnerOutcomeStore(
-    FakeDatabaseSessionFactory(workflows),
-    testWorkflowSnapshotValidator,
-    gitOperations = git,
-    artifactPorts =
-      OutcomeStoreTestArtifactPorts(
-        decompositionManifestStore = InMemoryRepairManifestFileStore(),
-      ),
-  )
+    manifestStore: DecompositionManifestStore = InMemoryRepairManifestFileStore(),
+  ): RepairTestStore {
+    val database = FakeDatabaseSessionFactory(workflows)
+    val artifactPorts = OutcomeStoreTestArtifactPorts(decompositionManifestStore = manifestStore)
+    return RepairTestStore(
+      outcomeStore =
+        testWorkflowGoalRunnerOutcomeStore(
+          database,
+          testWorkflowSnapshotValidator,
+          gitOperations = git,
+          artifactPorts = artifactPorts,
+        ),
+      childRepairStore =
+        testWorkflowGoalRunnerChildRepairStore(
+          database,
+          gitOperations = git,
+          artifactPorts = artifactPorts,
+        ),
+    )
+  }
 
   protected class InMemoryRepairManifestFileStore :
     DecompositionManifestStore by TestDecompositionManifestStore {

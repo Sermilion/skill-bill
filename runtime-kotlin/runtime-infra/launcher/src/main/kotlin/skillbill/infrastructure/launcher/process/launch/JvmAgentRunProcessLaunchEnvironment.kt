@@ -8,17 +8,17 @@ internal fun configureLaunchEnvironment(
   request: AgentRunProcessRequest,
   gateJvmResolver: GateJvmResolver,
 ) {
-  if (!request.inheritEnvironment) {
+  if (!request.environmentFields.inheritEnvironment) {
     val isolated =
       isolatedLaunchEnvironment(
         builder.environment(),
-        request.environment,
-        request.environmentPassthroughKeys,
+        request.environmentFields.environment,
+        request.environmentFields.environmentPassthroughKeys,
       )
     builder.environment().clear()
     builder.environment().putAll(isolated)
   } else {
-    builder.environment().putAll(request.environment)
+    builder.environment().putAll(request.environmentFields.environment)
   }
   val environment = builder.environment()
   gateJvmResolver.resolve(environment).applyTo(environment)

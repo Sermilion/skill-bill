@@ -14,6 +14,7 @@ import java.nio.ByteBuffer
 import java.nio.CharBuffer
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
+import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -37,14 +38,14 @@ internal fun String.withProgressTimeoutMessage(
 ): String {
   val fileActivityDetail =
     if (fileActivityGraceExhausted) {
-      " File activity was observed, but the ${request.fileActivityGraceTimeout} " +
+      " File activity was observed, but the ${request.timing.fileActivityGraceTimeout} " +
         "file-activity grace window was exhausted."
     } else {
       " No file activity was observed."
     }
   val livenessDetail = liveness.detailsSuffix()
   val message =
-    "Agent run stopped after ${request.progressIdleTimeout} " +
+    "Agent run stopped after ${request.timing.progressIdleTimeout} " +
       "without durable workflow progress.$fileActivityDetail$livenessDetail"
   return if (isBlank()) message else "$this\n$message"
 }
@@ -53,7 +54,8 @@ internal fun String.withWallClockTimeoutMessage(
   request: AgentRunProcessRequest,
   liveness: AgentRunLivenessSnapshot?,
 ): String {
-  val message = "Agent run stopped after optional wall-clock cap ${request.timeout}.${liveness.detailsSuffix()}"
+  val message =
+    "Agent run stopped after optional wall-clock cap ${request.timing.timeout}.${liveness.detailsSuffix()}"
   return if (isBlank()) message else "$this\n$message"
 }
 
@@ -222,11 +224,13 @@ internal class CappedUtf8Drain(
   fun contentDigest(): String = capture().sha256
 }
 
-internal class OutputObservationTracker {
+internal class OutputObservationTracker(
+  private val clock: Clock,
+) {
   private val lastObservedMillis = AtomicLong(0L)
 
   fun markObserved() {
-    lastObservedMillis.set(System.currentTimeMillis())
+    lastObservedMillis.set(clock.millis())
   }
 
   fun lastObservedAt(): Instant? =

@@ -9,7 +9,6 @@ import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.error.shellcontent.InvalidInstallPlanSchemaError
 import skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator
-import skillbill.infrastructure.workflow.decomposition.FileSystemDecompositionManifestFileStore
 import skillbill.install.model.InstallPlanWireMap
 import skillbill.ports.install.InstallPlanWireValidator
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
@@ -29,7 +28,7 @@ import kotlin.test.assertFailsWith
 class SchemaValidatorPortLoudFailTest {
   private val installValidator: InstallPlanWireValidator = InstallPlanSchemaValidator()
   private val decompositionValidator: DecompositionManifestValidator = DecompositionManifestSchemaValidator()
-  private val fileStore = FileSystemDecompositionManifestFileStore()
+  private val fileStore = YamlEncodingDecompositionManifestStore()
 
   @Test
   fun `malformed install-plan wire map loud-fails through the injected port`() {

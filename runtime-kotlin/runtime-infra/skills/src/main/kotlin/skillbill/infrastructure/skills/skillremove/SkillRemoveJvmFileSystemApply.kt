@@ -2,8 +2,8 @@ package skillbill.infrastructure.skills.skillremove
 
 import skillbill.infrastructure.host.jvm.rollbackDeletePathEntry
 import skillbill.infrastructure.host.jvm.rollbackRestoreBytes
-import skillbill.infrastructure.skills.install.nativeagent.install.native.InstallNativeAgentOperations
-import skillbill.infrastructure.skills.install.nativeagent.install.native.NativeAgentLinkRequest
+import skillbill.infrastructure.skills.install.nativeagent.link.InstallNativeAgentOperations
+import skillbill.infrastructure.skills.install.nativeagent.link.NativeAgentLinkRequest
 import skillbill.install.model.SupportedAgent
 import skillbill.skillremove.SkillBillRollbackException
 import skillbill.skillremove.model.AppliedCascade

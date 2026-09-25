@@ -1,6 +1,7 @@
 package skillbill.infrastructure.skills.install.plan
 
 import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPackCatalogLoader
+import skillbill.infrastructure.skills.scaffold.platformpack.packRootsBySlug
 import skillbill.install.model.InstallAgentDefaultTarget
 import skillbill.install.model.InstallAgentTarget
 import skillbill.install.model.InstallAgentTargetSource
@@ -151,11 +152,6 @@ internal fun materializeSelectedPlatformSkills(
     )
   }
 }
-
-internal fun packRootsBySlug(platformManifests: List<PlatformManifest>): Map<String, Path> =
-  platformManifests.associate { manifest ->
-    manifest.slug to manifest.packRoot.toPath().toAbsolutePath().normalize()
-  }
 
 private fun installPlanEnvironment(request: InstallPlanRequest): Map<String, String> = request.environment
 

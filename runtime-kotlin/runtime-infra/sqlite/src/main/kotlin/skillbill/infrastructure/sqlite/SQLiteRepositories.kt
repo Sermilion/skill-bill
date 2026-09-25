@@ -3,24 +3,24 @@ package skillbill.infrastructure.sqlite
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.core.ops.reconcileStaleTelemetrySessions
 import skillbill.infrastructure.sqlite.experiment.SqliteExperimentPairStore
 import skillbill.infrastructure.sqlite.goal.UnaddressedFindingsRuntime
 import skillbill.infrastructure.sqlite.review.accounting.loadReviewAccounting
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
 import skillbill.infrastructure.sqlite.review.accounting.upsertReviewAccounting
-import skillbill.infrastructure.sqlite.review.stage.runtime.ReviewRuntime
-import skillbill.infrastructure.sqlite.review.stage.runtime.TriageRuntime
+import skillbill.infrastructure.sqlite.review.stage.ReviewRuntime
+import skillbill.infrastructure.sqlite.review.stage.TriageRuntime
 import skillbill.infrastructure.sqlite.review.stats.ReviewFinishedTelemetryUpdateRequest
 import skillbill.infrastructure.sqlite.review.stats.ReviewStatsRuntime
-import skillbill.infrastructure.sqlite.review.stats.finding.rejectedFindingOutcomeTypes
-import skillbill.infrastructure.sqlite.telemetry.lifecycle.telemetry.store.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.review.stats.rejectedFindingOutcomeTypes
+import skillbill.infrastructure.sqlite.telemetry.lifecycle.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.outbox.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.telemetry.reconcileStaleTelemetrySessions
+import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
+import skillbill.infrastructure.sqlite.workflow.WorktreeEditJournalStore
 import skillbill.infrastructure.sqlite.workflow.featuretask.AgentActivityStampStore
 import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.GoalPlanningPreparationStore
 import skillbill.infrastructure.sqlite.workflow.goalrunner.runner.GoalRunnerControlStore
-import skillbill.infrastructure.sqlite.workflow.workflow.WorkflowStateStore
-import skillbill.infrastructure.sqlite.workflow.workflow.WorktreeEditJournalStore
 import skillbill.infrastructure.sqlite.worklist.SQLiteWorkListRepository
 import skillbill.learnings.LearningsRuntime
 import skillbill.learnings.model.CreateLearningRequest
@@ -75,7 +75,7 @@ internal class SQLiteUnitOfWork(
   private val runtimeVersion: String,
 ) : UnitOfWork {
   private val phaseSettlementStore = SqliteFeatureTaskPhaseSettlementStore(connection)
-  private val experimentPairStore = SqliteExperimentPairStore(connection)
+  private val experimentPairStore = SqliteExperimentPairStore(connection, clock)
 
   internal val sessionClock: Clock get() = clock
   internal val sessionDiagnostics: RuntimeDiagnostics get() = diagnostics
