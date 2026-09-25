@@ -1,130 +1,160 @@
-# SKILL-378 Subtask 2 - Feature-task step classes
+# SKILL-378 Subtask 2 - Break run-loop dependency cycles
 
 Parent spec: [spec.md](spec.md)
 Issue key: SKILL-378
 
+## Why this subtask exists
+
+The step-class follow-up (`followup_feature-task-step-classes.md`) turns the `object FeatureTaskRuntimeRunLoop*` namespaces into
+constructor-injected classes. That only works if the step dependency graph has
+no cycles: two classes that take each other as constructor collaborators cannot
+be built. Two earlier implement attempts measured the graph and blocked. At that
+point 16 of the 18 procedural objects formed one strongly connected component.
+
+A regex census on 2026-09-25 showed where the cycles come from:
+
+| State | Objects in cycles |
+|---|---|
+| Today | 18 in one component |
+| Pure helpers moved out as top-level functions | 13, plus a 2-object cycle (`Drive` ↔ `BackwardEdge`) |
+| Also move the shared block and phase-state-read primitives into one leaf | 3, plus a separate 4 |
+
+Most back edges are calls to one shared primitive. `PhaseAttempts.blockInPhase`
+has 24 cross-object call sites, and `blockAndPersist`, `blockAndPersistInPhase`,
+`PlanningBranch.blockAt`, and `OutputPersistence.phaseStateRequest` add about 30
+more. Steps reach back up the loop only to block or read state, not to
+recurse.
+
+This subtask removes the cycles while the code is still `object` namespaces and
+while `FeatureTaskRuntimeRunLoopContext` is still the carrier. Everything it
+changes is a move, so the follow-up's conversion becomes mechanical.
+
+## Already met
+
+Subtask 2's earlier attempts put the typed busy failure (`DatabaseBusyError` in
+`skillbill.error.core`, plus the disposition check and its test), the removal
+of the operator-block-retry inline wire keys, and the byte-identity fixture on
+the branch. Recheck each one, then record it as met. The old subtask 2's
+acceptance criteria 5, 6, and 7 are met and stay met.
+
 ## Scope
 
-Resolves investigation F-002 for `skillbill.engine.featuretask`, F-004, and the
-wire-key item of F-010.
+All changes are within `runtime-engine/.../engine/featuretask/runloop` and its
+tests. This subtask changes no behavior.
 
-**Step classes.** Replace the 20 stateless `object FeatureTaskRuntimeRunLoop*`
-namespaces with classes grouped by responsibility. A class's constructor takes
-the collaborators it uses (recorder, gates, output validator, continuation
-recorder, diagnostics, clock, git operations). Per-run values (request, state,
-session, observability) go in the constructor when every method uses them and
-stay parameters otherwise. `FeatureTaskRuntimeRunLoop` constructs the classes
-for its run. Per-call facts (`PhaseRun`, iteration, output text, captures) stay
-method parameters. Merge objects that share collaborators and change together
-when the result stays under 1,200 lines and 40 functions. Do not create a
-forwarding class.
-
-Apply the same rule to the `FeatureTaskRuntimeRunner.*` extension files
-(`FeatureTaskRuntimeRunnerExecute.kt`, `…ExecutePrepared.kt`,
-`FeatureTaskRuntimeAgentContextTelemetry.kt`, `FeatureTaskRuntimeReviewFixBudget.kt`).
-Once nothing outside the class reads its 11 constructor properties, make them
-`private`. Do the same for other `@Inject` classes under `featuretask` that expose
-collaborators, and for `lifecycle`, `phase`, `review`, and `validation` helpers
-that take the same collaborator set. Pure functions over domain values stay
-top-level functions.
-
-Where a `featuretask` `@Inject` class builds its collaborators by hand
-(`FeatureTaskRuntimePhaseRecorder`, `FeatureTaskRuntimeGoalContinuationRecorder`,
-`FeatureTaskContinuationLookupService`), take them as constructor parameters
-when kotlin-inject can resolve them. `WorkflowEngine` construction is
-SKILL-372's. Per-attempt data classes with public `var` fields in
-`runloop/core/FeatureTaskRuntimeRunLoopModels.kt` become state owned by the
-class that mutates them, exposed read-only.
-
-Delete each `*Args`/`*Inputs`/`*Context` bag under `featuretask` that becomes
-unnecessary. A bag survives only as a named value with no collaborator field.
-
-**Busy failures.** At the SQLite session boundary, translate a busy failure
-into one typed exception in the `skillbill.error` taxonomy, keeping the original
-message as its message. Place it in `skillbill.error.core`, which already exists. `FeatureTaskRuntimeRunLoopPhaseRunner.goalReviewPreparationDisposition`
-checks the type. The persisted-reason checks at L207–L209 and
-`FeatureTaskRuntimeRunState.kt:347` stay.
-
-**Wire keys.** Encode the operator-block-retry artifact in
-`FeatureTaskRuntimeCompletedUpstreamRepairCheckpoint.kt` through the domain
-`FeatureTaskRuntimeOperatorBlockRetry` owner and the typed accessors SKILL-372
-subtask 2 adds on `DurableWorkflowArtifacts`, not through new constants. SKILL-372
-makes domain artifact-key constants `internal`, so the engine cannot declare
-keys beside them. If SKILL-372 subtask 2 already removed the inline keys, record
-the criterion as met.
-
-**Guards and docs.** Add the step-class rule to the existing
-`RuntimeEngineBoundaryArchitectureTest`, wherever SKILL-373 has placed the suite.
-The rule fails when `featuretask/runloop` declares a top-level `object` with
-functions, or when a bag class under `skillbill.engine.featuretask` has a
-collaborator-typed constructor parameter. Extend SKILL-370's inject-property rule
-in `InjectConstructorDefaultsArchitectureTest` to runtime-engine
-`skillbill.engine.featuretask` with an empty baseline. Delete
-`FeatureTaskRuntimeParameterBagArchitectureTest` and
-`FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest` if SKILL-373
-subtask 2 has not already deleted them. Both pin the procedural form.
-Replace the SKILL-247 case log under ARCHITECTURE.md State Ownership with the
-step-class rule. Record a decision that supersedes the 2026-09-15 helper-input
-form and the 2026-09-17 bag census. `LongParameterList.functionThreshold` stays 6.
+1. **Recensus first.** Recompute the cross-object call graph of the
+   `object FeatureTaskRuntimeRunLoop*` namespaces from source. Count an edge when
+   object A calls a function of object B. Record the strongly connected components
+   (SCCs) in the phase output before editing. If the counts differ materially
+   from the table above, continue with the steps below, targeting the measured
+   edges instead of the named ones.
+2. **Pure helpers out.** A function that takes neither
+   `FeatureTaskRuntimeRunLoopContext` nor a collaborator (recorder, gates,
+   validator, launcher, writer, diagnostics, git operations, session) moves out
+   of its object and becomes an `internal` top-level function in the same
+   package. Name the file after the concept, not the old object. This is
+   allowed by the "pure functions stay top-level" rule that the follow-up enforces.
+   Examples from the census: `composeLaunchPrompt`,
+   `composeLaunchPromptInputs`, `packBuildCommand` (it is duplicated in
+   `OutputPersistence` and `ValidationGate`, so keep one), `resolveReviewPromptTier`,
+   and `Transitions.qualityGateSelection` where it does not need a collaborator.
+3. **One leaf for blocking and phase-state reads.** Create one
+   `object FeatureTaskRuntimeRunLoopPhaseBlocking` in `runloop/core`. It becomes a
+   class in the follow-up. Move into it the primitives that record a block or
+   read phase state, and that depend only on the recorder, state, session,
+   observability, clock, and diagnostics:
+   `PhaseAttempts.blockInPhase`, `blockAndPersist`, `blockAndPersistInPhase`,
+   `operatorReopenedPhase`, `PlanningBranch.blockAt`, `persistBranchSetupBlock`,
+   `goalReviewStateOrNull`, `priorBlockerFindingIds`, `persistResolvedReviewTier`,
+   and `OutputPersistence.phaseStateRequest`, `reviewPassNumber`. The thin
+   wrappers that only forward to those primitives, `Checkpoint.blockCheckpoint`,
+   `CheckpointRemediation.blockCheckpointScope`, `RepairReceipt.blockRemediationBaseSha`,
+   and `RecordRejection.blockUnattributableRecordRejection`, move there too, or
+   callers call the primitive directly. The leaf calls no other
+   `FeatureTaskRuntimeRunLoop*` object. If a candidate needs a step object, it
+   stays where it is and step 4 handles its edge.
+4. **Break the residual cycles by direction.** Measure again after steps 2
+   and 3. For the census's two residual components, the fix is:
+   - `Checkpoint` ↔ `CheckpointRemediation` ↔ `RepairReceipt`: dependencies point
+     from `CheckpointRemediation` and `RepairReceipt` to `Checkpoint`, never
+     back. Where `Checkpoint` currently calls into remediation, it returns a
+     typed outcome (a `sealed interface` result or an enum over existing
+     values) that the caller acts on. Merging the three is not allowed because
+     together they exceed 1,200 lines.
+   - `Launch` ↔ `OutputPersistence` (with `ValidationGate`, `RecordRejection`):
+     launch preparation (`OutputPersistence.prepareLaunch`,
+     `launchedModelDirective`, and the prompt-composition helpers left after
+     step 2) moves into `Launch`. `OutputPersistence` then depends on `Launch`,
+     never the reverse. Break `RecordRejection` → `OutputPersistence` /
+   `AttemptSettlement` and `ValidationGate` → `RecordRejection` the same way:
+     move the function to the lower layer or return an outcome.
+   Any other cycle the recensus finds, including the legitimate recursive
+   drive loop (`Drive` → `BackwardEdge` → `PlanningBranch` → `PhaseRunner`), is
+   broken the same way. The inner step returns an outcome value, for example
+   rerun this phase, advance, or blocked. `Drive` or `PhaseRunner` dispatches on
+   it instead of the inner step calling back up. Keep the existing
+   control-flow semantics exactly: same phase order, same retry budgets, same
+   persisted records in the same order.
+5. **Acyclic guard.** Add a rule to the existing
+   `RuntimeEngineBoundaryArchitectureTest`. It builds the object-to-object call
+   graph for `featuretask/runloop` from source, as in step 1, and fails when it
+   contains a cycle. The failure names each cycle's members. In the follow-up the
+   rule applies to the classes, keyed by type references instead of
+   `Object.fn` calls. Write it so the node is any `FeatureTaskRuntimeRunLoop*`
+   declaration (object or class) and an edge is any reference from one
+   declaration's body to another. That way it survives the conversion unchanged.
 
 ## Acceptance Criteria
 
-1. `featuretask/runloop` declares no top-level `object` containing functions,
-   except pure constant holders.
-2. No class under `skillbill.engine.featuretask` named `*Args`, `*Inputs`, or
-   `*Context` has a constructor parameter typed as a recorder, gate, output
-   validator, continuation recorder, `RuntimeDiagnostics`, or `WorkflowGitOperations`.
-3. No `@Inject` class under `skillbill.engine.featuretask` exposes a constructor
-   collaborator as a non-private property, and no file declares
-   `fun FeatureTaskRuntimeRunner.` extensions.
-4. No function under `skillbill.engine.featuretask` exceeds six parameters, with
-   no new suppression, baseline row, or threshold change.
-5. A test that makes a review-preparation write fail with the typed busy
-   exception gets a RETRYABLE disposition, and the same failure message without
-   the type gets NEEDS_USER_ACTION.
-6. No `"[SQLITE_BUSY]" in error.message` check remains in runtime-engine.
-   Persisted block reasons keep the same text.
-7. `FeatureTaskRuntimeCompletedUpstreamRepairCheckpoint.kt` contains no inline
-   string wire key, and the encoded operator-block-retry artifact bytes match the
-   pre-change fixture.
-8. The step-class rule fails on a synthetic top-level `object` with a function
-   under `featuretask/runloop` and on a synthetic `FooArgs(val recorder:
-   FeatureTaskRuntimePhaseRecorder)`. The inject-property rule fails on a
-   synthetic engine `@Inject` class with a public constructor property.
-   `FeatureTaskRuntimeParameterBagArchitectureTest` and
-   `FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest` do not exist.
-9. Existing run-loop suites over real SQLite pass (phase order, backward edges,
-   checkpoint identity, resume from durable records, validate and review gates,
-   commit finalization), with test changes limited to construction and imports.
-10. ARCHITECTURE.md states the step-class rule without file tables or ticket
-    keys, and `agent/decisions.md` records the superseding decision.
+1. The acyclic rule passes on the branch. On a synthetic pair of
+   `featuretask/runloop` objects that call each other, it fails and names both.
+2. No `FeatureTaskRuntimeRunLoop*` object calls a function of a
+   `FeatureTaskRuntimeRunLoop*` object that transitively calls back to it.
+   Criterion 1 is the enforcement.
+3. `FeatureTaskRuntimeRunLoopPhaseBlocking` references no other
+   `FeatureTaskRuntimeRunLoop*` step object.
+4. No file exceeds 1,200 lines or 40 functions, and no function exceeds six
+   parameters. No new suppression, baseline row, or threshold change.
+5. Existing run-loop suites over real SQLite pass unchanged apart from imports
+   and call-site renames: phase order, backward edges, checkpoint identity,
+   resume from durable records, validate and review gates, commit finalization.
+6. Old criteria 5 to 7 (typed busy disposition, no `"[SQLITE_BUSY]"` message
+   check in runtime-engine, no inline wire key with byte-identical encoding)
+   still hold.
+7. The phase output records the SCC census before and after.
 
 ## Non-goals
 
-- Goal runner and planning (subtask 3).
+- Converting objects to classes, deleting `FeatureTaskRuntimeRunLoopContext` or
+  other bags, runner extension files, private inject properties, or the
+  step-class guard. All of that is the step-class follow-up.
+- Interfaces for step classes, a step framework, forwarding classes, lazy or
+  provider injection to paper over a cycle, or per-run DI subcomponents.
 - Changing persisted data, phase order, retry budgets, or failure identities.
-- Interfaces for step classes, a step framework, or per-run DI subcomponents.
-- A busy-retry loop in the engine. SKILL-370 puts self-managed write retry in
-  the adapter.
+- Goal runner and planning (subtask 3).
 
 ## Dependency notes
 
-Depends on subtask 1. It does not wait for another issue. Restructure the feature-task call sites that exist now. Use typed snapshots, artifact accessors, and git results when they are already on the tree. When they are not, keep the current call shape inside the new step classes. Edit architecture tests where they live. The typed busy exception in this subtask is new. This subtask does not wait for SKILL-380, and SKILL-380 does not have to wait for it.
+Depends on subtask 1. It does not wait for another issue. Break the cycles in
+the feature-task call sites that exist now, using typed snapshots, artifact
+accessors, and git results where they are already on the tree and the current
+call shape where they are not. Edit architecture tests where they live.
 
 ## Validation strategy
 
-The regressions to catch are a step that drops a collaborator's side effect
-(for example, a continuation-recorder write), a resumed run whose reconstructed
-state differs from live state, a checkpoint amend that skips identity
-persistence, and a busy failure misclassified. The existing end-to-end run-loop
-tests cover the first three. Add a resume-parity assertion only where a touched
-family has none, plus the disposition test above. Do not add structural tests
-beyond the rewritten guard. Run `./gradlew check`, the engine, core, and
-infra-sqlite suites, and `bill-unit-test-value-check`.
+The regressions to catch are a moved block primitive that drops a side effect
+(for example, a continuation-recorder write or an observability line), and an
+outcome-return rewrite that changes which phase runs next or the order of
+persisted records. The existing end-to-end run-loop suites cover both. Add
+tests only for a new outcome type whose dispatch no existing test reaches. Run
+`cd runtime-kotlin && ./gradlew check`, the engine, core, and infra-sqlite
+suites, and `bill-unit-test-value-check` on changed tests.
 
 ## Next path
 
-Continue to `spec_subtask_3_goal-runner-step-classes-and-engine-surface.md`.
+The goal pauses after this subtask (`--stop-after-subtask 2`). Run the
+step-class follow-up (`followup_feature-task-step-classes.md`) next, then
+resume the goal for subtask 3.
 
 ## Spec Path
 

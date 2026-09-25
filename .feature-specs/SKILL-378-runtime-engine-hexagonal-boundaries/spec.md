@@ -84,22 +84,33 @@ sequence numbers.
 
 ## Executable scope
 
-Three subtasks.
+Three goal subtasks plus one follow-up spec that runs between subtasks 2 and 3.
+The goal was already launched with three subtasks, and the runtime cannot add
+one, so the follow-up runs outside the goal while it is paused after subtask 2.
 
 1. Delete experiment support and close engine guard gaps
    (`spec_subtask_1_delete-experiments-and-close-inner-layer-gaps.md`).
    It is a feature removal with its own review questions (migration, CLI,
    config, docs). It runs first inside this bundle. It does not wait for
    another issue, and other bundles do not have to wait for it.
-2. Feature-task step classes
-   (`spec_subtask_2_feature-task-run-loop-step-classes.md`). `featuretask` holds
-   about 26,000 lines, and the run loop alone is 14,532. That is one implement
-   pass of semantic-preserving restructuring, and the busy-exception change
-   lands with the phase runner it edits.
+2. Break run-loop dependency cycles
+   (`spec_subtask_2_feature-task-run-loop-step-classes.md`). The run-loop objects
+   call each other in cycles (18 in one strongly connected component), so they
+   cannot become constructor-injected classes as they stand. This subtask only
+   moves functions and returns outcomes: pure helpers go top-level, block and
+   state-read primitives go into one leaf, and the residual cycles are broken
+   by direction. An acyclic guard pins the result. The typed busy exception and
+   the wire-key removal already landed here.
+- Follow-up: feature-task step classes
+   (`followup_feature-task-step-classes.md`). `featuretask` holds
+   about 26,000 lines, and the run loop alone is 14,532. With the graph acyclic,
+   the conversion to classes is a mechanical implement pass. It is split
+   from subtask 2 because two attempts at doing both in one pass blocked on
+   the cycles.
 3. Goal-runner step classes, sequences, reads, and engine surface
    (`spec_subtask_3_goal-runner-step-classes-and-engine-surface.md`). It covers a
    second area of about 8,000 lines, plus goal-runner coordination files if they
-   have already moved into the engine. It needs subtask 2's facade shape for
+   have already moved into the engine. It needs the follow-up's facade shape for
    the read query. The alias, visibility, and raw-map work closes the public
    surface after both restructurings.
 
@@ -153,7 +164,7 @@ preparation.
 
 ## SKILL-380 coordination
 
-This bundle does not wait for SKILL-380. In subtask 2, where step-class grouping is otherwise free, group phase-specific behaviour by slot: preplan, plan, implementation, audit, code_review (review, verify_findings, implement_fix), quality_gate (build, validate), write_history, commit_push, pull_request. Subtask 2 does not add a slot-strategy interface. Subtask 3 may run before or after SKILL-380. If slot packages already exist, its visibility pass covers them.
+This bundle does not wait for SKILL-380. In the step-class follow-up, where step-class grouping is otherwise free, group phase-specific behaviour by slot: preplan, plan, implementation, audit, code_review (review, verify_findings, implement_fix), quality_gate (build, validate), write_history, commit_push, pull_request. The follow-up does not add a slot-strategy interface. Subtask 3 may run before or after SKILL-380. If slot packages already exist, its visibility pass covers them.
 
 ## Next path
 

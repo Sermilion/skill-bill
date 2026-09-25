@@ -8,7 +8,7 @@ Issue key: SKILL-378
 Resolves investigation F-002 for `skillbill.engine.goalrunner`, plus F-003,
 F-005, F-006, F-007, and F-009, and the raw-map part of F-008.
 
-**Step classes.** Apply subtask 2's rule to `goalrunner/execution`, `planning`,
+**Step classes.** Apply the step-class follow-up's rule to `goalrunner/execution`, `planning`,
 `launch`, `repair`, `status`, and `preflight`. Delete `GoalRunnerSharedArgs.kt`.
 Collaborators such as `GoalRunnerObservabilityEmitter` and `GoalRunnerLedgerRecorder`
 move into the constructors of the classes that use them. Replace the 32
@@ -20,7 +20,7 @@ and other goal-runner `@Inject` classes private. `GoalRunnerStatusService`,
 `GoalPreflightService`, `GoalPlanningPreparationCheckpoint`,
 `GoalChildPlanningHydratorPortAdapter`, and `GoalRunnerChildRepairOperations` take
 their collaborators as constructor parameters where kotlin-inject can resolve
-them. Extend the subtask 2 step-class rule and the engine inject-property rule
+them. Extend the follow-up's step-class rule and the engine inject-property rule
 to `skillbill.engine.goalrunner`, including the classes SKILL-376 subtask 2 moved
 into it.
 
@@ -103,7 +103,7 @@ to the path filter of `RuntimeRawMapArchitectureTest`.
 
 ## Dependency notes
 
-Depends on subtask 2. It does not wait for another issue. Restructure the goal-runner classes where they live, including coordination classes that are still in sqlite only when this subtask's criteria require editing them in place. If raw-map or inbound-API scanners still skip files, repair those scanners here so criteria 7 and 9 observe real source. Reconcile diverged private copies that this subtask restructures when a criterion requires one definition. Delete aliases and rename ports types that this subtask's surface criteria still trip over. If slot packages already exist, include them in the visibility pass.
+Depends on the step-class follow-up (`followup_feature-task-step-classes.md`: facade shape and guard), which follows subtask 2. It does not wait for another issue. Restructure the goal-runner classes where they live, including coordination classes that are still in sqlite only when this subtask's criteria require editing them in place. If raw-map or inbound-API scanners still skip files, repair those scanners here so criteria 7 and 9 observe real source. Reconcile diverged private copies that this subtask restructures when a criterion requires one definition. Delete aliases and rename ports types that this subtask's surface criteria still trip over. If slot packages already exist, include them in the visibility pass.
 
 ## Validation strategy
 

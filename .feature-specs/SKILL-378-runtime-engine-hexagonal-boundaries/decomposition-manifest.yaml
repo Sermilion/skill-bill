@@ -3,14 +3,14 @@ contract_version: "0.5"
 issue_key: "SKILL-378"
 feature_name: "runtime-engine-hexagonal-boundaries"
 parent_spec_path: ".feature-specs/SKILL-378-runtime-engine-hexagonal-boundaries/spec.md"
-status: "blocked"
+status: "in_progress"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-378-runtime-engine-hexagonal-boundaries"
 stack_branches: []
 current_subtask_intent:
   subtask_id: 2
-  action: "blocked"
+  action: "start"
 subtasks:
 - id: 1
   name: "Delete experiment support and close engine guard gaps"
@@ -28,22 +28,12 @@ subtasks:
 - id: 2
   name: "Feature-task step classes"
   spec_path: ".feature-specs/SKILL-378-runtime-engine-hexagonal-boundaries/spec_subtask_2_feature-task-run-loop-step-classes.md"
-  status: "blocked"
+  status: "pending"
   branch: null
   commit_sha: null
-  workflow_id: "wftr-20260923-132838-29wq"
-  blocked_reason: "Phase output reported status 'blocked'. Completed task-1 census\
-    \ (gate passes: subtask 1 clock injection is on the branch; counts match the plan\
-    \ at 23 runloop objects, 4 runner extension files, 89 bag classes) and confirmed\
-    \ tasks 2 and 3 are fully applied in the working tree with their tests, satisfying\
-    \ AC-005, AC-006 and AC-007. Blocking on tasks 4-11: the plan's task-7 misclassifies\
-    \ Transitions/BackwardEdge as pure domain-value objects when both take FeatureTaskRuntimeRunLoopContext\
-    \ and call into sibling step objects, and dismantling that 16-collaborator context\
-    \ bag is one atomic change across 21 files (~14,500 lines) plus kotlin-inject\
-    \ rewiring and test construction across ~52,000 lines of engine tests, which this\
-    \ phase cannot compile or test. Subtask 2 needs re-decomposition so each conversion\
-    \ stage gets its own build and validate gate."
-  last_resumable_step: "implement"
+  workflow_id: null
+  blocked_reason: null
+  last_resumable_step: null
   linear_issue_id: null
   finalizing_agent_id: null
   participating_agent_ids: []
