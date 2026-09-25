@@ -39,7 +39,7 @@ class GoalRunnerLedgerRecorderBackwardEdgeTest {
       ),
     )
 
-    val entry = outcomes.attemptLedgerRecords.single().entry
+    val entry = outcomes.attemptLedgerEntries.single()
     assertEquals(
       2,
       entry.cumulativeLoopCount,
@@ -56,7 +56,7 @@ class GoalRunnerLedgerRecorderBackwardEdgeTest {
     recorder.recordBackwardEdgeEntry(edge)
     recorder.recordBackwardEdgeEntry(edge)
 
-    val counts = outcomes.attemptLedgerRecords.map { it.entry.cumulativeLoopCount }
+    val counts = outcomes.attemptLedgerEntries.map { it.cumulativeLoopCount }
     assertEquals(listOf(1, 2), counts)
   }
 
@@ -80,7 +80,7 @@ class GoalRunnerLedgerRecorderBackwardEdgeTest {
       ),
     )
 
-    val entry = outcomes.attemptLedgerRecords.single().entry
+    val entry = outcomes.attemptLedgerEntries.single()
     assertEquals(
       5,
       entry.cumulativeLoopCount,
@@ -118,7 +118,7 @@ class GoalRunnerLedgerRecorderBackwardEdgeTest {
       ),
     )
 
-    val blocked = outcomes.attemptLedgerRecords.last().entry
+    val blocked = outcomes.attemptLedgerEntries.last()
     assertEquals("policy denied", blocked.blockedReason)
     assertNull(blocked.launchOutcome)
     assertNull(blocked.childSessionId)

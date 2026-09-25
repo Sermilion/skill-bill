@@ -80,18 +80,11 @@ class GoalRunnerLaunchReconciler(
         subtaskId = subtaskId,
         request = request,
       )
-    val progressWatermark =
-      try {
-        outcomeStore.ledgerSequenceWatermarks(issueKey).maxProgressSequence
-      } catch (interrupted: InterruptedException) {
-        Thread.currentThread().interrupt()
-        throw interrupted
-      }
     val progressEmitter =
       GoalRunnerProgressEventEmitter(
         outcomeStore = outcomeStore,
         resolveWorkflowId = { tickReader.progressState()?.subtask?.workflowId?.takeIf(String::isNotBlank) },
-        watermarkSeed = progressWatermark,
+        issueKey = issueKey,
         clock = clock,
         diagnostics = diagnostics,
       )

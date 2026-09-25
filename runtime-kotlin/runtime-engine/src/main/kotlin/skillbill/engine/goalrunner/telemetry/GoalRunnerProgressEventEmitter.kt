@@ -4,29 +4,26 @@ import skillbill.ports.agentrun.model.AgentRunProgressEmission
 import skillbill.ports.agentrun.model.AgentRunProgressEmitter
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
+import skillbill.ports.goalrunner.runner.model.GoalProgressEventDraft
 import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
-import skillbill.workflow.model.goalreview.GoalProgressEvent
 import java.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
 
 internal class GoalRunnerProgressEventEmitter(
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
   private val resolveWorkflowId: () -> String?,
-  watermarkSeed: Int?,
+  private val issueKey: String,
   private val clock: Clock,
   private val diagnostics: RuntimeDiagnostics,
 ) : AgentRunProgressEmitter {
-  private var sequence: Int = watermarkSeed?.let { it + 1 } ?: 0
-
   override fun emit(emission: AgentRunProgressEmission) {
     val workflowId = resolveEmitWorkflowId() ?: return
-    val event =
-      GoalProgressEvent(
+    val draft =
+      GoalProgressEventDraft(
         eventKind = emission.eventKind,
         workflowId = workflowId,
         workflowPhase = "goal_runner_supervision",
         processAlive = emission.processAlive,
-        sequenceNumber = sequence++,
         timestamp = clock.instant(),
         operationName = emission.operationName,
         operationKind = emission.operationKind,
@@ -37,7 +34,11 @@ internal class GoalRunnerProgressEventEmitter(
       diagnostics = diagnostics,
       write = {
         outcomeStore.recordProgressEvent(
-          GoalRunnerProgressEventRecordRequest(workflowId = workflowId, event = event),
+          GoalRunnerProgressEventRecordRequest(
+            workflowId = workflowId,
+            issueKey = issueKey,
+            draft = draft,
+          ),
         )
       },
       missingMessage = {

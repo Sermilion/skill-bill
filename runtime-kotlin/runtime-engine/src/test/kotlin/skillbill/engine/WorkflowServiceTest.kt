@@ -49,7 +49,6 @@ import skillbill.error.shellcontent.InvalidGoalProgressEventSchemaError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_LIMIT
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
-import skillbill.goalrunner.model.GoalAttemptLedgerEntry
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.model.GoalRunnerWirePayload
@@ -67,7 +66,9 @@ import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
+import skillbill.ports.goalrunner.runner.model.GoalAttemptLedgerEntryDraft
 import skillbill.ports.goalrunner.runner.model.GoalChildPlanningHydrationRequest
+import skillbill.ports.goalrunner.runner.model.GoalProgressEventDraft
 import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
@@ -113,7 +114,6 @@ import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
 import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.goalreview.GOAL_PROGRESS_HISTORY_LIMIT
-import skillbill.workflow.model.goalreview.GoalProgressEvent
 import skillbill.workflow.model.goalreview.GoalProgressEventKind
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
@@ -3042,8 +3042,8 @@ class WorkflowGoalRunnerProgressStoreTest {
         testWorkflowSnapshotValidator,
       )
 
-    assertTrue(store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 0)))
-    assertTrue(store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 1)))
+    assertTrue(store.recordProgressEvent(progressEventRequest("wfl-child", tick = 0)))
+    assertTrue(store.recordProgressEvent(progressEventRequest("wfl-child", tick = 1)))
 
     val artifacts = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifacts
     val history = artifacts["goal_progress_run_history"] as List<*>
@@ -3066,7 +3066,7 @@ class WorkflowGoalRunnerProgressStoreTest {
 
     val total = GOAL_PROGRESS_HISTORY_LIMIT + 5
     (total - 1 downTo 0).forEach { sequence ->
-      store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = sequence))
+      store.recordProgressEvent(progressEventRequest("wfl-child", tick = sequence))
     }
 
     val artifacts = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifacts
@@ -3087,7 +3087,7 @@ class WorkflowGoalRunnerProgressStoreTest {
         testWorkflowSnapshotValidator,
       )
 
-    assertFalse(store.recordProgressEvent(progressEventRequest("wfl-missing", sequenceNumber = 0)))
+    assertFalse(store.recordProgressEvent(progressEventRequest("wfl-missing", tick = 0)))
   }
 
   @Test
@@ -3118,7 +3118,7 @@ class WorkflowGoalRunnerProgressStoreTest {
       )
 
     assertFailsWith<InvalidGoalProgressEventSchemaError> {
-      store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 0))
+      store.recordProgressEvent(progressEventRequest("wfl-child", tick = 0))
     }
     val artifacts = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifacts
     assertFalse(artifacts.containsKey("goal_progress_run_history"))
@@ -3137,9 +3137,9 @@ class WorkflowGoalRunnerProgressStoreTest {
 
     val total = GOAL_ATTEMPT_LEDGER_LIMIT + 3
     (total - 1 downTo 0).forEach { sequence ->
-      store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-child", sequenceNumber = sequence))
+      store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-child", tick = sequence))
     }
-    assertFalse(store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-missing", sequenceNumber = 0)))
+    assertFalse(store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-missing", tick = 0)))
 
     val artifacts = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot().artifacts
     val history = artifacts["goal_attempt_ledger"] as List<*>
@@ -3151,7 +3151,7 @@ class WorkflowGoalRunnerProgressStoreTest {
   }
 
   @Test
-  fun `ledger sequence watermarks report the persisted max across continuation children`() {
+  fun `the store allocates progress sequence numbers in write order for a continuation child`() {
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureTaskWorkflow(
       workflowRecord(
@@ -3174,19 +3174,13 @@ class WorkflowGoalRunnerProgressStoreTest {
         FakeDatabaseSessionFactory(workflows),
         testWorkflowSnapshotValidator,
       )
-    store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-child", sequenceNumber = 0))
-    store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-child", sequenceNumber = 1))
+    store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-child", tick = 0))
+    store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-child", tick = 1))
 
-    store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 3))
-    store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 2))
+    store.recordProgressEvent(progressEventRequest("wfl-child", tick = 3))
+    store.recordProgressEvent(progressEventRequest("wfl-child", tick = 2))
 
-    val watermarks = store.ledgerSequenceWatermarks("SKILL-64")
-
-    assertEquals(1, watermarks.maxLedgerSequence)
-    assertEquals(3, watermarks.maxProgressSequence)
-    assertNull(store.ledgerSequenceWatermarks("SKILL-other").maxLedgerSequence)
-
-    assertNull(store.ledgerSequenceWatermarks("SKILL-other").maxProgressSequence)
+    assertEquals(listOf(0, 1), store.progressEvents("wfl-child").map { it.sequenceNumber })
   }
 
   @Test
@@ -3214,10 +3208,10 @@ class WorkflowGoalRunnerProgressStoreTest {
         testWorkflowSnapshotValidator,
       )
 
-    store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-child", sequenceNumber = 0))
-    store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 4))
+    store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-child", tick = 0))
+    store.recordProgressEvent(progressEventRequest("wfl-child", tick = 4))
 
-    assertEquals(listOf(4), store.progressEvents("wfl-child").map { event -> event.sequenceNumber })
+    assertEquals(listOf(0), store.progressEvents("wfl-child").map { event -> event.sequenceNumber })
     assertEquals(
       1,
       store.readAttemptLedgerSummary("SKILL-64").phaseAttemptCounts["initial_start"],
@@ -3330,32 +3324,34 @@ private fun decodeWorkflowStepsForTest(steps: List<WorkflowStepState>): Map<Stri
 
 private fun progressEventRequest(
   workflowId: String,
-  sequenceNumber: Int,
+  tick: Int,
+  issueKey: String = "SKILL-64",
 ): GoalRunnerProgressEventRecordRequest =
   GoalRunnerProgressEventRecordRequest(
     workflowId = workflowId,
-    event =
-      GoalProgressEvent(
+    issueKey = issueKey,
+    draft =
+      GoalProgressEventDraft(
         eventKind = GoalProgressEventKind.PHASE_STARTED,
         workflowId = workflowId,
         workflowPhase = "implement",
         processAlive = true,
-        sequenceNumber = sequenceNumber,
-        timestamp = "2026-06-02T10:00:0${sequenceNumber % 10}Z",
+        timestamp = Instant.parse("2026-06-02T10:00:0${tick % 10}Z"),
       ),
   )
 
 private fun attemptLedgerRequest(
   workflowId: String,
-  sequenceNumber: Int,
+  tick: Int,
+  issueKey: String = "SKILL-64",
 ): GoalRunnerAttemptLedgerRecordRequest =
   GoalRunnerAttemptLedgerRecordRequest(
     workflowId = workflowId,
-    entry =
-      GoalAttemptLedgerEntry(
+    issueKey = issueKey,
+    draft =
+      GoalAttemptLedgerEntryDraft(
         action = GoalAttemptLedgerAction.CHILD_ACTIVATION,
-        sequenceNumber = sequenceNumber,
-        timestamp = "2026-06-02T10:00:0${sequenceNumber % 10}Z",
+        timestamp = Instant.parse("2026-06-02T10:00:0${tick % 10}Z"),
       ),
   )
 

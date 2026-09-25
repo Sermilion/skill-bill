@@ -22,7 +22,6 @@ data class GoalRunnerRunRequest(
   val codeReviewMode: CodeReviewExecutionMode? = null,
   val agentAddonSelection: HydratedAgentAddonSelection = HydratedAgentAddonSelection(),
   val stopAfterSubtaskId: Int? = null,
-  val observabilitySequenceStart: Int = DEFAULT_GOAL_OBSERVABILITY_SEQUENCE_START,
 ) {
   init {
     require(issueKey.isNotBlank()) { "issueKey is required." }
@@ -38,7 +37,6 @@ data class GoalRunnerRunRequest(
     planningBudget?.let { budget ->
       require(budget.isPositive()) { "planningBudget must be positive when provided." }
     }
-    require(observabilitySequenceStart >= 0) { "observabilitySequenceStart must be non-negative." }
   }
 }
 
@@ -89,10 +87,6 @@ sealed interface GoalRunnerRunEvent {
 }
 
 val DEFAULT_GOAL_PLANNING_BUDGET: Duration = 30.minutes
-
-const val DEFAULT_GOAL_OBSERVABILITY_SEQUENCE_START: Int = 10_000
-
-const val DEFAULT_GOAL_EVENT_SEQUENCE_START: Int = 20_000
 
 fun interface GoalRunnerEventSink {
   fun emit(event: GoalRunnerRunEvent)

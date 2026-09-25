@@ -4,12 +4,12 @@ import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.telemetry.GoalRunnerBestEffortEmission
 import skillbill.goalrunner.model.GoalAttemptLaunchOutcome
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
-import skillbill.goalrunner.model.GoalAttemptLedgerEntry
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
+import skillbill.ports.goalrunner.runner.model.GoalAttemptLedgerEntryDraft
 import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import java.time.Clock
@@ -21,16 +21,13 @@ class GoalRunnerLedgerRecorder(
   private val clock: Clock,
   private val diagnostics: RuntimeDiagnostics,
 ) {
-  private val watermarkLoad =
+  private val cumulativeBackwardEdgeCounts: MutableMap<String, Int> =
     try {
-      outcomeStore.ledgerSequenceWatermarks(request.issueKey)
+      outcomeStore.ledgerSequenceWatermarks(request.issueKey).backwardEdgeCounts.toMutableMap()
     } catch (interrupted: InterruptedException) {
       Thread.currentThread().interrupt()
       throw interrupted
     }
-  private var ledgerSequence: Int = watermarkLoad.maxLedgerSequence?.let { it + 1 } ?: 0
-  private val cumulativeBackwardEdgeCounts: MutableMap<String, Int> =
-    watermarkLoad.backwardEdgeCounts.toMutableMap()
 
   internal fun recordBackwardEdgeEntry(edge: GoalRunnerBackwardEdge) {
     val key = "${edge.subtaskId}:${edge.loopId}"
@@ -52,11 +49,15 @@ class GoalRunnerLedgerRecorder(
     val targetWorkflowId = context.workflowId?.takeIf(String::isNotBlank) ?: return
     val details = context.details()
     val launchFacts = details.launchOutcome as? AgentRunLaunchFacts
-    val entry = buildLedgerEntry(context, targetWorkflowId, details, launchFacts)
+    val draft = buildLedgerEntryDraft(context, targetWorkflowId, details, launchFacts)
     val result =
       runCatching {
         outcomeStore.recordAttemptLedgerEntry(
-          GoalRunnerAttemptLedgerRecordRequest(workflowId = targetWorkflowId, entry = entry),
+          GoalRunnerAttemptLedgerRecordRequest(
+            workflowId = targetWorkflowId,
+            issueKey = request.issueKey,
+            draft = draft,
+          ),
         )
       }
     when (val failure = result.exceptionOrNull()) {
@@ -83,16 +84,15 @@ class GoalRunnerLedgerRecorder(
     }
   }
 
-  private fun buildLedgerEntry(
+  private fun buildLedgerEntryDraft(
     context: GoalRunnerLedgerContext,
     targetWorkflowId: String,
     details: GoalRunnerLedgerDetails,
     launchFacts: AgentRunLaunchFacts?,
-  ): GoalAttemptLedgerEntry =
-    GoalAttemptLedgerEntry(
+  ): GoalAttemptLedgerEntryDraft =
+    GoalAttemptLedgerEntryDraft(
       action = context.action,
-      sequenceNumber = ledgerSequence++,
-      timestamp = clock.instant().toString(),
+      timestamp = clock.instant(),
       issueKey = context.issueKey.takeIf(String::isNotBlank),
       subtaskId = context.subtaskId.takeIf { it > 0 },
       previousWorkflowId = targetWorkflowId,

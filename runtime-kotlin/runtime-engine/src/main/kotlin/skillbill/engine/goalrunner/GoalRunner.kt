@@ -91,7 +91,7 @@ class GoalRunner(
   private fun runPrepared(preparation: GoalRunPreparation.Prepared): GoalRunnerRunReport {
     var state = preparation.state
     val effectiveRequest = preparation.request
-    val observability = GoalRunnerObservabilityEmitter(outcomeStore, clock, diagnostics, effectiveRequest)
+    val observability = GoalRunnerObservabilityEmitter(outcomeStore, clock, diagnostics)
     val ledger = GoalRunnerLedgerRecorder(outcomeStore, effectiveRequest, clock, diagnostics)
     effectiveRequest.eventSink.emit(GoalRunnerRunEvent.Started(state.manifest.issueKey))
     val telemetryEmitter =

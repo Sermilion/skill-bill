@@ -179,7 +179,7 @@ class RuntimeArchitectureProbeTest {
       GoalRunnerProgressEventEmitter(
         store,
         { throw CancellationException("stop") },
-        null,
+        "SKILL-56",
         clock,
         diagnostics,
       )

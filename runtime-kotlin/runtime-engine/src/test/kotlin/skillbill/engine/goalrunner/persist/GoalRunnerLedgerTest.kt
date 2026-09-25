@@ -55,22 +55,22 @@ class GoalRunnerLedgerTest {
     assertContains(actions, "terminal_done_check")
     assertContains(actions, "final_reconciled_outcome")
     val terminalDoneCheck =
-      outcomes.attemptLedgerRecords
-        .first { it.entry.action.wireValue == "terminal_done_check" }.entry
+      outcomes.attemptLedgerEntries
+        .first { it.action.wireValue == "terminal_done_check" }
     assertContains(requireNotNull(terminalDoneCheck.finalReconciledResult), "complete")
     val finalReconciled =
-      outcomes.attemptLedgerRecords
-        .first { it.entry.action.wireValue == "final_reconciled_outcome" }.entry
+      outcomes.attemptLedgerEntries
+        .first { it.action.wireValue == "final_reconciled_outcome" }
     assertContains(requireNotNull(finalReconciled.finalReconciledResult), "goal_finalize")
 
     assertEquals(
-      outcomes.attemptLedgerRecords.map { it.entry.sequenceNumber }.sorted(),
-      outcomes.attemptLedgerRecords.map { it.entry.sequenceNumber },
+      outcomes.attemptLedgerEntries.map { it.sequenceNumber }.sorted(),
+      outcomes.attemptLedgerEntries.map { it.sequenceNumber },
     )
 
     val activation =
-      outcomes.attemptLedgerRecords
-        .first { it.entry.action.wireValue == "child_activation" }.entry
+      outcomes.attemptLedgerEntries
+        .first { it.action.wireValue == "child_activation" }
     assertEquals("/work/child-1", activation.childSessionPath)
     assertEquals("claude:SKILL-56:subtask-1", activation.childSessionId)
   }
@@ -127,9 +127,9 @@ class GoalRunnerLedgerTest {
     val stopped = assertIs<GoalRunnerRunReport.Stopped>(runner.run(ledgerRunRequest()))
     assertEquals(GoalRunnerStopReason.NO_TERMINAL_STORE_OUTCOME, stopped.stop.reason)
 
-    val retry = outcomes.attemptLedgerRecords.firstOrNull { it.entry.action.wireValue == "retry" }
+    val retry = outcomes.attemptLedgerEntries.firstOrNull { it.action.wireValue == "retry" }
     assertTrue(retry != null, "expected a retry ledger entry: ${ledgerActions(outcomes)}")
-    assertEquals("no_terminal_store_outcome", retry.entry.stopReason)
+    assertEquals("no_terminal_store_outcome", retry.stopReason)
   }
 
   @Test
@@ -162,7 +162,7 @@ class GoalRunnerLedgerTest {
     val stopped = assertIs<GoalRunnerRunReport.Stopped>(runner.run(ledgerRunRequest()))
 
     assertEquals(GoalRunnerStopReason.NO_TERMINAL_STORE_OUTCOME, stopped.stop.reason)
-    val finalStop = outcomes.attemptLedgerRecords.last { it.entry.stopReason == "no_terminal_store_outcome" }.entry
+    val finalStop = outcomes.attemptLedgerEntries.last { it.stopReason == "no_terminal_store_outcome" }
     assertEquals("missing_result_prefix", finalStop.diagnosticClass)
     assertTrue(finalStop.recoverableJsonPresent == true)
     assertEquals("resume_from_last_resumable_step", finalStop.nextSafeAction)
@@ -189,7 +189,7 @@ class GoalRunnerLedgerTest {
     val stopped = assertIs<GoalRunnerRunReport.Stopped>(runner.run(ledgerRunRequest()))
 
     assertEquals(GoalRunnerStopReason.NO_TERMINAL_STORE_OUTCOME, stopped.stop.reason)
-    val finalStop = outcomes.attemptLedgerRecords.last { it.entry.stopReason == "no_terminal_store_outcome" }.entry
+    val finalStop = outcomes.attemptLedgerEntries.last { it.stopReason == "no_terminal_store_outcome" }
     assertEquals("malformed_result_json", finalStop.diagnosticClass)
     assertFalse(finalStop.recoverableJsonPresent == true)
     assertEquals("inspect_child_output_then_resume", finalStop.nextSafeAction)
@@ -211,7 +211,7 @@ class GoalRunnerLedgerTest {
     val stopped = assertIs<GoalRunnerRunReport.Stopped>(runner.run(ledgerRunRequest()))
     assertEquals(GoalRunnerStopReason.TIMEOUT, stopped.stop.reason)
 
-    val timeout = outcomes.attemptLedgerRecords.first { it.entry.action.wireValue == "timeout" }.entry
+    val timeout = outcomes.attemptLedgerEntries.first { it.action.wireValue == "timeout" }
     assertEquals("timeout", timeout.stopReason)
   }
 
@@ -230,7 +230,7 @@ class GoalRunnerLedgerTest {
     val stopped = assertIs<GoalRunnerRunReport.Stopped>(runner.run(ledgerRunRequest()))
     assertEquals(GoalRunnerStopReason.INTERRUPTED, stopped.stop.reason)
 
-    val interruption = outcomes.attemptLedgerRecords.first { it.entry.action.wireValue == "interruption" }.entry
+    val interruption = outcomes.attemptLedgerEntries.first { it.action.wireValue == "interruption" }
     assertEquals("interrupted", interruption.stopReason)
   }
 
@@ -247,7 +247,7 @@ class GoalRunnerLedgerTest {
     val stopped = assertIs<GoalRunnerRunReport.Stopped>(runner.run(ledgerRunRequest()))
     assertEquals(GoalRunnerStopReason.POLICY_BLOCKED, stopped.stop.reason)
 
-    val policyBlock = outcomes.attemptLedgerRecords.first { it.entry.action.wireValue == "policy_block" }.entry
+    val policyBlock = outcomes.attemptLedgerEntries.first { it.action.wireValue == "policy_block" }
     assertEquals("policy_blocked", policyBlock.stopReason)
     assertContains(requireNotNull(policyBlock.blockedReason), "protected branch")
   }
@@ -275,7 +275,7 @@ class GoalRunnerLedgerTest {
     val stopped = assertIs<GoalRunnerRunReport.Stopped>(runner.run(ledgerRunRequest()))
     assertEquals(GoalRunnerStopReason.FAILED, stopped.stop.reason)
 
-    val failedEntry = outcomes.attemptLedgerRecords.last { it.entry.stopReason == "failed" }.entry
+    val failedEntry = outcomes.attemptLedgerEntries.last { it.stopReason == "failed" }
     assertEquals("failed", failedEntry.finalReconciledResult)
     assertContains(requireNotNull(failedEntry.blockedReason), "review failed")
   }
@@ -303,7 +303,7 @@ class GoalRunnerLedgerTest {
     val stopped = assertIs<GoalRunnerRunReport.Stopped>(runner.run(ledgerRunRequest()))
     assertEquals(GoalRunnerStopReason.TIMEOUT, stopped.stop.reason)
 
-    val timeoutEntry = outcomes.attemptLedgerRecords.last { it.entry.stopReason == "timeout" }.entry
+    val timeoutEntry = outcomes.attemptLedgerEntries.last { it.stopReason == "timeout" }
     assertEquals(
       GoalRunnerLaunchFacts.DIAGNOSTIC_CLASS_CONFIRMED_ALIVE_KILL,
       timeoutEntry.diagnosticClass,
@@ -334,7 +334,7 @@ class GoalRunnerLedgerTest {
     val stopped = assertIs<GoalRunnerRunReport.Stopped>(runner.run(ledgerRunRequest()))
     assertEquals(GoalRunnerStopReason.TIMEOUT, stopped.stop.reason)
 
-    val timeoutEntry = outcomes.attemptLedgerRecords.last { it.entry.stopReason == "timeout" }.entry
+    val timeoutEntry = outcomes.attemptLedgerEntries.last { it.stopReason == "timeout" }
     assertEquals(
       GoalRunnerLaunchFacts.DIAGNOSTIC_CLASS_CONFIRMED_ALIVE_KILL,
       timeoutEntry.diagnosticClass,
@@ -365,7 +365,7 @@ class GoalRunnerLedgerTest {
     val stopped = assertIs<GoalRunnerRunReport.Stopped>(runner.run(ledgerRunRequest()))
     assertEquals(GoalRunnerStopReason.TIMEOUT, stopped.stop.reason)
 
-    val timeoutEntry = outcomes.attemptLedgerRecords.last { it.entry.stopReason == "timeout" }.entry
+    val timeoutEntry = outcomes.attemptLedgerEntries.last { it.stopReason == "timeout" }
     assertEquals(
       "child_process_failed",
       timeoutEntry.diagnosticClass,
@@ -374,7 +374,7 @@ class GoalRunnerLedgerTest {
   }
 
   private fun ledgerActions(outcomes: RecordingOutcomeStore): List<String> =
-    outcomes.attemptLedgerRecords.map { it.entry.action.wireValue }
+    outcomes.attemptLedgerEntries.map { it.action.wireValue }
 
   private fun ledgerRunRequest(): GoalRunnerRunRequest =
     GoalRunnerRunRequest(

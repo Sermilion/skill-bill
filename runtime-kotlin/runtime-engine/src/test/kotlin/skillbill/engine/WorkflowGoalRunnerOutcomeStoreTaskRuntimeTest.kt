@@ -9,10 +9,10 @@ import skillbill.engine.goalrunner.persist.OutcomeStoreTestArtifactPorts
 import skillbill.engine.goalrunner.status.liveLease
 import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
-import skillbill.goalrunner.model.GoalAttemptLedgerEntry
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestRejectionReason
+import skillbill.ports.goalrunner.runner.model.GoalAttemptLedgerEntryDraft
 import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import skillbill.ports.workflow.model.toSnapshot
@@ -63,11 +63,11 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
       store.recordAttemptLedgerEntry(
         GoalRunnerAttemptLedgerRecordRequest(
           workflowId = "wftr-task-runtime",
-          entry =
-            GoalAttemptLedgerEntry(
+          issueKey = "SKILL-64",
+          draft =
+            GoalAttemptLedgerEntryDraft(
               action = GoalAttemptLedgerAction.FINAL_RECONCILED_OUTCOME,
-              sequenceNumber = 1,
-              timestamp = "2026-06-11T18:28:09Z",
+              timestamp = Instant.parse("2026-06-11T18:28:09Z"),
               finalReconciledResult = "blocked",
             ),
         ),

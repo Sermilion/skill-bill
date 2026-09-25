@@ -33,6 +33,7 @@ object GoalObservabilityArtifacts {
 
   fun patchForRuntimeEvent(
     input: GoalObservabilityRuntimeEventInput,
+    sequenceNumber: Int,
     validator: (Any, String) -> Unit,
   ): Any =
     patchForEvent(
@@ -47,7 +48,7 @@ object GoalObservabilityArtifacts {
           livenessClass = input.request.livenessClass,
           activitySummary = input.request.activitySummary,
           timestamp = input.request.timestamp,
-          sequenceNumber = input.request.sequenceNumber,
+          sequenceNumber = sequenceNumber,
         ),
       validator = validator,
     )
