@@ -142,14 +142,6 @@ class FeatureTaskRuntimePhaseStateRecorder(
       true
     }
 
-  fun loadPhaseRecords(workflowId: String): Map<String, FeatureTaskRuntimePhaseRecord>? =
-    database.read { unitOfWork ->
-      val record =
-        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
-          ?: return@read null
-      decodePhaseRecords(record.artifacts)
-    }
-
   fun loadOperatorBlockRetry(workflowId: String): FeatureTaskRuntimeOperatorBlockRetry? =
     database.read { unitOfWork ->
       val record =
@@ -171,14 +163,6 @@ class FeatureTaskRuntimePhaseStateRecorder(
             )
         }
       retry.takeUnless { settledAfterRetry }
-    }
-
-  fun loadPhaseLedger(workflowId: String): List<FeatureTaskRuntimePhaseLedgerEntry>? =
-    database.read { unitOfWork ->
-      val record =
-        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
-          ?: return@read null
-      decodePhaseLedger(record.artifacts)
     }
 }
 

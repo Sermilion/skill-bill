@@ -114,6 +114,7 @@ import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
 import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.goalreview.GOAL_PROGRESS_HISTORY_LIMIT
+import skillbill.workflow.model.goalreview.GoalProgressEvent
 import skillbill.workflow.model.goalreview.GoalProgressEventKind
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWireArtifactKind
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
@@ -751,7 +752,7 @@ class WorkflowServiceTest {
     assertPersistedProgressEventArtifacts(persisted, opened.workflowId)
     val decoded = assertNotNull(persisted.goalObservability)
     assertEquals("implement", decoded.workflowPhase)
-    assertEquals(7, decoded.sequenceNumber)
+    assertEquals(0, decoded.sequenceNumber)
     assertEquals(opened.workflowId, decoded.workflowId)
   }
 
@@ -3383,7 +3384,7 @@ private fun assertPersistedProgressEventArtifacts(
   assertEquals("durable_progress", latest["liveness_class"])
   assertEquals("editing runtime files", latest["activity_summary"])
   assertEquals(workflowId, latest["workflow_id"])
-  assertEquals(7, latest["sequence_number"])
+  assertEquals(0, latest["sequence_number"])
   assertEquals(mapOf("files_changed" to 0, "insertions" to 0, "deletions" to 0), latest["diff_stat"])
   assertEquals(1, history.size)
   assertTrue(persisted.snapshot.artifacts.containsKey("progress_event"))

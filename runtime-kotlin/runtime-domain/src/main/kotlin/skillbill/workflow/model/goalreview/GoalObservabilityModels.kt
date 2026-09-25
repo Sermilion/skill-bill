@@ -310,6 +310,8 @@ internal data class GoalObservabilityHistory(
   val events: List<GoalObservabilityEvent> = emptyList(),
   val retentionLimit: Int = GOAL_OBSERVABILITY_HISTORY_LIMIT,
 ) {
+  fun nextSequenceNumber(): Int = events.maxOfOrNull(GoalObservabilityEvent::sequenceNumber)?.let { it + 1 } ?: 0
+
   fun append(event: GoalObservabilityEvent): GoalObservabilityHistory =
     copy(events = (events + event).sortedBy(GoalObservabilityEvent::sequenceNumber).takeLast(retentionLimit))
 

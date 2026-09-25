@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.status
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseQuery
 import skillbill.engine.goalrunner.execution.core.GoalRunnerAcceptanceCoordinator
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptRequest
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptResult
@@ -36,7 +36,7 @@ import java.time.Clock
 class GoalRunnerStatusService(
   private val manifestStore: GoalRunnerManifestStore,
   outcomeStore: GoalRunnerWorkflowOutcomeStore,
-  phaseRecorder: FeatureTaskRuntimePhaseRecorder,
+  phaseQuery: FeatureTaskRuntimePhaseQuery,
   gitOperations: WorkflowGitOperations,
   clock: Clock,
   workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
@@ -57,7 +57,7 @@ class GoalRunnerStatusService(
   private val repairCoordinator =
     GoalRunnerRepairCoordinator(
       manifestStore = manifestStore,
-      phaseRecorder = phaseRecorder,
+      phaseQuery = phaseQuery,
       workerSupervisor = workerSupervisor,
       childRepairStore = childRepairStore,
       outcomeStore = outcomeStore,

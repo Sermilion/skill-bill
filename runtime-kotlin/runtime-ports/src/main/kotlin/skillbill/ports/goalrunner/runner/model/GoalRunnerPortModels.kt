@@ -107,10 +107,6 @@ data class GoalRunnerWorkflowProgress(
   )
 }
 
-/**
- * A progress event with no sequence number yet. The store allocates the number inside the same
- * transaction that appends the entry, so no caller-side counter can hand out duplicates.
- */
 data class GoalProgressEventDraft(
   val eventKind: GoalProgressEventKind,
   val workflowId: String,
@@ -139,10 +135,6 @@ data class GoalProgressEventDraft(
     )
 }
 
-/**
- * An attempt-ledger entry with no sequence number yet; the store allocates it inside the append
- * transaction. Mirrors [GoalAttemptLedgerEntry] minus `sequenceNumber`.
- */
 data class GoalAttemptLedgerEntryDraft(
   val action: GoalAttemptLedgerAction,
   val timestamp: Instant,

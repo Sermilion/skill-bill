@@ -23,44 +23,46 @@ object GoalObservabilityArtifacts {
     input: GoalObservabilityProgressInput,
     validator: (Any, String) -> Unit,
   ): Any? =
-    eventFrom(input)?.let { event ->
+    requiredProgressFields(input)?.let { fields ->
       patchForEvent(
         input.artifacts.asGoalWorkflowArtifactMap("goal observability progress input"),
-        event,
         validator,
-      )
+      ) { sequenceNumber ->
+        eventFrom(input, fields, sequenceNumber)
+      }
     }
 
   fun patchForRuntimeEvent(
     input: GoalObservabilityRuntimeEventInput,
-    sequenceNumber: Int,
     validator: (Any, String) -> Unit,
   ): Any =
     patchForEvent(
       artifacts = input.artifacts.asGoalWorkflowArtifactMap("goal observability runtime event input"),
-      event =
-        GoalObservabilityEvent(
-          issueKey = input.request.issueKey,
-          subtaskId = input.request.subtaskId,
-          workflowId = input.request.workflowId,
-          workflowPhase = input.request.workflowPhase,
-          workerRole = input.request.workerRole,
-          livenessClass = input.request.livenessClass,
-          activitySummary = input.request.activitySummary,
-          timestamp = input.request.timestamp,
-          sequenceNumber = sequenceNumber,
-        ),
       validator = validator,
-    )
+    ) { sequenceNumber ->
+      GoalObservabilityEvent(
+        issueKey = input.request.issueKey,
+        subtaskId = input.request.subtaskId,
+        workflowId = input.request.workflowId,
+        workflowPhase = input.request.workflowPhase,
+        workerRole = input.request.workerRole,
+        livenessClass = input.request.livenessClass,
+        activitySummary = input.request.activitySummary,
+        timestamp = input.request.timestamp,
+        sequenceNumber = sequenceNumber,
+      )
+    }
 
   private fun patchForEvent(
     artifacts: Map<String, Any?>,
-    event: GoalObservabilityEvent,
     validator: (Any, String) -> Unit,
+    buildEvent: (Int) -> GoalObservabilityEvent,
   ): Map<String, Any?> {
+    val existingHistory = goalObservabilityHistoryFromArtifacts(artifacts)
+    val event = buildEvent(existingHistory.nextSequenceNumber())
     val eventMap = event.toArtifactMap()
     validator(eventMap, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY)
-    val history = goalObservabilityHistoryFromArtifacts(artifacts).append(event).toArtifactList()
+    val history = existingHistory.append(event).toArtifactList()
     history.forEachIndexed { index, item ->
       validator(item, "$GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY[$index]")
     }
@@ -68,11 +70,6 @@ object GoalObservabilityArtifacts {
       GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY to eventMap,
       GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY to history,
     )
-  }
-
-  private fun eventFrom(input: GoalObservabilityProgressInput): GoalObservabilityEvent? {
-    val fields = requiredProgressFields(input) ?: return null
-    return eventFrom(input, fields.progressEvent, fields.issueKey, fields.subtaskId, fields.timestamp)
   }
 
   private fun requiredProgressFields(input: GoalObservabilityProgressInput): RequiredProgressFields? {
@@ -101,15 +98,15 @@ object GoalObservabilityArtifacts {
 
   private fun eventFrom(
     input: GoalObservabilityProgressInput,
-    progressEvent: Map<*, *>,
-    issueKey: String,
-    subtaskId: Int,
-    timestamp: String,
+    fields: RequiredProgressFields,
+    sequenceNumber: Int,
   ): GoalObservabilityEvent {
+    val progressEvent = fields.progressEvent
     val kind = progressEvent["kind"]?.toString()?.takeIf(String::isNotBlank) ?: "durable_progress"
+    requireIntegerChildSequence(progressEvent)
     return GoalObservabilityEvent(
-      issueKey = issueKey,
-      subtaskId = subtaskId,
+      issueKey = fields.issueKey,
+      subtaskId = fields.subtaskId,
       workflowId = input.workflowId,
       workflowPhase =
         progressEvent[SharedPayloadKeys.STEP_ID]?.toString()?.takeIf(String::isNotBlank)
@@ -120,18 +117,20 @@ object GoalObservabilityArtifacts {
       activitySummary =
         progressEvent["message"]?.toString()?.takeIf(String::isNotBlank)
           ?: "workflow_status=${input.workflowStatus}; progress_kind=$kind",
-      timestamp = timestamp,
-      sequenceNumber =
-        progressEvent["sequence"]?.let { value ->
-          value.asExactIntOrNull()
-            ?: throw InvalidGoalObservabilityEventSchemaError(
-              "goal observability progress input",
-              "sequence",
-              "must be an integer.",
-            )
-        } ?: 0,
+      timestamp = fields.timestamp,
+      sequenceNumber = sequenceNumber,
       changedFileSummary = input.worktreeActivity?.changedFileSummary,
       diffStat = input.worktreeActivity?.diffStat,
     )
+  }
+
+  private fun requireIntegerChildSequence(progressEvent: Map<*, *>) {
+    val sequence = progressEvent["sequence"] ?: return
+    sequence.asExactIntOrNull()
+      ?: throw InvalidGoalObservabilityEventSchemaError(
+        "goal observability progress input",
+        "sequence",
+        "must be an integer.",
+      )
   }
 }

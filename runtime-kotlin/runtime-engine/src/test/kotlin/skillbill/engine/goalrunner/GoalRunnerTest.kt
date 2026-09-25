@@ -56,6 +56,7 @@ import skillbill.error.goalrunner.GoalRunnerLaunchAuthorizationDeniedException
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.model.ExecutionLiveness
+import skillbill.goalrunner.model.GoalAttemptLedgerEntry
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
 import skillbill.goalrunner.model.GoalObservabilityRuntimeEventInput
 import skillbill.goalrunner.model.GoalPlanningStatusReasons
@@ -2848,7 +2849,6 @@ class GoalRunnerObservabilityTest {
         outcomeStore = outcomes,
         clock = testHarnessClock,
         diagnostics = NoopRuntimeDiagnostics,
-        request = runRequest(),
       )
 
     val thrown =
@@ -2877,7 +2877,6 @@ class GoalRunnerObservabilityTest {
         outcomeStore = outcomes,
         clock = testHarnessClock,
         diagnostics = NoopRuntimeDiagnostics,
-        request = runRequest(),
       )
 
     val thrown =
@@ -2908,7 +2907,6 @@ class GoalRunnerObservabilityTest {
         outcomeStore = outcomes,
         clock = testHarnessClock,
         diagnostics = diagnostics,
-        request = runRequest(),
       )
 
     emitter.record(
@@ -4183,7 +4181,6 @@ class GoalRunnerProgressEventEmitterTest {
             artifacts = emptyMap<String, Any?>(),
             request = observabilityOutcomes.observabilityRecords.single(),
           ),
-        sequenceNumber = 0,
         validator = { _, _ -> },
       ).let {
           patch ->
@@ -4511,38 +4508,6 @@ class GoalRunnerLaunchReconcilerWiringTest {
     assertTrue(Thread.interrupted())
   }
 
-  @Test
-  fun `reconciler refuses to create a progress emitter when watermark read fails`() {
-    val store =
-      InMemoryGoalManifestStore(
-        manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-1"),
-      )
-    val outcomes = RecordingOutcomeStore().apply { throwOnLedgerWatermarks = true }
-    val reconciler =
-      GoalRunnerLaunchReconciler(
-        manifestStore = store,
-        outcomeStore = outcomes,
-        progressReader = GoalRunnerProgressReader(outcomes),
-        activityStampWriter = testActivityStampWriter(),
-        worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
-        clock = testHarnessClock,
-        diagnostics = NoopRuntimeDiagnostics,
-      )
-
-    assertFailsWith<IllegalStateException> {
-      reconciler.subtaskLaunchRequest(
-        SubtaskLaunchRequestArgs(
-          issueKey = "SKILL-56",
-          subtaskId = 1,
-          request = wiringRunRequest(),
-          assignedWorkflowId = null,
-          reviewBaseline = null,
-          spawnAuthorization = null,
-        ),
-      )
-    }
-  }
-
   private fun supervisorEmission(
     kind: GoalProgressEventKind,
     processAlive: Boolean,
@@ -4722,7 +4687,6 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
   val progressEventRecords: MutableList<GoalRunnerProgressEventRecordRequest> = mutableListOf()
   val attemptLedgerRecords: MutableList<GoalRunnerAttemptLedgerRecordRequest> = mutableListOf()
 
-  /** Mirrors the real store: the sequence number is allocated by the write, per issue key. */
   val progressEvents: MutableList<GoalProgressEvent> = mutableListOf()
   val attemptLedgerEntries: MutableList<GoalAttemptLedgerEntry> = mutableListOf()
   private val nextProgressSequence = mutableMapOf<String, Int>()

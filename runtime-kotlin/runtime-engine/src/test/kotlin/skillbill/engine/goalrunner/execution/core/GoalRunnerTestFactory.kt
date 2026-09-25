@@ -108,7 +108,7 @@ internal fun testGoalRunnerWiring(params: GoalRunnerTestWiringParams): GoalRunne
       clock = clock,
       diagnostics = diagnostics,
       executionCoordinator = DIRECT_GOAL_RUNNER_EXECUTION_COORDINATOR,
-      phaseRecorder = params.phaseRecorder,
+      phaseQuery = params.phaseRecorder.phaseQuery,
       unaddressedFindingsLedgerService = params.unaddressedFindingsLedgerService,
     )
   val launchBoundaries =
@@ -156,7 +156,7 @@ internal data class GoalRunnerTestInputs(
           clock = clock,
           diagnostics = NoopRuntimeDiagnostics,
           executionCoordinator = executionCoordinator,
-          phaseRecorder = phaseRecorder,
+          phaseQuery = phaseRecorder.phaseQuery,
           unaddressedFindingsLedgerService = unaddressedFindingsLedgerService,
         ),
       launchBoundaries =

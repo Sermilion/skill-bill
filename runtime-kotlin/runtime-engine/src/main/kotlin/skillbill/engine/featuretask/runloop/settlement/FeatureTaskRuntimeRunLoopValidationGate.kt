@@ -65,7 +65,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDispo
 import skillbill.workflow.taskruntime.model.phase.requireAcceptedOutput
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
-internal class RuntimeOwnedValidationSettlement(
+internal class FeatureTaskRuntimeRunLoopValidationSettlement(
   private val request: FeatureTaskRuntimeRunRequest,
   private val state: FeatureTaskRuntimeRunState,
   private val recorder: FeatureTaskRuntimePhaseRecorder,
@@ -198,7 +198,7 @@ internal class RuntimeOwnedValidationSettlement(
     )
 }
 
-internal class ValidationGateCycleSettlement(
+internal class FeatureTaskRuntimeRunLoopValidationGateCycleSettlement(
   private val context: PhaseAttemptAccumulatorContext,
   private val request: FeatureTaskRuntimeRunRequest,
   private val recorder: FeatureTaskRuntimePhaseRecorder,
@@ -235,7 +235,7 @@ internal class ValidationGateCycleSettlement(
     return when (outcome) {
       is ValidationGateCycleTerminalOutcome.Paused -> PhaseOutcome.paused(outcome.reason)
       is ValidationGateCycleTerminalOutcome.Completed ->
-        RuntimeOwnedValidationSettlement(
+        FeatureTaskRuntimeRunLoopValidationSettlement(
           request = request,
           state = context.attempt.state,
           recorder = recorder,
@@ -281,7 +281,7 @@ internal class ValidationGateCycleSettlement(
   }
 }
 
-internal class RuntimeOwnedBuildSettlement(
+internal class FeatureTaskRuntimeRunLoopBuildSettlement(
   private val request: FeatureTaskRuntimeRunRequest,
   private val state: FeatureTaskRuntimeRunState,
   private val recorder: FeatureTaskRuntimePhaseRecorder,
@@ -389,7 +389,7 @@ internal class RuntimeOwnedBuildSettlement(
     }
 }
 
-internal class BuildGateRunningPhasePersistence(
+internal class FeatureTaskRuntimeRunLoopBuildGateRunningPhase(
   private val request: FeatureTaskRuntimeRunRequest,
   private val state: FeatureTaskRuntimeRunState,
   private val recorder: FeatureTaskRuntimePhaseRecorder,
@@ -443,7 +443,7 @@ internal class BuildGateRunningPhasePersistence(
   }
 }
 
-internal class BuildGateCycleSettlement(
+internal class FeatureTaskRuntimeRunLoopBuildGateCycleSettlement(
   private val request: FeatureTaskRuntimeRunRequest,
   private val state: FeatureTaskRuntimeRunState,
   private val recorder: FeatureTaskRuntimePhaseRecorder,
@@ -501,7 +501,7 @@ internal class BuildGateCycleSettlement(
     observability: FeatureTaskRuntimeRunObservability,
     outputText: String,
   ): PhaseOutcome =
-    RuntimeOwnedBuildSettlement(
+    FeatureTaskRuntimeRunLoopBuildSettlement(
       request = request,
       state = state,
       recorder = recorder,
@@ -579,7 +579,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
           "Build gate cycle could not resolve a repository checkpoint fingerprint.",
         )
     val iteration = state.nextIteration(run.phaseId)
-    BuildGateRunningPhasePersistence(
+    FeatureTaskRuntimeRunLoopBuildGateRunningPhase(
       request,
       state,
       recorder,
@@ -598,7 +598,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
           ),
         onGateRunCount = { observability.validationGateProgress() },
       )
-    return BuildGateCycleSettlement(
+    return FeatureTaskRuntimeRunLoopBuildGateCycleSettlement(
       request = request,
       state = state,
       recorder = recorder,
@@ -911,7 +911,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
             ),
           ),
       )
-    return ValidationGateCycleSettlement(
+    return FeatureTaskRuntimeRunLoopValidationGateCycleSettlement(
       context = context,
       request = request,
       recorder = recorder,

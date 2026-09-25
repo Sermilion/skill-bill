@@ -6,6 +6,7 @@ import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.UnaddressedFindingsRepository
@@ -18,6 +19,9 @@ import skillbill.ports.telemetry.transport.TelemetryOutboxRepository
 import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
+import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -109,6 +113,27 @@ class UnaddressedFindingsLedgerServiceTest {
     assertEquals("testing_quality_gate", minor.issueCategory)
   }
 
+  @Test
+  fun `a malformed durable review state fails typed instead of dropping the workflow`() {
+    val diagnostics = RecordingLedgerDiagnostics()
+    val service =
+      UnaddressedFindingsLedgerService(
+        LedgerOnlySessionFactory(
+          InMemoryUnaddressedFindings(
+            durableIssueKeys = setOf("SKILL-135"),
+            rows = listOf(finding(subtaskId = 1, workflowId = "wfl-child", ordinal = 1)),
+          ),
+          MalformedReviewStateWorkflowStates("wfl-child"),
+        ),
+        diagnostics,
+      )
+
+    assertFailsWith<InvalidUnaddressedFindingsLedgerSchemaError> {
+      service.repairLedgersByWorkflow("SKILL-135")
+    }
+    assertTrue(diagnostics.warnings.single().contains("wfl-child"), diagnostics.warnings.single())
+  }
+
   private fun serviceFor(findings: InMemoryUnaddressedFindings) =
     UnaddressedFindingsLedgerService(LedgerOnlySessionFactory(findings), NoopRuntimeDiagnostics)
 
@@ -159,8 +184,49 @@ private class InMemoryUnaddressedFindings(
   override fun issueExists(issueKey: String): Boolean = issueKey in durableIssueKeys
 }
 
+private class RecordingLedgerDiagnostics : RuntimeDiagnostics {
+  val warnings = mutableListOf<String>()
+
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
+    warnings += message
+  }
+
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
+}
+
+private class MalformedReviewStateWorkflowStates(
+  private val workflowId: String,
+) : WorkflowStateRepositoryDefaults() {
+  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? =
+    if (workflowId != this.workflowId) {
+      null
+    } else {
+      WorkflowStateRecord(
+        workflowId = workflowId,
+        sessionId = "session",
+        workflowName = "bill-feature-task",
+        contractVersion = "0.1",
+        workflowStatus = "running",
+        currentStepId = "review",
+        stepsJson = "[]",
+        artifactsJson = """{"goal_subtask_review_state":{"review_pass_number":1}}""",
+        startedAt = null,
+        updatedAt = null,
+        finishedAt = null,
+        mode = FeatureTaskWorkflowMode.RUNTIME,
+      )
+    }
+}
+
 private class LedgerOnlySessionFactory(
   private val findings: UnaddressedFindingsRepository,
+  private val workflowStateRepository: WorkflowStateRepository? = null,
 ) : DatabaseSessionFactory {
   override fun resolveDbPath(): Path = Path.of("/fake/runtime.db")
 
@@ -187,7 +253,9 @@ private class LedgerOnlySessionFactory(
       override val telemetryOutbox: TelemetryOutboxRepository
         get() = error("TelemetryOutboxRepository is not exercised by the ledger retrieval surface.")
       override val workflowStates: WorkflowStateRepository
-        get() = error("WorkflowStateRepository is not exercised by the ledger retrieval surface.")
+        get() =
+          workflowStateRepository
+            ?: error("WorkflowStateRepository is not exercised by the ledger retrieval surface.")
       override val workList: WorkListRepository
         get() = error("WorkListRepository is not exercised by the ledger retrieval surface.")
       override val goalPlanningPreparations: GoalPlanningPreparationRepository

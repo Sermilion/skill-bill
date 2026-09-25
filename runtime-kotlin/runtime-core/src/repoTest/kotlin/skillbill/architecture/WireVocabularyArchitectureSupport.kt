@@ -478,11 +478,6 @@ internal class CommentStripper(
     return output.toString()
   }
 
-  /**
-   * Keeps `${...}` expression text readable while the surrounding literal is blanked, so a scan
-   * that blanks string literals still sees the declarations an interpolated expression references.
-   * Braces inside the expression are blanked in pairs so brace-depth counting stays balanced.
-   */
   private fun enterTemplateExpression(): Int {
     templateHost = mode
     templateDepth = 1

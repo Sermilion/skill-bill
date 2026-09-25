@@ -146,7 +146,7 @@ private fun FeatureTaskRuntimeStatusService.statusProjectionFrom(
     resolvedBranch = recorder.loadResolvedBranch(request.workflowId)?.branch,
     finalizingAgentId =
       agentAttributionFromPhaseState(
-        recorder,
+        recorder.phaseQuery,
         request.workflowId,
       ).finalizingAgentId,
     decomposeTerminal = decomposeTerminalStatus(parts.decomposeTerminal),

@@ -2,6 +2,7 @@ package skillbill.engine.goalrunner.findings
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
+import skillbill.engine.goalrunner.telemetry.GoalRunnerBestEffortEmission
 import skillbill.error.shellcontent.InvalidUnaddressedFindingsLedgerSchemaError
 import skillbill.error.shellcontent.UnaddressedFindingsLedgerAbsentError
 import skillbill.goalrunner.model.UNADDRESSED_FINDING_CATEGORIES
@@ -81,14 +82,18 @@ class UnaddressedFindingsLedgerService(
         val record =
           unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
             ?: return@mapNotNull null
-        val state =
-          runCatching {
-            GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(
-              record.artifacts,
-            )
-          }.getOrNull() ?: return@mapNotNull null
-        runCatching { state.repairLedger }.getOrNull()
-          ?.takeUnless(FeatureTaskRuntimeRepairLedger::isEmpty)
+        val repairLedger =
+          GoalRunnerBestEffortEmission.runCancellable {
+            GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(record.artifacts)?.repairLedger
+          }.getOrElse { error ->
+            GoalRunnerBestEffortEmission.rethrowIfCancellation(error)
+            val message =
+              "Malformed goal subtask review state for issue '$issueKey' workflow '$workflowId'."
+            RuntimeDiagnosticsBestEffortWarning.record(diagnostics, message, error)
+            throw InvalidUnaddressedFindingsLedgerSchemaError(message, error)
+          } ?: return@mapNotNull null
+        repairLedger
+          .takeUnless(FeatureTaskRuntimeRepairLedger::isEmpty)
           ?.let { workflowId to it }
       }.toMap()
     }

@@ -8,6 +8,7 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuatio
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeSubtaskOutcome
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseQuery
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runner.finalizingAgentId
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
@@ -84,14 +85,14 @@ internal data class SubtaskAgentAttribution(
 )
 
 internal fun agentAttributionFromPhaseState(
-  recorder: FeatureTaskRuntimePhaseRecorder,
+  phaseQuery: FeatureTaskRuntimePhaseQuery,
   workflowId: String,
 ): SubtaskAgentAttribution {
   val ledger =
-    recorder.loadPhaseLedger(workflowId)
+    phaseQuery.loadPhaseLedger(workflowId)
       .orEmpty()
       .sortedBy { it.sequenceNumber }
-  val records = recorder.loadPhaseRecords(workflowId).orEmpty()
+  val records = phaseQuery.loadPhaseRecords(workflowId).orEmpty()
 
   val participating = LinkedHashSet<String>()
   ledger.forEach { entry ->

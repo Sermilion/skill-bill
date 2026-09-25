@@ -1,6 +1,6 @@
 package skillbill.engine.goalrunner.repair
 
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseQuery
 import skillbill.engine.goalrunner.execution.core.asWorkerOwnership
 import skillbill.engine.goalrunner.goalRepositoryIdentity
 import skillbill.engine.goalrunner.model.GoalRunnerAppliedRepair
@@ -32,7 +32,7 @@ import java.time.Clock
 
 internal class GoalRunnerRepairCoordinator(
   private val manifestStore: GoalRunnerManifestStore,
-  private val phaseRecorder: FeatureTaskRuntimePhaseRecorder,
+  private val phaseQuery: FeatureTaskRuntimePhaseQuery,
   private val workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
   private val childRepairStore: GoalRunnerChildRepairStore,
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
@@ -364,7 +364,7 @@ internal class GoalRunnerRepairCoordinator(
   private fun childWorkerLeaseLive(workflowId: String): Boolean {
     val tracker = GoalRunnerStatusDurableReadTracker(diagnostics)
     val ownership =
-      runCatching { phaseRecorder.workerOwnership(workflowId) }.getOrElse { error ->
+      runCatching { phaseQuery.workerOwnership(workflowId) }.getOrElse { error ->
         tracker.recordDegradedRead(
           seam = "goal-repair.child_worker_ownership",
           expected = "ownership_row",

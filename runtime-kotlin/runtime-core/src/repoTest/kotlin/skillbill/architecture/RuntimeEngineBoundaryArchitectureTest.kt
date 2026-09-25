@@ -227,7 +227,7 @@ class RuntimeEnginePublicTopLevelDeclarationArchitectureTest {
           """
           package skillbill.engine.featuretask.runloop.core
 
-          @Suppress("unused") internal sealed class FeatureTaskRuntimeRunLoopGamma {
+          @OptIn(ExperimentalStdlibApi::class) internal sealed class FeatureTaskRuntimeRunLoopGamma {
             internal fun settle(): String = "gamma"
           }
           """.trimIndent(),
@@ -332,9 +332,9 @@ class RuntimeEnginePublicTopLevelDeclarationArchitectureTest {
       parenDepth += line.count { character -> character == '(' }
       parenDepth -= line.count { character -> character == ')' }
       if (braceDepth > 0) entered = true
-      // A body-less declaration (`data class Foo(...)`) never opens a brace, so it ends once its
-      // constructor parentheses close; without this it would swallow every later declaration.
-      if (braceDepth <= 0 && (entered || parenDepth <= 0)) {
+      val bodyClosed = entered
+      val bodyLessDeclarationClosed = parenDepth <= 0
+      if (braceDepth <= 0 && (bodyClosed || bodyLessDeclarationClosed)) {
         current = null
         entered = false
       }

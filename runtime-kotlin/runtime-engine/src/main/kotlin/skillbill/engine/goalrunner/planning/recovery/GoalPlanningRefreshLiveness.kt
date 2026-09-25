@@ -1,8 +1,10 @@
 package skillbill.engine.goalrunner.planning.recovery
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseQuery
+import skillbill.engine.goalrunner.telemetry.GoalRunnerBestEffortEmission
 import skillbill.goalrunner.model.ExecutionLiveness
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.FeatureTaskWorkflowMode
@@ -14,36 +16,49 @@ fun interface GoalPlanningRefreshLiveness {
 
 @Inject
 class ChildAwareGoalPlanningRefreshLiveness(
-  private val phaseRecorder: FeatureTaskRuntimePhaseRecorder,
+  private val phaseQuery: FeatureTaskRuntimePhaseQuery,
   private val clock: Clock,
+  private val diagnostics: RuntimeDiagnostics,
 ) : GoalPlanningRefreshLiveness {
   override fun resolve(state: GoalRunnerManifestState): ExecutionLiveness {
     val currentSubtask =
       state.manifest.subtasks.firstOrNull { subtask ->
         subtask.id == state.manifest.currentSubtaskIntent.subtaskId
       }
-    return resolveChildExecutionLiveness(currentSubtask, phaseRecorder, clock)
+    return resolveChildExecutionLiveness(currentSubtask, phaseQuery, clock, diagnostics)
   }
 }
 
 fun resolveChildExecutionLiveness(
   currentSubtask: DecompositionSubtask?,
-  phaseRecorder: FeatureTaskRuntimePhaseRecorder,
+  phaseQuery: FeatureTaskRuntimePhaseQuery,
   clock: Clock,
+  diagnostics: RuntimeDiagnostics,
 ): ExecutionLiveness {
   val workflowId = currentSubtask?.workflowId?.takeIf(String::isNotBlank) ?: return ExecutionLiveness.IDLE
-  return runCatching {
-    if (phaseRecorder.existingWorkflowMode(workflowId) != FeatureTaskWorkflowMode.RUNTIME) {
+  return GoalRunnerBestEffortEmission.runCancellable {
+    if (phaseQuery.existingWorkflowMode(workflowId) != FeatureTaskWorkflowMode.RUNTIME) {
       ExecutionLiveness.UNKNOWN
     } else {
-      val ownership = phaseRecorder.workerOwnership(workflowId)
+      val ownership = phaseQuery.workerOwnership(workflowId)
       if (ownership != null && ownership.expiresAtInstant.isAfter(clock.instant())) {
         ExecutionLiveness.LIVE
       } else {
         ExecutionLiveness.IDLE
       }
     }
-  }.getOrDefault(ExecutionLiveness.UNKNOWN)
+  }.getOrElse { error ->
+    GoalRunnerBestEffortEmission.rethrowIfCancellation(error)
+    GoalRunnerBestEffortEmission.recordWarning(
+      diagnostics,
+      GoalRunnerBestEffortEmission.boundedMessage(
+        "Degraded read at seam goal-planning.child_execution_liveness for workflow '$workflowId': " +
+          "expected live_or_idle, used unknown.",
+      ),
+      error,
+    )
+    ExecutionLiveness.UNKNOWN
+  }
 }
 
 fun refuseRefreshReason(

@@ -91,7 +91,7 @@ fun testGoalRunnerStatusService(
         GoalRunnerStatusProjectionDataSources(
           manifestStore = manifestStore,
           outcomeStore = outcomeStore,
-          phaseRecorder = phaseRecorder,
+          phaseQuery = phaseRecorder.phaseQuery,
           attemptLedgerStore = ports.attemptLedgerStore,
           database = database,
         ),
@@ -114,7 +114,7 @@ fun testGoalRunnerStatusService(
   return GoalRunnerStatusService(
     manifestStore = manifestStore,
     outcomeStore = outcomeStore,
-    phaseRecorder = phaseRecorder,
+    phaseQuery = phaseRecorder.phaseQuery,
     gitOperations = ports.gitOperations,
     clock = clock,
     workerSupervisor = ports.workerSupervisor,

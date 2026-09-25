@@ -2,7 +2,7 @@ package skillbill.engine.goalrunner.execution.core
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseQuery
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweep
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -24,7 +24,7 @@ data class GoalRunnerRunBoundaries(
   val clock: Clock,
   val diagnostics: RuntimeDiagnostics,
   val executionCoordinator: GoalRunnerExecutionCoordinator,
-  val phaseRecorder: FeatureTaskRuntimePhaseRecorder?,
+  val phaseQuery: FeatureTaskRuntimePhaseQuery?,
   val unaddressedFindingsLedgerService: UnaddressedFindingsLedgerService?,
 )
 

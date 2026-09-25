@@ -647,9 +647,7 @@ private fun String.repositoryCheckpointFingerprint(): String? =
     ?.takeIf(String::isNotBlank)
 
 object FeatureTaskRuntimeRunLoopReviewDriverSettlement {
-  internal fun retainRuntimeOwnedReviewEvidence(
-    args: RetainRuntimeOwnedReviewEvidenceArgs,
-  ) {
+  internal fun retainRuntimeOwnedReviewEvidence(args: RetainRuntimeOwnedReviewEvidenceArgs) {
     val request = args.request
     val recorder = args.recorder
     val clock = args.clock
@@ -674,9 +672,7 @@ object FeatureTaskRuntimeRunLoopReviewDriverSettlement {
     )
   }
 
-  internal fun persistReviewCompletionOutcome(
-    args: PersistReviewCompletionOutcomeArgs,
-  ): PhaseOutcome? {
+  internal fun persistReviewCompletionOutcome(args: PersistReviewCompletionOutcomeArgs): PhaseOutcome? {
     val request = args.request
     val state = args.state
     val recorder = args.recorder

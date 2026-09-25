@@ -23,19 +23,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-private const val ISSUE_KEY = "SKILL-378"
-private const val WORKFLOW_ID = "wftr-task-runtime"
+private const val SEQUENCE_ISSUE_KEY = "SKILL-378"
+private const val SEQUENCE_WORKFLOW_ID = "wftr-task-runtime"
 
 private val sequenceTestClock: Clock = Clock.fixed(Instant.parse("2026-09-25T10:00:00Z"), ZoneOffset.UTC)
 
-/**
- * The durable sequence number of a progress event or attempt-ledger entry is allocated by the write
- * itself. These tests pin that: writers on one workflow must never repeat or invert a number, which
- * is what per-instance counters seeded from a shared watermark used to do.
- */
 class GoalRunnerDurableSequenceAllocationTest {
   private val workflows =
-    InMemoryWorkflowStates().apply { saveFeatureTaskRuntimeWorkflow(taskRuntimeWorkflowRecord(WORKFLOW_ID)) }
+    InMemoryWorkflowStates().apply { saveFeatureTaskRuntimeWorkflow(taskRuntimeWorkflowRecord(SEQUENCE_WORKFLOW_ID)) }
   private val store =
     testWorkflowGoalRunnerOutcomeStore(
       FakeDatabaseSessionFactory(workflows),
@@ -52,7 +47,7 @@ class GoalRunnerDurableSequenceAllocationTest {
     attempts.record(planningAttempt(attempt = 2))
     progress.emit(heartbeat())
 
-    assertStrictlyIncreasing(store.progressEvents(WORKFLOW_ID).map { it.sequenceNumber }, expectedSize = 4)
+    assertStrictlyIncreasing(store.progressEvents(SEQUENCE_WORKFLOW_ID).map { it.sequenceNumber }, expectedSize = 4)
   }
 
   @Test
@@ -62,7 +57,7 @@ class GoalRunnerDurableSequenceAllocationTest {
     DurableGoalPlanningAttemptRecorder(store, sequenceTestClock).record(planningAttempt(attempt = 2))
     progressEmitter().emit(heartbeat())
 
-    assertStrictlyIncreasing(store.progressEvents(WORKFLOW_ID).map { it.sequenceNumber }, expectedSize = 4)
+    assertStrictlyIncreasing(store.progressEvents(SEQUENCE_WORKFLOW_ID).map { it.sequenceNumber }, expectedSize = 4)
 
     ledgerRecorder().recordLedgerEntry(childActivation())
     ledgerRecorder().recordLedgerEntry(childActivation())
@@ -73,8 +68,8 @@ class GoalRunnerDurableSequenceAllocationTest {
   private fun progressEmitter() =
     GoalRunnerProgressEventEmitter(
       outcomeStore = store,
-      resolveWorkflowId = { WORKFLOW_ID },
-      issueKey = ISSUE_KEY,
+      resolveWorkflowId = { SEQUENCE_WORKFLOW_ID },
+      issueKey = SEQUENCE_ISSUE_KEY,
       clock = sequenceTestClock,
       diagnostics = NoopRuntimeDiagnostics,
     )
@@ -83,7 +78,7 @@ class GoalRunnerDurableSequenceAllocationTest {
     GoalRunnerLedgerRecorder(
       store,
       GoalRunnerRunRequest(
-        issueKey = ISSUE_KEY,
+        issueKey = SEQUENCE_ISSUE_KEY,
         repoRoot = Path.of("/tmp/skillbill-sequence-allocation"),
         invokedAgentId = "claude",
       ),
@@ -93,8 +88,8 @@ class GoalRunnerDurableSequenceAllocationTest {
 
   private fun planningAttempt(attempt: Int) =
     GoalPlanningAttemptRecord(
-      parentWorkflowId = WORKFLOW_ID,
-      issueKey = ISSUE_KEY,
+      parentWorkflowId = SEQUENCE_WORKFLOW_ID,
+      issueKey = SEQUENCE_ISSUE_KEY,
       phaseId = "plan",
       subtaskId = 1,
       attempt = attempt,
@@ -111,13 +106,13 @@ class GoalRunnerDurableSequenceAllocationTest {
 
   private fun childActivation() =
     GoalRunnerLedgerContext.ChildActivation(
-      workflowId = WORKFLOW_ID,
-      issueKey = ISSUE_KEY,
+      workflowId = SEQUENCE_WORKFLOW_ID,
+      issueKey = SEQUENCE_ISSUE_KEY,
       subtaskId = 1,
     )
 
   private fun storedLedgerSequences(): List<Int> {
-    val artifacts = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID)).toSnapshot().artifacts
+    val artifacts = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(SEQUENCE_WORKFLOW_ID)).toSnapshot().artifacts
     return (artifacts["goal_attempt_ledger"] as List<*>)
       .map { entry -> (entry as Map<*, *>)["sequence_number"] as Int }
   }
