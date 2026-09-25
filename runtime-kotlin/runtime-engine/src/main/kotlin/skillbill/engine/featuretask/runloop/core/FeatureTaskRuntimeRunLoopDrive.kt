@@ -15,7 +15,6 @@ import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.goalrunner.status.completed
 import skillbill.error.shellcontent.FeatureTaskRuntimePhaseOrderViolationError
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
-import skillbill.ports.workflow.gitops.repositoryCheckpointFingerprint
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap

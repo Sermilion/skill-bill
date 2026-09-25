@@ -46,7 +46,6 @@ import skillbill.engine.goalrunner.status.completed
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
 import skillbill.install.model.SupportedAgent
-import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.model.goalreview.FeatureTaskRuntimeReviewPassSequence

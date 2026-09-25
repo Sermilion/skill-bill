@@ -33,7 +33,6 @@ import skillbill.engine.featuretask.runloop.core.CompletionProjectionRejectionAr
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopLaunch
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopTransitions
-import skillbill.engine.featuretask.runloop.core.OWNED_PATH_DELIMITER
 import skillbill.engine.featuretask.runloop.core.PersistAcceptedOutputArgs
 import skillbill.engine.featuretask.runloop.core.PersistRejectedVerificationFindingsArgs
 import skillbill.engine.featuretask.runloop.core.PersistStandardAcceptedOutputArgs
@@ -60,11 +59,8 @@ import skillbill.engine.goalrunner.status.completed
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewStructuredFindingsParse
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.repositoryCheckpointFingerprint
-import skillbill.ports.workflow.gitops.repositoryFingerprint
-import skillbill.ports.workflow.gitops.repositoryOwnedPaths
-import skillbill.ports.workflow.gitops.runtimePhaseChangedPathsBetweenCommits
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
@@ -687,10 +683,14 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       ) ?: return null
     val committedPaths =
       revisions.base?.let { base ->
-        args.phaseGates.gitOperations.runtimePhaseChangedPathsBetweenCommits(run.request.repoRoot, base, revisions.head)
-          .takeIf { it is WorkflowGitOperationResult.Ok }
-          ?.value
-          ?.let(FeatureTaskRuntimePhaseSafetyPolicy::lineSeparatedPaths)
+        (
+          args.phaseGates.gitOperations
+            .runtimePhaseChangedPathsBetweenCommits(run.request.repoRoot, base, revisions.head)
+            as? WorkflowGitNameListResult.Listed
+        )
+          ?.names
+          ?.distinct()
+          ?.sorted()
           ?: return null
       }.orEmpty()
     val durableInventory = persistedOwnedPaths.orEmpty().filter(String::isNotBlank)
@@ -744,11 +744,10 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     baselineOwnedPaths: List<String>,
   ): List<String>? {
     val owned = phaseGates.gitOperations.repositoryOwnedPaths(run.request.repoRoot)
-    if (owned !is WorkflowGitOperationResult.Ok) return null
+    if (owned !is WorkflowGitNameListResult.Listed) return null
     val baseline = baselineOwnedPaths.toSet()
     val paths =
-      owned.value.orEmpty()
-        .split(OWNED_PATH_DELIMITER)
+      owned.names
         .map(String::trim)
         .filter(String::isNotBlank)
         .filterNot { it in baseline }

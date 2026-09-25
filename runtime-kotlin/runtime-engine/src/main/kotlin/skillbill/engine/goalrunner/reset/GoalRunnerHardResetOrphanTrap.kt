@@ -5,7 +5,6 @@ import skillbill.engine.goalrunner.execution.support.branchPlanFor
 import skillbill.engine.goalrunner.manifest.SUBTASK_ACTION_RESUME
 import skillbill.engine.goalrunner.planning.recovery.goalPlanningHardResetRemedy
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.ports.workflow.gitops.headCommitMessage
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import java.nio.file.Path

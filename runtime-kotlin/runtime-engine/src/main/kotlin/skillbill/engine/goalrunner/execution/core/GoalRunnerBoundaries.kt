@@ -3,10 +3,10 @@ package skillbill.engine.goalrunner.execution.core
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.lifecycle.GoalLifecycleTelemetryEmitter
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.goalrunner.experiment.ExperimentPairCoordinator
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweep
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
@@ -26,7 +26,7 @@ data class GoalRunnerRunBoundaries(
   val executionCoordinator: GoalRunnerExecutionCoordinator,
   val phaseRecorder: FeatureTaskRuntimePhaseRecorder?,
   val unaddressedFindingsLedgerService: UnaddressedFindingsLedgerService?,
-  val experimentPairCoordinator: ExperimentPairCoordinator?,
+  val experimentSelection: ExperimentSelectionPort,
 )
 
 @Inject

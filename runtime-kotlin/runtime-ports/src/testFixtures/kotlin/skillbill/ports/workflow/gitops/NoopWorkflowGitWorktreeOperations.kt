@@ -13,6 +13,8 @@ import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
 import java.nio.file.Path
 
 internal object NoopWorkflowGitWorktreeOperations : WorkflowGitWorktreeOperations {
+  override fun stageAll(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+
   override fun worktreeStatus(repoRoot: Path): WorkflowGitOperationResult {
     return WorkflowGitOperationResult.Ok(value = "")
   }

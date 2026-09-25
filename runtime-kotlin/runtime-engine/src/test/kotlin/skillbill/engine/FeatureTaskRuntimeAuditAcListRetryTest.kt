@@ -5,7 +5,7 @@ import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
-import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -253,7 +253,7 @@ class FeatureTaskRuntimeAuditAcListRetryTest {
     val git =
       RecordingWorkflowGitOperations(currentBranchValue = "feat/existing-runtime-branch").also {
         it.createCommitResult =
-          WorkflowGitOperationResult.Failed(
+          WorkflowGitCommitResult.Failed(
             error = "audit commit failed",
           )
       }

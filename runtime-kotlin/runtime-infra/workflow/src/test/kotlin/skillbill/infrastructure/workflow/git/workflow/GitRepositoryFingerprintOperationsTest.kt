@@ -2,7 +2,6 @@ package skillbill.infrastructure.workflow.git.workflow
 
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.workflow.taskruntime.model.core.MAX_REPOSITORY_FINGERPRINT_LENGTH
 import java.nio.file.Files
 import java.nio.file.Path

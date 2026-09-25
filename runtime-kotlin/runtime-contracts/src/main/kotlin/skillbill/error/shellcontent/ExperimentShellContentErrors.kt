@@ -92,6 +92,15 @@ class ExperimentIsolationCapabilityRefusalError(
     cause,
   )
 
+class ExperimentPairExecutionUnavailableError(
+  val selectedNames: List<String>,
+  cause: Throwable? = null,
+) : ShellContentContractException(
+    "Experiment pair execution is no longer supported by this runtime; " +
+      "selection requested: ${selectedNames.joinToString(", ")}",
+    cause,
+  )
+
 class ExperimentNavigationRevisionError(
   val revision: String,
   val reason: String,

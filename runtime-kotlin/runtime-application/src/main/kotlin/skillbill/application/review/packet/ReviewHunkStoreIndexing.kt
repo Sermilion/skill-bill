@@ -13,6 +13,7 @@ import skillbill.review.context.model.commit.ReviewCommitSource
 import skillbill.review.context.model.commit.ReviewCommitUnit
 import skillbill.review.context.model.hunk.ReviewChangedHunk
 import skillbill.review.context.model.hunk.ReviewHunkEvidenceLocator
+import skillbill.text.RECORD_FIELD_SEPARATOR
 import java.nio.file.Path
 
 internal data class IndexedReviewHunks(
@@ -172,5 +173,5 @@ internal object ReviewHunkStoreIndexing {
 
   private fun hunkKey(hunk: ReviewChangedHunk): String =
     listOf(hunk.path, hunk.oldStart, hunk.oldCount, hunk.newStart, hunk.newCount, hunk.commitScope.orEmpty())
-      .joinToString("\u0000")
+      .joinToString(RECORD_FIELD_SEPARATOR)
 }

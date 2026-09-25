@@ -25,6 +25,7 @@ import skillbill.ports.concurrency.BoundedWorkFanOutPort
 import skillbill.ports.concurrency.SequentialBoundedWorkFanOutPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
+import skillbill.ports.experiment.selection.NoExperimentSelection
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.goalrunner.planning.GoalPlanningContextDiscovery
@@ -101,7 +102,7 @@ internal fun testGoalRunnerWiring(params: GoalRunnerTestWiringParams): GoalRunne
       executionCoordinator = GoalRunnerExecutionCoordinator.NONE,
       phaseRecorder = params.phaseRecorder,
       unaddressedFindingsLedgerService = params.unaddressedFindingsLedgerService,
-      experimentPairCoordinator = null,
+      experimentSelection = NoExperimentSelection,
     )
   val launchBoundaries =
     GoalRunnerSubtaskLaunchBoundaries(
@@ -150,7 +151,7 @@ internal data class GoalRunnerTestInputs(
           executionCoordinator = executionCoordinator,
           phaseRecorder = phaseRecorder,
           unaddressedFindingsLedgerService = unaddressedFindingsLedgerService,
-          experimentPairCoordinator = null,
+          experimentSelection = NoExperimentSelection,
         ),
       launchBoundaries =
         GoalRunnerSubtaskLaunchBoundaries(

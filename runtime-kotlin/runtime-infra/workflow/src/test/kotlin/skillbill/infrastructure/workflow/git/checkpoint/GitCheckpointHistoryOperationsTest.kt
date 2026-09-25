@@ -1,11 +1,9 @@
 package skillbill.infrastructure.workflow.git.checkpoint
 
-import skillbill.infrastructure.workflow.git.scoped.GIT_NUL
 import skillbill.infrastructure.workflow.git.workflow.git
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.infrastructure.workflow.process.runGitProcess
-import skillbill.ports.workflow.gitops.amendHeadCommit
-import skillbill.ports.workflow.gitops.headCommitMessage
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Files
 import java.nio.file.Path
@@ -17,6 +15,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 private const val CHECKPOINT_PREFIX = "refs/skill-bill/checkpoints/"
@@ -110,18 +109,23 @@ class GitCheckpointHistoryOperationsTest {
     val ref = "${CHECKPOINT_PREFIX}subtask-1/städte-checkpoint"
 
     assertTrue(
-      GitCheckpointHistoryOperations.updateRef(repo, CHECKPOINT_PREFIX, ref, sha) is WorkflowGitOperationResult.Ok,
+      GitCheckpointHistoryOperations.updateCheckpointRef(repo, CHECKPOINT_PREFIX, ref, sha) is
+        WorkflowGitOperationResult.Ok,
     )
-    assertEquals(sha, GitCheckpointHistoryOperations.resolveRef(repo, CHECKPOINT_PREFIX, ref).value.trim())
-    assertEquals(mapOf(ref to sha), listedRefs())
+    assertEquals(sha, GitCheckpointHistoryOperations.resolveCheckpointRef(repo, CHECKPOINT_PREFIX, ref).value.trim())
+    assertEquals(listOf(ref), listedRefs())
 
-    assertTrue(GitCheckpointHistoryOperations.deleteRef(repo, CHECKPOINT_PREFIX, ref) is WorkflowGitOperationResult.Ok)
     assertTrue(
-      GitCheckpointHistoryOperations.deleteRef(repo, CHECKPOINT_PREFIX, ref) is WorkflowGitOperationResult.Ok,
+      GitCheckpointHistoryOperations.deleteCheckpointRef(repo, CHECKPOINT_PREFIX, ref) is
+        WorkflowGitOperationResult.Ok,
+    )
+    assertTrue(
+      GitCheckpointHistoryOperations.deleteCheckpointRef(repo, CHECKPOINT_PREFIX, ref) is
+        WorkflowGitOperationResult.Ok,
       "a repeated delete must stay idempotent so an interrupted prune can re-run",
     )
-    assertEquals(emptyMap(), listedRefs())
-    val absent = GitCheckpointHistoryOperations.resolveRef(repo, CHECKPOINT_PREFIX, ref)
+    assertEquals(emptyList(), listedRefs(), "an emptied namespace must list no refs rather than one blank name")
+    val absent = GitCheckpointHistoryOperations.resolveCheckpointRef(repo, CHECKPOINT_PREFIX, ref)
     assertTrue(
       absent is WorkflowGitOperationResult.Ok,
       "an absent ref must resolve ok so callers can tell it from a failed lookup",
@@ -133,11 +137,11 @@ class GitCheckpointHistoryOperationsTest {
   fun `ref operations reject a name outside the namespace prefix and leave it untouched`() {
     val sha = head()
 
-    val update = GitCheckpointHistoryOperations.updateRef(repo, CHECKPOINT_PREFIX, "refs/heads/main", sha)
-    val delete = GitCheckpointHistoryOperations.deleteRef(repo, CHECKPOINT_PREFIX, "refs/heads/main")
+    val update = GitCheckpointHistoryOperations.updateCheckpointRef(repo, CHECKPOINT_PREFIX, "refs/heads/main", sha)
+    val delete = GitCheckpointHistoryOperations.deleteCheckpointRef(repo, CHECKPOINT_PREFIX, "refs/heads/main")
 
     val siblingPrefix =
-      GitCheckpointHistoryOperations.updateRef(
+      GitCheckpointHistoryOperations.updateCheckpointRef(
         repo,
         CHECKPOINT_PREFIX,
         CHECKPOINT_PREFIX.trimEnd('/') + "-tmp/a",
@@ -148,7 +152,27 @@ class GitCheckpointHistoryOperationsTest {
     assertFalse(delete is WorkflowGitOperationResult.Ok)
     assertFalse(siblingPrefix is WorkflowGitOperationResult.Ok)
     assertEquals(sha, runGitCommand(repo, "rev-parse", "refs/heads/main").value.trim())
-    assertEquals(emptyMap(), listedRefs())
+    assertEquals(emptyList(), listedRefs())
+  }
+
+  @Test
+  fun `deleting under a subtask prefix sweeps that subtask and reports how many refs went`() {
+    val sha = head()
+    val subtaskPrefix = "${CHECKPOINT_PREFIX}SKILL-190/3/"
+    val refs = listOf("${subtaskPrefix}0", "${subtaskPrefix}1", "${CHECKPOINT_PREFIX}SKILL-190/4/0")
+    refs.forEach { ref ->
+      assertTrue(
+        GitCheckpointHistoryOperations.updateCheckpointRef(repo, CHECKPOINT_PREFIX, ref, sha) is
+          WorkflowGitOperationResult.Ok,
+      )
+    }
+    assertEquals(refs, listedRefs().sorted(), "every created ref must list by its full name, one entry each")
+
+    val swept = GitCheckpointHistoryOperations.deleteCheckpointRefsUnderPrefix(repo, CHECKPOINT_PREFIX, subtaskPrefix)
+
+    assertTrue(swept is WorkflowGitOperationResult.Ok, swept.error)
+    assertEquals("2", swept.value.trim())
+    assertEquals(listOf("${CHECKPOINT_PREFIX}SKILL-190/4/0"), listedRefs(), "a sibling subtask must survive the sweep")
   }
 
   @Test
@@ -156,7 +180,7 @@ class GitCheckpointHistoryOperationsTest {
     val preAmend = head()
     val ref = "${CHECKPOINT_PREFIX}SKILL-190/3/0"
     assertTrue(
-      GitCheckpointHistoryOperations.updateRef(repo, CHECKPOINT_PREFIX, ref, preAmend) is
+      GitCheckpointHistoryOperations.updateCheckpointRef(repo, CHECKPOINT_PREFIX, ref, preAmend) is
         WorkflowGitOperationResult.Ok,
     )
     write("owned/Base.kt", "amended\n")
@@ -167,7 +191,7 @@ class GitCheckpointHistoryOperationsTest {
     assertTrue(head() != preAmend, "the amend must have rewritten HEAD")
     assertEquals(
       preAmend,
-      GitCheckpointHistoryOperations.resolveRef(repo, CHECKPOINT_PREFIX, ref).value.trim(),
+      GitCheckpointHistoryOperations.resolveCheckpointRef(repo, CHECKPOINT_PREFIX, ref).value.trim(),
       "the pre-amend commit must stay reachable through its checkpoint ref",
     )
     assertEquals(
@@ -190,13 +214,10 @@ class GitCheckpointHistoryOperationsTest {
     assertContains(message.value, "phase=audit generation=0")
   }
 
-  private fun listedRefs(): Map<String, String> =
-    GitCheckpointHistoryOperations
-      .listRefs(repo, CHECKPOINT_PREFIX).value.orEmpty()
-      .split(GIT_NUL)
-      .filter(String::isNotBlank)
-      .chunked(2)
-      .associate { (objectName, refName) -> refName.trim() to objectName.trim() }
+  private fun listedRefs(): List<String> =
+    assertIs<WorkflowGitNameListResult.Listed>(
+      GitCheckpointHistoryOperations.listCheckpointRefs(repo, CHECKPOINT_PREFIX),
+    ).names
 
   private fun head(): String = runGitCommand(repo, "rev-parse", "HEAD").value.orEmpty().trim()
 

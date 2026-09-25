@@ -3,7 +3,6 @@ package skillbill.di.experiment
 import me.tatarka.inject.annotations.Provides
 import skillbill.engine.experiment.ExperimentSelectionService
 import skillbill.engine.experiment.report.ExperimentPairReportService
-import skillbill.engine.goalrunner.experiment.ExperimentNavigationPairCoordinator
 import skillbill.infrastructure.contracts.experiment.ExperimentPayloadSchemaValidator
 import skillbill.infrastructure.host.experiment.FileMachineExperimentConfigStore
 import skillbill.infrastructure.sqlite.experiment.SqliteExperimentPairOwnerStore
@@ -13,7 +12,6 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.experiment.config.MachineExperimentConfigStore
 import skillbill.ports.experiment.descriptor.ExperimentDescriptorCatalog
 import skillbill.ports.experiment.isolation.ExperimentIsolationCapabilityPort
-import skillbill.ports.experiment.navigation.ExperimentNavigationRunPort
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
 import skillbill.ports.experiment.pair.ExperimentPairReportPort
 import skillbill.ports.experiment.selection.ExperimentSelectionPort
@@ -51,10 +49,6 @@ internal interface RuntimeExperimentProvides {
     database: DatabaseSessionFactory,
     payloadValidation: ExperimentPayloadValidationPort,
   ): ExperimentPairOwnerPort = SqliteExperimentPairOwnerStore(database, payloadValidation)
-
-  @Provides
-  fun experimentNavigationRunPort(coordinator: ExperimentNavigationPairCoordinator): ExperimentNavigationRunPort =
-    coordinator
 
   @Provides
   fun experimentPairReportPort(service: ExperimentPairReportService): ExperimentPairReportPort = service

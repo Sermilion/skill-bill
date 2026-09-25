@@ -38,6 +38,7 @@ import skillbill.review.context.model.hunk.ReviewRuleReference
 import skillbill.review.plan.ReviewCommitLaneRoutingPolicy
 import skillbill.review.plan.model.ReviewLaunchLane
 import skillbill.review.plan.model.ReviewRoutedLane
+import skillbill.text.RECORD_FIELD_SEPARATOR
 import java.nio.file.Path
 import java.security.MessageDigest
 
@@ -74,7 +75,10 @@ internal object ParallelReviewPreparationCompiler {
           addOns = route.descriptor.addOns,
         )
       }
-    val revisionId = digest("${input.baseRevision}\u0000${input.headRevision}\u0000${input.diff}")
+    val revisionId =
+      digest(
+        "${input.baseRevision}$RECORD_FIELD_SEPARATOR${input.headRevision}$RECORD_FIELD_SEPARATOR${input.diff}",
+      )
     val selection = ReviewLaneSelection(decisions, routingMatrix)
     val preparation =
       prepareReview(

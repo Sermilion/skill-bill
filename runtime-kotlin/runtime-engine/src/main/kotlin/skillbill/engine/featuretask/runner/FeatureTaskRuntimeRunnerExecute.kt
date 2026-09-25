@@ -16,7 +16,6 @@ import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeScopedReviewBa
 import skillbill.engine.featuretask.review.core.reviewFixCapExhaustion
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.observability.emitFeatureTaskRuntimeEventSafely
-import skillbill.ports.workflow.gitops.buildGoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewState

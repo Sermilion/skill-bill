@@ -20,6 +20,7 @@ import skillbill.infrastructure.workflow.process.runGitForActivity
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
 import skillbill.ports.workflow.gitops.RuntimePhaseFileManifestGitOperations
 import skillbill.ports.workflow.gitops.SuppressionEvidenceGitOperations
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowScopedPathContent
@@ -272,18 +273,21 @@ internal object UntrackedFingerprintDigest {
 }
 
 internal object GitRuntimePhaseFileManifestOperations : RuntimePhaseFileManifestGitOperations {
-  override fun headCommit(repoRoot: Path): WorkflowGitOperationResult = runGitCommand(repoRoot, "rev-parse", "HEAD")
+  override fun runtimePhaseHeadCommit(repoRoot: Path): WorkflowGitOperationResult =
+    runGitCommand(repoRoot, "rev-parse", "HEAD")
 
-  override fun changedPathsBetweenCommits(
+  override fun runtimePhaseChangedPathsBetweenCommits(
     repoRoot: Path,
     beforeCommit: String,
     afterCommit: String,
-  ): WorkflowGitOperationResult =
-    if (beforeCommit == afterCommit) {
-      WorkflowGitOperationResult.Ok(value = "")
-    } else {
-      runGitCommand(repoRoot, "diff", "--name-only", beforeCommit, afterCommit)
-    }
+  ): WorkflowGitNameListResult {
+    if (beforeCommit == afterCommit) return WorkflowGitNameListResult.Listed(emptyList())
+    val changed = runGitCommand(repoRoot, "diff", "--name-only", beforeCommit, afterCommit)
+    if (changed !is WorkflowGitOperationResult.Ok) return WorkflowGitNameListResult.Failed(changed.error)
+    return WorkflowGitNameListResult.Listed(
+      changed.value.orEmpty().lineSequence().map(String::trim).filter(String::isNotEmpty).toList(),
+    )
+  }
 }
 
 internal object GitSuppressionEvidenceOperations : SuppressionEvidenceGitOperations {

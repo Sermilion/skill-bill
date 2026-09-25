@@ -1,7 +1,6 @@
 package skillbill.ports.workflow.gitops
 
 import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
-import skillbill.ports.workflow.gitops.worktree.WorkflowGitLinkedWorktreeOperations
 import skillbill.ports.workflow.gitops.worktree.WorkflowGitWorktreeOperations
 
 object NoopWorkflowGitOperations :
@@ -10,26 +9,11 @@ object NoopWorkflowGitOperations :
   WorkflowGitRemoteOperations by NoopWorkflowGitRemoteOperations,
   WorkflowGitCommitHistoryOperations by NoopWorkflowGitCommitHistoryOperations,
   WorkflowGitWorktreeOperations by NoopWorkflowGitWorktreeOperations,
-  SuppressionEvidenceGitOperations by NoopSuppressionEvidenceGitOperations {
-  override val checkpointHistoryOperations: CheckpointHistoryGitOperations =
-    UnavailableCheckpointHistoryGitOperations
-
-  override val linkedWorktreeOperations: WorkflowGitLinkedWorktreeOperations =
-    UnavailableWorkflowGitLinkedWorktreeOperations
-
-  override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations = NoopGoalSubtaskReviewGitOperations
-
-  override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations =
-    NoopRepositoryFingerprintGitOperations
-
-  override val readinessTreeIdentityOperations: ReadinessTreeIdentityGitOperations =
-    UnavailableReadinessTreeIdentityGitOperations
-
-  override val repositoryOwnedPathsOperations: RepositoryOwnedPathsGitOperations =
-    UnavailableRepositoryOwnedPathsGitOperations
-
-  override val runtimePhaseFileManifestOperations: RuntimePhaseFileManifestGitOperations =
-    NoopRuntimePhaseFileManifestGitOperations
-
-  override val scopedStagingOperations: ScopedStagingGitOperations = UnavailableScopedStagingGitOperations
-}
+  SuppressionEvidenceGitOperations by NoopSuppressionEvidenceGitOperations,
+  CheckpointHistoryGitOperations by UnavailableCheckpointHistoryGitOperations,
+  GoalSubtaskReviewGitOperations by NoopGoalSubtaskReviewGitOperations,
+  RepositoryFingerprintGitOperations by NoopRepositoryFingerprintGitOperations,
+  ReadinessTreeIdentityGitOperations by UnavailableReadinessTreeIdentityGitOperations,
+  RepositoryOwnedPathsGitOperations by UnavailableRepositoryOwnedPathsGitOperations,
+  RuntimePhaseFileManifestGitOperations by NoopRuntimePhaseFileManifestGitOperations,
+  ScopedStagingGitOperations by UnavailableScopedStagingGitOperations

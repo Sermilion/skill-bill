@@ -1,14 +1,15 @@
 package skillbill.infrastructure.workflow.git.workflow
 
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
-import skillbill.ports.workflow.gitops.runtimePhaseChangedPathsBetweenCommits
-import skillbill.ports.workflow.gitops.runtimePhaseHeadCommit
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class GitWorkflowGitOperationsBaselineTest {
@@ -31,14 +32,52 @@ class GitWorkflowGitOperationsBaselineTest {
     val after = operations.runtimePhaseHeadCommit(repoRoot)
 
     val result =
-      operations.runtimePhaseChangedPathsBetweenCommits(
-        repoRoot,
-        requireNotNull(before.value),
-        requireNotNull(after.value),
+      assertIs<WorkflowGitNameListResult.Listed>(
+        operations.runtimePhaseChangedPathsBetweenCommits(
+          repoRoot,
+          requireNotNull(before.value),
+          requireNotNull(after.value),
+        ),
       )
 
-    assertTrue(result is WorkflowGitOperationResult.Ok, result.error)
-    assertContains(result.value.orEmpty(), ".feature-specs/SKILL-124-demo/spec.md")
+    assertContains(result.names, ".feature-specs/SKILL-124-demo/spec.md")
+  }
+
+  @Test
+  fun `runtime phase commit range reports no paths when both commits are the same`() {
+    val repoRoot = Files.createTempDirectory("skillbill-git-runtime-phase-same")
+    git(repoRoot, "init")
+    git(repoRoot, "config", "user.email", "skill-bill@example.test")
+    git(repoRoot, "config", "user.name", "Skill Bill")
+    Files.writeString(repoRoot.resolve("tracked.txt"), "one\n")
+    git(repoRoot, "add", ".")
+    git(repoRoot, "commit", "-m", "initial")
+    val head = requireNotNull(GitWorkflowGitOperations().runtimePhaseHeadCommit(repoRoot).value)
+
+    val result =
+      assertIs<WorkflowGitNameListResult.Listed>(
+        GitWorkflowGitOperations().runtimePhaseChangedPathsBetweenCommits(repoRoot, head, head),
+      )
+
+    assertEquals(emptyList(), result.names)
+  }
+
+  @Test
+  fun `repository owned paths carry a filename with a space as one entry`() {
+    val repoRoot = Files.createTempDirectory("skillbill-git-owned-paths-spaces")
+    git(repoRoot, "init")
+    git(repoRoot, "config", "user.email", "skill-bill@example.test")
+    git(repoRoot, "config", "user.name", "Skill Bill")
+    Files.writeString(repoRoot.resolve("tracked.txt"), "one\n")
+    git(repoRoot, "add", ".")
+    git(repoRoot, "commit", "-m", "initial")
+    Files.writeString(repoRoot.resolve("a file with spaces.txt"), "spaces\n")
+    Files.writeString(repoRoot.resolve("tracked.txt"), "one\ntwo\n")
+
+    val result = assertIs<WorkflowGitNameListResult.Listed>(GitWorkflowGitOperations().repositoryOwnedPaths(repoRoot))
+
+    assertContains(result.names, "a file with spaces.txt")
+    assertContains(result.names, "tracked.txt")
   }
 
   @Test
@@ -53,9 +92,12 @@ class GitWorkflowGitOperationsBaselineTest {
     Files.writeString(manifestPath, "contract_version: \"0.1\"\n")
     git(repoRoot, "add", ".")
 
-    val result = GitWorkflowGitOperations().createCommit(repoRoot, "SKILL-52 subtask 1: demo")
+    val result =
+      assertIs<WorkflowGitCommitResult.Committed>(
+        GitWorkflowGitOperations().createCommit(repoRoot, "SKILL-52 subtask 1: demo"),
+      )
 
-    assertTrue(result is WorkflowGitOperationResult.Ok, result.error)
+    assertEquals(git(repoRoot, "rev-parse", "HEAD"), result.commitSha.trim())
     val committedFiles = git(repoRoot, "show", "--name-only", "--format=", "HEAD")
     assertContains(committedFiles, "runtime.txt")
     assertContains(committedFiles, ".feature-specs/SKILL-52-demo/decomposition-manifest.yaml")
@@ -76,8 +118,7 @@ class GitWorkflowGitOperationsBaselineTest {
 
     val result = GitWorkflowGitOperations().createCommit(repoRoot, "chore: nothing staged")
 
-    assertTrue(result is WorkflowGitOperationResult.Ok, result.error)
-    assertEquals("", result.value)
+    assertEquals(WorkflowGitCommitResult.NothingToCommit, result)
     assertEquals(before, git(repoRoot, "rev-parse", "HEAD"))
     assertContains(git(repoRoot, "status", "--porcelain"), "tracked.txt")
   }

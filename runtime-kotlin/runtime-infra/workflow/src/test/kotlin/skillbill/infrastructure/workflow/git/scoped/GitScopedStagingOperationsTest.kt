@@ -2,12 +2,10 @@ package skillbill.infrastructure.workflow.git.scoped
 
 import skillbill.infrastructure.workflow.git.workflow.git
 import skillbill.infrastructure.workflow.process.runGitCommand
-import skillbill.ports.workflow.gitops.captureIndexState
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshotResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.pathContentIdentities
-import skillbill.ports.workflow.gitops.restoreIndexState
-import skillbill.ports.workflow.gitops.stagePaths
-import skillbill.ports.workflow.gitops.stagedPaths
+import skillbill.ports.workflow.gitops.model.WorkflowPathContentIdentitiesResult
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -18,6 +16,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class GitScopedStagingOperationsTest {
@@ -164,15 +163,15 @@ class GitScopedStagingOperationsTest {
     git("add", "--", "tracked/Base.kt")
     val owned = listOf("owned/Owned.kt", "tracked/Base.kt")
 
-    val snapshot = GitScopedStagingOperations.captureIndexState(repo, owned)
-    assertTrue(snapshot is WorkflowGitOperationResult.Ok, snapshot.error)
+    val snapshot =
+      assertIs<WorkflowGitIndexSnapshotResult.Captured>(GitScopedStagingOperations.captureIndexState(repo, owned))
     val before = indexSnapshot()
 
     assertTrue(GitScopedStagingOperations.stagePaths(repo, owned) is WorkflowGitOperationResult.Ok)
     assertTrue("owned/Owned.kt" in indexSnapshot().keys, "precondition: staging actually mutated the index")
     val worktreeBefore = read("owned/Owned.kt")
 
-    val restored = GitScopedStagingOperations.restoreIndexState(repo, owned, snapshot.value.orEmpty())
+    val restored = GitScopedStagingOperations.restoreIndexState(repo, owned, snapshot.snapshot)
 
     assertTrue(restored is WorkflowGitOperationResult.Ok, restored.error)
     assertEquals(before, indexSnapshot(), "the pre-checkpoint index must be restored exactly")
@@ -190,12 +189,13 @@ class GitScopedStagingOperationsTest {
     git("add", "--", "foreign/Staged.kt")
     val owned = listOf("owned/Owned.kt")
 
-    val snapshot = GitScopedStagingOperations.captureIndexState(repo, owned)
+    val snapshot =
+      assertIs<WorkflowGitIndexSnapshotResult.Captured>(GitScopedStagingOperations.captureIndexState(repo, owned))
     val foreignEntryBefore = indexSnapshot()["foreign/Staged.kt"]
     assertTrue(GitScopedStagingOperations.stagePaths(repo, owned) is WorkflowGitOperationResult.Ok)
 
     assertTrue(
-      GitScopedStagingOperations.restoreIndexState(repo, owned, snapshot.value.orEmpty()) is
+      GitScopedStagingOperations.restoreIndexState(repo, owned, snapshot.snapshot) is
         WorkflowGitOperationResult.Ok,
     )
 
@@ -208,11 +208,13 @@ class GitScopedStagingOperationsTest {
     write("foreign/Staged.kt", "foreign\n")
     git("add", "-A")
 
-    val snapshot = GitScopedStagingOperations.captureIndexState(repo, listOf("owned/Owned.kt"))
+    val snapshot =
+      assertIs<WorkflowGitIndexSnapshotResult.Captured>(
+        GitScopedStagingOperations.captureIndexState(repo, listOf("owned/Owned.kt")),
+      )
 
-    assertTrue(snapshot is WorkflowGitOperationResult.Ok, snapshot.error)
     val paths =
-      snapshot.value.orEmpty().split(GIT_NUL).filter(String::isNotBlank)
+      snapshot.snapshot.encoded.split(GIT_NUL).filter(String::isNotBlank)
         .map { it.substringAfter('\t') }
     assertEquals(listOf("owned/Owned.kt"), paths)
   }
@@ -223,13 +225,9 @@ class GitScopedStagingOperationsTest {
     git("add", "--", "foreign/Staged.kt")
     write("owned/Unstaged.kt", "unstaged\n")
 
-    val staged = GitScopedStagingOperations.stagedPaths(repo)
+    val staged = assertIs<WorkflowGitNameListResult.Listed>(GitScopedStagingOperations.stagedPaths(repo))
 
-    assertTrue(staged is WorkflowGitOperationResult.Ok, staged.error)
-    assertEquals(
-      listOf("foreign/Staged.kt"),
-      staged.value.orEmpty().split(GIT_NUL).filter(String::isNotBlank),
-    )
+    assertEquals(listOf("foreign/Staged.kt"), staged.names)
   }
 
   @Test
@@ -247,16 +245,25 @@ class GitScopedStagingOperationsTest {
     write("owned/Spaced Path.kt", "spaced\n")
 
     val paths = listOf("owned/Owned.kt", "owned/Spaced Path.kt", "owned/Absent.kt")
-    val first = GitScopedStagingOperations.pathContentIdentities(repo, paths)
-    assertTrue(first is WorkflowGitOperationResult.Ok, first.error)
-    val identities = contentIdentities(first.value.orEmpty())
+    val first =
+      assertIs<WorkflowPathContentIdentitiesResult.Resolved>(
+        GitScopedStagingOperations.pathContentIdentities(repo, paths),
+      )
+    val identities = first.identities
     assertEquals(setOf("owned/Owned.kt", "owned/Spaced Path.kt"), identities.keys)
+    listOf("owned/Owned.kt", "owned/Spaced Path.kt").forEach { path ->
+      assertEquals(
+        runGitCommand(repo, "hash-object", "--", path).value.orEmpty().trim(),
+        identities[path],
+        "each path must carry its own blob identity",
+      )
+    }
 
     write("owned/Owned.kt", "edited by someone else\n")
     val second =
-      contentIdentities(
-        GitScopedStagingOperations.pathContentIdentities(repo, paths).value.orEmpty(),
-      )
+      assertIs<WorkflowPathContentIdentitiesResult.Resolved>(
+        GitScopedStagingOperations.pathContentIdentities(repo, paths),
+      ).identities
 
     assertTrue(
       second["owned/Owned.kt"] != identities["owned/Owned.kt"],
@@ -268,12 +275,6 @@ class GitScopedStagingOperationsTest {
       "an untouched path keeps its identity, whatever characters it carries",
     )
   }
-
-  private fun contentIdentities(raw: String): Map<String, String> =
-    raw
-      .split(GIT_NUL)
-      .filter(String::isNotBlank)
-      .associate { record -> record.substringAfter('\t') to record.substringBefore('\t') }
 
   private fun indexSnapshot(): Map<String, String> =
     runGitCommand(repo, "ls-files", "--stage", "-z")

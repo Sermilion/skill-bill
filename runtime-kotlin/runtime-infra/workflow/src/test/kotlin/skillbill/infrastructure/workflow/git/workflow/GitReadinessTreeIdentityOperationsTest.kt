@@ -1,7 +1,9 @@
 package skillbill.infrastructure.workflow.git.workflow
 
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeReadinessEvidenceSchemaError
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.model.WorkflowReadinessTreeIdentityResult
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessCheckResult
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessCheckStatus
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessEvidence
@@ -9,6 +11,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class GitReadinessTreeIdentityOperationsTest {
@@ -115,10 +118,34 @@ class GitReadinessTreeIdentityOperationsTest {
     Files.writeString(repoRoot.resolve("untracked-change.txt"), "untracked\n")
 
     val result =
-      GitReadinessTreeIdentityOperations.changedPathsAgainstBase(repoRoot, "main")
-        as WorkflowGitOperationResult.Ok
-    val paths = result.value.orEmpty().split('\u0000').filter(String::isNotBlank).toSet()
+      assertIs<WorkflowGitNameListResult.Listed>(
+        GitReadinessTreeIdentityOperations.readinessChangedPathsAgainstBase(repoRoot, "main"),
+      )
 
-    assertEquals(setOf("committed-branch-change.txt", "untracked-change.txt"), paths)
+    assertEquals(setOf("committed-branch-change.txt", "untracked-change.txt"), result.names.toSet())
+  }
+
+  @Test
+  fun `readiness identity resolves the tree, base and head shas as one typed record`() {
+    val repoRoot = Files.createTempDirectory("skillbill-readiness-identity")
+    git(repoRoot, "init")
+    git(repoRoot, "config", "user.email", "skill-bill@example.test")
+    git(repoRoot, "config", "user.name", "Skill Bill")
+    Files.writeString(repoRoot.resolve("source.kt"), "source\n")
+    git(repoRoot, "add", ".")
+    git(repoRoot, "commit", "-m", "initial")
+    git(repoRoot, "update-ref", "refs/remotes/origin/main", "HEAD")
+    val base = git(repoRoot, "rev-parse", "HEAD")
+    Files.writeString(repoRoot.resolve("source.kt"), "source on the branch\n")
+    git(repoRoot, "commit", "-am", "branch change")
+
+    val resolved =
+      assertIs<WorkflowReadinessTreeIdentityResult.Resolved>(
+        GitReadinessTreeIdentityOperations.resolveReadinessTreeIdentity(repoRoot, "main", "wf"),
+      )
+
+    assertEquals(git(repoRoot, "rev-parse", "HEAD"), resolved.identity.headSha)
+    assertEquals(base, resolved.identity.baseRefSha)
+    assertEquals(git(repoRoot, "rev-parse", "HEAD^{tree}"), resolved.identity.sourceTreeSha)
   }
 }

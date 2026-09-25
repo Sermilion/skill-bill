@@ -1,5 +1,6 @@
 package skillbill.ports.workflow.gitops
 
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 
@@ -13,27 +14,34 @@ interface CheckpointHistoryGitOperations {
 
   fun headCommitMessage(repoRoot: Path): WorkflowGitOperationResult
 
-  fun updateRef(
+  fun updateCheckpointRef(
     repoRoot: Path,
     namespacePrefix: String,
     refName: String,
     targetSha: String,
   ): WorkflowGitOperationResult
 
-  fun resolveRef(
+  fun resolveCheckpointRef(
     repoRoot: Path,
     namespacePrefix: String,
     refName: String,
   ): WorkflowGitOperationResult
 
-  fun listRefs(
+  fun listCheckpointRefs(
     repoRoot: Path,
     namespacePrefix: String,
-  ): WorkflowGitOperationResult
+  ): WorkflowGitNameListResult
 
-  fun deleteRef(
+  fun deleteCheckpointRef(
     repoRoot: Path,
     namespacePrefix: String,
     refName: String,
+  ): WorkflowGitOperationResult
+
+  /** Deletes every ref under [subtaskRefPrefix]; the value carries the deleted ref count. */
+  fun deleteCheckpointRefsUnderPrefix(
+    repoRoot: Path,
+    namespacePrefix: String,
+    subtaskRefPrefix: String,
   ): WorkflowGitOperationResult
 }

@@ -72,9 +72,9 @@ import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.WorkflowStatsRepository
 import skillbill.ports.workflow.decomposition.loadDecompositionManifest
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
-import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperationsTestBase
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
@@ -1306,12 +1306,12 @@ internal class FakeWorkflowGitOperations(
   override fun createCommit(
     repoRoot: Path,
     message: String,
-  ): WorkflowGitOperationResult {
+  ): WorkflowGitCommitResult {
     commits += message
     if (commitError.isNotBlank()) {
-      return WorkflowGitOperationResult.Failed(error = commitError)
+      return WorkflowGitCommitResult.Failed(error = commitError)
     }
-    return WorkflowGitOperationResult.Ok(value = commitSha)
+    return WorkflowGitCommitResult.Committed(commitSha = commitSha)
   }
 
   override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
@@ -1336,11 +1336,15 @@ internal class FakeWorkflowGitOperations(
     request: WorkflowSelectedDiffHunksRequest,
   ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(status = WorkflowGitOperationStatus.OK)
 
-  override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations =
-    object : RepositoryFingerprintGitOperations {
-      override fun repositoryFingerprint(repoRoot: Path): WorkflowGitOperationResult =
-        WorkflowGitOperationResult.Ok(value = "test-repository-fingerprint")
-    }
+  override fun repositoryFingerprint(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult.Ok(value = "test-repository-fingerprint")
+
+  override fun repositoryCheckpointFingerprint(
+    repoRoot: Path,
+    baseCommit: String?,
+    headCommit: String,
+    ownedPaths: List<String>,
+  ): WorkflowGitOperationResult = repositoryFingerprint(repoRoot)
 }
 
 internal fun evaluatorReceipt(verdict: String): Map<String, Any?> =

@@ -1,28 +1,15 @@
 package skillbill.ports.workflow.gitops
 
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 
 interface RuntimePhaseFileManifestGitOperations {
-  fun headCommit(repoRoot: Path): WorkflowGitOperationResult
+  fun runtimePhaseHeadCommit(repoRoot: Path): WorkflowGitOperationResult
 
-  fun changedPathsBetweenCommits(
+  fun runtimePhaseChangedPathsBetweenCommits(
     repoRoot: Path,
     beforeCommit: String,
     afterCommit: String,
-  ): WorkflowGitOperationResult
+  ): WorkflowGitNameListResult
 }
-
-fun WorkflowGitOperations.runtimePhaseHeadCommit(repoRoot: Path): WorkflowGitOperationResult =
-  runtimePhaseFileManifestOperations.headCommit(repoRoot)
-
-fun WorkflowGitOperations.runtimePhaseChangedPathsBetweenCommits(
-  repoRoot: Path,
-  beforeCommit: String,
-  afterCommit: String,
-): WorkflowGitOperationResult =
-  runtimePhaseFileManifestOperations.changedPathsBetweenCommits(
-    repoRoot,
-    beforeCommit,
-    afterCommit,
-  )

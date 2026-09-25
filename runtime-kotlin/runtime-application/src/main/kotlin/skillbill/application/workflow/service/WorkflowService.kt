@@ -49,7 +49,6 @@ import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjec
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.ports.workflow.latest
 import skillbill.ports.workflow.list
 import skillbill.ports.workflow.model.WorkflowFamily

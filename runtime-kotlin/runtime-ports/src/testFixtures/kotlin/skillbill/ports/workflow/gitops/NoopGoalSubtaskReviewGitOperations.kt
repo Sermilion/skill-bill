@@ -9,7 +9,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import java.nio.file.Path
 
 internal object NoopGoalSubtaskReviewGitOperations : GoalSubtaskReviewGitOperations {
-  override fun captureBaseline(
+  override fun captureGoalSubtaskReviewBaseline(
     repoRoot: Path,
     expectedBranch: String,
   ): GoalSubtaskReviewBaselineResult {
@@ -30,7 +30,7 @@ internal object NoopGoalSubtaskReviewGitOperations : GoalSubtaskReviewGitOperati
     }
   }
 
-  override fun buildInput(
+  override fun buildGoalSubtaskReviewInput(
     repoRoot: Path,
     baseline: GoalSubtaskReviewBaseline,
     expectedBranch: String,
@@ -47,7 +47,7 @@ internal object NoopGoalSubtaskReviewGitOperations : GoalSubtaskReviewGitOperati
     )
   }
 
-  override fun recoverBaseline(
+  override fun recoverGoalSubtaskReviewBaseline(
     repoRoot: Path,
     request: GoalSubtaskReviewBaselineRecoveryRequest,
     expectedBranch: String,

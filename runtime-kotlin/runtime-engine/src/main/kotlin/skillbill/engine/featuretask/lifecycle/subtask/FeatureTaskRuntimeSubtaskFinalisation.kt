@@ -9,10 +9,9 @@ import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskFinal
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskFinalisationResult
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskFinalised
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.ports.workflow.gitops.captureIndexState
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshot
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshotResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.restoreIndexState
-import skillbill.ports.workflow.gitops.stagePaths
 import java.nio.file.Path
 
 class FeatureTaskRuntimeSubtaskFinalisation(
@@ -46,33 +45,36 @@ class FeatureTaskRuntimeSubtaskFinalisation(
 
 internal sealed interface FinalisationStagingOutcome
 
-internal data class FinalisationStagingReady(val restoreState: String) : FinalisationStagingOutcome
+internal data class FinalisationStagingReady(val restoreState: WorkflowGitIndexSnapshot) :
+  FinalisationStagingOutcome
 
 internal data class FinalisationStagingBlocked(
   val result: FeatureTaskRuntimeSubtaskFinalisationBlocked,
 ) : FinalisationStagingOutcome
 
 internal fun FeatureTaskRuntimeSubtaskFinalisation.prepareStaging(stageable: List<String>): FinalisationStagingOutcome {
-  if (stageable.isEmpty()) return FinalisationStagingReady(restoreState = "")
-  val snapshot = gitOperations.captureIndexState(repoRoot, stageable)
-  if (snapshot !is WorkflowGitOperationResult.Ok) {
-    return FinalisationStagingBlocked(
-      blocked("the pre-finalisation index could not be captured (${snapshot.error})"),
-    )
-  }
+  if (stageable.isEmpty()) return FinalisationStagingReady(restoreState = WorkflowGitIndexSnapshot.EMPTY)
+  val indexSnapshot =
+    when (val snapshot = gitOperations.captureIndexState(repoRoot, stageable)) {
+      is WorkflowGitIndexSnapshotResult.Captured -> snapshot.snapshot
+      is WorkflowGitIndexSnapshotResult.Failed ->
+        return FinalisationStagingBlocked(
+          blocked("the pre-finalisation index could not be captured (${snapshot.error})"),
+        )
+    }
   val staged = gitOperations.stagePaths(repoRoot, stageable)
   if (staged !is WorkflowGitOperationResult.Ok) {
     return FinalisationStagingBlocked(
-      blocked(restoring(staged.error, stageable, snapshot.value.orEmpty())),
+      blocked(restoring(staged.error, stageable, indexSnapshot)),
     )
   }
-  return FinalisationStagingReady(restoreState = snapshot.value.orEmpty())
+  return FinalisationStagingReady(restoreState = indexSnapshot)
 }
 
 fun FeatureTaskRuntimeSubtaskFinalisation.commitAndPush(
   request: FeatureTaskRuntimeSubtaskFinaliseRequest,
   stageable: List<String>,
-  restoreState: String,
+  restoreState: WorkflowGitIndexSnapshot,
 ): FeatureTaskRuntimeSubtaskFinalisationResult {
   val branch = request.metadata.branch
   val decision =
@@ -166,7 +168,7 @@ private fun FeatureTaskRuntimeSubtaskFinalisation.finalizeCommittedSubtask(
 fun FeatureTaskRuntimeSubtaskFinalisation.restoring(
   error: String,
   paths: List<String>,
-  snapshot: String,
+  snapshot: WorkflowGitIndexSnapshot,
 ): String {
   val restored = gitOperations.restoreIndexState(repoRoot, paths, snapshot)
   return if (restored is WorkflowGitOperationResult.Ok) {

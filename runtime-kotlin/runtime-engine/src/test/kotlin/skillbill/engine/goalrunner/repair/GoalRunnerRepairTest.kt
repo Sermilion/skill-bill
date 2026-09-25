@@ -47,7 +47,6 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessIdentity
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.encodeManifestWireMap
-import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
@@ -1929,45 +1928,42 @@ internal abstract class GoalRunnerRepairFixtures {
         value = if (ancestorSha in unreachableShas) "false" else "true",
       )
 
-    override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations =
-      object : GoalSubtaskReviewGitOperations {
-        override fun captureBaseline(
-          repoRoot: Path,
-          expectedBranch: String,
-        ): GoalSubtaskReviewBaselineResult =
-          GoalSubtaskReviewBaselineResult(
-            status = WorkflowGitOperationStatus.OK,
-            baseline = GoalSubtaskReviewBaseline(REACHABLE_SHA, emptyList()),
-          )
+    override fun captureGoalSubtaskReviewBaseline(
+      repoRoot: Path,
+      expectedBranch: String,
+    ): GoalSubtaskReviewBaselineResult =
+      GoalSubtaskReviewBaselineResult(
+        status = WorkflowGitOperationStatus.OK,
+        baseline = GoalSubtaskReviewBaseline(REACHABLE_SHA, emptyList()),
+      )
 
-        override fun buildInput(
-          repoRoot: Path,
-          baseline: GoalSubtaskReviewBaseline,
-          expectedBranch: String,
-        ): GoalSubtaskReviewInputResult =
-          GoalSubtaskReviewInputResult(
-            status = WorkflowGitOperationStatus.OK,
-            input =
-              GoalSubtaskReviewInput(
-                reviewBaseSha = baseline.reviewBaseSha,
-                currentHeadSha = HEAD_SHA,
-                trackedDelta = "",
-                ownedUntrackedPatches = "",
-              ),
-          )
+    override fun buildGoalSubtaskReviewInput(
+      repoRoot: Path,
+      baseline: GoalSubtaskReviewBaseline,
+      expectedBranch: String,
+    ): GoalSubtaskReviewInputResult =
+      GoalSubtaskReviewInputResult(
+        status = WorkflowGitOperationStatus.OK,
+        input =
+          GoalSubtaskReviewInput(
+            reviewBaseSha = baseline.reviewBaseSha,
+            currentHeadSha = HEAD_SHA,
+            trackedDelta = "",
+            ownedUntrackedPatches = "",
+          ),
+      )
 
-        override fun recoverBaseline(
-          repoRoot: Path,
-          request: GoalSubtaskReviewBaselineRecoveryRequest,
-          expectedBranch: String,
-        ): GoalSubtaskReviewBaselineResult =
-          GoalSubtaskReviewBaselineResult(
-            status = recoveryStatus,
-            baseline =
-              recoveryStatus.takeIf { it == WorkflowGitOperationStatus.OK }
-                ?.let { request.toRecoveredBaseline(recoveredSha) },
-          )
-      }
+    override fun recoverGoalSubtaskReviewBaseline(
+      repoRoot: Path,
+      request: GoalSubtaskReviewBaselineRecoveryRequest,
+      expectedBranch: String,
+    ): GoalSubtaskReviewBaselineResult =
+      GoalSubtaskReviewBaselineResult(
+        status = recoveryStatus,
+        baseline =
+          recoveryStatus.takeIf { it == WorkflowGitOperationStatus.OK }
+            ?.let { request.toRecoveredBaseline(recoveredSha) },
+      )
   }
 
   protected object LiveProcessSupervisor : FeatureTaskRuntimeWorkerSupervisor {

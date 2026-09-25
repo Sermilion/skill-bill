@@ -8,7 +8,6 @@ import skillbill.mcp.shared.assertSqliteTimestampShape
 import skillbill.mcp.shared.assertWorkflowIdShape
 import skillbill.mcp.shared.callToolPayload
 import skillbill.mcp.shared.disabledTelemetryEnvironment
-import skillbill.ports.workflow.gitops.repositoryFingerprint
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

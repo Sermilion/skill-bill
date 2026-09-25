@@ -14,8 +14,8 @@ import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.goalrunner.execution.support.protectedBranchName
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.readiness.readinessChangedPathsAgainstBase
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
@@ -57,14 +57,12 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
     phaseGates: FeatureTaskRuntimePhaseGates,
     baseBranch: String,
   ): ReadinessChangedPaths {
-    val changed = phaseGates.gitOperations.readinessChangedPathsAgainstBase(request.repoRoot, baseBranch)
-    if (changed !is WorkflowGitOperationResult.Ok) {
-      return ReadinessChangedPaths(emptyList(), changed.error)
+    return when (
+      val changed = phaseGates.gitOperations.readinessChangedPathsAgainstBase(request.repoRoot, baseBranch)
+    ) {
+      is WorkflowGitNameListResult.Listed -> ReadinessChangedPaths(paths = changed.names, error = null)
+      is WorkflowGitNameListResult.Failed -> ReadinessChangedPaths(emptyList(), changed.error)
     }
-    return ReadinessChangedPaths(
-      paths = changed.value.orEmpty().split('\u0000').filter(String::isNotBlank),
-      error = null,
-    )
   }
 
   internal fun finalisationBranch(

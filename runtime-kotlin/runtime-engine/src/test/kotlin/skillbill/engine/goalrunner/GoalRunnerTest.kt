@@ -131,8 +131,6 @@ import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
-import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
-import skillbill.ports.workflow.gitops.ScopedStagingGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperationsTestBase
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
@@ -140,8 +138,13 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRe
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineResult
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshot
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshotResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
+import skillbill.ports.workflow.gitops.model.WorkflowPathContentIdentitiesResult
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
@@ -1253,12 +1256,7 @@ class GoalRunnerLinearScratchFinalizeTest {
       CommitAllRecordingGitOperations(
         dirtyPorcelain = " M .feature-specs/SKILL-56-goal/decomposition-manifest.yaml\n M src/Extra.kt",
         currentBranch = "feat/SKILL-56-goal",
-        commitError =
-          "git commit -m chore(SKILL-56): goal finalization commit-all on 'feat/SKILL-56-goal' " +
-            "failed with exit code 1: On branch feat/SKILL-56-goal\n" +
-            "Changes not staged for commit:\n" +
-            "\tmodified:   .feature-specs/SKILL-56-goal/decomposition-manifest.yaml\n" +
-            "no changes added to commit (use \"git add\" and/or \"git commit -a\")",
+        commitResult = WorkflowGitCommitResult.NothingToCommit,
       )
     val pullRequests = RecordingPullRequestPort()
     val store =
@@ -1286,42 +1284,6 @@ class GoalRunnerLinearScratchFinalizeTest {
       listOf("chore(SKILL-56): goal finalization commit-all on 'feat/SKILL-56-goal'"),
       git.commitMessages,
     )
-    assertTrue(git.pushedBranches.isEmpty())
-    assertEquals(1, pullRequests.openCount)
-  }
-
-  @Test
-  fun `finalize continues when the no-changes marker is returned in the commit value`() {
-    val repoRoot = Files.createTempDirectory("goal-empty-commit-value-finalize")
-    val git =
-      CommitAllRecordingGitOperations(
-        dirtyPorcelain = " M .feature-specs/SKILL-56-goal/decomposition-manifest.yaml\n M src/Extra.kt",
-        currentBranch = "feat/SKILL-56-goal",
-        commitError = "git commit failed with exit code 1: hook diagnostic",
-        commitValue = "nothing to commit",
-      )
-    val pullRequests = RecordingPullRequestPort()
-    val store =
-      InMemoryGoalManifestStore(
-        manifest =
-          manifest(subtaskCount = 1)
-            .withCompletedSubtask(1, workflowId = "wfl-1", commitSha = "sha-1")
-            .copy(executionModel = DecompositionExecutionModel.STACKED_BRANCHES),
-      )
-    val runner =
-      testGoalRunner(
-        goalRunnerDeps(
-          manifestStore = store,
-          subtaskLauncher = RecordingSubtaskLauncher { launchFacts() },
-          outcomeStore = RecordingOutcomeStore(),
-          pullRequestPort = pullRequests,
-        ).copy(
-          specScratchStore = RecordingSpecScratchStore(),
-          gitOperations = git,
-        ),
-      )
-
-    assertIs<GoalRunnerRunReport.Completed>(runner.run(linearRunRequest(repoRoot)))
     assertTrue(git.pushedBranches.isEmpty())
     assertEquals(1, pullRequests.openCount)
   }
@@ -1864,9 +1826,8 @@ private class CommitAllRecordingGitOperations(
   private val currentBranch: String,
   private val unpushedCommits: Boolean = false,
   private val pushError: String? = null,
-  private val commitError: String? = null,
-  private val commitValue: String = "",
-) : WorkflowGitOperationsTestBase() {
+  private val commitResult: WorkflowGitCommitResult? = null,
+) : GoalReviewReadyGitOperations() {
   var stageAllCalls: Int = 0
   val stagePathsCalls: MutableList<List<String>> = mutableListOf()
   val commitMessages: MutableList<String> = mutableListOf()
@@ -1892,39 +1853,36 @@ private class CommitAllRecordingGitOperations(
     return WorkflowGitOperationResult.Ok(value = "")
   }
 
-  override val scopedStagingOperations: ScopedStagingGitOperations =
-    object : ScopedStagingGitOperations {
-      override fun stagePaths(
-        repoRoot: Path,
-        paths: List<String>,
-      ): WorkflowGitOperationResult {
-        stagePathsCalls += paths
-        return WorkflowGitOperationResult.Ok(value = "")
-      }
+  override fun stagePaths(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowGitOperationResult {
+    stagePathsCalls += paths
+    return WorkflowGitOperationResult.Ok(value = "")
+  }
 
-      override fun captureIndexState(
-        repoRoot: Path,
-        paths: List<String>,
-      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+  override fun captureIndexState(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowGitIndexSnapshotResult = WorkflowGitIndexSnapshotResult.Captured(WorkflowGitIndexSnapshot.EMPTY)
 
-      override fun restoreIndexState(
-        repoRoot: Path,
-        paths: List<String>,
-        snapshot: String,
-      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+  override fun restoreIndexState(
+    repoRoot: Path,
+    paths: List<String>,
+    snapshot: WorkflowGitIndexSnapshot,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
-      override fun stagedPaths(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+  override fun stagedPaths(repoRoot: Path): WorkflowGitNameListResult = WorkflowGitNameListResult.Listed(emptyList())
 
-      override fun pathContentIdentities(
-        repoRoot: Path,
-        paths: List<String>,
-      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
-    }
+  override fun pathContentIdentities(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowPathContentIdentitiesResult = WorkflowPathContentIdentitiesResult.Resolved(emptyMap())
 
   override fun createCommit(
     repoRoot: Path,
     message: String,
-  ): WorkflowGitOperationResult {
+  ): WorkflowGitCommitResult {
     commitMessages += message
     porcelain =
       porcelain.lineSequence()
@@ -1935,8 +1893,7 @@ private class CommitAllRecordingGitOperations(
             }
         }
         .joinToString("\n")
-    return commitError?.let { WorkflowGitOperationResult.Failed(error = it, value = commitValue) }
-      ?: WorkflowGitOperationResult.Ok(value = "sha-finalize")
+    return commitResult ?: WorkflowGitCommitResult.Committed(commitSha = "sha-finalize")
   }
 
   override fun pushBranch(
@@ -1972,8 +1929,6 @@ private class CommitAllRecordingGitOperations(
     repoRoot: Path,
     request: WorkflowSelectedDiffHunksRequest,
   ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(status = WorkflowGitOperationStatus.OK)
-
-  override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations = readyGoalReviewOperations()
 }
 
 class GoalRunnerStatusProjectionTest {
@@ -4941,7 +4896,7 @@ internal class RecordingPullRequestPort : GoalPullRequestPort {
 
 private class FixedBranchGitOperations(
   private val branch: String,
-) : WorkflowGitOperationsTestBase() {
+) : GoalReviewReadyGitOperations() {
   override fun checkoutBranch(
     repoRoot: Path,
     branch: String,
@@ -4958,7 +4913,7 @@ private class FixedBranchGitOperations(
   override fun createCommit(
     repoRoot: Path,
     message: String,
-  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "sha-test")
+  ): WorkflowGitCommitResult = WorkflowGitCommitResult.Committed(commitSha = "sha-test")
 
   override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Ok(value = "sha-test")
@@ -4978,8 +4933,6 @@ private class FixedBranchGitOperations(
     repoRoot: Path,
     request: WorkflowSelectedDiffHunksRequest,
   ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(status = WorkflowGitOperationStatus.OK)
-
-  override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations = readyGoalReviewOperations()
 }
 
 internal class AcceptGitOperations(
@@ -5016,7 +4969,7 @@ private object StatusDiffGitOperations : WorkflowGitOperationsTestBase() {
   override fun createCommit(
     repoRoot: Path,
     message: String,
-  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "sha-test")
+  ): WorkflowGitCommitResult = WorkflowGitCommitResult.Committed(commitSha = "sha-test")
 
   override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Ok(value = "sha-test")
@@ -5045,8 +4998,8 @@ private class RecordingGitOperations(
   private val currentBranch: String = "",
   private val checkoutError: String? = null,
   private val validationError: String? = null,
-  private val baselineError: String? = null,
-) : WorkflowGitOperationsTestBase() {
+  baselineError: String? = null,
+) : GoalReviewReadyGitOperations(baselineError) {
   val checkouts: MutableList<String> = mutableListOf()
   val validations: MutableList<String> = mutableListOf()
 
@@ -5071,7 +5024,7 @@ private class RecordingGitOperations(
   override fun createCommit(
     repoRoot: Path,
     message: String,
-  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "sha-test")
+  ): WorkflowGitCommitResult = WorkflowGitCommitResult.Committed(commitSha = "sha-test")
 
   override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Ok(value = "sha-test")
@@ -5095,51 +5048,50 @@ private class RecordingGitOperations(
     repoRoot: Path,
     request: WorkflowSelectedDiffHunksRequest,
   ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(status = WorkflowGitOperationStatus.OK)
-
-  override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations =
-    readyGoalReviewOperations(baselineError)
 }
 
-private fun readyGoalReviewOperations(baselineError: String? = null): GoalSubtaskReviewGitOperations =
-  object : GoalSubtaskReviewGitOperations {
-    override fun captureBaseline(
-      repoRoot: Path,
-      expectedBranch: String,
-    ): GoalSubtaskReviewBaselineResult =
-      baselineError?.let {
-        GoalSubtaskReviewBaselineResult(status = WorkflowGitOperationStatus.ERROR, error = it)
-      }
-        ?: GoalSubtaskReviewBaselineResult(
-          status = WorkflowGitOperationStatus.OK,
-          baseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
-        )
-
-    override fun buildInput(
-      repoRoot: Path,
-      baseline: GoalSubtaskReviewBaseline,
-      expectedBranch: String,
-    ): GoalSubtaskReviewInputResult =
-      GoalSubtaskReviewInputResult(
+/** A git fake whose goal-subtask review capability is already ready, so subtask review never blocks a run. */
+private abstract class GoalReviewReadyGitOperations(
+  private val baselineError: String? = null,
+) : WorkflowGitOperationsTestBase() {
+  override fun captureGoalSubtaskReviewBaseline(
+    repoRoot: Path,
+    expectedBranch: String,
+  ): GoalSubtaskReviewBaselineResult =
+    baselineError?.let {
+      GoalSubtaskReviewBaselineResult(status = WorkflowGitOperationStatus.ERROR, error = it)
+    }
+      ?: GoalSubtaskReviewBaselineResult(
         status = WorkflowGitOperationStatus.OK,
-        input =
-          GoalSubtaskReviewInput(
-            reviewBaseSha = baseline.reviewBaseSha,
-            currentHeadSha = "0".repeat(40),
-            trackedDelta = "",
-            ownedUntrackedPatches = "",
-          ),
+        baseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
       )
 
-    override fun recoverBaseline(
-      repoRoot: Path,
-      request: GoalSubtaskReviewBaselineRecoveryRequest,
-      expectedBranch: String,
-    ): GoalSubtaskReviewBaselineResult =
-      GoalSubtaskReviewBaselineResult(
-        status = WorkflowGitOperationStatus.ERROR,
-        error = "Goal review baseline recovery is not used by this goal runner fixture.",
-      )
-  }
+  override fun buildGoalSubtaskReviewInput(
+    repoRoot: Path,
+    baseline: GoalSubtaskReviewBaseline,
+    expectedBranch: String,
+  ): GoalSubtaskReviewInputResult =
+    GoalSubtaskReviewInputResult(
+      status = WorkflowGitOperationStatus.OK,
+      input =
+        GoalSubtaskReviewInput(
+          reviewBaseSha = baseline.reviewBaseSha,
+          currentHeadSha = "0".repeat(40),
+          trackedDelta = "",
+          ownedUntrackedPatches = "",
+        ),
+    )
+
+  override fun recoverGoalSubtaskReviewBaseline(
+    repoRoot: Path,
+    request: GoalSubtaskReviewBaselineRecoveryRequest,
+    expectedBranch: String,
+  ): GoalSubtaskReviewBaselineResult =
+    GoalSubtaskReviewBaselineResult(
+      status = WorkflowGitOperationStatus.ERROR,
+      error = "Goal review baseline recovery is not used by this goal runner fixture.",
+    )
+}
 
 internal fun manifest(subtaskCount: Int): DecompositionManifest =
   DecompositionManifest(

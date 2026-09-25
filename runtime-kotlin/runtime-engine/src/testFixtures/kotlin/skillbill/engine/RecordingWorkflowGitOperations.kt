@@ -1,12 +1,5 @@
 package skillbill.engine
 
-import skillbill.application.decomposition.baseBranch
-import skillbill.ports.workflow.gitops.CheckpointHistoryGitOperations
-import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
-import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
-import skillbill.ports.workflow.gitops.RepositoryOwnedPathsGitOperations
-import skillbill.ports.workflow.gitops.RuntimePhaseFileManifestGitOperations
-import skillbill.ports.workflow.gitops.ScopedStagingGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperationsTestBase
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRequest
@@ -14,16 +7,18 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineResult
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputResult
 import skillbill.ports.workflow.gitops.model.ReadinessTreeIdentity
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshot
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshotResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
+import skillbill.ports.workflow.gitops.model.WorkflowPathContentIdentitiesResult
+import skillbill.ports.workflow.gitops.model.WorkflowReadinessTreeIdentityResult
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
-import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
-import skillbill.ports.workflow.gitops.readiness.encodeReadinessTreeIdentityPayload
-import skillbill.ports.workflow.gitops.worktree.LinkedWorktreeAddRequest
-import skillbill.ports.workflow.gitops.worktree.LinkedWorktreeRemoveRequest
-import skillbill.ports.workflow.gitops.worktree.WorkflowGitLinkedWorktreeOperations
+import skillbill.text.RECORD_FIELD_SEPARATOR
 import skillbill.workflow.model.goalreview.GoalObservabilityChangedFileSummary
 import skillbill.workflow.model.goalreview.GoalObservabilityDiffStat
 import skillbill.workflow.model.goalreview.GoalObservabilitySelectedDiffHunks
@@ -42,12 +37,12 @@ class RecordingWorkflowGitOperations(
   var headCommitShaValue: String = ""
   var headCommitShaResult: WorkflowGitOperationResult? = null
   val runtimePhaseHeadCommitSequence = ArrayDeque<String>()
-  var changedPathsBetweenCommitsValue: String = ""
+  var changedPathsBetweenCommitsValue: List<String> = emptyList()
   var worktreeStatusValue: String = " M src/Foo.kt"
   var worktreeStatusResult: WorkflowGitOperationResult? = null
   val worktreeStatusSequence = ArrayDeque<String>()
   var ownedPathsValue: List<String> = emptyList()
-  var ownedPathsResult: WorkflowGitOperationResult? = null
+  var ownedPathsResult: WorkflowGitNameListResult? = null
   val repositoryFingerprintSequence = ArrayDeque<String>()
   var repositoryFingerprintValue: String? = null
   var repositoryFingerprintCalls: Int = 0
@@ -58,7 +53,7 @@ class RecordingWorkflowGitOperations(
       headSha = "c".repeat(40),
     )
   val createCommitMessages = mutableListOf<String>()
-  var createCommitResult: WorkflowGitOperationResult? = null
+  var createCommitResult: WorkflowGitCommitResult? = null
   var localBranchHasUnpushedCommitsValue: Boolean = true
   var headCommitMessageValue: String = ""
   val amendCommitMessages = mutableListOf<String>()
@@ -78,13 +73,13 @@ class RecordingWorkflowGitOperations(
   val stagePathsCalls = mutableListOf<String>()
   var stagePathsResult: WorkflowGitOperationResult? = null
   var indexSnapshotValue: String = ""
-  var captureIndexStateResult: WorkflowGitOperationResult? = null
+  var captureIndexStateResult: WorkflowGitIndexSnapshotResult? = null
   val restoreIndexStateCalls = mutableListOf<String>()
   var restoreIndexStateResult: WorkflowGitOperationResult? = null
   val contentIdentities = mutableMapOf<String, String>()
   var onStagedPathsRead: (() -> Unit)? = null
   var stagedPathsValue: List<String> = emptyList()
-  var stagedPathsResult: WorkflowGitOperationResult? = null
+  var stagedPathsResult: WorkflowGitNameListResult? = null
   val goalReviewBuildInputs = mutableListOf<GoalSubtaskReviewBaseline>()
   val goalReviewBuildResults = ArrayDeque<GoalSubtaskReviewInputResult>()
   var goalReviewTrackedDelta: String = ""
@@ -130,18 +125,18 @@ class RecordingWorkflowGitOperations(
   override fun createCommit(
     repoRoot: Path,
     message: String,
-  ): WorkflowGitOperationResult {
+  ): WorkflowGitCommitResult {
     createCommitMessages += message
     if (invalidShaOnRemediationCommit && message.contains("remediation checkpoint")) {
       val bogus = "not-a-valid-commit-sha"
       headCommitShaValue = bogus
-      return WorkflowGitOperationResult.Ok(value = bogus)
+      return WorkflowGitCommitResult.Committed(commitSha = bogus)
     }
     val result =
       createCommitResult
-        ?: WorkflowGitOperationResult.Ok(value = createCommitMessages.size.toString(16).padStart(40, '0'))
-    if (result is WorkflowGitOperationResult.Ok && result.value.isNotBlank()) {
-      headCommitShaValue = result.value.trim()
+        ?: WorkflowGitCommitResult.Committed(commitSha = createCommitMessages.size.toString(16).padStart(40, '0'))
+    if (result is WorkflowGitCommitResult.Committed && result.commitSha.isNotBlank()) {
+      headCommitShaValue = result.commitSha.trim()
       headCommitMessageValue = message
     }
     return result
@@ -152,82 +147,79 @@ class RecordingWorkflowGitOperations(
     branch: String,
   ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = localBranchHasUnpushedCommitsValue.toString())
 
-  override val linkedWorktreeOperations: WorkflowGitLinkedWorktreeOperations =
-    object : WorkflowGitLinkedWorktreeOperations {
-      override fun addLinkedWorktree(request: LinkedWorktreeAddRequest) = Unit
-
-      override fun removeLinkedWorktree(request: LinkedWorktreeRemoveRequest) = Unit
+  override fun amendHeadCommit(
+    repoRoot: Path,
+    expectedOwnedHeadSha: String,
+    replacementMessage: String?,
+    allowUnchangedIndex: Boolean,
+  ): WorkflowGitOperationResult {
+    amendHeadCommitResult?.let { return it }
+    if (expectedOwnedHeadSha.trim() != headCommitShaValue.trim()) {
+      return WorkflowGitOperationResult.Failed(
+        error = "HEAD is '$headCommitShaValue' but the caller owns '$expectedOwnedHeadSha'.",
+      )
     }
-
-  override val checkpointHistoryOperations: CheckpointHistoryGitOperations =
-    object : CheckpointHistoryGitOperations {
-      override fun amendHeadCommit(
-        repoRoot: Path,
-        expectedOwnedHeadSha: String,
-        replacementMessage: String?,
-        allowUnchangedIndex: Boolean,
-      ): WorkflowGitOperationResult {
-        amendHeadCommitResult?.let { return it }
-        if (expectedOwnedHeadSha.trim() != headCommitShaValue.trim()) {
-          return WorkflowGitOperationResult.Failed(
-            error = "HEAD is '$headCommitShaValue' but the caller owns '$expectedOwnedHeadSha'.",
-          )
-        }
-        replacementMessage?.let { message ->
-          amendCommitMessages += message
-          if (invalidShaOnRemediationCommit && message.contains("remediation checkpoint")) {
-            createCommitMessages += message
-            val bogus = "not-a-valid-commit-sha"
-            headCommitShaValue = bogus
-            return WorkflowGitOperationResult.Ok(value = bogus)
-          }
-        }
-        headCommitShaValue = "a${amendCommitMessages.size.toString(16)}".padStart(40, '0')
-        headCommitMessageValue = replacementMessage ?: headCommitMessageValue
-        return WorkflowGitOperationResult.Ok(value = headCommitShaValue)
-      }
-
-      override fun headCommitMessage(repoRoot: Path): WorkflowGitOperationResult =
-        WorkflowGitOperationResult.Ok(value = headCommitMessageValue)
-
-      override fun updateRef(
-        repoRoot: Path,
-        namespacePrefix: String,
-        refName: String,
-        targetSha: String,
-      ): WorkflowGitOperationResult {
-        updateCheckpointRefCalls += refName to targetSha
-        updateCheckpointRefResult?.let { return it }
-        checkpointRefs[refName] = targetSha
-        return WorkflowGitOperationResult.Ok(value = refName)
-      }
-
-      override fun resolveRef(
-        repoRoot: Path,
-        namespacePrefix: String,
-        refName: String,
-      ): WorkflowGitOperationResult =
-        onResolveCheckpointRef?.invoke(refName)
-          ?: resolveCheckpointRefResult
-          ?: WorkflowGitOperationResult.Ok(value = checkpointRefs[refName].orEmpty())
-
-      override fun listRefs(
-        repoRoot: Path,
-        namespacePrefix: String,
-      ): WorkflowGitOperationResult =
-        WorkflowGitOperationResult.Ok(
-          value = checkpointRefs.entries.joinToString("") { (ref, sha) -> "$sha\u0000$ref\u0000" },
-        )
-
-      override fun deleteRef(
-        repoRoot: Path,
-        namespacePrefix: String,
-        refName: String,
-      ): WorkflowGitOperationResult {
-        checkpointRefs.remove(refName)
-        return WorkflowGitOperationResult.Ok(value = refName)
+    replacementMessage?.let { message ->
+      amendCommitMessages += message
+      if (invalidShaOnRemediationCommit && message.contains("remediation checkpoint")) {
+        createCommitMessages += message
+        val bogus = "not-a-valid-commit-sha"
+        headCommitShaValue = bogus
+        return WorkflowGitOperationResult.Ok(value = bogus)
       }
     }
+    headCommitShaValue = "a${amendCommitMessages.size.toString(16)}".padStart(40, '0')
+    headCommitMessageValue = replacementMessage ?: headCommitMessageValue
+    return WorkflowGitOperationResult.Ok(value = headCommitShaValue)
+  }
+
+  override fun headCommitMessage(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult.Ok(value = headCommitMessageValue)
+
+  override fun updateCheckpointRef(
+    repoRoot: Path,
+    namespacePrefix: String,
+    refName: String,
+    targetSha: String,
+  ): WorkflowGitOperationResult {
+    updateCheckpointRefCalls += refName to targetSha
+    updateCheckpointRefResult?.let { return it }
+    checkpointRefs[refName] = targetSha
+    return WorkflowGitOperationResult.Ok(value = refName)
+  }
+
+  override fun resolveCheckpointRef(
+    repoRoot: Path,
+    namespacePrefix: String,
+    refName: String,
+  ): WorkflowGitOperationResult =
+    onResolveCheckpointRef?.invoke(refName)
+      ?: resolveCheckpointRefResult
+      ?: WorkflowGitOperationResult.Ok(value = checkpointRefs[refName].orEmpty())
+
+  override fun listCheckpointRefs(
+    repoRoot: Path,
+    namespacePrefix: String,
+  ): WorkflowGitNameListResult = WorkflowGitNameListResult.Listed(checkpointRefs.keys.toList())
+
+  override fun deleteCheckpointRef(
+    repoRoot: Path,
+    namespacePrefix: String,
+    refName: String,
+  ): WorkflowGitOperationResult {
+    checkpointRefs.remove(refName)
+    return WorkflowGitOperationResult.Ok(value = refName)
+  }
+
+  override fun deleteCheckpointRefsUnderPrefix(
+    repoRoot: Path,
+    namespacePrefix: String,
+    subtaskRefPrefix: String,
+  ): WorkflowGitOperationResult {
+    val refs = checkpointRefs.keys.toList()
+    refs.forEach { refName -> checkpointRefs.remove(refName) }
+    return WorkflowGitOperationResult.Ok(value = refs.size.toString())
+  }
 
   override fun resetSoftToCommit(
     repoRoot: Path,
@@ -309,22 +301,19 @@ class RecordingWorkflowGitOperations(
         )
       }
 
-  override val runtimePhaseFileManifestOperations: RuntimePhaseFileManifestGitOperations =
-    object : RuntimePhaseFileManifestGitOperations {
-      override fun headCommit(repoRoot: Path): WorkflowGitOperationResult =
-        WorkflowGitOperationResult.Ok(
-          value = runtimePhaseHeadCommitSequence.removeFirstOrNull().orEmpty(),
-        )
+  override fun runtimePhaseHeadCommit(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult.Ok(
+      value = runtimePhaseHeadCommitSequence.removeFirstOrNull().orEmpty(),
+    )
 
-      override fun changedPathsBetweenCommits(
-        repoRoot: Path,
-        beforeCommit: String,
-        afterCommit: String,
-      ): WorkflowGitOperationResult =
-        WorkflowGitOperationResult.Ok(
-          value = if (beforeCommit == afterCommit) "" else changedPathsBetweenCommitsValue,
-        )
-    }
+  override fun runtimePhaseChangedPathsBetweenCommits(
+    repoRoot: Path,
+    beforeCommit: String,
+    afterCommit: String,
+  ): WorkflowGitNameListResult =
+    WorkflowGitNameListResult.Listed(
+      if (beforeCommit == afterCommit) emptyList() else changedPathsBetweenCommitsValue,
+    )
 
   override fun validateBranchBase(
     repoRoot: Path,
@@ -337,115 +326,90 @@ class RecordingWorkflowGitOperations(
       value = worktreeStatusSequence.removeFirstOrNull() ?: worktreeStatusValue,
     )
 
-  override val scopedStagingOperations: ScopedStagingGitOperations =
-    object : ScopedStagingGitOperations {
-      override fun stagePaths(
-        repoRoot: Path,
-        paths: List<String>,
-      ): WorkflowGitOperationResult {
-        stagePathsCalls += paths
-        return stagePathsResult ?: WorkflowGitOperationResult.Ok(value = "")
-      }
+  override fun stagePaths(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowGitOperationResult {
+    stagePathsCalls += paths
+    return stagePathsResult ?: WorkflowGitOperationResult.Ok(value = "")
+  }
 
-      override fun captureIndexState(
-        repoRoot: Path,
-        paths: List<String>,
-      ): WorkflowGitOperationResult =
-        captureIndexStateResult ?: WorkflowGitOperationResult.Ok(value = indexSnapshotValue)
+  override fun captureIndexState(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowGitIndexSnapshotResult =
+    captureIndexStateResult
+      ?: WorkflowGitIndexSnapshotResult.Captured(WorkflowGitIndexSnapshot(indexSnapshotValue))
 
-      override fun restoreIndexState(
-        repoRoot: Path,
-        paths: List<String>,
-        snapshot: String,
-      ): WorkflowGitOperationResult {
-        restoreIndexStateCalls += snapshot
-        return restoreIndexStateResult ?: WorkflowGitOperationResult.Ok(value = "")
-      }
+  override fun restoreIndexState(
+    repoRoot: Path,
+    paths: List<String>,
+    snapshot: WorkflowGitIndexSnapshot,
+  ): WorkflowGitOperationResult {
+    restoreIndexStateCalls += snapshot.encoded
+    return restoreIndexStateResult ?: WorkflowGitOperationResult.Ok(value = "")
+  }
 
-      override fun stagedPaths(repoRoot: Path): WorkflowGitOperationResult {
-        onStagedPathsRead?.invoke()
-        return stagedPathsResult ?: WorkflowGitOperationResult.Ok(
-          value = stagedPathsValue.joinToString(separator = "") { "$it\u0000" },
-        )
-      }
+  override fun stagedPaths(repoRoot: Path): WorkflowGitNameListResult {
+    onStagedPathsRead?.invoke()
+    return stagedPathsResult ?: WorkflowGitNameListResult.Listed(stagedPathsValue)
+  }
 
-      override fun pathContentIdentities(
-        repoRoot: Path,
-        paths: List<String>,
-      ): WorkflowGitOperationResult =
-        WorkflowGitOperationResult.Ok(
-          value =
-            paths.joinToString(separator = "\u0000") { path ->
-              "${contentIdentities[path] ?: "identity"}\t$path"
-            },
-        )
-    }
+  override fun pathContentIdentities(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowPathContentIdentitiesResult =
+    WorkflowPathContentIdentitiesResult.Resolved(
+      identities = paths.associateWith { path -> contentIdentities[path] ?: "identity" },
+    )
 
-  override val repositoryOwnedPathsOperations: RepositoryOwnedPathsGitOperations =
-    object : RepositoryOwnedPathsGitOperations {
-      override fun ownedPaths(repoRoot: Path): WorkflowGitOperationResult =
-        ownedPathsResult
-          ?: WorkflowGitOperationResult.Ok(
-            value = ownedPathsValue.joinToString(separator = "") { "$it\u0000" },
-          )
-    }
+  override fun repositoryOwnedPaths(repoRoot: Path): WorkflowGitNameListResult =
+    ownedPathsResult ?: WorkflowGitNameListResult.Listed(ownedPathsValue)
 
-  override val readinessTreeIdentityOperations: ReadinessTreeIdentityGitOperations =
-    object : ReadinessTreeIdentityGitOperations {
-      override fun resolveReadinessTreeIdentity(
-        repoRoot: Path,
-        baseBranch: String,
-        workflowId: String,
-      ): WorkflowGitOperationResult =
-        WorkflowGitOperationResult.Ok(
-          value =
-            encodeReadinessTreeIdentityPayload(
-              readinessTreeIdentity.copy(headSha = headCommitShaValue.ifBlank { readinessTreeIdentity.headSha }),
-            ),
-        )
+  override fun resolveReadinessTreeIdentity(
+    repoRoot: Path,
+    baseBranch: String,
+    workflowId: String,
+  ): WorkflowReadinessTreeIdentityResult =
+    WorkflowReadinessTreeIdentityResult.Resolved(
+      identity = readinessTreeIdentity.copy(headSha = headCommitShaValue.ifBlank { readinessTreeIdentity.headSha }),
+    )
 
-      override fun changedPathsAgainstBase(
-        repoRoot: Path,
-        baseBranch: String,
-      ): WorkflowGitOperationResult =
-        WorkflowGitOperationResult.Ok(
-          value = ownedPathsValue.joinToString(separator = "\u0000"),
-        )
-    }
+  override fun readinessChangedPathsAgainstBase(
+    repoRoot: Path,
+    baseBranch: String,
+  ): WorkflowGitNameListResult = WorkflowGitNameListResult.Listed(ownedPathsValue)
 
-  override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations =
-    object : RepositoryFingerprintGitOperations {
-      override fun repositoryFingerprint(repoRoot: Path): WorkflowGitOperationResult {
-        repositoryFingerprintCalls += 1
-        return WorkflowGitOperationResult.Ok(
-          value =
-            repositoryFingerprintSequence.removeFirstOrNull()
-              ?: repositoryFingerprintValue
-              ?: "repository-fingerprint-$repositoryFingerprintCalls",
-        )
-      }
+  override fun repositoryFingerprint(repoRoot: Path): WorkflowGitOperationResult {
+    repositoryFingerprintCalls += 1
+    return WorkflowGitOperationResult.Ok(
+      value =
+        repositoryFingerprintSequence.removeFirstOrNull()
+          ?: repositoryFingerprintValue
+          ?: "repository-fingerprint-$repositoryFingerprintCalls",
+    )
+  }
 
-      override fun repositoryCheckpointFingerprint(
-        repoRoot: Path,
-        baseCommit: String?,
-        headCommit: String,
-        ownedPaths: List<String>,
-      ): WorkflowGitOperationResult {
-        repositoryFingerprintCalls += 1
-        val scopeHash =
-          listOf(
-            baseCommit.orEmpty(),
-            headCommit,
-            ownedPaths.distinct().sorted().joinToString("\u0000"),
-          ).joinToString("\u0000").hashCode().toUInt().toString(16)
-        return WorkflowGitOperationResult.Ok(
-          value =
-            repositoryFingerprintSequence.removeFirstOrNull()
-              ?: repositoryFingerprintValue
-              ?: "repository-checkpoint-$scopeHash",
-        )
-      }
-    }
+  override fun repositoryCheckpointFingerprint(
+    repoRoot: Path,
+    baseCommit: String?,
+    headCommit: String,
+    ownedPaths: List<String>,
+  ): WorkflowGitOperationResult {
+    repositoryFingerprintCalls += 1
+    val scopeHash =
+      listOf(
+        baseCommit.orEmpty(),
+        headCommit,
+        ownedPaths.distinct().sorted().joinToString(RECORD_FIELD_SEPARATOR),
+      ).joinToString(RECORD_FIELD_SEPARATOR).hashCode().toUInt().toString(16)
+    return WorkflowGitOperationResult.Ok(
+      value =
+        repositoryFingerprintSequence.removeFirstOrNull()
+          ?: repositoryFingerprintValue
+          ?: "repository-checkpoint-$scopeHash",
+    )
+  }
 
   override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult =
     WorkflowWorktreeActivityResult(
@@ -471,47 +435,44 @@ class RecordingWorkflowGitOperations(
       selectedDiffHunks = GoalObservabilitySelectedDiffHunks(),
     )
 
-  override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations =
-    object : GoalSubtaskReviewGitOperations {
-      override fun captureBaseline(
-        repoRoot: Path,
-        expectedBranch: String,
-      ) = GoalSubtaskReviewBaselineResult(
-        status = WorkflowGitOperationStatus.OK,
-        baseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
-      )
+  override fun captureGoalSubtaskReviewBaseline(
+    repoRoot: Path,
+    expectedBranch: String,
+  ) = GoalSubtaskReviewBaselineResult(
+    status = WorkflowGitOperationStatus.OK,
+    baseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
+  )
 
-      override fun buildInput(
-        repoRoot: Path,
-        baseline: GoalSubtaskReviewBaseline,
-        expectedBranch: String,
-      ): GoalSubtaskReviewInputResult {
-        goalReviewBuildInputs += baseline
-        return goalReviewBuildResults.removeFirstOrNull() ?: GoalSubtaskReviewInputResult(
-          status = WorkflowGitOperationStatus.OK,
-          input =
-            GoalSubtaskReviewInput(
-              reviewBaseSha = baseline.reviewBaseSha,
-              currentHeadSha = baseline.reviewBaseSha,
-              trackedDelta = goalReviewTrackedDelta,
-              ownedUntrackedPatches = "",
-            ),
-        )
-      }
+  override fun buildGoalSubtaskReviewInput(
+    repoRoot: Path,
+    baseline: GoalSubtaskReviewBaseline,
+    expectedBranch: String,
+  ): GoalSubtaskReviewInputResult {
+    goalReviewBuildInputs += baseline
+    return goalReviewBuildResults.removeFirstOrNull() ?: GoalSubtaskReviewInputResult(
+      status = WorkflowGitOperationStatus.OK,
+      input =
+        GoalSubtaskReviewInput(
+          reviewBaseSha = baseline.reviewBaseSha,
+          currentHeadSha = baseline.reviewBaseSha,
+          trackedDelta = goalReviewTrackedDelta,
+          ownedUntrackedPatches = "",
+        ),
+    )
+  }
 
-      override fun recoverBaseline(
-        repoRoot: Path,
-        request: GoalSubtaskReviewBaselineRecoveryRequest,
-        expectedBranch: String,
-      ): GoalSubtaskReviewBaselineResult {
-        goalReviewRecoverCalls++
-        goalReviewRecoverRequests += request
-        return goalReviewRecoveredBaseline?.let {
-          GoalSubtaskReviewBaselineResult(status = WorkflowGitOperationStatus.OK, baseline = it)
-        } ?: GoalSubtaskReviewBaselineResult(
-          status = WorkflowGitOperationStatus.ERROR,
-          error = "no recovered baseline configured",
-        )
-      }
-    }
+  override fun recoverGoalSubtaskReviewBaseline(
+    repoRoot: Path,
+    request: GoalSubtaskReviewBaselineRecoveryRequest,
+    expectedBranch: String,
+  ): GoalSubtaskReviewBaselineResult {
+    goalReviewRecoverCalls++
+    goalReviewRecoverRequests += request
+    return goalReviewRecoveredBaseline?.let {
+      GoalSubtaskReviewBaselineResult(status = WorkflowGitOperationStatus.OK, baseline = it)
+    } ?: GoalSubtaskReviewBaselineResult(
+      status = WorkflowGitOperationStatus.ERROR,
+      error = "no recovered baseline configured",
+    )
+  }
 }

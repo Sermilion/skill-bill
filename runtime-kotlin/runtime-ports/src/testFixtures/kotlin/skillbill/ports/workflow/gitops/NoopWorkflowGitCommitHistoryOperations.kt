@@ -1,5 +1,6 @@
 package skillbill.ports.workflow.gitops
 
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 
@@ -7,9 +8,9 @@ internal object NoopWorkflowGitCommitHistoryOperations : WorkflowGitCommitHistor
   override fun createCommit(
     repoRoot: Path,
     message: String,
-  ): WorkflowGitOperationResult {
-    return WorkflowGitOperationResult.Ok(
-      value = "recorded:${message.hashCode().toUInt().toString(HASH_RADIX_HEX)}",
+  ): WorkflowGitCommitResult {
+    return WorkflowGitCommitResult.Committed(
+      commitSha = "recorded:${message.hashCode().toUInt().toString(HASH_RADIX_HEX)}",
     )
   }
 
@@ -40,4 +41,20 @@ internal object NoopWorkflowGitCommitHistoryOperations : WorkflowGitCommitHistor
       value = if (ancestorSha.trim() == descendantSha.trim()) "true" else "true",
     )
   }
+
+  override fun resolveCommit(
+    repoRoot: Path,
+    revision: String,
+  ): WorkflowGitOperationResult =
+    WorkflowGitOperationResult.Failed(
+      error = "This git operations implementation cannot resolve commit '$revision'.",
+    )
+
+  override fun readHeadTrackedFile(
+    repoRoot: Path,
+    repoRelativePath: String,
+  ): WorkflowGitOperationResult =
+    WorkflowGitOperationResult.Failed(
+      error = "This git operations implementation cannot read tracked file '$repoRelativePath' at HEAD.",
+    )
 }

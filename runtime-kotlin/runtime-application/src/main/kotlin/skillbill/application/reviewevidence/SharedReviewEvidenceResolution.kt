@@ -6,13 +6,12 @@ import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceDerivation
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceRequest
+import skillbill.text.RECORD_FIELD_SEPARATOR
 import skillbill.text.sha256HexUtf8
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceFileEntry
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeSharedEvidenceHunkEntry
 import java.nio.file.Path
-
-private const val KEY_SEPARATOR: String = "\u0000"
 
 internal data class SharedReviewEvidenceQuery(
   val repoRoot: Path,
@@ -80,7 +79,7 @@ internal class SharedReviewEvidenceResolution(
     if (scope != ParallelReviewScope.BRANCH && scope != ParallelReviewScope.PR) return null
     val key = listOf(scope.name, range.baseRevision, range.headRevision)
     return FeatureTaskRuntimeRepositoryCheckpoint(
-      fingerprint = sha256HexUtf8(key.joinToString(KEY_SEPARATOR)),
+      fingerprint = sha256HexUtf8(key.joinToString(RECORD_FIELD_SEPARATOR)),
       baseRef = range.baseRevision,
       headRef = range.headRevision,
     )
