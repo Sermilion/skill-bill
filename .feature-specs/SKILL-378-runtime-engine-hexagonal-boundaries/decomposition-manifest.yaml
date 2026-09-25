@@ -10,7 +10,7 @@ feature_branch: "feat/SKILL-378-runtime-engine-hexagonal-boundaries"
 stack_branches: []
 current_subtask_intent:
   subtask_id: 2
-  action: "start"
+  action: "resume"
 subtasks:
 - id: 1
   name: "Delete experiment support and close engine guard gaps"
@@ -28,12 +28,12 @@ subtasks:
 - id: 2
   name: "Feature-task step classes"
   spec_path: ".feature-specs/SKILL-378-runtime-engine-hexagonal-boundaries/spec_subtask_2_feature-task-run-loop-step-classes.md"
-  status: "pending"
+  status: "in_progress"
   branch: null
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wftr-20260925-080541-07fo"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "implement"
   linear_issue_id: null
   finalizing_agent_id: null
   participating_agent_ids: []

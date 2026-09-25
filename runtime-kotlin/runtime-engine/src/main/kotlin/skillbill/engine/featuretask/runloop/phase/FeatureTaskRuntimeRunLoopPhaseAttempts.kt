@@ -1,8 +1,5 @@
 package skillbill.engine.featuretask.runloop.phase
 
-import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
-import skillbill.engine.featuretask.lifecycle.continuation.GoalContinuationStateRecordRequest
-import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeProducerOutputRead
@@ -11,19 +8,14 @@ import skillbill.engine.featuretask.model.review.FeatureTaskRuntimeRejectedOutpu
 import skillbill.engine.featuretask.phase.prompt.directives.PriorAttemptCorrection
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.core.AttemptResult
-import skillbill.engine.featuretask.runloop.core.BlockAndPersistArgs
-import skillbill.engine.featuretask.runloop.core.BlockAndPersistInPhaseArgs
 import skillbill.engine.featuretask.runloop.core.BlockAndPersistPayload
 import skillbill.engine.featuretask.runloop.core.CapturedPhaseOutput
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
-import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopPlanningBranch
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
 import skillbill.engine.featuretask.runloop.core.FindingsOwedKind
 import skillbill.engine.featuretask.runloop.core.FixLoopBranchContext
 import skillbill.engine.featuretask.runloop.core.MissingProducerAgentBlockArgs
 import skillbill.engine.featuretask.runloop.core.MissingProducerAgentResolutionArgs
-import skillbill.engine.featuretask.runloop.core.PauseAndPersistInPhaseArgs
-import skillbill.engine.featuretask.runloop.core.PauseAtArgs
 import skillbill.engine.featuretask.runloop.core.PhaseAttemptContext
 import skillbill.engine.featuretask.runloop.core.PhaseBlockRequest
 import skillbill.engine.featuretask.runloop.core.PhaseOutcome
@@ -36,32 +28,28 @@ import skillbill.engine.featuretask.runloop.core.RejectedOutputTargetingOverride
 import skillbill.engine.featuretask.runloop.core.SettleRecordRejectionArgs
 import skillbill.engine.featuretask.runloop.core.UnattributableRecordRejectionArgs
 import skillbill.engine.featuretask.runloop.core.WriteQuarantineRejectedOutputArgs
+import skillbill.engine.featuretask.runloop.core.WriteUnattributableRejectedEvidenceArgs
 import skillbill.engine.featuretask.runloop.core.defaultRejectedOutputTargetingArgs
 import skillbill.engine.featuretask.runloop.core.phaseBlockArgs
 import skillbill.engine.featuretask.runloop.core.withDisposition
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeContinuationKind
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
-import skillbill.engine.featuretask.runloop.observability.blocked
 import skillbill.engine.featuretask.runloop.observability.continuation
 import skillbill.engine.featuretask.runloop.observability.fixLoopIteration
-import skillbill.engine.featuretask.runloop.observability.paused
-import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputPersistence
-import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopRecordRejection
+import skillbill.engine.featuretask.runloop.output.payloadFreeRejectionReason
+import skillbill.engine.featuretask.runloop.output.rejectionPath
+import skillbill.engine.featuretask.runloop.output.retryRejectionReason
 import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopAttemptSettlement
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeNonOutputAttempt
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runloop.state.validationRemainingDetail
-import skillbill.engine.featuretask.runner.STATUS_BLOCKED
-import skillbill.engine.featuretask.runner.STATUS_PAUSED
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
-import skillbill.engine.featuretask.runner.isProcessFailureBlockReason
 import skillbill.engine.featuretask.runner.nonRetryingPhaseSchemaBlockReason
 import skillbill.engine.featuretask.runner.withSchemaGateDetail
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.audit.FeatureTaskRuntimeQuarantineEntry
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.FeatureTaskRuntimeImplementationAttemptStatus
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
@@ -82,7 +70,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     val agentId = context.agentId
     loop.continuationSegmentCount += 1
     if (!FeatureTaskRuntimeRunLoopPhaseAttempts.recordIncompleteAttempt(recorder, run, loop.iteration, attempt)) {
-      return blockInPhase(
+      return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
         request,
         state,
         recorder,
@@ -172,7 +160,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     val remaining = requireNotNull(attempt.validationRemainingFingerprint)
     val detail = requireNotNull(attempt.validationRemainingDetail)
     if (loop.validationRemainingFingerprint != null && loop.validationRemainingFingerprint == remaining) {
-      return blockInPhase(
+      return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
         request,
         state,
         recorder,
@@ -235,7 +223,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
           )
       }
     blockReason?.let { reason ->
-      return blockInPhase(
+      return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
         request,
         state,
         recorder,
@@ -303,7 +291,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
       observability.fixLoopIteration(run.phaseId, agentId, loop.iteration, loop.malformedAttemptCount)
       return null
     }
-    return blockInPhase(
+    return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
       request,
       state,
       recorder,
@@ -330,7 +318,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     context: FixLoopBranchContext,
   ): PhaseOutcome {
     val attempt = context.attempt
-    return blockInPhase(
+    return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
       request,
       state,
       recorder,
@@ -367,7 +355,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     val observability = context.observability
     val agentId = context.agentId
     if (!FeatureTaskRuntimePhaseWorkflowDefinition.retriesOnInvalidOutput(run.phaseId)) {
-      return blockInPhase(
+      return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
         request,
         state,
         recorder,
@@ -399,136 +387,6 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     return null
   }
 
-  internal fun blockInPhase(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    observability: FeatureTaskRuntimeRunObservability,
-    block: PhaseBlockRequest,
-  ): PhaseOutcome =
-    FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
-      request,
-      state,
-      recorder,
-      null,
-      phaseBlockArgs(
-        block.run,
-        block.attemptCount,
-        block.reason,
-        block.observability,
-        block.payload,
-      ).withDisposition(block.failureDisposition),
-    )
-
-  internal fun settleSemanticFailure(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    observability: FeatureTaskRuntimeRunObservability,
-    context: FixLoopBranchContext,
-  ): PhaseOutcome? {
-    val run = context.run
-    val attempt = context.attempt
-    val loop = context.loop
-    val observability = context.observability
-    val agentId = context.agentId
-    if (!FeatureTaskRuntimePhaseWorkflowDefinition.retriesOnInvalidOutput(run.phaseId)) {
-      return blockNonRetryableSemanticFailure(request, state, recorder, context)
-    }
-    loop.outputGateFailures += 1
-    FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(run.phaseId, loop.outputGateFailures)?.let { capReason ->
-      return FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
-        request,
-        state,
-        recorder,
-        observability,
-        PhaseBlockRequest(
-          run = run,
-          attemptCount = loop.iteration,
-          reason = withSchemaGateDetail(capReason, requireNotNull(attempt.retryableOperatorReason)),
-          observability = observability,
-          payload =
-            BlockAndPersistPayload(
-              fileManifest = attempt.fileManifest,
-              rejectedOutput = attempt.rejectedOutput,
-            ),
-          failureDisposition = FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
-        ),
-      )
-    }
-    val failedIteration = loop.semanticIteration
-    loop.iteration += 1
-    loop.semanticIteration += 1
-    loop.priorCorrection =
-      attempt.semanticRetryReason?.let { retryReason ->
-        PriorAttemptCorrection.schemaGate(
-          retryReason,
-          correctiveRepairContext = attempt.correctiveRepairContext,
-        )
-      }
-    observability.fixLoopIteration(run.phaseId, agentId, loop.iteration, failedIteration)
-    return null
-  }
-
-  private fun blockNonRetryableSemanticFailure(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    context: FixLoopBranchContext,
-  ): PhaseOutcome {
-    val run = context.run
-    val attempt = context.attempt
-    return blockInPhase(
-      request,
-      state,
-      recorder,
-      context.observability,
-      PhaseBlockRequest(
-        run = run,
-        attemptCount = context.loop.iteration,
-        reason =
-          withSchemaGateDetail(
-            nonRetryingPhaseSchemaBlockReason(run.phaseId),
-            requireNotNull(attempt.retryableOperatorReason),
-          ),
-        observability = context.observability,
-        payload =
-          BlockAndPersistPayload(
-            fileManifest = attempt.fileManifest,
-            rejectedOutput = attempt.rejectedOutput,
-          ),
-        failureDisposition = FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
-      ),
-    )
-  }
-
-  internal fun durableNonOutputAttempts(
-    state: FeatureTaskRuntimeRunState,
-    run: PhaseRun,
-  ): List<FeatureTaskRuntimeNonOutputAttempt> =
-    state.trailingNonOutputAttempts(run.phaseId) { reason -> isProcessFailureBlockReason(run.phaseId, reason) }
-
-  internal fun operatorReopenedPhase(
-    session: FeatureTaskRuntimeRunLoopSession,
-    phaseId: String,
-  ): Boolean = session.operatorBlockRetry?.phaseId == phaseId && !session.operatorBlockRetryCompleted
-
-  internal fun durableContinuationSegmentCount(
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    run: PhaseRun,
-  ): Int {
-    if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(run.phaseId)) return 0
-    val attempts =
-      recorder.loadImplementationAttempts(run.request.workflowId)
-        ?: return 0
-    return attempts.count {
-      it.phaseId == run.phaseId &&
-        it.loopId == run.reentry?.loopId &&
-        it.edgeIteration == run.reentry?.edgeIteration &&
-        it.status == FeatureTaskRuntimeImplementationAttemptStatus.INCOMPLETE
-    }
-  }
-
   internal fun recordIncompleteAttempt(
     recorder: FeatureTaskRuntimePhaseRecorder,
     run: PhaseRun,
@@ -551,167 +409,154 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     )
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.blockAndPersist(args: BlockAndPersistArgs): PhaseOutcome =
-    blockAndPersistCore(request, state, recorder, goalContinuationRecorder, args)
-
-  internal fun blockAndPersist(
+  internal fun blockUnattributableRecordRejection(
     request: FeatureTaskRuntimeRunRequest,
     state: FeatureTaskRuntimeRunState,
     recorder: FeatureTaskRuntimePhaseRecorder,
-    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder?,
-    args: BlockAndPersistArgs,
-  ): PhaseOutcome = blockAndPersistCore(request, state, recorder, goalContinuationRecorder, args)
-
-  internal fun blockAndPersistInPhase(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder?,
-    args: BlockAndPersistInPhaseArgs,
-  ): PhaseOutcome =
-    blockAndPersistCore(
+    observability: FeatureTaskRuntimeRunObservability,
+    args: UnattributableRecordRejectionArgs,
+  ): PhaseOutcome {
+    val run = args.context.run
+    val state = args.context.state
+    val iteration = args.context.iteration
+    val observability = args.context.observability
+    val rejection = args.rejection
+    val producer = args.producer
+    val detail =
+      payloadFreeRejectionReason(
+        "reconciliation-${rejection.rejectionClass}",
+        rejectionPath(rejection.rejectionDetail),
+      )
+    recordUnattributableRejectedEvidence(request, recorder, run, state, rejection)
+    return FeatureTaskRuntimeRunLoopPhaseBlocking.blockAndPersistInPhase(
       request,
       state,
       recorder,
-      goalContinuationRecorder,
-      BlockAndPersistArgs(
-        run = args.run,
-        attemptCount = args.attemptCount,
-        reason = args.reason,
-        observability = args.observability,
-        loopId = args.run.reentry?.loopId,
-        edgeIteration = args.run.reentry?.edgeIteration,
-        failureDisposition = args.failureDisposition,
-        payload = args.payload,
-      ),
+      null,
+      phaseBlockArgs(
+        run = run,
+        attemptCount = iteration,
+        reason = unattributableRecordRejectionReason(run.phaseId, rejection, producer, detail),
+        observability = observability,
+        payload = BlockAndPersistPayload(childNeverLaunched = true),
+      ).withDisposition(FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION),
     )
-
-  private fun blockAndPersistCore(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder?,
-    args: BlockAndPersistArgs,
-  ): PhaseOutcome {
-    val run = args.run
-    val attemptCount = args.attemptCount
-    val reason = args.reason
-    val observability = args.observability
-    val loopId = args.loopId
-    val edgeIteration = args.edgeIteration
-    val failureDisposition = args.failureDisposition
-    val fileManifest = args.payload.fileManifest
-    val outputArtifact = args.payload.outputArtifact
-    val normalizedOutput = args.payload.normalizedOutput
-    val repairEvidence = args.payload.repairEvidence
-    val rejectedOutput = args.payload.rejectedOutput
-    val childNeverLaunched = args.payload.childNeverLaunched
-    val phaseState =
-      FeatureTaskRuntimePhaseStateRequest(
-        workflowId = run.request.workflowId,
-        phaseId = run.phaseId,
-        status = STATUS_BLOCKED,
-        attemptCount = attemptCount.coerceAtLeast(1),
-        resolvedAgentId = run.resolvedAgent.resolvedAgentId,
-        finished = false,
-        outputArtifact =
-          normalizedOutput?.canonicalJson
-            ?: outputArtifact
-            ?: state.outputFor(run.phaseId)?.payload,
-        rejectedOutput = rejectedOutput,
-        normalizedOutput = normalizedOutput,
-        repairEvidence = repairEvidence,
-        blockedReason = reason,
-        failureDisposition = failureDisposition,
-        fileManifestBefore = fileManifest?.before.orEmpty(),
-        fileManifestAfter = fileManifest?.after.orEmpty(),
-        fileManifestIntroduced = fileManifest?.introduced.orEmpty(),
-        loopId = loopId,
-        edgeIteration = edgeIteration,
-        reviewPassNumber =
-          goalContinuationRecorder?.let { recorder ->
-            FeatureTaskRuntimeRunLoopOutputPersistence.reviewPassNumber(
-              request,
-              recorder,
-              run,
-              state,
-            )
-          },
-        launchOutcomeKnown = childNeverLaunched,
-      )
-    state.reserveReviewPass(phaseState.reviewPassNumber)
-    recorder.recordPhaseState(
-      phaseState,
-    )
-    observability.blocked(run.phaseId, run.resolvedAgent.resolvedAgentId, attemptCount.coerceAtLeast(1), reason)
-    return PhaseOutcome.blocked(reason)
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.pauseAndPersistInPhase(
-    args: PauseAndPersistInPhaseArgs,
-  ): PhaseOutcome {
-    val run = args.run
-    val attemptCount = args.attemptCount
-    val reason = args.reason
-    val observability = args.observability
-    val fileManifest = args.fileManifest
-    val attempt = attemptCount.coerceAtLeast(1)
-    if (isGoalContinuationRun(request)) {
-      goalContinuationRecorder.recordGoalContinuationState(
-        GoalContinuationStateRecordRequest(
-          workflowId = request.workflowId,
-          workflowStatus = STATUS_PAUSED,
-        ),
+  internal fun recordUnattributableRejectedEvidence(
+    request: FeatureTaskRuntimeRunRequest,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    run: PhaseRun,
+    state: FeatureTaskRuntimeRunState,
+    rejection: RecordRejection,
+  ) {
+    val detail =
+      payloadFreeRejectionReason(
+        "reconciliation-${rejection.rejectionClass}",
+        rejectionPath(rejection.rejectionDetail),
+      )
+    val rejectedOutput =
+      run.declaration.projectionDeclarations
+        .asSequence()
+        .map { it.producerIteration.phaseId }
+        .distinct()
+        .mapNotNull { phaseId -> state.outputFor(phaseId) }
+        .firstOrNull()
+    val evidence =
+      rejectedOutput?.let { output ->
+        unattributableProducerEvidence(request, recorder, state, output)
+      }
+    evidence?.let {
+      writeUnattributableRejectedEvidence(
+        WriteUnattributableRejectedEvidenceArgs(state, recorder, run, rejection, detail, it),
       )
     }
-    recorder.recordPhaseState(
-      FeatureTaskRuntimePhaseStateRequest(
-        workflowId = request.workflowId,
-        phaseId = run.phaseId,
-        status = STATUS_PAUSED,
-        attemptCount = attempt,
-        resolvedAgentId = run.resolvedAgent.resolvedAgentId,
-        finished = false,
-        outputArtifact = state.outputFor(run.phaseId)?.payload,
-        blockedReason = reason,
-        failureDisposition = FeatureTaskRuntimeFailureDisposition.RETRYABLE,
-        fileManifestBefore = fileManifest?.before.orEmpty(),
-        fileManifestAfter = fileManifest?.after.orEmpty(),
-        fileManifestIntroduced = fileManifest?.introduced.orEmpty(),
-        loopId = run.reentry?.loopId,
-        edgeIteration = run.reentry?.edgeIteration,
-        launchOutcomeKnown = false,
-      ),
-    )
-    observability.paused(run.phaseId, run.resolvedAgent.resolvedAgentId, attempt, reason)
-    FeatureTaskRuntimeRunLoopPlanningBranch.pauseAt(
-      PauseAtArgs(
-        request = request,
-        state = state,
-        session = session,
-        phaseId = run.phaseId,
-        reason = reason,
-        resumableStep = run.phaseId,
-      ),
-    )
-    return PhaseOutcome.paused(reason)
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.blockAndPersistInPhase(
-    args: BlockAndPersistInPhaseArgs,
-  ): PhaseOutcome =
-    blockAndPersist(
-      BlockAndPersistArgs(
-        run = args.run,
-        attemptCount = args.attemptCount,
-        reason = args.reason,
-        observability = args.observability,
-        loopId = args.run.reentry?.loopId,
-        edgeIteration = args.run.reentry?.edgeIteration,
-        failureDisposition = args.failureDisposition,
-        payload = args.payload,
+  private fun unattributableProducerEvidence(
+    request: FeatureTaskRuntimeRunRequest,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    state: FeatureTaskRuntimeRunState,
+    output: FeatureTaskRuntimePhaseOutput,
+  ): ProducerOutputEvidence? {
+    val agentId = state.recordFor(output.phaseId)?.resolvedAgentId ?: return null
+    return when (
+      val read =
+        recorder.producerOutput(
+          ProducerOutputQueryArgs(
+            workflowId = request.workflowId,
+            phaseId = output.phaseId,
+            attempt = output.iteration.coerceAtLeast(1),
+            agentId = agentId,
+            generation = state.evidenceGeneration(output.phaseId),
+          ),
+        )
+    ) {
+      is FeatureTaskRuntimeProducerOutputRead.Found -> read.evidence
+      is FeatureTaskRuntimeProducerOutputRead.Absent,
+      is FeatureTaskRuntimeProducerOutputRead.Unreadable,
+      -> null
+    }
+  }
+
+  private fun writeUnattributableRejectedEvidence(args: WriteUnattributableRejectedEvidenceArgs) {
+    val state = args.state
+    val recorder = args.recorder
+    val run = args.run
+    val rejection = args.rejection
+    val detail = args.detail
+    val evidence = args.evidence
+    val payload = evidence.payload ?: byteArrayOf()
+    FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(
+      state,
+      recorder,
+      RecordRejectedOutputArgs(
+        run = run,
+        iteration = evidence.attempt,
+        rule = "reconciliation-${rejection.rejectionClass}",
+        reason = retryRejectionReason(detail, rejection.rejectionDetail),
+        captured =
+          CapturedPhaseOutput(
+            text = payload.decodeToString(),
+            bytes = payload,
+            truncated = evidence.payload == null,
+            byteSize = evidence.byteSize,
+            sha256 = evidence.sha256,
+          ),
+        targeting =
+          FeatureTaskRuntimeRunLoopAttemptSettlement.rejectedOutputTargeting(
+            defaultRejectedOutputTargetingArgs(
+              run,
+              RejectedOutputTargetingOverrides(
+                phaseId = evidence.phaseId,
+                agentId = evidence.agentId,
+                model = evidence.model,
+                path = rejectionPath(rejection.rejectionDetail),
+                repairTurn = evidence.repairTurn,
+              ),
+            ),
+          ),
       ),
     )
+  }
+
+  internal fun unattributableRecordRejectionReason(
+    consumerPhaseId: String,
+    rejection: RecordRejection,
+    producer: String?,
+    detail: String,
+  ): String =
+    if (producer == null) {
+      "Feature-task-runtime phase '$consumerPhaseId' rejected an upstream durable record " +
+        "(${rejection.rejectionClass}) it cannot attribute to a producing phase, so no regeneration edge " +
+        "applies; the run blocks durably. Recover the record out of band by deleting or migrating the " +
+        "offending row. Detail: $detail"
+    } else {
+      "Feature-task-runtime phase '$consumerPhaseId' rejected the durable record produced by '$producer', but " +
+        "'$producer' is absent from this run's resolved pipeline (a goal-continuation truncation dropped it), " +
+        "so it cannot be regenerated in-band; the run blocks durably. Recover the record out of band by " +
+        "deleting or migrating the offending row. Detail: $detail"
+    }
 
   internal fun FeatureTaskRuntimeRunLoopContext.settleRecordRejection(args: SettleRecordRejectionArgs): PhaseOutcome {
     val run = args.run
@@ -721,7 +566,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     val rejection = args.rejection
     val regeneration = FeatureTaskRuntimeRunLoopPhaseAttempts.recordRejectionRegenerationEdge(transitions, run.phaseId)
     if (regeneration == null) {
-      return FeatureTaskRuntimeRunLoopRecordRejection.blockUnattributableRecordRejection(
+      return FeatureTaskRuntimeRunLoopPhaseAttempts.blockUnattributableRecordRejection(
         request,
         state,
         recorder,
@@ -884,7 +729,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     observability: FeatureTaskRuntimeRunObservability,
     args: MissingProducerAgentBlockArgs,
   ): PhaseOutcome =
-    FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+    FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
       request,
       state,
       recorder,
@@ -928,7 +773,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
         "no retained evidence exists for attempt ${args.producingIteration}. The run blocks instead " +
           "of fabricating a rejected-output diagnostic from normalized workflow persistence.state."
       }
-    return FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+    return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
       request,
       state,
       recorder,
@@ -1023,10 +868,10 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
         iteration = producingIteration,
         rule = "reconciliation-${rejection.rejectionClass}",
         reason =
-          FeatureTaskRuntimeRunLoopRecordRejection.retryRejectionReason(
-            FeatureTaskRuntimeRunLoopRecordRejection.payloadFreeRejectionReason(
+          retryRejectionReason(
+            payloadFreeRejectionReason(
               "reconciliation-${rejection.rejectionClass}",
-              FeatureTaskRuntimeRunLoopRecordRejection.rejectionPath(rejection.rejectionDetail),
+              rejectionPath(rejection.rejectionDetail),
             ),
             rejection.rejectionDetail,
           ),
@@ -1046,7 +891,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
                 phaseId = producer,
                 agentId = producerEvidence.agentId,
                 model = producerEvidence.model,
-                path = FeatureTaskRuntimeRunLoopRecordRejection.rejectionPath(rejection.rejectionDetail),
+                path = rejectionPath(rejection.rejectionDetail),
                 repairTurn = producerEvidence.repairTurn,
               ),
             ),
@@ -1079,9 +924,9 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
         producingIteration = args.producingIteration,
         rejectionClass = args.rejection.rejectionClass,
         rejectionDetail =
-          FeatureTaskRuntimeRunLoopRecordRejection.payloadFreeRejectionReason(
+          payloadFreeRejectionReason(
             "reconciliation-${args.rejection.rejectionClass}",
-            FeatureTaskRuntimeRunLoopRecordRejection.rejectionPath(args.rejection.rejectionDetail),
+            rejectionPath(args.rejection.rejectionDetail),
           ),
         regenerationAttempt = args.regenerationAttempt,
         quarantinedAtIteration = args.iteration.coerceAtLeast(1),

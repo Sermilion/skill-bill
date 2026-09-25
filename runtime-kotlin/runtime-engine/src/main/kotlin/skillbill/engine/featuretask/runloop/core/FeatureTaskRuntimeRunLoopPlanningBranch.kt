@@ -2,30 +2,17 @@ package skillbill.engine.featuretask.runloop.core
 
 import skillbill.application.decomposition.baseBranch
 import skillbill.application.decomposition.specSource
-import skillbill.application.review.service.RuntimeOwnedReviewMode
-import skillbill.engine.featuretask.lifecycle.branch.Blocked
-import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
-import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
-import skillbill.engine.featuretask.lifecycle.continuation.reviewState
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeAgentResolver
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeModelResolver
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
-import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseRunner
 import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopValidationGate
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
-import skillbill.engine.featuretask.runner.BRANCH_SETUP_AGENT_ID
-import skillbill.engine.featuretask.runner.STATUS_BLOCKED
 import skillbill.engine.featuretask.runner.phaseDeclaration
 import skillbill.engine.featuretask.validation.ReadinessCommitPushSettleResult
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.model.goalreview.GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY
-import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
-import skillbill.workflow.model.goalreview.ReviewPassResolution
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseDeclaration
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
@@ -55,7 +42,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
         ),
       )
     val run = capExhaustionPhaseRun(args)
-    FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersist(
+    FeatureTaskRuntimeRunLoopPhaseBlocking.blockAndPersist(
       request,
       state,
       recorder,
@@ -71,7 +58,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
         payload = BlockAndPersistPayload(outputArtifact = state.outputFor(phaseId)?.payload),
       ),
     )
-    blockAt(request, state, session, phaseId, reason)
+    FeatureTaskRuntimeRunLoopPhaseBlocking.blockAt(request, state, session, phaseId, reason)
   }
 
   private fun capExhaustionPhaseRun(args: BlockOnCapExhaustionArgs): PhaseRun {
@@ -87,7 +74,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
         phaseDeclaration(
           args.phaseId,
           args.request.runInvariants.featureSize,
-          FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(args.request),
+          qualityGateSelection(args.request),
         ),
       resolvedAgent = resolvedAgent,
       modelDirective =
@@ -132,7 +119,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     phaseDeclaration(
       phaseId,
       request.runInvariants.featureSize,
-      FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(request),
+      qualityGateSelection(request),
     )
 
   internal fun buildPhaseRun(
@@ -263,134 +250,6 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       observability = observability,
     )
 
-  fun remediationCheckpointBlockedReason(
-    branch: String,
-    error: String,
-  ): String =
-    "Feature-task-runtime could not establish a remediation checkpoint on the feature branch '$branch' " +
-      "before re-entering a mutating phase" + (if (error.isBlank()) "." else " ($error).") +
-      " Refusing to re-enter a mutating phase on a dirty, non-reconcilable tree."
-
-  fun auditReviewCheckpointBlockedReason(
-    branch: String,
-    error: String,
-  ): String =
-    "Feature-task-runtime could not commit the audited implementation on the feature branch '$branch' " +
-      "before review" + (if (error.isBlank()) "." else " ($error).") +
-      " Refusing to review an uncommitted final audit iteration."
-
-  internal fun blockAt(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    session: FeatureTaskRuntimeRunLoopSession,
-    phaseId: String,
-    reason: String,
-  ) {
-    session.transitionToBlocked(
-      FeatureTaskRuntimeRunReport.Blocked(
-        issueKey = request.issueKey,
-        workflowId = request.workflowId,
-        featureSize = request.runInvariants.featureSize.name,
-        lastIncompletePhase = phaseId,
-        blockedReason = reason,
-        completedPhaseIds = state.completedPhaseIds(),
-        resolvedBranch = session.resolvedBranch,
-      ),
-    )
-  }
-
-  fun persistBranchSetupBlock(
-    request: FeatureTaskRuntimeRunRequest,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    observability: FeatureTaskRuntimeRunObservability,
-    phaseId: String,
-    reason: String,
-  ) {
-    recorder.recordPhaseState(
-      FeatureTaskRuntimePhaseStateRequest(
-        workflowId = request.workflowId,
-        phaseId = phaseId,
-        status = STATUS_BLOCKED,
-        attemptCount = 1,
-        resolvedAgentId = BRANCH_SETUP_AGENT_ID,
-        finished = false,
-        outputArtifact = null,
-        blockedReason = reason,
-      ),
-    )
-    observability.branchSetupBlocked(phaseId, BRANCH_SETUP_AGENT_ID, reason)
-  }
-
-  fun clearRecoveredBranchSetupBlock(
-    state: FeatureTaskRuntimeRunState,
-    phaseId: String,
-  ) {
-    if (!state.hasBranchSetupBlock(phaseId)) {
-      return
-    }
-    state.clearBranchSetupBlock(phaseId)
-  }
-
-  internal fun pauseAt(args: PauseAtArgs) {
-    val request = args.request
-    val state = args.state
-    val session = args.session
-    val phaseId = args.phaseId
-    val reason = args.reason
-    val resumableStep = args.resumableStep
-    session.transitionToPaused(
-      FeatureTaskRuntimeRunReport.Paused(
-        issueKey = request.issueKey,
-        workflowId = request.workflowId,
-        featureSize = request.runInvariants.featureSize.name,
-        pausedPhase = phaseId,
-        pauseReason = reason,
-        resumableStep = resumableStep,
-        completedPhaseIds = state.completedPhaseIds(),
-        resolvedBranch = session.resolvedBranch,
-      ),
-    )
-  }
-
-  fun goalReviewStateOrNull(
-    request: FeatureTaskRuntimeRunRequest,
-    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-  ): GoalSubtaskReviewState? =
-    if (!isGoalContinuationRun(request)) {
-      null
-    } else {
-      goalContinuationRecorder.reviewState(request.workflowId)
-    }
-
-  fun priorBlockerFindingIds(
-    request: FeatureTaskRuntimeRunRequest,
-    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-  ): List<String> {
-    val priorPass =
-      goalReviewStateOrNull(request, goalContinuationRecorder)?.passResults?.lastOrNull()
-        ?: return emptyList()
-    return priorPass.findings
-      .filter { it.severity == GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY }
-      .mapIndexed { index, finding -> finding.findingId ?: "pass${priorPass.passNumber}-blocker-${index + 1}" }
-  }
-
-  internal fun persistResolvedReviewTier(
-    request: FeatureTaskRuntimeRunRequest,
-    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-    run: PhaseRun,
-    resolution: ReviewPassResolution,
-  ) {
-    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW || !isGoalContinuationRun(request)) {
-      return
-    }
-    goalContinuationRecorder.updateReviewState(request.workflowId) { state ->
-      state.copy(
-        resolvedTier = RuntimeOwnedReviewMode.execute(resolution.resolvedTier),
-        decidingRule = resolution.decidingRule,
-      )
-    }
-  }
-
   fun effectiveEdgeIterationCount(
     state: FeatureTaskRuntimeRunState,
     edge: FeatureTaskRuntimeBackwardEdge,
@@ -431,3 +290,19 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       findingsSuffix
   }
 }
+
+internal fun remediationCheckpointBlockedReason(
+  branch: String,
+  error: String,
+): String =
+  "Feature-task-runtime could not establish a remediation checkpoint on the feature branch '$branch' " +
+    "before re-entering a mutating phase" + (if (error.isBlank()) "." else " ($error).") +
+    " Refusing to re-enter a mutating phase on a dirty, non-reconcilable tree."
+
+internal fun auditReviewCheckpointBlockedReason(
+  branch: String,
+  error: String,
+): String =
+  "Feature-task-runtime could not commit the audited implementation on the feature branch '$branch' " +
+    "before review" + (if (error.isBlank()) "." else " ($error).") +
+    " Refusing to review an uncommitted final audit iteration."

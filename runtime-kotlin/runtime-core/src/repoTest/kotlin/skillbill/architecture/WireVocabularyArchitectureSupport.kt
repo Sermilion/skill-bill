@@ -448,13 +448,19 @@ internal object WireVocabularyArchitectureSupport {
   }
 }
 
-private class CommentStripper(private val source: String) {
-  private enum class Mode { CODE, LINE_COMMENT, BLOCK_COMMENT, TRIPLE_STRING, STRING, CHARACTER }
+internal class CommentStripper(
+  private val source: String,
+  private val blankStringLiterals: Boolean = false,
+  private val preserveTemplateExpressions: Boolean = false,
+) {
+  private enum class Mode { CODE, LINE_COMMENT, BLOCK_COMMENT, TRIPLE_STRING, STRING, CHARACTER, TEMPLATE }
 
   private val output = StringBuilder(source.length)
   private var index = 0
   private var mode = Mode.CODE
   private var escaped = false
+  private var templateDepth = 0
+  private var templateHost = Mode.STRING
 
   fun strip(): String {
     while (index < source.length) {
@@ -465,11 +471,39 @@ private class CommentStripper(private val source: String) {
           Mode.TRIPLE_STRING -> consumeTripleString()
           Mode.STRING -> consumeQuoted('"')
           Mode.CHARACTER -> consumeQuoted('\'')
+          Mode.TEMPLATE -> consumeTemplate()
           Mode.CODE -> consumeCode()
         }
     }
     return output.toString()
   }
+
+  /**
+   * Keeps `${...}` expression text readable while the surrounding literal is blanked, so a scan
+   * that blanks string literals still sees the declarations an interpolated expression references.
+   * Braces inside the expression are blanked in pairs so brace-depth counting stays balanced.
+   */
+  private fun enterTemplateExpression(): Int {
+    templateHost = mode
+    templateDepth = 1
+    mode = Mode.TEMPLATE
+    output.append("  ")
+    return 2
+  }
+
+  private fun consumeTemplate(): Int {
+    val current = source[index]
+    when (current) {
+      '{' -> templateDepth += 1
+      '}' -> templateDepth -= 1
+    }
+    output.append(if (current == '{' || current == '}') ' ' else current)
+    if (templateDepth == 0) mode = templateHost
+    return 1
+  }
+
+  private fun atTemplateExpression(): Boolean =
+    preserveTemplateExpressions && !escaped && source.startsWith("\${", index)
 
   private fun consumeLineComment(): Int {
     val current = source[index]
@@ -493,23 +527,35 @@ private class CommentStripper(private val source: String) {
   }
 
   private fun consumeTripleString(): Int {
-    output.append(source[index])
-    if (!source.startsWith("\"\"\"", index)) return 1
-    output.append("\"\"")
-    mode = Mode.CODE
-    return 3
+    if (source.startsWith("\"\"\"", index)) {
+      output.append("\"\"\"")
+      mode = Mode.CODE
+      return 3
+    }
+    if (atTemplateExpression()) return enterTemplateExpression()
+    output.append(literalChar(source[index]))
+    return 1
   }
 
   private fun consumeQuoted(terminator: Char): Int {
+    if (atTemplateExpression()) return enterTemplateExpression()
     val current = source[index]
-    output.append(current)
+    val closing = !escaped && current == terminator
+    output.append(if (closing) current else literalChar(current))
     when {
       escaped -> escaped = false
       current == '\\' -> escaped = true
-      current == terminator -> mode = Mode.CODE
+      closing -> mode = Mode.CODE
     }
     return 1
   }
+
+  private fun literalChar(current: Char): Char =
+    when {
+      !blankStringLiterals -> current
+      current == '\n' -> current
+      else -> ' '
+    }
 
   private fun consumeCode(): Int {
     val current = source[index]

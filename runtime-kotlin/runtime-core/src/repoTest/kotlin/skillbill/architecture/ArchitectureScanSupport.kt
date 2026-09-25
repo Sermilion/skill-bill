@@ -905,6 +905,8 @@ object ArchitectureScanSupport {
     return cycles.toList()
   }
 
+  fun cyclicComponents(edges: Map<String, Set<String>>): List<List<String>> = stronglyConnectedComponents(edges)
+
   private fun stronglyConnectedComponents(edges: Map<String, Set<String>>): List<List<String>> {
     var index = 0
     val indexes = mutableMapOf<String, Int>()

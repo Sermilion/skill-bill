@@ -38,8 +38,9 @@ import skillbill.engine.featuretask.runloop.core.RuntimeOwnedReviewPreparationAr
 import skillbill.engine.featuretask.runloop.core.RuntimeOwnedReviewReady
 import skillbill.engine.featuretask.runloop.core.ShouldRetryPersistedBlockArgs
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
-import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputPersistence
+import skillbill.engine.featuretask.runloop.output.isGoalReviewRun
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
+import skillbill.engine.featuretask.runloop.state.LEGACY_SQLITE_BUSY_REASON_MARKER
 import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.featuretask.runner.missingUpstream
 import skillbill.engine.goalrunner.status.completed
@@ -161,7 +162,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     preLaunch: PreLaunchBlock,
   ): PhaseOutcome {
     val durable = preLaunch.durableRecord
-    return FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersist(
+    return FeatureTaskRuntimeRunLoopPhaseBlocking.blockAndPersist(
       context.request,
       state,
       context.recorder,
@@ -205,9 +206,9 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) return false
     val legacyDatabaseContention =
       reason.startsWith("Goal-subtask review state or durable raw evidence is malformed:") &&
-        "[SQLITE_BUSY]" in reason
+        LEGACY_SQLITE_BUSY_REASON_MARKER in reason
     return legacyDatabaseContention ||
-      "[SQLITE_BUSY]" in reason && (
+      LEGACY_SQLITE_BUSY_REASON_MARKER in reason && (
         reason.startsWith("Goal-subtask review reservation failed") ||
           reason.startsWith("Goal-subtask review input persistence failed")
       )
@@ -259,7 +260,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
         retryReviewPreparation,
         reenterableRecordRejection,
         removedContinuationBudget,
-        FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(session, phaseId),
+        FeatureTaskRuntimeRunLoopPhaseBlocking.operatorReopenedPhase(session, phaseId),
       ).any { it }
     if (restartsBudget) {
       state.restartAttemptBudget(phaseId)
@@ -287,7 +288,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     val persistedReason = args.persistedReason
     val disposition = durable?.failureDisposition
     return when {
-      FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(session, phaseId) -> true
+      FeatureTaskRuntimeRunLoopPhaseBlocking.operatorReopenedPhase(session, phaseId) -> true
       retryReviewPreparation -> true
       reenterableRecordRejection -> true
       isRemovedGoalReviewSchemaGateBlock(phaseId, persistedReason) -> true
@@ -304,7 +305,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
   ): GoalReviewRunPreparation =
     when {
       run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW -> GoalReviewRunReady(run)
-      FeatureTaskRuntimeRunLoopOutputPersistence.isGoalReviewRun(run) ->
+      isGoalReviewRun(run) ->
         reserveGoalReviewRun(context.copy(run = run, observability = observability))
       else -> prepareStandaloneReviewRun(context.copy(run = run, observability = observability))
     }
@@ -444,7 +445,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     reason: String,
     failureDisposition: FeatureTaskRuntimeFailureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
   ): GoalReviewRunPreparation {
-    FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersist(
+    FeatureTaskRuntimeRunLoopPhaseBlocking.blockAndPersist(
       context.request,
       context.state,
       context.recorder,
@@ -468,7 +469,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     val acceptedOutput =
       loadCarriedForwardGoalReviewOutput(goalContinuationRecorder, context.outputValidator, context.run)
         .getOrElse { error ->
-          return FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersist(
+          return FeatureTaskRuntimeRunLoopPhaseBlocking.blockAndPersist(
             context.request,
             context.state,
             context.recorder,
@@ -484,7 +485,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
       acceptedOutput.repairEvidence,
       iteration,
     )?.let { failure ->
-      return FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersist(
+      return FeatureTaskRuntimeRunLoopPhaseBlocking.blockAndPersist(
         context.request,
         context.state,
         context.recorder,
@@ -529,7 +530,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     iteration: Int,
   ): String? {
     val phaseState =
-      FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(
+      FeatureTaskRuntimeRunLoopPhaseBlocking.phaseStateRequest(
         context.request,
         context.state,
         requireNotNull(context.goalContinuationRecorder),

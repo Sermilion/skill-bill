@@ -360,7 +360,9 @@ class FeatureTaskRuntimeRunState(
     val recentBlocks = recentBlockedReasons(normalizedInitialLedger, phaseId)
     return recentBlocks.firstOrNull() == currentReason &&
       recentBlocks.getOrNull(1)
-        ?.startsWith("Goal-subtask review state or durable raw evidence is malformed: [SQLITE_BUSY]") == true
+        ?.startsWith(
+          "Goal-subtask review state or durable raw evidence is malformed: $LEGACY_SQLITE_BUSY_REASON_MARKER",
+        ) == true
   }
 
   fun legacyLaunchSeamRejectionConsumedBudget(
@@ -496,6 +498,8 @@ val NON_OUTPUT_LEDGER_ACTIONS =
   )
 
 const val REVIEW_INVALIDATION_AGENT_ID: String = "audit-gate-migration"
+
+internal const val LEGACY_SQLITE_BUSY_REASON_MARKER: String = "[SQLITE_BUSY]"
 
 internal data class InFlightReentry(
   val destinationPhaseId: String,

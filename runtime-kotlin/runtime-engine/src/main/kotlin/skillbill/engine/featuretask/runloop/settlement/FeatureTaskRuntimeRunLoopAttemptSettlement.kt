@@ -66,9 +66,12 @@ import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunO
 import skillbill.engine.featuretask.runloop.output.CompletedImplementationSettlementArgs
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputPersistence
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputVerification
-import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopRecordRejection
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopRepairReceipt
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
+import skillbill.engine.featuretask.runloop.output.payloadFreeRejectionReason
+import skillbill.engine.featuretask.runloop.output.payloadFreeSemanticGateConstraint
+import skillbill.engine.featuretask.runloop.output.rejectionPath
+import skillbill.engine.featuretask.runloop.output.retryRejectionReason
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.state.FEATURE_TASK_RUNTIME_PROCESS_FAILURE_RULE
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeChildOutput
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
@@ -514,7 +517,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
             defaultRejectedOutputTargetingArgs(
               run,
               RejectedOutputTargetingOverrides(
-                path = FeatureTaskRuntimeRunLoopRecordRejection.rejectionPath(error.reason),
+                path = rejectionPath(error.reason),
               ),
             ),
           ),
@@ -536,7 +539,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     if (run.validationGateTriage) {
       return AttemptResult.settled(
         PhaseOutcome.completed(
-          FeatureTaskRuntimeRunLoopValidationGate.gateTriageSegmentOutput(
+          gateTriageSegmentOutput(
             run,
             args.iteration,
             args.captured.text,
@@ -545,7 +548,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       )
     }
     if (runtimeOwnedGateAgentTurn(run)) {
-      val outputMap = FeatureTaskRuntimeRunLoopValidationGate.looseOutputEnvelope(args.captured.text)
+      val outputMap = looseOutputEnvelope(args.captured.text)
       val operatorTerminalQualityGate =
         outputMap?.let { envelope ->
           val disposition = FeatureTaskRuntimePhaseSafetyPolicy.dispositionForTerminalOutput(run.phaseId, envelope)
@@ -555,7 +558,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       if (!operatorTerminalQualityGate) {
         return AttemptResult.settled(
           PhaseOutcome.completed(
-            FeatureTaskRuntimeRunLoopValidationGate.gateRepairSegmentOutput(run, args.iteration),
+            gateRepairSegmentOutput(run, args.iteration),
           ),
         )
       }
@@ -584,8 +587,8 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       run,
       args.captured.text,
     )
-    val path = FeatureTaskRuntimeRunLoopRecordRejection.rejectionPath(error.reason)
-    val reason = FeatureTaskRuntimeRunLoopRecordRejection.payloadFreeRejectionReason("phase-output-schema", path)
+    val path = rejectionPath(error.reason)
+    val reason = payloadFreeRejectionReason("phase-output-schema", path)
     val diagnosticWrite =
       FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(
         state,
@@ -610,7 +613,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       reason,
       args.fileManifest,
       malformedOutput = error.failureKind == FeatureTaskRuntimePhaseOutputFailureKind.MALFORMED,
-      retryReason = FeatureTaskRuntimeRunLoopRecordRejection.retryRejectionReason(reason, error.payloadFreeReason),
+      retryReason = retryRejectionReason(reason, error.payloadFreeReason),
       correctiveRepairContext =
         FeatureTaskRuntimeRunLoopAttemptSettlement.correctiveRepairContextForRejection(
           CorrectiveRepairRejectionArgs(
@@ -651,7 +654,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     if (result !is WorkflowGitOperationResult.Ok) {
       val blocked =
         AttemptResult.settled(
-          FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+          FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
             request,
             context.state,
             recorder,
@@ -761,7 +764,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       is CommitPushBlocked ->
         args.attested to
           AttemptResult.settled(
-            FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
+            FeatureTaskRuntimeRunLoopPhaseBlocking.blockAndPersistInPhase(
               args.request,
               args.state,
               args.recorder,
@@ -905,15 +908,15 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     val state = settlement.state
     val recorder = settlement.recorder
     val diagnosticRule = rule
-    val path = FeatureTaskRuntimeRunLoopRecordRejection.rejectionPath(detail)
-    val reason = FeatureTaskRuntimeRunLoopRecordRejection.payloadFreeRejectionReason(rule, path)
+    val path = rejectionPath(detail)
+    val reason = payloadFreeRejectionReason(rule, path)
     val retryFacingConstraint =
-      FeatureTaskRuntimeRunLoopRecordRejection.payloadFreeSemanticGateConstraint(
+      payloadFreeSemanticGateConstraint(
         rule,
         detail,
         outputMap,
       )
-    val retryReason = FeatureTaskRuntimeRunLoopRecordRejection.retryRejectionReason(reason, retryFacingConstraint)
+    val retryReason = retryRejectionReason(reason, retryFacingConstraint)
     val diagnosticWrite =
       FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(
         state,

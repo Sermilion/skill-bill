@@ -9,12 +9,12 @@ import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoop
 import skillbill.engine.featuretask.runloop.core.AttemptResult
 import skillbill.engine.featuretask.runloop.core.BlockAndPersistPayload
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
-import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopPlanningBranch
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
 import skillbill.engine.featuretask.runloop.core.PhaseBlockRequest
 import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.engine.featuretask.runloop.core.ValidatedOutputCapture
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
+import skillbill.engine.featuretask.runloop.core.auditReviewCheckpointBlockedReason
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.model.WorkflowStepStatus
@@ -83,7 +83,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
     detail: String,
   ): (String, String) -> String =
     { actualBranch, error ->
-      FeatureTaskRuntimeRunLoopPlanningBranch.auditReviewCheckpointBlockedReason(
+      auditReviewCheckpointBlockedReason(
         actualBranch.ifBlank { branch },
         error.ifBlank { detail },
       )
@@ -97,7 +97,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
   ): AttemptResult =
     with(context) {
       AttemptResult.settled(
-        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+        FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
           request,
           state,
           recorder,
@@ -159,7 +159,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
               )
             if (blocked != null) {
               return AttemptResult.settled(
-                FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+                FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
                   request,
                   state,
                   recorder,

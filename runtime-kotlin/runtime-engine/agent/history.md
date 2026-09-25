@@ -1,3 +1,15 @@
+## [2026-09-25] SKILL-378 subtask 2 — Feature-task run-loop step classes
+Areas: runtime-kotlin/runtime-engine/skillbill/engine/featuretask/runloop/{core,phase,output,settlement,checkpoint,state}, runtime-kotlin/runtime-core/repoTest/skillbill/architecture
+- Broke the 20-node mutual-reference cycle across the feature-task run-loop step objects; the declaration graph now has 23 nodes and no strongly connected component larger than one.
+- New step owners: `PhaseBlocking` (runloop/phase) holds block and phase-state-read primitives, `ValidationScope` (runloop/settlement) holds validation changed-paths and the single pack build command, `ReviewCompletion` (runloop/output) holds goal-review detection and review completion persisters.
+- Added an architecture guard asserting run-loop step declarations reference each other acyclically, plus a synthetic two-node fixture proving the census names both members of a mutual pair.
+- Guard reuses the existing `stronglyConnectedComponents` scan via `ArchitectureScanSupport.cyclicComponents` rather than a second scanner; `CommentStripper` moved private -> internal and gained a defaulted `blankStringLiterals` flag so the default path stays byte-identical. reusable
+- Pattern: strip comments and string literals before building a declaration-reference graph — observability seam literals otherwise forge false edges and re-form the cycle.
+- Legacy SQLite busy-reason text matching is now one named constant consumed at the two resume sites; it classifies persisted historical blocked reasons, not live failures (typed `DatabaseBusyError` remains the live disposition).
+- Limitation: guard is host-classed in `RuntimeEnginePublicTopLevelDeclarationArchitectureTest`; the carrier class `FeatureTaskRuntimeRunLoopSession` stays in the node set as a zero-out-edge sink rather than being name-excluded.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-17] SKILL-352 subtask 3 — Record fallbacks, restore ownership, and shrink surface
 Areas: runtime-kotlin/{runtime-engine,runtime-domain,runtime-ports,runtime-application,runtime-infra-sqlite,runtime-core}
 - Goal-runner durable-read fallbacks now emit bounded diagnostics and project degraded status; lease timestamps and closed runtime vocabularies use typed domain values.

@@ -3,6 +3,8 @@ package skillbill.engine.featuretask.runloop.output
 import skillbill.application.decomposition.baseBranch
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
+import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
 import skillbill.engine.featuretask.lifecycle.continuation.matches
 import skillbill.engine.featuretask.lifecycle.continuation.reviewState
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeVerificationGateReasons
@@ -33,6 +35,7 @@ import skillbill.engine.featuretask.runloop.core.CompletionProjectionRejectionAr
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopLaunch
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopTransitions
+import skillbill.engine.featuretask.runloop.core.OWNED_PATH_DELIMITER
 import skillbill.engine.featuretask.runloop.core.PersistAcceptedOutputArgs
 import skillbill.engine.featuretask.runloop.core.PersistRejectedVerificationFindingsArgs
 import skillbill.engine.featuretask.runloop.core.PersistStandardAcceptedOutputArgs
@@ -46,10 +49,11 @@ import skillbill.engine.featuretask.runloop.core.PhaseStateWriteArgs
 import skillbill.engine.featuretask.runloop.core.RepositoryCheckpointResolutionArgs
 import skillbill.engine.featuretask.runloop.core.TerminalOutputAttemptArgs
 import skillbill.engine.featuretask.runloop.core.isFeatureSpecPathForIssue
+import skillbill.engine.featuretask.runloop.core.qualityGateSelection
 import skillbill.engine.featuretask.runloop.core.reconcileCheckpointPathInventory
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.observability.completedEvent
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
@@ -59,6 +63,10 @@ import skillbill.engine.goalrunner.status.completed
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewStructuredFindingsParse
+import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
+import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFinding
+import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
+import skillbill.goalrunner.subtaskreview.verificationBoundaryFindingPaths
 import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.review.model.ReviewFindingVerdict
@@ -154,7 +162,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         phaseDeclaration(
           consumerPhaseId,
           run.request.runInvariants.featureSize,
-          FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(request),
+          qualityGateSelection(request),
         )
       val currentOutput =
         FeatureTaskRuntimePhaseOutput(
@@ -279,7 +287,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
     if (operatorTerminalQualityGate) {
       return AttemptResult.settled(
-        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+        FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
           request,
           state,
           recorder,
@@ -302,7 +310,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       AttemptResult.retryableTerminal(reason, fileManifest, disposition)
     } else {
       AttemptResult.settled(
-        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+        FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
           request,
           state,
           recorder,
@@ -380,11 +388,14 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         val findingId = finding.findingId?.takeIf(String::isNotBlank) ?: return@mapNotNull null
         FeatureTaskRuntimeFindingBoundaryMemoryRequest(
           findingId = findingId,
-          findingPaths = FeatureTaskRuntimeRunLoopLaunch.findingPathsForBoundaryMemory(finding),
+          findingPaths = findingPathsForBoundaryMemory(finding),
         )
       },
     )
   }
+
+  private fun findingPathsForBoundaryMemory(finding: StructuredGoalReviewFinding): List<String> =
+    GoalSubtaskReviewSummaryReducer.verificationBoundaryFindingPaths(finding)
 
   internal fun findingVerificationBoundaryBodyDeliveryDecision(
     state: FeatureTaskRuntimeRunState,
@@ -590,9 +601,9 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         )
       }
       val reviewArgs = PhaseReviewPersistenceArgs(run, iteration, observability, fileManifest)
-      if (FeatureTaskRuntimeRunLoopOutputPersistence.isGoalReviewRun(run)) {
-        with(FeatureTaskRuntimeRunLoopOutputPersistence) {
-          FeatureTaskRuntimeRunLoopOutputPersistence.ReviewOutputPersistenceContext(
+      if (isGoalReviewRun(run)) {
+        with(FeatureTaskRuntimeRunLoopReviewCompletion) {
+          ReviewOutputPersistenceContext(
             request = context.request,
             state = context.state,
             recorder = context.recorder,
@@ -863,7 +874,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       )
       val persisted =
         recorder.recordCompletedPhase(
-          FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(
+          FeatureTaskRuntimeRunLoopPhaseBlocking.phaseStateRequest(
             request,
             state,
             goalContinuationRecorder,
@@ -888,7 +899,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         )
       if (!persisted) {
         return AttemptResult.settled(
-          FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+          FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
             request,
             state,
             recorder,
@@ -915,7 +926,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
   ) {
     with(context) {
       if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS) return
-      FeatureTaskRuntimeRunLoopOutputPersistence.persistRejectedVerificationFindings(
+      persistRejectedVerificationFindings(
         PersistRejectedVerificationFindingsArgs(
           state,
           recorder,
@@ -926,6 +937,46 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         ),
       )
     }
+  }
+
+  private fun persistRejectedVerificationFindings(args: PersistRejectedVerificationFindingsArgs) {
+    val state = args.state
+    val recorder = args.recorder
+    val goalContinuationRecorder = args.goalContinuationRecorder
+    val diagnostics = args.diagnostics
+    val run = args.run
+    val verifyOutput = args.verifyOutput
+    if (!isGoalContinuationRun(run.request)) return
+    val continuation = run.request.goalContinuation ?: return
+    val reviewOutput =
+      state.outputFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
+        ?.normalizedOutput?.envelopeWireMap()
+        ?: return
+    val reviewState = goalContinuationRecorder.reviewState(run.request.workflowId)
+    val passNumber = reviewState?.completedPassCount?.takeIf { it > 0 } ?: 1
+    val recordedVerdicts = recorder.recordedFindingVerdicts(reviewOutput)
+    val rejectedResult =
+      GoalSubtaskReviewSummaryReducer.rejectedVerificationFindings(
+        verifyOutput = verifyOutput,
+        reviewOutput = reviewOutput,
+        scope =
+          UnaddressedFindingLedgerScope(
+            issueKey = continuation.parentIssueKey,
+            subtaskId = continuation.subtaskId,
+            workflowId = run.request.workflowId,
+            reviewPassNumber = passNumber,
+          ),
+        recordedVerdicts = recordedVerdicts,
+      )
+    rejectedResult.truncationRecords.forEach { record ->
+      RuntimeDiagnosticsBestEffortWarning.record(diagnostics, record)
+    }
+    if (rejectedResult.findings.isEmpty()) return
+    recorder.appendRejectedVerificationFindings(
+      workflowId = run.request.workflowId,
+      passNumber = passNumber,
+      rejected = rejectedResult.findings,
+    )
   }
 
   internal fun completedAttemptResult(

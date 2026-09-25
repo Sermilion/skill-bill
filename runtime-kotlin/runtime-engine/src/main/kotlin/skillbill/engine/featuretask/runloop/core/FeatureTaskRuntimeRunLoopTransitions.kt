@@ -12,10 +12,16 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeNextPhase
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
-object FeatureTaskRuntimeRunLoopTransitions {
-  internal fun qualityGateSelection(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeQualityGateSelection =
-    request.goalContinuation?.qualityGateSelection ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
+internal fun qualityGateSelection(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeQualityGateSelection =
+  request.goalContinuation?.qualityGateSelection ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
 
+internal fun spanBetween(
+  transitions: FeatureTaskRuntimeTransitionDeclaration,
+  destinationPhaseId: String,
+  sourcePhaseId: String,
+): List<String> = transitions.spanBetween(destinationPhaseId, sourcePhaseId)
+
+object FeatureTaskRuntimeRunLoopTransitions {
   internal fun transitionTarget(
     context: FeatureTaskRuntimeRunLoopContext,
     phaseId: String,
@@ -113,12 +119,6 @@ object FeatureTaskRuntimeRunLoopTransitions {
       edge.fromPhaseId,
     ).any(FeatureTaskRuntimePhaseWorkflowDefinition::isMutatingPhase)
 
-  internal fun spanBetween(
-    transitions: FeatureTaskRuntimeTransitionDeclaration,
-    destinationPhaseId: String,
-    sourcePhaseId: String,
-  ): List<String> = transitions.spanBetween(destinationPhaseId, sourcePhaseId)
-
   internal fun establishForwardCheckpoint(
     context: FeatureTaskRuntimeRunLoopContext,
     precedingPhaseId: String,
@@ -136,7 +136,7 @@ object FeatureTaskRuntimeRunLoopTransitions {
             loopId = null,
             intent = FeatureTaskRuntimeCheckpointMessage.INTENT_AUDITED_IMPLEMENTATION,
             blockedReason = { branch, error ->
-              FeatureTaskRuntimeRunLoopPlanningBranch.auditReviewCheckpointBlockedReason(branch, error)
+              auditReviewCheckpointBlockedReason(branch, error)
             },
           )
         }

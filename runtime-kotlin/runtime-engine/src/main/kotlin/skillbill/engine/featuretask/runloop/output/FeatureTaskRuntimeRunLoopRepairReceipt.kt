@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask.runloop.output
 
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.lifecycle.continuation.reviewState
@@ -13,14 +15,12 @@ import skillbill.engine.featuretask.lifecycle.remediation.featureTaskRuntimeRepa
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoopCheckpoint
-import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoopCheckpointRemediation
 import skillbill.engine.featuretask.runloop.core.AttemptResult
 import skillbill.engine.featuretask.runloop.core.BlockAndPersistPayload
 import skillbill.engine.featuretask.runloop.core.CheckpointCommitMessageArgs
 import skillbill.engine.featuretask.runloop.core.CommitCheckpointArgs
 import skillbill.engine.featuretask.runloop.core.CompletedImplementationOutputArgs
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
-import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopPlanningBranch
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
 import skillbill.engine.featuretask.runloop.core.ImplementFixRepairReceiptArgs
 import skillbill.engine.featuretask.runloop.core.PhaseBlockRequest
@@ -28,19 +28,22 @@ import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.engine.featuretask.runloop.core.RecordCheckpointIdentityArgs
 import skillbill.engine.featuretask.runloop.core.RepairReceiptAnchor
 import skillbill.engine.featuretask.runloop.core.RepairReceiptSettlement
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.goalrunner.model.UNADDRESSED_FINDING_REJECTED_DISPOSITION
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshot
 import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshotResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.stagePaths
+import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.model.goalreview.upsertRepairReceipt
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 internal data class RepairReceiptSettlementArgs(
   val request: FeatureTaskRuntimeRunRequest,
@@ -72,6 +75,17 @@ internal data class CompletedImplementationSettlementArgs(
 )
 
 object FeatureTaskRuntimeRunLoopRepairReceipt {
+  internal fun completedImplementFixProducedOutputs(
+    run: PhaseRun,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
+  ): Map<String, Any?>? =
+    outputMap
+      .takeIf {
+        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX &&
+          (it[SharedPayloadKeys.STATUS] as? String)?.let(WorkflowStepStatus::fromWire) == WorkflowStepStatus.COMPLETED
+      }
+      ?.let { JsonCodec.anyToStringAnyMap(it[SharedPayloadKeys.PRODUCED_OUTPUTS]).orEmpty() }
+
   internal fun persistImplementFixRepairReceipt(
     request: FeatureTaskRuntimeRunRequest,
     state: FeatureTaskRuntimeRunState,
@@ -135,7 +149,7 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     settlement.rejectionDetail?.let { detail -> return reject("repair-receipt", detail) }
     val writeFailure = settlement.writeFailureReason ?: return null
     return AttemptResult.settled(
-      FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+      FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
         request,
         state,
         recorder,
@@ -161,12 +175,12 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     val run = args.run
     val outputMap = args.outputMap
     val produced =
-      FeatureTaskRuntimeRunLoopCheckpointRemediation.completedImplementFixProducedOutputs(
+      completedImplementFixProducedOutputs(
         run,
         outputMap,
       ) ?: return RepairReceiptSettlement.None
     val reviewState =
-      FeatureTaskRuntimeRunLoopPlanningBranch.goalReviewStateOrNull(
+      FeatureTaskRuntimeRunLoopPhaseBlocking.goalReviewStateOrNull(
         request,
         goalContinuationRecorder,
       )
@@ -304,7 +318,7 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     precedingPhaseId: String,
     error: String,
   ): Boolean {
-    FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(
+    FeatureTaskRuntimeRunLoopPhaseBlocking.blockAt(
       request,
       state,
       session,

@@ -9,6 +9,7 @@ import skillbill.engine.featuretask.phase.core.FeatureTaskPhaseSettlementService
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunEvidenceOwnership
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.recovery.recommendedDurableChildRecoveryCommand
@@ -136,7 +137,7 @@ class FeatureTaskRuntimeRunLoop internal constructor(
 
   internal fun advance(phaseId: String): PhaseSettlement {
     FeatureTaskRuntimeRunLoopDrive.phaseEntryBlockReason(context, phaseId)?.let { reason ->
-      FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(
+      FeatureTaskRuntimeRunLoopPhaseBlocking.blockAt(
         context.request,
         context.state,
         session,
