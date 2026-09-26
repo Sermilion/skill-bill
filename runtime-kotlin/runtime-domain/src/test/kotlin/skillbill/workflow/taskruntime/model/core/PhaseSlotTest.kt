@@ -39,12 +39,4 @@ class PhaseSlotTest {
 
     assertEquals("deploy", error.stepId)
   }
-
-  @Test
-  fun `only the pull request step is excluded from goal children`() {
-    assertEquals(
-      listOf(FeatureTaskRuntimePhaseIds.PR),
-      FeatureTaskRuntimePhaseIds.all.filterNot { PhaseSlot.runsInGoalChild(it) },
-    )
-  }
 }

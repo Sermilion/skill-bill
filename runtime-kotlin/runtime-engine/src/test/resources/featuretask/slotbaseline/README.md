@@ -137,3 +137,11 @@ SlotBaselineFixtureCompare.assertBytesEqual("featuretask/slotbaseline/standalone
 
 If the bytes differ, the call fails and prints a line diff. Any change the
 ledger expects must be regenerated in the subtask that the ledger names.
+
+## Re-baselined changes
+
+- Subtask 4 (skeleton definitions and quality gate): `standalone/prompts/validate.txt`
+  and `goal-child-validate/prompts/validate.txt` carry the validate uniform-output
+  directive (settle completed, or blocked with a progress or no_progress verdict) in
+  place of the `validation_passed` directive. This is the ledger's allowed validate
+  prompt change. Every other file is unchanged.

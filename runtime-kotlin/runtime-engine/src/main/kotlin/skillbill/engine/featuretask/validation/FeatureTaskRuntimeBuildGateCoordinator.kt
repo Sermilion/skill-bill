@@ -53,7 +53,6 @@ private data class BuildGateCycleState(
 class FeatureTaskRuntimeBuildGateCoordinator(
   private val resolver: ValidationGateResolver,
   private val runner: ValidationGateRunner,
-  private val progressStore: FeatureTaskRuntimeBuildGateProgressStore,
   private val repoLocalConfig: RepoLocalConfigPort,
   private val diagnostics: RuntimeDiagnostics,
 ) {
@@ -81,7 +80,7 @@ class FeatureTaskRuntimeBuildGateCoordinator(
     declaration: ValidationGateDeclaration,
     onGateRunCount: (Int) -> Unit,
   ): ValidationGateCycleResult {
-    val loaded = progressStore.load(cycle.request.workflowId)
+    val loaded = cycle.progressStore.load(cycle.request.workflowId)
     val measurements = loaded?.gateRuns?.toMutableList() ?: mutableListOf()
     val state = BuildGateCycleState(cycle, measurements, onGateRunCount)
 
@@ -309,7 +308,7 @@ class FeatureTaskRuntimeBuildGateCoordinator(
         repairsUsed = write.repairsUsed,
         capturedTriagePlan = write.capturedTriagePlan,
       )
-    progressStore.persist(state.cycle.request.workflowId, progress)
+    state.cycle.progressStore.persist(state.cycle.request.workflowId, progress)
     emitFeatureTaskRuntimeEventSafely(
       diagnostics = diagnostics,
       seam = "BuildGateProgress event-sink emission",

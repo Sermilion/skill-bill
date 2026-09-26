@@ -23,7 +23,6 @@ import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.engine.featuretask.runloop.core.PreparedLaunch
 import skillbill.engine.featuretask.runloop.core.PreparedLaunchReady
 import skillbill.engine.featuretask.runloop.core.RepositoryCheckpointResolutionArgs
-import skillbill.engine.featuretask.runloop.core.qualityGateSelection
 import skillbill.engine.featuretask.runloop.core.resolveLaunchRejectionAttribution
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputVerification
 import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopValidationScope
@@ -352,7 +351,7 @@ object PhaseLaunchPreparation {
         branchIdentity = resolvedBranchRecord?.branch,
         baseBranch = resolvedBranchRecord?.baseBranch ?: "main",
         validationDepth = run.request.goalContinuation?.validationDepth ?: ValidationDepth.DEFAULT,
-        qualityGateSelection = qualityGateSelection(request),
+        unselectedStepIds = unselectedStepIds(),
       ),
     ).copy(
       recordedFindingVerdicts = stepHooks(run).handoffFindingVerdicts(stepState(run)),

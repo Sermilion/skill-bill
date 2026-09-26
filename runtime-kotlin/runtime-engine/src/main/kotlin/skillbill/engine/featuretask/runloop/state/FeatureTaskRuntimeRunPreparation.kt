@@ -18,7 +18,6 @@ import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
-import skillbill.workflow.taskruntime.model.core.orLegacyValidate
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationFieldAdoption
@@ -151,12 +150,7 @@ class FeatureTaskRuntimeRunPreparation(
     val suppliedDepth = request.goalContinuation?.validationDepth
     val adoptedDepth = suppliedDepth.takeIf { initial.continuation.validationDepth == null }
     val legacySelectionHeal = initial.continuation.qualityGateSelection == null
-    val healedSelection =
-      if (legacySelectionHeal) {
-        FeatureTaskRuntimeQualityGateSelection.VALIDATE
-      } else {
-        initial.continuation.qualityGateSelection
-      }
+    val healedSelection = initial.continuation.qualityGateSelection ?: LEGACY_QUALITY_GATE_SELECTION
     val fieldAdoption =
       when {
         adoptedDepth != null ->
@@ -170,7 +164,7 @@ class FeatureTaskRuntimeRunPreparation(
         legacySelectionHeal ->
           FeatureTaskRuntimeGoalContinuationFieldAdoption(
             field = "quality_gate_selection",
-            adoptedValue = healedSelection.orLegacyValidate().wireValue,
+            adoptedValue = LEGACY_QUALITY_GATE_SELECTION.wireValue,
             reason =
               "durable goal-continuation row predated the quality_gate_selection contract; " +
                 "resolved legacy selection to validate",
@@ -289,6 +283,9 @@ class FeatureTaskRuntimeRunPreparation(
   }
 }
 
+/** The selection a legacy goal continuation row without one heals to; the run records the adoption. */
+internal val LEGACY_QUALITY_GATE_SELECTION = FeatureTaskRuntimeQualityGateSelection.VALIDATE
+
 private fun hasGoalContinuation(
   initial: ContinuationRead.Available?,
   request: FeatureTaskRuntimeRunRequest,
@@ -351,7 +348,7 @@ private fun goalContinuationContext(
       continuation.validationDepth
         ?: request.goalContinuation?.validationDepth
         ?: ValidationDepth.DEFAULT,
-    qualityGateSelection = continuation.qualityGateSelection.orLegacyValidate(),
+    qualityGateSelection = continuation.qualityGateSelection ?: LEGACY_QUALITY_GATE_SELECTION,
     subtaskName = continuation.subtaskName,
     reviewBaseline = baseline,
     agentAddonSelection = continuation.agentAddonSelection,

@@ -76,7 +76,8 @@ internal fun promptComposerBriefingFor(
   options: PromptComposerBriefingOptions,
 ): FeatureTaskRuntimePhaseLaunchBriefing {
   val checkpoint = FeatureTaskRuntimeRepositoryCheckpoint(fingerprint = "fixture-checkpoint-1")
-  val declaration = phaseDeclaration(phaseId, options.featureSize)
+  val declaration =
+    phaseDeclaration(phaseId, options.featureSize, setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD))
   return FeatureTaskRuntimePhaseBriefingAssembler.assemble(
     FeatureTaskRuntimeHandoffContract.assembleHandoff(
       FeatureTaskRuntimeHandoffAssemblyRequest(

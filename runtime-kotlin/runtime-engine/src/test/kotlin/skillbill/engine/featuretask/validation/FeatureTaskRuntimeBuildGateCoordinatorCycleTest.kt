@@ -35,13 +35,14 @@ class FeatureTaskRuntimeBuildGateCoordinatorCycleTest {
     val progress = RecordingProgressStore(recorded, null)
     var repairLaunches = 0
     val cycle =
-      buildCoordinator(declaredResolver(declarationWithBuild()), runner, progress).execute(
+      buildCoordinator(declaredResolver(declarationWithBuild()), runner).execute(
         ValidationGateCycleRequest(
           repoRoot = validationGateTestRepoRoot,
           request = minimalRequest(),
           validationDepth = ValidationDepth.DEFAULT,
           changedPaths = listOf("runtime-kotlin/foo.kt"),
           repositoryCheckpoint = "checkpoint",
+          progressStore = progress,
           agentRepairLauncher =
             ValidationGateAgentRepairLauncher { _, _, _ ->
               repairLaunches++
@@ -65,13 +66,14 @@ class FeatureTaskRuntimeBuildGateCoordinatorCycleTest {
   fun `build gate uses COLLECT_ALL parse mode so compiler diagnostics are captured`() {
     val runner = ScriptedGateRunner(listOf(passed()))
     val progress = RecordingProgressStore(mutableListOf(), null)
-    buildCoordinator(declaredResolver(declarationWithBuild()), runner, progress).execute(
+    buildCoordinator(declaredResolver(declarationWithBuild()), runner).execute(
       ValidationGateCycleRequest(
         repoRoot = validationGateTestRepoRoot,
         request = minimalRequest(),
         validationDepth = ValidationDepth.DEFAULT,
         changedPaths = listOf("runtime-kotlin/foo.kt"),
         repositoryCheckpoint = "checkpoint",
+        progressStore = progress,
         agentRepairLauncher =
           ValidationGateAgentRepairLauncher { _, _, _ ->
             error("repair must not launch on a clean discovery run")
@@ -87,10 +89,6 @@ class FeatureTaskRuntimeBuildGateCoordinatorCycleTest {
       FeatureTaskRuntimeBuildGateCoordinator(
         ValidationGateResolver { emptyList() },
         ScriptedGateRunner(emptyList()),
-        FeatureTaskRuntimeBuildGateProgressStore(
-          persist = { _, _ -> },
-          load = { _ -> null },
-        ),
         repoLocalConfig(),
         NoopRuntimeDiagnostics,
       ).execute(
@@ -100,6 +98,7 @@ class FeatureTaskRuntimeBuildGateCoordinatorCycleTest {
           validationDepth = ValidationDepth.DEFAULT,
           changedPaths = listOf("skills/bill-feature/content.md"),
           repositoryCheckpoint = "checkpoint",
+          progressStore = RecordingProgressStore(mutableListOf(), null),
           agentRepairLauncher =
             ValidationGateAgentRepairLauncher { _, _, _ ->
               error("repair must not launch when validation gate is absent")
@@ -121,13 +120,14 @@ class FeatureTaskRuntimeBuildGateCoordinatorCycleTest {
     val progress = RecordingProgressStore(recorded, null)
     var repairLaunches = 0
     val cycle =
-      buildCoordinator(declaredResolver(declarationWithBuild()), runner, progress).execute(
+      buildCoordinator(declaredResolver(declarationWithBuild()), runner).execute(
         ValidationGateCycleRequest(
           repoRoot = validationGateTestRepoRoot,
           request = minimalRequest(),
           validationDepth = ValidationDepth.DEFAULT,
           changedPaths = listOf("runtime-kotlin/foo.kt"),
           repositoryCheckpoint = "checkpoint",
+          progressStore = progress,
           agentRepairLauncher =
             ValidationGateAgentRepairLauncher { _, _, _ ->
               repairLaunches++
@@ -159,13 +159,14 @@ class FeatureTaskRuntimeBuildGateCoordinatorCycleTest {
       )
     val recorded = mutableListOf<FeatureTaskRuntimeValidationGateProgress>()
     val progress = RecordingProgressStore(recorded, null)
-    buildCoordinator(declaredResolver(declarationWithBuild()), runner, progress).execute(
+    buildCoordinator(declaredResolver(declarationWithBuild()), runner).execute(
       ValidationGateCycleRequest(
         repoRoot = validationGateTestRepoRoot,
         request = minimalRequest(),
         validationDepth = ValidationDepth.DEFAULT,
         changedPaths = listOf("runtime-kotlin/foo.kt"),
         repositoryCheckpoint = "checkpoint",
+        progressStore = progress,
         agentTriageLauncher =
           ValidationGateAgentTriageLauncher {
             triageLaunches.incrementAndGet()
@@ -194,15 +195,10 @@ class FeatureTaskRuntimeBuildGateCoordinatorCycleTest {
   private fun buildCoordinator(
     resolver: ValidationGateResolver,
     runner: ScriptedGateRunner,
-    progressStore: RecordingProgressStore,
   ): FeatureTaskRuntimeBuildGateCoordinator =
     FeatureTaskRuntimeBuildGateCoordinator(
       resolver,
       runner,
-      FeatureTaskRuntimeBuildGateProgressStore(
-        persist = { _, progress -> progressStore.persist("", progress) },
-        load = { _ -> progressStore.load("") },
-      ),
       repoLocalConfig(),
       NoopRuntimeDiagnostics,
     )

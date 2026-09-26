@@ -24,7 +24,6 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeProviderLimitSignal
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseDeclaration
@@ -233,20 +232,9 @@ fun invalidateLegacyPlanWithoutPreplan(completed: MutableSet<String>) {
 fun phaseDeclaration(
   phaseId: String,
   featureSize: FeatureTaskRuntimeFeatureSize,
-  qualityGateSelection: FeatureTaskRuntimeQualityGateSelection = FeatureTaskRuntimeQualityGateSelection.VALIDATE,
+  omittedStepIds: Set<String>,
 ): FeatureTaskRuntimePhaseDeclaration =
-  if (
-    phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY ||
-    phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH
-  ) {
-    FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclarationForQualityGate(
-      phaseId,
-      featureSize,
-      qualityGateSelection,
-    )
-  } else {
-    FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclaration(phaseId, featureSize)
-  }
+  FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclarationWithoutSteps(phaseId, featureSize, omittedStepIds)
 
 fun missingUpstream(
   declaration: FeatureTaskRuntimePhaseDeclaration,

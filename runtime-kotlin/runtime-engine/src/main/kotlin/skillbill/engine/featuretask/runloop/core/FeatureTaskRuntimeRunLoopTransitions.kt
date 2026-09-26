@@ -4,15 +4,19 @@ import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheck
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoopCheckpointRemediation
 import skillbill.engine.featuretask.runloop.observability.loopEdge
+import skillbill.engine.featuretask.runner.skeletonDefinitionFor
+import skillbill.engine.featuretask.slot.PhaseStrategySelectionFacts
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeNextPhase
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
-internal fun qualityGateSelection(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeQualityGateSelection =
-  request.goalContinuation?.qualityGateSelection ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
+internal fun strategySelectionFacts(request: FeatureTaskRuntimeRunRequest): PhaseStrategySelectionFacts =
+  PhaseStrategySelectionFacts(
+    skeletonDefinitionFor(request),
+    setOfNotNull(request.runInvariants.codeReviewMode, request.goalContinuation?.qualityGateSelection),
+  )
 
 internal fun spanBetween(
   transitions: FeatureTaskRuntimeTransitionDeclaration,

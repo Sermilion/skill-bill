@@ -7,6 +7,8 @@ import skillbill.engine.featuretask.slot.PhaseStrategyLookup
 import skillbill.engine.featuretask.slot.PhaseStrategyRegistry
 import skillbill.engine.featuretask.slot.PhaseStrategySelection
 import skillbill.engine.featuretask.slot.codereview.InlineReviewStrategy
+import skillbill.engine.featuretask.slot.qualitygate.agentvalidate.AgentValidateStrategy
+import skillbill.engine.featuretask.slot.qualitygate.packbuild.PackBuildStrategy
 import skillbill.engine.featuretask.slot.runner.DefaultPhaseRunner
 import skillbill.engine.featuretask.slot.strategy.AcceptanceAuditStrategy
 import skillbill.engine.featuretask.slot.strategy.AgentPlanStrategy
@@ -14,13 +16,13 @@ import skillbill.engine.featuretask.slot.strategy.AgentPreplanStrategy
 import skillbill.engine.featuretask.slot.strategy.BoundaryHistoryStrategy
 import skillbill.engine.featuretask.slot.strategy.ImplementThenSimplifyStrategy
 import skillbill.engine.featuretask.slot.strategy.PrDescriptionStrategy
-import skillbill.engine.featuretask.slot.strategy.RoutedQualityGateStrategy
 import skillbill.engine.featuretask.slot.strategy.RuntimeCommitStrategy
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.PhaseSlot
+import skillbill.workflow.taskruntime.phase.task.SkeletonDefinition
 
 internal interface RuntimeFeatureTaskSlotProvides {
   @Provides
@@ -38,7 +40,8 @@ internal interface RuntimeFeatureTaskSlotProvides {
         ImplementThenSimplifyStrategy(runner()),
         AcceptanceAuditStrategy(runner()),
         InlineReviewStrategy(runner()),
-        RoutedQualityGateStrategy(runner()),
+        PackBuildStrategy(runner()),
+        AgentValidateStrategy(runner()),
         BoundaryHistoryStrategy(runner()),
         RuntimeCommitStrategy(runner()),
         PrDescriptionStrategy(runner()),
@@ -50,21 +53,23 @@ internal interface RuntimeFeatureTaskSlotProvides {
     PhaseStrategySelection(
       registry,
       mapOf(
-        PhaseSlot.PREPLAN to PhaseStrategyBinding.Fixed(AgentPreplanStrategy.ID),
-        PhaseSlot.PLAN to PhaseStrategyBinding.Fixed(AgentPlanStrategy.ID),
-        PhaseSlot.IMPLEMENTATION to PhaseStrategyBinding.Fixed(ImplementThenSimplifyStrategy.ID),
-        PhaseSlot.AUDIT to PhaseStrategyBinding.Fixed(AcceptanceAuditStrategy.ID),
-        PhaseSlot.CODE_REVIEW to
-          PhaseStrategyBinding.ByCodeReviewMode(
-            CodeReviewExecutionMode.entries.associateWith { InlineReviewStrategy.ID },
+        SkeletonDefinition.STANDALONE to
+          sharedBindings() +
+          mapOf(
+            PhaseSlot.QUALITY_GATE to PhaseStrategyBinding.Fixed(AgentValidateStrategy.ID),
+            PhaseSlot.PULL_REQUEST to PhaseStrategyBinding.Fixed(PrDescriptionStrategy.ID),
           ),
-        PhaseSlot.QUALITY_GATE to
-          PhaseStrategyBinding.ByQualityGate(
-            FeatureTaskRuntimeQualityGateSelection.entries.associateWith { RoutedQualityGateStrategy.ID },
+        SkeletonDefinition.GOAL_CHILD to
+          sharedBindings() +
+          mapOf(
+            PhaseSlot.QUALITY_GATE to
+              PhaseStrategyBinding.ByFact(
+                mapOf(
+                  FeatureTaskRuntimeQualityGateSelection.BUILD to PackBuildStrategy.ID,
+                  FeatureTaskRuntimeQualityGateSelection.VALIDATE to AgentValidateStrategy.ID,
+                ),
+              ),
           ),
-        PhaseSlot.WRITE_HISTORY to PhaseStrategyBinding.Fixed(BoundaryHistoryStrategy.ID),
-        PhaseSlot.COMMIT_PUSH to PhaseStrategyBinding.Fixed(RuntimeCommitStrategy.ID),
-        PhaseSlot.PULL_REQUEST to PhaseStrategyBinding.Fixed(PrDescriptionStrategy.ID),
       ),
     )
 
@@ -74,3 +79,15 @@ internal interface RuntimeFeatureTaskSlotProvides {
     selection: PhaseStrategySelection,
   ): PhaseStrategyLookup = PhaseStrategyLookup(registry, selection)
 }
+
+private fun sharedBindings(): Map<PhaseSlot, PhaseStrategyBinding> =
+  mapOf(
+    PhaseSlot.PREPLAN to PhaseStrategyBinding.Fixed(AgentPreplanStrategy.ID),
+    PhaseSlot.PLAN to PhaseStrategyBinding.Fixed(AgentPlanStrategy.ID),
+    PhaseSlot.IMPLEMENTATION to PhaseStrategyBinding.Fixed(ImplementThenSimplifyStrategy.ID),
+    PhaseSlot.AUDIT to PhaseStrategyBinding.Fixed(AcceptanceAuditStrategy.ID),
+    PhaseSlot.CODE_REVIEW to
+      PhaseStrategyBinding.ByFact(CodeReviewExecutionMode.entries.associateWith { InlineReviewStrategy.ID }),
+    PhaseSlot.WRITE_HISTORY to PhaseStrategyBinding.Fixed(BoundaryHistoryStrategy.ID),
+    PhaseSlot.COMMIT_PUSH to PhaseStrategyBinding.Fixed(RuntimeCommitStrategy.ID),
+  )

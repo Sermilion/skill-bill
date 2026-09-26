@@ -77,12 +77,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       )
     return PhaseRun(
       phaseId = phaseId,
-      declaration =
-        phaseDeclaration(
-          phaseId,
-          request.runInvariants.featureSize,
-          qualityGateSelection(request),
-        ),
+      declaration = phaseDeclarationForRun(context, request, phaseId),
       resolvedAgent = resolvedAgent,
       modelDirective =
         FeatureTaskRuntimeModelResolver.resolve(
@@ -102,7 +97,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     args: RunPhaseArgs,
   ): PhaseOutcome {
     val phaseId = args.phaseId
-    val declaration = phaseDeclarationForRun(args.request, phaseId)
+    val declaration = phaseDeclarationForRun(context, args.request, phaseId)
     val run =
       buildPhaseRun(
         phaseId = phaseId,
@@ -122,13 +117,14 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
   }
 
   internal fun phaseDeclarationForRun(
+    context: FeatureTaskRuntimeRunLoopContext,
     request: FeatureTaskRuntimeRunRequest,
     phaseId: String,
   ): FeatureTaskRuntimePhaseDeclaration =
     phaseDeclaration(
       phaseId,
       request.runInvariants.featureSize,
-      qualityGateSelection(request),
+      context.strategies.unselectedStepIds(strategySelectionFacts(request)),
     )
 
   internal fun buildPhaseRun(
@@ -211,7 +207,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       buildPhaseRun(
         phaseId = stepId,
         request = context.request,
-        declaration = phaseDeclarationForRun(context.request, stepId),
+        declaration = phaseDeclarationForRun(context, context.request, stepId),
         specSource = context.specSource,
         reentry = null,
         policy = context.stepPolicy(stepId),

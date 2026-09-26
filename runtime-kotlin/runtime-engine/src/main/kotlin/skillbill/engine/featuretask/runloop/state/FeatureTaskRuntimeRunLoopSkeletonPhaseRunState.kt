@@ -54,6 +54,8 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhase
 import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 internal class FeatureTaskRuntimeRunLoopSkeletonPhaseRunState(
   private val context: FeatureTaskRuntimeRunLoopContext,
@@ -464,6 +466,21 @@ internal class FeatureTaskRuntimeRunLoopSkeletonPhaseRunState(
         output.repairEvidence,
       ),
     )
+  }
+
+  override fun loadGateProgress(): FeatureTaskRuntimeValidationGateProgress? =
+    if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD) {
+      context.recorder.loadBuildGateProgress(workflowId)
+    } else {
+      context.recorder.loadValidationGateProgress(workflowId)
+    }
+
+  override fun persistGateProgress(progress: FeatureTaskRuntimeValidationGateProgress) {
+    if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD) {
+      context.recorder.persistBuildGateProgress(workflowId, progress)
+    } else {
+      context.recorder.persistValidationGateProgress(workflowId, progress)
+    }
   }
 
   private fun PhaseStepFileManifest.toPhaseManifest() = FeatureTaskRuntimePhaseFileManifest(before, after)

@@ -2,11 +2,13 @@ package skillbill.engine.featuretask.slot
 
 import skillbill.application.review.service.RuntimeOwnedReviewMode
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
+import skillbill.engine.featuretask.runloop.core.PhaseOutcome
 import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.workflow.model.goalreview.ReviewPassResolution
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 
 /**
  * The launch and output behaviour one strategy step adds to the shared attempt path. The shared launch
@@ -50,6 +52,16 @@ internal interface PhaseStepHooks {
     state: PhaseRunState,
     outputText: String,
   ) = Unit
+
+  /**
+   * The outcome [outputText] of [run] settles to before the shared output gate decodes it, or null when the shared
+   * gate decodes it. A runtime-owned step settles its triage and repair sessions here.
+   */
+  fun earlyOutput(
+    run: PhaseRun,
+    iteration: Int,
+    outputText: String,
+  ): PhaseOutcome? = null
 
   /** Checks validated [outputMap] of [run] before the shared output checks run. */
   fun checkValidatedOutput(
@@ -105,7 +117,13 @@ internal sealed interface PhaseStepOutputCheck {
 
   data class Redeliver(val reason: String) : PhaseStepOutputCheck
 
-  data class Block(val reason: String) : PhaseStepOutputCheck
+  data class Block(
+    val reason: String,
+    val disposition: FeatureTaskRuntimeFailureDisposition = FeatureTaskRuntimeFailureDisposition.PROCESS_FAILURE,
+  ) : PhaseStepOutputCheck
+
+  /** The step keeps repairing in its session; [previousValue] is handed to the next attempt. */
+  data class ContinueRepair(val previousValue: String) : PhaseStepOutputCheck
 
   companion object {
     const val OUTPUT_VERIFICATION_RULE = "output-verification"

@@ -13,7 +13,6 @@ import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunEvidenceO
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.slot.PhaseStrategy
 import skillbill.engine.featuretask.slot.PhaseStrategyLookup
-import skillbill.engine.featuretask.slot.PhaseStrategySelectionFacts
 import skillbill.engine.recovery.recommendedDurableChildRecoveryCommand
 import skillbill.engine.worktreeedit.WorktreeEditJournalWriter
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -44,13 +43,11 @@ internal data class FeatureTaskRuntimeRunLoopContext(
   val diagnostics: RuntimeDiagnostics,
   val session: FeatureTaskRuntimeRunLoopSession,
 ) {
-  fun strategyFor(stepId: String): PhaseStrategy =
-    strategies.strategyFor(
-      stepId,
-      PhaseStrategySelectionFacts(request.runInvariants.codeReviewMode, qualityGateSelection(request)),
-    )
+  fun strategyFor(stepId: String): PhaseStrategy = strategies.strategyFor(stepId, strategySelectionFacts(request))
 
   fun stepPolicy(stepId: String): PhaseStepPolicy = strategyFor(stepId).policyFor(stepId)
+
+  fun unselectedStepIds(): Set<String> = strategies.unselectedStepIds(strategySelectionFacts(request))
 }
 
 internal data class LaunchRejectionAttribution(

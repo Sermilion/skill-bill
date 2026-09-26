@@ -11,11 +11,15 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_SIMPLIFY
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
 
 object ProsePhaseOutputSynthesizer {
   private val PROSE_PHASE_IDS: Set<String> =
-    setOf(PHASE_PREPLAN, PHASE_PLAN, PHASE_IMPLEMENT, PHASE_SIMPLIFY, PHASE_AUDIT)
+    setOf(PHASE_PREPLAN, PHASE_PLAN, PHASE_IMPLEMENT, PHASE_SIMPLIFY, PHASE_AUDIT, PHASE_VALIDATE)
   private val AUDIT_VERDICTS: Set<String> = setOf("satisfied")
+
+  /** Settlements whose blocked value carries a shrink verdict the step's strategy reads. */
+  private val BLOCKED_VERDICT_PHASE_IDS: Set<String> = setOf(PHASE_VALIDATE)
 
   fun isProsePhase(phaseId: String): Boolean = phaseId in PROSE_PHASE_IDS
 
@@ -71,18 +75,16 @@ object ProsePhaseOutputSynthesizer {
         ?: ProsePhaseOutputRecover.recoverLegacyValue(parsed)
         ?: return null
     val verdict =
-      if (phaseId == PHASE_AUDIT) {
-        if (status == SettlementStatus.COMPLETED.wireValue) {
+      when {
+        phaseId == PHASE_AUDIT && status == SettlementStatus.COMPLETED.wireValue ->
           ProsePhaseOutputRecover.recoverAuditVerdict(parsed, phaseOutputText)
             ?: when (FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(value)) {
               FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList -> "satisfied"
               else -> return null
             }
-        } else {
-          null
-        }
-      } else {
-        null
+        phaseId in BLOCKED_VERDICT_PHASE_IDS && status == SettlementStatus.BLOCKED.wireValue ->
+          (parsed[SharedPayloadKeys.VERDICT] as? String)?.takeIf(String::isNotBlank)
+        else -> null
       }
     return value to verdict
   }
@@ -124,6 +126,13 @@ object ProsePhaseOutputSynthesizer {
     }
     if (settledAsFailure && !request.failureDisposition.isNullOrBlank()) {
       envelope[SharedPayloadKeys.FAILURE_DISPOSITION] = request.failureDisposition
+    }
+    if (
+      request.status == SettlementStatus.BLOCKED &&
+      request.phaseId in BLOCKED_VERDICT_PHASE_IDS &&
+      !request.verdict.isNullOrBlank()
+    ) {
+      envelope[SharedPayloadKeys.VERDICT] = request.verdict
     }
     return envelope
   }

@@ -31,7 +31,6 @@ import skillbill.engine.featuretask.runloop.core.PhaseStateWriteArgs
 import skillbill.engine.featuretask.runloop.core.RepositoryCheckpointResolutionArgs
 import skillbill.engine.featuretask.runloop.core.TerminalOutputAttemptArgs
 import skillbill.engine.featuretask.runloop.core.isFeatureSpecPathForIssue
-import skillbill.engine.featuretask.runloop.core.qualityGateSelection
 import skillbill.engine.featuretask.runloop.core.reconcileCheckpointPathInventory
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.observability.completedEvent
@@ -134,7 +133,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         phaseDeclaration(
           consumerPhaseId,
           run.request.runInvariants.featureSize,
-          qualityGateSelection(request),
+          unselectedStepIds(),
         )
       val currentOutput =
         FeatureTaskRuntimePhaseOutput(

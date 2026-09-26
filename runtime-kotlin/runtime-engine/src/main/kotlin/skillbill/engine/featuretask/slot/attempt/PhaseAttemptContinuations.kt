@@ -41,7 +41,6 @@ import skillbill.engine.featuretask.runloop.output.retryRejectionReason
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
-import skillbill.engine.featuretask.runloop.state.validationRemainingDetail
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
 import skillbill.engine.featuretask.runner.nonRetryingPhaseSchemaBlockReason
 import skillbill.engine.featuretask.runner.withSchemaGateDetail
@@ -147,40 +146,20 @@ object PhaseAttemptContinuations {
   }
 
   internal fun settleValidationRemaining(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
     observability: FeatureTaskRuntimeRunObservability,
     context: FixLoopBranchContext,
   ): PhaseOutcome? {
     val run = context.run
-    val attempt = context.attempt
     val loop = context.loop
-    val remaining = requireNotNull(attempt.validationRemainingFingerprint)
-    val detail = requireNotNull(attempt.validationRemainingDetail)
-    if (loop.validationRemainingFingerprint != null && loop.validationRemainingFingerprint == remaining) {
-      return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
-        request,
-        state,
-        recorder,
-        observability,
-        PhaseBlockRequest(
-          run = run,
-          attemptCount = loop.iteration,
-          reason = FeatureTaskRuntimeAttemptBudgets.validateRemainingUnchangedBlockReason(),
-          observability = observability,
-          payload = BlockAndPersistPayload(fileManifest = attempt.fileManifest),
-          failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
-        ),
-      )
-    }
-    loop.validationRemainingFingerprint = remaining
+    val detail = requireNotNull(context.attempt.validationRemainingDetail)
     loop.continuationSegmentCount += 1
     loop.iteration += 1
     loop.priorCorrection =
       PriorAttemptCorrection.schemaGate(
         "Remaining project checks are still failing. Keep repairing in this session until every required " +
-          "check passes, then emit validation_passed true. Last remaining failures: $detail",
+          "check passes, then settle completed. If checks still fail, settle blocked with the remaining failures " +
+          "as the value and verdict progress when they shrank against the previous value below, or no_progress " +
+          "when they did not. Previous value: $detail",
       )
     observability.continuation(
       run.phaseId,

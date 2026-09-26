@@ -80,7 +80,6 @@ internal sealed interface AttemptResult {
   ) : AttemptResult
 
   data class ValidationRemaining(
-    val remainingFingerprint: String,
     val remainingDetail: String,
     override val fileManifest: FeatureTaskRuntimePhaseFileManifest,
   ) : AttemptResult
@@ -143,8 +142,6 @@ internal sealed interface AttemptResult {
 
   val auditRetryContinuation: Boolean get() = this is AuditRetry
 
-  val validationRemainingFingerprint: String? get() = (this as? ValidationRemaining)?.remainingFingerprint
-
   val validationRemainingDetail: String? get() = (this as? ValidationRemaining)?.remainingDetail
 
   companion object {
@@ -168,10 +165,9 @@ internal sealed interface AttemptResult {
     ): AttemptResult = AuditRetry(focusHint, fileManifest)
 
     fun validationRemaining(
-      remainingFingerprint: String,
       remainingDetail: String,
       fileManifest: FeatureTaskRuntimePhaseFileManifest,
-    ): AttemptResult = ValidationRemaining(remainingFingerprint, remainingDetail, fileManifest)
+    ): AttemptResult = ValidationRemaining(remainingDetail, fileManifest)
 
     fun retryableTerminal(
       operatorReason: String,

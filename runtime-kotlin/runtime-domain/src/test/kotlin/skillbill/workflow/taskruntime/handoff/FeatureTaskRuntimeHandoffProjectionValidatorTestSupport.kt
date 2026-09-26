@@ -1,9 +1,6 @@
 package skillbill.workflow.taskruntime.handoff
 
 import skillbill.workflow.model.ValidationDepth
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.BUILD
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection.VALIDATE
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
@@ -85,7 +82,7 @@ internal data class HandoffProjectionValidatorInputsFixture(
   var resolvedCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint? = null,
   var expectedCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint? = null,
   var validationDepth: ValidationDepth = ValidationDepth.DEFAULT,
-  var qualityGateSelection: FeatureTaskRuntimeQualityGateSelection = VALIDATE,
+  var unselectedStepIds: Set<String> = setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD),
 ) {
   fun build(): FeatureTaskRuntimeHandoffProjectionInputs =
     FeatureTaskRuntimeHandoffProjectionInputs(
@@ -97,7 +94,7 @@ internal data class HandoffProjectionValidatorInputsFixture(
       expectedCheckpoint = expectedCheckpoint,
       workflowId = "wftr-1",
       validationDepth = validationDepth,
-      qualityGateSelection = qualityGateSelection,
+      unselectedStepIds = unselectedStepIds,
       planningProjectionValidator = AcceptingFeatureTaskRuntimeWireArtifactValidator::validate,
     )
 }
@@ -193,22 +190,16 @@ internal fun assertValueOnlyConsumerLaunches(
   checkpoint: FeatureTaskRuntimeRepositoryCheckpoint,
 ) {
   val def = FeatureTaskRuntimePhaseWorkflowDefinition
-  val gateSelection =
-    if (consumer == def.PHASE_BUILD) {
-      BUILD
-    } else {
-      VALIDATE
-    }
   val declarations =
     if (consumer == def.PHASE_VALIDATE || consumer == def.PHASE_BUILD) {
       FeatureTaskRuntimePhaseWorkflowQueries
         .phaseDeclaration(consumer, FeatureTaskRuntimeFeatureSize.MEDIUM)
         .projectionDeclarations
     } else {
-      FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclarationForQualityGate(
+      FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclarationWithoutSteps(
         consumer,
         FeatureTaskRuntimeFeatureSize.MEDIUM,
-        gateSelection,
+        setOf(def.PHASE_BUILD),
       ).projectionDeclarations
     }
   val envelope =

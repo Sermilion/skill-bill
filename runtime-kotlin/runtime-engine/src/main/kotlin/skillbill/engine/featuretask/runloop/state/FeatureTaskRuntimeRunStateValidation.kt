@@ -3,10 +3,8 @@ package skillbill.engine.featuretask.runloop.state
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
-import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.engine.goalrunner.status.completed
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.model.workflowStepStatus
@@ -57,35 +55,6 @@ internal data class ValidationSettlementValidation(
   val durableVerdictFor: (String) -> FeatureTaskRuntimeVerdict,
 )
 
-internal fun requirePassedValidationResult(
-  run: PhaseRun,
-  envelope: Map<
-    String,
-    Any?,
-  >,
-) {
-  if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) return
-  if ((envelope[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return
-  when (validationPassedFromEnvelope(envelope)) {
-    true -> Unit
-    false -> Unit
-    null -> throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
-      run.phaseId,
-      "Validation requires a boolean produced_outputs.validation_passed result.",
-    )
-  }
-}
-
-internal fun validationRemainingDetail(envelope: Map<String, Any?>): String {
-  val produced = JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
-  val value = produced?.get(SharedPayloadKeys.VALUE) as? String ?: return ""
-  return value.trim().replace(Regex("\\s+"), " ")
-}
-
-internal fun validationPassedFromEnvelope(envelope: Map<String, Any?>): Boolean? =
-  JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
-    ?.get(ValidationEvidencePayloadKeys.VALIDATION_PASSED) as? Boolean
-
 internal fun validationEvidenceFromEnvelope(
   envelope: Map<String, Any?>,
   sourceLabel: String,
@@ -115,8 +84,7 @@ internal fun invalidateIncompleteValidationSettlement(
   val envelope = output?.normalizedOutput?.envelopeWireMap()
   val valid =
     envelope != null &&
-      (envelope[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() == WorkflowStepStatus.COMPLETED &&
-      validationPassedFromEnvelope(envelope) == true
+      (envelope[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() == WorkflowStepStatus.COMPLETED
   if (!valid) {
     state.invalidateValidationPhase()
     state.invalidateUnsatisfiedGateSuccessors(validation.durableVerdictFor)

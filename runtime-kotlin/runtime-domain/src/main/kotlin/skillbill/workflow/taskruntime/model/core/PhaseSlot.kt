@@ -24,7 +24,5 @@ enum class PhaseSlot(val wireValue: String, val steps: List<String>) {
   companion object {
     fun slotForStep(stepId: String): PhaseSlot =
       entries.firstOrNull { stepId in it.steps } ?: throw UnknownPhaseStepError(stepId)
-
-    fun runsInGoalChild(stepId: String): Boolean = slotForStep(stepId) != PULL_REQUEST
   }
 }

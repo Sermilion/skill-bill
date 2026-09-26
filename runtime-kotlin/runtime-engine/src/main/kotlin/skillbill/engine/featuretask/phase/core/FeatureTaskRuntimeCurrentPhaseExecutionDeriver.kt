@@ -30,12 +30,22 @@ class FeatureTaskRuntimeCurrentPhaseExecutionDeriver(
     val phaseId = context.currentPhaseId?.takeIf(String::isNotBlank) ?: return null
     if (context.phases.none { it.phaseId == phaseId }) return null
     if (PhaseSlot.entries.none { phaseId in it.steps }) return defaultPhaseExecution(phaseId, context)
-    val projection = strategies.strategyFor(phaseId, facts) as? PhaseStrategyStatusProjection
+    val projection = strategies.strategyOrNull(phaseId, facts) as? PhaseStrategyStatusProjection
     return if (projection == null) {
       defaultPhaseExecution(phaseId, context)
     } else {
       projection.currentExecution(phaseId, context)
     }
+  }
+
+  /**
+   * The pending steps status never reports as current: those the run's traversal reaches only through a backward
+   * edge, and the definition's loop-only steps the selection leaves out of the traversal.
+   */
+  internal fun loopOnlyStepIds(facts: PhaseStrategySelectionFacts): Set<String> {
+    val traversal = strategies.traversal(facts)
+    val unselectedLoopOnly = facts.definition.declaration().loopOnlyPhaseIds - traversal.forwardPhaseIds.toSet()
+    return traversal.loopOnlyPhaseIds + unselectedLoopOnly
   }
 }
 

@@ -1,0 +1,52 @@
+package skillbill.workflow.taskruntime.phase.task
+
+import skillbill.error.featuretask.InvalidSkeletonDefinitionError
+import skillbill.workflow.taskruntime.model.core.PhaseSlot
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
+
+data class SkeletonDefinition(
+  val id: String,
+  val slots: List<PhaseSlot>,
+) {
+  init {
+    val canonicalOrder = slots.zipWithNext().all { (previous, next) -> previous.ordinal < next.ordinal }
+    if (slots.isEmpty() || !canonicalOrder) {
+      throw InvalidSkeletonDefinitionError(id, slots.map(PhaseSlot::wireValue))
+    }
+  }
+
+  val stepIds: List<String> get() = slots.flatMap(PhaseSlot::steps)
+
+  fun declaration(): FeatureTaskRuntimeTransitionDeclaration = derive(stepIds, entryStepIds = emptySet())
+
+  fun traversal(
+    selectedStepIds: Set<String>,
+    entryStepIds: Set<String>,
+  ): FeatureTaskRuntimeTransitionDeclaration = derive(stepIds.filter { it in selectedStepIds }, entryStepIds)
+
+  private fun derive(
+    steps: List<String>,
+    entryStepIds: Set<String>,
+  ): FeatureTaskRuntimeTransitionDeclaration {
+    val canonical = FeatureTaskRuntimePhaseWorkflowDefinition.transitions
+    val present = steps.toSet()
+    val loopOnly = canonical.loopOnlyPhaseIds.filter { it in present && it !in entryStepIds }.toSet()
+    return FeatureTaskRuntimeTransitionDeclaration(
+      forwardPhaseIds = steps,
+      entryGates = canonical.entryGates.filter { it.phaseId in present && it.requiredPhaseId in present },
+      backwardEdges =
+        canonical.backwardEdges.filter { it.fromPhaseId in present && it.destinationPhaseId in present },
+      loopOnlyPhaseIds = loopOnly,
+      loopOnlySuccessors =
+        canonical.loopOnlySuccessors.filter { (source, successor) -> source in loopOnly && successor in loopOnly },
+    )
+  }
+
+  companion object {
+    val STANDALONE: SkeletonDefinition = SkeletonDefinition("standalone", PhaseSlot.entries)
+    val GOAL_CHILD: SkeletonDefinition =
+      SkeletonDefinition("goal-child", PhaseSlot.entries.filter { it != PhaseSlot.PULL_REQUEST })
+
+    fun forRun(goalContinuation: Boolean): SkeletonDefinition = if (goalContinuation) GOAL_CHILD else STANDALONE
+  }
+}

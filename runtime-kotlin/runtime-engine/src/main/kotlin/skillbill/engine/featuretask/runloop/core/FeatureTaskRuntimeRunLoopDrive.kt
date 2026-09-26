@@ -13,7 +13,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeNextPhase
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionContext
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.validation.FeatureTaskRuntimeQualityGateRouting
 import skillbill.workflow.taskruntime.validation.FeatureTaskRuntimeTransitionFunction
 
 object FeatureTaskRuntimeRunLoopDrive {
@@ -127,25 +126,19 @@ object FeatureTaskRuntimeRunLoopDrive {
       context.observability.loopCapExhausted(phaseId, edge.loopId, declaredCap, effectiveVerdict)
     }
     val transition = resolveNextTransition(context, phaseId, effectiveVerdict, edgeIterationCount) ?: return null
-    val routed =
-      FeatureTaskRuntimeQualityGateRouting.applyAfterBuild(
-        phaseId,
-        FeatureTaskRuntimeQualityGateRouting.applyAfterReview(
-          phaseId,
-          transition,
-          qualityGateSelection(context.request),
-        ),
-      )
     return with(FeatureTaskRuntimeRunLoopTransitions) {
       transitionTarget(
         context,
         phaseId,
         edge,
         effectiveVerdict,
-        routed,
+        transition,
       )
     }
   }
+
+  private fun traversal(context: FeatureTaskRuntimeRunLoopContext): FeatureTaskRuntimeTransitionDeclaration =
+    context.request.transitionsOverride ?: context.strategies.traversal(strategySelectionFacts(context.request))
 
   private fun resolveNextTransition(
     context: FeatureTaskRuntimeRunLoopContext,
@@ -155,7 +148,7 @@ object FeatureTaskRuntimeRunLoopDrive {
   ): FeatureTaskRuntimeNextPhase? =
     runCatching {
       FeatureTaskRuntimeTransitionFunction.nextTransition(
-        declaration = context.transitions,
+        declaration = traversal(context),
         currentPhaseId = phaseId,
         verdict = verdict,
         edgeIterationCount = edgeIterationCount,

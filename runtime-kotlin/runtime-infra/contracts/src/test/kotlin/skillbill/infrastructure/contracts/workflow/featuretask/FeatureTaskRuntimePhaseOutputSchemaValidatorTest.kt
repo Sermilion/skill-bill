@@ -185,8 +185,8 @@ class FeatureTaskRuntimePhaseOutputWireSchemaTest {
   }
 
   @Test
-  fun `validate output requires a boolean signal and details`() {
-    listOf("{}", "{value: details}", "{value: details, validation_passed: 'true'}").forEach { produced ->
+  fun `completed validate output requires only the prose value and still decodes pre-change records`() {
+    listOf("{}", "{value: ' '}").forEach { produced ->
       val output =
         """
         contract_version: "0.6"
@@ -199,14 +199,14 @@ class FeatureTaskRuntimePhaseOutputWireSchemaTest {
         FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(output, "validate")
       }
     }
-    listOf(true, false).forEach { passed ->
+    listOf("{value: details}", "{value: details, validation_passed: true}").forEach { produced ->
       val output =
         """
         contract_version: "0.6"
         phase_id: validate
         status: completed
         summary: Checks finished.
-        produced_outputs: {value: details, validation_passed: $passed}
+        produced_outputs: $produced
         """.trimIndent()
       FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(output, "validate")
     }

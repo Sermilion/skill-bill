@@ -4,7 +4,7 @@ for issue SKILL-65. The runtime owns the loop; do not run other phases, do not o
 or continue any other skill-bill workflow, and do not call `skill-bill workflow continue`.
 
 Phase: validate (Phase 6: Quality Validation)
-Task: Discover the validation checks required by this project from its repository instructions, build and test configuration, scripts, and CI workflows. Use the project's commands and environment. Do not run pack validation_gate argv, `bill-code-check`, or any other pack-declared full-suite command. Do not run `skill-bill validate`, `npx agnix`, `scripts/validate_agent_configs`, or any other repo-root checklist. Those commands are not this phase. Keep repairing in this same session until every required project check passes. Do not spawn delegated subagents. Do not emit the phase envelope until produced_outputs.validation_passed is true. Put the checks run and remaining failure details in produced_outputs.value. False is not a successful handoff: if you emit it, the runtime continues only when that remaining-failure set shrank, and blocks when leftovers stay the same. Wall-clock timeout still stops the subtask. The runtime does not rerun the checks itself. Never silence findings with annotations, baselines, disabled rules, weakened configuration, or skipped tests; fix root causes instead.
+Task: Discover the validation checks required by this project from its repository instructions, build and test configuration, scripts, and CI workflows. Use the project's commands and environment. Do not run pack validation_gate argv, `bill-code-check`, or any other pack-declared full-suite command. Do not run `skill-bill validate`, `npx agnix`, `scripts/validate_agent_configs`, or any other repo-root checklist. Those commands are not this phase. Keep repairing in this same session until every required project check passes. Do not spawn delegated subagents. Settle completed only when every required check passes, with the checks run as the value. When checks still fail, settle blocked with the remaining failure details as the value and verdict progress when that remaining-failure set shrank against the previous attempt, or no_progress when it did not. The runtime continues on progress and blocks on no_progress. Wall-clock timeout still stops the subtask. The runtime does not rerun the checks itself. Never silence findings with annotations, baselines, disabled rules, weakened configuration, or skipped tests; fix root causes instead.
 
 ## Installed runtime is the contract source
 This briefing was composed by the installed Skill Bill runtime that will validate your output.
@@ -90,10 +90,10 @@ contract. Copy these field values from this briefing; do not look them up in thi
 - "summary": non-empty string describing what this phase did
 - "produced_outputs": object. Empty {} is valid when this phase has no structured
   payload. When this briefing names a required shape below, that shape is required
-- Emit the envelope only when every required project check passed.
-  Use status completed with validation_passed true and a non-blank value string of checks run.
-  Example: { "validation_passed": true, "value": "<checks run and result>" }
-  Keep repairing in this session until that is true. Do not emit false as a successful handoff.
+- Settle completed only when every required project check passed, with a non-blank value of checks run.
+  Example: { "value": "<checks run and result>" }
+  When checks still fail, settle blocked with the remaining failures as the value and verdict
+  progress when they shrank against the previous attempt, or no_progress when they did not.
   Do not emit validation_evidence, validation_result, gate_run_count, or gate_runs.
   Never introduce suppressions, baselines, disabled rules, or skipped tests to silence findings.
 - "derived_notes": optional; when present, a non-empty string of notes for downstream

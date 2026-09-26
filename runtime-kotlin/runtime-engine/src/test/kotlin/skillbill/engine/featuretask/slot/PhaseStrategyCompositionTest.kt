@@ -1,13 +1,14 @@
 package skillbill.engine.featuretask.slot
 
 import skillbill.engine.featuretask.slot.codereview.InlineReviewStrategy
+import skillbill.engine.featuretask.slot.qualitygate.agentvalidate.AgentValidateStrategy
+import skillbill.engine.featuretask.slot.qualitygate.packbuild.PackBuildStrategy
 import skillbill.engine.featuretask.slot.strategy.AcceptanceAuditStrategy
 import skillbill.engine.featuretask.slot.strategy.AgentPlanStrategy
 import skillbill.engine.featuretask.slot.strategy.AgentPreplanStrategy
 import skillbill.engine.featuretask.slot.strategy.BoundaryHistoryStrategy
 import skillbill.engine.featuretask.slot.strategy.ImplementThenSimplifyStrategy
 import skillbill.engine.featuretask.slot.strategy.PrDescriptionStrategy
-import skillbill.engine.featuretask.slot.strategy.RoutedQualityGateStrategy
 import skillbill.engine.featuretask.slot.strategy.RuntimeCommitStrategy
 import skillbill.workflow.taskruntime.model.core.PhaseStepPolicy
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
@@ -42,7 +43,8 @@ class PhaseStrategyCompositionTest {
       ImplementThenSimplifyStrategy(runner),
       AcceptanceAuditStrategy(runner),
       InlineReviewStrategy(runner),
-      RoutedQualityGateStrategy(runner),
+      PackBuildStrategy(runner),
+      AgentValidateStrategy(runner),
       BoundaryHistoryStrategy(runner),
       RuntimeCommitStrategy(runner),
       PrDescriptionStrategy(runner),

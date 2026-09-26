@@ -21,12 +21,12 @@ fun runtimeOwnedValidateAgentPhaseTask(): String {
     "Do not run pack validation_gate argv, `bill-code-check`, or any other pack-declared full-suite command. " +
     VALIDATE_PHASE_FORBIDDEN_EXTRAS +
     "Keep repairing in this same session until every required project check passes. Do not spawn delegated " +
-    "subagents. Do not emit the phase envelope until produced_outputs.validation_passed is true. " +
-    "Put the checks run and remaining failure details in produced_outputs.value. False is not a successful " +
-    "handoff: if you emit it, the runtime continues only when that remaining-failure set shrank, and blocks " +
-    "when leftovers stay the same. Wall-clock timeout still stops the subtask. The runtime does not rerun " +
-    "the checks itself. Never silence findings with annotations, baselines, disabled rules, weakened " +
-    "configuration, or skipped tests; fix root causes instead."
+    "subagents. Settle completed only when every required check passes, with the checks run as the value. " +
+    "When checks still fail, settle blocked with the remaining failure details as the value and verdict " +
+    "progress when that remaining-failure set shrank against the previous attempt, or no_progress when it " +
+    "did not. The runtime continues on progress and blocks on no_progress. Wall-clock timeout still stops " +
+    "the subtask. The runtime does not rerun the checks itself. Never silence findings with annotations, " +
+    "baselines, disabled rules, weakened configuration, or skipped tests; fix root causes instead."
 }
 
 fun validateGateTriagePhaseTask(): String =

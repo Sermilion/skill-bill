@@ -7,9 +7,9 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
-import skillbill.workflow.taskruntime.model.core.PhaseSlot
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.SkeletonDefinition
 
 const val STATUS_RUNNING = "running"
 const val STATUS_COMPLETED = "completed"
@@ -31,34 +31,11 @@ fun serializeTokenData(accumulator: Map<String, Pair<Int, Int>>): Pair<String?, 
   return JsonCodec.mapToJsonString(breakdown) to total
 }
 
-fun transitionsFor(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeTransitionDeclaration =
-  request.transitionsOverride ?: phasesFor(request).let { phases ->
-    FeatureTaskRuntimeTransitionDeclaration(
-      forwardPhaseIds = phases,
-      backwardEdges =
-        FeatureTaskRuntimePhaseWorkflowDefinition.transitions.backwardEdges
-          .filter { it.fromPhaseId in phases && it.destinationPhaseId in phases },
-      loopOnlyPhaseIds =
-        FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlyPhaseIds
-          .filter { it in phases }.toSet(),
-      entryGates =
-        FeatureTaskRuntimePhaseWorkflowDefinition.transitions.entryGates
-          .filter { it.phaseId in phases && it.requiredPhaseId in phases },
-      loopOnlySuccessors =
-        FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlySuccessors
-          .filterKeys { it in phases }
-          .filterValues { it in phases },
-    )
-  }
+fun skeletonDefinitionFor(request: FeatureTaskRuntimeRunRequest): SkeletonDefinition =
+  SkeletonDefinition.forRun(isGoalContinuationRun(request))
 
-fun phasesFor(request: FeatureTaskRuntimeRunRequest): List<String> {
-  val phases = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds
-  return if (isGoalContinuationRun(request)) {
-    phases.filter { PhaseSlot.runsInGoalChild(it) }
-  } else {
-    phases
-  }
-}
+fun transitionsFor(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeTransitionDeclaration =
+  request.transitionsOverride ?: skeletonDefinitionFor(request).declaration()
 
 internal fun mutatingReconciliationGateReason(
   phaseId: String,

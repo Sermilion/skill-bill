@@ -81,6 +81,7 @@ internal fun outOfContractCycle(): ValidationGateCycleRequest =
       ValidationGateAgentRepairLauncher { _, _, _ ->
         error("repair must not launch when platform packs are out of contract")
       },
+    progressStore = RecordingProgressStore(mutableListOf(), null),
   )
 
 internal fun findingRow(finding: ValidationGateFinding): Map<String, String?> =

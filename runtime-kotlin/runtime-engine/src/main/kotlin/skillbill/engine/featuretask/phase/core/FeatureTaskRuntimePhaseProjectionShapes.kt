@@ -122,10 +122,10 @@ object FeatureTaskRuntimePhaseProjectionShapes {
       "      compile, run tests, or invoke `./gradlew check` / the pack collect-all gate here."
 
   private const val VALIDATION: String =
-    "\n    - Emit the envelope only when every required project check passed.\n" +
-      "      Use status completed with validation_passed true and a non-blank value string of checks run.\n" +
-      "      Example: { \"validation_passed\": true, \"value\": \"<checks run and result>\" }\n" +
-      "      Keep repairing in this session until that is true. Do not emit false as a successful handoff.\n" +
+    "\n    - Settle completed only when every required project check passed, with a non-blank value of checks run.\n" +
+      "      Example: { \"value\": \"<checks run and result>\" }\n" +
+      "      When checks still fail, settle blocked with the remaining failures as the value and verdict\n" +
+      "      progress when they shrank against the previous attempt, or no_progress when they did not.\n" +
       "      Do not emit validation_evidence, validation_result, gate_run_count, or gate_runs.\n" +
       "      Never introduce suppressions, baselines, disabled rules, or skipped tests to silence findings."
 

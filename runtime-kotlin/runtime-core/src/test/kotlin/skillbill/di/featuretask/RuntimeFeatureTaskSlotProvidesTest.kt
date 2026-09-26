@@ -7,10 +7,15 @@ import skillbill.di.core.TransportContext
 import skillbill.di.core.WorkflowOpsContext
 import skillbill.di.core.create
 import skillbill.engine.featuretask.slot.PhaseStrategySelectionFacts
+import skillbill.engine.featuretask.slot.qualitygate.agentvalidate.AgentValidateStrategy
+import skillbill.engine.featuretask.slot.qualitygate.packbuild.PackBuildStrategy
 import skillbill.model.EnvironmentContext
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.PhaseSlot
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+import skillbill.workflow.taskruntime.phase.task.SkeletonDefinition
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -31,22 +36,49 @@ class RuntimeFeatureTaskSlotProvidesTest {
     ).featureTaskRuntimeRunner.strategies
 
   @Test
-  fun `production registry registers one strategy per slot with a distinct runner each`() {
+  fun `production registry lists the two quality_gate strategies and a distinct runner each`() {
     val registered = strategies.registry.strategies
 
-    assertEquals(PhaseSlot.entries.toList(), registered.map { it.slot })
+    assertEquals(
+      listOf(PackBuildStrategy.ID, AgentValidateStrategy.ID),
+      registered.filter { it.slot == PhaseSlot.QUALITY_GATE }.map { it.strategyId },
+    )
+    assertEquals(PhaseSlot.entries.toSet(), registered.map { it.slot }.toSet())
     assertEquals(registered.size, registered.map { it.runner }.toSet().size)
   }
 
   @Test
-  fun `production selection resolves every slot for every selection fact`() {
+  fun `production selection resolves every slot of each definition for every selection fact`() {
     CodeReviewExecutionMode.entries.forEach { mode ->
       FeatureTaskRuntimeQualityGateSelection.entries.forEach { gate ->
-        PhaseSlot.entries.flatMap { it.steps }.forEach { step ->
-          val strategy = strategies.strategyFor(step, PhaseStrategySelectionFacts(mode, gate))
-          assertEquals(PhaseSlot.slotForStep(step), strategy.slot)
+        listOf(SkeletonDefinition.STANDALONE, SkeletonDefinition.GOAL_CHILD).forEach { definition ->
+          val facts = PhaseStrategySelectionFacts(definition, setOf(mode, gate))
+          definition.stepIds.forEach { step ->
+            assertEquals(PhaseSlot.slotForStep(step), strategies.strategyFor(step, facts).slot)
+          }
         }
       }
     }
+  }
+
+  @Test
+  fun `the goal child runs the stamped gate and the standalone run always validates`() {
+    fun selectedGateSteps(
+      definition: SkeletonDefinition,
+      gate: FeatureTaskRuntimeQualityGateSelection?,
+    ): Set<String> =
+      strategies.selectedStepIds(
+        PhaseStrategySelectionFacts(definition, setOfNotNull(CodeReviewExecutionMode.DEFAULT, gate)),
+      ) intersect setOf(PHASE_BUILD, PHASE_VALIDATE)
+
+    assertEquals(
+      setOf(PHASE_BUILD),
+      selectedGateSteps(SkeletonDefinition.GOAL_CHILD, FeatureTaskRuntimeQualityGateSelection.BUILD),
+    )
+    assertEquals(
+      setOf(PHASE_VALIDATE),
+      selectedGateSteps(SkeletonDefinition.GOAL_CHILD, FeatureTaskRuntimeQualityGateSelection.VALIDATE),
+    )
+    assertEquals(setOf(PHASE_VALIDATE), selectedGateSteps(SkeletonDefinition.STANDALONE, null))
   }
 }

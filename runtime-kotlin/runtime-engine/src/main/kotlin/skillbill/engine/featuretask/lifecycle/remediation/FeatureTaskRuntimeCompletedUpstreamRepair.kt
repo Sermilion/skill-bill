@@ -4,6 +4,7 @@ import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.lifecycle.checkpoint.completedUpstreamRepairRetryEntry
 import skillbill.engine.featuretask.lifecycle.checkpoint.completedUpstreamRepairWorkflowUpdate
 import skillbill.engine.featuretask.lifecycle.checkpoint.phasesToReopenForCompletedUpstreamRepair
+import skillbill.engine.featuretask.lifecycle.checkpoint.qualityGateOmittedStepIds
 import skillbill.engine.featuretask.lifecycle.checkpoint.settledPhaseOutputs
 import skillbill.engine.featuretask.model.subtask.CompletedUpstreamRepairRequest
 import skillbill.engine.featuretask.phase.record.asPendingForOperatorResume
@@ -41,7 +42,7 @@ fun diagnoseUnsettledCompletedUpstreamPhaseId(
       it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED
     }.keys
   for (consumerPhaseId in blockedConsumers) {
-    val declaration = phaseDeclaration(consumerPhaseId, featureSize, qualityGateSelection)
+    val declaration = phaseDeclaration(consumerPhaseId, featureSize, qualityGateOmittedStepIds(qualityGateSelection))
     val blockedReason = phaseRecords[consumerPhaseId]?.blockedReason.orEmpty()
     val missing =
       missingUpstream(declaration, recordedOutputs)

@@ -1001,12 +1001,18 @@ Parts (`skillbill.engine.featuretask.slot`, with `PhaseSlot` and
 - `ReviewTarget` is a per-call fact on `PhaseRun`: `LastCommit` (the full-run
   default), `Uncommitted`, or `Commit(sha)`. It composes the opening lines of
   the review prompt.
+- `SkeletonDefinition` (`runtime-domain`) lists a run's slots in order.
+  `STANDALONE` has every slot; `GOAL_CHILD` omits `pull_request`.
+  `forRun(goalContinuation)` picks one. The declaration derived from a
+  definition equals the phase workflow's, and a reorder raises a typed error.
 - `PhaseStrategyRegistry` holds the registered strategies. `PhaseStrategySelection`
-  binds each slot to a strategy id, either fixed or keyed by the run's code
-  review mode or quality gate. `PhaseStrategyLookup` resolves a step id to its
-  strategy. A duplicate registration, a step outside its slot, an unknown
-  strategy, and a selection naming an unregistered strategy each raise a typed
-  error.
+  binds each definition's slots to a strategy id, either fixed or keyed by a
+  selection fact (code review mode, quality gate). `PhaseStrategySelectionFacts`
+  carries the definition and the fact values. `PhaseStrategyLookup` resolves a
+  step id to its strategy and answers the selected and unselected steps and
+  the traversal for those facts. A duplicate registration, a step outside its
+  slot, an unknown strategy, a selection naming an unregistered strategy, and
+  a definition whose slots do not match its bindings each raise a typed error.
 
 | Slot | Steps | Strategy |
 | --- | --- | --- |
@@ -1015,7 +1021,7 @@ Parts (`skillbill.engine.featuretask.slot`, with `PhaseSlot` and
 | `implementation` | implement, simplify | `implement-then-simplify` |
 | `audit` | audit | `acceptance-audit` |
 | `code_review` | review, verify_findings, implement_fix | `inline` |
-| `quality_gate` | build, validate | `routed-quality-gate` |
+| `quality_gate` | build or validate | `pack-build` or `agent-validate` |
 | `write_history` | write_history | `boundary-history` |
 | `commit_push` | commit_push | `runtime-commit` |
 | `pull_request` | pr | `pr-description` |
@@ -1048,6 +1054,22 @@ Composition:
   - carrying a capped or skipped goal review forward without a launch;
   - routing the REVIEW_CAP_REACHED verdict.
   Every read and write goes through `PhaseRunState`.
+- The `quality_gate` slot has two strategies. `PackBuildStrategy`
+  (`slot.qualitygate.packbuild`) runs the runtime-owned pack build gate and
+  its triage and repair sessions. `AgentValidateStrategy`
+  (`slot.qualitygate.agentvalidate`) runs the agent validate step. A BUILD goal
+  child selects build; the final child and a standalone run select validate.
+  Traversal filters the forward path to the selected steps, handoff projection
+  omits the unselected steps' outputs, and the handoff rejects a settled output
+  from an unselected step. Nothing rewrites transitions, and no shared
+  runloop, phase, runner, review, validation, or lifecycle code imports the
+  strategy packages. Gate progress is read and written through `PhaseRunState`.
+- Validate settles with the uniform output. Completed means every check
+  passed. Blocked carries the remaining failures as the value and a verdict:
+  `progress` continues the repair session, and `no_progress`, an absent
+  verdict, or an unknown verdict blocks with `needs_user_action`. Resume reads
+  validate success from the step status. `feature_task_phase_block` accepts
+  the optional `verdict`.
 - A phase run executes one slot's strategy outside the full graph. Phase runs
   arrive in later SKILL-380 subtasks and reuse the same runner, state port, and
   input and output shapes.
@@ -1057,8 +1079,8 @@ Composition:
   `FeatureTaskRuntimeCurrentPhaseExecutionDeriver` asks the step's strategy for
   its execution counter through `PhaseStrategyStatusProjection`.
 - The other wrapper strategies still run today's step code (the shared
-  attempt path under `slot.attempt`, the gate cycles, and commit push) until
-  SKILL-380 subtasks 4-5 move it into them. The shared
+  attempt path under `slot.attempt` and commit push) until SKILL-380
+  subtask 5 moves it into them. The shared
   output-contract section and the `SETTLEMENT_PHASE_IDS` MCP settlement
   channel are unchanged until subtask 5.
 

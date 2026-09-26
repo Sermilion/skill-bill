@@ -18,6 +18,7 @@ import skillbill.workflow.taskruntime.model.feature.FeatureTaskRuntimeVerificati
 import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeFindingVerificationDisposition
+import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateProgress
 
 /**
  * The run state a strategy and its runner read and write for one step call: the settlement target a step
@@ -215,6 +216,12 @@ interface PhaseRunState {
    * agent and the active re-entry. Throws when the completed step cannot persist.
    */
   fun settleCarriedForwardReview(output: AcceptedFeatureTaskRuntimePhaseOutput)
+
+  /** The durable gate progress of the running step: open findings, repairs used, and the captured triage plan. */
+  fun loadGateProgress(): FeatureTaskRuntimeValidationGateProgress?
+
+  /** Persists the gate [progress] of the running step. */
+  fun persistGateProgress(progress: FeatureTaskRuntimeValidationGateProgress)
 }
 
 data class PhaseLaunchObservation(

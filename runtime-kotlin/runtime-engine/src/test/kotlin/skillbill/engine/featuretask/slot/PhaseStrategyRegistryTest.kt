@@ -4,16 +4,17 @@ import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContex
 import skillbill.engine.featuretask.runloop.core.PhaseOutcome
 import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.error.featuretask.DuplicatePhaseStrategyError
+import skillbill.error.featuretask.PhaseStrategySelectionSlotMismatchError
 import skillbill.error.featuretask.PhaseStrategyStepOutsideSlotError
 import skillbill.error.featuretask.UnknownPhaseStrategyError
 import skillbill.error.featuretask.UnregisteredPhaseStrategySelectionError
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.PhaseSlot
 import skillbill.workflow.taskruntime.model.core.PhaseStepPolicy
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS
+import skillbill.workflow.taskruntime.phase.task.SkeletonDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -57,10 +58,34 @@ class PhaseStrategyRegistryTest {
 
     val error =
       assertFailsWith<UnregisteredPhaseStrategySelectionError> {
-        PhaseStrategySelection(registry, mapOf(PhaseSlot.CODE_REVIEW to PhaseStrategyBinding.Fixed("parallel")))
+        PhaseStrategySelection(
+          registry,
+          mapOf(REVIEW_ONLY to mapOf(PhaseSlot.CODE_REVIEW to PhaseStrategyBinding.Fixed("parallel"))),
+        )
       }
 
     assertEquals("parallel", error.strategyId)
+  }
+
+  @Test
+  fun `a selection that binds a slot the definition lacks raises a typed error`() {
+    val registry = PhaseStrategyRegistry(listOf(reviewStrategy("inline")))
+
+    val error =
+      assertFailsWith<PhaseStrategySelectionSlotMismatchError> {
+        PhaseStrategySelection(
+          registry,
+          mapOf(
+            REVIEW_ONLY to
+              mapOf(
+                PhaseSlot.CODE_REVIEW to PhaseStrategyBinding.Fixed("inline"),
+                PhaseSlot.QUALITY_GATE to PhaseStrategyBinding.Fixed("inline"),
+              ),
+          ),
+        )
+      }
+
+    assertEquals(REVIEW_ONLY.id to PhaseSlot.QUALITY_GATE.wireValue, error.definitionId to error.slot)
   }
 
   @Test
@@ -71,8 +96,11 @@ class PhaseStrategyRegistryTest {
       PhaseStrategySelection(
         registry,
         mapOf(
-          PhaseSlot.CODE_REVIEW to
-            PhaseStrategyBinding.ByCodeReviewMode(mapOf(CodeReviewExecutionMode.INLINE to "inline")),
+          REVIEW_ONLY to
+            mapOf(
+              PhaseSlot.CODE_REVIEW to
+                PhaseStrategyBinding.ByFact(mapOf(CodeReviewExecutionMode.INLINE to "inline")),
+            ),
         ),
       )
     val lookup = PhaseStrategyLookup(registry, selection)
@@ -86,8 +114,7 @@ class PhaseStrategyRegistryTest {
     }
   }
 
-  private fun facts(mode: CodeReviewExecutionMode) =
-    PhaseStrategySelectionFacts(mode, FeatureTaskRuntimeQualityGateSelection.VALIDATE)
+  private fun facts(mode: CodeReviewExecutionMode) = PhaseStrategySelectionFacts(REVIEW_ONLY, setOf(mode))
 
   private fun reviewStrategy(strategyId: String) =
     FakeStrategy(PhaseSlot.CODE_REVIEW, strategyId, PhaseSlot.CODE_REVIEW.steps)
@@ -109,5 +136,9 @@ class PhaseStrategyRegistryTest {
       context: FeatureTaskRuntimeRunLoopContext,
       state: PhaseRunState,
     ): PhaseOutcome = error("unused")
+  }
+
+  private companion object {
+    val REVIEW_ONLY = SkeletonDefinition("review-only", listOf(PhaseSlot.CODE_REVIEW))
   }
 }

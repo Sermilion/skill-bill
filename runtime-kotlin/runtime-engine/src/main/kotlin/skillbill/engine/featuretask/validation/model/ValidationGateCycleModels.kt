@@ -121,6 +121,7 @@ data class ValidationGateCycleRequest(
   val changedPaths: List<String>,
   val repositoryCheckpoint: String,
   val agentRepairLauncher: ValidationGateAgentRepairLauncher,
+  val progressStore: ValidationGateProgressStore,
   val agentTriageLauncher: ValidationGateAgentTriageLauncher =
     ValidationGateAgentTriageLauncher {
       ValidationGateTriageResult.Empty

@@ -18,6 +18,7 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimeDecomposeTerm
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunInvariantsStore
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunStateReconstruction
+import skillbill.engine.featuretask.runloop.state.LEGACY_QUALITY_GATE_SELECTION
 import skillbill.engine.featuretask.slot.PhaseStrategyLookup
 import skillbill.engine.featuretask.slot.PhaseStrategySelectionFacts
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
@@ -25,12 +26,12 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.decodeValidationGateExecutionEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeDecomposeTerminal
-import skillbill.workflow.taskruntime.model.core.orLegacyValidate
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.phase.task.SkeletonDefinition
 
 @Inject
 class FeatureTaskRuntimeStatusService(
@@ -83,17 +84,14 @@ fun FeatureTaskRuntimeStatusService.buildStatusProjection(
     ).toSet()
   val phases = phaseStatuses(normalizedRecords, blockedPhaseIds, normalizedLedger)
   val terminalDecomposeRecorded = decomposeTerminal != null
-  val qualityGateSelection =
-    recorder
-      .loadGoalContinuationQualityGateSelection(request.workflowId)
-      .orLegacyValidate()
+  val selectionFacts = statusSelectionFacts(request)
   val currentPhaseId =
     resolveCurrentPhaseId(
       terminalDecomposeRecorded,
       normalizedRecords,
       phases,
       normalizedLedger,
-      qualityGateSelection,
+      currentPhaseExecutionDeriver.loopOnlyStepIds(selectionFacts),
     )
   val gateRunCount = gateRunCountFor(request, currentPhaseId)
   return statusProjectionFrom(
@@ -106,11 +104,20 @@ fun FeatureTaskRuntimeStatusService.buildStatusProjection(
       records = normalizedRecords,
       ledger = normalizedLedger,
       decomposeTerminal = decomposeTerminal,
-      selectionFacts =
-        PhaseStrategySelectionFacts(
-          runInvariantsStore.resolve(request.workflowId)?.codeReviewMode ?: CodeReviewExecutionMode.DEFAULT,
-          qualityGateSelection,
-        ),
+      selectionFacts = selectionFacts,
+    ),
+  )
+}
+
+private fun FeatureTaskRuntimeStatusService.statusSelectionFacts(
+  request: FeatureTaskRuntimeStatusRequest,
+): PhaseStrategySelectionFacts {
+  val continuation = recorder.loadGoalContinuation(request.workflowId)
+  return PhaseStrategySelectionFacts(
+    SkeletonDefinition.forRun(goalContinuation = continuation != null),
+    setOfNotNull(
+      runInvariantsStore.resolve(request.workflowId)?.codeReviewMode ?: CodeReviewExecutionMode.DEFAULT,
+      continuation?.let { it.qualityGateSelection ?: LEGACY_QUALITY_GATE_SELECTION },
     ),
   )
 }

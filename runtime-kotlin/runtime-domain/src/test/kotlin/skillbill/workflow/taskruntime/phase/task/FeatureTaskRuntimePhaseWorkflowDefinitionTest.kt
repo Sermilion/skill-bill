@@ -8,7 +8,6 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
@@ -226,10 +225,10 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
       val declaration =
         when (phaseId) {
           def.PHASE_WRITE_HISTORY, def.PHASE_COMMIT_PUSH ->
-            FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclarationForQualityGate(
+            FeatureTaskRuntimePhaseWorkflowQueries.phaseDeclarationWithoutSteps(
               phaseId,
               FeatureTaskRuntimeFeatureSize.MEDIUM,
-              FeatureTaskRuntimeQualityGateSelection.VALIDATE,
+              setOf(def.PHASE_BUILD),
             )
           else -> declarations.getValue(phaseId)
         }

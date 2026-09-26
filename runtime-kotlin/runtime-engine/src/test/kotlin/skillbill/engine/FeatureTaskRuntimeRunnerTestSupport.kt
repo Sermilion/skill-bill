@@ -55,7 +55,6 @@ import skillbill.engine.featuretask.slot.PhaseRunner
 import skillbill.engine.featuretask.slot.runner.DefaultPhaseRunner
 import skillbill.engine.featuretask.slot.testPhaseStrategies
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordinator
-import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateProgressStore
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeReadinessGateCoordinator
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateCoordinator
 import skillbill.engine.featuretask.validation.ReadinessCheckSelection
@@ -729,7 +728,6 @@ private fun validationGateBoundaries(
       FeatureTaskRuntimeBuildGateCoordinator(
         validationGateResolver,
         validationGateRunner,
-        FeatureTaskRuntimeBuildGateProgressStore(deps.recorder),
         defaultRepoLocalConfigPort(),
         NoopRuntimeDiagnostics,
       ),

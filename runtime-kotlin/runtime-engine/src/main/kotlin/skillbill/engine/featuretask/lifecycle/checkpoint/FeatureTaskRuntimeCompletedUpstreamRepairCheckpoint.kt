@@ -13,6 +13,7 @@ import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
@@ -24,6 +25,16 @@ import java.time.ZoneOffset
 
 private const val COMPLETED_UPSTREAM_MISSING_OUTPUT_BLOCK_REASON = "completed_upstream_missing_output"
 
+/**
+ * The quality_gate step a goal child's stamped selection leaves out, for the goal-runner repair readers that
+ * inspect durable records without a strategy lookup.
+ */
+internal fun qualityGateOmittedStepIds(selection: FeatureTaskRuntimeQualityGateSelection): Set<String> =
+  when (selection) {
+    FeatureTaskRuntimeQualityGateSelection.BUILD -> setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
+    FeatureTaskRuntimeQualityGateSelection.VALIDATE -> setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD)
+  }
+
 fun phasesToReopenForCompletedUpstreamRepair(
   request: CompletedUpstreamRepairRequest,
   recordedOutputs: List<FeatureTaskRuntimePhaseOutput>,
@@ -31,7 +42,7 @@ fun phasesToReopenForCompletedUpstreamRepair(
   val phaseRecords = request.phaseRecords
   val resumePhaseId = request.resumePhaseId
   val featureSize = request.featureSize
-  val qualityGateSelection = request.qualityGateSelection
+  val omittedStepIds = qualityGateOmittedStepIds(request.qualityGateSelection)
   val stepOrder = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds
   return when {
     phaseRecords[resumePhaseId]?.status?.workflowStepStatus() == WorkflowStepStatus.BLOCKED -> listOf(resumePhaseId)
@@ -42,7 +53,7 @@ fun phasesToReopenForCompletedUpstreamRepair(
           if (record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED) {
             val missing =
               missingUpstream(
-                phaseDeclaration(phaseId, featureSize, qualityGateSelection),
+                phaseDeclaration(phaseId, featureSize, omittedStepIds),
                 recordedOutputs,
               )
             if (missing?.contains(resumePhaseId) == true) add(phaseId)

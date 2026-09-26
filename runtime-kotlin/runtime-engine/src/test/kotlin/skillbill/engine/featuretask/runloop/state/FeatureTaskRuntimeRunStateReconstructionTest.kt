@@ -45,15 +45,15 @@ import kotlin.test.assertTrue
 
 class FeatureTaskRuntimeRunStateReconstructionTest {
   @Test
-  fun `resume keeps only a true validation result and invalidates successors of false or missing results`() {
+  fun `resume keeps a completed validation step and invalidates successors of a failed one`() {
     listOf(true to "completed", false to "completed", null to "completed", true to "failed")
-      .forEach { (signal, status) ->
+      .forEach { (legacySignal, status) ->
         val payload =
           validJsonOutput("validate").let { output ->
-            when (signal) {
+            when (legacySignal) {
               true -> output
               false -> output.replace("\"validation_passed\":true", "\"validation_passed\":false")
-              null -> output.replace("validation_passed", "missing_signal")
+              null -> output.replace(",\"validation_passed\":true", "")
             }
           }
         val validation =
@@ -72,7 +72,7 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
             transitions = FeatureTaskRuntimeTransitionDeclaration(listOf("validate", "write_history")),
             outputValidator = realFeatureTaskRuntimePhaseOutputValidator,
           )
-        val valid = signal == true && status == "completed"
+        val valid = status == "completed"
         assertEquals(valid, "validate" in state.completedPhaseIds())
         assertEquals(valid, "write_history" in state.completedPhaseIds())
         assertEquals(!valid, "validate" in state.phasesRequiringDurableGateInvalidation())

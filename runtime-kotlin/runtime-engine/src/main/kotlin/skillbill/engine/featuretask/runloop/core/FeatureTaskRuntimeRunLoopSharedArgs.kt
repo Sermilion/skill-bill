@@ -2,7 +2,6 @@ package skillbill.engine.featuretask.runloop.core
 
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
-import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskCommitIdentity
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseFileManifest
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
@@ -78,11 +77,6 @@ internal data class QuarantineRecordRejectionArgs(
   val regeneration: PhaseAttemptContinuations.RecordRejectionRegenerationEdge,
   val producerEvidence: ProducerOutputEvidence,
   val producerGenerationScoped: Boolean,
-)
-
-internal data class ValidationGateCycleRequestArgs(
-  val context: PhaseAttemptAccumulatorContext,
-  val checkpoint: String,
 )
 
 internal data class LaunchPreparationRejectedArgs(
@@ -227,18 +221,6 @@ internal data class RecordCheckpointIdentityArgs(
   val parentSha: String?,
   val commitSha: String,
   val blockedReason: (String, String) -> String,
-)
-
-internal data class ValidationGateTriageArgs(
-  val context: PhaseAttemptAccumulatorContext,
-  val findings: ValidationFindingSetProjection,
-)
-
-internal data class ValidationGateRepairArgs(
-  val context: PhaseAttemptAccumulatorContext,
-  val findings: ValidationFindingSetProjection,
-  val repairTurn: Int,
-  val triagePlan: String?,
 )
 
 internal data class SettleValidatedOutputPauseArgs(

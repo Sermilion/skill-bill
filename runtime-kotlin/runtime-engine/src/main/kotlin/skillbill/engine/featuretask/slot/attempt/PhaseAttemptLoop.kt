@@ -131,14 +131,7 @@ object PhaseAttemptLoop {
     val phaseAttempts = PhaseAttemptContinuations
     return attempt.settledOutcome ?: when {
       attempt.auditRetryContinuation -> phaseAttempts.settleAuditRetry(observability, session, context)
-      attempt.validationRemainingFingerprint != null ->
-        phaseAttempts.settleValidationRemaining(
-          request,
-          state,
-          recorder,
-          observability,
-          context,
-        )
+      attempt.validationRemainingDetail != null -> phaseAttempts.settleValidationRemaining(observability, context)
       attempt.incompleteWorkContinuationReason != null ->
         phaseAttempts.settleIncompleteWork(
           request,

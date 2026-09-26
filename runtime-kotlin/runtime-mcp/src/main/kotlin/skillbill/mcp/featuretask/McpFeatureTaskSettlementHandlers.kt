@@ -37,6 +37,7 @@ internal fun featureTaskPhaseBlock(
       failureDisposition =
         arguments.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION)
           ?: FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION.wireValue,
+      verdict = arguments.optionalString(SharedPayloadKeys.VERDICT),
     ),
   ).toWireMap()
 

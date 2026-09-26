@@ -431,10 +431,3 @@ allOf:
         produced_outputs:
           allOf:
             - { $ref: "#/$defs/phaseProseProducedOutputs" }
-          required: [validation_passed]
-          properties:
-            validation_passed:
-              type: boolean
-              description: >-
-                Agent-reported result of project-discovered checks. True advances;
-                false consumes a bounded validation retry. This is not execution attestation.

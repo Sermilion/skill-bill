@@ -21,7 +21,6 @@ import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskFinal
 import skillbill.engine.featuretask.phase.core.FeatureTaskPhaseSettlementService
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseFileManifest
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
-import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseSafetyPolicy
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoopCheckpoint
 import skillbill.engine.featuretask.runloop.core.AttemptResult
@@ -41,7 +40,6 @@ import skillbill.engine.featuretask.runloop.core.FinalizeValidatedOutputAcceptan
 import skillbill.engine.featuretask.runloop.core.PersistAcceptedOutputArgs
 import skillbill.engine.featuretask.runloop.core.PhaseAttemptContext
 import skillbill.engine.featuretask.runloop.core.PhaseBlockRequest
-import skillbill.engine.featuretask.runloop.core.PhaseOutcome
 import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.engine.featuretask.runloop.core.RecordFinalisedCheckpointIdentityArgs
 import skillbill.engine.featuretask.runloop.core.RecordRejectedOutputArgs
@@ -68,15 +66,9 @@ import skillbill.engine.featuretask.runloop.output.rejectionPath
 import skillbill.engine.featuretask.runloop.output.retryRejectionReason
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopAuditRetry
-import skillbill.engine.featuretask.runloop.settlement.gateRepairSegmentOutput
-import skillbill.engine.featuretask.runloop.settlement.gateTriageSegmentOutput
-import skillbill.engine.featuretask.runloop.settlement.looseOutputEnvelope
 import skillbill.engine.featuretask.runloop.state.FEATURE_TASK_RUNTIME_PROCESS_FAILURE_RULE
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeChildOutput
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
-import skillbill.engine.featuretask.runloop.state.requirePassedValidationResult
-import skillbill.engine.featuretask.runloop.state.validationPassedFromEnvelope
-import skillbill.engine.featuretask.runloop.state.validationRemainingDetail
 import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.engine.featuretask.runner.terminalBlockedReasonFrom
 import skillbill.engine.featuretask.slot.PhaseSettledEnvelopeRead
@@ -282,31 +274,6 @@ object PhaseOutputGate {
         repairEvidence = args.output.repairEvidence,
         fileManifest = args.output.fileManifest,
       )
-    try {
-      requirePassedValidationResult(
-        run,
-        attested.envelopeWireMap(),
-      )
-    } catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
-      return rejectValidatedOutput(
-        args,
-        capture,
-        attested.envelopeWireMap(),
-        "validation-result",
-        error.message.orEmpty(),
-      )
-    }
-    if (validationPassedFromEnvelope(attested.envelopeWireMap()) == false) {
-      val remaining = validationRemainingDetail(attested.envelopeWireMap())
-      return AttemptResult.validationRemaining(
-        remainingFingerprint = remaining,
-        remainingDetail =
-          remaining.ifBlank {
-            "validation_passed is false and produced_outputs.value listed no remaining failures."
-          },
-        fileManifest = capture.fileManifest,
-      )
-    }
     return settleValidatedOutputWithEvidence(
       args,
       capture,
@@ -416,10 +383,6 @@ object PhaseOutputGate {
           JsonCodec.mapToJsonString(settlementEnvelope),
           run.phaseId,
         )
-      requirePassedValidationResult(
-        run,
-        acceptedOutput.normalizedOutput.envelopeWireMap(),
-      )
       settleValidatedOutput(
         SettleValidatedOutput(
           run = run,
@@ -528,46 +491,10 @@ object PhaseOutputGate {
     val error: InvalidFeatureTaskRuntimePhaseOutputSchemaError,
   )
 
-  internal fun gateOutputEarlyExit(args: GateOutput): AttemptResult? {
-    val run = args.run
-    if (run.validationGateTriage) {
-      return AttemptResult.settled(
-        PhaseOutcome.completed(
-          gateTriageSegmentOutput(
-            run,
-            args.iteration,
-            args.captured.text,
-          ),
-        ),
-      )
-    }
-    if (runtimeOwnedGateAgentTurn(run)) {
-      val outputMap = looseOutputEnvelope(args.captured.text)
-      val operatorTerminalQualityGate =
-        outputMap?.let { envelope ->
-          val disposition = FeatureTaskRuntimePhaseSafetyPolicy.dispositionForTerminalOutput(run.phaseId, envelope)
-          !disposition.retryOnResume &&
-            run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
-        } == true
-      if (!operatorTerminalQualityGate) {
-        return AttemptResult.settled(
-          PhaseOutcome.completed(
-            gateRepairSegmentOutput(run, args.iteration),
-          ),
-        )
-      }
-    }
-    return null
-  }
-
-  private fun runtimeOwnedGateAgentTurn(run: PhaseRun): Boolean {
-    if (run.agentRunValidateFallback) return false
-    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD) {
-      return false
-    }
-    return run.validationGateRepair || run.validationGateRepairTurn > 0 ||
-      (run.validationGateFindings != null && run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD)
-  }
+  internal fun gateOutputEarlyExit(args: GateOutput): AttemptResult? =
+    args.settlementContext.stepHooks(args.run)
+      .earlyOutput(args.run, args.iteration, args.captured.text)
+      ?.let(AttemptResult::settled)
 
   internal fun gateOutputSchemaInvalid(
     state: FeatureTaskRuntimeRunState,
@@ -675,6 +602,8 @@ object PhaseOutputGate {
     when (check) {
       is PhaseStepOutputCheck.Reject -> reject(check.rule, check.reason)
       is PhaseStepOutputCheck.Redeliver -> AttemptResult.boundaryBodyDelivery(check.reason, capture.fileManifest)
+      is PhaseStepOutputCheck.ContinueRepair ->
+        AttemptResult.validationRemaining(check.previousValue, capture.fileManifest)
       is PhaseStepOutputCheck.Block ->
         AttemptResult.settled(
           FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
@@ -688,7 +617,7 @@ object PhaseOutputGate {
               reason = check.reason,
               observability = observability,
               payload = BlockAndPersistPayload(fileManifest = capture.fileManifest),
-              failureDisposition = FeatureTaskRuntimeFailureDisposition.PROCESS_FAILURE,
+              failureDisposition = check.disposition,
             ),
           ),
         )
