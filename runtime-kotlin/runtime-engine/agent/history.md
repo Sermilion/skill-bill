@@ -1,3 +1,15 @@
+## [2026-09-26] SKILL-380 subtask 1 — Pre-change behaviour fixtures
+Areas: runtime-kotlin/runtime-engine/src/test/{kotlin/skillbill/engine/{featuretask/slotbaseline,goalrunner/planning/sweep},resources/featuretask/slotbaseline}
+- Added a pre-refactor baseline for the phase-slot-strategy work: committed fixtures for the standalone run, goal-child build and validate runs, goal planning, parallel code review (INLINE and DELEGATED), and MCP lifecycle telemetry. The fixtures cover phase records, handoff projections, ledger entries, run invariants, workflow snapshots, and per-phase prompts.
+- `SlotBaselineFixtureTest` compares a live capture against every committed fixture. `SlotBaselineCaptureTest` checks that two consecutive captures are byte-identical. It also holds the writer, which runs only when `SKILL_BILL_SLOTBASELINE_CAPTURE=1`. reusable
+- To regenerate fixtures after an intended behaviour change, rerun the gated writer and review the diff. The README lists every normaliser token and the parent spec's fixture ledger.
+- Pattern: each capture runs against a temp repo root and home, real SQLite, and the real validator. `SlotBaselineNormalizer` replaces paths, ids, and timestamps with fixed tokens so the output is deterministic.
+- The goal-planning sweep test doubles (launcher, manifest store, invariants source, context discovery) moved to the shared `GoalPlanningSweepTestFixtures.kt`, which the capture harness reuses. Test behaviour is unchanged. reusable
+- Limitation: runtime-engine tests can't reach the runtime-cli renderers, so goal-planning ships `planning-log.json` rather than rendered text, and the code-review outputs are result JSON, not CLI text.
+- Limitation: the prompt sets follow what the live loop launches. None of the captured runs includes a commit_push or implement_fix prompt, and goal children have no pr prompt. No `src/main` file changed.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-26] SKILL-378 subtask 3 — Goal-runner sequences, reads, and silent reads
 Areas: runtime-kotlin/runtime-engine/skillbill/engine/{goalrunner/{execution/core,findings,persist,planning/{recovery,remedies},repair,status},featuretask/{phase/record,persist,runner,lifecycle/continuation}}, runtime-kotlin/runtime-domain/skillbill/{goalrunner,workflow/model/goalreview}, runtime-kotlin/runtime-contracts/skillbill/error/shellcontent
 - Observability sequence numbers are allocated only by the durable in-transaction issue-wide max+1; no engine class keeps a counter, a `var sequence`, or a per-workflow sequence map.

@@ -845,7 +845,7 @@ private fun resolvedHarnessSupervision(
   supervision: RunnerHarnessSupervision,
 ): RunnerHarnessSupervision = runtimeConfig.diagnostics?.let { supervision.copy(diagnostics = it) } ?: supervision
 
-private fun harnessPhaseRecorder(database: RuntimeFakeDatabaseSessionFactory): FeatureTaskRuntimePhaseRecorder =
+private fun harnessPhaseRecorder(database: DatabaseSessionFactory): FeatureTaskRuntimePhaseRecorder =
   featureTaskRuntimePhaseRecorder(
     database,
     NoopWorkflowSnapshotValidator,
@@ -856,7 +856,7 @@ private fun harnessPhaseRecorder(database: RuntimeFakeDatabaseSessionFactory): F
   )
 
 private fun harnessGoalContinuationRecorder(
-  database: RuntimeFakeDatabaseSessionFactory,
+  database: DatabaseSessionFactory,
 ): FeatureTaskRuntimeGoalContinuationRecorder =
   FeatureTaskRuntimeGoalContinuationRecorder(
     database,
@@ -864,7 +864,7 @@ private fun harnessGoalContinuationRecorder(
     Clock.systemUTC(),
   )
 
-private fun harnessWorkflowParts(database: RuntimeFakeDatabaseSessionFactory): RunnerHarnessWorkflow =
+private fun harnessWorkflowParts(database: DatabaseSessionFactory): RunnerHarnessWorkflow =
   RunnerHarnessWorkflow(
     recorder = harnessPhaseRecorder(database),
     goalContinuationRecorder = harnessGoalContinuationRecorder(database),
@@ -1024,7 +1024,7 @@ internal class TelemetryRunnerHarness(
   val runner: FeatureTaskRuntimeRunner,
   val lifecycle: RecordingLifecycleTelemetryRepository,
   val request: FeatureTaskRuntimeRunRequest,
-  val database: RuntimeFakeDatabaseSessionFactory,
+  val database: DatabaseSessionFactory,
   val recorder: FeatureTaskRuntimePhaseRecorder,
 ) {
   fun seedPhase(
@@ -1048,11 +1048,15 @@ private fun telemetryHarnessRequest(runtimeConfig: RuntimeHarnessConfig): Featur
       FeatureTaskRuntimeRunInvariants(
         specReference = runtimeConfig.branchSetup.specReference,
         featureSize = runtimeConfig.branchSetup.featureSize,
-        acceptanceCriteria = listOf("AC-1", "AC-2"),
+        acceptanceCriteria = runtimeConfig.acceptanceCriteria,
         mandatesAndOverrides = listOf("mandate-X"),
+        codeReviewMode = runtimeConfig.codeReviewMode,
       ),
     invokedAgentId = INVOKED_AGENT,
+    agentAssignment = runtimeConfig.agentAssignment ?: FeatureTaskRuntimeAgentAssignment(),
+    environment = runtimeConfig.environment,
     repoRoot = runtimeConfig.repoRoot,
+    goalContinuation = runtimeConfig.goalContinuation,
   )
 
 internal fun telemetryRunnerHarness(runtimeConfig: RuntimeHarnessConfig): TelemetryRunnerHarness =
@@ -1068,13 +1072,14 @@ internal fun telemetryRunnerHarness(
   launcher: RuntimeRecordingLauncher = RuntimeRecordingLauncher { request -> facts(defaultPhaseOutput(request)) },
   validator: FeatureTaskRuntimePhaseOutputValidator = AlwaysValidValidator,
   runtimeConfig: RuntimeHarnessConfig = RuntimeHarnessConfig(),
+  databaseFactory: (() -> DatabaseSessionFactory)? = null,
 ): TelemetryRunnerHarness {
   val effectiveLauncher = runtimeConfig.launcher ?: launcher
   val effectiveValidator = runtimeConfig.validator ?: validator
   seedHarnessSpecIntentProjection(runtimeConfig.repoRoot, runtimeConfig.branchSetup.specReference)
   val repository = InMemoryRuntimeWorkflowRepository()
   val lifecycle = RecordingLifecycleTelemetryRepository()
-  val database = RuntimeFakeDatabaseSessionFactory(repository, lifecycle)
+  val database = databaseFactory?.invoke() ?: RuntimeFakeDatabaseSessionFactory(repository, lifecycle)
   val workflow = harnessWorkflowParts(database)
   val runner =
     telemetryHarnessRunner(
@@ -1097,7 +1102,7 @@ private fun telemetryHarnessRunner(
   launcher: RuntimeRecordingLauncher,
   validator: FeatureTaskRuntimePhaseOutputValidator,
   runtimeConfig: RuntimeHarnessConfig,
-  database: RuntimeFakeDatabaseSessionFactory,
+  database: DatabaseSessionFactory,
   workflow: RunnerHarnessWorkflow,
 ): FeatureTaskRuntimeRunner {
   val branchSetupRunner =
@@ -1137,7 +1142,7 @@ private fun telemetryHarnessRunner(
 
 private fun telemetryRunnerPhaseGates(
   runtimeConfig: RuntimeHarnessConfig,
-  database: RuntimeFakeDatabaseSessionFactory,
+  database: DatabaseSessionFactory,
   workflow: RunnerHarnessWorkflow,
   branchSetupRunner: FeatureTaskRuntimeBranchSetupRunner,
   planningStopper: FeatureTaskRuntimePlanningStopper,
@@ -1166,7 +1171,7 @@ private fun telemetryRunnerPhaseGates(
     ),
   )
 
-private fun telemetryRunnerProbeWriters(database: RuntimeFakeDatabaseSessionFactory): FeatureTaskRuntimeProbeWriters =
+private fun telemetryRunnerProbeWriters(database: DatabaseSessionFactory): FeatureTaskRuntimeProbeWriters =
   FeatureTaskRuntimeProbeWriters(
     activityStampWriter =
       AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics, TimeSource.Monotonic),
