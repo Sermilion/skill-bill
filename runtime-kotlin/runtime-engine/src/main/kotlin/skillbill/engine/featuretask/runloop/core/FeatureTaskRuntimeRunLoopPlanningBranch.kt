@@ -6,10 +6,11 @@ import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeModelResolv
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseRunner
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPreLaunch
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeSkeletonPhaseRunState
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunLoopSkeletonPhaseRunState
 import skillbill.engine.featuretask.runner.phaseDeclaration
+import skillbill.engine.featuretask.slot.PhaseLoopRules
 import skillbill.engine.featuretask.slot.PhaseRunState
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.taskruntime.model.core.PhaseStepPolicy
@@ -111,7 +112,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
         reentry = args.reentry,
         policy = context.stepPolicy(phaseId),
       )
-    FeatureTaskRuntimeRunLoopPhaseRunner.preLaunchBlock(
+    FeatureTaskRuntimeRunLoopPreLaunch.preLaunchBlock(
       context = context,
       run = run,
       state = args.state,
@@ -173,54 +174,48 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
         state = state,
         observability = observability,
       )
-    val prepared =
-      FeatureTaskRuntimeRunLoopPhaseRunner.prepareGoalReviewRun(
-        context = goalReviewContext(context, run, state, observability),
-        run = run,
-        observability = observability,
-      )
-    return when (prepared) {
-      is GoalReviewRunReady -> runPreparedPhaseReady(gateContext, prepared.run)
-      GoalReviewRunPreparation.CarryForward ->
-        FeatureTaskRuntimeRunLoopPhaseRunner.settleCarriedForwardGoalReview(
-          context = goalReviewContext(context, run, state, observability),
-        )
-      is GoalReviewRunPreparation.Blocked -> PhaseOutcome.blocked(prepared.reason)
+    return gateContext.strategyFor(run.phaseId)
+      .runStep(run, gateContext, FeatureTaskRuntimeRunLoopSkeletonPhaseRunState(gateContext, run))
+  }
+
+  internal fun <T : Any> decideByStep(
+    context: FeatureTaskRuntimeRunLoopContext,
+    stepId: String,
+    decide: (PhaseLoopRules, PhaseRunState) -> T?,
+  ): T? = context.strategyFor(stepId).loopRules?.let { rules -> decide(rules, loopRuleState(context, stepId)) }
+
+  internal fun <T : Any> decideByLoop(
+    context: FeatureTaskRuntimeRunLoopContext,
+    loopId: String,
+    decide: (PhaseLoopRules, PhaseRunState) -> T?,
+  ): T? =
+    context.transitions.backwardEdges
+      .firstOrNull { it.loopId == loopId }
+      ?.let { edge -> decideByStep(context, edge.destinationPhaseId, decide) }
+
+  internal fun forEachSlotRules(
+    context: FeatureTaskRuntimeRunLoopContext,
+    act: (PhaseLoopRules, PhaseRunState) -> Unit,
+  ) {
+    context.transitions.forwardPhaseIds.map(context::strategyFor).distinct().forEach { strategy ->
+      strategy.loopRules?.let { rules -> act(rules, loopRuleState(context, strategy.entryStep)) }
     }
   }
 
-  private fun runPreparedPhaseReady(
+  private fun loopRuleState(
     context: FeatureTaskRuntimeRunLoopContext,
-    run: PhaseRun,
-  ): PhaseOutcome = context.strategyFor(run.phaseId).runStep(run, context, skeletonPhaseRunState(context))
-
-  private fun skeletonPhaseRunState(context: FeatureTaskRuntimeRunLoopContext): PhaseRunState =
-    FeatureTaskRuntimeSkeletonPhaseRunState(
-      workflowId = context.request.workflowId,
-      parentWorkflowId = context.request.goalContinuation?.parentWorkflowId,
-      repoRoot = context.request.repoRoot,
-      runState = context.state,
-      settlementService = context.phaseSettlementService,
-      activityStampWriter = context.activityStampWriter,
-      worktreeEditJournalWriter = context.worktreeEditJournalWriter,
-    )
-
-  private fun goalReviewContext(
-    context: FeatureTaskRuntimeRunLoopContext,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    observability: FeatureTaskRuntimeRunObservability,
-  ): FeatureTaskRuntimeRunLoopPhaseRunner.GoalReviewContext =
-    FeatureTaskRuntimeRunLoopPhaseRunner.GoalReviewContext(
-      request = context.request,
-      recorder = context.recorder,
-      goalContinuationRecorder = context.goalContinuationRecorder,
-      phaseGates = context.phaseGates,
-      outputValidator = context.outputValidator,
-      session = context.session,
-      state = state,
-      run = run,
-      observability = observability,
+    stepId: String,
+  ): PhaseRunState =
+    FeatureTaskRuntimeRunLoopSkeletonPhaseRunState(
+      context,
+      buildPhaseRun(
+        phaseId = stepId,
+        request = context.request,
+        declaration = phaseDeclarationForRun(context.request, stepId),
+        specSource = context.specSource,
+        reentry = null,
+        policy = context.stepPolicy(stepId),
+      ),
     )
 
   fun effectiveEdgeIterationCount(

@@ -74,15 +74,6 @@ internal sealed interface AttemptResult {
     override val fileManifest: FeatureTaskRuntimePhaseFileManifest,
   ) : AttemptResult
 
-  data class FindingsOwed(
-    val kind: FindingsOwedKind,
-    val operatorReason: String,
-    val retryReason: String,
-    val refs: Set<String>,
-    val detail: String?,
-    override val fileManifest: FeatureTaskRuntimePhaseFileManifest,
-  ) : AttemptResult
-
   data class AuditRetry(
     val focusHint: String,
     override val fileManifest: FeatureTaskRuntimePhaseFileManifest,
@@ -104,7 +95,6 @@ internal sealed interface AttemptResult {
         is SchemaInvalid -> fileManifest
         is IncompleteWork -> fileManifest
         is RetryableTerminal -> fileManifest
-        is FindingsOwed -> fileManifest
         is BoundaryBodyDelivery -> fileManifest
         is AuditRetry -> fileManifest
         is ValidationRemaining -> fileManifest
@@ -121,7 +111,6 @@ internal sealed interface AttemptResult {
         is SchemaInvalid -> operatorReason
         is IncompleteWork -> operatorReason
         is RetryableTerminal -> operatorReason
-        is FindingsOwed -> operatorReason
         is BoundaryBodyDelivery -> null
         is AuditRetry -> null
         is ValidationRemaining -> remainingDetail
@@ -134,7 +123,6 @@ internal sealed interface AttemptResult {
         is SchemaInvalid -> retryReason
         is IncompleteWork -> null
         is RetryableTerminal -> null
-        is FindingsOwed -> null
         is BoundaryBodyDelivery -> null
         is AuditRetry -> null
         is ValidationRemaining -> remainingDetail
@@ -144,14 +132,6 @@ internal sealed interface AttemptResult {
 
   val retryableTerminalDisposition: FeatureTaskRuntimeFailureDisposition?
     get() = (this as? RetryableTerminal)?.failureDisposition
-
-  val findingsOwedKind: FindingsOwedKind? get() = (this as? FindingsOwed)?.kind
-
-  val findingsOwedRefs: Set<String>? get() = (this as? FindingsOwed)?.refs
-
-  val findingsOwedRetryReason: String? get() = (this as? FindingsOwed)?.retryReason
-
-  val findingsOwedDetail: String? get() = (this as? FindingsOwed)?.detail
 
   val incompleteWorkContinuationReason: String? get() = (this as? IncompleteWork)?.continuationReason
   val incompleteWorkOutput: NormalizedFeatureTaskRuntimePhaseOutput?
@@ -192,41 +172,6 @@ internal sealed interface AttemptResult {
       remainingDetail: String,
       fileManifest: FeatureTaskRuntimePhaseFileManifest,
     ): AttemptResult = ValidationRemaining(remainingFingerprint, remainingDetail, fileManifest)
-
-    fun unaccountedItems(
-      phaseId: String,
-      itemNoun: String,
-      unaccountedRefs: List<String>,
-      retryReason: String,
-      fileManifest: FeatureTaskRuntimePhaseFileManifest,
-    ): AttemptResult =
-      FindingsOwed(
-        kind = FindingsOwedKind.OMITTED,
-        operatorReason =
-          "Phase '$phaseId' left carried $itemNoun unaccounted for in its output: " +
-            unaccountedRefs.joinToString(", ") + ".",
-        retryReason = retryReason,
-        refs = unaccountedRefs.toSet(),
-        detail = null,
-        fileManifest = fileManifest,
-      )
-
-    fun unresolvedFindings(
-      unresolvedRefs: Set<String>,
-      detail: String,
-      retryReason: String,
-      fileManifest: FeatureTaskRuntimePhaseFileManifest,
-    ): AttemptResult =
-      FindingsOwed(
-        kind = FindingsOwedKind.UNRESOLVED,
-        operatorReason =
-          "Phase 'implement_fix' reported carried review findings still open after " +
-            "its attempt: ${unresolvedRefs.joinToString(", ")}.",
-        retryReason = retryReason,
-        refs = unresolvedRefs,
-        detail = detail,
-        fileManifest = fileManifest,
-      )
 
     fun retryableTerminal(
       operatorReason: String,
@@ -279,17 +224,6 @@ internal sealed interface PhaseOutcome {
     fun regenerateProducer(producerPhaseId: String): PhaseOutcome = RegenerateProducer(producerPhaseId)
   }
 }
-
-internal sealed interface GoalReviewRunPreparation {
-  data object CarryForward : GoalReviewRunPreparation
-
-  class Blocked(
-    val reason: String,
-    val failureDisposition: FeatureTaskRuntimeFailureDisposition,
-  ) : GoalReviewRunPreparation
-}
-
-internal data class GoalReviewRunReady(val run: PhaseRun) : GoalReviewRunPreparation
 
 const val LEGACY_PLANNING_PROJECTION_LAUNCH_SEAM_REJECTION =
   "rejected an upstream bounded planning projection at the launch seam"

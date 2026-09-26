@@ -1,19 +1,34 @@
 package skillbill.engine
 
-import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
+import skillbill.engine.featuretask.slot.PhaseRunState
+import skillbill.engine.featuretask.slot.PhaseRunner
+import skillbill.engine.featuretask.slot.PhaseStepInput
+import skillbill.engine.featuretask.slot.PhaseStepOutput
+import skillbill.review.model.ParallelReviewLaneResult
+import skillbill.review.parallel.ParallelReviewFindingParser
+import skillbill.review.parallel.ParallelReviewMerger
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
 
 internal const val REVIEW_FIX_BLOCKER_FINDING_ID = "F-001"
 
 internal var harnessPendingVerifyFindingIds: List<String> = emptyList()
 
-internal fun harnessReviewDriverSyncingPendingVerifyFindings(
-  delegate: FeatureTaskRuntimeReviewDriver,
-): FeatureTaskRuntimeReviewDriver =
-  FeatureTaskRuntimeReviewDriver { request ->
-    val result = delegate.run(request)
-    harnessPendingVerifyFindingIds = result.mergeResult.findings.map { it.fNumber }
-    result
+internal fun harnessReviewRunnerSyncingPendingVerifyFindings(delegate: PhaseRunner): PhaseRunner =
+  object : PhaseRunner {
+    override fun run(
+      input: PhaseStepInput,
+      state: PhaseRunState,
+    ): PhaseStepOutput {
+      val output = delegate.run(input, state)
+      val lane =
+        ParallelReviewLaneResult(
+          agentId = input.facts.invokedAgentId,
+          findings = ParallelReviewFindingParser.parse(output.stdout.text).findings,
+        )
+      harnessPendingVerifyFindingIds =
+        ParallelReviewMerger.merge(lane, lane.copy(findings = emptyList())).findings.map { it.fNumber }
+      return output
+    }
   }
 
 internal fun verifyFindingsPhaseOutput(

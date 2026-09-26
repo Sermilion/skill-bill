@@ -6,7 +6,6 @@ import skillbill.application.RecordingSpecStatusWriter
 import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.decomposition.baseBranch
 import skillbill.application.idestatus.AgentActivityStampWriter
-import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.application.review.spec.SpecIntentProjectionExtractor
 import skillbill.application.review.spec.SpecIntentProjectionResolver
 import skillbill.application.seedHarnessSpecIntentProjection
@@ -22,7 +21,6 @@ import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeBranchSet
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.lifecycle.core.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.lifecycle.core.AlwaysValidValidator
-import skillbill.engine.featuretask.lifecycle.core.ApprovingReviewDriverStub
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeCrashReconciler
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeLifecycleTelemetry
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimePhaseOutputTestValidator
@@ -49,12 +47,12 @@ import skillbill.engine.featuretask.prepare.FeatureSpecPreparationRuntime
 import skillbill.engine.featuretask.prepare.FeatureSpecPreparationWriter
 import skillbill.engine.featuretask.prepare.FeatureTaskRuntimeSpecGate
 import skillbill.engine.featuretask.prepare.SpecSourceResolver
-import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
 import skillbill.engine.featuretask.review.finding.FeatureTaskRuntimeFindingVerificationBoundaryMemory
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunInvariantsStore
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunner
-import skillbill.engine.featuretask.slot.PhaseRunState
+import skillbill.engine.featuretask.slot.ApprovingReviewPhaseRunner
 import skillbill.engine.featuretask.slot.PhaseRunner
+import skillbill.engine.featuretask.slot.runner.DefaultPhaseRunner
 import skillbill.engine.featuretask.slot.testPhaseStrategies
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordinator
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateProgressStore
@@ -140,13 +138,7 @@ import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.specscratch.SpecScratchStore
 import skillbill.ports.workflow.toRecord
-import skillbill.review.context.model.accounting.ReviewBudgetKind
-import skillbill.review.context.model.hunk.ReviewContextBudgetExceeded
-import skillbill.review.context.model.hunk.ReviewContextBudgetExceededException
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.review.model.ParallelReviewMergeResult
-import skillbill.review.model.ParallelReviewMergedFinding
-import skillbill.review.model.ParallelReviewSeverity.BLOCKER
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.scaffold.model.DeclaredFiles
 import skillbill.scaffold.model.PlatformManifest
@@ -645,9 +637,7 @@ internal data class RuntimeHarnessConfig(
     },
   val validationGateRunner: ValidationGateRunner? = null,
   val validationGatePlatformManifests: List<PlatformManifest> = listOf(kotlinPackWithValidationGate()),
-  val reviewDriver: FeatureTaskRuntimeReviewDriver =
-    ApprovingReviewDriverStub,
-  val reviewDriverFactory: ((PhaseRunner, PhaseRunState) -> FeatureTaskRuntimeReviewDriver)? = null,
+  val reviewRunner: PhaseRunner? = ApprovingReviewPhaseRunner,
   val launcher: RuntimeRecordingLauncher? = null,
   val agentAssignment: FeatureTaskRuntimeAgentAssignment? = null,
   val validator: FeatureTaskRuntimePhaseOutputValidator? = null,
@@ -983,7 +973,7 @@ private fun harnessRunner(deps: HarnessRunnerDeps): FeatureTaskRuntimeRunner {
       testPhaseStrategies(
         deps.launcher,
         deps.runtimeConfig.branchSetup.gitOperations,
-        harnessReviewDriverFactory(deps.runtimeConfig),
+        harnessReviewRunner(deps.runtimeConfig, deps.launcher),
       ),
     recorder = deps.recorder,
     goalContinuationRecorder = deps.goalContinuationRecorder,
@@ -1128,7 +1118,7 @@ private fun telemetryHarnessRunner(
       testPhaseStrategies(
         launcher,
         runtimeConfig.branchSetup.gitOperations,
-        harnessReviewDriverFactory(runtimeConfig),
+        harnessReviewRunner(runtimeConfig, launcher),
       ),
     recorder = workflow.recorder,
     goalContinuationRecorder = workflow.goalContinuationRecorder,
@@ -1150,14 +1140,13 @@ private fun telemetryHarnessRunner(
   )
 }
 
-private fun harnessReviewDriverFactory(
+private fun harnessReviewRunner(
   runtimeConfig: RuntimeHarnessConfig,
-): (PhaseRunner, PhaseRunState) -> FeatureTaskRuntimeReviewDriver =
-  { runner, state ->
-    harnessReviewDriverSyncingPendingVerifyFindings(
-      runtimeConfig.reviewDriverFactory?.invoke(runner, state) ?: runtimeConfig.reviewDriver,
-    )
-  }
+  launcher: GoalRunnerSubtaskLauncher,
+): PhaseRunner =
+  harnessReviewRunnerSyncingPendingVerifyFindings(
+    runtimeConfig.reviewRunner ?: DefaultPhaseRunner(launcher, runtimeConfig.branchSetup.gitOperations),
+  )
 
 private fun telemetryRunnerPhaseGates(
   runtimeConfig: RuntimeHarnessConfig,
@@ -1312,168 +1301,6 @@ internal fun reviewFindingsOutput(
       "produced_outputs": {"findings": [$findings], "blocker_dispositions": [$dispositions]}
     }
     """.trimIndent()
-}
-
-internal fun reviewFixDriver(convergeOnReview: Int): FeatureTaskRuntimeReviewDriver {
-  var reviewPasses = 0
-  return FeatureTaskRuntimeReviewDriver { request ->
-    reviewPasses += 1
-    val findings =
-      if (reviewPasses < convergeOnReview) {
-        listOf(
-          ParallelReviewMergedFinding(
-            fNumber = REVIEW_FIX_BLOCKER_FINDING_ID,
-            agentIds = listOf(request.agent1Id),
-            severity = BLOCKER,
-            confidence = "High",
-            location = "Foo.kt:1",
-            description = REVIEW_BLOCKER_MESSAGE,
-          ),
-        )
-      } else {
-        emptyList()
-      }
-    harnessPendingVerifyFindingIds = findings.map { it.fNumber }
-    ApprovingReviewDriverStub.run(request).copy(
-      mergeResult =
-        ParallelReviewMergeResult(
-          findings = findings,
-          formattedOutput = if (findings.isEmpty()) "NO_FINDINGS" else "findings",
-        ),
-    )
-  }
-}
-
-internal fun reviewFixRuntimeConfig(
-  convergeOnReview: Int,
-  gitOperations: RecordingWorkflowGitOperations = RecordingWorkflowGitOperations(),
-): RuntimeHarnessConfig =
-  RuntimeHarnessConfig(
-    branchSetup = BranchSetupTestConfig(gitOperations = gitOperations),
-    reviewDriver = reviewFixDriver(convergeOnReview),
-  )
-
-internal fun crashingRemediationReviewDriver(): FeatureTaskRuntimeReviewDriver {
-  var reviewPasses = 0
-  return FeatureTaskRuntimeReviewDriver { request ->
-    reviewPasses += 1
-    when (reviewPasses) {
-      2 ->
-        ApprovingReviewDriverStub.run(request).copy(
-          lane1 =
-            ParallelReviewLaneStatus(
-              agentId = request.agent1Id,
-              success = false,
-              failureReason = "spawn failed",
-            ),
-        )
-      else -> {
-        val findings =
-          if (reviewPasses == 1) {
-            listOf(
-              ParallelReviewMergedFinding(
-                fNumber = "F-001",
-                agentIds = listOf(request.agent1Id),
-                severity = BLOCKER,
-                confidence = "High",
-                location = "Foo.kt:1",
-                description = REVIEW_BLOCKER_MESSAGE,
-              ),
-            )
-          } else {
-            emptyList()
-          }
-        ApprovingReviewDriverStub.run(request).copy(
-          mergeResult =
-            ParallelReviewMergeResult(
-              findings = findings,
-              formattedOutput = if (findings.isEmpty()) "NO_FINDINGS" else "findings",
-            ),
-        )
-      }
-    }
-  }
-}
-
-internal fun throwingBudgetReviewDriver(): FeatureTaskRuntimeReviewDriver =
-  FeatureTaskRuntimeReviewDriver {
-    throw ReviewContextBudgetExceededException(
-      ReviewContextBudgetExceeded(
-        lane = "architecture",
-        budgetKind = ReviewBudgetKind.PARENT_PACKET_BYTES,
-        configuredLimit = 524_288,
-        observedValue = 584_846,
-        packetDigest = "a".repeat(64),
-        assignmentDigest = "b".repeat(64),
-        enforceable = true,
-      ),
-    )
-  }
-
-internal fun failingReviewDriver(
-  failOnPass: Int,
-  failureReason: String,
-): FeatureTaskRuntimeReviewDriver {
-  var reviewPasses = 0
-  return FeatureTaskRuntimeReviewDriver { request ->
-    reviewPasses += 1
-    if (reviewPasses == failOnPass) {
-      ApprovingReviewDriverStub.run(request).copy(
-        lane1 =
-          ParallelReviewLaneStatus(
-            agentId = request.agent1Id,
-            success = false,
-            failureReason = failureReason,
-          ),
-      )
-    } else {
-      ApprovingReviewDriverStub.run(request)
-    }
-  }
-}
-
-internal fun crashingReviewFixDriver(
-  convergeOnReview: Int,
-  crashOnPass: Int,
-  shouldCrash: () -> Boolean,
-): FeatureTaskRuntimeReviewDriver {
-  var reviewPasses = 0
-  return FeatureTaskRuntimeReviewDriver { request ->
-    reviewPasses += 1
-    if (shouldCrash() && reviewPasses == crashOnPass) {
-      ApprovingReviewDriverStub.run(request).copy(
-        lane1 =
-          ParallelReviewLaneStatus(
-            agentId = request.agent1Id,
-            success = false,
-            failureReason = "spawn failed",
-          ),
-      )
-    } else {
-      val findings =
-        if (reviewPasses < convergeOnReview) {
-          listOf(
-            ParallelReviewMergedFinding(
-              fNumber = "F-001",
-              agentIds = listOf(request.agent1Id),
-              severity = BLOCKER,
-              confidence = "High",
-              location = "Foo.kt:1",
-              description = REVIEW_BLOCKER_MESSAGE,
-            ),
-          )
-        } else {
-          emptyList()
-        }
-      ApprovingReviewDriverStub.run(request).copy(
-        mergeResult =
-          ParallelReviewMergeResult(
-            findings = findings,
-            formattedOutput = if (findings.isEmpty()) "NO_FINDINGS" else "findings",
-          ),
-      )
-    }
-  }
 }
 
 internal fun reviewFixLauncher(
@@ -1664,8 +1491,7 @@ internal fun goalContinuationHarness(
   repoRoot: Path,
   git: RecordingWorkflowGitOperations,
   launcher: RuntimeRecordingLauncher,
-  reviewDriver: FeatureTaskRuntimeReviewDriver =
-    ApprovingReviewDriverStub,
+  reviewRunner: PhaseRunner = ApprovingReviewPhaseRunner,
 ): RunnerHarness =
   runnerHarness(
     runtimeConfig =
@@ -1681,9 +1507,9 @@ internal fun goalContinuationHarness(
             parentWorkflowId = "wfl-parent",
             reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
           ),
-        reviewDriver = reviewDriver,
+        reviewRunner = reviewRunner,
       ),
-    core = RunnerHarnessCore(launcher = launcher, agentAssignment = phasePerAgentAssignment()),
+    core =RunnerHarnessCore(launcher = launcher, agentAssignment = phasePerAgentAssignment()),
   )
 
 internal val DECOMPOSE_PLAN_OUTPUT: String =

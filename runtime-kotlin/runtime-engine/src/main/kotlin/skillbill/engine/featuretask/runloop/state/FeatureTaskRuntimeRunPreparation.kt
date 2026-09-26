@@ -12,7 +12,6 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuatio
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimePreparation
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.runner.reviewBaseline
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.launch.CodeReviewExecutionMode

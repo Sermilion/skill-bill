@@ -9,10 +9,12 @@ import skillbill.engine.featuretask.runloop.core.PhaseAttemptContext
 import skillbill.engine.featuretask.runloop.core.PhaseAttemptLoopState
 import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunLoopSkeletonPhaseRunState
 import skillbill.engine.featuretask.slot.PhaseRunState
 import skillbill.engine.featuretask.slot.PhaseRunner
 import skillbill.engine.featuretask.slot.PhaseSettledEnvelopeRead
 import skillbill.engine.featuretask.slot.PhaseStepDescription
+import skillbill.engine.featuretask.slot.PhaseStepHooks
 
 internal data class PhaseStepCall(
   val description: PhaseStepDescription,
@@ -60,6 +62,12 @@ internal class GateOutput(
         FeatureTaskRuntimeAttemptBudgets.outputGateRejectionExhaustsBudget(run.phaseId, run.policy, it)
       }
 }
+
+internal fun FeatureTaskRuntimeRunLoopContext.stepHooks(run: PhaseRun): PhaseStepHooks =
+  strategyFor(run.phaseId).stepHooks(run.phaseId)
+
+internal fun FeatureTaskRuntimeRunLoopContext.stepState(run: PhaseRun): PhaseRunState =
+  FeatureTaskRuntimeRunLoopSkeletonPhaseRunState(this, run)
 
 internal fun recordRejectionAttemptArgs(
   context: PhaseAttemptContext,

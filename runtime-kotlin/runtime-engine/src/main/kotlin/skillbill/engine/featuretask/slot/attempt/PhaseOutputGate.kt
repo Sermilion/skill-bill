@@ -26,13 +26,11 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoopCheckpoint
 import skillbill.engine.featuretask.runloop.core.AttemptResult
 import skillbill.engine.featuretask.runloop.core.BlockAndPersistPayload
-import skillbill.engine.featuretask.runloop.core.BoundaryBodyDeliveryDecision
 import skillbill.engine.featuretask.runloop.core.CapturedPhaseOutput
 import skillbill.engine.featuretask.runloop.core.CommitPushBlocked
 import skillbill.engine.featuretask.runloop.core.CommitPushFinalisation
 import skillbill.engine.featuretask.runloop.core.CommitPushNotApplicable
 import skillbill.engine.featuretask.runloop.core.CommitPushSettled
-import skillbill.engine.featuretask.runloop.core.CompletedImplementationOutputArgs
 import skillbill.engine.featuretask.runloop.core.CompletionProjectionRejectionArgs
 import skillbill.engine.featuretask.runloop.core.CorrectiveRepairRejectionArgs
 import skillbill.engine.featuretask.runloop.core.CorrectiveRepairRejectionDetail
@@ -62,10 +60,8 @@ import skillbill.engine.featuretask.runloop.core.defaultRejectedOutputTargetingA
 import skillbill.engine.featuretask.runloop.core.phaseBlockArgs
 import skillbill.engine.featuretask.runloop.core.withDisposition
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
-import skillbill.engine.featuretask.runloop.output.CompletedImplementationSettlementArgs
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputPersistence
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputVerification
-import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopRepairReceipt
 import skillbill.engine.featuretask.runloop.output.payloadFreeRejectionReason
 import skillbill.engine.featuretask.runloop.output.payloadFreeSemanticGateConstraint
 import skillbill.engine.featuretask.runloop.output.rejectionPath
@@ -84,6 +80,7 @@ import skillbill.engine.featuretask.runloop.state.validationRemainingDetail
 import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.engine.featuretask.runner.terminalBlockedReasonFrom
 import skillbill.engine.featuretask.slot.PhaseSettledEnvelopeRead
+import skillbill.engine.featuretask.slot.PhaseStepOutputCheck
 import skillbill.engine.goalrunner.status.completed
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePhaseOutputSchemaError
@@ -339,12 +336,15 @@ object PhaseOutputGate {
         rule,
         detail,
       )
-    PhaseOutputGate.settleValidatedOutputBoundary(
-      ValidatedOutputBoundaryContext(state, recorder, phaseGates),
-      capture,
-      outputMap,
-      ::reject,
-    )?.let { return it }
+    val context = args.settlementContext
+    val hooks = context.stepHooks(capture.run)
+    with(context) {
+      settleStepOutputCheck(
+        hooks.checkValidatedOutput(capture.run, context, stepState(capture.run), outputMap),
+        capture,
+        ::reject,
+      )
+    }?.let { return it }
     FeatureTaskRuntimeRunLoopOutputVerification.firstValidatedOutputRejection(
       capture.run.phaseId,
       capture.run.policy.mutating,
@@ -368,6 +368,7 @@ object PhaseOutputGate {
         recorder,
         phaseGates,
         capture.fileManifest,
+        hooks.fingerprintsCompletedRepository,
       )
     fingerprintResolution.blocked?.let { return it }
     return with(args.settlementContext) {
@@ -494,11 +495,8 @@ object PhaseOutputGate {
       phaseId = run.phaseId,
       attempt = output.iteration,
     )
-    FeatureTaskRuntimeRunLoopOutputVerification.persistVerifyFindingsCheckpointIfPresent(
-      recorder,
-      run,
-      output.captured.text,
-    )
+    val context = output.settlementContext
+    context.stepHooks(run).retainSchemaRejectedOutput(context.stepState(run), output.captured.text)
     PhaseOutputGate.recordRejectedOutput(
       state,
       recorder,
@@ -578,11 +576,8 @@ object PhaseOutputGate {
     error: InvalidFeatureTaskRuntimePhaseOutputSchemaError,
   ): AttemptResult {
     val run = args.run
-    FeatureTaskRuntimeRunLoopOutputVerification.persistVerifyFindingsCheckpointIfPresent(
-      recorder,
-      run,
-      args.captured.text,
-    )
+    val context = args.settlementContext
+    context.stepHooks(run).retainSchemaRejectedOutput(context.stepState(run), args.captured.text)
     val path = rejectionPath(error.reason)
     val reason = payloadFreeRejectionReason("phase-output-schema", path)
     val diagnosticWrite =
@@ -640,13 +635,11 @@ object PhaseOutputGate {
     recorder: FeatureTaskRuntimePhaseRecorder,
     phaseGates: FeatureTaskRuntimePhaseGates,
     fileManifest: FeatureTaskRuntimePhaseFileManifest,
+    fingerprintsCompletedRepository: Boolean,
   ): RepositoryFingerprintResolution {
+    if (!fingerprintsCompletedRepository) return RepositoryFingerprintResolution(null, null)
     val request = context.run.request
-    val result =
-      FeatureTaskRuntimeRunLoopOutputVerification.completedPhaseRepositoryFingerprint(
-        phaseGates,
-        context.run,
-      ) ?: return RepositoryFingerprintResolution(null, null)
+    val result = phaseGates.gitOperations.repositoryFingerprint(request.repoRoot)
     if (result !is WorkflowGitOperationResult.Ok) {
       val blocked =
         AttemptResult.settled(
@@ -671,37 +664,36 @@ object PhaseOutputGate {
     return RepositoryFingerprintResolution(result.value, null)
   }
 
-  internal fun settleValidatedOutputBoundary(
-    context: ValidatedOutputBoundaryContext,
+  private fun FeatureTaskRuntimeRunLoopContext.settleStepOutputCheck(
+    check: PhaseStepOutputCheck,
     capture: ValidatedOutputCapture,
-    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
     reject: (
       String,
       String,
     ) -> AttemptResult,
-  ): AttemptResult? {
-    val bodyDelivery =
-      FeatureTaskRuntimeRunLoopOutputVerification
-        .findingVerificationBoundaryBodyDeliveryDecision(
-          context.state,
-          context.recorder,
-          context.phaseGates,
-          capture.run,
-          outputMap,
+  ): AttemptResult? =
+    when (check) {
+      is PhaseStepOutputCheck.Reject -> reject(check.rule, check.reason)
+      is PhaseStepOutputCheck.Redeliver -> AttemptResult.boundaryBodyDelivery(check.reason, capture.fileManifest)
+      is PhaseStepOutputCheck.Block ->
+        AttemptResult.settled(
+          FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
+            request,
+            state,
+            recorder,
+            observability,
+            PhaseBlockRequest(
+              run = capture.run,
+              attemptCount = capture.iteration,
+              reason = check.reason,
+              observability = observability,
+              payload = BlockAndPersistPayload(fileManifest = capture.fileManifest),
+              failureDisposition = FeatureTaskRuntimeFailureDisposition.PROCESS_FAILURE,
+            ),
+          ),
         )
-    return when (bodyDelivery) {
-      is BoundaryBodyDeliveryDecision.RejectDecision -> reject("output-verification", bodyDelivery.reason)
-      is BoundaryBodyDeliveryDecision.ContinueDecision ->
-        AttemptResult.boundaryBodyDelivery(bodyDelivery.reason, capture.fileManifest)
-      BoundaryBodyDeliveryDecision.NotApplicable -> null
+      PhaseStepOutputCheck.Accept -> null
     }
-  }
-
-  internal data class ValidatedOutputBoundaryContext(
-    val state: FeatureTaskRuntimeRunState,
-    val recorder: FeatureTaskRuntimePhaseRecorder,
-    val phaseGates: FeatureTaskRuntimePhaseGates,
-  )
 
   internal fun settleValidatedOutputPauseOrTerminal(
     request: FeatureTaskRuntimeRunRequest,
@@ -797,38 +789,24 @@ object PhaseOutputGate {
   private fun FeatureTaskRuntimeRunLoopContext.settleValidatedOutputAfterPause(
     args: SettleValidatedOutputAfterFingerprintArgs,
   ): AttemptResult {
-    return with(FeatureTaskRuntimeRunLoopOutputVerification) {
+    val run = args.capture.run
+    val rejection =
       FeatureTaskRuntimeRunLoopOutputVerification.completionProjectionRejection(
-        this@settleValidatedOutputAfterPause,
+        this,
         CompletionProjectionRejectionArgs(
-          run = args.capture.run,
+          run = run,
           normalizedOutput = args.attested,
           iteration = args.capture.iteration,
           repairEvidence = args.repairEvidence,
           repositoryFingerprint = args.repositoryFingerprint,
         ),
+      ) ?: stepCompletionRejection(run, args.attested)
+    return rejection?.let { (rule, reason) -> args.reject(rule, reason) }
+      ?: settleStepOutputCheck(
+        stepHooks(run).settleCompletedOutput(run, this, stepState(run), args.attested.envelopeWireMap()),
+        args.capture,
+        args.reject,
       )
-    }?.let { (rule, reason) -> args.reject(rule, reason) }
-      ?: with(FeatureTaskRuntimeRunLoopRepairReceipt) {
-        settleCompletedImplementationOutput(
-          CompletedImplementationSettlementArgs(
-            request = request,
-            state = state,
-            recorder = recorder,
-            goalContinuationRecorder = goalContinuationRecorder,
-            diagnostics = diagnostics,
-            output =
-              CompletedImplementationOutputArgs(
-                run = args.capture.run,
-                normalizedOutput = args.attested,
-                reject = args.reject,
-                iteration = args.capture.iteration,
-                observability = observability,
-                fileManifest = args.capture.fileManifest,
-              ),
-          ),
-        )
-      }
       ?: with(FeatureTaskRuntimeRunLoopAuditRetry) {
         settleCompletedAuditRound(
           this@settleValidatedOutputAfterPause,
@@ -850,6 +828,14 @@ object PhaseOutputGate {
         ),
       )
   }
+
+  private fun FeatureTaskRuntimeRunLoopContext.stepCompletionRejection(
+    run: PhaseRun,
+    attested: NormalizedFeatureTaskRuntimePhaseOutput,
+  ): Pair<String, String>? =
+    stepHooks(run).completionRejection(run, this, stepState(run), attested.envelopeWireMap())?.let {
+      "output-verification" to it
+    }
 
   internal fun FeatureTaskRuntimeRunLoopContext.finalizeValidatedOutputAcceptance(
     args: FinalizeValidatedOutputAcceptanceArgs,
@@ -878,6 +864,7 @@ object PhaseOutputGate {
       )
     commitBlocked?.let { return it }
     PhaseOutputGate.retainSettledProducerOutput(request, state, recorder, clock, capture)
+    stepHooks(run).recordAcceptedOutput(run, this, stepState(run), finalised.envelopeWireMap())
     return with(FeatureTaskRuntimeRunLoopOutputVerification) {
       FeatureTaskRuntimeRunLoopOutputVerification.persistAcceptedOutput(
         this@finalizeValidatedOutputAcceptance,

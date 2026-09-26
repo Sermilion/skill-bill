@@ -11,7 +11,6 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.observability.blocked
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.STATUS_BLOCKED
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.workflow.model.WorkflowStepStatus
@@ -25,18 +24,16 @@ import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewFindi
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 object FeatureTaskRuntimeRunLoopBackwardEdge {
-  internal fun resumeInFlightReviewFix(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    session: FeatureTaskRuntimeRunLoopSession,
+  internal fun resumeInFlightReentry(
+    context: FeatureTaskRuntimeRunLoopContext,
     edge: FeatureTaskRuntimeBackwardEdge,
   ): String? {
-    if (
-      edge.loopId != FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID ||
-      state.isLoopLiveClaimed(edge.loopId) ||
-      state.isComplete(edge.destinationPhaseId)
-    ) {
+    val state = context.state
+    val resumes =
+      FeatureTaskRuntimeRunLoopPlanningBranch.decideByStep(context, edge.destinationPhaseId) { rules, _ ->
+        rules.resumesInFlightReentry(edge.loopId)
+      } == true
+    if (!resumes || state.isLoopLiveClaimed(edge.loopId) || state.isComplete(edge.destinationPhaseId)) {
       return null
     }
     val destinationRecord =
@@ -52,12 +49,19 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
         loopId = edge.loopId,
         edgeIteration = edgeIteration,
         drivingVerdict = edge.triggeringVerdict,
-        expectedRepositoryCheckpoint =
-          FeatureTaskRuntimeRunLoopPhaseBlocking.reviewedCheckpointFingerprint(request, recorder),
+        expectedRepositoryCheckpoint = reentryCheckpoint(context, edge),
       )
-    session.transitionReentryPair(pendingReentry, pendingReentry)
+    context.session.transitionReentryPair(pendingReentry, pendingReentry)
     return edge.destinationPhaseId
   }
+
+  private fun reentryCheckpoint(
+    context: FeatureTaskRuntimeRunLoopContext,
+    edge: FeatureTaskRuntimeBackwardEdge,
+  ): String? =
+    FeatureTaskRuntimeRunLoopPlanningBranch.decideByStep(context, edge.destinationPhaseId) { rules, stepState ->
+      rules.reentryCheckpoint(edge.loopId, stepState)
+    }
 
   internal fun recordBackwardEdge(
     context: FeatureTaskRuntimeRunLoopContext,
@@ -91,12 +95,7 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
         loopId = loopId,
         edgeIteration = edgeIteration,
         drivingVerdict = verdict,
-        expectedRepositoryCheckpoint =
-          if (loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID) {
-            FeatureTaskRuntimeRunLoopPhaseBlocking.reviewedCheckpointFingerprint(request, recorder)
-          } else {
-            null
-          },
+        expectedRepositoryCheckpoint = reentryCheckpoint(context, edge),
       )
     session.transitionReentryPair(pendingReentry, pendingReentry)
   }

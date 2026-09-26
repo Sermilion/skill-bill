@@ -43,6 +43,11 @@ abstract class PhaseStrategy {
     context: FeatureTaskRuntimeRunLoopContext,
     state: PhaseRunState,
   ): PhaseOutcome
+
+  internal open fun stepHooks(stepId: String): PhaseStepHooks = PhaseStepHooks.None
+
+  internal open val loopRules: PhaseLoopRules?
+    get() = null
 }
 
 /** A [PhaseStrategy] that projects the IDE status execution counter of the steps it runs. */

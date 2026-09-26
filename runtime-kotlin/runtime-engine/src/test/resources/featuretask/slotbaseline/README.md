@@ -20,8 +20,8 @@ Harness sources live in
 | `mcp-lifecycle/` | `SlotBaselineMcpLifecycleCapture.encodedFiles()` | `LifecycleTelemetryService`, the service the MCP tools call |
 
 Full-run bundles run through `telemetryRunnerHarness` against real SQLite.
-The phase launcher is `satisfiedAuditLauncher()`. The review step uses
-`FeatureTaskLastCommitReviewDriver` over a recording launcher. Each bundle
+The phase launcher is `satisfiedAuditLauncher()`. The review step runs
+`InlineReviewStrategy` with a `DefaultPhaseRunner` over a recording launcher. Each bundle
 contains:
 
 - `workflow-snapshot.json`: the `workflow_states` row, with `steps_json` and `artifacts_json` parsed

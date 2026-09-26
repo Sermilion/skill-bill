@@ -2,16 +2,12 @@ package skillbill.engine
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.engine.featuretask.lifecycle.branch.Blocked
-import skillbill.engine.featuretask.lifecycle.core.ApprovingReviewDriverStub
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
-import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
+import skillbill.engine.featuretask.slot.scriptedReviewPhaseRunner
 import skillbill.goalrunner.model.UNADDRESSED_FINDING_REJECTED_DISPOSITION
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
-import skillbill.review.model.ParallelReviewMergeResult
-import skillbill.review.model.ParallelReviewMergedFinding
-import skillbill.review.model.ParallelReviewSeverity
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -232,7 +228,7 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
   }
 
   private fun goalCensusHarness(
-    findings: List<ParallelReviewMergedFinding>,
+    findings: List<String>,
     verifyOutput: String,
     implementFixOutput: String,
   ): RunnerHarness {
@@ -254,7 +250,7 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
             parentWorkflowId = "wfl-parent",
             reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
           ),
-        reviewDriver = censusReviewDriver(findings),
+        reviewRunner = scriptedReviewPhaseRunner { findings.joinToString("\n") },
       ).copy(
         launcher =
           RuntimeRecordingLauncher { request ->
@@ -284,37 +280,9 @@ class FeatureTaskRuntimeCensusPhaseIoRunnerTest {
 
 private const val NIT_MESSAGE = "Hourly selection is never read"
 
-private fun censusReviewDriver(findings: List<ParallelReviewMergedFinding>): FeatureTaskRuntimeReviewDriver =
-  FeatureTaskRuntimeReviewDriver { request ->
-    harnessPendingVerifyFindingIds = findings.map { it.fNumber }
-    ApprovingReviewDriverStub.run(request).copy(
-      mergeResult =
-        ParallelReviewMergeResult(
-          findings = findings,
-          formattedOutput = "findings",
-        ),
-    )
-  }
+private fun blockerFinding(findingId: String) = "- [$findingId] Blocker | High | Foo.kt:1 | $REVIEW_BLOCKER_MESSAGE"
 
-private fun blockerFinding(findingId: String) =
-  ParallelReviewMergedFinding(
-    fNumber = findingId,
-    agentIds = listOf("agent-review"),
-    severity = ParallelReviewSeverity.BLOCKER,
-    confidence = "High",
-    location = "Foo.kt:1",
-    description = REVIEW_BLOCKER_MESSAGE,
-  )
-
-private fun nitFinding(findingId: String) =
-  ParallelReviewMergedFinding(
-    fNumber = findingId,
-    agentIds = listOf("agent-review"),
-    severity = ParallelReviewSeverity.NIT,
-    confidence = "High",
-    location = "Bar.kt:1",
-    description = NIT_MESSAGE,
-  )
+private fun nitFinding(findingId: String) = "- [$findingId] Nit | High | Bar.kt:1 | $NIT_MESSAGE"
 
 private fun seededReviewFinding(): String =
   """

@@ -26,9 +26,9 @@ import skillbill.engine.featuretask.runner.LaunchResult
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
 import skillbill.engine.featuretask.slot.PhaseLaunchFailureKind
 import skillbill.engine.featuretask.slot.PhaseRunState
-import skillbill.engine.featuretask.slot.PhaseStepFacts
 import skillbill.engine.featuretask.slot.PhaseStepInput
 import skillbill.engine.featuretask.slot.PhaseStepOutput
+import skillbill.engine.featuretask.slot.stepFacts
 import skillbill.ports.agentrun.model.AgentRunTermination
 
 object PhaseAttemptOnce {
@@ -98,7 +98,6 @@ object PhaseAttemptOnce {
             is LaunchMeasurementContextReady -> error("Unexpected launch preparation result.")
           }
       }
-    val launched = FeatureTaskRuntimeRunLoopLaunch.launchedModelDirective(run)
     val output =
       call.runner.run(
         PhaseStepInput(
@@ -106,20 +105,7 @@ object PhaseAttemptOnce {
           directive = call.description.directive,
           priorValues = emptyMap(),
           operatorInstructions = null,
-          facts =
-            PhaseStepFacts(
-              issueKey = run.request.issueKey,
-              repoRoot = run.request.repoRoot,
-              timeout = run.request.timeout,
-              invokedAgentId = run.resolvedAgent.invokedAgentId,
-              configuredAgentOverrideId = run.resolvedAgent.configuredAgentOverrideId,
-              modelOverride = launched.modelOverride,
-              effortOverride = launched.effortOverride,
-              compaction = run.compaction,
-              attempt = iteration,
-              observeLaunch = true,
-              briefingText = "",
-            ),
+          facts = run.stepFacts(run.request.issueKey, iteration),
           policy = run.policy,
         ),
         preparingState,

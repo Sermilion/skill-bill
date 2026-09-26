@@ -1,19 +1,18 @@
 package skillbill.di.featuretask
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.engine.featuretask.review.core.FeatureTaskLastCommitReviewDriver
 import skillbill.engine.featuretask.slot.PhaseRunner
 import skillbill.engine.featuretask.slot.PhaseStrategyBinding
 import skillbill.engine.featuretask.slot.PhaseStrategyLookup
 import skillbill.engine.featuretask.slot.PhaseStrategyRegistry
 import skillbill.engine.featuretask.slot.PhaseStrategySelection
+import skillbill.engine.featuretask.slot.codereview.InlineReviewStrategy
 import skillbill.engine.featuretask.slot.runner.DefaultPhaseRunner
 import skillbill.engine.featuretask.slot.strategy.AcceptanceAuditStrategy
 import skillbill.engine.featuretask.slot.strategy.AgentPlanStrategy
 import skillbill.engine.featuretask.slot.strategy.AgentPreplanStrategy
 import skillbill.engine.featuretask.slot.strategy.BoundaryHistoryStrategy
 import skillbill.engine.featuretask.slot.strategy.ImplementThenSimplifyStrategy
-import skillbill.engine.featuretask.slot.strategy.InlineCodeReviewStrategy
 import skillbill.engine.featuretask.slot.strategy.PrDescriptionStrategy
 import skillbill.engine.featuretask.slot.strategy.RoutedQualityGateStrategy
 import skillbill.engine.featuretask.slot.strategy.RuntimeCommitStrategy
@@ -38,7 +37,7 @@ internal interface RuntimeFeatureTaskSlotProvides {
         AgentPlanStrategy(runner()),
         ImplementThenSimplifyStrategy(runner()),
         AcceptanceAuditStrategy(runner()),
-        InlineCodeReviewStrategy(runner(), ::FeatureTaskLastCommitReviewDriver),
+        InlineReviewStrategy(runner()),
         RoutedQualityGateStrategy(runner()),
         BoundaryHistoryStrategy(runner()),
         RuntimeCommitStrategy(runner()),
@@ -57,7 +56,7 @@ internal interface RuntimeFeatureTaskSlotProvides {
         PhaseSlot.AUDIT to PhaseStrategyBinding.Fixed(AcceptanceAuditStrategy.ID),
         PhaseSlot.CODE_REVIEW to
           PhaseStrategyBinding.ByCodeReviewMode(
-            CodeReviewExecutionMode.entries.associateWith { InlineCodeReviewStrategy.ID },
+            CodeReviewExecutionMode.entries.associateWith { InlineReviewStrategy.ID },
           ),
         PhaseSlot.QUALITY_GATE to
           PhaseStrategyBinding.ByQualityGate(

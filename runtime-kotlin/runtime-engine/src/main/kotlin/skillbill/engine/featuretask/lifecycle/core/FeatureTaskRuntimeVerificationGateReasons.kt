@@ -40,23 +40,4 @@ object FeatureTaskRuntimeVerificationGateReasons {
       },
     )
   }
-
-  internal fun reviewVerificationSignal(
-    phaseId: String,
-    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-  ): String? {
-    if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) return null
-    val hasVerdict = (outputMap[FeatureTaskRuntimeVerificationSignalKeys.VERDICT] as? String)?.isNotBlank() == true
-    val producedOutputs = outputMap[SharedPayloadKeys.PRODUCED_OUTPUTS] as? Map<*, *>
-    val findingsKey = FeatureTaskRuntimeVerificationSignalKeys.REVIEW_FINDINGS
-    val hasFindingsArray = producedOutputs?.containsKey(findingsKey) == true && producedOutputs[findingsKey] is List<*>
-    return if (hasVerdict || hasFindingsArray) {
-      null
-    } else {
-      "Review phase reported 'completed' without a verification signal: the output must carry either a " +
-        "top-level 'verdict' or a 'produced_outputs.findings' array (an explicit empty array affirms no " +
-        "blocking findings). A review that emits neither cannot advance past a possible Blocker/Major; " +
-        "the schema gate fails rather than silently advancing to validation."
-    }
-  }
 }

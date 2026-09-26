@@ -1,27 +1,18 @@
 package skillbill.engine.featuretask.slot.attempt
 
 import skillbill.application.decomposition.baseBranch
-import skillbill.application.decomposition.branchName
-import skillbill.application.review.service.RuntimeOwnedReviewMode
-import skillbill.application.review.spec.toProjectionPayload
-import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseSettlementTarget
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeProjectionRejection
-import skillbill.engine.featuretask.persist.workflowArtifactEntryMap
 import skillbill.engine.featuretask.phase.briefing.FeatureTaskRuntimePhaseBriefingAssembler
-import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
 import skillbill.engine.featuretask.phase.core.toMeasurementFailureClassification
 import skillbill.engine.featuretask.phase.prompt.compose.FeatureTaskRuntimePhasePromptComposeInputs
 import skillbill.engine.featuretask.phase.prompt.compose.FeatureTaskRuntimePhasePromptComposer
 import skillbill.engine.featuretask.phase.prompt.directives.PriorAttemptCorrection
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.review.finding.promptSection
-import skillbill.engine.featuretask.review.finding.resolvedBodiesPromptSection
 import skillbill.engine.featuretask.runloop.core.DeclaredLaunchArgs
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
-import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
 import skillbill.engine.featuretask.runloop.core.LaunchMeasurementContextReady
 import skillbill.engine.featuretask.runloop.core.LaunchPreparation
 import skillbill.engine.featuretask.runloop.core.LaunchPreparationRejected
@@ -35,22 +26,13 @@ import skillbill.engine.featuretask.runloop.core.RepositoryCheckpointResolutionA
 import skillbill.engine.featuretask.runloop.core.qualityGateSelection
 import skillbill.engine.featuretask.runloop.core.resolveLaunchRejectionAttribution
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputVerification
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopValidationScope
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.LaunchResult
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
-import skillbill.ports.repository.toFileLocation
-import skillbill.review.context.model.execution.SpecIntentProjectionResolveRequest
-import skillbill.review.context.model.execution.SpecIntentResolution
-import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
-import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.model.ValidationDepth
-import skillbill.workflow.model.goalreview.FeatureTaskRuntimeReviewPassSequence
-import skillbill.workflow.model.goalreview.ReviewPassResolution
-import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.model.audit.QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
@@ -60,7 +42,6 @@ import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhase
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionFailureClassification
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import java.nio.file.Path
 
 object PhaseLaunchPreparation {
   internal fun prepareLaunchForCapture(
@@ -366,7 +347,7 @@ object PhaseLaunchPreparation {
         repairLedger = null,
         repositoryCheckpoint = repositoryCheckpoint,
         expectedRepositoryCheckpoint =
-          expectedCheckpointForLaunch(run, repositoryCheckpoint)
+          stepHooks(run).expectedLaunchCheckpoint(run, repositoryCheckpoint?.fingerprint)
             ?.let(::FeatureTaskRuntimeRepositoryCheckpoint),
         branchIdentity = resolvedBranchRecord?.branch,
         baseBranch = resolvedBranchRecord?.baseBranch ?: "main",
@@ -374,12 +355,7 @@ object PhaseLaunchPreparation {
         qualityGateSelection = qualityGateSelection(request),
       ),
     ).copy(
-      recordedFindingVerdicts =
-        FeatureTaskRuntimeRunLoopOutputVerification.recordedFindingVerdictsForFixHandoff(
-          recorder,
-          run,
-          state,
-        ),
+      recordedFindingVerdicts = stepHooks(run).handoffFindingVerdicts(stepState(run)),
     )
   }
 
@@ -387,76 +363,9 @@ object PhaseLaunchPreparation {
     context: FeatureTaskRuntimeRunLoopContext,
     run: PhaseRun,
     inputs: FeatureTaskRuntimePhasePromptComposeInputs,
-  ): String {
-    with(context) {
-      return FeatureTaskRuntimePhasePromptComposer.compose(inputs) +
-        verifyFindingsSpecIntentSection(state, recorder, session, phaseGates, run)
-    }
-  }
-
-  private fun verifyFindingsSpecIntentSection(
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    session: FeatureTaskRuntimeRunLoopSession,
-    phaseGates: FeatureTaskRuntimePhaseGates,
-    run: PhaseRun,
-  ): String {
-    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS) return ""
-    val checkpoint =
-      recorder.loadFindingVerificationCheckpoint(
-        run.request.workflowId,
-      )
-    val boundarySelection =
-      recorder.loadFindingVerificationBoundarySelection(
-        run.request.workflowId,
-      )?.takeIf { it.isNotEmpty() }
-    val resolution =
-      phaseGates.specIntentProjectionResolver.resolve(
-        SpecIntentProjectionResolveRequest(
-          repoRoot = run.request.repoRoot.toFileLocation(),
-          explicitSpecPath = Path.of(run.request.runInvariants.specReference).toFileLocation(),
-          branchName = session.resolvedBranch ?: "HEAD",
-          changedPaths = emptyList(),
-          budget = ReviewContextBudgetPolicy.DEFAULT,
-        ),
-      )
-    val boundarySections =
-      FeatureTaskRuntimeRunLoopOutputVerification
-        .findingVerificationBoundarySections(state, recorder, phaseGates, run)
-    return buildString {
-      when (resolution) {
-        is SpecIntentResolution.Resolved -> {
-          appendLine()
-          appendLine("## Spec intent projection (verify_findings)")
-          appendLine(JsonCodec.mapToJsonString(resolution.projection.toProjectionPayload()))
-        }
-        is SpecIntentResolution.None -> Unit
-      }
-      append(phaseGates.findingVerificationBoundaryMemory.promptSection(boundarySections))
-      if (boundarySelection != null) {
-        append(
-          phaseGates.findingVerificationBoundaryMemory.resolvedBodiesPromptSection(
-            repoRoot = run.request.repoRoot,
-            sections = boundarySections,
-            selectionsByFindingId = boundarySelection,
-          ),
-        )
-      }
-      if (!checkpoint.isNullOrEmpty()) {
-        appendLine()
-        appendLine("## Persisted verify_findings checkpoint")
-        appendLine(
-          "Reuse these in-flight dispositions verbatim unless repository evidence contradicts them; " +
-            "do not mint a second verification pass.",
-        )
-        appendLine(
-          checkpoint.joinToString(prefix = "[", postfix = "]") { disposition ->
-            JsonCodec.mapToJsonString(workflowArtifactEntryMap(disposition.asWorkflowArtifactEntry()))
-          },
-        )
-      }
-    }
-  }
+  ): String =
+    FeatureTaskRuntimePhasePromptComposer.compose(inputs) +
+      context.stepHooks(run).launchPromptSupplement(run, context, context.stepState(run))
 
   private fun composeLaunchPromptInputs(
     context: FeatureTaskRuntimeRunLoopContext,
@@ -469,8 +378,7 @@ object PhaseLaunchPreparation {
     with(context) {
       val context = this
       val resolvedBranchRecord = recorder.loadResolvedBranch(run.request.workflowId)
-      val (passNumber, depthResolution, executedTier) =
-        PhaseLaunchPreparation.resolveReviewPromptTier(context, run, state)
+      val (passNumber, depthResolution, executedTier) = stepHooks(run).launchReviewTier(run, stepState(run))
       return FeatureTaskRuntimePhasePromptComposeInputs(
         issueKey = run.request.issueKey,
         briefing = briefing,
@@ -515,45 +423,4 @@ object PhaseLaunchPreparation {
       )
     }
   }
-
-  private fun resolveReviewPromptTier(
-    context: FeatureTaskRuntimeRunLoopContext,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-  ): Triple<Int?, ReviewPassResolution?, CodeReviewExecutionMode> {
-    with(context) {
-      val passNumber =
-        FeatureTaskRuntimeRunLoopPhaseBlocking.reviewPassNumber(request, goalContinuationRecorder, run, state)
-      val resolution =
-        passNumber?.let { pass ->
-          FeatureTaskRuntimeReviewPassSequence.resolveForPass(run.request.runInvariants.codeReviewMode, pass)
-        }
-      val executedTier =
-        RuntimeOwnedReviewMode.execute(
-          resolution?.resolvedTier ?: run.request.runInvariants.codeReviewMode,
-        )
-      resolution?.let {
-        FeatureTaskRuntimeRunLoopPhaseBlocking.persistResolvedReviewTier(
-          request,
-          goalContinuationRecorder,
-          run,
-          it,
-        )
-      }
-      return Triple(passNumber, resolution, executedTier)
-    }
-  }
 }
-
-private fun expectedCheckpointForLaunch(
-  run: PhaseRun,
-  repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint?,
-): String? =
-  if (
-    run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW &&
-    run.reentry?.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID
-  ) {
-    repositoryCheckpoint?.fingerprint
-  } else {
-    run.reentry?.expectedRepositoryCheckpoint ?: repositoryCheckpoint?.fingerprint
-  }

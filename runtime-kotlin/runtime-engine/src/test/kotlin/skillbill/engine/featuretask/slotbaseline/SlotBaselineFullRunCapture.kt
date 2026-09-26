@@ -10,7 +10,6 @@ import skillbill.engine.committedRepoBranchSetup
 import skillbill.engine.facts
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
-import skillbill.engine.featuretask.review.core.FeatureTaskLastCommitReviewDriver
 import skillbill.engine.featuretask.slot.runner.DefaultPhaseRunner
 import skillbill.engine.featuretask.validation.passed
 import skillbill.engine.kotlinPackWithBuildGate
@@ -104,9 +103,7 @@ internal object SlotBaselineFullRunCapture {
             },
           validator = realFeatureTaskRuntimePhaseOutputValidator,
           launcher = phaseLauncher,
-          reviewDriverFactory = { _, state ->
-            FeatureTaskLastCommitReviewDriver(DefaultPhaseRunner(reviewLauncher, git), state)
-          },
+          reviewRunner = DefaultPhaseRunner(reviewLauncher, git),
         )
       val harness =
         telemetryRunnerHarness(

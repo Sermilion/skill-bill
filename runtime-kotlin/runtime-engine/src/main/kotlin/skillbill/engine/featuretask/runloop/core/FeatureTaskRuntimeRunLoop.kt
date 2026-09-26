@@ -2,7 +2,6 @@ package skillbill.engine.featuretask.runloop.core
 
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
-import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.phase.core.FeatureTaskPhaseSettlementService
@@ -24,7 +23,6 @@ import skillbill.workflow.taskruntime.model.core.PhaseStepPolicy
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
 import java.time.Clock
 
@@ -141,7 +139,7 @@ class FeatureTaskRuntimeRunLoop internal constructor(
 
   fun drive() {
     with(FeatureTaskRuntimeRunLoopDrive) {
-      context.invalidateReviewGenerationIfNeeded()
+      invalidateStaleEvidence(context)
       context.runPhaseDriveLoop(::advance)
     }
   }
@@ -157,20 +155,7 @@ class FeatureTaskRuntimeRunLoop internal constructor(
       )
       return PhaseSettlement.stop()
     }
-    if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW && isGoalContinuationRun(context.request)) {
-      FeatureTaskRuntimeRunLoopDrive.carriedForwardGoalReviewSettlement(
-        CarriedForwardGoalReviewArgs(
-          request = context.request,
-          state = context.state,
-          session = session,
-          recorder = context.recorder,
-          goalContinuationRecorder = context.goalContinuationRecorder,
-          outputValidator = context.outputValidator,
-        ),
-      )?.let { carriedForward ->
-        return carriedForward
-      }
-    }
+    FeatureTaskRuntimeRunLoopDrive.settleWithoutLaunch(context, phaseId)?.let { settled -> return settled }
     val reason = FeatureTaskRuntimeRunLoopDrive.advancePhaseReason(context, phaseId)
     return FeatureTaskRuntimeRunLoopDrive.settleAdvanceOutcome(
       context.request,

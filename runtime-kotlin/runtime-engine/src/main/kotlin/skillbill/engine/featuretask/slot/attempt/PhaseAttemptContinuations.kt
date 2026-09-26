@@ -12,7 +12,6 @@ import skillbill.engine.featuretask.runloop.core.BlockAndPersistPayload
 import skillbill.engine.featuretask.runloop.core.CapturedPhaseOutput
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
-import skillbill.engine.featuretask.runloop.core.FindingsOwedKind
 import skillbill.engine.featuretask.runloop.core.FixLoopBranchContext
 import skillbill.engine.featuretask.runloop.core.MissingProducerAgentBlockArgs
 import skillbill.engine.featuretask.runloop.core.MissingProducerAgentResolutionArgs
@@ -189,72 +188,6 @@ object PhaseAttemptContinuations {
       loop.iteration,
       loop.continuationSegmentCount,
       FeatureTaskRuntimeContinuationKind.VALIDATE_REPAIR,
-    )
-    return null
-  }
-
-  internal fun settleFindingsOwed(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    observability: FeatureTaskRuntimeRunObservability,
-    context: FixLoopBranchContext,
-  ): PhaseOutcome? {
-    val run = context.run
-    val attempt = context.attempt
-    val loop = context.loop
-    val observability = context.observability
-    val agentId = context.agentId
-    val refs = requireNotNull(attempt.findingsOwedRefs)
-    val blockReason =
-      when (requireNotNull(attempt.findingsOwedKind)) {
-        FindingsOwedKind.OMITTED ->
-          FeatureTaskRuntimeAttemptBudgets.findingCoverageBlockReason(
-            run.phaseId,
-            refs,
-            loop.priorUnaccountedFindings,
-          )
-        FindingsOwedKind.UNRESOLVED ->
-          FeatureTaskRuntimeAttemptBudgets.unresolvedFindingBlockReason(
-            run.phaseId,
-            refs,
-            loop.priorUnresolvedFindings,
-            requireNotNull(attempt.findingsOwedDetail),
-          )
-      }
-    blockReason?.let { reason ->
-      return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
-        request,
-        state,
-        recorder,
-        observability,
-        PhaseBlockRequest(
-          run = run,
-          attemptCount = loop.iteration,
-          reason = reason,
-          observability = observability,
-          payload = BlockAndPersistPayload(fileManifest = attempt.fileManifest),
-          failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
-        ),
-      )
-    }
-    when (attempt.findingsOwedKind) {
-      FindingsOwedKind.OMITTED -> loop.priorUnaccountedFindings = refs
-      FindingsOwedKind.UNRESOLVED -> loop.priorUnresolvedFindings = loop.priorUnresolvedFindings + refs
-      null -> Unit
-    }
-    loop.itemCoverageSegmentCount += 1
-    loop.iteration += 1
-    loop.priorCorrection =
-      PriorAttemptCorrection.unaccountedFindings(
-        requireNotNull(attempt.findingsOwedRetryReason),
-      )
-    observability.continuation(
-      run.phaseId,
-      agentId,
-      loop.iteration,
-      loop.itemCoverageSegmentCount,
-      FeatureTaskRuntimeContinuationKind.ITEM_COVERAGE,
     )
     return null
   }

@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.runloop.core
 
-import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.phase.ValidationFindingSetProjection
@@ -15,22 +14,18 @@ import skillbill.engine.featuretask.slot.attempt.PhaseAttemptContinuations
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
-import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionFailureClassification
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.phase.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.model.review.FeatureTaskRuntimeReviewFinding
-import java.time.Clock
 
 internal data class PhaseAttemptContext(
   val run: PhaseRun,
@@ -195,15 +190,6 @@ internal data class UnownedWorktreeCommitShaArgs(
   val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
 )
 
-internal data class PersistRejectedVerificationFindingsArgs(
-  val state: FeatureTaskRuntimeRunState,
-  val recorder: FeatureTaskRuntimePhaseRecorder,
-  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-  val diagnostics: RuntimeDiagnostics,
-  val run: PhaseRun,
-  val verifyOutput: Map<String, Any?>,
-)
-
 internal data class MissingProducerAgentResolutionArgs(
   val request: FeatureTaskRuntimeRunRequest,
   val state: FeatureTaskRuntimeRunState,
@@ -215,25 +201,6 @@ internal data class MissingProducerAgentResolutionArgs(
   val observability: FeatureTaskRuntimeRunObservability,
 )
 
-internal data class RetainRuntimeOwnedReviewEvidenceArgs(
-  val request: FeatureTaskRuntimeRunRequest,
-  val recorder: FeatureTaskRuntimePhaseRecorder,
-  val clock: Clock,
-  val run: PhaseRun,
-  val state: FeatureTaskRuntimeRunState,
-  val iteration: Int,
-  val outputText: String,
-)
-
-internal data class PersistReviewCompletionOutcomeArgs(
-  val request: FeatureTaskRuntimeRunRequest,
-  val state: FeatureTaskRuntimeRunState,
-  val recorder: FeatureTaskRuntimePhaseRecorder,
-  val observability: FeatureTaskRuntimeRunObservability,
-  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-  val outcome: PhaseReviewCompletionOutcomeArgs,
-)
-
 internal data class RunPhaseArgs(
   val phaseId: String,
   val request: FeatureTaskRuntimeRunRequest,
@@ -241,29 +208,6 @@ internal data class RunPhaseArgs(
   val observability: FeatureTaskRuntimeRunObservability,
   val specSource: SpecSource,
   val reentry: PendingReentry?,
-)
-
-internal data class ImplementFixRepairReceiptArgs(
-  val request: FeatureTaskRuntimeRunRequest,
-  val state: FeatureTaskRuntimeRunState,
-  val recorder: FeatureTaskRuntimePhaseRecorder,
-  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-  val diagnostics: RuntimeDiagnostics,
-  val run: PhaseRun,
-  val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
-  val reject: (String, String) -> AttemptResult,
-  val iteration: Int,
-  val observability: FeatureTaskRuntimeRunObservability,
-  val fileManifest: FeatureTaskRuntimePhaseFileManifest,
-)
-
-internal data class CompletedImplementationOutputArgs(
-  val run: PhaseRun,
-  val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
-  val reject: (String, String) -> AttemptResult,
-  val iteration: Int,
-  val observability: FeatureTaskRuntimeRunObservability,
-  val fileManifest: FeatureTaskRuntimePhaseFileManifest,
 )
 
 internal data class CommitCheckpointArgs(
@@ -417,38 +361,6 @@ internal data class WriteQuarantineRejectedOutputArgs(
   val producer: String,
   val producerEvidence: ProducerOutputEvidence,
   val producerGenerationScoped: Boolean,
-)
-
-internal data class RuntimeOwnedReviewDriverRequestArgs(
-  val run: PhaseRun,
-  val input: GoalSubtaskReviewInput,
-  val passNumber: Int,
-  val pinnedMode: CodeReviewExecutionMode,
-  val reviewRunId: String,
-)
-
-internal data class ReviewBlockerDispositionsArgs(
-  val run: PhaseRun,
-  val passNumber: Int,
-  val result: ParallelCodeReviewResult,
-  val reviewRunId: String,
-  val resolvedTier: CodeReviewExecutionMode,
-)
-
-internal data class SettleRuntimeOwnedReviewArgs(
-  val run: PhaseRun,
-  val iteration: Int,
-  val outputText: String,
-  val observability: FeatureTaskRuntimeRunObservability,
-  val fileManifest: FeatureTaskRuntimePhaseFileManifest,
-)
-
-internal data class CompleteRuntimeOwnedReviewPhaseArgs(
-  val run: PhaseRun,
-  val iteration: Int,
-  val observability: FeatureTaskRuntimeRunObservability,
-  val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
-  val acceptedOutput: AcceptedFeatureTaskRuntimePhaseOutput,
 )
 
 internal data class FinalizeValidatedOutputAcceptanceArgs(

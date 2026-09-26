@@ -14,6 +14,7 @@ import skillbill.engine.featuretask.model.subtask.RemediationBaseCoherent
 import skillbill.engine.featuretask.review.core.auditGapIterationCount
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoop
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
+import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopDrive
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
@@ -51,7 +52,36 @@ fun FeatureTaskRuntimeRunner.driveExecutePreparedRunLoop(
   observability: FeatureTaskRuntimeRunObservability,
   state: FeatureTaskRuntimeRunState,
 ): FeatureTaskRuntimeRunReport {
-  reopenCappedReviewOnChangedDelta(runRequest)
+  val context =
+    FeatureTaskRuntimeRunLoopContext(
+      runRequest,
+      state,
+      observability,
+      specSource,
+      transitions,
+      recorder,
+      goalContinuationRecorder,
+      outputValidator,
+      phaseGates,
+      strategies,
+      phaseSettlementService,
+      activityStampWriter,
+      worktreeEditJournalWriter,
+      clock,
+      diagnostics,
+      FeatureTaskRuntimeRunLoopSession(
+        operatorBlockRetry =
+          recorder
+            .loadOperatorBlockRetry(runRequest.workflowId)
+            ?.takeIf { retry ->
+              state.recordFor(retry.phaseId)?.status.let { status ->
+                status == null || status.workflowStepStatus() == WorkflowStepStatus.PENDING
+              }
+            },
+        initialPendingReentry = null,
+      ),
+    )
+  FeatureTaskRuntimeRunLoopDrive.reopenStaleSettledSteps(context)
   if (isGoalContinuationRun(runRequest)) {
     when (
       val remediation =
@@ -66,38 +96,7 @@ fun FeatureTaskRuntimeRunner.driveExecutePreparedRunLoop(
       is RemediationBaseCoherent -> Unit
     }
   }
-  val loop =
-    FeatureTaskRuntimeRunLoop(
-      context =
-        FeatureTaskRuntimeRunLoopContext(
-          runRequest,
-          state,
-          observability,
-          specSource,
-          transitions,
-          recorder,
-          goalContinuationRecorder,
-          outputValidator,
-          phaseGates,
-          strategies,
-          phaseSettlementService,
-          activityStampWriter,
-          worktreeEditJournalWriter,
-          clock,
-          diagnostics,
-          FeatureTaskRuntimeRunLoopSession(
-            operatorBlockRetry =
-              recorder
-                .loadOperatorBlockRetry(runRequest.workflowId)
-                ?.takeIf { retry ->
-                  state.recordFor(retry.phaseId)?.status.let { status ->
-                    status == null || status.workflowStepStatus() == WorkflowStepStatus.PENDING
-                  }
-                },
-            initialPendingReentry = null,
-          ),
-        ),
-    )
+  val loop = FeatureTaskRuntimeRunLoop(context = context)
   runRequest.operatorDecision?.let { decision ->
     loop.applyOperatorDecision()?.let { rejection ->
       throw FeatureTaskRuntimeOperatorDecisionRejectedError(runRequest.workflowId, decision.wireValue, rejection)

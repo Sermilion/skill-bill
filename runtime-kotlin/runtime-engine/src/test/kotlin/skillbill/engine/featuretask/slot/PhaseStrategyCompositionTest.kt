@@ -1,11 +1,11 @@
 package skillbill.engine.featuretask.slot
 
+import skillbill.engine.featuretask.slot.codereview.InlineReviewStrategy
 import skillbill.engine.featuretask.slot.strategy.AcceptanceAuditStrategy
 import skillbill.engine.featuretask.slot.strategy.AgentPlanStrategy
 import skillbill.engine.featuretask.slot.strategy.AgentPreplanStrategy
 import skillbill.engine.featuretask.slot.strategy.BoundaryHistoryStrategy
 import skillbill.engine.featuretask.slot.strategy.ImplementThenSimplifyStrategy
-import skillbill.engine.featuretask.slot.strategy.InlineCodeReviewStrategy
 import skillbill.engine.featuretask.slot.strategy.PrDescriptionStrategy
 import skillbill.engine.featuretask.slot.strategy.RoutedQualityGateStrategy
 import skillbill.engine.featuretask.slot.strategy.RuntimeCommitStrategy
@@ -41,7 +41,7 @@ class PhaseStrategyCompositionTest {
       AgentPlanStrategy(runner),
       ImplementThenSimplifyStrategy(runner),
       AcceptanceAuditStrategy(runner),
-      InlineCodeReviewStrategy(runner) { _, _ -> error("Policy lookups must not build a review driver.") },
+      InlineReviewStrategy(runner),
       RoutedQualityGateStrategy(runner),
       BoundaryHistoryStrategy(runner),
       RuntimeCommitStrategy(runner),
@@ -63,7 +63,7 @@ class PhaseStrategyCompositionTest {
         PHASE_IMPLEMENT to policy(mutating = true, relaunch = true, fileMutating = true),
         PHASE_SIMPLIFY to policy(mutating = true, relaunch = true, single = true, fileMutating = true),
         PHASE_AUDIT to policy(single = true, fileMutating = true),
-        PHASE_REVIEW to policy(relaunch = true, readOnlyIdle = true, fileMutating = true, generationScoped = true),
+        PHASE_REVIEW to policy(relaunch = true, fileMutating = true, generationScoped = true),
         PHASE_VERIFY_FINDINGS to policy(relaunch = true, readOnlyIdle = true, fileMutating = true),
         PHASE_IMPLEMENT_FIX to policy(mutating = true, relaunch = true, fileMutating = true, generationScoped = true),
         PHASE_BUILD to policy(relaunch = true, fileMutating = true),

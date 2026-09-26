@@ -5,6 +5,7 @@ import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContex
 import skillbill.engine.featuretask.runloop.core.PhaseOutcome
 import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.engine.featuretask.slot.PhaseRunState
+import skillbill.engine.featuretask.slot.PhaseRunner
 import skillbill.engine.featuretask.slot.PhaseStepDescription
 import skillbill.engine.featuretask.slot.PhaseStrategy
 import skillbill.engine.featuretask.slot.attempt.PhaseAttemptLoop
@@ -28,6 +29,17 @@ internal fun PhaseStrategy.runAgentStep(
   context: FeatureTaskRuntimeRunLoopContext,
   state: PhaseRunState,
 ): PhaseOutcome = with(PhaseAttemptLoop) { context.runPhaseAttempts(run, stepCall(run, state)) }
+
+internal fun PhaseRunner.runStepAttempts(
+  run: PhaseRun,
+  context: FeatureTaskRuntimeRunLoopContext,
+  state: PhaseRunState,
+  policy: PhaseStepPolicy,
+): PhaseOutcome {
+  val description = PhaseStepDescription(run.phaseId, phaseTaskDirective(run.phaseId), policy, phaseEnvelopeDecoder)
+  val call = PhaseStepCall(description, this, state)
+  return with(PhaseAttemptLoop) { context.runPhaseAttempts(run, call) }
+}
 
 internal fun Map<String, PhaseStepPolicy>.policyOf(stepId: String): PhaseStepPolicy =
   this[stepId] ?: throw UnknownPhaseStepError(stepId)

@@ -75,10 +75,8 @@ goalContinuationRecorder/phaseSettlementService ports those paths use.
 audit/checkpoint and accepted-output persistence tail inside
 `settleValidatedOutputAfterFingerprint`; implement-fix repair-receipt settlement
 and commit finalisation now receive their request/state/recorder/goal-recorder/
-diagnostics ports directly. Review
-narrows `prepareRuntimeOwnedReview` to explicit request/recorder/
-goalContinuationRecorder/phaseGates/clock/state parameters; driver execution
-remains on context where launch capture still needs session and phase gates.
+diagnostics ports directly. Review runs in `InlineReviewStrategy` and reaches
+durable state only through `PhaseRunState`.
 PhaseAttempts keeps `blockAndPersist` context and top-level overloads; governed
 block paths prefer the top-level `blockAndPersist(request, state, recorder,
 goalContinuationRecorder, args)` seam. `FeatureTaskRuntimeRunLoop` exposes only
@@ -107,9 +105,10 @@ inputs:
   settlement takes request/state/recorder/goal-recorder/diagnostics; the
   audit/checkpoint and accepted-output persistence tail retains
   `settlementContext`.
-- Review preparation takes request/recorder/goal-recorder/phase-gates/clock/
-  state; review driver execution and its worktree checkpoint retain context
-  for session and phase-gate ownership.
+- Review preparation and the review step live in the `code_review` slot
+  (`slot.codereview`). They reach durable run state only through
+  `PhaseRunState`, and read git operations, the output validator, and the clock
+  from the run-loop context.
 - PhaseAttempts exposes top-level block/pause seams with request/state/
   recorder/goal-recorder/observability arguments; its context overloads remain
   only for the generic attempt-loop adjacency.
@@ -994,8 +993,14 @@ Parts (`skillbill.engine.featuretask.slot`, with `PhaseSlot` and
 - `PhaseRunState` is the port a runner reads and writes during one call:
   launch preparation (run after the before-capture, so a failed capture
   records nothing), settlement target, launch observation, token accounting,
-  and the settled envelope. `FeatureTaskRuntimeSkeletonPhaseRunState` backs it
-  for full runs.
+  and the settled envelope. It also carries the review members the
+  `code_review` strategy needs: pass reservation, goal review input and
+  carry-forward, review start and launch records, content identities, the
+  remediation checkpoint amend, review completion, and review blocks.
+  `FeatureTaskRuntimeRunLoopSkeletonPhaseRunState` backs it for full runs.
+- `ReviewTarget` is a per-call fact on `PhaseRun`: `LastCommit` (the full-run
+  default), `Uncommitted`, or `Commit(sha)`. It composes the opening lines of
+  the review prompt.
 - `PhaseStrategyRegistry` holds the registered strategies. `PhaseStrategySelection`
   binds each slot to a strategy id, either fixed or keyed by the run's code
   review mode or quality gate. `PhaseStrategyLookup` resolves a step id to its
@@ -1017,8 +1022,32 @@ Parts (`skillbill.engine.featuretask.slot`, with `PhaseSlot` and
 
 Composition:
 
-- A full run walks the skeleton. `runPreparedPhaseReady` looks up the strategy
-  for the ready step and calls `runStep`. It has no phase-id branch.
+- A full run walks the skeleton. `runPreparedPhase` looks up the strategy for
+  the ready step and calls `runStep`. It has no phase-id branch. The shared
+  pre-launch block check lives in `FeatureTaskRuntimeRunLoopPreLaunch`.
+- `InlineReviewStrategy` (`slot.codereview`, id `inline`) owns the code_review
+  slot. Its review step prepares the pass, launches one agent through its own
+  `PhaseRunner` with the same launch facts as every other step (stamp sink,
+  worktree-edit observer, model and effort override), decodes the register,
+  and settles through `PhaseRunState`. `VerifyFindingsStep` and
+  `ImplementFixStep` own their step policy and run the shared attempt path.
+  No review driver, review-specific runner, or review binding in
+  `runtime-core` remains; `CodeReviewSlotBoundaryArchitectureTest` keeps the
+  package off the launcher, recorders, `FeatureTaskRuntimeRunState`,
+  persistence writers, checkpoint git, and run-loop types other than
+  `PhaseRun`, `FeatureTaskRuntimeRunLoopContext`, and `PhaseOutcome`.
+- Run-loop decisions a slot owns sit behind `PhaseStrategy.loopRules`
+  (`PhaseLoopRules`). The loop asks the strategy selected for a step, or for a
+  backward edge's destination. It does not name the step or the loop.
+  `InlineReviewLoopRules` owns these review rules:
+  - reopening a stale capped review before the run starts;
+  - invalidating review-generation evidence;
+  - discarding or resuming an in-flight review_fix reentry, and its expected
+    checkpoint;
+  - reconciling the reserved goal review pass;
+  - carrying a capped or skipped goal review forward without a launch;
+  - routing the REVIEW_CAP_REACHED verdict.
+  Every read and write goes through `PhaseRunState`.
 - A phase run executes one slot's strategy outside the full graph. Phase runs
   arrive in later SKILL-380 subtasks and reuse the same runner, state port, and
   input and output shapes.
@@ -1027,9 +1056,9 @@ Composition:
 - IDE status goes through the same lookup.
   `FeatureTaskRuntimeCurrentPhaseExecutionDeriver` asks the step's strategy for
   its execution counter through `PhaseStrategyStatusProjection`.
-- The wrapper strategies still run today's step code (the shared attempt path
-  under `slot.attempt`, the review driver cycle, the gate cycles, and commit
-  push) until SKILL-380 subtasks 3-5 move it into them. The shared
+- The other wrapper strategies still run today's step code (the shared
+  attempt path under `slot.attempt`, the gate cycles, and commit push) until
+  SKILL-380 subtasks 4-5 move it into them. The shared
   output-contract section and the `SETTLEMENT_PHASE_IDS` MCP settlement
   channel are unchanged until subtask 5.
 
@@ -1709,7 +1738,7 @@ or declaration to another line leaves the baselines unchanged.
 property initializers on an `@Inject` class that declares no primary
 constructor, in every declared module main source root. Production wiring must
 bind every port explicitly in `RuntimeComponent`; test-only stubs such as
-`ApprovingReviewDriverStub` are never reachable through an unbound dependency.
+`ApprovingReviewPhaseRunner` are never reachable through an unbound dependency.
 
 The scanner strips comments and string and character literals before it walks
 delimiters, so a default whose literal holds an unbalanced brace or paren does

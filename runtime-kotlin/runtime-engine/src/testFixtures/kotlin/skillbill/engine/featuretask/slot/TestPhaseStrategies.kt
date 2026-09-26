@@ -1,14 +1,12 @@
 package skillbill.engine.featuretask.slot
 
-import skillbill.engine.featuretask.lifecycle.core.ApprovingReviewDriverStub
-import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
+import skillbill.engine.featuretask.slot.codereview.InlineReviewStrategy
 import skillbill.engine.featuretask.slot.runner.DefaultPhaseRunner
 import skillbill.engine.featuretask.slot.strategy.AcceptanceAuditStrategy
 import skillbill.engine.featuretask.slot.strategy.AgentPlanStrategy
 import skillbill.engine.featuretask.slot.strategy.AgentPreplanStrategy
 import skillbill.engine.featuretask.slot.strategy.BoundaryHistoryStrategy
 import skillbill.engine.featuretask.slot.strategy.ImplementThenSimplifyStrategy
-import skillbill.engine.featuretask.slot.strategy.InlineCodeReviewStrategy
 import skillbill.engine.featuretask.slot.strategy.PrDescriptionStrategy
 import skillbill.engine.featuretask.slot.strategy.RoutedQualityGateStrategy
 import skillbill.engine.featuretask.slot.strategy.RuntimeCommitStrategy
@@ -23,21 +21,23 @@ fun statusProjectionPhaseStrategies(): PhaseStrategyLookup =
   testPhaseStrategies(
     GoalRunnerSubtaskLauncher { error("Status projection must not launch a phase.") },
     NoopWorkflowGitOperations,
-  ) { _, _ -> ApprovingReviewDriverStub }
+    ApprovingReviewPhaseRunner,
+  )
 
 fun testPhaseStrategies(
   launcher: GoalRunnerSubtaskLauncher,
   gitOperations: WorkflowGitOperations,
-  reviewDriver: (PhaseRunner, PhaseRunState) -> FeatureTaskRuntimeReviewDriver,
+  reviewRunner: PhaseRunner? = null,
 ): PhaseStrategyLookup {
   val runner = { DefaultPhaseRunner(launcher, gitOperations) }
+  val codeReviewRunner = reviewRunner?.let { reviewRoutingPhaseRunner(it, runner()) } ?: runner()
   val strategies =
     listOf(
       AgentPreplanStrategy(runner()),
       AgentPlanStrategy(runner()),
       ImplementThenSimplifyStrategy(runner()),
       AcceptanceAuditStrategy(runner()),
-      InlineCodeReviewStrategy(runner(), reviewDriver),
+      InlineReviewStrategy(codeReviewRunner),
       RoutedQualityGateStrategy(runner()),
       BoundaryHistoryStrategy(runner()),
       RuntimeCommitStrategy(runner()),
@@ -49,7 +49,7 @@ fun testPhaseStrategies(
       mapOf(
         PhaseSlot.CODE_REVIEW to
           PhaseStrategyBinding.ByCodeReviewMode(
-            CodeReviewExecutionMode.entries.associateWith { InlineCodeReviewStrategy.ID },
+            CodeReviewExecutionMode.entries.associateWith { InlineReviewStrategy.ID },
           ),
         PhaseSlot.QUALITY_GATE to
           PhaseStrategyBinding.ByQualityGate(

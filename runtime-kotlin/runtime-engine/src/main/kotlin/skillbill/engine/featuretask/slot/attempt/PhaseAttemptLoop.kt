@@ -158,14 +158,6 @@ object PhaseAttemptLoop {
           observability,
           context,
         )
-      attempt.findingsOwedKind != null ->
-        phaseAttempts.settleFindingsOwed(
-          request,
-          state,
-          recorder,
-          observability,
-          context,
-        )
       else ->
         FeatureTaskRuntimeRunLoopPhaseBlocking.settleSemanticFailure(
           request,

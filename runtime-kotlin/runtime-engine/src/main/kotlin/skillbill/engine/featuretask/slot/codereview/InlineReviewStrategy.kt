@@ -1,18 +1,21 @@
-package skillbill.engine.featuretask.slot.strategy
+package skillbill.engine.featuretask.slot.codereview
 
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimeCurrentPhaseExecutionContext
 import skillbill.engine.featuretask.phase.core.attemptPhaseExecution
 import skillbill.engine.featuretask.phase.core.defaultPhaseExecution
-import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
 import skillbill.engine.featuretask.runloop.core.PhaseOutcome
 import skillbill.engine.featuretask.runloop.core.PhaseRun
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseRunner
+import skillbill.engine.featuretask.slot.PhaseLoopRules
 import skillbill.engine.featuretask.slot.PhaseRunState
 import skillbill.engine.featuretask.slot.PhaseRunner
+import skillbill.engine.featuretask.slot.PhaseStepHooks
 import skillbill.engine.featuretask.slot.PhaseStrategyStatusProjection
+import skillbill.engine.featuretask.slot.strategy.directiveOf
+import skillbill.engine.featuretask.slot.strategy.policyOf
 import skillbill.engine.work.model.IdeStatusCurrentPhaseExecution
 import skillbill.engine.work.model.IdeStatusCurrentPhaseExecutionKind
+import skillbill.error.featuretask.UnknownPhaseStepError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.model.core.PhaseSlot
@@ -22,39 +25,17 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerE
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
-class InlineCodeReviewStrategy(
+class InlineReviewStrategy(
   override val runner: PhaseRunner,
-  private val reviewDriver: (PhaseRunner, PhaseRunState) -> FeatureTaskRuntimeReviewDriver,
 ) : PhaseStrategyStatusProjection() {
-  private val policies =
+  private val review = InlineReviewStep(runner)
+  private val verifyFindings = VerifyFindingsStep(runner)
+  private val implementFix = ImplementFixStep(runner)
+  private val policies: Map<String, PhaseStepPolicy> =
     mapOf(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to
-        PhaseStepPolicy(
-          mutating = false,
-          relaunchOnInvalidOutput = true,
-          singleAgentSession = false,
-          readOnlyIdle = true,
-          fileMutating = true,
-          generationScoped = true,
-        ),
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS to
-        PhaseStepPolicy(
-          mutating = false,
-          relaunchOnInvalidOutput = true,
-          singleAgentSession = false,
-          readOnlyIdle = true,
-          fileMutating = true,
-          generationScoped = false,
-        ),
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX to
-        PhaseStepPolicy(
-          mutating = true,
-          relaunchOnInvalidOutput = true,
-          singleAgentSession = false,
-          readOnlyIdle = false,
-          fileMutating = true,
-          generationScoped = true,
-        ),
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to review.policy,
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS to verifyFindings.policy,
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX to implementFix.policy,
     )
 
   override val slot: PhaseSlot = PhaseSlot.CODE_REVIEW
@@ -71,16 +52,23 @@ class InlineCodeReviewStrategy(
     context: FeatureTaskRuntimeRunLoopContext,
     state: PhaseRunState,
   ): PhaseOutcome =
-    if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) {
-      FeatureTaskRuntimeRunLoopPhaseRunner.runDeclaredReviewDriverCycle(
-        context = context,
-        run = run,
-        taskDirective = directiveFor(run.phaseId),
-        driver = reviewDriver(runner, state),
-      )
-    } else {
-      runAgentStep(run, context, state)
+    when (run.phaseId) {
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ->
+        review.run(run, context, state, directiveFor(run.phaseId))
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS -> verifyFindings.run(run, context, state)
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX -> implementFix.run(run, context, state)
+      else -> throw UnknownPhaseStepError(run.phaseId)
     }
+
+  override fun stepHooks(stepId: String): PhaseStepHooks =
+    when (stepId) {
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW -> review
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS -> verifyFindings
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX -> implementFix
+      else -> PhaseStepHooks.None
+    }
+
+  override val loopRules: PhaseLoopRules = InlineReviewLoopRules
 
   override fun currentExecution(
     stepId: String,

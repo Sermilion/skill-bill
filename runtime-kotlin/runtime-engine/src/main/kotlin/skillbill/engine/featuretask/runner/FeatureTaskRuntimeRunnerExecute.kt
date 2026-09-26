@@ -4,7 +4,6 @@ import skillbill.application.decomposition.specSource
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.lifecycle.continuation.agentAttributionFromPhaseState
 import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
-import skillbill.engine.featuretask.lifecycle.continuation.reviewState
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCrashReconciliationResult
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeFindingVerificationTelemetry
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRegenerationTelemetry
@@ -12,16 +11,12 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeOutputVerification
-import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeScopedReviewBaseline
 import skillbill.engine.featuretask.review.core.reviewFixCapExhaustion
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.observability.emitFeatureTaskRuntimeEventSafely
-import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap
-import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
@@ -67,42 +62,6 @@ fun FeatureTaskRuntimeRunner.executePreparedRun(
   lifecycleTelemetry.finished(terminalReport, telemetryContext)
   return terminalReport
 }
-
-fun FeatureTaskRuntimeRunner.reopenCappedReviewOnChangedDelta(request: FeatureTaskRuntimeRunRequest) {
-  if (!cappedReviewIsStale(request)) return
-  checkNotNull(recorder.persistReviewGenerationInvalidation(request.workflowId)) {
-    "Could not durably reopen the stale capped review for workflow '${request.workflowId}'."
-  }
-}
-
-fun FeatureTaskRuntimeRunner.cappedReviewIsStale(request: FeatureTaskRuntimeRunRequest): Boolean {
-  val goalBranch = request.goalContinuation?.goalBranch ?: return false
-  val state =
-    goalContinuationRecorder.reviewState(request.workflowId)
-      ?.takeIf { it.reviewCapReached || it.pausedForOperatorDecision }
-      ?: return false
-  val judgedDigest = state.reviewedDeltaDigest ?: return true
-  val resolved = recorder.loadResolvedBranch(request.workflowId)
-  val digests =
-    listOfNotNull(state.remediationBaseSha, state.reviewBaseSha).distinct().mapNotNull { base ->
-      phaseGates.gitOperations.buildGoalSubtaskReviewInput(
-        request.repoRoot,
-        reviewBaseline(request, resolved, state, base),
-        goalBranch,
-      ).input?.deltaDigest
-    }
-  return digests.isNotEmpty() && judgedDigest !in digests
-}
-
-fun FeatureTaskRuntimeRunner.reviewBaseline(
-  request: FeatureTaskRuntimeRunRequest,
-  resolved: FeatureTaskRuntimeResolvedBranch?,
-  state: GoalSubtaskReviewState,
-  reviewBaseSha: String,
-): GoalSubtaskReviewBaseline =
-  resolved
-    ?.let { FeatureTaskRuntimeScopedReviewBaseline.of(phaseGates.gitOperations, request.repoRoot, it, reviewBaseSha) }
-    ?: GoalSubtaskReviewBaseline(reviewBaseSha, state.baselineUntrackedPaths)
 
 internal fun FeatureTaskRuntimeRunner.loadReviewFixIterationCount(request: FeatureTaskRuntimeRunRequest): Int =
   recorder.loadPhaseLedger(request.workflowId)
