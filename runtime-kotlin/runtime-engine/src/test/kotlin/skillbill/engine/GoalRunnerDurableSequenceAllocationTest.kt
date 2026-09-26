@@ -13,6 +13,7 @@ import skillbill.engine.goalrunner.telemetry.GoalRunnerProgressEventEmitter
 import skillbill.ports.agentrun.model.AgentRunProgressEmission
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.model.toSnapshot
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.goalreview.GoalProgressEventKind
 import skillbill.workflow.model.goalreview.GoalProgressOutcome
 import java.nio.file.Path
@@ -30,7 +31,9 @@ private val sequenceTestClock: Clock = Clock.fixed(Instant.parse("2026-09-25T10:
 
 class GoalRunnerDurableSequenceAllocationTest {
   private val workflows =
-    InMemoryWorkflowStates().apply { saveFeatureTaskRuntimeWorkflow(taskRuntimeWorkflowRecord(SEQUENCE_WORKFLOW_ID)) }
+    InMemoryWorkflowStates().apply {
+      saveFeatureTaskWorkflow(taskRuntimeWorkflowRecord(SEQUENCE_WORKFLOW_ID), FeatureTaskWorkflowMode.RUNTIME)
+    }
   private val store =
     testWorkflowGoalRunnerOutcomeStore(
       FakeDatabaseSessionFactory(workflows),
@@ -112,7 +115,10 @@ class GoalRunnerDurableSequenceAllocationTest {
     )
 
   private fun storedLedgerSequences(): List<Int> {
-    val artifacts = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(SEQUENCE_WORKFLOW_ID)).toSnapshot().artifacts
+    val artifacts =
+      requireNotNull(
+        workflows.getFeatureTaskWorkflowAsMode(SEQUENCE_WORKFLOW_ID, FeatureTaskWorkflowMode.RUNTIME),
+      ).toSnapshot().artifacts
     return (artifacts["goal_attempt_ledger"] as List<*>)
       .map { entry -> (entry as Map<*, *>)["sequence_number"] as Int }
   }

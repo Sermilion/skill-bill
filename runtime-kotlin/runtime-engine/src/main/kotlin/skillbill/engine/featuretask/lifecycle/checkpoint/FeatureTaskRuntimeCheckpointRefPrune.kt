@@ -125,7 +125,7 @@ private fun WorkflowGitOperations.pruneListedCheckpointRefs(
   subtaskId: String,
   record: (String) -> Unit,
 ): FeatureTaskRuntimeCheckpointRefPruneResult {
-  val prefix = "$namespace/${issueKey.trim()}/$subtaskId/"
+  val prefix = "$FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE/${issueKey.trim()}/$subtaskId/"
   val names =
     when (val listed = listCheckpointRefs(repoRoot, prefix)) {
       is WorkflowGitNameListResult.Listed -> listed.names

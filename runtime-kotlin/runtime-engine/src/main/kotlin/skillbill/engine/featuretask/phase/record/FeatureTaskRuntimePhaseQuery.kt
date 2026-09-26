@@ -5,7 +5,6 @@ import skillbill.engine.featuretask.phase.core.decodePhaseLedger
 import skillbill.engine.featuretask.phase.core.decodePhaseRecords
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
@@ -29,7 +28,7 @@ class FeatureTaskRuntimePhaseQuery
     fun loadPhaseRecords(workflowId: String): Map<String, FeatureTaskRuntimePhaseRecord>? =
       database.read { unitOfWork ->
         val record =
-          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
             ?: return@read null
         decodePhaseRecords(record.artifacts)
       }
@@ -37,7 +36,7 @@ class FeatureTaskRuntimePhaseQuery
     fun loadPhaseLedger(workflowId: String): List<FeatureTaskRuntimePhaseLedgerEntry>? =
       database.read { unitOfWork ->
         val record =
-          WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+          unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
             ?: return@read null
         decodePhaseLedger(record.artifacts)
       }

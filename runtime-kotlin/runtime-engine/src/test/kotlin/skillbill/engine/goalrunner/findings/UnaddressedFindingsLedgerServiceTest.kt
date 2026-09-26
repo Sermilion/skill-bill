@@ -20,7 +20,10 @@ import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.toSnapshot
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import java.nio.file.Path
 import kotlin.test.Test
@@ -203,7 +206,13 @@ private class RecordingLedgerDiagnostics : RuntimeDiagnostics {
 private class MalformedReviewStateWorkflowStates(
   private val workflowId: String,
 ) : WorkflowStateRepositoryDefaults() {
-  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? =
+  override fun get(
+    family: WorkflowFamily,
+    workflowId: String,
+  ): WorkflowStateSnapshot? =
+    getFeatureTaskWorkflow(workflowId)?.takeIf { family == WorkflowFamily.TASK_RUNTIME }?.toSnapshot()
+
+  override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? =
     if (workflowId != this.workflowId) {
       null
     } else {

@@ -6,7 +6,6 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseQuery
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweep
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
