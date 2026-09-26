@@ -18,6 +18,9 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimeDecomposeTerm
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunInvariantsStore
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunStateReconstruction
+import skillbill.engine.featuretask.slot.PhaseStrategyLookup
+import skillbill.engine.featuretask.slot.PhaseStrategySelectionFacts
+import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.decodeValidationGateExecutionEvidenceFromArtifact
@@ -34,8 +37,9 @@ class FeatureTaskRuntimeStatusService(
   val recorder: FeatureTaskRuntimePhaseRecorder,
   val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
   private val decomposeTerminalRecorder: FeatureTaskRuntimeDecomposeTerminalRecorder,
+  strategies: PhaseStrategyLookup,
 ) {
-  val currentPhaseExecutionDeriver = FeatureTaskRuntimeCurrentPhaseExecutionDeriver()
+  val currentPhaseExecutionDeriver = FeatureTaskRuntimeCurrentPhaseExecutionDeriver(strategies)
 
   fun status(request: FeatureTaskRuntimeStatusRequest): FeatureTaskRuntimeStatusProjection? {
     val records = recorder.loadPhaseRecords(request.workflowId) ?: return null
@@ -102,6 +106,11 @@ fun FeatureTaskRuntimeStatusService.buildStatusProjection(
       records = normalizedRecords,
       ledger = normalizedLedger,
       decomposeTerminal = decomposeTerminal,
+      selectionFacts =
+        PhaseStrategySelectionFacts(
+          runInvariantsStore.resolve(request.workflowId)?.codeReviewMode ?: CodeReviewExecutionMode.DEFAULT,
+          qualityGateSelection,
+        ),
     ),
   )
 }
@@ -115,6 +124,7 @@ private data class StatusProjectionParts(
   val records: Map<String, FeatureTaskRuntimePhaseRecord>,
   val ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
   val decomposeTerminal: FeatureTaskRuntimeDecomposeTerminal?,
+  val selectionFacts: PhaseStrategySelectionFacts,
 )
 
 private fun FeatureTaskRuntimeStatusService.statusProjectionFrom(
@@ -161,6 +171,7 @@ private fun FeatureTaskRuntimeStatusService.statusProjectionFrom(
           ledger = parts.ledger,
           gateRunCount = parts.gateRunCount,
         ),
+        parts.selectionFacts,
       ),
     degradedDiagnostic = degradedDiagnosticStatus(request.workflowId),
     operatorDecisionPause = operatorDecisionPause(parts.records),

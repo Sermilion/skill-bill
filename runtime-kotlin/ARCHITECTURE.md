@@ -971,6 +971,78 @@ skillbill.workflow.verify
 - `skill-bill feature-task` and `feature-task-stats` are the CLI surfaces for
   this workflow family.
 
+## Phase slots and strategies
+
+The feature-task runtime runs a fixed skeleton of slots. A slot is a stage of a
+run. A strategy is one in-process way to run the steps of a slot. The graph,
+the ledger, and the durable phase ids stay the same whichever strategy runs.
+
+Parts (`skillbill.engine.featuretask.slot`, with `PhaseSlot` and
+`PhaseStepPolicy` in `runtime-domain`):
+
+- `PhaseSlot` partitions every phase id into exactly one slot.
+- `PhaseStrategy` declares a strategy's slot, id, steps, entry step, and the
+  policy and task directive of each step. It runs a step through its own
+  `PhaseRunner`.
+- `PhaseRunner` is the one AI-facing seam. It takes a `PhaseStepInput`
+  (step name, directive, prior step values, operator instructions, launch
+  facts, policy) and returns a `PhaseStepOutput` (status, value, summary,
+  verdict, failure disposition, stdout, stderr, termination, file manifest,
+  settled envelope, typed launch failure). `DefaultPhaseRunner` is the only
+  implementation, and it is the only featuretask type that depends on
+  `GoalRunnerSubtaskLauncher`.
+- `PhaseRunState` is the port a runner reads and writes during one call:
+  launch preparation (run after the before-capture, so a failed capture
+  records nothing), settlement target, launch observation, token accounting,
+  and the settled envelope. `FeatureTaskRuntimeSkeletonPhaseRunState` backs it
+  for full runs.
+- `PhaseStrategyRegistry` holds the registered strategies. `PhaseStrategySelection`
+  binds each slot to a strategy id, either fixed or keyed by the run's code
+  review mode or quality gate. `PhaseStrategyLookup` resolves a step id to its
+  strategy. A duplicate registration, a step outside its slot, an unknown
+  strategy, and a selection naming an unregistered strategy each raise a typed
+  error.
+
+| Slot | Steps | Strategy |
+| --- | --- | --- |
+| `preplan` | preplan | `agent-preplan` |
+| `plan` | plan | `agent-plan` |
+| `implementation` | implement, simplify | `implement-then-simplify` |
+| `audit` | audit | `acceptance-audit` |
+| `code_review` | review, verify_findings, implement_fix | `inline` |
+| `quality_gate` | build, validate | `routed-quality-gate` |
+| `write_history` | write_history | `boundary-history` |
+| `commit_push` | commit_push | `runtime-commit` |
+| `pull_request` | pr | `pr-description` |
+
+Composition:
+
+- A full run walks the skeleton. `runPreparedPhaseReady` looks up the strategy
+  for the ready step and calls `runStep`. It has no phase-id branch.
+- A phase run executes one slot's strategy outside the full graph. Phase runs
+  arrive in later SKILL-380 subtasks and reuse the same runner, state port, and
+  input and output shapes.
+- Operations (SKILL-382) will compose the same runner and state port, and
+  name their steps with operation-local names outside the domain graph.
+- IDE status goes through the same lookup.
+  `FeatureTaskRuntimeCurrentPhaseExecutionDeriver` asks the step's strategy for
+  its execution counter through `PhaseStrategyStatusProjection`.
+- The wrapper strategies still run today's step code (the shared attempt path
+  under `slot.attempt`, the review driver cycle, the gate cycles, and commit
+  push) until SKILL-380 subtasks 3-5 move it into them. The shared
+  output-contract section and the `SETTLEMENT_PHASE_IDS` MCP settlement
+  channel are unchanged until subtask 5.
+
+Dispatch and policy:
+
+- Selection is a code binding in `RuntimeFeatureTaskSlotProvides`, not
+  operator config. The provider lists every strategy explicitly and gives each
+  one its own `PhaseRunner` from an unscoped provider.
+- Step policy (mutating, relaunch on invalid output, single agent session,
+  read-only idle, file mutating, generation scoped) is declared by the
+  strategy that owns the step. No phase-id set outside the strategies decides
+  launch policy.
+
 ## Runtime Contract And Schema Seams
 
 - Runtime contract schemas live in `orchestration/contracts/`. The

@@ -2,8 +2,8 @@ package skillbill.engine.featuretask.phase.prompt.directives
 
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
-fun mutatingPhaseIdempotencyDirective(phaseId: String): String {
-  if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) {
+fun mutatingPhaseIdempotencyDirective(mutating: Boolean): String {
+  if (!mutating) {
     return ""
   }
   return """
@@ -19,8 +19,8 @@ fun mutatingPhaseIdempotencyDirective(phaseId: String): String {
     """.trimIndent()
 }
 
-fun minimalismDisciplineDirective(phaseId: String): String {
-  if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) {
+fun minimalismDisciplineDirective(mutating: Boolean): String {
+  if (!mutating) {
     return ""
   }
   return """

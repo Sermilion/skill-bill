@@ -44,6 +44,7 @@ fun phasePromptHeader(inputs: PhasePromptHeaderInputs): String {
         validationGateRepair = inputs.validationGateRepair,
         validationGateTriage = inputs.validationGateTriage,
         acceptanceCriteria = inputs.acceptanceCriteria,
+        taskDirective = inputs.taskDirective,
       ),
     )
   return buildString {

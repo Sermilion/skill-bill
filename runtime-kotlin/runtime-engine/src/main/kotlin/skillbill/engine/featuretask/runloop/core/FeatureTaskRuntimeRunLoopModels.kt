@@ -15,7 +15,6 @@ import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseFileManife
 import skillbill.engine.featuretask.phase.prompt.directives.PriorAttemptCorrection
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.LaunchResult
 import skillbill.error.core.SkillBillRuntimeException
@@ -25,6 +24,7 @@ import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeRepositoryCheckpoint
+import skillbill.workflow.taskruntime.model.core.PhaseStepPolicy
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.handoff.task.NormalizedFeatureTaskRuntimePhaseOutput
@@ -203,6 +203,7 @@ internal data class RejectedOutputTargeting(
   val model: String,
   val path: String,
   val repairTurn: Int,
+  val generationScoped: Boolean,
 )
 
 internal data class RecordRejectedOutputArgs(
@@ -230,32 +231,6 @@ internal data class CorrectiveRepairRejectionArgs(
   val diagnosticWrite: FeatureTaskRuntimeRejectedOutputWrite,
   val rejection: CorrectiveRepairRejectionDetail,
 )
-
-internal class GateOutput(
-  val run: PhaseRun,
-  val iteration: Int,
-  val captured: CapturedPhaseOutput,
-  val fileManifest: FeatureTaskRuntimePhaseFileManifest,
-  val outputGateFailuresBefore: Int? = null,
-  val settlementContext: FeatureTaskRuntimeRunLoopContext,
-) {
-  val request get() = settlementContext.request
-  val state get() = settlementContext.state
-  val recorder get() = settlementContext.recorder
-  val outputValidator get() = settlementContext.outputValidator
-  val phaseGates get() = settlementContext.phaseGates
-  val clock get() = settlementContext.clock
-  val diagnostics get() = settlementContext.diagnostics
-  val goalContinuationRecorder get() = settlementContext.goalContinuationRecorder
-  val phaseSettlementService get() = settlementContext.phaseSettlementService
-  val observability get() = settlementContext.observability
-
-  val rejectionExhaustsFixLoop: Boolean?
-    get() =
-      outputGateFailuresBefore?.let {
-        FeatureTaskRuntimeAttemptBudgets.outputGateRejectionExhaustsBudget(run.phaseId, it)
-      }
-}
 
 internal data class SettledOutputContext(
   val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
@@ -387,6 +362,7 @@ internal data class PhaseRun(
   val compaction: PhaseCompactionDirective?,
   val request: FeatureTaskRuntimeRunRequest,
   val specSource: SpecSource,
+  val policy: PhaseStepPolicy,
   val reentry: PendingReentry? = null,
   val goalReviewInput: GoalSubtaskReviewInput? = null,
   val validationGateFindings: ValidationFindingSetProjection? = null,

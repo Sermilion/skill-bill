@@ -20,6 +20,7 @@ import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseSafetyPolicy
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewCycleContext
+import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriverAgents
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriverCycle
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriverCycleOutcome
@@ -198,6 +199,7 @@ object FeatureTaskRuntimeRunLoopReview {
 
   internal fun FeatureTaskRuntimeRunLoopContext.executePreparedReviewDriver(
     prepared: RuntimeOwnedReviewReady,
+    driver: FeatureTaskRuntimeReviewDriver,
   ): PhaseOutcome {
     val run = prepared.run
     observability.started(
@@ -211,7 +213,7 @@ object FeatureTaskRuntimeRunLoopReview {
     if (before !is WorkflowGitOperationResult.Ok) {
       return blockReviewWorktreeFailure(run, prepared.launch.iteration, "before", before.error)
     }
-    return when (val attempt = invokeReviewDriver(phaseGates, prepared.driverRequest)) {
+    return when (val attempt = invokeReviewDriver(driver, prepared.driverRequest)) {
       is ReviewDriverFailed ->
         FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
           request,
@@ -264,10 +266,10 @@ object FeatureTaskRuntimeRunLoopReview {
     )
 
   internal fun invokeReviewDriver(
-    phaseGates: FeatureTaskRuntimePhaseGates,
+    driver: FeatureTaskRuntimeReviewDriver,
     request: ParallelCodeReviewRequest,
   ): ReviewDriverAttempt {
-    val outcome = runCatching { phaseGates.reviewDriver.run(request) }
+    val outcome = runCatching { driver.run(request) }
     val error = outcome.exceptionOrNull()
     if (error == null) {
       return ReviewDriverReady(outcome.getOrThrow())
@@ -667,7 +669,7 @@ object FeatureTaskRuntimeRunLoopReviewDriverSettlement {
         byteSize = outputBytes.size.toLong(),
         sha256 = RejectedOutputDiagnosticService.sha256(outputBytes),
         payload = outputBytes,
-        generation = state.evidenceGeneration(run.phaseId),
+        generation = state.evidenceGeneration(run.policy.generationScoped),
       ),
     )
   }

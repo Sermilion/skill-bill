@@ -53,6 +53,9 @@ import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
 import skillbill.engine.featuretask.review.finding.FeatureTaskRuntimeFindingVerificationBoundaryMemory
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunInvariantsStore
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunner
+import skillbill.engine.featuretask.slot.PhaseRunState
+import skillbill.engine.featuretask.slot.PhaseRunner
+import skillbill.engine.featuretask.slot.testPhaseStrategies
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordinator
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateProgressStore
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeReadinessGateCoordinator
@@ -182,7 +185,6 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDe
 import skillbill.workflow.taskruntime.model.validation.ValidationGateCacheMode.CACHE_ELIGIBLE
 import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome.FAILED
 import skillbill.workflow.taskruntime.model.validation.ValidationGateRunOutcome.PASSED
-import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.lang.Boolean.TYPE
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -645,6 +647,7 @@ internal data class RuntimeHarnessConfig(
   val validationGatePlatformManifests: List<PlatformManifest> = listOf(kotlinPackWithValidationGate()),
   val reviewDriver: FeatureTaskRuntimeReviewDriver =
     ApprovingReviewDriverStub,
+  val reviewDriverFactory: ((PhaseRunner, PhaseRunState) -> FeatureTaskRuntimeReviewDriver)? = null,
   val launcher: RuntimeRecordingLauncher? = null,
   val agentAssignment: FeatureTaskRuntimeAgentAssignment? = null,
   val validator: FeatureTaskRuntimePhaseOutputValidator? = null,
@@ -676,7 +679,6 @@ private data class RuntimePhaseGatesDeps(
   val recorder: FeatureTaskRuntimePhaseRecorder,
   val validationGateRunnerOverride: ValidationGateRunner? = null,
   val validationGatePlatformManifests: List<PlatformManifest> = listOf(kotlinPackWithValidationGate()),
-  val reviewDriver: FeatureTaskRuntimeReviewDriver = ApprovingReviewDriverStub,
 )
 
 private fun runtimePhaseGates(deps: RuntimePhaseGatesDeps): FeatureTaskRuntimePhaseGates {
@@ -743,7 +745,6 @@ private fun validationGateBoundaries(
       ),
     sharedEvidenceResolver = deps.sharedEvidenceResolver,
     diffResolver = deps.diffResolver,
-    reviewDriver = deps.reviewDriver,
     specIntentProjectionResolver =
       SpecIntentProjectionResolver(
         TestDecompositionManifestStore,
@@ -978,7 +979,12 @@ private fun harnessRunner(deps: HarnessRunnerDeps): FeatureTaskRuntimeRunner {
       deps.diagnostics,
     )
   return FeatureTaskRuntimeRunner(
-    subtaskLauncher = deps.launcher,
+    strategies =
+      testPhaseStrategies(
+        deps.launcher,
+        deps.runtimeConfig.branchSetup.gitOperations,
+        harnessReviewDriverFactory(deps.runtimeConfig),
+      ),
     recorder = deps.recorder,
     goalContinuationRecorder = deps.goalContinuationRecorder,
     runInvariantsStore = deps.runInvariantsStore,
@@ -998,7 +1004,6 @@ private fun harnessRunner(deps: HarnessRunnerDeps): FeatureTaskRuntimeRunner {
           recorder = deps.recorder,
           validationGateRunnerOverride = deps.runtimeConfig.validationGateRunner,
           validationGatePlatformManifests = deps.runtimeConfig.validationGatePlatformManifests,
-          reviewDriver = harnessReviewDriverSyncingPendingVerifyFindings(deps.runtimeConfig.reviewDriver),
         ),
       ),
     crashReconciler = harnessCrashReconciler(deps.database, deps.crashSupervisor),
@@ -1119,7 +1124,12 @@ private fun telemetryHarnessRunner(
       NoopRuntimeDiagnostics,
     )
   return FeatureTaskRuntimeRunner(
-    subtaskLauncher = launcher,
+    strategies =
+      testPhaseStrategies(
+        launcher,
+        runtimeConfig.branchSetup.gitOperations,
+        harnessReviewDriverFactory(runtimeConfig),
+      ),
     recorder = workflow.recorder,
     goalContinuationRecorder = workflow.goalContinuationRecorder,
     runInvariantsStore = workflow.runInvariantsStore,
@@ -1139,6 +1149,15 @@ private fun telemetryHarnessRunner(
     probeWriters = telemetryRunnerProbeWriters(database),
   )
 }
+
+private fun harnessReviewDriverFactory(
+  runtimeConfig: RuntimeHarnessConfig,
+): (PhaseRunner, PhaseRunState) -> FeatureTaskRuntimeReviewDriver =
+  { runner, state ->
+    harnessReviewDriverSyncingPendingVerifyFindings(
+      runtimeConfig.reviewDriverFactory?.invoke(runner, state) ?: runtimeConfig.reviewDriver,
+    )
+  }
 
 private fun telemetryRunnerPhaseGates(
   runtimeConfig: RuntimeHarnessConfig,
@@ -1167,7 +1186,6 @@ private fun telemetryRunnerPhaseGates(
       recorder = workflow.recorder,
       validationGateRunnerOverride = runtimeConfig.validationGateRunner,
       validationGatePlatformManifests = runtimeConfig.validationGatePlatformManifests,
-      reviewDriver = harnessReviewDriverSyncingPendingVerifyFindings(runtimeConfig.reviewDriver),
     ),
   )
 
@@ -1215,8 +1233,6 @@ internal fun defaultPhaseAwareLauncher(): RuntimeRecordingLauncher =
 internal fun defaultPhaseOutput(request: GoalRunnerSubtaskLaunchRequest): String {
   val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
   return when {
-    FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId) -> validJsonOutput(phaseId)
-    phaseId == "preplan" || phaseId == "plan" -> validJsonOutput(phaseId)
     phaseId == "review" -> VALID_REVIEW_OUTPUT
     phaseId == "audit" -> VALID_AUDIT_OUTPUT
     phaseId == "verify_findings" -> verifyFindingsOutput()

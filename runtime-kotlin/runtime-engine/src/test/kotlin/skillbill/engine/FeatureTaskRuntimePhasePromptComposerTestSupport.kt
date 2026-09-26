@@ -5,7 +5,6 @@ import skillbill.application.realPlanningProjectionValidator
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeImplementationContinuation
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.phase.briefing.FeatureTaskRuntimePhaseBriefingAssembler
-import skillbill.engine.featuretask.phase.prompt.compose.FeatureTaskRuntimePhasePromptComposer
 import skillbill.engine.featuretask.runner.phaseDeclaration
 import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffContract
@@ -121,7 +120,7 @@ internal fun assertAuditPromptNamesSignal(
 
 internal fun assertSchemaCorrectionSuppressesContinuation(context: FeatureTaskRuntimeCorrectiveRepairContext) {
   val prompt =
-    FeatureTaskRuntimePhasePromptComposer.compose(
+    composePhasePrompt(
       PROMPT_COMPOSER_ISSUE_KEY,
       promptComposerBriefingFor("implement"),
     ) {
@@ -140,7 +139,7 @@ internal fun assertSchemaCorrectionSuppressesContinuation(context: FeatureTaskRu
 
 internal fun assertTerminalAndContinuationRetriesOmitRepairContext() {
   val terminalOnly =
-    FeatureTaskRuntimePhasePromptComposer.compose(
+    composePhasePrompt(
       PROMPT_COMPOSER_ISSUE_KEY,
       promptComposerBriefingFor("implement"),
     ) {
@@ -150,7 +149,7 @@ internal fun assertTerminalAndContinuationRetriesOmitRepairContext() {
   assertFalse(terminalOnly.contains("SKILL187-SHOULD-NOT-APPEAR"))
 
   val continuationOnly =
-    FeatureTaskRuntimePhasePromptComposer.compose(
+    composePhasePrompt(
       PROMPT_COMPOSER_ISSUE_KEY,
       promptComposerBriefingFor("implement"),
     ) {

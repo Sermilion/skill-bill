@@ -237,7 +237,7 @@ fun FeatureTaskRuntimePhaseStateRecorder.implementationAttemptPatch(
   request: FeatureTaskRuntimePhaseStateRequest,
   attemptStatus: FeatureTaskRuntimeImplementationAttemptStatus,
 ): Map<String, Any?> {
-  if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(request.phaseId)) return emptyMap()
+  if (!request.mutating) return emptyMap()
   val produced =
     request.normalizedOutput?.envelopeWireMap()
       ?.let { JsonCodec.anyToStringAnyMap(it[SharedPayloadKeys.PRODUCED_OUTPUTS]) }

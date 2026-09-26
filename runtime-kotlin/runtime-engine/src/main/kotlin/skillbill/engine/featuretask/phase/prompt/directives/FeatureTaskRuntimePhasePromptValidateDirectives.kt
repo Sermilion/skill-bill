@@ -46,6 +46,7 @@ internal data class PhaseTaskDirectiveArgs(
   val validationGateRepair: Boolean = false,
   val validationGateTriage: Boolean = false,
   val acceptanceCriteria: List<String> = emptyList(),
+  val taskDirective: String? = null,
 )
 
 internal fun phaseTaskDirective(
@@ -67,7 +68,10 @@ internal fun phaseTaskDirective(
       auditPhaseTaskDirective()
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT ->
       implementPhaseTaskDirective()
-    else -> phaseDirectives[phaseId] ?: error("No phase directive for runtime phase '$phaseId'.")
+    else ->
+      args.taskDirective
+        ?: phaseDirectives[phaseId]
+        ?: error("No phase directive for runtime phase '$phaseId'.")
   }
 
 fun gateRepairNoOutputSchemaDirective(

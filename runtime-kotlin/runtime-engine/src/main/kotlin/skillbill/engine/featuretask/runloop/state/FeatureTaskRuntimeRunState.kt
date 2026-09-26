@@ -449,8 +449,7 @@ class FeatureTaskRuntimeRunState(
     if (next > reviewGeneration) reviewGeneration = next
   }
 
-  fun evidenceGeneration(phaseId: String): Int =
-    if (phaseId in FeatureTaskRuntimePhaseWorkflowDefinition.GENERATION_SCOPED_PHASE_IDS) reviewGeneration else 0
+  fun evidenceGeneration(generationScoped: Boolean): Int = if (generationScoped) reviewGeneration else 0
 
   fun reserveReviewPass(passNumber: Int?) {
     if (passNumber != null) currentReviewPassNumber = passNumber

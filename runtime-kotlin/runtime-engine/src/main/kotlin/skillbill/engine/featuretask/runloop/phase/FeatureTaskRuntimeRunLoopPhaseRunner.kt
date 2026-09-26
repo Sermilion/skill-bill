@@ -16,11 +16,11 @@ import skillbill.engine.featuretask.model.review.GoalSubtaskReviewPassReserved
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseFileManifest
 import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
 import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeScopedReviewBaseline
 import skillbill.engine.featuretask.runloop.core.BlockAndPersistArgs
 import skillbill.engine.featuretask.runloop.core.BlockAndPersistPayload
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
-import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopLaunch
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopReview
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
 import skillbill.engine.featuretask.runloop.core.GoalReviewRunPreparation
@@ -43,6 +43,7 @@ import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runloop.state.LEGACY_SQLITE_BUSY_REASON_MARKER
 import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.featuretask.runner.missingUpstream
+import skillbill.engine.featuretask.slot.attempt.PhaseLaunchPreparation
 import skillbill.engine.goalrunner.status.completed
 import skillbill.error.core.DatabaseBusyError
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
@@ -71,10 +72,10 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
   internal fun runDeclaredReviewDriverCycle(
     context: FeatureTaskRuntimeRunLoopContext,
     run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    observability: FeatureTaskRuntimeRunObservability,
+    taskDirective: String,
+    driver: FeatureTaskRuntimeReviewDriver,
   ): PhaseOutcome {
-    val reviewContext = context.copy(state = state, observability = observability)
+    val state = context.state
     val prepared =
       FeatureTaskRuntimeRunLoopReview.prepareRuntimeOwnedReview(
         RuntimeOwnedReviewPreparationArgs(
@@ -90,11 +91,9 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     return when (prepared) {
       is RuntimeOwnedReviewBlocked -> prepared.outcome
       is RuntimeOwnedReviewReady -> {
-        with(FeatureTaskRuntimeRunLoopLaunch) {
-          FeatureTaskRuntimeRunLoopLaunch.prepareLaunchForCapture(context, prepared.run, state, null, null)
-        }
+        PhaseLaunchPreparation.prepareLaunchForCapture(context, prepared.run, state, null, null, taskDirective)
         with(FeatureTaskRuntimeRunLoopReview) {
-          reviewContext.executePreparedReviewDriver(prepared)
+          context.executePreparedReviewDriver(prepared, driver)
         }
       }
     }
@@ -125,6 +124,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
             phaseId = run.phaseId,
             durable = durable,
             persistedReason = persistedReason,
+            relaunchOnInvalidOutput = run.policy.relaunchOnInvalidOutput,
           )
         ) {
           return@let null
@@ -250,6 +250,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     phaseId: String,
     durable: FeatureTaskRuntimePhaseRecord?,
     persistedReason: String,
+    relaunchOnInvalidOutput: Boolean,
   ): Boolean {
     val retryReviewPreparation =
       isRetryableGoalReviewPreparation(phaseId, persistedReason) ||
@@ -274,6 +275,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
         retryReviewPreparation = retryReviewPreparation,
         reenterableRecordRejection = reenterableRecordRejection,
         persistedReason = persistedReason,
+        relaunchOnInvalidOutput = relaunchOnInvalidOutput,
       ),
     )
   }
@@ -295,7 +297,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
       isRemovedGoalReviewSchemaGateBlock(phaseId, persistedReason) -> true
       isRemovedImplementationContinuationBudgetBlock(phaseId, persistedReason) -> true
       disposition != null -> disposition.retryOnResume
-      else -> FeatureTaskRuntimePhaseWorkflowDefinition.retriesOnInvalidOutput(phaseId)
+      else -> args.relaunchOnInvalidOutput
     }
   }
 

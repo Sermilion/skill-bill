@@ -100,7 +100,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     recorder: FeatureTaskRuntimePhaseRecorder,
     run: PhaseRun,
   ): FeatureTaskRuntimeImplementationContinuation? {
-    if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(run.phaseId)) return null
+    if (!run.policy.mutating) return null
     val attempts =
       recorder.loadImplementationAttempts(run.request.workflowId)
         ?: return null
@@ -133,10 +133,12 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
 
   internal fun firstValidatedOutputRejection(
     phaseId: String,
+    mutating: Boolean,
     outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): Pair<String, String>? =
     mutatingReconciliationGateReason(
       phaseId,
+      mutating,
       outputMap,
     )?.let { "mutating-reconciliation" to it }
 
@@ -302,7 +304,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     }
     return if (
       disposition.retryOnResume &&
-      FeatureTaskRuntimePhaseWorkflowDefinition.retriesOnInvalidOutput(run.phaseId)
+      run.policy.relaunchOnInvalidOutput
     ) {
       AttemptResult.retryableTerminal(reason, fileManifest, disposition)
     } else {

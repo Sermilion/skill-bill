@@ -39,4 +39,7 @@ data class FeatureTaskRuntimePhasePromptComposeInputs(
   val priorReviewContext: FeatureTaskRuntimePriorReviewContext? = null,
   val auditRetryFocusHint: String? = null,
   val phaseSettlement: FeatureTaskRuntimePhaseSettlementTarget? = null,
+  val mutating: Boolean = false,
+  val singleAgentSession: Boolean = false,
+  val taskDirective: String? = null,
 )

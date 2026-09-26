@@ -6,7 +6,6 @@ import skillbill.engine.featuretask.lifecycle.branch.FeatureTaskRuntimeBranchSet
 import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeLifecycleTelemetry
 import skillbill.engine.featuretask.phase.planning.FeatureTaskRuntimePlanningStopper
 import skillbill.engine.featuretask.prepare.FeatureTaskRuntimeSpecGate
-import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeReviewDriver
 import skillbill.engine.featuretask.review.finding.FeatureTaskRuntimeFindingVerificationBoundaryMemory
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordinator
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeReadinessGateCoordinator
@@ -38,7 +37,6 @@ data class FeatureTaskRuntimePhaseGateValidationBoundaries(
   val buildGateCoordinator: FeatureTaskRuntimeBuildGateCoordinator,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort,
   val diffResolver: DiffResolverPort,
-  val reviewDriver: FeatureTaskRuntimeReviewDriver,
   val specIntentProjectionResolver: SpecIntentProjectionResolver,
   val findingVerificationBoundaryMemory: FeatureTaskRuntimeFindingVerificationBoundaryMemory,
 )

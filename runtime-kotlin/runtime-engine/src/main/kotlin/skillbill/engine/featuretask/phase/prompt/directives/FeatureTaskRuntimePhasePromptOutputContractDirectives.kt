@@ -12,19 +12,21 @@ import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflow
 fun outputContract(
   briefing: FeatureTaskRuntimePhaseLaunchBriefing,
   settlement: FeatureTaskRuntimePhaseSettlementTarget? = null,
+  mutating: Boolean = false,
 ): String {
   val phaseId = briefing.phaseId
   val settlementSection = settlementDirective(phaseId, settlement)
-  val envelopeSection = envelopeContract(briefing, fallback = settlementSection.isNotEmpty())
+  val envelopeSection = envelopeContract(briefing, fallback = settlementSection.isNotEmpty(), mutating = mutating)
   return if (settlementSection.isEmpty()) envelopeSection else settlementSection + "\n\n" + envelopeSection
 }
 
 private fun envelopeContract(
   briefing: FeatureTaskRuntimePhaseLaunchBriefing,
   fallback: Boolean,
+  mutating: Boolean,
 ): String {
   val phaseId = briefing.phaseId
-  val producedOutputsAddendum = producedOutputsAddendum(briefing)
+  val producedOutputsAddendum = producedOutputsAddendum(briefing, mutating)
   val verdictContractLine = verdictContractLine(phaseId)
   val heading =
     if (fallback) {
@@ -67,9 +69,12 @@ private fun verdictContractLine(phaseId: String): String =
     else -> ""
   }
 
-private fun producedOutputsAddendum(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
+private fun producedOutputsAddendum(
+  briefing: FeatureTaskRuntimePhaseLaunchBriefing,
+  mutating: Boolean,
+): String {
   val phaseId = briefing.phaseId
-  if (FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) {
+  if (mutating) {
     return mutatingProducedOutputsAddendum(briefing)
   }
   val findings = FeatureTaskRuntimeVerificationSignalKeys.REVIEW_FINDINGS

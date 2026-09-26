@@ -79,7 +79,7 @@ fun FeatureTaskRuntimeRunner.driveExecutePreparedRunLoop(
           goalContinuationRecorder,
           outputValidator,
           phaseGates,
-          subtaskLauncher,
+          strategies,
           phaseSettlementService,
           activityStampWriter,
           worktreeEditJournalWriter,

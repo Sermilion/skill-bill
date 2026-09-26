@@ -150,6 +150,7 @@ object FeatureTaskRuntimeRunLoopPhaseBlocking {
             reviewPassNumber(request, continuationRecorder, run, state)
           },
         launchOutcomeKnown = childNeverLaunched,
+        mutating = run.policy.mutating,
       )
     state.reserveReviewPass(phaseState.reviewPassNumber)
     recorder.recordPhaseState(
@@ -193,6 +194,7 @@ object FeatureTaskRuntimeRunLoopPhaseBlocking {
         loopId = run.reentry?.loopId,
         edgeIteration = run.reentry?.edgeIteration,
         launchOutcomeKnown = false,
+        mutating = run.policy.mutating,
       ),
     )
     observability.paused(run.phaseId, run.resolvedAgent.resolvedAgentId, attempt, reason)
@@ -388,6 +390,7 @@ object FeatureTaskRuntimeRunLoopPhaseBlocking {
       launchedEffort = extras.launched?.persistedEffort,
       launchOutcomeKnown = extras.launched != null,
       reviewRunId = extras.reviewRunId,
+      mutating = run.policy.mutating,
     )
   }
 
@@ -411,7 +414,7 @@ object FeatureTaskRuntimeRunLoopPhaseBlocking {
     val loop = context.loop
     val observability = context.observability
     val agentId = context.agentId
-    if (!FeatureTaskRuntimePhaseWorkflowDefinition.retriesOnInvalidOutput(run.phaseId)) {
+    if (!run.policy.relaunchOnInvalidOutput) {
       return blockNonRetryableSemanticFailure(request, state, recorder, context)
     }
     loop.outputGateFailures += 1
@@ -491,7 +494,7 @@ object FeatureTaskRuntimeRunLoopPhaseBlocking {
     recorder: FeatureTaskRuntimePhaseRecorder,
     run: PhaseRun,
   ): Int {
-    if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(run.phaseId)) return 0
+    if (!run.policy.mutating) return 0
     val attempts =
       recorder.loadImplementationAttempts(run.request.workflowId)
         ?: return 0

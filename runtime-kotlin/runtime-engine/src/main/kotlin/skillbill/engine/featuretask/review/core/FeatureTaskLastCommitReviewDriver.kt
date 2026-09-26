@@ -3,65 +3,78 @@ package skillbill.engine.featuretask.review.core
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.application.review.model.ParallelReviewLaneStatus
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.engine.featuretask.slot.PhaseLaunchFailureKind
+import skillbill.engine.featuretask.slot.PhaseRunState
+import skillbill.engine.featuretask.slot.PhaseRunner
+import skillbill.engine.featuretask.slot.PhaseStepFacts
+import skillbill.engine.featuretask.slot.PhaseStepInput
+import skillbill.engine.featuretask.slot.PhaseStepOutput
 import skillbill.ports.agentrun.model.AgentRunTermination
-import skillbill.ports.agentrun.model.SkillRunRequest
-import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
-import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
-import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.review.model.ParallelReviewLaneResult
 import skillbill.review.model.ParallelReviewMergeResult
 import skillbill.review.model.ReviewLaneReviewDisposition
 import skillbill.review.parallel.ParallelReviewFindingParser
 import skillbill.review.parallel.ParallelReviewMerger
+import skillbill.workflow.taskruntime.model.core.PhaseStepPolicy
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 class FeatureTaskLastCommitReviewDriver(
-  private val subtaskLauncher: GoalRunnerSubtaskLauncher,
+  private val runner: PhaseRunner,
+  private val state: PhaseRunState,
 ) : FeatureTaskRuntimeReviewDriver {
   override fun run(request: ParallelCodeReviewRequest): ParallelCodeReviewResult {
     val base = requireNotNull(request.baseRevision) { "Last-commit review requires baseRevision." }
     val head = requireNotNull(request.headRevision) { "Last-commit review requires headRevision." }
-    val outcome =
-      subtaskLauncher.launch(
-        GoalRunnerSubtaskLaunchRequest(
-          invokedAgentId = request.agent1Id,
-          configuredAgentOverrideId = null,
-          skillRunRequest =
-            SkillRunRequest(
+    val output =
+      runner.run(
+        PhaseStepInput(
+          stepName = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
+          directive = request.withSelectedAgentAddons(lastCommitReviewFixPrompt(request, base, head)),
+          priorValues = emptyMap(),
+          operatorInstructions = null,
+          facts =
+            PhaseStepFacts(
               issueKey = request.activityWorkflowId?.takeIf(String::isNotBlank) ?: LAST_COMMIT_REVIEW_ISSUE_KEY,
               repoRoot = request.repoRoot,
               timeout = request.timeout,
-              promptOverride = request.withSelectedAgentAddons(lastCommitReviewFixPrompt(request, base, head)),
-              readOnlyPhase = false,
+              invokedAgentId = request.agent1Id,
+              configuredAgentOverrideId = null,
+              modelOverride = null,
+              effortOverride = null,
+              compaction = null,
+              attempt = null,
+              observeLaunch = false,
+              briefingText = "",
             ),
+          policy = LAST_COMMIT_REVIEW_POLICY,
         ),
+        state,
       )
-    return when (outcome) {
-      is UnsupportedAgentRunLaunch -> failedResult(request.agent1Id, outcome.reason)
-      is AgentRunLaunchFacts -> launchedResult(request.agent1Id, outcome)
-    }
+    val unsupported = output.launchFailure?.takeIf { it.kind == PhaseLaunchFailureKind.UNSUPPORTED_AGENT }
+    return unsupported?.let { failedResult(request.agent1Id, it.cause) } ?: launchedResult(request.agent1Id, output)
   }
 
   private fun launchedResult(
     agentId: String,
-    facts: AgentRunLaunchFacts,
+    output: PhaseStepOutput,
   ): ParallelCodeReviewResult {
-    launchFailureReason(facts)?.let { reason -> return failedResult(agentId, reason) }
-    val parsed = ParallelReviewFindingParser.parse(facts.stdout)
+    launchFailureReason(output)?.let { reason -> return failedResult(agentId, reason) }
+    val stdout = output.stdout.text
+    val parsed = ParallelReviewFindingParser.parse(stdout)
     val merged =
       ParallelReviewMerger.merge(
         ParallelReviewLaneResult(agentId = agentId, findings = parsed.findings),
         ParallelReviewLaneResult(agentId = agentId, findings = emptyList()),
       )
     return ParallelCodeReviewResult(
-      mergeResult = merged.copy(formattedOutput = facts.stdout.ifBlank { "Review completed." }),
+      mergeResult = merged.copy(formattedOutput = stdout.ifBlank { "Review completed." }),
       lane1 =
         ParallelReviewLaneStatus(
           agentId = agentId,
           success = true,
           droppedCandidateDiagnostic = droppedCandidateDiagnostic(parsed.rejections.size, parsed.candidateCount),
           reviewDisposition =
-            if (facts.stdout.isBlank()) {
+            if (stdout.isBlank()) {
               ReviewLaneReviewDisposition.INCOMPLETE
             } else {
               ReviewLaneReviewDisposition.COMPLETE
@@ -78,15 +91,16 @@ class FeatureTaskLastCommitReviewDriver(
     lane1 = ParallelReviewLaneStatus(agentId = agentId, success = false, failureReason = reason),
   )
 
-  private fun launchFailureReason(facts: AgentRunLaunchFacts): String? =
-    when (val termination = facts.termination) {
+  private fun launchFailureReason(output: PhaseStepOutput): String? =
+    when (val termination = output.termination) {
+      null -> "agent process failed to spawn"
       AgentRunTermination.TimedOut -> "agent timed out"
       AgentRunTermination.SpawnFailed -> "agent process failed to spawn"
       AgentRunTermination.Interrupted -> "agent was interrupted"
       is AgentRunTermination.Exited ->
         when {
           termination.code != 0 -> "agent exited with status ${termination.code}"
-          facts.stdoutTruncated -> "agent output exceeded the retention cap before completion"
+          output.stdout.truncated -> "agent output exceeded the retention cap before completion"
           else -> null
         }
     }
@@ -128,5 +142,14 @@ class FeatureTaskLastCommitReviewDriver(
 
   private companion object {
     const val LAST_COMMIT_REVIEW_ISSUE_KEY = "code-review"
+    val LAST_COMMIT_REVIEW_POLICY =
+      PhaseStepPolicy(
+        mutating = false,
+        relaunchOnInvalidOutput = false,
+        singleAgentSession = true,
+        readOnlyIdle = false,
+        fileMutating = true,
+        generationScoped = false,
+      )
   }
 }

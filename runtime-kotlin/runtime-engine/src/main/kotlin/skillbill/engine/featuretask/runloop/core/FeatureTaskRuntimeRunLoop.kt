@@ -12,12 +12,15 @@ import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunO
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunEvidenceOwnership
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
+import skillbill.engine.featuretask.slot.PhaseStrategy
+import skillbill.engine.featuretask.slot.PhaseStrategyLookup
+import skillbill.engine.featuretask.slot.PhaseStrategySelectionFacts
 import skillbill.engine.recovery.recommendedDurableChildRecoveryCommand
 import skillbill.engine.worktreeedit.WorktreeEditJournalWriter
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.workflow.taskruntime.model.core.PhaseStepPolicy
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
@@ -35,14 +38,22 @@ internal data class FeatureTaskRuntimeRunLoopContext(
   val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
   val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
   val phaseGates: FeatureTaskRuntimePhaseGates,
-  val subtaskLauncher: GoalRunnerSubtaskLauncher,
+  val strategies: PhaseStrategyLookup,
   val phaseSettlementService: FeatureTaskPhaseSettlementService,
   val activityStampWriter: AgentActivityStampWriter,
   val worktreeEditJournalWriter: WorktreeEditJournalWriter,
   val clock: Clock,
   val diagnostics: RuntimeDiagnostics,
   val session: FeatureTaskRuntimeRunLoopSession,
-)
+) {
+  fun strategyFor(stepId: String): PhaseStrategy =
+    strategies.strategyFor(
+      stepId,
+      PhaseStrategySelectionFacts(request.runInvariants.codeReviewMode, qualityGateSelection(request)),
+    )
+
+  fun stepPolicy(stepId: String): PhaseStepPolicy = strategyFor(stepId).policyFor(stepId)
+}
 
 internal data class LaunchRejectionAttribution(
   val projectionContractId: String,

@@ -12,11 +12,8 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopLaunch
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
-import skillbill.engine.featuretask.runloop.core.FixLoopBranchContext
-import skillbill.engine.featuretask.runloop.core.FixLoopOutcomeArgs
 import skillbill.engine.featuretask.runloop.core.PhaseAttemptAccumulatorContext
 import skillbill.engine.featuretask.runloop.core.PhaseAttemptContext
-import skillbill.engine.featuretask.runloop.core.PhaseAttemptLoopState
 import skillbill.engine.featuretask.runloop.core.PhaseBlockRequest
 import skillbill.engine.featuretask.runloop.core.PhaseOutcome
 import skillbill.engine.featuretask.runloop.core.PhaseRun
@@ -28,20 +25,18 @@ import skillbill.engine.featuretask.runloop.core.ValidationGateRepairArgs
 import skillbill.engine.featuretask.runloop.core.ValidationGateTriageArgs
 import skillbill.engine.featuretask.runloop.core.phaseAttemptAccumulatorContext
 import skillbill.engine.featuretask.runloop.core.phaseBlockArgs
-import skillbill.engine.featuretask.runloop.core.recordRejectionAttemptArgs
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimePhaseStartReentry
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
-import skillbill.engine.featuretask.runloop.observability.featureTaskRuntimeStartContinuationKind
 import skillbill.engine.featuretask.runloop.observability.paused
-import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopRecordRejection
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeNonOutputAttempt
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runloop.state.requirePassedValidationResult
 import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
+import skillbill.engine.featuretask.slot.attempt.PhaseAttemptLoop
+import skillbill.engine.featuretask.slot.attempt.PhaseAttemptOnce
+import skillbill.engine.featuretask.slot.attempt.PhaseStepCall
+import skillbill.engine.featuretask.slot.attempt.recordRejectionAttemptArgs
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordinator
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateCoordinator
 import skillbill.engine.featuretask.validation.ReadinessPostValidateCaptureRequest
@@ -572,7 +567,10 @@ internal fun gateTriageSegmentOutput(
 }
 
 object FeatureTaskRuntimeRunLoopValidationGate {
-  internal fun FeatureTaskRuntimeRunLoopContext.runDeclaredBuildGateCycle(run: PhaseRun): PhaseOutcome {
+  internal fun FeatureTaskRuntimeRunLoopContext.runDeclaredBuildGateCycle(
+    run: PhaseRun,
+    call: PhaseStepCall,
+  ): PhaseOutcome {
     val checkpoint =
       resolveValidationGateCheckpoint(phaseGates, run)
         ?: return PhaseOutcome.blocked(
@@ -595,6 +593,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
               context,
               checkpoint,
             ),
+            call,
           ),
         onGateRunCount = { observability.validationGateProgress() },
       )
@@ -610,6 +609,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
 
   internal fun FeatureTaskRuntimeRunLoopContext.launchValidationGateTriage(
     args: ValidationGateTriageArgs,
+    call: PhaseStepCall,
   ): ValidationGateTriageResult {
     val run = args.context.attempt.run
     val state = args.context.attempt.state
@@ -618,14 +618,13 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val findings = args.findings
     val triageRun = run.copy(validationGateFindings = findings, validationGateTriage = true)
     val attempt =
-      with(FeatureTaskRuntimeRunLoopRecordRejection) {
-        FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(
-          this@launchValidationGateTriage,
-          recordRejectionAttemptArgs(
-            PhaseAttemptContext(triageRun, state, iteration, observability),
-          ),
-        )
-      }
+      PhaseAttemptOnce.attemptOnce(
+        this@launchValidationGateTriage,
+        recordRejectionAttemptArgs(
+          PhaseAttemptContext(triageRun, state, iteration, observability),
+          call,
+        ),
+      )
     val settled = attempt.settledOutcome
     val completed = settled?.completedOutput
     return when {
@@ -637,7 +636,9 @@ object FeatureTaskRuntimeRunLoopValidationGate {
 
   internal fun FeatureTaskRuntimeRunLoopContext.buildGateCycleRequest(
     args: ValidationGateCycleRequestArgs,
-  ): ValidationGateCycleRequest = validationGateCycleRequest(args).copy(validationDepth = ValidationDepth.DEFAULT)
+    call: PhaseStepCall,
+  ): ValidationGateCycleRequest =
+    validationGateCycleRequest(args, call).copy(validationDepth = ValidationDepth.DEFAULT)
 
   internal fun extractValidationGateTriagePlan(output: FeatureTaskRuntimePhaseOutput): ValidationGateTriageResult {
     val envelope =
@@ -683,10 +684,12 @@ object FeatureTaskRuntimeRunLoopValidationGate {
 
   internal fun FeatureTaskRuntimeRunLoopContext.launchValidationGateRepair(
     args: ValidationGateRepairArgs,
+    call: PhaseStepCall,
   ): ValidationGateAgentRepairResult {
     val run = args.context.attempt.run
     if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
-      val settled = runPhaseAttempts(run.copy(validationGateFindings = args.findings))
+      val settled =
+        with(PhaseAttemptLoop) { runPhaseAttempts(run.copy(validationGateFindings = args.findings), call) }
       val completed = settled.completedOutput
       val paused = settled.pausedReason
       return when {
@@ -714,14 +717,13 @@ object FeatureTaskRuntimeRunLoopValidationGate {
         validationGateRepair = true,
       )
     val attempt =
-      with(FeatureTaskRuntimeRunLoopRecordRejection) {
-        FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(
-          this@launchValidationGateRepair,
-          recordRejectionAttemptArgs(
-            PhaseAttemptContext(repairRun, state, iteration, observability),
-          ),
-        )
-      }
+      PhaseAttemptOnce.attemptOnce(
+        this@launchValidationGateRepair,
+        recordRejectionAttemptArgs(
+          PhaseAttemptContext(repairRun, state, iteration, observability),
+          call,
+        ),
+      )
     val settled = attempt.settledOutcome
     val completed = settled?.completedOutput
     return when {
@@ -740,164 +742,10 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     }
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.runPhaseAttempts(run: PhaseRun): PhaseOutcome {
-    val agentId = run.resolvedAgent.resolvedAgentId
-    var iteration = state.nextIteration(run.phaseId)
-    val continuationSegmentCount =
-      FeatureTaskRuntimeRunLoopPhaseBlocking
-        .durableContinuationSegmentCount(recorder, run)
-    val nonOutputAttempts = FeatureTaskRuntimeRunLoopPhaseBlocking.durableNonOutputAttempts(state, run)
-    prepareFixLoopState(run)?.let { return it }
-    val semanticIteration =
-      (
-        state.fixLoopIterationFor(run.phaseId, iteration) - continuationSegmentCount - nonOutputAttempts.size
-      ).coerceAtLeast(1)
-    val crashResumed = state.resumedFromPriorProcess(run.phaseId)
-    state.recordPhaseLaunched(run.phaseId)
-    FeatureTaskRuntimeRunLoopAuditRetry.clearRetryHintOnFreshLaunch(state, session, run.phaseId)
-    observability.started(
-      run.phaseId,
-      agentId,
-      iteration,
-      run.modelDirective,
-      FeatureTaskRuntimePhaseStartReentry(
-        resumed = iteration > 1 || state.hasPriorRecord(run.phaseId),
-        startKind =
-          featureTaskRuntimeStartContinuationKind(
-            crashResumed = crashResumed,
-            verifierReentry =
-              run.reentry?.let {
-                transitions.backwardEdges
-                  .firstOrNull { edge -> edge.loopId == it.loopId }
-                  ?.destinationPhaseId == it.phaseId
-              } == true,
-            attemptCount = iteration,
-          ),
-      ),
-    )
-    var outcome: PhaseOutcome? = null
-    val loop =
-      PhaseAttemptLoopState(
-        iteration = iteration,
-        malformedAttemptCount = 0,
-        outputGateFailures = 0,
-        semanticIteration = semanticIteration,
-        continuationSegmentCount = continuationSegmentCount,
-      )
-    while (outcome == null) {
-      outcome =
-        resolveFixLoopOutcome(
-          FixLoopOutcomeArgs(
-            context =
-              phaseAttemptAccumulatorContext(
-                run,
-                state,
-                loop.iteration,
-                observability,
-              ),
-            loop = loop,
-            agentId = agentId,
-          ),
-        )
-    }
-    return outcome
-  }
-
-  internal fun FeatureTaskRuntimeRunLoopContext.prepareFixLoopState(run: PhaseRun): PhaseOutcome? {
-    if (FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(run.phaseId)) return null
-    val nonOutputAttempts = FeatureTaskRuntimeRunLoopPhaseBlocking.durableNonOutputAttempts(state, run)
-    val processFailures = nonOutputAttempts.filterNot(FeatureTaskRuntimeNonOutputAttempt::paused)
-    val operatorReopened = FeatureTaskRuntimeRunLoopPhaseBlocking.operatorReopenedPhase(session, run.phaseId)
-    if (operatorReopened) state.restartAttemptBudget(run.phaseId)
-    if (!operatorReopened) {
-      FeatureTaskRuntimeAttemptBudgets
-        .processFailureBlockReason(run.phaseId, processFailures.size, processFailures.lastOrNull()?.reason)
-        ?.let { reason ->
-          return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
-            request,
-            state,
-            recorder,
-            observability,
-            PhaseBlockRequest(
-              run = run,
-              attemptCount = state.nextIteration(run.phaseId),
-              reason = reason,
-              observability = observability,
-              failureDisposition = FeatureTaskRuntimeFailureDisposition.PROCESS_FAILURE,
-            ),
-          )
-        }
-    }
-    return null
-  }
-
-  internal fun FeatureTaskRuntimeRunLoopContext.resolveFixLoopOutcome(args: FixLoopOutcomeArgs): PhaseOutcome? {
-    val run = args.context.attempt.run
-    val state = args.context.attempt.state
-    val observability = args.context.attempt.observability
-    val loop = args.loop
-    val agentId = args.agentId
-    val attempt =
-      with(FeatureTaskRuntimeRunLoopRecordRejection) {
-        FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(
-          this@resolveFixLoopOutcome,
-          recordRejectionAttemptArgs(
-            PhaseAttemptContext(run, state, loop.iteration, observability, loop.outputGateFailures),
-            priorCorrection = loop.priorCorrection,
-          ),
-        )
-      }
-    val context = FixLoopBranchContext(run, attempt, loop, observability, agentId)
-    val phaseAttempts = FeatureTaskRuntimeRunLoopPhaseAttempts
-    return attempt.settledOutcome ?: when {
-      attempt.auditRetryContinuation -> phaseAttempts.settleAuditRetry(observability, session, context)
-      attempt.validationRemainingFingerprint != null ->
-        phaseAttempts.settleValidationRemaining(
-          request,
-          state,
-          recorder,
-          observability,
-          context,
-        )
-      attempt.incompleteWorkContinuationReason != null ->
-        phaseAttempts.settleIncompleteWork(
-          request,
-          state,
-          recorder,
-          observability,
-          context,
-        )
-      attempt.boundaryBodyDeliveryContinuationReason != null ->
-        phaseAttempts.settleBoundaryBodyDelivery(observability, context)
-      attempt.malformedOutput -> phaseAttempts.settleMalformedOutput(request, state, recorder, observability, context)
-      attempt.retryableTerminalRetryReason != null ->
-        phaseAttempts.settleRetryableTerminal(
-          request,
-          state,
-          recorder,
-          observability,
-          context,
-        )
-      attempt.findingsOwedKind != null ->
-        phaseAttempts.settleFindingsOwed(
-          request,
-          state,
-          recorder,
-          observability,
-          context,
-        )
-      else ->
-        FeatureTaskRuntimeRunLoopPhaseBlocking.settleSemanticFailure(
-          request,
-          state,
-          recorder,
-          observability,
-          context,
-        )
-    }
-  }
-
-  internal fun FeatureTaskRuntimeRunLoopContext.runDeclaredValidationGateCycle(run: PhaseRun): PhaseOutcome {
+  internal fun FeatureTaskRuntimeRunLoopContext.runDeclaredValidationGateCycle(
+    run: PhaseRun,
+    call: PhaseStepCall,
+  ): PhaseOutcome {
     val checkpoint = FeatureTaskRuntimeRunLoopValidationGate.resolveValidationGateCheckpoint(phaseGates, run).orEmpty()
     val iteration = state.nextIteration(run.phaseId)
     val context = phaseAttemptAccumulatorContext(run, state, iteration, observability)
@@ -909,6 +757,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
               context,
               checkpoint,
             ),
+            call,
           ),
       )
     return FeatureTaskRuntimeRunLoopValidationGateCycleSettlement(
@@ -924,6 +773,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
 
   internal fun FeatureTaskRuntimeRunLoopContext.validationGateCycleRequest(
     args: ValidationGateCycleRequestArgs,
+    call: PhaseStepCall,
   ): ValidationGateCycleRequest {
     val run = args.context.attempt.run
     val validationDepth = run.request.goalContinuation?.validationDepth ?: ValidationDepth.DEFAULT
@@ -947,6 +797,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
               args.context,
               findings,
             ),
+            call,
           )
         },
       agentRepairLauncher =
@@ -958,6 +809,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
               repairTurn = repairIteration,
               triagePlan = triagePlan,
             ),
+            call,
           )
         },
     )

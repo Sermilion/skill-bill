@@ -25,7 +25,6 @@ class FeatureTaskRuntimePhaseGates(
   val buildGateCoordinator = validation.buildGateCoordinator
   val sharedEvidenceResolver = validation.sharedEvidenceResolver
   val diffResolver = validation.diffResolver
-  val reviewDriver = validation.reviewDriver
   val specIntentProjectionResolver = validation.specIntentProjectionResolver
   val findingVerificationBoundaryMemory = validation.findingVerificationBoundaryMemory
 }

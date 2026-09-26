@@ -13,7 +13,6 @@ import skillbill.engine.featuretask.runloop.observability.blocked
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.STATUS_BLOCKED
-import skillbill.engine.featuretask.runner.isFileMutating
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
@@ -311,7 +310,7 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     phaseId: String,
   ): String? =
     with(context) {
-      if (!isFileMutating(phaseId)) {
+      if (!stepPolicy(phaseId).fileMutating) {
         return null
       }
       val setup =

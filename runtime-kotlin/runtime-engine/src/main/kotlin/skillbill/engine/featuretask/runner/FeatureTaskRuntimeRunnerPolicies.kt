@@ -7,6 +7,7 @@ import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.model.core.PhaseSlot
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
@@ -20,12 +21,6 @@ const val STATUS_ABANDONED = "abandoned"
 const val BRANCH_SETUP_AGENT_ID = "branch-setup"
 const val SCHEMA_GATE_DETAIL_MAX_CHARS = 500
 
-val NON_FILE_MUTATING_PHASES =
-  setOf(
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
-  )
-
 fun serializeTokenData(accumulator: Map<String, Pair<Int, Int>>): Pair<String?, Int?> {
   if (accumulator.isEmpty()) return null to null
   val breakdown =
@@ -35,8 +30,6 @@ fun serializeTokenData(accumulator: Map<String, Pair<Int, Int>>): Pair<String?, 
   val total = accumulator.values.sumOf { (input, output) -> input + output }
   return JsonCodec.mapToJsonString(breakdown) to total
 }
-
-fun isFileMutating(phaseId: String): Boolean = phaseId !in NON_FILE_MUTATING_PHASES
 
 fun transitionsFor(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeTransitionDeclaration =
   request.transitionsOverride ?: phasesFor(request).let { phases ->
@@ -61,7 +54,7 @@ fun transitionsFor(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeTra
 fun phasesFor(request: FeatureTaskRuntimeRunRequest): List<String> {
   val phases = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds
   return if (isGoalContinuationRun(request)) {
-    phases.takeWhile { it != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR }
+    phases.filter { PhaseSlot.runsInGoalChild(it) }
   } else {
     phases
   }
@@ -69,6 +62,7 @@ fun phasesFor(request: FeatureTaskRuntimeRunRequest): List<String> {
 
 internal fun mutatingReconciliationGateReason(
   phaseId: String,
+  mutating: Boolean,
   outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
 ): String? {
   if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT ||
@@ -76,7 +70,7 @@ internal fun mutatingReconciliationGateReason(
   ) {
     return null
   }
-  if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) return null
+  if (!mutating) return null
 
   if ((outputMap[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return null
   val producedOutputs = outputMap[SharedPayloadKeys.PRODUCED_OUTPUTS] as? Map<*, *>

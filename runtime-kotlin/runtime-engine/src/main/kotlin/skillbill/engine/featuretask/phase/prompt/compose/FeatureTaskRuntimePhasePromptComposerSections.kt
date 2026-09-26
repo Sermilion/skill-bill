@@ -39,18 +39,19 @@ fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInput
         validationGateRepair = inputs.validationGateRepair,
         validationGateTriage = inputs.validationGateTriage,
         acceptanceCriteria = inputs.briefing.acceptanceCriteria,
+        taskDirective = inputs.taskDirective,
       ),
     ),
     installedRuntimeAuthorityDirective(),
     ceremonyDirective(inputs.briefing),
-    mutatingPhaseIdempotencyDirective(inputs.briefing.phaseId),
+    mutatingPhaseIdempotencyDirective(inputs.mutating),
     nonValidatePhaseValidationOwnershipDirective(
       inputs.briefing.phaseId,
     ),
     nonBuildPhaseBuildOwnershipDirective(
       inputs.briefing.phaseId,
     ),
-    minimalismDisciplineDirective(inputs.briefing.phaseId),
+    minimalismDisciplineDirective(inputs.mutating),
     simplifyScopeBoundaryDirective(inputs.briefing.phaseId),
     testValueDisciplineDirective(inputs.briefing.phaseId),
   )
@@ -88,7 +89,12 @@ fun phasePromptTrailingSections(
     operatorBlockRetryDirective(inputs.briefing.phaseId, inputs.operatorBlockRetry),
     auditRetryFocusDirective(inputs.auditRetryFocusHint),
     implementationContinuationDirective(inputs.briefing.phaseId, effectiveContinuation),
-    retryCorrectionDirective(inputs.briefing, inputs.priorSchemaFailure, inputs.correctiveRepairContext),
+    retryCorrectionDirective(
+      inputs.briefing,
+      inputs.priorSchemaFailure,
+      inputs.correctiveRepairContext,
+      inputs.singleAgentSession,
+    ),
     terminalRetryDirective(inputs.priorTerminalFailure),
     findingCoverageDirective(inputs.priorFindingCoverage),
     if (
@@ -97,6 +103,6 @@ fun phasePromptTrailingSections(
     ) {
       gateRepairNoOutputSchemaDirective(inputs.briefing.phaseId, inputs.validationGateTriage)
     } else {
-      outputContract(inputs.briefing, inputs.phaseSettlement)
+      outputContract(inputs.briefing, inputs.phaseSettlement, inputs.mutating)
     },
   )

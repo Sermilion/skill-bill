@@ -179,11 +179,8 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
   }
 
   @Test
-  fun `implement_fix is the sole loop-only mutating phase reached by the bounded review_fix edge`() {
+  fun `implement_fix is reached only by the bounded review_fix edge`() {
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
-    assertTrue(def.isMutatingPhase(def.PHASE_IMPLEMENT_FIX))
-    assertTrue(def.isMutatingPhase(def.PHASE_IMPLEMENT))
-    assertTrue(def.isMutatingPhase(def.PHASE_SIMPLIFY))
     val transitions = def.transitions
     assertEquals(setOf(def.PHASE_IMPLEMENT_FIX, def.PHASE_BUILD), transitions.loopOnlyPhaseIds)
     assertEquals(emptyMap(), transitions.loopOnlySuccessors)

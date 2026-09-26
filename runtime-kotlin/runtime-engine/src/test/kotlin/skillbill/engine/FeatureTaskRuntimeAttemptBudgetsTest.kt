@@ -1,6 +1,7 @@
 package skillbill.engine
 
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
+import skillbill.workflow.taskruntime.model.core.PhaseStepPolicy
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -27,6 +28,7 @@ class FeatureTaskRuntimeAttemptBudgetsTest {
     val below =
       FeatureTaskRuntimeAttemptBudgets.processFailureBlockReason(
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+        RELAUNCHING_POLICY,
         processFailureCount = FeatureTaskRuntimeAttemptBudgets.MAX_PROCESS_FAILURE_ATTEMPTS - 1,
         lastFailureReason = "agent exited with non-zero status 1",
       )
@@ -36,6 +38,7 @@ class FeatureTaskRuntimeAttemptBudgetsTest {
       requireNotNull(
         FeatureTaskRuntimeAttemptBudgets.processFailureBlockReason(
           FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+          RELAUNCHING_POLICY,
           processFailureCount = FeatureTaskRuntimeAttemptBudgets.MAX_PROCESS_FAILURE_ATTEMPTS,
           lastFailureReason = "agent exited with non-zero status 1",
         ),
@@ -142,7 +145,7 @@ class FeatureTaskRuntimeAttemptBudgetsTest {
     (0..3).forEach { priorFailures ->
       assertEquals(
         FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(phase, priorFailures + 1) != null,
-        FeatureTaskRuntimeAttemptBudgets.outputGateRejectionExhaustsBudget(phase, priorFailures),
+        FeatureTaskRuntimeAttemptBudgets.outputGateRejectionExhaustsBudget(phase, RELAUNCHING_POLICY, priorFailures),
         "the rejection record and the block decision must agree at $priorFailures prior failures",
       )
     }
@@ -153,9 +156,22 @@ class FeatureTaskRuntimeAttemptBudgetsTest {
     assertTrue(
       FeatureTaskRuntimeAttemptBudgets.outputGateRejectionExhaustsBudget(
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+        RELAUNCHING_POLICY.copy(relaunchOnInvalidOutput = false, singleAgentSession = true),
         priorOutputGateFailures = 0,
       ),
       "a single-agent-session phase blocks on its first rejection, so that rejection spent the budget",
     )
+  }
+
+  private companion object {
+    val RELAUNCHING_POLICY =
+      PhaseStepPolicy(
+        mutating = false,
+        relaunchOnInvalidOutput = true,
+        singleAgentSession = false,
+        readOnlyIdle = false,
+        fileMutating = true,
+        generationScoped = false,
+      )
   }
 }

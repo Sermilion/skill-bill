@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.runloop.core
 
-import skillbill.application.decomposition.specSource
 import skillbill.engine.featuretask.lifecycle.checkpoint.FeatureTaskRuntimeCheckpointMessage
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoopCheckpointRemediation
@@ -33,19 +32,7 @@ object FeatureTaskRuntimeRunLoopTransitions {
       when (transition) {
         is FeatureTaskRuntimeNextPhase.TerminalAdvance -> null
         is FeatureTaskRuntimeNextPhase.TerminalBlock -> {
-          FeatureTaskRuntimeRunLoopPlanningBranch.blockOnCapExhaustion(
-            BlockOnCapExhaustionArgs(
-              request = request,
-              state = state,
-              recorder = recorder,
-              observability = observability,
-              session = session,
-              goalContinuationRecorder = goalContinuationRecorder,
-              specSource = specSource,
-              phaseId = phaseId,
-              transition = transition,
-            ),
-          )
+          FeatureTaskRuntimeRunLoopPlanningBranch.blockOnCapExhaustion(context, phaseId, transition)
           null
         }
         is FeatureTaskRuntimeNextPhase.Next ->
@@ -77,7 +64,7 @@ object FeatureTaskRuntimeRunLoopTransitions {
           )
         -> null
         loopId == null -> transition.phaseId
-        reentersMutatingPhase(transitions, requireNotNull(edge), transition.phaseId) &&
+        reentersMutatingPhase(context, requireNotNull(edge), transition.phaseId) &&
           !with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
             FeatureTaskRuntimeRunLoopCheckpointRemediation.establishRemediationCheckpoint(context, phaseId, loopId)
           } -> null
@@ -109,15 +96,15 @@ object FeatureTaskRuntimeRunLoopTransitions {
     }
 
   internal fun reentersMutatingPhase(
-    transitions: FeatureTaskRuntimeTransitionDeclaration,
+    context: FeatureTaskRuntimeRunLoopContext,
     edge: FeatureTaskRuntimeBackwardEdge,
     destinationPhaseId: String,
   ): Boolean =
     spanBetween(
-      transitions,
+      context.transitions,
       destinationPhaseId,
       edge.fromPhaseId,
-    ).any(FeatureTaskRuntimePhaseWorkflowDefinition::isMutatingPhase)
+    ).any { context.stepPolicy(it).mutating }
 
   internal fun establishForwardCheckpoint(
     context: FeatureTaskRuntimeRunLoopContext,

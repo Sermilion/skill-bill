@@ -10,4 +10,5 @@ data class PhasePromptHeaderInputs(
   val validationGateRepair: Boolean = false,
   val validationGateTriage: Boolean = false,
   val acceptanceCriteria: List<String> = emptyList(),
+  val taskDirective: String? = null,
 )

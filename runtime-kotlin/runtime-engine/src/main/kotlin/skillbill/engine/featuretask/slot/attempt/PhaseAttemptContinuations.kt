@@ -1,4 +1,4 @@
-package skillbill.engine.featuretask.runloop.phase
+package skillbill.engine.featuretask.slot.attempt
 
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
@@ -39,7 +39,7 @@ import skillbill.engine.featuretask.runloop.observability.fixLoopIteration
 import skillbill.engine.featuretask.runloop.output.payloadFreeRejectionReason
 import skillbill.engine.featuretask.runloop.output.rejectionPath
 import skillbill.engine.featuretask.runloop.output.retryRejectionReason
-import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopAttemptSettlement
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runloop.state.validationRemainingDetail
@@ -55,7 +55,7 @@ import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDispo
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
-object FeatureTaskRuntimeRunLoopPhaseAttempts {
+object PhaseAttemptContinuations {
   internal fun settleIncompleteWork(
     request: FeatureTaskRuntimeRunRequest,
     state: FeatureTaskRuntimeRunState,
@@ -69,7 +69,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     val observability = context.observability
     val agentId = context.agentId
     loop.continuationSegmentCount += 1
-    if (!FeatureTaskRuntimeRunLoopPhaseAttempts.recordIncompleteAttempt(recorder, run, loop.iteration, attempt)) {
+    if (!PhaseAttemptContinuations.recordIncompleteAttempt(recorder, run, loop.iteration, attempt)) {
       return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
         request,
         state,
@@ -271,7 +271,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     val loop = context.loop
     val observability = context.observability
     val agentId = context.agentId
-    if (FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(run.phaseId)) {
+    if (run.policy.singleAgentSession) {
       return blockSingleAgentMalformedOutput(request, state, recorder, context)
     }
     loop.outputGateFailures += 1
@@ -354,7 +354,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     val loop = context.loop
     val observability = context.observability
     val agentId = context.agentId
-    if (!FeatureTaskRuntimePhaseWorkflowDefinition.retriesOnInvalidOutput(run.phaseId)) {
+    if (!run.policy.relaunchOnInvalidOutput) {
       return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
         request,
         state,
@@ -405,6 +405,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
         normalizedOutput = normalized,
         loopId = run.reentry?.loopId,
         edgeIteration = run.reentry?.edgeIteration,
+        mutating = run.policy.mutating,
       ),
     )
   }
@@ -415,6 +416,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     recorder: FeatureTaskRuntimePhaseRecorder,
     observability: FeatureTaskRuntimeRunObservability,
     args: UnattributableRecordRejectionArgs,
+    generationScoped: (String) -> Boolean,
   ): PhaseOutcome {
     val run = args.context.run
     val state = args.context.state
@@ -427,7 +429,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
         "reconciliation-${rejection.rejectionClass}",
         rejectionPath(rejection.rejectionDetail),
       )
-    recordUnattributableRejectedEvidence(request, recorder, run, state, rejection)
+    recordUnattributableRejectedEvidence(request, recorder, run, state, rejection, generationScoped)
     return FeatureTaskRuntimeRunLoopPhaseBlocking.blockAndPersistInPhase(
       request,
       state,
@@ -449,6 +451,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     run: PhaseRun,
     state: FeatureTaskRuntimeRunState,
     rejection: RecordRejection,
+    generationScoped: (String) -> Boolean,
   ) {
     val detail =
       payloadFreeRejectionReason(
@@ -462,13 +465,14 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
         .distinct()
         .mapNotNull { phaseId -> state.outputFor(phaseId) }
         .firstOrNull()
+    val outputGenerationScoped = rejectedOutput?.let { generationScoped(it.phaseId) } ?: false
     val evidence =
       rejectedOutput?.let { output ->
-        unattributableProducerEvidence(request, recorder, state, output)
+        unattributableProducerEvidence(request, recorder, state, output, outputGenerationScoped)
       }
     evidence?.let {
       writeUnattributableRejectedEvidence(
-        WriteUnattributableRejectedEvidenceArgs(state, recorder, run, rejection, detail, it),
+        WriteUnattributableRejectedEvidenceArgs(state, recorder, run, rejection, detail, it, outputGenerationScoped),
       )
     }
   }
@@ -478,6 +482,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     recorder: FeatureTaskRuntimePhaseRecorder,
     state: FeatureTaskRuntimeRunState,
     output: FeatureTaskRuntimePhaseOutput,
+    generationScoped: Boolean,
   ): ProducerOutputEvidence? {
     val agentId = state.recordFor(output.phaseId)?.resolvedAgentId ?: return null
     return when (
@@ -488,7 +493,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
             phaseId = output.phaseId,
             attempt = output.iteration.coerceAtLeast(1),
             agentId = agentId,
-            generation = state.evidenceGeneration(output.phaseId),
+            generation = state.evidenceGeneration(generationScoped),
           ),
         )
     ) {
@@ -507,7 +512,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     val detail = args.detail
     val evidence = args.evidence
     val payload = evidence.payload ?: byteArrayOf()
-    FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(
+    PhaseOutputGate.recordRejectedOutput(
       state,
       recorder,
       RecordRejectedOutputArgs(
@@ -524,7 +529,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
             sha256 = evidence.sha256,
           ),
         targeting =
-          FeatureTaskRuntimeRunLoopAttemptSettlement.rejectedOutputTargeting(
+          PhaseOutputGate.rejectedOutputTargeting(
             defaultRejectedOutputTargetingArgs(
               run,
               RejectedOutputTargetingOverrides(
@@ -533,6 +538,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
                 model = evidence.model,
                 path = rejectionPath(rejection.rejectionDetail),
                 repairTurn = evidence.repairTurn,
+                generationScoped = args.generationScoped,
               ),
             ),
           ),
@@ -564,9 +570,9 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     val iteration = args.iteration
     val observability = args.observability
     val rejection = args.rejection
-    val regeneration = FeatureTaskRuntimeRunLoopPhaseAttempts.recordRejectionRegenerationEdge(transitions, run.phaseId)
+    val regeneration = PhaseAttemptContinuations.recordRejectionRegenerationEdge(transitions, run.phaseId)
     if (regeneration == null) {
-      return FeatureTaskRuntimeRunLoopPhaseAttempts.blockUnattributableRecordRejection(
+      return PhaseAttemptContinuations.blockUnattributableRecordRejection(
         request,
         state,
         recorder,
@@ -576,11 +582,12 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
           rejection = rejection,
           producer = FeatureTaskRuntimePhaseWorkflowDefinition.REGENERATION_PRODUCER_BY_CONSUMER[run.phaseId],
         ),
+        generationScoped = { stepPolicy(it).generationScoped },
       )
     }
     val attemptContext = PhaseAttemptContext(run, state, iteration, observability)
     val evidenceResolution =
-      FeatureTaskRuntimeRunLoopPhaseAttempts
+      PhaseAttemptContinuations
         .readProducerEvidenceForRecordRejection(
           request,
           state,
@@ -590,14 +597,15 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
             context = attemptContext,
             producer = regeneration.producer,
             consumer = run.phaseId,
+            producerGenerationScoped = stepPolicy(regeneration.producer).generationScoped,
           ),
         )
     return when (evidenceResolution) {
-      is FeatureTaskRuntimeRunLoopPhaseAttempts
+      is PhaseAttemptContinuations
         .RecordRejectionEvidenceResolution.Settled,
       -> evidenceResolution.outcome
-      is FeatureTaskRuntimeRunLoopPhaseAttempts.RecordRejectionEvidenceResolution.Ready ->
-        FeatureTaskRuntimeRunLoopPhaseAttempts.quarantineRecordRejection(
+      is PhaseAttemptContinuations.RecordRejectionEvidenceResolution.Ready ->
+        PhaseAttemptContinuations.quarantineRecordRejection(
           request,
           state,
           recorder,
@@ -606,6 +614,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
             rejection = rejection,
             regeneration = regeneration,
             producerEvidence = evidenceResolution.evidence,
+            producerGenerationScoped = stepPolicy(regeneration.producer).generationScoped,
           ),
         )
     }
@@ -619,7 +628,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
   internal fun recordRejectionRegenerationEdge(
     transitions: FeatureTaskRuntimeTransitionDeclaration,
     consumer: String,
-  ): FeatureTaskRuntimeRunLoopPhaseAttempts.RecordRejectionRegenerationEdge? {
+  ): PhaseAttemptContinuations.RecordRejectionRegenerationEdge? {
     val producer = FeatureTaskRuntimePhaseWorkflowDefinition.REGENERATION_PRODUCER_BY_CONSUMER[consumer] ?: return null
     val edge =
       transitions.backwardEdges.firstOrNull {
@@ -627,7 +636,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
           it.triggeringVerdict == FeatureTaskRuntimeVerdict.RECORD_REJECTED
       } ?: return null
     if (producer !in transitions.forwardPhaseIds) return null
-    return FeatureTaskRuntimeRunLoopPhaseAttempts.RecordRejectionRegenerationEdge(producer, edge)
+    return PhaseAttemptContinuations.RecordRejectionRegenerationEdge(producer, edge)
   }
 
   internal sealed interface RecordRejectionEvidenceResolution {
@@ -674,7 +683,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
             phaseId = producer,
             attempt = producingIteration,
             agentId = producerAgentId,
-            generation = state.evidenceGeneration(producer),
+            generation = state.evidenceGeneration(args.producerGenerationScoped),
           ),
         )
     ) {
@@ -830,6 +839,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
           rejection,
           producer,
           producerEvidence,
+          args.producerGenerationScoped,
         ),
       )
     appendQuarantineEntryForRejection(
@@ -860,7 +870,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     val producer = args.producer
     val producerEvidence = args.producerEvidence
     val rejectedPayload = producerEvidence.payload ?: byteArrayOf()
-    return FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(
+    return PhaseOutputGate.recordRejectedOutput(
       state,
       recorder,
       RecordRejectedOutputArgs(
@@ -884,7 +894,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
             sha256 = producerEvidence.sha256,
           ),
         targeting =
-          FeatureTaskRuntimeRunLoopAttemptSettlement.rejectedOutputTargeting(
+          PhaseOutputGate.rejectedOutputTargeting(
             defaultRejectedOutputTargetingArgs(
               run,
               RejectedOutputTargetingOverrides(
@@ -893,6 +903,7 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
                 model = producerEvidence.model,
                 path = rejectionPath(rejection.rejectionDetail),
                 repairTurn = producerEvidence.repairTurn,
+                generationScoped = args.producerGenerationScoped,
               ),
             ),
           ),

@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.runloop.state
 
+import skillbill.workflow.taskruntime.model.core.PhaseStepPolicy
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
 object FeatureTaskRuntimeAttemptBudgets {
@@ -20,6 +21,7 @@ object FeatureTaskRuntimeAttemptBudgets {
 
   fun processFailureBlockReason(
     phaseId: String,
+    policy: PhaseStepPolicy,
     processFailureCount: Int,
     lastFailureReason: String?,
   ): String? {
@@ -27,7 +29,7 @@ object FeatureTaskRuntimeAttemptBudgets {
       "processFailureCount must be >= 0, was $processFailureCount."
     }
     val cap =
-      if (FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(phaseId)) {
+      if (policy.singleAgentSession) {
         1
       } else {
         MAX_PROCESS_FAILURE_ATTEMPTS
@@ -68,14 +70,13 @@ object FeatureTaskRuntimeAttemptBudgets {
 
   fun outputGateRejectionExhaustsBudget(
     phaseId: String,
+    policy: PhaseStepPolicy,
     priorOutputGateFailures: Int,
   ): Boolean {
     require(priorOutputGateFailures >= 0) {
       "priorOutputGateFailures must be >= 0, was $priorOutputGateFailures."
     }
-    val relaunches =
-      FeatureTaskRuntimePhaseWorkflowDefinition.retriesOnInvalidOutput(phaseId) &&
-        !FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(phaseId)
+    val relaunches = policy.relaunchOnInvalidOutput && !policy.singleAgentSession
     return !relaunches || outputGateBlockReason(phaseId, priorOutputGateFailures + 1) != null
   }
 

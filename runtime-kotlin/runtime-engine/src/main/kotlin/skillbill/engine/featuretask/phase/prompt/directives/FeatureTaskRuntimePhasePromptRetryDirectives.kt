@@ -11,10 +11,9 @@ fun retryCorrectionDirective(
   briefing: FeatureTaskRuntimePhaseLaunchBriefing,
   priorSchemaFailure: String?,
   correctiveRepairContext: FeatureTaskRuntimeCorrectiveRepairContext?,
+  singleAgentSession: Boolean,
 ): String {
-  if (FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(briefing.phaseId) ||
-    priorSchemaFailure.isNullOrBlank()
-  ) {
+  if (singleAgentSession || priorSchemaFailure.isNullOrBlank()) {
     return ""
   }
   val base =

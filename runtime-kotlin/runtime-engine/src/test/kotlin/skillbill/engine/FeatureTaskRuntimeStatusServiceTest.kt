@@ -18,6 +18,7 @@ import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeCont
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunInvariantsStore
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.runner.operatorDecisionPause
+import skillbill.engine.featuretask.slot.statusProjectionPhaseStrategies
 import skillbill.engine.work.model.IdeStatusCurrentPhaseExecutionKind
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
@@ -1161,7 +1162,12 @@ internal fun statusHarness(): StatusHarness {
     recorder,
     decomposeTerminalRecorder,
     runInvariantsStore,
-    FeatureTaskRuntimeStatusService(recorder, runInvariantsStore, decomposeTerminalRecorder),
+    FeatureTaskRuntimeStatusService(
+      recorder,
+      runInvariantsStore,
+      decomposeTerminalRecorder,
+      statusProjectionPhaseStrategies(),
+    ),
     repository,
   )
 }
