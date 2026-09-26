@@ -15,9 +15,9 @@ class GitHubReleaseCatalogAdapterTest {
     val body =
       """
       [
-        {"tag_name":"v0.4.0","html_url":"https://github.com/oila-gmbh/skill-bill/releases/tag/v0.4.0",
+        {"tag_name":"v0.4.0","html_url":"https://github.com/Sermilion/skill-bill/releases/tag/v0.4.0",
          "body":"notes","prerelease":false,"draft":false},
-        {"tag_name":"v0.5.0-rc.1","html_url":"https://github.com/oila-gmbh/skill-bill/releases/tag/v0.5.0-rc.1",
+        {"tag_name":"v0.5.0-rc.1","html_url":"https://github.com/Sermilion/skill-bill/releases/tag/v0.5.0-rc.1",
          "prerelease":true,"draft":true},
         {"tag_name":"v0.6.0","prerelease":true}
       ]
@@ -45,14 +45,14 @@ class GitHubReleaseCatalogAdapterTest {
         listOf(
           ReleaseCatalogEntry.Release(
             tagName = "v0.4.0",
-            url = "https://github.com/oila-gmbh/skill-bill/releases/tag/v0.4.0",
+            url = "https://github.com/Sermilion/skill-bill/releases/tag/v0.4.0",
             notes = "notes",
             prerelease = false,
             draft = false,
           ),
           ReleaseCatalogEntry.Release(
             tagName = "v0.5.0-rc.1",
-            url = "https://github.com/oila-gmbh/skill-bill/releases/tag/v0.5.0-rc.1",
+            url = "https://github.com/Sermilion/skill-bill/releases/tag/v0.5.0-rc.1",
             notes = null,
             prerelease = true,
             draft = true,

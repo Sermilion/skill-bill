@@ -89,7 +89,7 @@ private fun adapter(
 ): HttpInstallerScriptFetchAdapter = HttpInstallerScriptFetchAdapter(transport, diagnostics)
 
 private fun request(): InstallerScriptFetchRequest =
-  InstallerScriptFetchRequest("https://raw.githubusercontent.com/oila-gmbh/skill-bill/main/install.sh")
+  InstallerScriptFetchRequest("https://raw.githubusercontent.com/Sermilion/skill-bill/main/install.sh")
 
 private class TrackingTransport(
   private val response: () -> RemoteTransportResponse,

@@ -366,7 +366,7 @@ internal fun updateCheckRequester(
           "tag_name":"$latest",
           "prerelease":${latest.contains("-")},
           "draft":false,
-          "html_url":"https://github.com/oila-gmbh/skill-bill/releases/tag/$latest"
+          "html_url":"https://github.com/Sermilion/skill-bill/releases/tag/$latest"
         }]
         """.trimIndent(),
     )
@@ -376,7 +376,7 @@ internal const val EXPECTED_INSTALL_COMMAND =
   "skill-bill update"
 
 internal const val EXPECTED_UPDATE_COMMAND =
-  "fetch https://raw.githubusercontent.com/oila-gmbh/skill-bill/main/install.sh " +
+  "fetch https://raw.githubusercontent.com/Sermilion/skill-bill/main/install.sh " +
     "then bash <script> --reuse-last-selection"
 
 internal class CapturingInstallerProcessPort(

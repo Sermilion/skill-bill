@@ -290,7 +290,7 @@ orchestration, and adapters small enough to locate and own.
 ## [2026-09-18] SKILL-359: shared HTTP transport does not follow redirects
 
 The shared JDK transport keeps redirect handling at `NEVER`; the live HEAD of
-`https://raw.githubusercontent.com/oila-gmbh/skill-bill/main/install.sh`
+`https://raw.githubusercontent.com/Sermilion/skill-bill/main/install.sh`
 returned 200 with zero redirects. Callers must receive the peer response
 instead of silently crossing an unapproved URL boundary.
 

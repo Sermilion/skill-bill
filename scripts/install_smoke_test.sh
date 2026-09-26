@@ -291,31 +291,31 @@ run_piped_bootstrap_latest_release() {
 set -euo pipefail
 url="${@: -1}"
 case "$url" in
-  "https://api.github.com/repos/oila-gmbh/skill-bill/releases?per_page=100")
+  "https://api.github.com/repos/Sermilion/skill-bill/releases?per_page=100")
     cat <<'JSON'
 [
   {
     "tag_name":"v9.9.9",
     "prerelease":false,
     "draft":false,
-    "html_url":"https://github.com/oila-gmbh/skill-bill/releases/tag/v9.9.9",
+    "html_url":"https://github.com/Sermilion/skill-bill/releases/tag/v9.9.9",
     "assets":[{"name":"skill-bill-skills-9.9.9.tar.gz"}]
   }
 ]
 JSON
     ;;
-  https://api.github.com/repos/oila-gmbh/skill-bill/releases/tags/v9.9.9)
+  https://api.github.com/repos/Sermilion/skill-bill/releases/tags/v9.9.9)
     cat <<'JSON'
 {
   "tag_name":"v9.9.9",
   "prerelease":false,
   "draft":false,
-  "html_url":"https://github.com/oila-gmbh/skill-bill/releases/tag/v9.9.9",
+  "html_url":"https://github.com/Sermilion/skill-bill/releases/tag/v9.9.9",
   "assets":[{"name":"skill-bill-skills-9.9.9.tar.gz"}]
 }
 JSON
     ;;
-  https://raw.githubusercontent.com/oila-gmbh/skill-bill/v9.9.9/install.sh)
+  https://raw.githubusercontent.com/Sermilion/skill-bill/v9.9.9/install.sh)
     cat <<'INSTALLER'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -365,38 +365,38 @@ for arg in "$@"; do
 done
 printf '%s\n' "$url" >>"$SMOKE_CURL_LOG"
 case "$url" in
-  "https://api.github.com/repos/oila-gmbh/skill-bill/releases?per_page=100")
+  "https://api.github.com/repos/Sermilion/skill-bill/releases?per_page=100")
     cat <<'JSON'
 [
   {
     "tag_name":"plugin-v9.9.9",
     "prerelease":false,
     "draft":false,
-    "html_url":"https://github.com/oila-gmbh/skill-bill/releases/tag/plugin-v9.9.9",
+    "html_url":"https://github.com/Sermilion/skill-bill/releases/tag/plugin-v9.9.9",
     "assets":[{"name":"skill-bill-intellij-plugin-9.9.9.zip"}]
   },
   {
     "tag_name":"v0.4.0",
     "prerelease":false,
     "draft":false,
-    "html_url":"https://github.com/oila-gmbh/skill-bill/releases/tag/v0.4.0",
+    "html_url":"https://github.com/Sermilion/skill-bill/releases/tag/v0.4.0",
     "assets":[{"name":"skill-bill-skills-0.4.0.tar.gz"}]
   }
 ]
 JSON
     ;;
-  https://api.github.com/repos/oila-gmbh/skill-bill/releases/tags/*)
+  https://api.github.com/repos/Sermilion/skill-bill/releases/tags/*)
     cat <<'JSON'
 {
   "tag_name":"v0.4.0",
   "prerelease":false,
   "draft":false,
-  "html_url":"https://github.com/oila-gmbh/skill-bill/releases/tag/v0.4.0",
+  "html_url":"https://github.com/Sermilion/skill-bill/releases/tag/v0.4.0",
   "assets":[{"name":"skill-bill-skills-0.4.0.tar.gz"}]
 }
 JSON
     ;;
-  https://raw.githubusercontent.com/oila-gmbh/skill-bill/*/install.sh)
+  https://raw.githubusercontent.com/Sermilion/skill-bill/*/install.sh)
     cat <<'INSTALLER'
 #!/usr/bin/env bash
 set -euo pipefail

@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/oila-gmbh/skill-bill.git"
+    "url": "https://github.com/Sermilion/skill-bill.git"
   },
   "engines": {
     "vscode": "^1.85.0"

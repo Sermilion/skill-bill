@@ -28,7 +28,7 @@ INSTALL_SOURCE="auto"
 RELEASE_TAG="${SKILL_BILL_RELEASE_TAG:-}"
 REUSE_LAST_SELECTION=0
 CLEAN_INSTALL=0
-RELEASE_REPO="${SKILL_BILL_RELEASE_REPO:-oila-gmbh/skill-bill}"
+RELEASE_REPO="${SKILL_BILL_RELEASE_REPO:-Sermilion/skill-bill}"
 # Memoized result of resolve_latest_runtime_release_tag. The tag is consumed once per
 # asset plus once per .sha256 sibling and by both list_release_asset_names callers, so
 # resolving each time would multiply unauthenticated api.github.com requests.
@@ -1272,7 +1272,7 @@ $marker
 set -euo pipefail
 
 runtime_cli="$RUNTIME_CLI_BIN"
-installer_url="https://raw.githubusercontent.com/oila-gmbh/skill-bill/main/install.sh"
+installer_url="https://raw.githubusercontent.com/Sermilion/skill-bill/main/install.sh"
 
 shell_quote() {
   case "\$1" in

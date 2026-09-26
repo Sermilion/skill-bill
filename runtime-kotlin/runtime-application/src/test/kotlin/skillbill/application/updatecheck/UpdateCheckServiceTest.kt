@@ -212,7 +212,7 @@ private fun releaseEntry(
 ): ReleaseCatalogEntry =
   ReleaseCatalogEntry.Release(
     tagName = tag,
-    url = "https://github.com/oila-gmbh/skill-bill/releases/tag/$tag",
+    url = "https://github.com/Sermilion/skill-bill/releases/tag/$tag",
     notes = null,
     prerelease = prerelease,
     draft = false,
