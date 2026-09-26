@@ -341,7 +341,60 @@ Do the same for git results and typed artifacts: use the typed API when it exist
 Inside this bundle the order is subtask id order: 1 through 12. Dependencies: 2→1,
 3→2, 4→2, 5→3, 5→4, 6→5, 7→5, 8→6, 8→7, 9→8, 10→7, 10→9, 11→5, 11→9, 12→9, 12→11.
 
+## Second attempt (subtasks 2–6)
+
+The first run of subtasks 2–6 is discarded; subtask 1 and its fixtures stay. Its
+last commit was `2a8557d26` before the rebase onto SKILL-378. It used this spec's
+names without its structure, and was marked complete with 4 of 8 criteria (subtask 4)
+and 6 of 9 (subtask 5). What went wrong:
+
+- Strategies called back into the run loop's attempt code. The loop then re-resolved
+  the strategy to launch. Strategies owned ids and directive text, not behaviour.
+- All eleven strategies shared one `PhaseRunner` instance. An engine object built
+  them, and `decisions.md` claimed one instance per strategy.
+- Inline review launched through its own driver on `GoalRunnerSubtaskLauncher`,
+  outside `PhaseRunner`, still bound globally as `phaseGates.reviewDriver`.
+- The phase-id guard matched constant names. 161 comparisons in 47 files stayed behind
+  `FeatureTaskRuntimeStepSemantics` aliases (`reviewStepId = PHASE_REVIEW`).
+- The phase-output contract moved to `0.7` while
+  `goal-planning-preparation-schema.yaml` still pinned `0.6`, which broke goal
+  planning.
+- `mutatingReconciliationGateReason` was deleted without a ledger entry.
+- `./gradlew check` failed at the last commit: detekt, spotless, inline FQNs, package
+  ceilings, and about 100 tests.
+
+Reusable from the first run, after rechecking against the current tree:
+- `PhaseSlot`
+- `SkeletonDefinition` with derived transitions
+- the loud `FeatureTaskRuntimeQualityGateSelection.fromWire`
+- the review-lane idle bound and its reproduction test (subtask 6)
+
 ## Constraints
+
+- **Completion.** A subtask is complete only when every acceptance criterion holds and
+  `cd runtime-kotlin && ./gradlew check` passes at its commit. Otherwise it blocks. It
+  never settles `complete` with a partial criteria count in its history entry.
+- **Meaning over names.** A rule forbids a behaviour, not a spelling. Satisfying a
+  guard by renaming, aliasing, re-exporting, or indexing the forbidden thing violates
+  it, for example `FeatureTaskRuntimeStepSemantics.reviewStepId` or
+  `PhaseSlot.CODE_REVIEW.stepIds[1]`. A guard's synthetic-violation test calls the
+  same function the real rule calls, not a copy of its pattern.
+- **Proof, not assertion.** A runtime `require` or test that holds by construction
+  does not prove a criterion. Examples: comparing a runner to itself, or a test that
+  builds its own strategies instead of reading the production provider.
+  `ARCHITECTURE.md` and `decisions.md` state only what code and tests show.
+- **Contract bumps.** A contract version bump updates, in the same commit, every
+  schema `const:`, SQL check, and fixture that pins the old value. One test asserts
+  every pin equals the Kotlin constant. Records at the previous version keep decoding.
+- **No silent behaviour removal.** Deleting a runtime gate, check, or fallback is a
+  behaviour change. It needs a fixture-ledger entry naming it, or it stays.
+- **Dependency direction.** Shared feature-task code depends only on the slot
+  contract, never on a strategy package (`slot.audit`, `slot.codereview`, …).
+  - Shared code: `runloop`, `phase`, `runner`, `review`, `validation`, `lifecycle`.
+  - The slot contract: `PhaseStrategy`, `PhaseRunner`, `PhaseRunState`, registry,
+    selection, lookup, `PhaseSlot`, `SkeletonDefinition`.
+  - Strategies do not call back into the run loop's drive, launch, or attempt code.
+  - Enforced by an architecture rule from subtask 5.
 
 - **Read first:**
   - `runtime-kotlin/ARCHITECTURE.md` Design Principles

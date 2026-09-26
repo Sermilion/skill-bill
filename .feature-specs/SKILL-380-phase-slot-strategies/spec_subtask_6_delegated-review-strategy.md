@@ -48,6 +48,17 @@ findings-only review buffered until exit and hung".
   - It does not edit files. Its review step policy is read-only and not mutating.
 - **verify_findings and implement_fix:** composes the step classes subtask 3 extracted.
   Same `review_fix` edge, same cap, same remediation checkpoint. No duplication.
+- **No copy of the inline strategy.** The two strategies differ only in the review
+  step. Everything else the `code_review` slot shares comes from one composed
+  collaborator both strategies hold, not from two copies. That covers step ids,
+  verify and fix directives, carry-forward preparation, and status projection.
+  Delegated-specific code lives in delegated-named classes, not in `InlineReview*`
+  files.
+- **Reusable from the first attempt:** the hang reproduction and the read-only idle
+  bound on every lane launch (`READ_ONLY_PHASE_PROGRESS_IDLE_TIMEOUT_MINUTES` in
+  `runtime-ports`, `readOnlyPhase = true` on parent, coverage continuation,
+  verification, integration, and adjudication lanes). Recheck them against the tree
+  and keep the `decisions.md` entry if it still holds.
 - **State:** review-pass reservation, carry-forward, and caps go through
   `PhaseRunState`.
 - **Mode:** the DELEGATED `commit_focused_accounting` gate applies unchanged. The mode
@@ -66,6 +77,8 @@ does, and how the review mode selects them per composition.
 3. `DelegatedReviewStrategy` composes the same verify_findings and implement_fix step classes as `InlineReviewStrategy`.
 4. The production skeleton selection still resolves every accepted mode to `inline`, and every subtask 1 fixture still matches.
 5. `agent/decisions.md` records the hang's cause and fix. ARCHITECTURE.md documents both review strategies and the mode mapping.
+6. The two review strategy classes share their common behaviour through one composed collaborator, and neither restates the other's step list, directives, or projection.
+7. `cd runtime-kotlin && ./gradlew check` passes at this subtask's commit.
 
 ## Non-goals
 

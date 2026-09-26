@@ -44,8 +44,22 @@ prompt becomes the strategy's directive, parameterised by the target.
   package, so `DelegatedReviewStrategy` (subtask 6) composes the same classes.
 - Delete `FeatureTaskRuntimeRunLoopPhaseRunner`. Its review-specific launch code moves
   into the strategy or into the generic `PhaseRunner`; no review-specific runner stays.
-- `FeatureTaskRuntimeReviewDriver` becomes this strategy's collaborator, or folds into
-  it. `ApprovingReviewDriverStub` still substitutes the review step in tests.
+- The review step launches through the strategy's `PhaseRunner`, like every other
+  step, so it gets the runner's activity stamp, worktree-edit observer, model and effort
+  overrides, and idle policy.
+  - `FeatureTaskRuntimeReviewDriver` folds into the strategy. If a seam survives, it
+    may compose the prompt and decode the output, but it holds no launcher.
+  - The global review-driver `@Provides` and `phaseGates.reviewDriver` go. The review
+    step is reached only through the selected strategy.
+  - Tests substitute the review step with a fake `PhaseRunner` or a test selection
+    entry. `ApprovingReviewDriverStub` goes if nothing else needs it.
+- Step classes (`VerifyFindingsStep`, `ImplementFixStep`) are classes that take the
+  runner and collaborators through their constructors. They are not objects handed a
+  runner per call. No `require(runner === …)` identity checks.
+- `ReviewTarget` variants compose their own text. A named commit is not described as
+  "the last commit".
+- implement_fix keeps structured output, so `mutatingReconciliationGateReason` stays
+  in force for it (parent "No silent behaviour removal").
 - The skeleton selection maps every review mode it accepts today to `inline`. The
   strategy reads `CodeReviewExecutionMode` only where today's code does: the accounting
   gate and the resume conflict check.
@@ -64,6 +78,8 @@ prompt becomes the strategy's directive, parameterised by the target.
 5. A `review_fix` re-entry, a goal review-pass carry-forward, and a capped review pass each behave as before, proved by the existing suites plus one resume-parity test per path where the suite has none.
 6. The strategy reads and writes run state only through `PhaseRunState`.
 7. Every subtask 1 fixture matches unchanged.
+8. The review step's agent launch goes through `PhaseRunner`. A test proves the review launch request carries the same activity stamp sink, worktree-edit observer, and model override as any other step's. No class in the `code_review` package depends on `GoalRunnerSubtaskLauncher`, and no review-driver binding remains in runtime-core.
+9. `cd runtime-kotlin && ./gradlew check` passes at this subtask's commit.
 
 ## Non-goals
 

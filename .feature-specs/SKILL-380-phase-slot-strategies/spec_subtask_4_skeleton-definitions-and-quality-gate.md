@@ -46,11 +46,27 @@ replaces it with two strategies and deletes transition rewriting.
   fallback.
 - `agent-validate` owns validate: the validation gate coordinator, the shrink loop,
   triage, and the fallback variants.
-- Both run their steps through `PhaseRunner`. Triage and repair sessions launch through
-  the shared `GoalRunnerSubtaskLauncher` port. `findings_open`, repair counts, and the
-  captured triage plan are read and written through `PhaseRunState`, so `pack-build`
-  runs unchanged in the `validation` definition in subtask 8.
+- Both run their steps through `PhaseRunner`, and so do their triage and repair
+  sessions: the runner reaches the shared `GoalRunnerSubtaskLauncher` port, and the
+  strategies do not touch it. `findings_open`, repair counts, and the captured triage
+  plan are read and written through `PhaseRunState`, so `pack-build` runs unchanged in
+  the `validation` definition in subtask 8.
+- The gate cycles move out of the run loop. `runDeclaredBuildGateCycle`,
+  `runDeclaredValidationGateCycle`, and their step-specific helpers leave
+  `runloop/settlement` for the strategy packages. A strategy whose `runStep` is one
+  call back into run-loop code does not satisfy this subtask.
 - Delete `routed-quality-gate`.
+
+**Traversal is generic.** Entering and leaving a slot works the same way for every
+slot.
+
+- For each slot in the definition, the forward walk visits the selected strategy's
+  steps.
+- Traversal, selection, and lookup contain no reference to `quality_gate`, build, or
+  validate.
+- Nothing rewrites a computed transition afterwards (no `next.copy(phaseId = …)`).
+- No public set of quality-gate step ids replaces the routing. Readers that must know
+  whether a step belongs to the selected gate ask the lookup.
 
 **Selection.** The skeleton entry of `PhaseStrategySelection` for `quality_gate`
 resolves from today's selection value: `BUILD` selects `pack-build`, `VALIDATE`
@@ -96,6 +112,10 @@ settles with the parent "Phase input and output" shape:
 - Re-baseline the validate prompt, phase record, and consuming handoff fixtures in this
   commit (parent fixture ledger). Bump each changed handoff projection contract.
   Validate records written before this change still decode.
+- If this subtask bumps the phase-output contract version, follow the parent
+  "Contract bumps" rule. The first attempt missed
+  `goal-planning-preparation-schema.yaml` `provenance.phase_output_contract_version`
+  (`const: "0.6"`), which broke every goal planning run.
 
 **Routing removal.**
 - Delete `FeatureTaskRuntimeQualityGateRouting`.
@@ -117,6 +137,8 @@ settles with the parent "Phase input and output" shape:
 6. `--quality-gate-selection biuld` and `SKILL_BILL_QUALITY_GATE_SELECTION=biuld` each exit as a usage error naming `build` and `validate`, and no production code maps an unknown selection to VALIDATE. A legacy continuation row without a selection still heals to VALIDATE with an adoption record.
 7. Both strategies read and write gate state only through `PhaseRunState`.
 8. validate settles with the uniform output, its shrink decision reads only the verdict, and no production code reads `validation_passed` from agent output. The validate fixtures differ from the subtask 1 baseline only by the ledger's allowed change, and a run whose validate record predates the change resumes.
+9. Slot traversal, `PhaseStrategySelection`, and `PhaseStrategyLookup` contain no reference to a specific slot or step. No code rewrites a transition after it is computed. The build and validate cycles no longer exist under `runloop`.
+10. Goal planning still runs end to end (the goal-planning suites and the subtask 1 goal-planning fixtures pass), and `cd runtime-kotlin && ./gradlew check` passes at this subtask's commit.
 
 ## Non-goals
 

@@ -41,6 +41,11 @@ today are measured by the runtime after the step:
 - Delete the `history_result` and `pr_result` envelope decoding. Census their readers
   (commit_push briefing, status service, goal stop reports, telemetry) and point each
   at the measured fact.
+- Measured facts are runtime-owned fields of the record or handoff projection, with
+  keys from an owning `*Keys` object. They are never spliced into the agent's prose
+  `value` as text, and readers never parse them back out of prose.
+- If git or `gh` cannot measure a fact, the step emits a record and settles blocked
+  or marks the fact unknown. It never records an empty path list or `false`.
 - Re-baseline the write_history and pr prompt, phase record, and consuming handoff
   fixtures in this commit (parent fixture ledger). Bump each changed handoff projection
   contract. Records written before this change still decode.
@@ -67,7 +72,10 @@ today are measured by the runtime after the step:
 - Move audit's verdict and failure-disposition rules out of `ProsePhaseOutputSynthesizer`
   and `FeatureTaskPhaseSettlementService` into `acceptance-audit`.
 - Re-baseline every affected prompt and phase-record fixture in this commit (parent
-  fixture ledger).
+  fixture ledger). The fixture diff must show the "validated schema gate" section
+  replaced in every non-review step prompt: preplan, plan, implement, simplify, audit,
+  build, validate, write_history, and pr. The first attempt changed only the version
+  string in most of them.
 - After this subtask the only step-specific decoding left in production is inside the
   two `code_review` strategies.
 
@@ -105,16 +113,38 @@ today are measured by the runtime after the step:
 
 **Guard.**
 - Add a new test class to `runtime-core/src/repoTest/kotlin/skillbill/architecture/RuntimeEngineBoundaryArchitectureTest.kt`
-  (the file already holds several engine-boundary test classes). Under `runtime-engine/src/main/kotlin/skillbill/engine/featuretask`,
-  no file outside the `slot` package tree may reference a `FeatureTaskRuntimePhaseIds`
-  constant or a `FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_*` constant.
-- The rule asserts it read at least one file. It fails on a synthetic violation
-  fixture. It has no baseline and no exemption.
-- Add a second rule to the same suite: no class under
-  `skillbill.engine.featuretask` outside `PhaseRunner`'s implementation and the `slot`
-  package tree depends on `GoalRunnerSubtaskLauncher`. Same file-count assertion and
-  synthetic violation. Subtask 8 extends it to the phase-run entry package, and SKILL-382 to the
-  operation packages.
+  (the file already holds several engine-boundary test classes). The rule forbids
+  deciding behaviour by step identity outside the `slot` package tree, in any
+  spelling (parent "Meaning over names"). Under
+  `runtime-engine/src/main/kotlin/skillbill/engine/featuretask`, no file outside `slot`
+  may contain:
+  1. a `FeatureTaskRuntimePhaseIds` constant or a
+     `FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_*` constant
+  2. a string literal equal to a step id
+  3. element access on `PhaseSlot.<SLOT>.stepIds` (`[…]`, `first`, `last`, `single`,
+     `get`)
+  4. a reference to a `slot` declaration that re-exports a single step id
+- To make form 4 checkable, `slot` declares no non-private property or constant whose
+  value is a single step id, except each strategy's own `stepIds` and `entryStepId`.
+  `FeatureTaskRuntimeStepSemantics` and anything like it does not exist.
+- Put a before-and-after census of step-identity decisions outside `slot` in the
+  commit message, counting every form. The after count is zero.
+- The rule asserts it read at least one file, and has no baseline and no exemption.
+  Its synthetic-violation test covers all four forms, including an alias object used
+  from `runloop`. It calls the same scanning function as the real rule.
+- Add a second rule to the same suite: no class under `skillbill.engine.featuretask`
+  other than the `PhaseRunner` implementation depends on `GoalRunnerSubtaskLauncher`,
+  by import or by qualified name. Strategy packages launch through their runner
+  (subtasks 3 and 4). Same file-count assertion and synthetic violation. Subtask 8
+  extends it to the phase-run entry package, and SKILL-382 to the operation packages.
+- Add a third rule for the parent "Dependency direction" constraint:
+  - Shared feature-task packages import no strategy package.
+  - Strategy packages import none of the run loop's drive, launch, attempt, or
+    planning-branch objects.
+  - No class under `slot` references `FeatureTaskRuntimeRunLoopContext` or
+    `FeatureTaskRuntimeRunState`. Strategies take collaborators by constructor and run
+    state through `PhaseRunState`.
+  - Same file-count assertion and synthetic violations.
 - Update `FeatureTaskAuditRemainingCriteriaPackIndependenceArchitectureTest` for the
   moved audit retry code.
 
@@ -129,12 +159,14 @@ today are measured by the runtime after the step:
 1. Each of the seven strategies in the Scope table owns the listed behaviour in its `slot` package, and the shared step code it called in subtask 2 no longer contains that behaviour.
 2. No phase-keyed directive table or phase-id `when` remains under `skillbill.engine.featuretask.phase.prompt`, and every composed prompt receives its task directive from the running strategy.
 3. The goal planning sweep composes preplan and plan prompts from the registered default strategies, and its composed prompt text matches the subtask 1 fixture.
-4. No production file under `skillbill.engine.featuretask` outside `skillbill.engine.featuretask.slot` references a phase-id constant.
-5. The new guard rule fails on a synthetic file under `featuretask/runloop` that compares a step id to `FeatureTaskRuntimePhaseIds.REVIEW`, reports the number of files it read, and passes on the tree. The launch-port rule fails on a synthetic run-loop file that depends on `GoalRunnerSubtaskLauncher` and passes on the tree.
+4. No production file under `skillbill.engine.featuretask` outside `skillbill.engine.featuretask.slot` decides behaviour by step identity in any of the four guarded forms, and the commit message's census shows zero.
+5. The step-identity rule fails on a synthetic violation in each of its four forms (constant, literal, `stepIds` element, alias object), reports the number of files it read, and passes on the tree. The launch-port rule fails on a synthetic run-loop file that depends on `GoalRunnerSubtaskLauncher` and passes on the tree. The dependency-direction rule fails on a synthetic shared file importing a strategy package and on a synthetic strategy referencing `FeatureTaskRuntimeRunLoopContext`, and passes on the tree. Each synthetic test calls its rule's own scanning function.
 6. Every subtask 1 fixture, including composed prompt text for every step, matches its latest baseline, except the write_history and pr fixtures this subtask re-baselines.
 7. ARCHITECTURE.md lists every slot's strategies and states the guard rule and the steps for adding a strategy.
 8. write_history and pr settle with the uniform output; changed paths, history and decision changes, and PR identity are measured by the runtime; no production code decodes `history_result` or `pr_result` from agent output; and a run whose records predate the change resumes.
 9. Every non-review step prompt carries only the minimal settlement instruction, phase-output validation for those steps checks only status, value, and failure disposition, the runner reads a minimal final object for any step name, and audit's verdict rules live in `acceptance-audit`.
+10. Measured write_history and pr facts live in runtime-owned fields with owned keys, not in the agent's prose value. A measurement failure emits a record.
+11. Every schema pin of the phase-output contract version equals the Kotlin constant (one test). Goal planning runs end to end, and `cd runtime-kotlin && ./gradlew check` passes at this subtask's commit.
 
 ## Non-goals
 

@@ -12,8 +12,21 @@ Build the slot strategies from the feature-task run loop that exists. If that lo
 already step classes, group those classes. If it is still objects and bags, wrap the
 cited behaviour in strategy classes here. Do not wait for another issue.
 
-Every strategy in this subtask is a thin wrapper around today's step code. Subtasks 3,
-4, and 5 move that code into the strategies.
+In this subtask a strategy's step bodies may still be today's step code, called from
+the strategy. The control flow is final from this subtask on:
+
+- The run loop calls `strategy.runStep` and nothing else step-specific.
+- The strategy starts every agent session by calling its own `PhaseRunner`.
+- Nothing outside the runner implementation calls `GoalRunnerSubtaskLauncher`.
+- Nothing re-resolves a strategy in order to launch; delete today's
+  `executeSubtaskLaunch`-style lookup in the loop.
+- The shared attempt path (relaunch on invalid output, output gate, retry budget) is
+  strategy-side code under `slot` that calls `PhaseRunner` and `PhaseRunState`. It is
+  not run-loop code a strategy calls back into. Until subtask 7 it may still write
+  records and ledger through today's writers.
+
+Subtasks 3, 4, and 5 move the remaining step code into the strategies. The parent
+"Second attempt" section lists what the first run got wrong; do not repeat it.
 
 **Skeleton (runtime-domain, beside `FeatureTaskRuntimePhaseIds`).**
 - `PhaseSlot` is a closed enum with `wireValue`, in this order:
@@ -33,9 +46,19 @@ Every strategy in this subtask is a thin wrapper around today's step code. Subta
   Each slot exposes its owned step ids, and a step id maps back to its slot. The
   goal-child rule "no pull_request" is expressed on the skeleton; it replaces the
   `takeWhile { it != PHASE_PR }` in `FeatureTaskRuntimeRunnerPolicies`.
-- `PhaseStepPolicy` is a domain value with four fields: mutating, relaunch on invalid
-  output, single agent session, read-only idle. Strategies declare it per step. Today's
-  values carry over exactly; the investigation lists the mismatches and they stay.
+- `PhaseStepPolicy` is a domain value with six fields:
+  - mutating
+  - relaunch on invalid output
+  - single agent session
+  - read-only idle
+  - file mutating (replaces `NON_FILE_MUTATING_PHASES`)
+  - generation scoped (replaces `GENERATION_SCOPED_PHASE_IDS`)
+
+  Each strategy class declares the policy of its own steps. There is no shared table
+  keyed by step id. Today's values carry over exactly; the investigation lists the
+  mismatches and they stay.
+- `PhaseSlot.slotForStep` on an unknown step id raises a typed error in the
+  `skillbill.error` taxonomy, not `error()`.
 
 **Parts (runtime-engine, `skillbill.engine.featuretask.slot`).** Each interface has
 KDoc.
@@ -66,6 +89,9 @@ KDoc.
     decoding for validate, write_history, and pr. The code_review strategies keep
     theirs until the follow-up bundle (parent Non-goals).
   - Collaborators come through the constructor.
+  - The interface's input and output are runner-owned types: the step input and the
+    uniform output above. It names no type from `skillbill.engine.featuretask.runloop`
+    (no `PhaseRun`, no `PreparedLaunch`) and does not return the raw launch outcome.
   - The implementation is today's launch code, moved, not a new layer. On 2026-09-25
     the feature-task classes that depend on `GoalRunnerSubtaskLauncher` are
     `FeatureTaskRuntimeRunLoop`, `FeatureTaskRuntimeRunner`, and
@@ -91,8 +117,13 @@ KDoc.
   facts, and the `PhaseRunState` it was handed, and returns the existing phase outcome
   type. Collaborators come through the constructor. It never branches on whether it
   runs in a full run or a phase run.
+
+  Keep the interface to the members above. IDE status projection is a separate
+  interface a strategy may also implement, not a member of `PhaseStrategy`.
 - `PhaseStrategyRegistry` is built by one explicit `@Provides` in runtime-core that
-  lists every strategy. It fails with a typed error in the `skillbill.error` taxonomy
+  lists every strategy and constructs each one itself. Each strategy's runner comes
+  from the unscoped `PhaseRunner` provider. No engine-side object assembles strategies
+  or runners. The registry fails with a typed error in the `skillbill.error` taxonomy
   in three cases:
   - two strategies share a `(slot, id)` pair
   - a strategy declares a step its slot does not own
@@ -106,7 +137,8 @@ KDoc.
   receives (`code-review:` / `--code-review-mode`); every value the skeleton accepts
   today resolves to `inline`. Short definitions arrive in subtasks 8 and 9. Building the selection
   checks every entry against the registry and fails with a typed error on an
-  unregistered id.
+  unregistered id. Every slot, `quality_gate` included, resolves through the same
+  binding lookup. The selection and the lookup contain no branch on a specific slot.
 
 No multibinding, reflection, or classpath scan. No operator-facing selection.
 
@@ -152,13 +184,15 @@ temporary `routed-quality-gate`.
 ## Acceptance Criteria
 
 1. `PhaseSlot` exists in runtime-domain with the nine wire values in skeleton order. A test proves that every id in `FeatureTaskRuntimePhaseIds.all` belongs to exactly one slot and that every slot owns at least one step.
-2. `PhaseRunner`, `PhaseRunState`, `PhaseStrategy`, `PhaseStrategyRegistry`, and `PhaseStrategySelection` exist. There is one `PhaseRunner` implementation with an unscoped provider and no phase-keyed branch. The registry provider lists one strategy for every slot, and every registered strategy executes its steps through its own `PhaseRunner` instance.
+2. `PhaseRunner`, `PhaseRunState`, `PhaseStrategy`, `PhaseStrategyRegistry`, and `PhaseStrategySelection` exist. There is one `PhaseRunner` implementation with an unscoped provider and no phase-keyed branch. The registry provider lists one strategy for every slot, and every registered strategy executes its steps through its own `PhaseRunner` instance. A test reads the registry from the production providers, not strategies it builds itself, and finds a distinct runner instance per strategy.
 3. The runner returns the uniform output for every step. The five prose steps store it with bytes unchanged, and the six structured steps' strategies decode their own value with bytes unchanged.
 4. Constructing the registry with a duplicate `(slot, id)` pair, or with a strategy that declares a step outside its slot, raises the typed error. Looking up an unknown pair raises the typed error. Building the selection with an unregistered id raises the typed error. Each case has a test.
 5. `runPreparedPhaseReady` and `FeatureTaskRuntimeCurrentPhaseExecutionDeriver` contain no branch on a phase id, and every step launch goes through a selection and registry lookup.
 6. `MUTATING_PHASES`, `isMutatingPhase`, `OUTPUT_RETRY_PHASES`, `retriesOnInvalidOutput`, `singleAgentSessionOnly`, `GENERATION_SCOPED_PHASE_IDS`, and `NON_FILE_MUTATING_PHASES` no longer exist, and each strategy's declared `PhaseStepPolicy` equals today's value for its steps (one table test).
 7. Every subtask 1 fixture matches unchanged.
 8. `ARCHITECTURE.md` has the "Phase slots and strategies" section, and `agent/decisions.md` records the decision.
+9. Nothing outside the `PhaseRunner` implementation depends on `GoalRunnerSubtaskLauncher` or re-resolves a strategy in order to launch. `PhaseRunner`'s interface references no `runloop` type.
+10. `cd runtime-kotlin && ./gradlew check` passes at this subtask's commit.
 
 ## Non-goals
 
@@ -189,7 +223,9 @@ What covers them:
   paths.
 - The subtask 1 fixture comparison covers bytes and prompts.
 - New tests: registry and selection construction and lookup failures; the slot-to-step
-  partition; the policy table.
+  partition; the policy table, which compares each strategy's declared policy with a
+  test-local copy of today's values; one runner instance per strategy, read from the
+  production providers.
 - No structural tests beyond these.
 
 Run `cd runtime-kotlin && ./gradlew check`, plus the engine, core, and infra-sqlite
