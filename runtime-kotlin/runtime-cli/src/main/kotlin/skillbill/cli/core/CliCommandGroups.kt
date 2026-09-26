@@ -5,7 +5,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.cli.agentaddon.AgentAddonCommand
 import skillbill.cli.codereview.CodeReviewCommand
 import skillbill.cli.config.ConfigCommand
-import skillbill.cli.experiment.ExperimentsCommand
 import skillbill.cli.featuretask.FeatureTaskRuntimeDeprecatedRunCommand
 import skillbill.cli.featuretask.FeatureTaskRuntimeRunCommand
 import skillbill.cli.goal.core.GoalRunCommand
@@ -107,13 +106,11 @@ class CliCommandProvider(
   workflowCommands: CliWorkflowCommands,
   systemCommands: CliSystemCommands,
   miscCommands: CliMiscCommands,
-  experimentsCommand: ExperimentsCommand,
 ) {
   val commands: List<CliktCommand> =
     reviewCommands.commands +
       scaffoldCommands.commands +
       workflowCommands.commands +
       systemCommands.commands +
-      miscCommands.commands +
-      listOf(experimentsCommand)
+      miscCommands.commands
 }

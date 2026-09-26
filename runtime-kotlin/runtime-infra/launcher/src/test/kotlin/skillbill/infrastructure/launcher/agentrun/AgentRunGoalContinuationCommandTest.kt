@@ -3,7 +3,6 @@ package skillbill.infrastructure.launcher.agentrun
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationLaunchTokens
-import skillbill.experiment.model.ExperimentArmId
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.model.SkillRunGoalContinuationContext
 import skillbill.ports.agentrun.model.SkillRunRequest
@@ -381,12 +380,6 @@ class AgentRunGoalContinuationCommandTest {
       assertContains(request.launch.command, CodeReviewExecutionMode.AUTO.wireValue)
       assertContains(request.launch.command, tokens.QUALITY_GATE_SELECTION_FLAG)
       assertContains(request.launch.command, FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue)
-      assertContains(request.launch.command, tokens.GOAL_EXPERIMENT_ARM_ID_FLAG)
-      assertContains(request.launch.command, ExperimentArmId.TREATMENT.wireValue)
-      assertContains(request.launch.command, tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_FLAG)
-      assertContains(request.launch.command, "capability-a")
-      assertContains(request.launch.command, "capability-b")
-      assertContains(request.launch.command, tokens.DEFER_REMOTE_PUBLICATION_FLAG)
       assertContains(request.launch.command, tokens.GOAL_REVIEW_BASE_SHA_FLAG)
       assertContains(request.launch.command, "a".repeat(40))
       assertContains(request.launch.command, tokens.GOAL_BASELINE_UNTRACKED_PATH_FLAG)
@@ -409,23 +402,11 @@ class AgentRunGoalContinuationCommandTest {
         FeatureTaskRuntimeQualityGateSelection.BUILD.wireValue,
         request.environmentFields.environment[tokens.QUALITY_GATE_SELECTION_ENV],
       )
-      assertEquals(
-        ExperimentArmId.TREATMENT.wireValue,
-        request.environmentFields.environment[tokens.GOAL_EXPERIMENT_ARM_ID_ENV],
-      )
-      assertEquals(
-        "capability-a,capability-b",
-        request.environmentFields.environment[tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV],
-      )
-      assertEquals("true", request.environmentFields.environment[tokens.DEFER_REMOTE_PUBLICATION_ENV])
     }
   }
 
   private fun fullyPopulated(context: SkillRunGoalContinuationContext): SkillRunGoalContinuationContext =
     context.copy(
-      experimentArmId = ExperimentArmId.TREATMENT,
-      experimentTreatmentCapabilities = linkedSetOf("capability-a", "capability-b"),
-      deferRemotePublication = true,
       codeReviewMode = CodeReviewExecutionMode.AUTO,
       validationDepth = ValidationDepth.FULL,
       qualityGateSelection = FeatureTaskRuntimeQualityGateSelection.BUILD,

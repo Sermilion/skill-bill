@@ -56,6 +56,7 @@ import skillbill.error.goalrunner.GoalRunnerLaunchAuthorizationDeniedException
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.model.ExecutionLiveness
+import skillbill.goalrunner.model.GoalAttemptLedgerEntry
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
 import skillbill.goalrunner.model.GoalObservabilityRuntimeEventInput
 import skillbill.goalrunner.model.GoalPlanningStatusReasons
@@ -2848,7 +2849,6 @@ class GoalRunnerObservabilityTest {
         outcomeStore = outcomes,
         clock = testHarnessClock,
         diagnostics = NoopRuntimeDiagnostics,
-        request = runRequest(),
       )
 
     val thrown =
@@ -2877,7 +2877,6 @@ class GoalRunnerObservabilityTest {
         outcomeStore = outcomes,
         clock = testHarnessClock,
         diagnostics = NoopRuntimeDiagnostics,
-        request = runRequest(),
       )
 
     val thrown =
@@ -2908,7 +2907,6 @@ class GoalRunnerObservabilityTest {
         outcomeStore = outcomes,
         clock = testHarnessClock,
         diagnostics = diagnostics,
-        request = runRequest(),
       )
 
     emitter.record(
@@ -3476,7 +3474,8 @@ class GoalRunnerAcceptResetTest {
       parentWorkflowId = "wfl-parent",
       acceptance = GoalRunnerOutOfBandAcceptance(1, acceptedSha, "reviewed; ship it", acceptedAt),
     )
-    val service = acceptingStatusService(store)
+    val service =
+      acceptingStatusService(store, clock = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC))
     assertEquals(
       listOf(GoalRunnerAcceptedSubtask(1, acceptedSha, "reviewed; ship it", acceptedAt)),
       service.hardResetPreflight("SKILL-56"),
@@ -3488,22 +3487,26 @@ class GoalRunnerAcceptResetTest {
       assertIs<GoalRunnerAcceptResult.Accepted>(
         service.accept(acceptRequest(acceptedSha, restoreAfterHardReset = true)),
       )
+    assertEquals("2026-07-27T12:00Z", restored.acceptedAt)
     assertEquals(
-      listOf(GoalRunnerAcceptedSubtask(1, acceptedSha, "reviewed; ship it", restored.acceptedAt)),
+      listOf(GoalRunnerAcceptedSubtask(1, acceptedSha, "reviewed; ship it", "2026-07-27T12:00Z")),
       service.hardResetPreflight("SKILL-56"),
     )
   }
 
-  private fun acceptingStatusService(store: InMemoryGoalManifestStore) =
-    testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-      ports =
-        GoalRunnerStatusTestPorts(
-          gitOperations = AcceptGitOperations(),
-        ),
-    )
+  private fun acceptingStatusService(
+    store: InMemoryGoalManifestStore,
+    clock: Clock = testHarnessClock,
+  ) = testGoalRunnerStatusService(
+    manifestStore = store,
+    outcomeStore = RecordingOutcomeStore(),
+    phaseRecorder = goalTestPhaseRecorder(),
+    clock = clock,
+    ports =
+      GoalRunnerStatusTestPorts(
+        gitOperations = AcceptGitOperations(),
+      ),
+  )
 
   private fun acceptRequest(
     commitSha: String,
@@ -3974,39 +3977,6 @@ internal class InMemoryGoalManifestStore(
 
 class GoalRunnerLedgerRecorderSeedingTest {
   @Test
-  fun `recorder seeds ledger sequence from persisted watermark`() {
-    val outcomes = RecordingOutcomeStore()
-    outcomes.ledgerSequenceWatermarks =
-      GoalRunnerLedgerSequenceWatermarks(maxLedgerSequence = 7)
-    val recorder = GoalRunnerLedgerRecorder(outcomes, ledgerRunRequest(), testHarnessClock, NoopRuntimeDiagnostics)
-
-    recorder.recordLedgerEntry(
-      GoalRunnerLedgerContext.ChildActivation(
-        workflowId = "wfl-child",
-        issueKey = "SKILL-56",
-        subtaskId = 1,
-      ),
-    )
-    assertEquals(8, outcomes.attemptLedgerRecords.single().entry.sequenceNumber)
-  }
-
-  @Test
-  fun `recorder starts at zero when no durable entries exist`() {
-    val outcomes = RecordingOutcomeStore()
-    val recorder = GoalRunnerLedgerRecorder(outcomes, ledgerRunRequest(), testHarnessClock, NoopRuntimeDiagnostics)
-
-    recorder.recordLedgerEntry(
-      GoalRunnerLedgerContext.ChildActivation(
-        workflowId = "wfl-child",
-        issueKey = "SKILL-56",
-        subtaskId = 1,
-      ),
-    )
-
-    assertEquals(0, outcomes.attemptLedgerRecords.single().entry.sequenceNumber)
-  }
-
-  @Test
   fun `ledger action variants do not inherit launch fields from another action`() {
     val outcomes = RecordingOutcomeStore()
     val recorder = GoalRunnerLedgerRecorder(outcomes, ledgerRunRequest(), testHarnessClock, NoopRuntimeDiagnostics)
@@ -4040,7 +4010,7 @@ class GoalRunnerLedgerRecorderSeedingTest {
       ),
     )
 
-    val blocked = outcomes.attemptLedgerRecords.last().entry
+    val blocked = outcomes.attemptLedgerEntries.last()
     assertNull(blocked.launchOutcome)
     assertNull(blocked.finalReconciledResult)
     assertEquals("policy_block", blocked.action.wireValue)
@@ -4132,7 +4102,7 @@ class GoalRunnerProgressEventEmitterTest {
       GoalRunnerProgressEventEmitter(
         outcomeStore = outcomes,
         resolveWorkflowId = { "wfl-child" },
-        watermarkSeed = null,
+        issueKey = "SKILL-56",
         clock = testHarnessClock,
         diagnostics = NoopRuntimeDiagnostics,
       )
@@ -4147,36 +4117,16 @@ class GoalRunnerProgressEventEmitterTest {
       ),
     )
 
-    val recorded = outcomes.progressEventRecords
+    val recorded = outcomes.progressEvents
     assertEquals(3, recorded.size)
-    assertEquals("wfl-child", recorded.first().workflowId)
-    assertEquals(GoalProgressEventKind.OPERATION_STARTED, recorded[0].event.eventKind)
-    assertEquals(GoalProgressEventKind.OPERATION_HEARTBEAT, recorded[1].event.eventKind)
-    assertEquals(GoalProgressEventKind.OPERATION_COMPLETED, recorded[2].event.eventKind)
-    assertEquals("child_agent_run", recorded[0].event.operationName)
-    assertTrue(recorded[0].event.expectedLong)
-    assertTrue(recorded[0].event.processAlive)
-    assertTrue(!recorded[2].event.processAlive)
-
-    assertEquals(listOf(0, 1, 2), recorded.map { it.event.sequenceNumber })
-  }
-
-  @Test
-  fun `emitter seeds a monotonic sequence from the persisted goal_progress watermark on resume`() {
-    val outcomes = RecordingOutcomeStore()
-    val emitter =
-      GoalRunnerProgressEventEmitter(
-        outcomeStore = outcomes,
-        resolveWorkflowId = { "wfl-child" },
-        watermarkSeed = 41,
-        clock = testHarnessClock,
-        diagnostics = NoopRuntimeDiagnostics,
-      )
-
-    emitter.emit(emission(GoalProgressEventKind.OPERATION_STARTED, processAlive = true))
-    emitter.emit(emission(GoalProgressEventKind.OPERATION_HEARTBEAT, processAlive = true))
-
-    assertEquals(listOf(42, 43), outcomes.progressEventRecords.map { it.event.sequenceNumber })
+    assertEquals("wfl-child", outcomes.progressEventRecords.first().workflowId)
+    assertEquals(GoalProgressEventKind.OPERATION_STARTED, recorded[0].eventKind)
+    assertEquals(GoalProgressEventKind.OPERATION_HEARTBEAT, recorded[1].eventKind)
+    assertEquals(GoalProgressEventKind.OPERATION_COMPLETED, recorded[2].eventKind)
+    assertEquals("child_agent_run", recorded[0].operationName)
+    assertTrue(recorded[0].expectedLong)
+    assertTrue(recorded[0].processAlive)
+    assertTrue(!recorded[2].processAlive)
   }
 
   @Test
@@ -4191,12 +4141,12 @@ class GoalRunnerProgressEventEmitterTest {
     GoalRunnerProgressEventEmitter(
       outcomeStore = progressOutcomes,
       resolveWorkflowId = { "wfl-child" },
-      watermarkSeed = null,
+      issueKey = "SKILL-56",
       clock = emissionClock,
       diagnostics = NoopRuntimeDiagnostics,
     ).emit(emission(GoalProgressEventKind.OPERATION_STARTED, processAlive = true))
 
-    val progressBytes = jsonBytes(progressOutcomes.progressEventRecords.single().event.toPersistenceWire())
+    val progressBytes = jsonBytes(progressOutcomes.progressEvents.single().toPersistenceWire())
     assertContentEquals(
       (
         """{"contract_version":"0.1","event_kind":"operation_started","workflow_id":"wfl-child",""" +
@@ -4215,13 +4165,6 @@ class GoalRunnerProgressEventEmitterTest {
       outcomeStore = observabilityOutcomes,
       clock = emissionClock,
       diagnostics = NoopRuntimeDiagnostics,
-      request =
-        GoalRunnerRunRequest(
-          issueKey = "SKILL-56",
-          repoRoot = Path.of("/tmp/skillbill-goal-runner"),
-          invokedAgentId = "claude",
-          observabilitySequenceStart = 0,
-        ),
     ).record(
       GoalRunnerObservabilitySubject("wfl-child", "SKILL-56", 1),
       GoalRunnerObservabilitySignal(
@@ -4265,7 +4208,7 @@ class GoalRunnerProgressEventEmitterTest {
       GoalRunnerProgressEventEmitter(
         outcomeStore = outcomes,
         resolveWorkflowId = { workflowId },
-        watermarkSeed = null,
+        issueKey = "SKILL-56",
         clock = testHarnessClock,
         diagnostics = NoopRuntimeDiagnostics,
       )
@@ -4276,8 +4219,6 @@ class GoalRunnerProgressEventEmitterTest {
     workflowId = "wfl-child"
     emitter.emit(emission(GoalProgressEventKind.OPERATION_HEARTBEAT, processAlive = true))
     assertEquals(1, outcomes.progressEventRecords.size)
-
-    assertEquals(0, outcomes.progressEventRecords.single().event.sequenceNumber)
   }
 
   @Test
@@ -4287,7 +4228,7 @@ class GoalRunnerProgressEventEmitterTest {
       GoalRunnerProgressEventEmitter(
         outcomeStore = outcomes,
         resolveWorkflowId = { "wfl-child" },
-        watermarkSeed = null,
+        issueKey = "SKILL-56",
         clock = testHarnessClock,
         diagnostics = NoopRuntimeDiagnostics,
       )
@@ -4303,7 +4244,7 @@ class GoalRunnerProgressEventEmitterTest {
       GoalRunnerProgressEventEmitter(
         outcomeStore = outcomes,
         resolveWorkflowId = { "wfl-child" },
-        watermarkSeed = null,
+        issueKey = "SKILL-56",
         clock = testHarnessClock,
         diagnostics = NoopRuntimeDiagnostics,
       )
@@ -4326,7 +4267,7 @@ class GoalRunnerProgressEventEmitterTest {
       GoalRunnerProgressEventEmitter(
         outcomeStore = outcomes,
         resolveWorkflowId = { "wfl-child" },
-        watermarkSeed = null,
+        issueKey = "SKILL-56",
         clock = testHarnessClock,
         diagnostics = NoopRuntimeDiagnostics,
       )
@@ -4351,7 +4292,7 @@ class GoalRunnerProgressEventEmitterTest {
       GoalRunnerProgressEventEmitter(
         outcomeStore = outcomes,
         resolveWorkflowId = { "wfl-child" },
-        watermarkSeed = null,
+        issueKey = "SKILL-56",
         clock = testHarnessClock,
         diagnostics = diagnostics,
       )
@@ -4368,7 +4309,7 @@ class GoalRunnerProgressEventEmitterTest {
       GoalRunnerProgressEventEmitter(
         outcomeStore = outcomes,
         resolveWorkflowId = { throw InterruptedException("interrupted") },
-        watermarkSeed = null,
+        issueKey = "SKILL-56",
         clock = testHarnessClock,
         diagnostics = NoopRuntimeDiagnostics,
       )
@@ -4400,15 +4341,12 @@ class GoalRunnerProgressEventEmitterTest {
 
 class GoalRunnerLaunchReconcilerWiringTest {
   @Test
-  fun `reconciler threads a watermark-seeded emitter that persists declared events for the resolved workflow`() {
+  fun `reconciler threads an emitter that persists declared events for the resolved workflow`() {
     val store =
       InMemoryGoalManifestStore(
         manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-1"),
       )
-    val outcomes =
-      RecordingOutcomeStore().apply {
-        ledgerSequenceWatermarks = GoalRunnerLedgerSequenceWatermarks(maxProgressSequence = 41)
-      }
+    val outcomes = RecordingOutcomeStore()
     val reconciler =
       GoalRunnerLaunchReconciler(
         manifestStore = store,
@@ -4447,12 +4385,11 @@ class GoalRunnerLaunchReconcilerWiringTest {
     assertEquals(3, recorded.size, "wired emitter must persist every declared event via recordProgressEvent")
 
     assertTrue(recorded.all { it.workflowId == "wfl-1" })
-    assertTrue(recorded.all { it.event.workflowId == "wfl-1" })
+    assertTrue(recorded.all { it.draft.workflowId == "wfl-1" })
 
-    assertEquals(listOf(42, 43, 44), recorded.map { it.event.sequenceNumber })
-    assertEquals(GoalProgressEventKind.OPERATION_STARTED, recorded[0].event.eventKind)
-    assertEquals(GoalProgressEventKind.OPERATION_COMPLETED, recorded[2].event.eventKind)
-    assertEquals(GoalProgressOutcome.SUCCEEDED, recorded[2].event.outcome)
+    assertEquals(GoalProgressEventKind.OPERATION_STARTED, recorded[0].draft.eventKind)
+    assertEquals(GoalProgressEventKind.OPERATION_COMPLETED, recorded[2].draft.eventKind)
+    assertEquals(GoalProgressOutcome.SUCCEEDED, recorded[2].draft.outcome)
   }
 
   @Test
@@ -4490,10 +4427,10 @@ class GoalRunnerLaunchReconcilerWiringTest {
 
     val recorded = outcomes.progressEventRecords
     assertEquals(2, recorded.size, "pre-assigned id must let the quiet first phase record liveness")
-    assertTrue(recorded.all { it.event.workflowId == "wftr-pre-assigned" })
+    assertTrue(recorded.all { it.draft.workflowId == "wftr-pre-assigned" })
     assertEquals(
       listOf(GoalProgressEventKind.OPERATION_STARTED, GoalProgressEventKind.OPERATION_HEARTBEAT),
-      recorded.map { it.event.eventKind },
+      recorded.map { it.draft.eventKind },
     )
   }
 
@@ -4569,38 +4506,6 @@ class GoalRunnerLaunchReconcilerWiringTest {
 
     assertSame(interruption, thrown)
     assertTrue(Thread.interrupted())
-  }
-
-  @Test
-  fun `reconciler refuses to create a progress emitter when watermark read fails`() {
-    val store =
-      InMemoryGoalManifestStore(
-        manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-1"),
-      )
-    val outcomes = RecordingOutcomeStore().apply { throwOnLedgerWatermarks = true }
-    val reconciler =
-      GoalRunnerLaunchReconciler(
-        manifestStore = store,
-        outcomeStore = outcomes,
-        progressReader = GoalRunnerProgressReader(outcomes),
-        activityStampWriter = testActivityStampWriter(),
-        worktreeEditJournalWriter = testWorktreeEditJournalWriter(),
-        clock = testHarnessClock,
-        diagnostics = NoopRuntimeDiagnostics,
-      )
-
-    assertFailsWith<IllegalStateException> {
-      reconciler.subtaskLaunchRequest(
-        SubtaskLaunchRequestArgs(
-          issueKey = "SKILL-56",
-          subtaskId = 1,
-          request = wiringRunRequest(),
-          assignedWorkflowId = null,
-          reviewBaseline = null,
-          spawnAuthorization = null,
-        ),
-      )
-    }
   }
 
   private fun supervisorEmission(
@@ -4781,6 +4686,12 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
 
   val progressEventRecords: MutableList<GoalRunnerProgressEventRecordRequest> = mutableListOf()
   val attemptLedgerRecords: MutableList<GoalRunnerAttemptLedgerRecordRequest> = mutableListOf()
+
+  val progressEvents: MutableList<GoalProgressEvent> = mutableListOf()
+  val attemptLedgerEntries: MutableList<GoalAttemptLedgerEntry> = mutableListOf()
+  private val nextProgressSequence = mutableMapOf<String, Int>()
+  private val nextLedgerSequence = mutableMapOf<String, Int>()
+
   var throwOnProgressEventRecord: Boolean = false
   var throwOnAttemptLedgerRecord: Boolean = false
   var progressEventFailure: Throwable? = null
@@ -4793,6 +4704,9 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
       error("progress event persistence failed")
     }
     progressEventRecords += request
+    val sequence = nextProgressSequence.getOrDefault(request.issueKey, 0)
+    nextProgressSequence[request.issueKey] = sequence + 1
+    progressEvents += request.draft.toEvent(sequence)
     return true
   }
 
@@ -4802,6 +4716,9 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
       error("attempt ledger persistence failed")
     }
     attemptLedgerRecords += request
+    val sequence = nextLedgerSequence.getOrDefault(request.issueKey, 0)
+    nextLedgerSequence[request.issueKey] = sequence + 1
+    attemptLedgerEntries += request.draft.toEntry(sequence)
     return true
   }
 

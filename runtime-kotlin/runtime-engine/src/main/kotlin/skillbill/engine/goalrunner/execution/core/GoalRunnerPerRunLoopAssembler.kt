@@ -25,7 +25,7 @@ class GoalRunnerPerRunLoopAssembler(
         unaddressedFindingsLedgerService = runBoundaries.unaddressedFindingsLedgerService,
         progressReader = progressReader,
         clock = runBoundaries.clock,
-        phaseRecorder = runBoundaries.phaseRecorder,
+        phaseQuery = runBoundaries.phaseQuery,
         pendingState = pendingState,
       )
     val selectedSubtaskLoop =

@@ -25,16 +25,6 @@ interface GoalRunnerExecutionCoordinator {
     parentWorkflowId: String,
     block: () -> T,
   ): T
-
-  companion object {
-    val NONE: GoalRunnerExecutionCoordinator =
-      object : GoalRunnerExecutionCoordinator {
-        override fun <T> runOwned(
-          parentWorkflowId: String,
-          block: () -> T,
-        ): T = block()
-      }
-  }
 }
 
 class GoalRunnerExecutionAlreadyRunningException(parentWorkflowId: String, detail: String) : SkillBillRuntimeException(

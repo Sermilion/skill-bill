@@ -28,10 +28,6 @@ fun interface GoalPlanningSweep {
     state: GoalRunnerManifestState,
     request: GoalRunnerRunRequest,
   ): GoalPlanningSweepOutcome
-
-  companion object {
-    val NONE: GoalPlanningSweep = GoalPlanningSweep { _, _ -> GoalPlanningSweepOutcome.PreparedAll() }
-  }
 }
 
 @Inject

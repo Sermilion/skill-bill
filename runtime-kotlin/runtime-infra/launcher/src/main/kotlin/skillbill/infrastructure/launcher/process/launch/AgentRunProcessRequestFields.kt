@@ -59,7 +59,6 @@ data class AgentRunProcessRequest(
   val probes: AgentRunProcessProbeFields = AgentRunProcessProbeFields(),
   val environmentFields: AgentRunProcessEnvironmentFields = AgentRunProcessEnvironmentFields(),
   val review: AgentRunProcessReviewFields = AgentRunProcessReviewFields(),
-  val experimentCapabilities: AgentRunProcessExperimentCapabilityFields = AgentRunProcessExperimentCapabilityFields(),
 ) {
   init {
     require(launch.command.isNotEmpty()) { "Agent run command is required." }

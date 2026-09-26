@@ -1,6 +1,7 @@
 package skillbill.engine.featuretask.lifecycle.checkpoint
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
 import skillbill.engine.featuretask.model.subtask.CompletedUpstreamRepairRequest
 import skillbill.engine.featuretask.runner.missingUpstream
 import skillbill.engine.featuretask.runner.phaseDeclaration
@@ -17,9 +18,11 @@ import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATU
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.repair.task.FeatureTaskRuntimeOperatorBlockRetry
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
-import java.time.OffsetDateTime
 import java.time.ZoneOffset
+
+private const val COMPLETED_UPSTREAM_MISSING_OUTPUT_BLOCK_REASON = "completed_upstream_missing_output"
 
 fun phasesToReopenForCompletedUpstreamRepair(
   request: CompletedUpstreamRepairRequest,
@@ -63,8 +66,8 @@ fun completedUpstreamRepairWorkflowUpdate(
         phasesToReopen.map { phaseId ->
           mapOf(
             SharedPayloadKeys.STEP_ID to phaseId,
-            SharedPayloadKeys.STATUS to "pending",
-            "attempt_count" to 0,
+            SharedPayloadKeys.STATUS to WorkflowStepStatus.PENDING.wireValue,
+            WorkflowWirePayloadKeys.ATTEMPT_COUNT to 0,
           )
         },
       ),
@@ -80,12 +83,13 @@ fun completedUpstreamRepairWorkflowUpdate(
             ),
           ),
           DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY.entry(
-            mapOf(
-              SharedPayloadKeys.PHASE_ID to request.resumePhaseId,
-              "reason" to request.reason,
-              "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
-              "previous_blocked_reason" to "completed_upstream_missing_output",
-              "reopened_phase_ids" to phasesToReopen,
+            FeatureTaskRuntimeOperatorBlockRetry(
+              phaseId = request.resumePhaseId,
+              reason = request.reason,
+              retriedAt = request.clock.instant().atOffset(ZoneOffset.UTC).toString(),
+            ).asWorkflowArtifactEntry(
+              previousBlockedReason = COMPLETED_UPSTREAM_MISSING_OUTPUT_BLOCK_REASON,
+              reopenedPhaseIds = phasesToReopen,
             ),
           ),
           DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME.entry(null),
@@ -98,7 +102,7 @@ fun completedUpstreamRepairRetryEntry(request: CompletedUpstreamRepairRequest): 
   FeatureTaskRuntimePhaseLedgerEntry(
     action = FeatureTaskRuntimePhaseLedgerAction.RETRY,
     sequenceNumber = (request.ledger.maxOfOrNull { it.sequenceNumber } ?: -1) + 1,
-    timestamp = OffsetDateTime.now(ZoneOffset.UTC).toString(),
+    timestamp = request.clock.instant().atOffset(ZoneOffset.UTC).toString(),
     phaseId = request.resumePhaseId,
     attemptCount = requireNotNull(request.phaseRecords[request.resumePhaseId]).attemptCount,
     resolvedAgentId = requireNotNull(request.phaseRecords[request.resumePhaseId]).resolvedAgentId,

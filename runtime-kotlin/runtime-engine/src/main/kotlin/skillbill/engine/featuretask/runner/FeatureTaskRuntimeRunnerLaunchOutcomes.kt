@@ -88,7 +88,7 @@ fun persistGoalContinuationOutcome(
   val context = request.goalContinuation ?: return report
   val outcome =
     goalContinuationOutcomeFor(phaseRecorder, gitOperations, request, context, report)?.let { base ->
-      val attribution = agentAttributionFromPhaseState(phaseRecorder, request.workflowId)
+      val attribution = agentAttributionFromPhaseState(phaseRecorder.phaseQuery, request.workflowId)
       base.copy(
         finalizingAgentId = attribution.finalizingAgentId,
         participatingAgentIds = attribution.participatingAgentIds,

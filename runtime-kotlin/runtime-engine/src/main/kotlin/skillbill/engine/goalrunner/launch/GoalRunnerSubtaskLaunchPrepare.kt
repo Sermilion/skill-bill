@@ -47,6 +47,7 @@ class GoalRunnerSubtaskLaunchPrepare(
   private val launchBoundaries: GoalRunnerSubtaskLaunchBoundaries,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
   private val clock: Clock,
+  private val random: Random,
 ) {
   private val manifestStore get() = launchBoundaries.manifestStore
   private val outcomeStore get() = launchBoundaries.outcomeStore
@@ -197,7 +198,7 @@ class GoalRunnerSubtaskLaunchPrepare(
       reopenBlockedChildForOperatorResume(subtaskId, priorWorkflowId, subtask)
     }
     val firstRun = priorWorkflowId == null
-    val assignedWorkflowId = priorWorkflowId ?: generateWorkflowId(RUNTIME_WORKFLOW_ID_PREFIX, clock, Random.Default)
+    val assignedWorkflowId = priorWorkflowId ?: generateWorkflowId(RUNTIME_WORKFLOW_ID_PREFIX, clock, random)
     val rawSpecPath =
       requireNotNull(
         subtask.specPath.takeIf(String::isNotBlank),

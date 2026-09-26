@@ -15,8 +15,7 @@ import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskFinal
 import skillbill.engine.featuretask.model.subtask.FeatureTaskRuntimeSubtaskFinalised
 import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoopCheckpoint
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimePhaseStartReentry
-import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopOutputPersistence
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
 import skillbill.engine.featuretask.validation.ReadinessCommitPushSettleRequest
@@ -69,7 +68,7 @@ object FeatureTaskRuntimeRunLoopCommitPush {
     val baseBranch = recorder.loadResolvedBranch(request.workflowId)?.baseBranch ?: "main"
     val readiness = commitPushReadiness(this, baseBranch)
     if (readiness is ReadinessCommitPushSettleResult.Blocked) {
-      return FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
+      return FeatureTaskRuntimeRunLoopPhaseBlocking.blockAndPersistInPhase(
         request,
         state,
         recorder,
@@ -157,7 +156,7 @@ object FeatureTaskRuntimeRunLoopCommitPush {
             commitSha = args.outcome.commitSha,
             branch = args.branch,
             baseBranch = args.baseBranch,
-            pushed = !context.request.deferRemotePublication,
+            pushed = true,
           ),
         ),
       )
@@ -201,7 +200,6 @@ object FeatureTaskRuntimeRunLoopCommitPush {
           branch = args.branch,
           intent = FeatureTaskRuntimeCheckpointMessage.INTENT_FINALISED_SUBTASK,
         ),
-      deferRemotePublication = context.request.deferRemotePublication,
     ),
   )
 
@@ -266,7 +264,7 @@ object FeatureTaskRuntimeRunLoopCommitPush {
       }
     val normalizedOutput = accepted.normalizedOutput
     if (!persistCompleted(run, iteration, outputText, accepted)) {
-      return FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+      return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
         request,
         state,
         recorder,
@@ -297,7 +295,7 @@ object FeatureTaskRuntimeRunLoopCommitPush {
     iteration: Int,
   ): PhaseOutcome? {
     val runningPhaseState =
-      FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(
+      FeatureTaskRuntimeRunLoopPhaseBlocking.phaseStateRequest(
         request,
         state,
         goalContinuationRecorder,
@@ -314,7 +312,7 @@ object FeatureTaskRuntimeRunLoopCommitPush {
       )
     state.reserveReviewPass(runningPhaseState.reviewPassNumber)
     if (!recorder.recordPhaseState(runningPhaseState)) {
-      return FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+      return FeatureTaskRuntimeRunLoopPhaseBlocking.blockInPhase(
         request,
         state,
         recorder,
@@ -338,7 +336,7 @@ object FeatureTaskRuntimeRunLoopCommitPush {
     acceptedOutput: AcceptedFeatureTaskRuntimePhaseOutput,
   ): Boolean =
     recorder.recordCompletedPhase(
-      FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(
+      FeatureTaskRuntimeRunLoopPhaseBlocking.phaseStateRequest(
         request,
         state,
         goalContinuationRecorder,
@@ -373,7 +371,7 @@ object FeatureTaskRuntimeRunLoopCommitPush {
     iteration: Int,
     reason: String,
   ): PhaseOutcome =
-    FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
+    FeatureTaskRuntimeRunLoopPhaseBlocking.blockAndPersistInPhase(
       request,
       state,
       recorder,

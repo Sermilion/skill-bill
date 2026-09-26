@@ -122,18 +122,6 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
     FeatureTaskRuntimeGoalContinuationLaunchTokens.AGENT_ADDON_SELECTION_JSON_FLAG,
     help = "Already-resolved ordered agent add-on selection JSON. Raw agent-addon tokens are not accepted here.",
   )
-  internal val goalExperimentArmId by option(
-    FeatureTaskRuntimeGoalContinuationLaunchTokens.GOAL_EXPERIMENT_ARM_ID_FLAG,
-    help = "Goal experiment arm supplied by the goal runner.",
-  )
-  internal val goalExperimentTreatmentCapabilities by option(
-    FeatureTaskRuntimeGoalContinuationLaunchTokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_FLAG,
-    help = "Goal experiment treatment capability. Repeat for each capability.",
-  ).multiple()
-  internal val deferRemotePublication by option(
-    FeatureTaskRuntimeGoalContinuationLaunchTokens.DEFER_REMOTE_PUBLICATION_FLAG,
-    help = "Defer remote publication for this goal-continuation run.",
-  ).flag(default = false)
 
   protected fun resolveRunWorkflowId(
     workflowService: WorkflowService,
@@ -183,7 +171,6 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
             goalContinuation = prepared.goalContinuation,
             operatorDecision = prepared.operatorDecision,
             agentAddonSelection = prepared.agentAddonSelection,
-            deferRemotePublication = prepared.goalContinuation?.deferRemotePublication == true,
             eventSink = runtimeRunEventSink(deps.inputs, monitor),
           )
         deps.inputs.featureTaskRuntimeRunOverride?.invoke(request) ?: deps.runner.run(request)

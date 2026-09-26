@@ -357,7 +357,8 @@ Inside this bundle the order is subtask id order: 1 through 12. Dependencies: 2â
   - no inline FQNs
   - wire keys from owning `*Keys` objects
   - enum wire tokens via `wireValue`
-- **SKILL-378.2's rules stay in force:**
+- **SKILL-378.2's and the SKILL-378 step-class follow-up's rules stay in force:**
+  - acyclic `FeatureTaskRuntimeRunLoop*` dependency graph
   - no top-level function objects in `featuretask/runloop`
   - no collaborator-carrying `*Args`/`*Inputs`/`*Context` classes
   - at most six parameters per function

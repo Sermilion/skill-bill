@@ -4,7 +4,10 @@ import skillbill.error.core.ShellContentContractException
 
 class UnaddressedFindingsLedgerAbsentError(message: String) : ShellContentContractException(message)
 
-class InvalidUnaddressedFindingsLedgerSchemaError(message: String) : ShellContentContractException(message)
+class InvalidUnaddressedFindingsLedgerSchemaError(
+  message: String,
+  cause: Throwable? = null,
+) : ShellContentContractException(message, cause)
 
 class GovernedReviewEvidenceTransportError(
   message: String,

@@ -146,7 +146,6 @@ class CliRuntimeShellCommandsTest {
         "goal",
         "version",
         "code-review",
-        "experiments",
       )
     val positions =
       commandNames.map { command ->

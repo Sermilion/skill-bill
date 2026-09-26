@@ -139,6 +139,18 @@ Areas: runtime-kotlin/{runtime-domain,runtime-ports,runtime-engine,runtime-appli
 Feature flag: N/A
 Acceptance criteria: 9/9 implemented
 
+## [2026-09-23] SKILL-378 subtask 1 — Delete experiments and close inner-layer gaps
+Areas: orchestration/contracts, runtime-kotlin/{runtime-contracts,runtime-domain,runtime-ports,runtime-engine,runtime-core,runtime-cli,runtime-infra/{contracts,host,launcher,sqlite,workflow}}, skills/bill-feature
+- Removed the whole SKILL-366 experiment surface: four contract schemas and their copy tasks, the `skillbill.experiment` packages across ports/domain/engine/contracts/infra/di, the `experiments` CLI group, and `--experiments` on `goal` and `goal preflight`.
+- Retention rule: migrations 42-44 stay byte-identical and migration 45 `skill-378-drop-experiment-tables` drops the five experiment tables, so an existing database upgrades instead of loud-failing. reusable
+- Config removal is tolerant, not breaking: repo-local and machine configs that still carry an `experiments` block load, keep their other keys, and survive `ensure()`. Pattern for retiring any config key. reusable
+- `SkillRunRequest.denyRemotePublication` went with the experiment arm push guard; the independently consumed `deferRemotePublication` stayed. Check reader counts before removing a sibling flag.
+- runtime-engine main is now clean of ambient time, ambient randomness, and file IO: `GoalRunnerAcceptanceCoordinator`, `CompletedUpstreamRepairRequest` take `Clock`, `GoalRunnerSubtaskLaunchPrepare` takes `Random`, and the file-IO guard path filter covers runtime-engine main with a synthetic-violation test.
+- Six goal-planning/goal-runner null objects moved from interface companions to runtime-engine `testFixtures`; `PortNullObjectCensus` grew a companion-val rule so test-only null objects in `src/main` fail. reusable
+- Known limitation: the `runtime-engine-ambient-clock-baseline.txt` file is now empty and unread by any test; SKILL-373 owns pruning the architecture suite.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-22] SKILL-368 subtask 2 — Governed resources typed task and Java guard ownership
 Areas: runtime-kotlin/build-logic/convention, runtime-kotlin/runtime-infra/{contracts,workflow,host}, install.sh, uninstall.sh, docs/code-principles.md
 - `GovernedResourceCopy` is a typed task with one `@OutputFile` per entry (36 contracts entries share one destination directory, so `@OutputDirectory` would overlap); the extension and plugin wire only main `processResources`, with no `afterEvaluate` and no `processTestResources`. reusable

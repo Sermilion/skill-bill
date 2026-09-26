@@ -2,185 +2,138 @@ package skillbill.engine.featuretask.runloop.output
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
-import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeProducerOutputRead
-import skillbill.engine.featuretask.model.phase.ProducerOutputQueryArgs
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.core.AttemptResult
 import skillbill.engine.featuretask.runloop.core.BlockAndPersistPayload
-import skillbill.engine.featuretask.runloop.core.CapturedPhaseOutput
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopLaunch
 import skillbill.engine.featuretask.runloop.core.GateOutput
 import skillbill.engine.featuretask.runloop.core.PauseAndPersistInPhaseArgs
 import skillbill.engine.featuretask.runloop.core.PersistPhaseArgs
-import skillbill.engine.featuretask.runloop.core.PhaseOutcome
-import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.engine.featuretask.runloop.core.PhaseStateWriteArgs
-import skillbill.engine.featuretask.runloop.core.RecordRejectedOutputArgs
 import skillbill.engine.featuretask.runloop.core.RecordRejection
 import skillbill.engine.featuretask.runloop.core.RecordRejectionAttemptArgs
-import skillbill.engine.featuretask.runloop.core.RejectedOutputTargetingOverrides
 import skillbill.engine.featuretask.runloop.core.SettleRecordRejectionArgs
-import skillbill.engine.featuretask.runloop.core.UnattributableRecordRejectionArgs
-import skillbill.engine.featuretask.runloop.core.WriteUnattributableRejectedEvidenceArgs
-import skillbill.engine.featuretask.runloop.core.defaultRejectedOutputTargetingArgs
 import skillbill.engine.featuretask.runloop.core.phaseBlockArgs
 import skillbill.engine.featuretask.runloop.core.withDisposition
-import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.settlement.FeatureTaskRuntimeRunLoopAttemptSettlement
-import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.LaunchResult
 import skillbill.engine.featuretask.runner.SCHEMA_GATE_DETAIL_MAX_CHARS
 import skillbill.engine.featuretask.runner.STATUS_RUNNING
 import skillbill.engine.featuretask.runner.boundedSchemaGateDetail
 import skillbill.engine.featuretask.runner.infraFailureReason
-import skillbill.ports.diagnostics.model.ProducerOutputEvidence
-import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 
+internal fun rejectionPath(detail: String): String {
+  Regex("""(?:instance location|path|pointer)\s*[:=]\s*['"]?(/[^\s,'"]*)""", RegexOption.IGNORE_CASE)
+    .find(detail)
+    ?.groupValues
+    ?.get(1)
+    ?.let { return it }
+  val dollarPath = Regex("""\$(?:\.[A-Za-z0-9_-]+|\[[0-9]+])+""").find(detail)?.value ?: return "/"
+  return dollarPath.removePrefix("$")
+    .replace(Regex("""\.([A-Za-z0-9_-]+)"""), "/${'$'}1")
+    .replace(Regex("""\[([0-9]+)]"""), "/${'$'}1")
+}
+
+internal fun payloadFreeRejectionReason(
+  rule: String,
+  path: String,
+): String = "Rejected output violated '$rule' at '$path'. Inspect the private diagnostic for the exact response."
+
+internal fun retryRejectionReason(
+  payloadFreeReason: String,
+  validationReason: String?,
+): String =
+  if (validationReason.isNullOrBlank()) {
+    payloadFreeReason
+  } else {
+    "$payloadFreeReason Violated constraint: ${boundedSchemaGateDetail(validationReason)}"
+  }
+
+internal fun payloadFreeSemanticGateConstraint(
+  rule: String,
+  detail: String,
+  rejectedOutput: Map<
+    String,
+    Any?,
+  >,
+): String? =
+  when (rule) {
+    "mutating-reconciliation" -> detail.takeUnless { it.isBlank() }
+    "repair-receipt" -> detail.takeUnless { it.isBlank() }
+    "validation-result" -> {
+      val produced = JsonCodec.anyToStringAnyMap(rejectedOutput[SharedPayloadKeys.PRODUCED_OUTPUTS])
+      val failureDetails = produced?.get(SharedPayloadKeys.VALUE) as? String
+      listOfNotNull(detail, failureDetails).joinToString("\n").take(SCHEMA_GATE_DETAIL_MAX_CHARS)
+    }
+    "producer-projection",
+    "consumer-projection",
+    "output-verification",
+    -> scrubResponseDerivedGateDetail(detail, rejectedOutput)
+    else -> scrubBoundedReferenceGateConstraint(detail)
+  }
+
+internal fun scrubBoundedReferenceGateConstraint(detail: String): String? {
+  if (detail.isBlank()) return null
+  val namesArtifactRef = detail.contains("artifact_ref")
+  val namesCheckRef = detail.contains("check_ref")
+  if (!namesArtifactRef && !namesCheckRef) return null
+  val cap = BOUNDED_REF_LENGTH_CAP_PATTERN.find(detail)?.groupValues?.get(1)?.replace(",", "")
+  return when {
+    namesArtifactRef && cap != null -> "artifact_ref allows at most $cap characters."
+    namesCheckRef && cap != null -> "check_ref allows at most $cap characters."
+    namesArtifactRef ->
+      "artifact_ref must be a bounded path or symbol reference such as " +
+        "src/main/Example.kt or src/main/Example.kt:Example."
+    else ->
+      "check_ref must match AC-###, F-###, or a name ending in Test or Check, optionally followed " +
+        "by :symbol; examples: AC-005, FeatureTaskRuntimeAuditEntryGateTest, or codeCheck:detekt."
+  }
+}
+
+internal fun scrubResponseDerivedGateDetail(
+  detail: String,
+  rejectedOutput: Map<String, Any?>,
+): String? {
+  if (detail.isBlank()) return null
+  var text = detail.take(SCHEMA_GATE_DETAIL_MAX_CHARS)
+  text = scrubOffVocabularyVerdictQuote(text)
+  text = OFFENDING_VALUE_APPENDIX_PATTERN.replace(text, "")
+  text = EXPECTED_ACTUAL_LIST_PATTERN.replace(text, "")
+  responseStringValues(rejectedOutput)
+    .filter { value ->
+      value.length >= MIN_RESPONSE_STRING_VALUE_LENGTH &&
+        SCHEMA_DETAIL_TYPE_WORDS.none { typeWord -> typeWord.equals(value, ignoreCase = true) } &&
+        text.contains(value)
+    }
+    .sortedByDescending(String::length)
+    .forEach { value -> text = text.replace(value, "[response value omitted]") }
+  return text.trim().takeUnless { it.isBlank() }
+}
+
+private fun responseStringValues(value: Any?): List<String> =
+  when (value) {
+    is String -> listOf(value)
+    is Map<*, *> -> value.values.flatMap(::responseStringValues)
+    is Iterable<*> -> value.flatMap(::responseStringValues)
+    else -> emptyList()
+  }.distinct()
+
+internal fun scrubOffVocabularyVerdictQuote(text: String): String {
+  val start = text.indexOf(OFF_VOCABULARY_VERDICT_OPEN, ignoreCase = true)
+  if (start < 0) return text
+  val afterOpenQuote = start + OFF_VOCABULARY_VERDICT_OPEN.length
+  val closeAt = text.lastIndexOf(OFF_VOCABULARY_VERDICT_CLOSE_BOUNDARY)
+  return if (closeAt >= afterOpenQuote) {
+    text.substring(0, start) + "off-vocabulary verdict" + text.substring(closeAt + 1)
+  } else {
+    text.substring(0, start) + "off-vocabulary verdict"
+  }
+}
+
 object FeatureTaskRuntimeRunLoopRecordRejection {
-  internal fun blockUnattributableRecordRejection(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    observability: FeatureTaskRuntimeRunObservability,
-    args: UnattributableRecordRejectionArgs,
-  ): PhaseOutcome {
-    val run = args.context.run
-    val state = args.context.state
-    val iteration = args.context.iteration
-    val observability = args.context.observability
-    val rejection = args.rejection
-    val producer = args.producer
-    val detail =
-      payloadFreeRejectionReason(
-        "reconciliation-${rejection.rejectionClass}",
-        rejectionPath(rejection.rejectionDetail),
-      )
-    recordUnattributableRejectedEvidence(request, recorder, run, state, rejection)
-    return FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
-      request,
-      state,
-      recorder,
-      null,
-      phaseBlockArgs(
-        run = run,
-        attemptCount = iteration,
-        reason = unattributableRecordRejectionReason(run.phaseId, rejection, producer, detail),
-        observability = observability,
-        payload = BlockAndPersistPayload(childNeverLaunched = true),
-      ).withDisposition(FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION),
-    )
-  }
-
-  internal fun rejectionPath(detail: String): String {
-    Regex("""(?:instance location|path|pointer)\s*[:=]\s*['"]?(/[^\s,'"]*)""", RegexOption.IGNORE_CASE)
-      .find(detail)
-      ?.groupValues
-      ?.get(1)
-      ?.let { return it }
-    val dollarPath = Regex("""\$(?:\.[A-Za-z0-9_-]+|\[[0-9]+])+""").find(detail)?.value ?: return "/"
-    return dollarPath.removePrefix("$")
-      .replace(Regex("""\.([A-Za-z0-9_-]+)"""), "/${'$'}1")
-      .replace(Regex("""\[([0-9]+)]"""), "/${'$'}1")
-  }
-
-  internal fun payloadFreeRejectionReason(
-    rule: String,
-    path: String,
-  ): String = "Rejected output violated '$rule' at '$path'. Inspect the private diagnostic for the exact response."
-
-  internal fun retryRejectionReason(
-    payloadFreeReason: String,
-    validationReason: String?,
-  ): String =
-    if (validationReason.isNullOrBlank()) {
-      payloadFreeReason
-    } else {
-      "$payloadFreeReason Violated constraint: ${boundedSchemaGateDetail(validationReason)}"
-    }
-
-  internal fun payloadFreeSemanticGateConstraint(
-    rule: String,
-    detail: String,
-    rejectedOutput: Map<
-      String,
-      Any?,
-    >,
-  ): String? =
-    when (rule) {
-      "mutating-reconciliation" -> detail.takeUnless { it.isBlank() }
-      "repair-receipt" -> detail.takeUnless { it.isBlank() }
-      "validation-result" -> {
-        val produced = JsonCodec.anyToStringAnyMap(rejectedOutput[SharedPayloadKeys.PRODUCED_OUTPUTS])
-        val failureDetails = produced?.get(SharedPayloadKeys.VALUE) as? String
-        listOfNotNull(detail, failureDetails).joinToString("\n").take(SCHEMA_GATE_DETAIL_MAX_CHARS)
-      }
-      "producer-projection",
-      "consumer-projection",
-      "output-verification",
-      -> scrubResponseDerivedGateDetail(detail, rejectedOutput)
-      else -> scrubBoundedReferenceGateConstraint(detail)
-    }
-
-  internal fun scrubBoundedReferenceGateConstraint(detail: String): String? {
-    if (detail.isBlank()) return null
-    val namesArtifactRef = detail.contains("artifact_ref")
-    val namesCheckRef = detail.contains("check_ref")
-    if (!namesArtifactRef && !namesCheckRef) return null
-    val cap = BOUNDED_REF_LENGTH_CAP_PATTERN.find(detail)?.groupValues?.get(1)?.replace(",", "")
-    return when {
-      namesArtifactRef && cap != null -> "artifact_ref allows at most $cap characters."
-      namesCheckRef && cap != null -> "check_ref allows at most $cap characters."
-      namesArtifactRef ->
-        "artifact_ref must be a bounded path or symbol reference such as " +
-          "src/main/Example.kt or src/main/Example.kt:Example."
-      else ->
-        "check_ref must match AC-###, F-###, or a name ending in Test or Check, optionally followed " +
-          "by :symbol; examples: AC-005, FeatureTaskRuntimeAuditEntryGateTest, or codeCheck:detekt."
-    }
-  }
-
-  internal fun scrubResponseDerivedGateDetail(
-    detail: String,
-    rejectedOutput: Map<String, Any?>,
-  ): String? {
-    if (detail.isBlank()) return null
-    var text = detail.take(SCHEMA_GATE_DETAIL_MAX_CHARS)
-    text = scrubOffVocabularyVerdictQuote(text)
-    text = OFFENDING_VALUE_APPENDIX_PATTERN.replace(text, "")
-    text = EXPECTED_ACTUAL_LIST_PATTERN.replace(text, "")
-    responseStringValues(rejectedOutput)
-      .filter { value ->
-        value.length >= MIN_RESPONSE_STRING_VALUE_LENGTH &&
-          SCHEMA_DETAIL_TYPE_WORDS.none { typeWord -> typeWord.equals(value, ignoreCase = true) } &&
-          text.contains(value)
-      }
-      .sortedByDescending(String::length)
-      .forEach { value -> text = text.replace(value, "[response value omitted]") }
-    return text.trim().takeUnless { it.isBlank() }
-  }
-
-  internal fun responseStringValues(value: Any?): List<String> {
-    val values = mutableListOf<String>()
-    collectResponseStringValues(value, values)
-    return values.distinct()
-  }
-
-  internal fun collectResponseStringValues(
-    value: Any?,
-    values: MutableList<String>,
-  ) {
-    when (value) {
-      is String -> values += value
-      is Map<*, *> -> value.values.forEach { nested -> collectResponseStringValues(nested, values) }
-      is Iterable<*> -> value.forEach { nested -> collectResponseStringValues(nested, values) }
-    }
-  }
-
   internal fun attemptOnce(
     context: FeatureTaskRuntimeRunLoopContext,
     args: RecordRejectionAttemptArgs,
@@ -203,7 +156,7 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
               finished = false,
               outputArtifact = state.outputFor(run.phaseId)?.payload,
             ),
-          launched = FeatureTaskRuntimeRunLoopOutputPersistence.launchedModelDirective(run),
+          launched = FeatureTaskRuntimeRunLoopLaunch.launchedModelDirective(run),
         ),
       )
       val launch =
@@ -213,121 +166,6 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
       return FeatureTaskRuntimeRunLoopRecordRejection.settleRecordRejectionLaunchOutcome(context, args, launch)
     }
   }
-
-  internal fun recordUnattributableRejectedEvidence(
-    request: FeatureTaskRuntimeRunRequest,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    rejection: RecordRejection,
-  ) {
-    val detail =
-      payloadFreeRejectionReason(
-        "reconciliation-${rejection.rejectionClass}",
-        rejectionPath(rejection.rejectionDetail),
-      )
-    val rejectedOutput =
-      run.declaration.projectionDeclarations
-        .asSequence()
-        .map { it.producerIteration.phaseId }
-        .distinct()
-        .mapNotNull { phaseId -> state.outputFor(phaseId) }
-        .firstOrNull()
-    val evidence =
-      rejectedOutput?.let { output ->
-        unattributableProducerEvidence(request, recorder, state, output)
-      }
-    evidence?.let {
-      writeUnattributableRejectedEvidence(
-        WriteUnattributableRejectedEvidenceArgs(state, recorder, run, rejection, detail, it),
-      )
-    }
-  }
-
-  private fun unattributableProducerEvidence(
-    request: FeatureTaskRuntimeRunRequest,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    state: FeatureTaskRuntimeRunState,
-    output: FeatureTaskRuntimePhaseOutput,
-  ): ProducerOutputEvidence? {
-    val agentId = state.recordFor(output.phaseId)?.resolvedAgentId ?: return null
-    return when (
-      val read =
-        recorder.producerOutput(
-          ProducerOutputQueryArgs(
-            workflowId = request.workflowId,
-            phaseId = output.phaseId,
-            attempt = output.iteration.coerceAtLeast(1),
-            agentId = agentId,
-            generation = state.evidenceGeneration(output.phaseId),
-          ),
-        )
-    ) {
-      is FeatureTaskRuntimeProducerOutputRead.Found -> read.evidence
-      is FeatureTaskRuntimeProducerOutputRead.Absent,
-      is FeatureTaskRuntimeProducerOutputRead.Unreadable,
-      -> null
-    }
-  }
-
-  private fun writeUnattributableRejectedEvidence(args: WriteUnattributableRejectedEvidenceArgs) {
-    val state = args.state
-    val recorder = args.recorder
-    val run = args.run
-    val rejection = args.rejection
-    val detail = args.detail
-    val evidence = args.evidence
-    val payload = evidence.payload ?: byteArrayOf()
-    FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(
-      state,
-      recorder,
-      RecordRejectedOutputArgs(
-        run = run,
-        iteration = evidence.attempt,
-        rule = "reconciliation-${rejection.rejectionClass}",
-        reason = retryRejectionReason(detail, rejection.rejectionDetail),
-        captured =
-          CapturedPhaseOutput(
-            text = payload.decodeToString(),
-            bytes = payload,
-            truncated = evidence.payload == null,
-            byteSize = evidence.byteSize,
-            sha256 = evidence.sha256,
-          ),
-        targeting =
-          FeatureTaskRuntimeRunLoopAttemptSettlement.rejectedOutputTargeting(
-            defaultRejectedOutputTargetingArgs(
-              run,
-              RejectedOutputTargetingOverrides(
-                phaseId = evidence.phaseId,
-                agentId = evidence.agentId,
-                model = evidence.model,
-                path = rejectionPath(rejection.rejectionDetail),
-                repairTurn = evidence.repairTurn,
-              ),
-            ),
-          ),
-      ),
-    )
-  }
-
-  internal fun unattributableRecordRejectionReason(
-    consumerPhaseId: String,
-    rejection: RecordRejection,
-    producer: String?,
-    detail: String,
-  ): String =
-    if (producer == null) {
-      "Feature-task-runtime phase '$consumerPhaseId' rejected an upstream durable record " +
-        "(${rejection.rejectionClass}) it cannot attribute to a producing phase, so no regeneration edge " +
-        "applies; the run blocks durably. Recover the record out of band by deleting or migrating the " +
-        "offending row. Detail: $detail"
-    } else {
-      "Feature-task-runtime phase '$consumerPhaseId' rejected the durable record produced by '$producer', but " +
-        "'$producer' is absent from this run's resolved pipeline (a goal-continuation truncation dropped it), " +
-        "so it cannot be regenerated in-band; the run blocks durably. Recover the record out of band by " +
-        "deleting or migrating the offending row. Detail: $detail"
-    }
 
   internal fun settleRecordRejectionLaunchOutcome(
     context: FeatureTaskRuntimeRunLoopContext,
@@ -367,7 +205,7 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
     reason: String,
   ): AttemptResult =
     AttemptResult.settled(
-      with(FeatureTaskRuntimeRunLoopPhaseAttempts) {
+      with(FeatureTaskRuntimeRunLoopPhaseBlocking) {
         context.pauseAndPersistInPhase(
           PauseAndPersistInPhaseArgs(
             args.context.run,
@@ -396,7 +234,7 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
         launch.infraFailureChildOutput,
       )
       return AttemptResult.settled(
-        FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
+        FeatureTaskRuntimeRunLoopPhaseBlocking.blockAndPersistInPhase(
           request,
           state,
           recorder,
@@ -435,18 +273,6 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
         )
       },
     )
-
-  internal fun scrubOffVocabularyVerdictQuote(text: String): String {
-    val start = text.indexOf(OFF_VOCABULARY_VERDICT_OPEN, ignoreCase = true)
-    if (start < 0) return text
-    val afterOpenQuote = start + OFF_VOCABULARY_VERDICT_OPEN.length
-    val closeAt = text.lastIndexOf(OFF_VOCABULARY_VERDICT_CLOSE_BOUNDARY)
-    return if (closeAt >= afterOpenQuote) {
-      text.substring(0, start) + "off-vocabulary verdict" + text.substring(closeAt + 1)
-    } else {
-      text.substring(0, start) + "off-vocabulary verdict"
-    }
-  }
 }
 
 const val OFF_VOCABULARY_VERDICT_OPEN = "off-vocabulary verdict '"

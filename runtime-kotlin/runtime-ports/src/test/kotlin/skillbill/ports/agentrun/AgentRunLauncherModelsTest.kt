@@ -71,7 +71,6 @@ class AgentRunLauncherModelsTest {
       workerRole = "goal_runner_supervisor",
       livenessClass = "subtask_start",
       activitySummary = "started",
-      sequenceNumber = 1,
       timestamp = "2026-06-01T00:00:00Z",
     )
 
@@ -84,7 +83,6 @@ class AgentRunLauncherModelsTest {
         workerRole = "goal_runner_supervisor",
         livenessClass = "subtask_start",
         activitySummary = "started",
-        sequenceNumber = 1,
         timestamp = "2026-06-01T00:00:00Z",
       )
     }

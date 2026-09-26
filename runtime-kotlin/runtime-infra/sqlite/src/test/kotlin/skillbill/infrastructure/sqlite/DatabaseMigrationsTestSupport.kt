@@ -1194,6 +1194,44 @@ val LEGACY_ROUTED_SKILL_VARIANTS: List<String> =
 val LEGACY_STACK_VARIANTS: List<String> =
   listOf("kotlin", "Kotlin", "Kotlin/JVM", "kotlin (jvm backend)", "  KOTLIN  ")
 const val AMBIGUOUS_ROUTED_SKILL: String = "bill-kmp-code-review, bill-ios-code-review"
+val EXPERIMENT_TABLE_NAMES: List<String> =
+  listOf(
+    "experiment_reports",
+    "experiment_pair_leases",
+    "experiment_arm_outcomes",
+    "experiment_observations",
+    "experiment_pairs",
+  )
+val LEGACY_EXPERIMENT_ROWS: List<String> =
+  listOf(
+    """
+    INSERT INTO experiment_pairs(
+      pair_id, contract_version, execution_mode, selected_experiment_names_json,
+      arm_order_json, delivery_arm, pair_status, frozen_input_identity_json, delivery_status
+    ) VALUES ('pair-legacy', '0.1', 'goal_pair', '{}', '{}', 'control', 'completed', '{}', 'published')
+    """.trimIndent(),
+    """
+    INSERT INTO experiment_observations(
+      observation_id, pair_id, arm_id, event_identity_json, recorded_at, measurements_json
+    ) VALUES ('obs-legacy', 'pair-legacy', 'control', '{}', '2026-09-21', '{}')
+    """.trimIndent(),
+    """
+    INSERT INTO experiment_arm_outcomes(pair_id, arm_id, workflow_id, terminal_status, outcome_json)
+    VALUES ('pair-legacy', 'control', 'wfl-kept', 'completed', '{}')
+    """.trimIndent(),
+    "INSERT INTO experiment_pair_leases(pair_id, owner_token, generation, expires_at) " +
+      "VALUES ('pair-legacy', 'owner', 1, 0)",
+    "INSERT INTO experiment_reports(pair_id, report_json) VALUES ('pair-legacy', '{}')",
+  )
+
+internal fun goalRunSessionInsert(workflowId: String): String =
+  """
+  INSERT INTO goal_run_sessions(
+    workflow_id, issue_key, started_at, finished_at, status,
+    finished_duration_ms, subtasks_complete, subtasks_blocked, subtasks_skipped
+  ) VALUES ('$workflowId', 'SKILL-378', '2026-09-21', '2026-09-21', 'completed', 1, 1, 0, 0)
+  """.trimIndent()
+
 const val VERSION_KEYED_SCHEMA_MIGRATIONS_SQL: String =
   """
     CREATE TABLE schema_migrations (

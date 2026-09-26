@@ -12,10 +12,6 @@ import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.infrastructure.contracts.locator.DecompositionManifestBundleJournalSchemaPaths
 import skillbill.infrastructure.contracts.locator.DecompositionManifestSchemaPaths
-import skillbill.infrastructure.contracts.locator.ExperimentDescriptorSchemaPaths
-import skillbill.infrastructure.contracts.locator.ExperimentObservationSchemaPaths
-import skillbill.infrastructure.contracts.locator.ExperimentPairSchemaPaths
-import skillbill.infrastructure.contracts.locator.ExperimentReportSchemaPaths
 import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.infrastructure.contracts.locator.FeatureTaskRuntimeReadinessEvidenceSchemaPaths
 import skillbill.infrastructure.sqlite.telemetry.SqliteReviewTelemetryPayloadKeys
@@ -114,87 +110,12 @@ internal object WireVocabularyGovernedSeamInventory {
           ),
       ),
       GovernedPayloadSeam(
-        seamId = "experiment-descriptor",
-        schemaRepoRelativePath = ExperimentDescriptorSchemaPaths.REPO_RELATIVE_PATH,
-        governedRelativePathMarkers =
-          listOf(
-            "infrastructure/contracts/experiment/",
-            "ports/experiment/descriptor/",
-          ),
-      ),
-      GovernedPayloadSeam(
-        seamId = "experiment-pair",
-        schemaRepoRelativePath = ExperimentPairSchemaPaths.REPO_RELATIVE_PATH,
-        governedRelativePathMarkers =
-          listOf(
-            "infrastructure/sqlite/experiment/",
-            "engine/goalrunner/experiment/",
-            "ports/experiment/pair/",
-          ),
-      ),
-      GovernedPayloadSeam(
-        seamId = "experiment-observation",
-        schemaRepoRelativePath = ExperimentObservationSchemaPaths.REPO_RELATIVE_PATH,
-        governedRelativePathMarkers =
-          listOf(
-            "infrastructure/sqlite/experiment/SqliteExperimentPairOwnerStore",
-          ),
-      ),
-      GovernedPayloadSeam(
-        seamId = "experiment-report",
-        schemaRepoRelativePath = ExperimentReportSchemaPaths.REPO_RELATIVE_PATH,
-        governedRelativePathMarkers =
-          listOf(
-            "engine/experiment/report/",
-          ),
-      ),
-      GovernedPayloadSeam(
         seamId = "telemetry-proxy",
         schemaRepoRelativePath = TELEMETRY_PROXY_AUTHORITY,
         governedRelativePathMarkers =
           listOf(
             "infrastructure/http/",
             "cli/telemetry/TelemetryCliResultMappers",
-          ),
-      ),
-      GovernedPayloadSeam(
-        seamId = "experiment-descriptor",
-        schemaRepoRelativePath = ExperimentDescriptorSchemaPaths.REPO_RELATIVE_PATH,
-        governedRelativePathMarkers =
-          listOf(
-            "contracts/experiment/ExperimentDescriptor",
-            "infrastructure/contracts/experiment/",
-            "infrastructure/sqlite/experiment/",
-            "engine/goalrunner/experiment/",
-          ),
-      ),
-      GovernedPayloadSeam(
-        seamId = "experiment-pair",
-        schemaRepoRelativePath = ExperimentPairSchemaPaths.REPO_RELATIVE_PATH,
-        governedRelativePathMarkers =
-          listOf(
-            "contracts/experiment/ExperimentPair",
-            "infrastructure/sqlite/experiment/",
-            "engine/goalrunner/experiment/",
-          ),
-      ),
-      GovernedPayloadSeam(
-        seamId = "experiment-observation",
-        schemaRepoRelativePath = ExperimentObservationSchemaPaths.REPO_RELATIVE_PATH,
-        governedRelativePathMarkers =
-          listOf(
-            "contracts/experiment/ExperimentObservation",
-            "infrastructure/sqlite/experiment/",
-          ),
-      ),
-      GovernedPayloadSeam(
-        seamId = "experiment-report",
-        schemaRepoRelativePath = ExperimentReportSchemaPaths.REPO_RELATIVE_PATH,
-        governedRelativePathMarkers =
-          listOf(
-            "contracts/experiment/ExperimentReport",
-            "engine/goalrunner/experiment/report/",
-            "cli/experiment/",
           ),
       ),
     )

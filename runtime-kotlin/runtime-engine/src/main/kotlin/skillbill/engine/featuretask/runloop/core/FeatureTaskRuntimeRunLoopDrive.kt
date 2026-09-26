@@ -10,6 +10,7 @@ import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequ
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.checkpoint.FeatureTaskRuntimeRunLoopCheckpoint
 import skillbill.engine.featuretask.runloop.observability.loopCapExhausted
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.STATUS_COMPLETED
 import skillbill.engine.goalrunner.status.completed
@@ -54,20 +55,15 @@ object FeatureTaskRuntimeRunLoopDrive {
         if (
           loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID
         ) {
-          reviewedCheckpointFingerprint(context.request, context.recorder)
+          FeatureTaskRuntimeRunLoopPhaseBlocking.reviewedCheckpointFingerprint(
+            context.request,
+            context.recorder,
+          )
         } else {
           null
         },
     )
   }
-
-  internal fun reviewedCheckpointFingerprint(
-    request: FeatureTaskRuntimeRunRequest,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-  ): String? =
-    recorder.loadDeliveredProjections(request.workflowId)
-      ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
-      ?.repositoryCheckpointFingerprint
 
   internal fun phaseEntryBlockReason(
     context: FeatureTaskRuntimeRunLoopContext,
@@ -187,7 +183,7 @@ object FeatureTaskRuntimeRunLoopDrive {
             blockerDispositions =
               GoalSubtaskReviewSummaryReducer.blockerDispositions(
                 outputMap,
-                FeatureTaskRuntimeRunLoopPlanningBranch.priorBlockerFindingIds(request, goalContinuationRecorder),
+                FeatureTaskRuntimeRunLoopPhaseBlocking.priorBlockerFindingIds(request, goalContinuationRecorder),
               ),
             commitFocusedAccounting = GoalSubtaskReviewSummaryReducer.commitFocusedAccounting(outputMap),
           ),
@@ -240,7 +236,7 @@ object FeatureTaskRuntimeRunLoopDrive {
         FeatureTaskRuntimeQualityGateRouting.applyAfterReview(
           phaseId,
           transition,
-          FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(context.request),
+          qualityGateSelection(context.request),
         ),
       )
     return with(FeatureTaskRuntimeRunLoopTransitions) {
@@ -273,7 +269,7 @@ object FeatureTaskRuntimeRunLoopDrive {
       )
     }.getOrElse { error ->
       if (error !is FeatureTaskRuntimePhaseOrderViolationError) throw error
-      FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(
+      FeatureTaskRuntimeRunLoopPhaseBlocking.blockAt(
         context.request,
         context.state,
         context.session,
@@ -402,7 +398,7 @@ object FeatureTaskRuntimeRunLoopDrive {
       } else {
         "Goal-subtask review pass budget is exhausted but its durable raw review result is malformed: $detail"
       }
-    FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(
+    FeatureTaskRuntimeRunLoopPhaseBlocking.blockAt(
       request,
       state,
       session,
@@ -505,7 +501,7 @@ object FeatureTaskRuntimeRunLoopDrive {
       }
       reason != null -> {
         if (session.paused == null) {
-          FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(request, state, session, phaseId, reason)
+          FeatureTaskRuntimeRunLoopPhaseBlocking.blockAt(request, state, session, phaseId, reason)
         }
         PhaseSettlement.stop()
       }

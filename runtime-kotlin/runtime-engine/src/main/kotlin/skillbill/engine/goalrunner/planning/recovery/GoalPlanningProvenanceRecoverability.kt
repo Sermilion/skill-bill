@@ -3,6 +3,8 @@ package skillbill.engine.goalrunner.planning.recovery
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.goalrunner.planning.context.GoalPlanningSpecCanonicalization
+import skillbill.engine.goalrunner.telemetry.GoalRunnerBestEffortEmission
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.text.sha256HexUtf8
@@ -48,28 +50,45 @@ internal fun classifyGoalPlanningProvenanceRecoverability(
 }
 
 fun preplanProseValue(preplanPayload: String): String =
-  runCatching {
-    JsonCodec.parseObjectOrNull(preplanPayload)
-      ?.let(JsonCodec::jsonElementToValue)
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?.get(SharedPayloadKeys.VALUE)
-      ?.toString()
-      .orEmpty()
-  }.getOrDefault("")
+  preplanProducedOutputs(preplanPayload)[SharedPayloadKeys.VALUE] as? String
+    ?: throw InvalidGoalPlanningPreparationSchemaError(
+      PREPLAN_PAYLOAD_SOURCE_LABEL,
+      "${SharedPayloadKeys.PRODUCED_OUTPUTS}.${SharedPayloadKeys.VALUE}",
+      "must be a string.",
+    )
 
 fun preplanProsePrompt(preplanPayload: String): String? =
-  runCatching {
+  preplanProducedOutputs(preplanPayload)[SharedPayloadKeys.PROMPT]
+    ?.toString()
+    ?.takeIf(String::isNotBlank)
+
+private const val PREPLAN_PAYLOAD_SOURCE_LABEL = "shared preplan payload"
+
+private fun preplanProducedOutputs(preplanPayload: String): Map<String, Any?> =
+  preplanPayloadObject(preplanPayload)[SharedPayloadKeys.PRODUCED_OUTPUTS]?.let(JsonCodec::anyToStringAnyMap)
+    ?: throw InvalidGoalPlanningPreparationSchemaError(
+      PREPLAN_PAYLOAD_SOURCE_LABEL,
+      SharedPayloadKeys.PRODUCED_OUTPUTS,
+      "must be an object.",
+    )
+
+private fun preplanPayloadObject(preplanPayload: String): Map<String, Any?> =
+  GoalRunnerBestEffortEmission.runCancellable {
     JsonCodec.parseObjectOrNull(preplanPayload)
       ?.let(JsonCodec::jsonElementToValue)
       ?.let(JsonCodec::anyToStringAnyMap)
-      ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
-      ?.let(JsonCodec::anyToStringAnyMap)
-      ?.get(SharedPayloadKeys.PROMPT)
-      ?.toString()
-      ?.takeIf(String::isNotBlank)
-  }.getOrNull()
+  }.getOrElse { error ->
+    GoalRunnerBestEffortEmission.rethrowIfCancellation(error)
+    throw preplanPayloadNotAnObject(error)
+  } ?: throw preplanPayloadNotAnObject(null)
+
+private fun preplanPayloadNotAnObject(cause: Throwable?) =
+  InvalidGoalPlanningPreparationSchemaError(
+    PREPLAN_PAYLOAD_SOURCE_LABEL,
+    "",
+    "must be a JSON object.",
+    cause,
+  )
 
 fun preplanProseValueHash(preplanPayload: String): String = sha256HexUtf8(preplanProseValue(preplanPayload))
 

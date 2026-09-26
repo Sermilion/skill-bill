@@ -1288,7 +1288,7 @@ internal class StatusHarness(
     )
   }
 
-  fun attribution() = agentAttributionFromPhaseState(recorder, WORKFLOW_ID)
+  fun attribution() = agentAttributionFromPhaseState(recorder.phaseQuery, WORKFLOW_ID)
 
   fun recordRunInvariants(featureSize: FeatureTaskRuntimeFeatureSize) {
     runInvariantsStore.resolve(

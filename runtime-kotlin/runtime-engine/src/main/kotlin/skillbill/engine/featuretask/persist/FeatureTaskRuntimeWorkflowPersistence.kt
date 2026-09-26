@@ -8,7 +8,6 @@ import skillbill.engine.goalrunner.repair.GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KE
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.error.shellcontent.WorkflowIssueKeyConflictError
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowFamily
@@ -55,16 +54,6 @@ class FeatureTaskRuntimeWorkflowPersistence
     private val workflowSnapshotValidator: WorkflowSnapshotValidator,
   ) {
     private val engine: WorkflowEngine = WorkflowEngine()
-
-    fun existingWorkflowMode(workflowId: String): FeatureTaskWorkflowMode? =
-      database.read { unitOfWork ->
-        unitOfWork.workflowStates.getFeatureTaskWorkflow(workflowId)?.mode
-      }
-
-    fun workerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership? =
-      database.read { unitOfWork ->
-        unitOfWork.workflowStates.getFeatureTaskRuntimeWorkerOwnership(workflowId)
-      }
 
     fun ensureWorkflowOpen(
       workflowId: String,

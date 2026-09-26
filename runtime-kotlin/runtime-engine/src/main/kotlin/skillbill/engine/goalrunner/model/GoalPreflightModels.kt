@@ -26,7 +26,6 @@ data class GoalPreflightRequest(
   val requestedAgentAddonSlugs: List<String> = emptyList(),
   val userHome: Path = Path.of("."),
   val environment: Map<String, String> = emptyMap(),
-  val experimentsParameter: String? = null,
 )
 
 data class GoalPreflightResult(
@@ -49,16 +48,6 @@ data class GoalPreflightGateBlock(
   val childAgentOverride: String?,
   val reviewMode: String,
   val agentAddons: List<GoalPreflightAgentAddon>,
-  val experimentSelectionSummary: String? = null,
-  val experiment: GoalPreflightExperimentSummary? = null,
-)
-
-data class GoalPreflightExperimentSummary(
-  val selectedNames: List<String>,
-  val arms: List<String>,
-  val deliveryArm: String,
-  val declaredSetup: String,
-  val additionalTimeAndSpend: String,
 )
 
 data class GoalPreflightSubtask(

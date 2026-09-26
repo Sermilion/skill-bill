@@ -1,6 +1,6 @@
 package skillbill.engine.goalrunner.status
 
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseQuery
 import skillbill.engine.goalrunner.execution.core.StoppedReportArgs
 import skillbill.goalrunner.model.GoalPullRequestStatus
 import skillbill.goalrunner.model.GoalRunnerContinuationMode
@@ -94,16 +94,16 @@ fun String.withStopDiagnostics(
 }
 
 fun GoalRunnerReconciledOutcome.Stop.isRecoverableValidationBlock(
-  phaseRecorder: FeatureTaskRuntimePhaseRecorder? = null,
+  phaseQuery: FeatureTaskRuntimePhaseQuery? = null,
 ): Boolean {
   if (reason !in setOf(GoalRunnerStopReason.BLOCKED, GoalRunnerStopReason.FAILED)) {
     return false
   }
   if (lastResumableStep != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD) return false
   val workflowId = workflowId
-  if (workflowId != null && phaseRecorder != null) {
+  if (workflowId != null && phaseQuery != null) {
     val disposition =
-      phaseRecorder.loadPhaseRecords(workflowId)
+      phaseQuery.loadPhaseRecords(workflowId)
         ?.get(lastResumableStep)
         ?.failureDisposition
     if (disposition == FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION) {

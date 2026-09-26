@@ -1,3 +1,28 @@
+## [2026-09-26] SKILL-378 subtask 3 — Goal-runner sequences, reads, and silent reads
+Areas: runtime-kotlin/runtime-engine/skillbill/engine/{goalrunner/{execution/core,findings,persist,planning/{recovery,remedies},repair,status},featuretask/{phase/record,persist,runner,lifecycle/continuation}}, runtime-kotlin/runtime-domain/skillbill/{goalrunner,workflow/model/goalreview}, runtime-kotlin/runtime-contracts/skillbill/error/shellcontent
+- Observability sequence numbers are allocated only by the durable in-transaction issue-wide max+1; no engine class keeps a counter, a `var sequence`, or a per-workflow sequence map.
+- `patchForEvent` now takes a `(Int) -> GoalObservabilityEvent` builder instead of a pre-built event, so the allocated number is the single source of `sequenceNumber` and no construction site can silently default it to 0. reusable
+- New read-only `FeatureTaskRuntimePhaseQuery` (featuretask/phase/record) splits phase reads from the writing recorder; the four goal-runner readers (status projection assembler, stop reports, repair coordinator, child-aware refresh liveness) depend on the query, and only the rejection recorder still holds the writing facade. reusable
+- Pattern: route best-effort seams through `GoalRunnerBestEffortEmission.runCancellable {}` + `rethrowIfCancellation` rather than hand-rolled `catch (e: Exception)` — it rethrows cancellation, restores the interrupt flag, and keeps warning wording consistent across seams (also what satisfies detekt `TooGenericExceptionCaught`).
+- Four former silent reads (unaddressed-findings ledger schema, child refresh liveness, preplan prose read, rejection write failure) now fail typed or degrade to a recorded seam with a bounded warning, each covered by a malformed-input test.
+- `InvalidUnaddressedFindingsLedgerSchemaError` gained an optional `cause`; `ShellContentContractException` already supported it, so no call sites changed.
+- Limitation: the fifth silent read (`runCatching` over `goalObservabilityLatestEventFromArtifacts` in `WorkflowGoalRunnerProgressRecording.progress`) and the inject-property exposure of `GoalRunnerStatusProjectionDataSources` are left to the goal-runner follow-up.
+- Limitation: `phaseQuery` is public, not `internal` — runtime-engine `testFixtures` is a separate compilation without friend access to main internals.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-09-25] SKILL-378 subtask 2 — Feature-task run-loop step classes
+Areas: runtime-kotlin/runtime-engine/skillbill/engine/featuretask/runloop/{core,phase,output,settlement,checkpoint,state}, runtime-kotlin/runtime-core/repoTest/skillbill/architecture
+- Broke the 20-node mutual-reference cycle across the feature-task run-loop step objects; the declaration graph now has 23 nodes and no strongly connected component larger than one.
+- New step owners: `PhaseBlocking` (runloop/phase) holds block and phase-state-read primitives, `ValidationScope` (runloop/settlement) holds validation changed-paths and the single pack build command, `ReviewCompletion` (runloop/output) holds goal-review detection and review completion persisters.
+- Added an architecture guard asserting run-loop step declarations reference each other acyclically, plus a synthetic two-node fixture proving the census names both members of a mutual pair.
+- Guard reuses the existing `stronglyConnectedComponents` scan via `ArchitectureScanSupport.cyclicComponents` rather than a second scanner; `CommentStripper` moved private -> internal and gained a defaulted `blankStringLiterals` flag so the default path stays byte-identical. reusable
+- Pattern: strip comments and string literals before building a declaration-reference graph — observability seam literals otherwise forge false edges and re-form the cycle.
+- Legacy SQLite busy-reason text matching is now one named constant consumed at the two resume sites; it classifies persisted historical blocked reasons, not live failures (typed `DatabaseBusyError` remains the live disposition).
+- Limitation: guard is host-classed in `RuntimeEnginePublicTopLevelDeclarationArchitectureTest`; the carrier class `FeatureTaskRuntimeRunLoopSession` stays in the node set as a zero-out-edge sink rather than being name-excluded.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-17] SKILL-352 subtask 3 — Record fallbacks, restore ownership, and shrink surface
 Areas: runtime-kotlin/{runtime-engine,runtime-domain,runtime-ports,runtime-application,runtime-infra-sqlite,runtime-core}
 - Goal-runner durable-read fallbacks now emit bounded diagnostics and project degraded status; lease timestamps and closed runtime vocabularies use typed domain values.

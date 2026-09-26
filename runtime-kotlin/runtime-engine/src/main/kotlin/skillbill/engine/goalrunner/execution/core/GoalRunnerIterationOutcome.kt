@@ -1,6 +1,6 @@
 package skillbill.engine.goalrunner.execution.core
 
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseQuery
 import skillbill.engine.goalrunner.execution.support.CHILD_WORKFLOW_BLOCK_REASONS
 import skillbill.engine.goalrunner.execution.support.CompletedIterationArgs
 import skillbill.engine.goalrunner.execution.support.GoalRunnerIterationPendingState
@@ -56,7 +56,7 @@ internal class GoalRunnerIterationOutcome(
   private val unaddressedFindingsLedgerService: UnaddressedFindingsLedgerService?,
   private val progressReader: GoalRunnerProgressReader,
   private val clock: Clock,
-  private val phaseRecorder: FeatureTaskRuntimePhaseRecorder?,
+  private val phaseQuery: FeatureTaskRuntimePhaseQuery?,
   pendingState: GoalRunnerIterationPendingState,
 ) {
   private val validationQualityState = pendingState.validationQualityState
@@ -332,7 +332,7 @@ internal class GoalRunnerIterationOutcome(
     subtaskId: Int,
     state: GoalRunnerManifestState,
   ): GoalRunnerIterationResult? {
-    if (!stoppedOutcome.isRecoverableValidationBlock(phaseRecorder)) {
+    if (!stoppedOutcome.isRecoverableValidationBlock(phaseQuery)) {
       return null
     }
     val priorRetries = validationQualityState.validationQualityRetryCount(subtaskId)

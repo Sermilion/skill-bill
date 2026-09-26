@@ -120,27 +120,6 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
   }
 
   @Test
-  fun `deferred publication keeps the local commit and does not push`() {
-    val repo = repoWithRemote()
-    Files.writeString(repo.root.resolve("owned.txt"), "local-only\n")
-    records.clear()
-
-    val finalised =
-      assertIs<FeatureTaskRuntimeSubtaskFinalised>(
-        finalise(
-          repo,
-          durableCommitSha = null,
-          paths = listOf("owned.txt"),
-          deferRemotePublication = true,
-        ),
-      )
-
-    assertEquals(finalised.commitSha, git(repo.root, "rev-parse", "HEAD"))
-    assertEquals("", remoteBranchTip(repo.remote))
-    assertTrue(records.none { it.contains("git push") })
-  }
-
-  @Test
   fun `commit_push includes feature-spec paths in the subtask commit`() {
     val repo = repoWithRemote()
     Files.createDirectories(repo.root.resolve(".feature-specs/$issueKey"))
@@ -595,7 +574,6 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     durableCommitSha: String?,
     paths: List<String>,
     sequenceNumber: Int = 0,
-    deferRemotePublication: Boolean = false,
   ): FeatureTaskRuntimeSubtaskFinalisationResult =
     FeatureTaskRuntimeSubtaskFinalisation(
       gitOperations = realGitOps(),
@@ -620,7 +598,6 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
             branch = branch,
             intent = FeatureTaskRuntimeCheckpointMessage.INTENT_FINALISED_SUBTASK,
           ),
-        deferRemotePublication = deferRemotePublication,
       ),
     )
 

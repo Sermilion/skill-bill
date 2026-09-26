@@ -5,7 +5,6 @@ import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.config.model.CompactionSettings
-import skillbill.experiment.model.ExperimentArmId
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
@@ -35,7 +34,6 @@ data class FeatureTaskRuntimeRunRequest(
   val agentAddonSelection: HydratedAgentAddonSelection = HydratedAgentAddonSelection(),
   val eventSink: FeatureTaskRuntimeRunEventSink = FeatureTaskRuntimeRunEventSink.NONE,
   val transitionsOverride: FeatureTaskRuntimeTransitionDeclaration? = null,
-  val deferRemotePublication: Boolean = false,
 ) {
   init {
     require(issueKey.isNotBlank()) { "FeatureTaskRuntimeRunRequest.issueKey is required." }
@@ -60,9 +58,6 @@ data class FeatureTaskRuntimeGoalContinuationContext(
   val reviewBaseline: GoalSubtaskReviewBaseline? = null,
   val agentAddonSelection: AgentAddonSelection =
     AgentAddonSelection(),
-  val experimentArmId: ExperimentArmId? = null,
-  val experimentTreatmentCapabilities: Set<String> = emptySet(),
-  val deferRemotePublication: Boolean = false,
 ) {
   init {
     require(parentIssueKey.isNotBlank()) { "parentIssueKey is required." }

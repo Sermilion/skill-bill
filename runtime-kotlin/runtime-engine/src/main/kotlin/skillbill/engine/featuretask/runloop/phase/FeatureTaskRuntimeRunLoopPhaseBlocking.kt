@@ -1,0 +1,505 @@
+package skillbill.engine.featuretask.runloop.phase
+
+import skillbill.application.review.service.RuntimeOwnedReviewMode
+import skillbill.engine.featuretask.lifecycle.branch.Blocked
+import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskRuntimeGoalContinuationRecorder
+import skillbill.engine.featuretask.lifecycle.continuation.GoalContinuationStateRecordRequest
+import skillbill.engine.featuretask.lifecycle.continuation.isGoalContinuationRun
+import skillbill.engine.featuretask.lifecycle.continuation.reviewState
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeRunRequest
+import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
+import skillbill.engine.featuretask.phase.prompt.directives.PriorAttemptCorrection
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.runloop.core.BlockAndPersistArgs
+import skillbill.engine.featuretask.runloop.core.BlockAndPersistInPhaseArgs
+import skillbill.engine.featuretask.runloop.core.BlockAndPersistPayload
+import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
+import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
+import skillbill.engine.featuretask.runloop.core.FixLoopBranchContext
+import skillbill.engine.featuretask.runloop.core.PauseAndPersistInPhaseArgs
+import skillbill.engine.featuretask.runloop.core.PauseAtArgs
+import skillbill.engine.featuretask.runloop.core.PhaseBlockRequest
+import skillbill.engine.featuretask.runloop.core.PhaseOutcome
+import skillbill.engine.featuretask.runloop.core.PhaseRun
+import skillbill.engine.featuretask.runloop.core.PhaseStateRequestArgs
+import skillbill.engine.featuretask.runloop.core.phaseBlockArgs
+import skillbill.engine.featuretask.runloop.core.resolveReviewPassNumber
+import skillbill.engine.featuretask.runloop.core.withDisposition
+import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
+import skillbill.engine.featuretask.runloop.observability.blocked
+import skillbill.engine.featuretask.runloop.observability.fixLoopIteration
+import skillbill.engine.featuretask.runloop.observability.paused
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeAttemptBudgets
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeNonOutputAttempt
+import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
+import skillbill.engine.featuretask.runner.BRANCH_SETUP_AGENT_ID
+import skillbill.engine.featuretask.runner.STATUS_BLOCKED
+import skillbill.engine.featuretask.runner.STATUS_PAUSED
+import skillbill.engine.featuretask.runner.isProcessFailureBlockReason
+import skillbill.engine.featuretask.runner.nonRetryingPhaseSchemaBlockReason
+import skillbill.engine.featuretask.runner.withSchemaGateDetail
+import skillbill.workflow.model.goalreview.GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY
+import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
+import skillbill.workflow.model.goalreview.ReviewPassResolution
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.FeatureTaskRuntimeImplementationAttemptStatus
+import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
+
+object FeatureTaskRuntimeRunLoopPhaseBlocking {
+  internal fun blockInPhase(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    observability: FeatureTaskRuntimeRunObservability,
+    block: PhaseBlockRequest,
+  ): PhaseOutcome =
+    blockAndPersistInPhase(
+      request,
+      state,
+      recorder,
+      null,
+      phaseBlockArgs(
+        block.run,
+        block.attemptCount,
+        block.reason,
+        block.observability,
+        block.payload,
+      ).withDisposition(block.failureDisposition),
+    )
+
+  internal fun FeatureTaskRuntimeRunLoopContext.blockAndPersist(args: BlockAndPersistArgs): PhaseOutcome =
+    blockAndPersistCore(request, state, recorder, goalContinuationRecorder, args)
+
+  internal fun blockAndPersist(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder?,
+    args: BlockAndPersistArgs,
+  ): PhaseOutcome = blockAndPersistCore(request, state, recorder, goalContinuationRecorder, args)
+
+  internal fun blockAndPersistInPhase(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder?,
+    args: BlockAndPersistInPhaseArgs,
+  ): PhaseOutcome =
+    blockAndPersistCore(
+      request,
+      state,
+      recorder,
+      goalContinuationRecorder,
+      BlockAndPersistArgs(
+        run = args.run,
+        attemptCount = args.attemptCount,
+        reason = args.reason,
+        observability = args.observability,
+        loopId = args.run.reentry?.loopId,
+        edgeIteration = args.run.reentry?.edgeIteration,
+        failureDisposition = args.failureDisposition,
+        payload = args.payload,
+      ),
+    )
+
+  private fun blockAndPersistCore(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder?,
+    args: BlockAndPersistArgs,
+  ): PhaseOutcome {
+    val run = args.run
+    val attemptCount = args.attemptCount
+    val reason = args.reason
+    val observability = args.observability
+    val loopId = args.loopId
+    val edgeIteration = args.edgeIteration
+    val failureDisposition = args.failureDisposition
+    val fileManifest = args.payload.fileManifest
+    val outputArtifact = args.payload.outputArtifact
+    val normalizedOutput = args.payload.normalizedOutput
+    val repairEvidence = args.payload.repairEvidence
+    val rejectedOutput = args.payload.rejectedOutput
+    val childNeverLaunched = args.payload.childNeverLaunched
+    val phaseState =
+      FeatureTaskRuntimePhaseStateRequest(
+        workflowId = run.request.workflowId,
+        phaseId = run.phaseId,
+        status = STATUS_BLOCKED,
+        attemptCount = attemptCount.coerceAtLeast(1),
+        resolvedAgentId = run.resolvedAgent.resolvedAgentId,
+        finished = false,
+        outputArtifact =
+          normalizedOutput?.canonicalJson
+            ?: outputArtifact
+            ?: state.outputFor(run.phaseId)?.payload,
+        rejectedOutput = rejectedOutput,
+        normalizedOutput = normalizedOutput,
+        repairEvidence = repairEvidence,
+        blockedReason = reason,
+        failureDisposition = failureDisposition,
+        fileManifestBefore = fileManifest?.before.orEmpty(),
+        fileManifestAfter = fileManifest?.after.orEmpty(),
+        fileManifestIntroduced = fileManifest?.introduced.orEmpty(),
+        loopId = loopId,
+        edgeIteration = edgeIteration,
+        reviewPassNumber =
+          goalContinuationRecorder?.let { continuationRecorder ->
+            reviewPassNumber(request, continuationRecorder, run, state)
+          },
+        launchOutcomeKnown = childNeverLaunched,
+      )
+    state.reserveReviewPass(phaseState.reviewPassNumber)
+    recorder.recordPhaseState(
+      phaseState,
+    )
+    observability.blocked(run.phaseId, run.resolvedAgent.resolvedAgentId, attemptCount.coerceAtLeast(1), reason)
+    return PhaseOutcome.blocked(reason)
+  }
+
+  internal fun FeatureTaskRuntimeRunLoopContext.pauseAndPersistInPhase(
+    args: PauseAndPersistInPhaseArgs,
+  ): PhaseOutcome {
+    val run = args.run
+    val attemptCount = args.attemptCount
+    val reason = args.reason
+    val observability = args.observability
+    val fileManifest = args.fileManifest
+    val attempt = attemptCount.coerceAtLeast(1)
+    if (isGoalContinuationRun(request)) {
+      goalContinuationRecorder.recordGoalContinuationState(
+        GoalContinuationStateRecordRequest(
+          workflowId = request.workflowId,
+          workflowStatus = STATUS_PAUSED,
+        ),
+      )
+    }
+    recorder.recordPhaseState(
+      FeatureTaskRuntimePhaseStateRequest(
+        workflowId = request.workflowId,
+        phaseId = run.phaseId,
+        status = STATUS_PAUSED,
+        attemptCount = attempt,
+        resolvedAgentId = run.resolvedAgent.resolvedAgentId,
+        finished = false,
+        outputArtifact = state.outputFor(run.phaseId)?.payload,
+        blockedReason = reason,
+        failureDisposition = FeatureTaskRuntimeFailureDisposition.RETRYABLE,
+        fileManifestBefore = fileManifest?.before.orEmpty(),
+        fileManifestAfter = fileManifest?.after.orEmpty(),
+        fileManifestIntroduced = fileManifest?.introduced.orEmpty(),
+        loopId = run.reentry?.loopId,
+        edgeIteration = run.reentry?.edgeIteration,
+        launchOutcomeKnown = false,
+      ),
+    )
+    observability.paused(run.phaseId, run.resolvedAgent.resolvedAgentId, attempt, reason)
+    pauseAt(
+      PauseAtArgs(
+        request = request,
+        state = state,
+        session = session,
+        phaseId = run.phaseId,
+        reason = reason,
+        resumableStep = run.phaseId,
+      ),
+    )
+    return PhaseOutcome.paused(reason)
+  }
+
+  internal fun FeatureTaskRuntimeRunLoopContext.blockAndPersistInPhase(
+    args: BlockAndPersistInPhaseArgs,
+  ): PhaseOutcome =
+    blockAndPersist(
+      BlockAndPersistArgs(
+        run = args.run,
+        attemptCount = args.attemptCount,
+        reason = args.reason,
+        observability = args.observability,
+        loopId = args.run.reentry?.loopId,
+        edgeIteration = args.run.reentry?.edgeIteration,
+        failureDisposition = args.failureDisposition,
+        payload = args.payload,
+      ),
+    )
+
+  internal fun operatorReopenedPhase(
+    session: FeatureTaskRuntimeRunLoopSession,
+    phaseId: String,
+  ): Boolean = session.operatorBlockRetry?.phaseId == phaseId && !session.operatorBlockRetryCompleted
+
+  internal fun blockAt(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    session: FeatureTaskRuntimeRunLoopSession,
+    phaseId: String,
+    reason: String,
+  ) {
+    session.transitionToBlocked(
+      FeatureTaskRuntimeRunReport.Blocked(
+        issueKey = request.issueKey,
+        workflowId = request.workflowId,
+        featureSize = request.runInvariants.featureSize.name,
+        lastIncompletePhase = phaseId,
+        blockedReason = reason,
+        completedPhaseIds = state.completedPhaseIds(),
+        resolvedBranch = session.resolvedBranch,
+      ),
+    )
+  }
+
+  fun persistBranchSetupBlock(
+    request: FeatureTaskRuntimeRunRequest,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    observability: FeatureTaskRuntimeRunObservability,
+    phaseId: String,
+    reason: String,
+  ) {
+    recorder.recordPhaseState(
+      FeatureTaskRuntimePhaseStateRequest(
+        workflowId = request.workflowId,
+        phaseId = phaseId,
+        status = STATUS_BLOCKED,
+        attemptCount = 1,
+        resolvedAgentId = BRANCH_SETUP_AGENT_ID,
+        finished = false,
+        outputArtifact = null,
+        blockedReason = reason,
+      ),
+    )
+    observability.branchSetupBlocked(phaseId, BRANCH_SETUP_AGENT_ID, reason)
+  }
+
+  fun clearRecoveredBranchSetupBlock(
+    state: FeatureTaskRuntimeRunState,
+    phaseId: String,
+  ) {
+    if (!state.hasBranchSetupBlock(phaseId)) {
+      return
+    }
+    state.clearBranchSetupBlock(phaseId)
+  }
+
+  internal fun pauseAt(args: PauseAtArgs) {
+    val request = args.request
+    val state = args.state
+    val session = args.session
+    val phaseId = args.phaseId
+    val reason = args.reason
+    val resumableStep = args.resumableStep
+    session.transitionToPaused(
+      FeatureTaskRuntimeRunReport.Paused(
+        issueKey = request.issueKey,
+        workflowId = request.workflowId,
+        featureSize = request.runInvariants.featureSize.name,
+        pausedPhase = phaseId,
+        pauseReason = reason,
+        resumableStep = resumableStep,
+        completedPhaseIds = state.completedPhaseIds(),
+        resolvedBranch = session.resolvedBranch,
+      ),
+    )
+  }
+
+  fun goalReviewStateOrNull(
+    request: FeatureTaskRuntimeRunRequest,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  ): GoalSubtaskReviewState? =
+    if (!isGoalContinuationRun(request)) {
+      null
+    } else {
+      goalContinuationRecorder.reviewState(request.workflowId)
+    }
+
+  fun priorBlockerFindingIds(
+    request: FeatureTaskRuntimeRunRequest,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  ): List<String> {
+    val priorPass =
+      goalReviewStateOrNull(request, goalContinuationRecorder)?.passResults?.lastOrNull()
+        ?: return emptyList()
+    return priorPass.findings
+      .filter { it.severity == GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY }
+      .mapIndexed { index, finding -> finding.findingId ?: "pass${priorPass.passNumber}-blocker-${index + 1}" }
+  }
+
+  internal fun persistResolvedReviewTier(
+    request: FeatureTaskRuntimeRunRequest,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+    run: PhaseRun,
+    resolution: ReviewPassResolution,
+  ) {
+    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW || !isGoalContinuationRun(request)) {
+      return
+    }
+    goalContinuationRecorder.updateReviewState(request.workflowId) { state ->
+      state.copy(
+        resolvedTier = RuntimeOwnedReviewMode.execute(resolution.resolvedTier),
+        decidingRule = resolution.decidingRule,
+      )
+    }
+  }
+
+  internal fun reviewPassNumber(
+    request: FeatureTaskRuntimeRunRequest,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder?,
+    run: PhaseRun,
+    state: FeatureTaskRuntimeRunState,
+  ): Int? {
+    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) return null
+    if (goalContinuationRecorder == null) return state.currentReviewPassNumber ?: 1
+    val durable = goalReviewStateOrNull(request, goalContinuationRecorder) ?: return 1
+    return resolveReviewPassNumber(
+      reservedPassNumber = durable.reservedPassNumber ?: state.currentReviewPassNumber,
+      completedReviewPassCount = durable.completedPassCount,
+    )
+  }
+
+  internal fun phaseStateRequest(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+    args: PhaseStateRequestArgs,
+  ): FeatureTaskRuntimePhaseStateRequest {
+    val write = args.write
+    val run = write.run
+    val extras = args.extras
+    val fileManifest = extras.fileManifest
+    return FeatureTaskRuntimePhaseStateRequest(
+      workflowId = run.request.workflowId,
+      phaseId = run.phaseId,
+      status = write.status,
+      attemptCount = write.iteration,
+      resolvedAgentId = run.resolvedAgent.resolvedAgentId,
+      finished = write.finished,
+      outputArtifact = write.outputArtifact,
+      normalizedOutput = extras.normalizedOutput,
+      repairEvidence = extras.repairEvidence,
+      repositoryFingerprint = extras.repositoryFingerprint,
+      fileManifestBefore = fileManifest?.before.orEmpty(),
+      fileManifestAfter = fileManifest?.after.orEmpty(),
+      fileManifestIntroduced = fileManifest?.introduced.orEmpty(),
+      loopId = run.reentry?.loopId,
+      edgeIteration = run.reentry?.edgeIteration,
+      reviewPassNumber = reviewPassNumber(request, goalContinuationRecorder, run, state),
+      launchedModel = extras.launched?.modelOverride,
+      launchedEffort = extras.launched?.persistedEffort,
+      launchOutcomeKnown = extras.launched != null,
+      reviewRunId = extras.reviewRunId,
+    )
+  }
+
+  internal fun reviewedCheckpointFingerprint(
+    request: FeatureTaskRuntimeRunRequest,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+  ): String? =
+    recorder.loadDeliveredProjections(request.workflowId)
+      ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
+      ?.repositoryCheckpointFingerprint
+
+  internal fun settleSemanticFailure(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    observability: FeatureTaskRuntimeRunObservability,
+    context: FixLoopBranchContext,
+  ): PhaseOutcome? {
+    val run = context.run
+    val attempt = context.attempt
+    val loop = context.loop
+    val observability = context.observability
+    val agentId = context.agentId
+    if (!FeatureTaskRuntimePhaseWorkflowDefinition.retriesOnInvalidOutput(run.phaseId)) {
+      return blockNonRetryableSemanticFailure(request, state, recorder, context)
+    }
+    loop.outputGateFailures += 1
+    FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(run.phaseId, loop.outputGateFailures)?.let { capReason ->
+      return blockInPhase(
+        request,
+        state,
+        recorder,
+        observability,
+        PhaseBlockRequest(
+          run = run,
+          attemptCount = loop.iteration,
+          reason = withSchemaGateDetail(capReason, requireNotNull(attempt.retryableOperatorReason)),
+          observability = observability,
+          payload =
+            BlockAndPersistPayload(
+              fileManifest = attempt.fileManifest,
+              rejectedOutput = attempt.rejectedOutput,
+            ),
+          failureDisposition = FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
+        ),
+      )
+    }
+    val failedIteration = loop.semanticIteration
+    loop.iteration += 1
+    loop.semanticIteration += 1
+    loop.priorCorrection =
+      attempt.semanticRetryReason?.let { retryReason ->
+        PriorAttemptCorrection.schemaGate(
+          retryReason,
+          correctiveRepairContext = attempt.correctiveRepairContext,
+        )
+      }
+    observability.fixLoopIteration(run.phaseId, agentId, loop.iteration, failedIteration)
+    return null
+  }
+
+  private fun blockNonRetryableSemanticFailure(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    context: FixLoopBranchContext,
+  ): PhaseOutcome {
+    val run = context.run
+    val attempt = context.attempt
+    return blockInPhase(
+      request,
+      state,
+      recorder,
+      context.observability,
+      PhaseBlockRequest(
+        run = run,
+        attemptCount = context.loop.iteration,
+        reason =
+          withSchemaGateDetail(
+            nonRetryingPhaseSchemaBlockReason(run.phaseId),
+            requireNotNull(attempt.retryableOperatorReason),
+          ),
+        observability = context.observability,
+        payload =
+          BlockAndPersistPayload(
+            fileManifest = attempt.fileManifest,
+            rejectedOutput = attempt.rejectedOutput,
+          ),
+        failureDisposition = FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
+      ),
+    )
+  }
+
+  internal fun durableNonOutputAttempts(
+    state: FeatureTaskRuntimeRunState,
+    run: PhaseRun,
+  ): List<FeatureTaskRuntimeNonOutputAttempt> =
+    state.trailingNonOutputAttempts(run.phaseId) { reason -> isProcessFailureBlockReason(run.phaseId, reason) }
+
+  internal fun durableContinuationSegmentCount(
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    run: PhaseRun,
+  ): Int {
+    if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(run.phaseId)) return 0
+    val attempts =
+      recorder.loadImplementationAttempts(run.request.workflowId)
+        ?: return 0
+    return attempts.count {
+      it.phaseId == run.phaseId &&
+        it.loopId == run.reentry?.loopId &&
+        it.edgeIteration == run.reentry?.edgeIteration &&
+        it.status == FeatureTaskRuntimeImplementationAttemptStatus.INCOMPLETE
+    }
+  }
+}

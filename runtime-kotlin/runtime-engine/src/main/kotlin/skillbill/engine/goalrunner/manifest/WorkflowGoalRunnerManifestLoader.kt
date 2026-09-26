@@ -37,6 +37,7 @@ internal class WorkflowGoalRunnerManifestLoader(
   private val engine: WorkflowEngine,
   private val parentProjection: GoalParentProjectionWriter,
   private val clock: Clock,
+  private val random: Random,
 ) {
   fun findProjectedManifest(
     repoRoot: Path,
@@ -98,7 +99,7 @@ internal class WorkflowGoalRunnerManifestLoader(
       val base =
         existing ?: engine.openRecord(
           WorkflowFamily.TASK_RUNTIME.definition,
-          generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, Random.Default),
+          generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, random),
           WorkflowFamily.TASK_RUNTIME.definition.defaultSessionPrefix,
           "plan",
         )

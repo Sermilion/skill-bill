@@ -10,7 +10,7 @@ import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequ
 import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.featuretask.runloop.observability.blocked
-import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseAttempts
+import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhaseBlocking
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.engine.featuretask.runner.STATUS_BLOCKED
 import skillbill.engine.featuretask.runner.isFileMutating
@@ -53,7 +53,8 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
         loopId = edge.loopId,
         edgeIteration = edgeIteration,
         drivingVerdict = edge.triggeringVerdict,
-        expectedRepositoryCheckpoint = FeatureTaskRuntimeRunLoopDrive.reviewedCheckpointFingerprint(request, recorder),
+        expectedRepositoryCheckpoint =
+          FeatureTaskRuntimeRunLoopPhaseBlocking.reviewedCheckpointFingerprint(request, recorder),
       )
     session.transitionReentryPair(pendingReentry, pendingReentry)
     return edge.destinationPhaseId
@@ -69,7 +70,7 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     val destinationPhaseId = edge.destinationPhaseId
     val loopId = edge.loopId
     val reopenedSpan =
-      FeatureTaskRuntimeRunLoopTransitions.spanBetween(
+      spanBetween(
         transitions,
         destinationPhaseId,
         edge.fromPhaseId,
@@ -93,7 +94,7 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
         drivingVerdict = verdict,
         expectedRepositoryCheckpoint =
           if (loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID) {
-            FeatureTaskRuntimeRunLoopDrive.reviewedCheckpointFingerprint(request, recorder)
+            FeatureTaskRuntimeRunLoopPhaseBlocking.reviewedCheckpointFingerprint(request, recorder)
           } else {
             null
           },
@@ -131,7 +132,7 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     phaseId: String,
   ): String? =
     with(context) {
-      if (FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(session, phaseId)) return null
+      if (FeatureTaskRuntimeRunLoopPhaseBlocking.operatorReopenedPhase(session, phaseId)) return null
       val record = state.recordFor(phaseId) ?: return null
       return FeatureTaskRuntimeRunLoopBackwardEdge.capExhaustionForRecord(
         context,
@@ -201,7 +202,7 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
             .firstOrNull { it.loopId == active.loopId }
             ?.let { edge ->
               phaseId in
-                FeatureTaskRuntimeRunLoopTransitions.spanBetween(
+                spanBetween(
                   transitions,
                   edge.destinationPhaseId,
                   edge.fromPhaseId,
@@ -319,7 +320,7 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
           observability,
         )
       return setup.blockedReason?.also { reason ->
-        FeatureTaskRuntimeRunLoopPlanningBranch.persistBranchSetupBlock(
+        FeatureTaskRuntimeRunLoopPhaseBlocking.persistBranchSetupBlock(
           request,
           recorder,
           observability,
@@ -328,7 +329,7 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
         )
       } ?: run {
         session.transitionResolvedBranch(requireNotNull(setup.establishedBranch))
-        FeatureTaskRuntimeRunLoopPlanningBranch.clearRecoveredBranchSetupBlock(state, phaseId)
+        FeatureTaskRuntimeRunLoopPhaseBlocking.clearRecoveredBranchSetupBlock(state, phaseId)
         null
       }
     }

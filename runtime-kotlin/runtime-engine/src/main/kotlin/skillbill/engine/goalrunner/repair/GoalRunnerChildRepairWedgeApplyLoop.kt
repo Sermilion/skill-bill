@@ -379,6 +379,7 @@ internal fun applyCompletedUpstreamChildRepairWedge(
         reason =
           "Operator goal repair reopened '$resumePhaseId' because a completed upstream phase " +
             "record had no settled output for a blocked consumer.",
+        clock = state.clock,
         qualityGateSelection = qualityGateSelection,
       ),
     )

@@ -20,7 +20,6 @@ import skillbill.goalrunner.summary
 import skillbill.goalrunner.toPersistenceWire
 import skillbill.goalrunner.toProgressEvent
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.goalrunner.persistence.model.HistoryArtifactAppend
 import skillbill.ports.goalrunner.runner.GoalRunnerAttemptLedgerStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowLedgerWriteStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowProgressStore
@@ -47,6 +46,14 @@ import skillbill.workflow.model.goalreview.appendBoundedHistoryBySequence
 import skillbill.workflow.model.goalreview.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.taskruntime.artifact.phaseRecordsFromWorkflowArtifacts
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuation
+
+private fun nextSequence(highest: Int?): Int = highest?.let { it + 1 } ?: 0
+
+private class SequencedHistoryArtifact(
+  val latestFamily: DurableWorkflowArtifactFamily?,
+  val historyFamily: DurableWorkflowArtifactFamily,
+  val retentionLimit: Int,
+)
 
 private val PROGRESS_POLL_ARTIFACT_KEYS =
   setOf(
@@ -138,33 +145,38 @@ internal class WorkflowGoalRunnerProgressRecording(
       true
     }
 
-  override fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean {
-    val entryMap = GoalRunnerWirePayload.from(request.event.toPersistenceWire())
-    goalProgressEventValidator.validateGoalProgressEvent(
-      entryMap.payload,
-      DurableWorkflowArtifactFamily.GOAL_PROGRESS_LATEST_EVENT.label(),
-    )
-    return appendHistoryArtifact(
-      HistoryArtifactAppend(
-        workflowId = request.workflowId,
-        latestFamily = DurableWorkflowArtifactFamily.GOAL_PROGRESS_LATEST_EVENT,
-        historyFamily = DurableWorkflowArtifactFamily.GOAL_PROGRESS_RUN_HISTORY,
-        retentionLimit = GOAL_PROGRESS_HISTORY_LIMIT,
-        entryMap = entryMap,
-      ),
-    )
-  }
+  override fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean =
+    appendSequencedHistoryArtifact(
+      workflowId = request.workflowId,
+      issueKey = request.issueKey,
+      history =
+        SequencedHistoryArtifact(
+          latestFamily = DurableWorkflowArtifactFamily.GOAL_PROGRESS_LATEST_EVENT,
+          historyFamily = DurableWorkflowArtifactFamily.GOAL_PROGRESS_RUN_HISTORY,
+          retentionLimit = GOAL_PROGRESS_HISTORY_LIMIT,
+        ),
+    ) { sequenceNumber ->
+      GoalRunnerWirePayload.from(request.draft.toEvent(sequenceNumber).toPersistenceWire()).payload.also { entryMap ->
+        goalProgressEventValidator.validateGoalProgressEvent(
+          entryMap,
+          DurableWorkflowArtifactFamily.GOAL_PROGRESS_LATEST_EVENT.label(),
+        )
+      }
+    }
 
   override fun recordAttemptLedgerEntry(request: GoalRunnerAttemptLedgerRecordRequest): Boolean =
-    appendHistoryArtifact(
-      HistoryArtifactAppend(
-        workflowId = request.workflowId,
-        latestFamily = null,
-        historyFamily = DurableWorkflowArtifactFamily.GOAL_ATTEMPT_LEDGER,
-        retentionLimit = GOAL_ATTEMPT_LEDGER_LIMIT,
-        entryMap = GoalRunnerWirePayload.from(request.entry.toPersistenceWire()),
-      ),
-    )
+    appendSequencedHistoryArtifact(
+      workflowId = request.workflowId,
+      issueKey = request.issueKey,
+      history =
+        SequencedHistoryArtifact(
+          latestFamily = null,
+          historyFamily = DurableWorkflowArtifactFamily.GOAL_ATTEMPT_LEDGER,
+          retentionLimit = GOAL_ATTEMPT_LEDGER_LIMIT,
+        ),
+    ) { sequenceNumber ->
+      GoalRunnerWirePayload.from(request.draft.toEntry(sequenceNumber).toPersistenceWire()).payload
+    }
 
   override fun progressEvents(workflowId: String): List<GoalProgressEvent> =
     database.transaction { unitOfWork ->
@@ -226,37 +238,17 @@ internal class WorkflowGoalRunnerProgressRecording(
   override fun ledgerSequenceWatermarks(issueKey: String): GoalRunnerLedgerSequenceWatermarks =
     database.read { unitOfWork ->
       val normalizedIssueKey = issueKey.trim()
-      var maxLedger: Int? = null
-      var maxProgress: Int? = null
       val backwardEdgeCounts = mutableMapOf<String, Int>()
-      listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
-        unitOfWork.workflowStates.list(family, Int.MAX_VALUE).forEach { snapshot ->
-          val artifacts = snapshot.artifacts
-          if (DurableWorkflowArtifacts.fromMap(artifacts).goalContinuation()?.issueKey != normalizedIssueKey) {
-            return@forEach
-          }
-          maxLedger =
-            maxHistorySequence(
-              artifacts,
-              DurableWorkflowArtifactFamily.GOAL_ATTEMPT_LEDGER,
-              maxLedger,
-            )
-          maxProgress =
-            maxHistorySequence(
-              artifacts,
-              DurableWorkflowArtifactFamily.GOAL_PROGRESS_RUN_HISTORY,
-              maxProgress,
-            )
-          backwardEdgeCountsFromLedger(artifacts).forEach { (key, count) ->
-            backwardEdgeCounts.merge(key, count, ::maxOf)
-          }
+      unitOfWork.workflowStates.list(WorkflowFamily.TASK_RUNTIME, Int.MAX_VALUE).forEach { snapshot ->
+        val artifacts = snapshot.artifacts
+        if (DurableWorkflowArtifacts.fromMap(artifacts).goalContinuation()?.issueKey != normalizedIssueKey) {
+          return@forEach
+        }
+        backwardEdgeCountsFromLedger(artifacts).forEach { (key, count) ->
+          backwardEdgeCounts.merge(key, count, ::maxOf)
         }
       }
-      GoalRunnerLedgerSequenceWatermarks(
-        maxLedgerSequence = maxLedger,
-        maxProgressSequence = maxProgress,
-        backwardEdgeCounts = backwardEdgeCounts,
-      )
+      GoalRunnerLedgerSequenceWatermarks(backwardEdgeCounts = backwardEdgeCounts)
     }
 
   override fun childWorkflowLoopIterations(workflowId: String): Map<String, Int> =
@@ -297,25 +289,44 @@ internal class WorkflowGoalRunnerProgressRecording(
       summarizeAttemptLedgerFromEntries(entries)
     }
 
-  private fun appendHistoryArtifact(append: HistoryArtifactAppend): Boolean =
+  private fun appendSequencedHistoryArtifact(
+    workflowId: String,
+    issueKey: String,
+    history: SequencedHistoryArtifact,
+    buildEntry: (Int) -> Any,
+  ): Boolean =
     database.transaction { unitOfWork ->
+      val historyFamily = history.historyFamily
       val family =
-        workflowFamilyFor(unitOfWork.workflowStates, append.workflowId)
+        workflowFamilyFor(unitOfWork.workflowStates, workflowId)
           ?: return@transaction false
       val record =
-        unitOfWork.workflowStates.get(family, append.workflowId)
+        unitOfWork.workflowStates.get(family, workflowId)
           ?: return@transaction false
       val artifacts = record.artifacts
+      val normalizedIssueKey = issueKey.trim()
+      var highest = maxHistorySequence(artifacts, historyFamily, null)
+      unitOfWork.workflowStates.list(WorkflowFamily.TASK_RUNTIME, Int.MAX_VALUE).forEach { snapshot ->
+        if (
+          DurableWorkflowArtifacts.fromMap(snapshot.artifacts).goalContinuation()?.issueKey == normalizedIssueKey
+        ) {
+          highest = maxHistorySequence(snapshot.artifacts, historyFamily, highest)
+        }
+      }
+      val entryMap =
+        checkNotNull(JsonCodec.anyToStringAnyMap(buildEntry(nextSequence(highest)))) {
+          "${historyFamily.label()} entry must encode as an object."
+        }
       val existing =
-        (append.historyFamily.value(artifacts) as? List<*>)
+        (historyFamily.value(artifacts) as? List<*>)
           .orEmpty()
           .mapNotNull { item -> item as? Map<*, *> }
           .mapNotNull { item -> JsonCodec.anyToStringAnyMap(item) }
-      val updatedHistory = appendBoundedHistoryBySequence(existing, append.entryMap.payload, append.retentionLimit)
+      val updatedHistory = appendBoundedHistoryBySequence(existing, entryMap, history.retentionLimit)
       val patch =
         buildMap<String, Any?> {
-          append.historyFamily.putInto(this, updatedHistory)
-          append.latestFamily?.putInto(this, append.entryMap.payload)
+          historyFamily.putInto(this, updatedHistory)
+          history.latestFamily?.putInto(this, entryMap)
         }
       val updated =
         engine.updateRecord(

@@ -170,6 +170,23 @@ class FileTelemetryConfigStoreTest {
     )
   }
 
+  @Test
+  fun `a machine config still carrying a retired experiments block loads and keeps its other keys`(
+    @TempDir tempDir: Path,
+  ) {
+    val configPath = tempDir.resolve("config.json")
+    Files.writeString(
+      configPath,
+      """{"install_id":"persisted-id","experiments":{"availability":"on_request"}}""",
+    )
+    val store = storeFor(tempDir, configPath, installIdEnv = "env-fallback-id")
+
+    val document = store.ensure()
+
+    assertEquals("persisted-id", document.payload["install_id"])
+    assertEquals(mapOf("availability" to "on_request"), document.payload["experiments"])
+  }
+
   private fun storeFor(
     tempDir: Path,
     configPath: Path,

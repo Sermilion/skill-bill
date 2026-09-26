@@ -2,7 +2,6 @@ package skillbill.ports.persistence
 
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
-import skillbill.ports.experiment.pair.ExperimentPairRepository
 import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
@@ -36,7 +35,6 @@ interface UnitOfWork : GoalRunnerPersistenceSession {
   val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository
   val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions
   val featureTaskPhaseSettlements: FeatureTaskPhaseSettlementRepository
-  val experimentPairs: ExperimentPairRepository
 
   fun purgeDecomposedGoal(parentWorkflowId: String)
 }

@@ -60,8 +60,8 @@ internal object ReviewStatsRuntime {
 
   fun goalStats(connection: Connection): GoalWorkflowStats =
     buildGoalStats(
-      loadGoalRowsExcludingExperimentArms(connection, "goal_run_sessions"),
-      loadGoalRowsExcludingExperimentArms(connection, "goal_subtask_events"),
+      loadGoalRows(connection, "goal_run_sessions"),
+      loadGoalRows(connection, "goal_subtask_events"),
     )
 
   fun clearReviewFinishedTelemetryState(

@@ -183,6 +183,25 @@ class FileSystemRepoLocalConfigTest {
   }
 
   @Test
+  fun `a config still carrying the retired experiments block loads its other values`() {
+    val diagnostics = RecordingDiagnostics()
+    val repoRoot =
+      writeConfig(
+        """
+        spec_type: linear
+        experiments:
+          availability: on_request
+        """.trimIndent(),
+      )
+
+    val config =
+      FileSystemRepoLocalConfig(diagnostics).readRepoLocalConfig(ReadRepoLocalConfigRequest(repoRoot)).config
+
+    assertEquals(SpecType.LINEAR, config.specType)
+    assertTrue(diagnostics.warnings.isEmpty())
+  }
+
+  @Test
   fun `review context budget accepts retained and retired keys`() {
     val diagnostics = RecordingDiagnostics()
     val repoRoot =

@@ -12,7 +12,6 @@ data class GoalRunnerObservabilityRecordRequest(
   val workerRole: String,
   val livenessClass: String,
   val activitySummary: String,
-  val sequenceNumber: Int,
   val timestamp: String,
 ) {
   init {
@@ -23,7 +22,6 @@ data class GoalRunnerObservabilityRecordRequest(
     require(workerRole.isNotBlank()) { "workerRole is required." }
     require(livenessClass.isNotBlank()) { "livenessClass is required." }
     require(activitySummary.isNotBlank()) { "activitySummary is required." }
-    require(sequenceNumber >= 0) { "sequenceNumber must be non-negative." }
     require(timestamp.isNotBlank()) { "timestamp is required." }
   }
 }

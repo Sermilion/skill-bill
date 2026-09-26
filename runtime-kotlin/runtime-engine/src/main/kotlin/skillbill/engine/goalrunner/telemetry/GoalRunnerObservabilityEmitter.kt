@@ -3,7 +3,6 @@ package skillbill.engine.goalrunner.telemetry
 import skillbill.engine.agentoutput.stderrExcerpt
 import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
 import skillbill.engine.goalrunner.model.GoalRunnerObservabilityWorkerRole
-import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.goalrunner.model.GoalRunnerLaunchFacts
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
@@ -18,10 +17,7 @@ internal class GoalRunnerObservabilityEmitter(
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
   private val clock: Clock,
   private val diagnostics: RuntimeDiagnostics,
-  request: GoalRunnerRunRequest,
 ) {
-  private var sequence: Int = request.observabilitySequenceStart
-
   internal fun recordLaunchLifecycle(
     subject: GoalRunnerObservabilitySubject,
     action: String,
@@ -53,7 +49,6 @@ internal class GoalRunnerObservabilityEmitter(
               workerRole = signal.workerRole.wireValue,
               livenessClass = signal.livenessClass.wireValue,
               activitySummary = signal.activitySummary.takeIf(String::isNotBlank) ?: signal.livenessClass.wireValue,
-              sequenceNumber = sequence++,
               timestamp = clock.instant().toString(),
             ),
         )

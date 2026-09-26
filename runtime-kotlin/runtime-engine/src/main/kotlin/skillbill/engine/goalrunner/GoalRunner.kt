@@ -21,8 +21,6 @@ import skillbill.engine.goalrunner.status.stopped
 import skillbill.engine.goalrunner.status.unknownGoal
 import skillbill.engine.goalrunner.telemetry.GoalRunnerObservabilityEmitter
 import skillbill.engine.goalrunner.telemetry.GoalRunnerTelemetryEmitter
-import skillbill.error.shellcontent.ExperimentPairExecutionUnavailableError
-import skillbill.experiment.model.ExperimentExecutionMode
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
@@ -42,26 +40,6 @@ class GoalRunner(
   private val executionCoordinator = runBoundaries.executionCoordinator
 
   fun run(request: GoalRunnerRunRequest): GoalRunnerRunReport {
-    refuseSelectedExperiments(request)
-    return runWithoutExperiments(request)
-  }
-
-  private fun refuseSelectedExperiments(request: GoalRunnerRunRequest) {
-    if (request.experimentsParameter == null) return
-    val selection =
-      runBoundaries.experimentSelection.resolveForLaunch(
-        repoRoot = request.repoRoot,
-        parameter = request.experimentsParameter,
-        mode = ExperimentExecutionMode.GOAL_PAIR,
-        savedSelection = request.savedExperimentSelection,
-      )
-    if (selection.normalizedNames.isEmpty()) return
-    val refusal = ExperimentPairExecutionUnavailableError(selection.normalizedNames)
-    diagnostics.error(refusal.message.orEmpty(), refusal)
-    throw refusal
-  }
-
-  private fun runWithoutExperiments(request: GoalRunnerRunRequest): GoalRunnerRunReport {
     val loadedState =
       manifestStore.loadByIssueKey(request.issueKey, request.repoRoot)
         ?: return unknownGoal(request.issueKey)
@@ -111,7 +89,7 @@ class GoalRunner(
   private fun runPrepared(preparation: GoalRunPreparation.Prepared): GoalRunnerRunReport {
     var state = preparation.state
     val effectiveRequest = preparation.request
-    val observability = GoalRunnerObservabilityEmitter(outcomeStore, clock, diagnostics, effectiveRequest)
+    val observability = GoalRunnerObservabilityEmitter(outcomeStore, clock, diagnostics)
     val ledger = GoalRunnerLedgerRecorder(outcomeStore, effectiveRequest, clock, diagnostics)
     effectiveRequest.eventSink.emit(GoalRunnerRunEvent.Started(state.manifest.issueKey))
     val telemetryEmitter =

@@ -7,7 +7,7 @@ import skillbill.contracts.workflow.payload.WorktreeEditJournalPayloadKeys
 import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.lifecycle.continuation.agentAttributionFromPhaseState
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeStatusRequest
-import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
+import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseQuery
 import skillbill.engine.featuretask.review.core.auditGapIterationCount
 import skillbill.engine.featuretask.runloop.state.validationPassedFromEnvelope
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
@@ -59,7 +59,7 @@ import java.time.Clock
 class GoalRunnerStatusProjectionDataSources(
   val manifestStore: GoalRunnerManifestStore,
   val outcomeStore: GoalRunnerWorkflowOutcomeStore,
-  val phaseRecorder: FeatureTaskRuntimePhaseRecorder,
+  val phaseQuery: FeatureTaskRuntimePhaseQuery,
   val attemptLedgerStore: GoalRunnerAttemptLedgerStore,
   val database: DatabaseSessionFactory,
 )
@@ -84,7 +84,7 @@ class GoalRunnerStatusProjectionAssembler(
 ) {
   val manifestStore get() = dataSources.manifestStore
   val outcomeStore get() = dataSources.outcomeStore
-  val phaseRecorder get() = dataSources.phaseRecorder
+  val phaseQuery get() = dataSources.phaseQuery
   val attemptLedgerStore get() = dataSources.attemptLedgerStore
   val database get() = dataSources.database
 
@@ -255,7 +255,7 @@ private fun GoalRunnerStatusProjectionAssembler.measuredAuditAcRetryCount(
   durableRead: GoalRunnerStatusDurableReadTracker,
 ) = childWorkflowId?.let { workflowId ->
   runCatching {
-    auditGapIterationCount(phaseRecorder.loadPhaseLedger(workflowId))
+    auditGapIterationCount(phaseQuery.loadPhaseLedger(workflowId))
   }.getOrElse { error ->
     durableRead.recordDegradedRead(
       seam = "goal-status.audit_ac_retry_count",
@@ -279,7 +279,7 @@ private fun GoalRunnerStatusProjectionAssembler.completedSubtaskValidationFor(
 ): GoalRunnerSubtaskValidationEvidence {
   val workflowId = subtask.workflowId?.takeIf(String::isNotBlank)
   val record =
-    workflowId?.let { phaseRecorder.loadPhaseRecords(it) }
+    workflowId?.let { phaseQuery.loadPhaseRecords(it) }
       ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
   val envelope =
     record?.outputArtifact
@@ -385,10 +385,10 @@ internal fun GoalRunnerStatusProjectionAssembler.resolveChildExecutionLiveness(
   durableRead: GoalRunnerStatusDurableReadTracker,
 ): ExecutionLiveness =
   runCatching {
-    if (phaseRecorder.existingWorkflowMode(workflowId) != FeatureTaskWorkflowMode.RUNTIME) {
+    if (phaseQuery.existingWorkflowMode(workflowId) != FeatureTaskWorkflowMode.RUNTIME) {
       ExecutionLiveness.UNKNOWN
     } else {
-      val ownership = phaseRecorder.workerOwnership(workflowId)
+      val ownership = phaseQuery.workerOwnership(workflowId)
       if (ownership == null) {
         ExecutionLiveness.IDLE
       } else {
@@ -439,9 +439,9 @@ internal fun GoalRunnerStatusProjectionAssembler.resolveActiveAgent(currentSubta
   if (currentSubtask == null) return null
   val workflowId = currentSubtask.workflowId?.takeIf(String::isNotBlank)
   if (workflowId != null &&
-    phaseRecorder.existingWorkflowMode(workflowId) == FeatureTaskWorkflowMode.RUNTIME
+    phaseQuery.existingWorkflowMode(workflowId) == FeatureTaskWorkflowMode.RUNTIME
   ) {
-    agentAttributionFromPhaseState(phaseRecorder, workflowId).finalizingAgentId
+    agentAttributionFromPhaseState(phaseQuery, workflowId).finalizingAgentId
       ?.takeIf(String::isNotBlank)
       ?.let { return it }
   }

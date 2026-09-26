@@ -53,10 +53,7 @@ skill-bill goal preflight <issue-key> --agent <currently-executing-agent> --form
 ```
 
 Always pass the currently executing agent explicitly; do not rely on environment
-detection. Forward the review and agent add-on values as flags. When the user
-supplies `experiments:<names>` or `experiments:none`, forward it unchanged as
-`--experiments <names>` or `--experiments none`. Do not resolve experiment names
-from config or omit the flag when the user did not request experiments.
+detection. Forward the review and agent add-on values as flags.
 Derive the next action from the returned `verdict`. Invoke `bill-feature-spec`
 after this preflight when the verdict reports new work, retaining the returned
 gate state without recomputing it. Report and stop for an already-running or
@@ -85,9 +82,7 @@ After confirmation and any required rehydration, run:
 skill-bill goal <issue-key> --agent <currently-executing-agent> --no-live-output
 ```
 
-Forward the supplied review and agent add-on flags. Forward any user-supplied
-`experiments:<names>` or `experiments:none` unchanged as `--experiments` on
-launch. Never ask
+Forward the supplied review and agent add-on flags. Never ask
 the user to run the command manually.
 
 ## Relay

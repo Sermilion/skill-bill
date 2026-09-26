@@ -19,7 +19,6 @@ import skillbill.engine.goalrunner.model.missingResultPrefixDiagnostics
 import skillbill.engine.goalrunner.review.effectiveAgentAddonSelection
 import skillbill.engine.goalrunner.telemetry.GoalRunnerProgressEventEmitter
 import skillbill.engine.worktreeedit.WorktreeEditJournalWriter
-import skillbill.experiment.model.ExperimentArmId
 import skillbill.goalrunner.GoalRunnerOutcomeReconciler
 import skillbill.goalrunner.GoalRunnerQualityGateSelectionResolver
 import skillbill.goalrunner.model.GoalRunnerLaunchFacts
@@ -81,18 +80,11 @@ class GoalRunnerLaunchReconciler(
         subtaskId = subtaskId,
         request = request,
       )
-    val progressWatermark =
-      try {
-        outcomeStore.ledgerSequenceWatermarks(issueKey).maxProgressSequence
-      } catch (interrupted: InterruptedException) {
-        Thread.currentThread().interrupt()
-        throw interrupted
-      }
     val progressEmitter =
       GoalRunnerProgressEventEmitter(
         outcomeStore = outcomeStore,
         resolveWorkflowId = { tickReader.progressState()?.subtask?.workflowId?.takeIf(String::isNotBlank) },
-        watermarkSeed = progressWatermark,
+        issueKey = issueKey,
         clock = clock,
         diagnostics = diagnostics,
       )
@@ -138,28 +130,6 @@ class GoalRunnerLaunchReconciler(
           readOnlyPhase =
             dependencies.goalContinuation?.lastResumableStep ==
               FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
-          treatmentCapabilitiesEnabled =
-            if (
-              request.experimentArmId == ExperimentArmId.TREATMENT ||
-              dependencies.goalContinuation?.experimentArmId == ExperimentArmId.TREATMENT
-            ) {
-              request.experimentTreatmentCapabilities.ifEmpty {
-                dependencies.goalContinuation?.experimentTreatmentCapabilities.orEmpty()
-              }
-            } else {
-              emptySet()
-            },
-          treatmentCapabilitiesDenied =
-            if (request.experimentArmId == ExperimentArmId.CONTROL) {
-              request.experimentTreatmentCapabilitiesDenied.ifEmpty {
-                request.experimentTreatmentCapabilities
-              }
-            } else {
-              emptySet()
-            },
-          denyRemotePublication =
-            request.deferRemotePublication ||
-              dependencies.goalContinuation?.deferRemotePublication == true,
           goalContinuation = dependencies.goalContinuation,
           spawnAuthorization = spawnAuthorization,
           activityStampSink = dependencies.activityStampSink,
@@ -198,9 +168,6 @@ class GoalRunnerLaunchReconciler(
         lastResumableStep = subtask.lastResumableStep?.takeIf(String::isNotBlank),
         childWorkflowId = childWorkflowId,
         assignedWorkflowId = assignedWorkflowId,
-        experimentArmId = request.experimentArmId,
-        experimentTreatmentCapabilities = request.experimentTreatmentCapabilities,
-        deferRemotePublication = request.deferRemotePublication,
         codeReviewMode = request.codeReviewMode ?: CodeReviewExecutionMode.DEFAULT,
         validationDepth = ValidationDepth.FULL,
         qualityGateSelection = GoalRunnerQualityGateSelectionResolver.resolve(state.manifest, subtaskId),

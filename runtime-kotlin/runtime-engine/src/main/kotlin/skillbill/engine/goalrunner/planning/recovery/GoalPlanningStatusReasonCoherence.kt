@@ -25,11 +25,6 @@ import java.nio.file.Path
 
 fun interface GoalPlanningStatusReasonCoherence {
   fun align(request: GoalPlanningStatusAlignRequest): GoalPlanningStatusSnapshot
-
-  companion object {
-    val NONE: GoalPlanningStatusReasonCoherence =
-      GoalPlanningStatusReasonCoherence { request -> request.snapshot }
-  }
 }
 
 @Inject

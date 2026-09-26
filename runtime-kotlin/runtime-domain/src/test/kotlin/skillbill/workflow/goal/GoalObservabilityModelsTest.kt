@@ -10,6 +10,8 @@ import skillbill.goalrunner.goalProgressHistory
 import skillbill.goalrunner.goalProgressLatestEvent
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalObservabilityProgressInput
+import skillbill.goalrunner.model.GoalObservabilityRuntimeEventInput
+import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.model.goalreview.GOAL_OBSERVABILITY_HISTORY_LIMIT
 import skillbill.workflow.model.goalreview.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY
@@ -97,6 +99,60 @@ class GoalObservabilityModelsTest {
       )
     }
   }
+
+  @Test
+  fun `observability history allocates distinct rising sequences across runtime and child patches`() {
+    val first = runtimeEventPatch(emptyMap<String, Any?>(), "2026-06-01T00:00:00Z")
+    val second =
+      GoalObservabilityArtifacts.patchForProgressEvent(
+        GoalObservabilityProgressInput(
+          artifacts =
+            first +
+              mapOf(
+                "goal_continuation" to mapOf("issue_key" to "SKILL-378", "subtask_id" to 1),
+                "progress_event" to mapOf("timestamp" to "2026-06-01T00:01:00Z", "sequence" to 0),
+              ),
+          workflowId = "wf-378",
+          workflowStatus = "running",
+          currentStepId = "implement",
+        ),
+        { _, _ -> },
+      ).let(::asArtifacts)
+    val third = runtimeEventPatch(second, "2026-06-01T00:02:00Z")
+
+    val sequences =
+      (third[GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY] as List<*>)
+        .map { entry -> (entry as Map<*, *>)["sequence_number"] }
+
+    assertEquals(listOf(0, 1, 2), sequences)
+  }
+
+  private fun runtimeEventPatch(
+    artifacts: Any,
+    timestamp: String,
+  ): Map<String, Any?> =
+    asArtifacts(
+      GoalObservabilityArtifacts.patchForRuntimeEvent(
+        GoalObservabilityRuntimeEventInput(
+          artifacts = artifacts,
+          request =
+            GoalRunnerObservabilityRecordRequest(
+              workflowId = "wf-378",
+              issueKey = "SKILL-378",
+              subtaskId = 1,
+              workflowPhase = "implement",
+              workerRole = "goal_runner",
+              livenessClass = "phase_change",
+              activitySummary = "goal runner advanced the child workflow.",
+              timestamp = timestamp,
+            ),
+        ),
+        { _, _ -> },
+      ),
+    )
+
+  private fun asArtifacts(value: Any?): Map<String, Any?> =
+    (value as Map<*, *>).entries.associate { (key, entry) -> key.toString() to entry }
 
   @Test
   fun `default artifact rendering omits optional heavy fields`() {

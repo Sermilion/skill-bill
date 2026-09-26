@@ -1,9 +1,9 @@
 package skillbill.engine.featuretask.lifecycle.subtask
 
-import skillbill.engine.experiment.isolation.ExperimentCheckpointNamespace
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE
 import java.nio.file.Path
 
 internal fun WorkflowGitOperations.writeSubtaskCommitPreservingHistory(
@@ -57,7 +57,7 @@ private fun preservePreAmendCheckpoint(
   val existing =
     gitOperations.resolveCheckpointRef(
       request.repoRoot,
-      ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
+      FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE,
       refName,
     )
   if (existing !is WorkflowGitOperationResult.Ok) {
@@ -72,7 +72,7 @@ private fun preservePreAmendCheckpoint(
   val written =
     gitOperations.updateCheckpointRef(
       request.repoRoot,
-      ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
+      FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE,
       refName,
       ownedHeadSha,
     )
@@ -97,12 +97,12 @@ private fun sweepForeignOccupant(
     )
   }
   val prefix =
-    "${ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot)}/" +
+    "$FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE/" +
       "${request.identity.issueKey.trim()}/${request.identity.subtaskId}/"
   val swept =
     gitOperations.deleteCheckpointRefsUnderPrefix(
       request.repoRoot,
-      ExperimentCheckpointNamespace.forRepositoryRoot(request.repoRoot),
+      FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE,
       prefix,
     )
   if (swept !is WorkflowGitOperationResult.Ok) {
@@ -129,7 +129,7 @@ private fun verifyPreservedCheckpoint(
   val resolved =
     gitOperations.resolveCheckpointRef(
       repoRoot,
-      ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot),
+      FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE,
       refName,
     )
   val preserved = resolved.value.orEmpty().trim()

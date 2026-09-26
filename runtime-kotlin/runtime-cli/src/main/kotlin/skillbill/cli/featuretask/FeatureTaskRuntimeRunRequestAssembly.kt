@@ -14,7 +14,6 @@ import skillbill.engine.featuretask.lifecycle.core.FeatureTaskRuntimeModelResolv
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeAgentAssignment
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeModelAssignment
-import skillbill.experiment.model.ExperimentArmId
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.model.goalreview.GoalSubtaskOperatorDecision
@@ -98,27 +97,6 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.parseGoalContinuationContext(
     throw UsageError("${missing.joinToString()} required with goal-continuation options.")
   }
   val tokens = FeatureTaskRuntimeGoalContinuationLaunchTokens
-  val experimentArm =
-    (goalExperimentArmId?.takeIf(String::isNotBlank) ?: environment[tokens.GOAL_EXPERIMENT_ARM_ID_ENV])
-      ?.takeIf(String::isNotBlank)
-      ?.let { raw ->
-        ExperimentArmId.entries.firstOrNull { it.wireValue == raw }
-          ?: throw UsageError("Unknown goal experiment arm '$raw'.")
-      }
-  val experimentCapabilities =
-    (
-      goalExperimentTreatmentCapabilities.takeIf { it.isNotEmpty() }
-        ?: environment[tokens.GOAL_EXPERIMENT_TREATMENT_CAPABILITIES_ENV]
-          ?.takeIf(String::isNotBlank)
-          ?.split(',')
-          .orEmpty()
-    )
-      .map { it.trim() }
-      .filter { it.isNotEmpty() }
-      .toSet()
-  val deferRemote =
-    deferRemotePublication ||
-      environment[tokens.DEFER_REMOTE_PUBLICATION_ENV]?.equals("true", ignoreCase = true) == true
   return FeatureTaskRuntimeGoalContinuationContext(
     parentIssueKey = requireNotNull(goalParentIssueKey),
     subtaskId = requireNotNull(goalSubtaskId),
@@ -133,9 +111,6 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.parseGoalContinuationContext(
         ?.let(ValidationDepth::fromWire)
         ?: ValidationDepth.FULL,
     qualityGateSelection = requestedQualityGateSelection(environment),
-    experimentArmId = experimentArm,
-    experimentTreatmentCapabilities = experimentCapabilities,
-    deferRemotePublication = deferRemote,
     reviewBaseline =
       requireNotNull(goalReviewBaseSha?.takeIf(String::isNotBlank)) {
         "${FeatureTaskRuntimeGoalContinuationLaunchTokens.GOAL_REVIEW_BASE_SHA_FLAG} is required with " +

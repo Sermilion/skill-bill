@@ -24,7 +24,6 @@ import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
-import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.review.model.ReviewFindingVerdict
@@ -66,6 +65,7 @@ class FeatureTaskRuntimePhaseRecorder
       database,
       FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator),
     ) {
+    val phaseQuery = FeatureTaskRuntimePhaseQuery(database)
     private val workflowPersistence = FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator)
     private val runtimeOwnedPersistence = RuntimeOwnedPersistenceBoundary(database, diagnostics)
     private val rejectedOutput =
@@ -104,11 +104,7 @@ class FeatureTaskRuntimePhaseRecorder
       )
     private val gateProgress = FeatureTaskRuntimeGateProgressRecorder(database, workflowPersistence)
 
-    fun existingWorkflowMode(workflowId: String): FeatureTaskWorkflowMode? =
-      workflowPersistence.existingWorkflowMode(workflowId)
-
-    fun workerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership? =
-      workflowPersistence.workerOwnership(workflowId)
+    fun existingWorkflowMode(workflowId: String): FeatureTaskWorkflowMode? = phaseQuery.existingWorkflowMode(workflowId)
 
     fun ensureWorkflowOpen(
       workflowId: String,
@@ -146,13 +142,13 @@ class FeatureTaskRuntimePhaseRecorder
     ): Boolean = phaseState.clearBackwardEdgeContext(workflowId, phaseIds)
 
     fun loadPhaseRecords(workflowId: String): Map<String, FeatureTaskRuntimePhaseRecord>? =
-      phaseState.loadPhaseRecords(workflowId)
+      phaseQuery.loadPhaseRecords(workflowId)
 
     fun loadOperatorBlockRetry(workflowId: String): FeatureTaskRuntimeOperatorBlockRetry? =
       phaseState.loadOperatorBlockRetry(workflowId)
 
     fun loadPhaseLedger(workflowId: String): List<FeatureTaskRuntimePhaseLedgerEntry>? =
-      phaseState.loadPhaseLedger(workflowId)
+      phaseQuery.loadPhaseLedger(workflowId)
 
     fun completeGoalReviewPhase(completion: GoalReviewPhaseCompletionRequest): Boolean =
       goalReviewCompletion.completeGoalReviewPhase(completion)

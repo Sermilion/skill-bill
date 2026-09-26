@@ -7,7 +7,6 @@ import skillbill.application.decomposition.specSource
 import skillbill.engine.featuretask.lifecycle.branch.Blocked
 import skillbill.engine.goalrunner.model.GoalPreflightAgentAddon
 import skillbill.engine.goalrunner.model.GoalPreflightDependency
-import skillbill.engine.goalrunner.model.GoalPreflightExperimentSummary
 import skillbill.engine.goalrunner.model.GoalPreflightGateBlock
 import skillbill.engine.goalrunner.model.GoalPreflightRehydrateTarget
 import skillbill.engine.goalrunner.model.GoalPreflightRequest
@@ -16,15 +15,12 @@ import skillbill.engine.goalrunner.review.effectiveGoalRunnerReviewPolicy
 import skillbill.engine.goalrunner.review.goalRunnerReviewPolicyMismatch
 import skillbill.error.shellcontent.InvalidAgentAddonSelectionError
 import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
-import skillbill.experiment.model.ExperimentArmId
-import skillbill.experiment.model.ExperimentExecutionMode
 import skillbill.goalrunner.GoalRunnerPlanner
 import skillbill.goalrunner.model.GoalRunnerSelection
 import skillbill.model.toPath
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest
-import skillbill.ports.experiment.selection.ExperimentSelectionPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
@@ -40,7 +36,6 @@ class GoalPreflightGateBlockBuilder(
   private val agentAddonSelectionPort: AgentAddonSelectionPort,
   private val externalAgentAddonSourceConfigPort: ExternalAgentAddonSourceConfigPort,
   private val manifestFileStore: DecompositionManifestStore,
-  private val experimentSelectionPort: ExperimentSelectionPort,
 ) {
   fun resolveSelection(
     request: GoalPreflightRequest,
@@ -140,55 +135,7 @@ class GoalPreflightGateBlockBuilder(
             description = entry.description,
           )
         },
-      experimentSelectionSummary = experimentSelectionSummary(request, root),
-      experiment = experimentSummary(request, root),
     )
-  }
-
-  private fun experimentSummary(
-    request: GoalPreflightRequest,
-    root: Path,
-  ): GoalPreflightExperimentSummary? {
-    val launch =
-      experimentSelectionPort.resolveForLaunch(
-        repoRoot = root,
-        parameter = request.experimentsParameter,
-        mode = ExperimentExecutionMode.GOAL_PAIR,
-        savedSelection = null,
-      )
-    if (launch.normalizedNames.isEmpty()) return null
-    return GoalPreflightExperimentSummary(
-      selectedNames = launch.normalizedNames,
-      arms = listOf(ExperimentArmId.CONTROL.wireValue, ExperimentArmId.TREATMENT.wireValue),
-      deliveryArm = ExperimentArmId.CONTROL.wireValue,
-      declaredSetup = "two sequential isolated arm runs",
-      additionalTimeAndSpend = "additional setup and execution cost is measured and reported",
-    )
-  }
-
-  private fun experimentSelectionSummary(
-    request: GoalPreflightRequest,
-    root: Path,
-  ): String? {
-    val launch =
-      experimentSelectionPort.resolveForLaunch(
-        repoRoot = root,
-        parameter = request.experimentsParameter,
-        mode = ExperimentExecutionMode.GOAL_PAIR,
-        savedSelection = null,
-      )
-    if (launch.normalizedNames.isEmpty()) {
-      return if (request.experimentsParameter != null) "no experiments selected" else null
-    }
-    return buildString {
-      append("selected experiments: ")
-      append(launch.normalizedNames.joinToString(", "))
-      append(
-        "; arms: ${ExperimentArmId.CONTROL.wireValue} (experiments disabled), " +
-          "${ExperimentArmId.TREATMENT.wireValue} (experiments enabled)",
-      )
-      append("; delivery arm: ${ExperimentArmId.CONTROL.wireValue}")
-    }
   }
 
   fun rehydrateTargets(

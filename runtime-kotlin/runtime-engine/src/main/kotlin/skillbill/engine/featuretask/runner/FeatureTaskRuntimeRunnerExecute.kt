@@ -181,7 +181,7 @@ internal fun FeatureTaskRuntimeRunner.loadRegenerationTelemetry(
 }
 
 internal fun FeatureTaskRuntimeRunner.finalizingAgentId(request: FeatureTaskRuntimeRunRequest): String? =
-  agentAttributionFromPhaseState(recorder, request.workflowId).finalizingAgentId
+  agentAttributionFromPhaseState(recorder.phaseQuery, request.workflowId).finalizingAgentId
 
 internal val FeatureTaskRuntimeRunner.lifecycleTelemetry get() = phaseGates.lifecycleTelemetry
 internal val FeatureTaskRuntimeRunner.specSourceResolver get() = phaseGates.specGate.specSourceResolver

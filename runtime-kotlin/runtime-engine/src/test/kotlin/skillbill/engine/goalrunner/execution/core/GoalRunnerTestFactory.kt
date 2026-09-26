@@ -13,19 +13,22 @@ import skillbill.engine.goalrunner.launch.GoalRunnerLaunchReconciler
 import skillbill.engine.goalrunner.launch.GoalRunnerSubtaskLaunchPrepare
 import skillbill.engine.goalrunner.manifest.TestNoopGoalPlanningManifestStore
 import skillbill.engine.goalrunner.planning.attempt.GoalPlanningAttemptRecorder
+import skillbill.engine.goalrunner.planning.attempt.NO_GOAL_PLANNING_ATTEMPT_RECORDER
 import skillbill.engine.goalrunner.planning.model.GoalPlanningBurstSchedule
 import skillbill.engine.goalrunner.planning.recovery.GoalPlanningRefreshLiveness
+import skillbill.engine.goalrunner.planning.recovery.IDLE_GOAL_PLANNING_REFRESH_LIVENESS
 import skillbill.engine.goalrunner.planning.remedies.GoalPlanningRejectionRecorder
+import skillbill.engine.goalrunner.planning.remedies.NO_GOAL_PLANNING_REJECTION_RECORDER
 import skillbill.engine.goalrunner.planning.sweep.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweep
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepCheckpointBoundaries
 import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepLaunchBoundaries
+import skillbill.engine.goalrunner.planning.sweep.PREPARE_ALL_GOAL_PLANNING_SWEEP
 import skillbill.engine.worktreeedit.WorktreeEditJournalWriter
 import skillbill.ports.concurrency.BoundedWorkFanOutPort
 import skillbill.ports.concurrency.SequentialBoundedWorkFanOutPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.ports.experiment.selection.NoExperimentSelection
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.goalrunner.planning.EMPTY_GOAL_PLANNING_CONTEXT_DISCOVERY
@@ -57,7 +60,10 @@ import skillbill.ports.workflow.specscratch.SpecScratchStore
 import skillbill.ports.workflow.specscratch.UnavailableSpecScratchStore
 import java.nio.file.Path
 import java.time.Clock
+import kotlin.random.Random
 import kotlin.time.TimeSource
+
+private const val GOAL_RUNNER_TEST_WORKFLOW_ID_SEED: Int = 20260923
 
 internal fun testActivityStampWriter(
   database: DatabaseSessionFactory = TestGoalActivityStampDatabase,
@@ -96,14 +102,13 @@ internal fun testGoalRunnerWiring(params: GoalRunnerTestWiringParams): GoalRunne
     GoalRunnerRunBoundaries(
       manifestStore = params.manifestStore,
       outcomeStore = params.outcomeStore,
-      goalPlanningSweep = GoalPlanningSweep.NONE,
+      goalPlanningSweep = PREPARE_ALL_GOAL_PLANNING_SWEEP,
       telemetry = noopGoalLifecycleTelemetryEmitter,
       clock = clock,
       diagnostics = diagnostics,
-      executionCoordinator = GoalRunnerExecutionCoordinator.NONE,
-      phaseRecorder = params.phaseRecorder,
+      executionCoordinator = DIRECT_GOAL_RUNNER_EXECUTION_COORDINATOR,
+      phaseQuery = params.phaseRecorder.phaseQuery,
       unaddressedFindingsLedgerService = params.unaddressedFindingsLedgerService,
-      experimentSelection = NoExperimentSelection,
     )
   val launchBoundaries =
     GoalRunnerSubtaskLaunchBoundaries(
@@ -130,13 +135,13 @@ internal data class GoalRunnerTestInputs(
   val subtaskLauncher: GoalRunnerSubtaskLauncher,
   val outcomeStore: GoalRunnerWorkflowOutcomeStore,
   val pullRequestPort: GoalPullRequestPort,
-  val goalPlanningSweep: GoalPlanningSweep = GoalPlanningSweep.NONE,
+  val goalPlanningSweep: GoalPlanningSweep = PREPARE_ALL_GOAL_PLANNING_SWEEP,
   val specScratchStore: SpecScratchStore = UnavailableSpecScratchStore,
   val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
   val telemetry: GoalLifecycleTelemetryEmitter = noopGoalLifecycleTelemetryEmitter,
   val clock: Clock = Clock.systemUTC(),
   val unaddressedFindingsLedgerService: UnaddressedFindingsLedgerService? = null,
-  val executionCoordinator: GoalRunnerExecutionCoordinator = GoalRunnerExecutionCoordinator.NONE,
+  val executionCoordinator: GoalRunnerExecutionCoordinator = DIRECT_GOAL_RUNNER_EXECUTION_COORDINATOR,
   val phaseRecorder: FeatureTaskRuntimePhaseRecorder = goalRunnerDefaultPhaseRecorder(),
 ) {
   fun toWiring(): GoalRunnerTestWiring =
@@ -150,9 +155,8 @@ internal data class GoalRunnerTestInputs(
           clock = clock,
           diagnostics = NoopRuntimeDiagnostics,
           executionCoordinator = executionCoordinator,
-          phaseRecorder = phaseRecorder,
+          phaseQuery = phaseRecorder.phaseQuery,
           unaddressedFindingsLedgerService = unaddressedFindingsLedgerService,
-          experimentSelection = NoExperimentSelection,
         ),
       launchBoundaries =
         GoalRunnerSubtaskLaunchBoundaries(
@@ -213,6 +217,7 @@ internal fun testGoalRunner(wiring: GoalRunnerTestWiring): GoalRunner {
       wiring.launchBoundaries,
       TestRepositoryEnclosingRoot,
       wiring.runBoundaries.clock,
+      Random(GOAL_RUNNER_TEST_WORKFLOW_ID_SEED),
     )
   val perRunLoopAssembler =
     GoalRunnerPerRunLoopAssembler(
@@ -297,9 +302,9 @@ internal data class GoalPlanningSweepPortsParams(
   val manifestFileStore: DecompositionManifestStore,
   val contextDiscovery: GoalPlanningContextDiscovery,
   val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator = realPlanningProjectionValidator,
-  val planningAttemptRecorder: GoalPlanningAttemptRecorder = GoalPlanningAttemptRecorder.NONE,
+  val planningAttemptRecorder: GoalPlanningAttemptRecorder = NO_GOAL_PLANNING_ATTEMPT_RECORDER,
   val manifestStore: GoalRunnerManifestStore = TestNoopGoalPlanningManifestStore,
-  val planningRejectionRecorder: GoalPlanningRejectionRecorder = GoalPlanningRejectionRecorder.NONE,
+  val planningRejectionRecorder: GoalPlanningRejectionRecorder = NO_GOAL_PLANNING_REJECTION_RECORDER,
   val timingPort: RuntimeTimingPort = NoopRuntimeTimingPort,
   val fanOutPort: BoundedWorkFanOutPort = SequentialBoundedWorkFanOutPort,
   val repositoryEnclosingRootPort: RepositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
@@ -310,7 +315,7 @@ internal data class GoalPlanningSweepPortsParams(
       emptyTurnBackoffFactor = GoalPlanningBurstSchedule.DEFAULT_EMPTY_TURN_BACKOFF_FACTOR,
       waitSlice = GoalPlanningBurstSchedule.DEFAULT_WAIT_SLICE,
     ),
-  val refreshLiveness: GoalPlanningRefreshLiveness = GoalPlanningRefreshLiveness.IDLE,
+  val refreshLiveness: GoalPlanningRefreshLiveness = IDLE_GOAL_PLANNING_REFRESH_LIVENESS,
 )
 
 internal fun testGoalPlanningSweepPorts(params: GoalPlanningSweepPortsParams): DefaultGoalPlanningSweep =

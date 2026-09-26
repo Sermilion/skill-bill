@@ -8,6 +8,7 @@ import skillbill.engine.goalrunner.manifest
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
@@ -39,6 +40,8 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -54,7 +57,12 @@ class GoalPlanningRefreshLivenessTest {
     assertEquals(ExecutionLiveness.IDLE, harness.liveness.resolve(state))
     assertEquals(
       ExecutionLiveness.IDLE,
-      resolveChildExecutionLiveness(state.manifest.subtasks.first(), harness.recorder, clock),
+      resolveChildExecutionLiveness(
+        state.manifest.subtasks.first(),
+        harness.recorder.phaseQuery,
+        clock,
+        NoopRuntimeDiagnostics,
+      ),
     )
   }
 
@@ -103,6 +111,32 @@ class GoalPlanningRefreshLivenessTest {
   }
 
   @Test
+  fun `corrupt child row degrades to UNKNOWN and records the seam`() {
+    val harness = RefreshLivenessHarness(clock)
+    harness.repository.readFailure = IllegalStateException("malformed feature_task_runtime row")
+    val state = manifestState(childWorkflowId = "wfl-child")
+
+    assertEquals(ExecutionLiveness.UNKNOWN, harness.liveness.resolve(state))
+    assertNotNull(refuseRefreshReason("SKILL-56", ExecutionLiveness.UNKNOWN))
+    val warning = harness.diagnostics.warnings.single()
+    assertTrue(warning.contains("goal-planning.child_execution_liveness"), warning)
+    assertTrue(warning.contains("expected live_or_idle"), warning)
+    assertTrue(warning.contains("used unknown"), warning)
+  }
+
+  @Test
+  fun `interrupt during the child read is rethrown with the interrupt flag set`() {
+    val harness = RefreshLivenessHarness(clock)
+    harness.repository.readFailure = InterruptedException("read interrupted")
+    val state = manifestState(childWorkflowId = "wfl-child")
+    Thread.interrupted()
+
+    assertFailsWith<InterruptedException> { harness.liveness.resolve(state) }
+    assertTrue(Thread.interrupted())
+    assertTrue(harness.diagnostics.warnings.isEmpty())
+  }
+
+  @Test
   fun `intent naming a missing subtask falls through to IDLE`() {
     val harness = RefreshLivenessHarness(clock)
     val base = manifest(subtaskCount = 1)
@@ -136,7 +170,7 @@ class GoalPlanningRefreshLivenessTest {
 }
 
 private class RefreshLivenessHarness(clock: Clock) {
-  private val repository = SeedableRefreshLivenessWorkflowStates()
+  val repository = SeedableRefreshLivenessWorkflowStates()
   private val database = SeedableRefreshLivenessDatabase(repository)
   val recorder =
     featureTaskRuntimePhaseRecorder(
@@ -147,7 +181,8 @@ private class RefreshLivenessHarness(clock: Clock) {
       testHarnessClock,
       NoopRuntimeDiagnostics,
     )
-  val liveness = ChildAwareGoalPlanningRefreshLiveness(recorder, clock)
+  val diagnostics = RecordingRefreshLivenessDiagnostics()
+  val liveness = ChildAwareGoalPlanningRefreshLiveness(recorder.phaseQuery, clock, diagnostics)
 
   fun seedRuntimeChild(
     workflowId: String,
@@ -172,6 +207,22 @@ private class RefreshLivenessHarness(clock: Clock) {
     )
     repository.seedOwnership(workflowId, expiresAt)
   }
+}
+
+private class RecordingRefreshLivenessDiagnostics : RuntimeDiagnostics {
+  val warnings = mutableListOf<String>()
+
+  override fun warning(
+    message: String,
+    error: Throwable?,
+  ) {
+    warnings += message
+  }
+
+  override fun error(
+    message: String,
+    error: Throwable?,
+  ) = Unit
 }
 
 private object NoopRefreshLivenessSnapshotValidator : WorkflowSnapshotValidator {
@@ -215,6 +266,7 @@ private class SeedableRefreshLivenessDatabase(
 private class SeedableRefreshLivenessWorkflowStates : WorkflowStateRepositoryDefaults() {
   private val taskRuntimeRows = linkedMapOf<String, WorkflowStateRecord>()
   private val ownershipRows = linkedMapOf<String, FeatureTaskRuntimeWorkerOwnership>()
+  var readFailure: Throwable? = null
 
   fun seedOwnership(
     workflowId: String,
@@ -251,7 +303,10 @@ private class SeedableRefreshLivenessWorkflowStates : WorkflowStateRepositoryDef
     taskRuntimeRows[row.workflowId] = row
   }
 
-  override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? = taskRuntimeRows[workflowId]
+  override fun getFeatureTaskWorkflow(workflowId: String): WorkflowStateRecord? {
+    readFailure?.let { failure -> throw failure }
+    return taskRuntimeRows[workflowId]
+  }
 
   override fun getFeatureTaskWorkflowAsMode(
     workflowId: String,

@@ -3,7 +3,6 @@ package skillbill.infrastructure.sqlite
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.infrastructure.sqlite.core.ops.bindAll
-import skillbill.infrastructure.sqlite.experiment.SqliteExperimentPairStore
 import skillbill.infrastructure.sqlite.goal.UnaddressedFindingsRuntime
 import skillbill.infrastructure.sqlite.review.accounting.loadReviewAccounting
 import skillbill.infrastructure.sqlite.review.accounting.persistImportedReview
@@ -31,7 +30,6 @@ import skillbill.learnings.model.UpdateLearningRequest
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.experiment.pair.ExperimentPairRepository
 import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
@@ -75,12 +73,10 @@ internal class SQLiteUnitOfWork(
   private val runtimeVersion: String,
 ) : UnitOfWork {
   private val phaseSettlementStore = SqliteFeatureTaskPhaseSettlementStore(connection)
-  private val experimentPairStore = SqliteExperimentPairStore(connection, clock)
 
   internal val sessionClock: Clock get() = clock
   internal val sessionDiagnostics: RuntimeDiagnostics get() = diagnostics
   override val featureTaskPhaseSettlements: FeatureTaskPhaseSettlementRepository = phaseSettlementStore
-  override val experimentPairs: ExperimentPairRepository = experimentPairStore
   override val reviews: ReviewRepository = SQLiteReviewRepository(connection, clock, runtimeVersion)
   override val learnings: LearningRepository = SQLiteLearningRepository(connection)
   override val lifecycleTelemetry: LifecycleTelemetryRepository = LifecycleTelemetryStore(connection, runtimeVersion)
@@ -115,7 +111,6 @@ internal class SQLiteUnitOfWork(
         addAll(childIds)
       }
     goalPlanningPreparations.deleteByGoal(parentWorkflowId)
-    experimentPairStore.deletePairsForWorkflowIds(workflowIds)
     connection.prepareStatement(
       "DELETE FROM goal_runner_controls WHERE parent_workflow_id = ?",
     ).use { statement ->
