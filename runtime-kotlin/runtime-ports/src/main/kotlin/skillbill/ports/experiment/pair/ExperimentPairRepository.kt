@@ -19,21 +19,21 @@ interface ExperimentPairRepository {
   fun saveReport(
     pairId: String,
     reportPayload: ExperimentPairPayload,
-  ) = Unit
+  )
 
-  fun loadReport(pairId: String): ExperimentPairPayload? = null
+  fun loadReport(pairId: String): ExperimentPairPayload?
 
-  fun listReports(): List<ExperimentPairPayload> = emptyList()
+  fun listReports(): List<ExperimentPairPayload>
 
   fun acquireLease(
     pairId: String,
     ownerToken: String,
     nowEpochMillis: Long,
     leaseMillis: Long,
-  ): Boolean = true
+  ): Boolean
 
   fun releaseLease(
     pairId: String,
     ownerToken: String,
-  ) = Unit
+  )
 }

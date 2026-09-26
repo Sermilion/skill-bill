@@ -14,7 +14,6 @@ import skillbill.ports.workflow.decomposition.loadDecompositionManifest
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWorkflowProjectionInput
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest
-import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionPlanManifestInput
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
@@ -23,6 +22,7 @@ import skillbill.workflow.decomposition.model.DecompositionManifestPlan
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.decomposition.runtime.invalidManifest
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
+import skillbill.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.io.IOException
 import java.nio.file.Path

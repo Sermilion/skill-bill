@@ -1,5 +1,6 @@
 package skillbill.ports.workflow.gitops
 
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 
@@ -7,48 +8,33 @@ interface WorkflowGitCommitHistoryOperations {
   fun createCommit(
     repoRoot: Path,
     message: String,
-  ): WorkflowGitOperationResult
+  ): WorkflowGitCommitResult
 
   fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult
 
   fun resetSoftToCommit(
     repoRoot: Path,
     commitSha: String,
-  ): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Failed(
-      error = "This git operations implementation cannot soft-reset HEAD to '$commitSha'.",
-    )
+  ): WorkflowGitOperationResult
 
   fun resetHardToCommit(
     repoRoot: Path,
     commitSha: String,
-  ): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Failed(
-      error = "This git operations implementation cannot hard-reset HEAD to '$commitSha'.",
-    )
+  ): WorkflowGitOperationResult
 
   fun isCommitAncestor(
     repoRoot: Path,
     ancestorSha: String,
     descendantSha: String,
-  ): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Failed(
-      error = "This git operations implementation cannot test commit ancestry.",
-    )
+  ): WorkflowGitOperationResult
 
   fun resolveCommit(
     repoRoot: Path,
     revision: String,
-  ): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Failed(
-      error = "This git operations implementation cannot resolve commit '$revision'.",
-    )
+  ): WorkflowGitOperationResult
 
   fun readHeadTrackedFile(
     repoRoot: Path,
     repoRelativePath: String,
-  ): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Failed(
-      error = "This git operations implementation cannot read tracked file '$repoRelativePath' at HEAD.",
-    )
+  ): WorkflowGitOperationResult
 }

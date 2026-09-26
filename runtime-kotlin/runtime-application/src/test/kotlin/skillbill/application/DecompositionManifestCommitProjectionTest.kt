@@ -39,7 +39,7 @@ import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskRouteScope
-import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import java.io.IOException
 import java.nio.file.Files
@@ -323,7 +323,7 @@ class DecompositionManifestCommitProjectionTest {
     persistProjectionRetryPlan(setup.service, setup.opened.workflowId, plan)
     setup.failure.enabled = true
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-    val parent = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId))
+    val parent = requireNotNull(setup.workflows.getFeatureTaskWorkflowAsMode(setup.opened.workflowId, RUNTIME))
     assertContains(
       parent.artifactsJson,
       DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label(),
@@ -343,7 +343,7 @@ class DecompositionManifestCommitProjectionTest {
       )
     persistProjectionRetryPlan(setup.service, setup.opened.workflowId, plan)
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
-    val parentBefore = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId))
+    val parentBefore = requireNotNull(setup.workflows.getFeatureTaskWorkflowAsMode(setup.opened.workflowId, RUNTIME))
     val childWorkflowId =
       parentBefore.toSnapshot().decompositionRuntime()
         ?.subtasks
@@ -352,7 +352,7 @@ class DecompositionManifestCommitProjectionTest {
         ?: error("expected started subtask workflow id")
     setup.failure.enabled = true
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, childWorkflowId)
-    val parent = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId))
+    val parent = requireNotNull(setup.workflows.getFeatureTaskWorkflowAsMode(setup.opened.workflowId, RUNTIME))
     assertContains(
       parent.artifactsJson,
       DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label(),
@@ -450,7 +450,7 @@ class DecompositionManifestCommitProjectionTest {
         ),
       )
     assertIs<WorkflowUpdateResult.Ok>(committedResult)
-    val afterFailure = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId))
+    val afterFailure = requireNotNull(workflows.getFeatureTaskWorkflowAsMode(opened.workflowId, RUNTIME))
     assertContains(afterFailure.artifactsJson, "projection_probe")
     assertContains(
       afterFailure.artifactsJson,
@@ -464,7 +464,7 @@ class DecompositionManifestCommitProjectionTest {
     val retryOutcome = service.retryDecompositionManifestProjection(opened.workflowId)
     val written = assertIs<DecompositionManifestProjectionOutcome.Written>(retryOutcome)
     assertEquals(written.result.manifest, loadDecompositionManifest(manifestPath))
-    val afterRetry = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId))
+    val afterRetry = requireNotNull(workflows.getFeatureTaskWorkflowAsMode(opened.workflowId, RUNTIME))
     assertContains(afterRetry.artifactsJson, "projection_probe")
     assertTrue(
       DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label() !in afterRetry.artifactsJson,
@@ -490,7 +490,7 @@ class DecompositionManifestCommitProjectionTest {
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
     val parentBeforeFailure =
       requireNotNull(
-        setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
+        setup.workflows.getFeatureTaskWorkflowAsMode(setup.opened.workflowId, RUNTIME),
       )
     val childWorkflowId =
       parentBeforeFailure.toSnapshot()
@@ -499,14 +499,14 @@ class DecompositionManifestCommitProjectionTest {
         ?.single()
         ?.workflowId
         ?: error("expected started subtask workflow id")
-    val childBeforeFailure = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(childWorkflowId))
+    val childBeforeFailure = requireNotNull(setup.workflows.getFeatureTaskWorkflowAsMode(childWorkflowId, RUNTIME))
     val childrenBeforeFailure = setup.workflows.countGoalChildIdentities("SKILL-51")
 
     setup.failure.enabled = true
     setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, childWorkflowId)
     val parentAfterFailure =
       requireNotNull(
-        setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
+        setup.workflows.getFeatureTaskWorkflowAsMode(setup.opened.workflowId, RUNTIME),
       )
     assertContains(
       parentAfterFailure.artifactsJson,
@@ -518,9 +518,9 @@ class DecompositionManifestCommitProjectionTest {
     assertIs<DecompositionManifestProjectionOutcome.Written>(retryOutcome)
     val parentAfterRetry =
       requireNotNull(
-        setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
+        setup.workflows.getFeatureTaskWorkflowAsMode(setup.opened.workflowId, RUNTIME),
       )
-    val childAfterRetry = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(childWorkflowId))
+    val childAfterRetry = requireNotNull(setup.workflows.getFeatureTaskWorkflowAsMode(childWorkflowId, RUNTIME))
     assertTrue(
       DurableWorkflowArtifactFamily.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE.label() !in
         parentAfterRetry.artifactsJson,
@@ -557,7 +557,7 @@ class DecompositionManifestCommitProjectionTest {
         normalizedIssueKey = "SKILL-51",
         repositoryIdentity = repositoryIdentity,
         governedSpecPath = ".feature-specs/SKILL-51-decomposition/spec_subtask_1_foundation.md",
-        mode = FeatureTaskWorkflowMode.RUNTIME,
+        mode = RUNTIME,
         routeScope = FeatureTaskRouteScope.GOAL_CHILD,
       ),
     )

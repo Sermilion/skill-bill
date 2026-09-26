@@ -8,10 +8,9 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.observability.FeatureTaskRuntimeRunObservability
 import skillbill.engine.goalrunner.execution.support.protectedBranchName
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.ports.workflow.gitops.captureGoalSubtaskReviewBaseline
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
-import skillbill.ports.workflow.gitops.repositoryOwnedPaths
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 
 @Inject
@@ -188,12 +187,15 @@ class FeatureTaskRuntimeBranchSetupRunner(
       )
     }
     val immutableBase = requireNotNull(baseline.baseline)
-    val baselineOwnedPaths = gitOperations.repositoryOwnedPaths(request.repoRoot)
-    if (baselineOwnedPaths !is WorkflowGitOperationResult.Ok) {
-      return FeatureTaskRuntimeBranchSetupOutcome.blocked(
-        "Feature-task-runtime could not capture its workflow ownership baseline: ${baselineOwnedPaths.error}",
-      )
-    }
+    val baselineOwnedPathNames =
+      when (val baselineOwnedPaths = gitOperations.repositoryOwnedPaths(request.repoRoot)) {
+        is WorkflowGitNameListResult.Listed -> baselineOwnedPaths.names
+        is WorkflowGitNameListResult.Failed ->
+          return FeatureTaskRuntimeBranchSetupOutcome.blocked(
+            "Feature-task-runtime could not capture its workflow ownership baseline: " +
+              baselineOwnedPaths.error,
+          )
+      }
     val recorded =
       recorder.recordResolvedBranch(
         request.workflowId,
@@ -204,8 +206,7 @@ class FeatureTaskRuntimeBranchSetupRunner(
           reviewBaseSha = immutableBase.reviewBaseSha,
           baselineUntrackedPaths = immutableBase.baselineUntrackedPaths,
           baselineOwnedPaths =
-            baselineOwnedPaths.value.orEmpty()
-              .split('\u0000')
+            baselineOwnedPathNames
               .map(String::trim)
               .filter(String::isNotBlank)
               .distinct()

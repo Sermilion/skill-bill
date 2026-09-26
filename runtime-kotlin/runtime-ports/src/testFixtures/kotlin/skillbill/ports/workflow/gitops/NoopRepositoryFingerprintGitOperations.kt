@@ -7,6 +7,13 @@ internal object NoopRepositoryFingerprintGitOperations : RepositoryFingerprintGi
   override fun repositoryFingerprint(repoRoot: Path): WorkflowGitOperationResult {
     return WorkflowGitOperationResult.Ok(value = NOOP_REPOSITORY_FINGERPRINT)
   }
+
+  override fun repositoryCheckpointFingerprint(
+    repoRoot: Path,
+    baseCommit: String?,
+    headCommit: String,
+    ownedPaths: List<String>,
+  ): WorkflowGitOperationResult = repositoryFingerprint(repoRoot)
 }
 
 private const val NOOP_REPOSITORY_FINGERPRINT: String = "noop-repository-fingerprint"

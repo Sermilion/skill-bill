@@ -32,7 +32,6 @@ import skillbill.ports.scaffold.repo.model.ScaffoldValidationStatus
 import skillbill.ports.scaffold.source.model.ScaffoldEditWithBodyFileResult
 import skillbill.ports.scaffold.source.model.ScaffoldFillResult
 import skillbill.ports.scaffold.source.model.ScaffoldSaveExactContentResult
-import skillbill.ports.workflow.list
 import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import java.nio.file.Files
 import java.nio.file.Path

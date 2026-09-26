@@ -13,7 +13,6 @@ import skillbill.infrastructure.skills.scaffold.runtime.service.ScaffoldPlan
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.CONTENT_BODY_FILENAME
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.displayNameFromSlug
 import skillbill.model.EnvironmentContext
-import skillbill.ports.scaffold.repo.ScaffoldRepoValidationPort
 import skillbill.ports.scaffold.repo.model.ScaffoldAuthoringValidationRequest
 import skillbill.ports.scaffold.repo.model.ScaffoldAuthoringValidationResult
 import skillbill.scaffold.model.CodeReviewBaselineLayer
@@ -26,10 +25,8 @@ import skillbill.scaffold.policy.parseBaselineLayerPayload as policyParseBaselin
 class FileSystemScaffoldRepoValidation(
   private val environmentContext: EnvironmentContext? = null,
   private val catalogLoader: PlatformPackCatalogLoader? = null,
-) : ScaffoldRepoValidationPort {
-  override fun validateAuthoringTarget(
-    request: ScaffoldAuthoringValidationRequest,
-  ): ScaffoldAuthoringValidationResult {
+) {
+  fun validateAuthoringTarget(request: ScaffoldAuthoringValidationRequest): ScaffoldAuthoringValidationResult {
     val target =
       AuthoringTarget(
         skillName = request.skillName,

@@ -5,7 +5,6 @@ import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatform
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.validatePlatformPackFallbacks
 import skillbill.model.EnvironmentContext
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
-import skillbill.ports.workflow.list
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
 

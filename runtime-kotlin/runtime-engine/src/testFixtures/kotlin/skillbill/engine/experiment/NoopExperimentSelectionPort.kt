@@ -1,8 +1,8 @@
 package skillbill.engine.experiment
 
 import skillbill.experiment.model.ExperimentExecutionMode
-import skillbill.ports.experiment.selection.ExperimentLaunchSelection
 import skillbill.ports.experiment.selection.ExperimentSelectionPort
+import skillbill.ports.experiment.selection.model.ExperimentLaunchSelection
 import java.nio.file.Path
 
 object NoopExperimentSelectionPort : ExperimentSelectionPort {

@@ -4,6 +4,7 @@ import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.review.model.ReviewCheckpointFileIdentity
+import skillbill.ports.taskruntime.DERIVING_SHARED_EVIDENCE_RESOLVER
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceDeriver
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceRequest
@@ -156,7 +157,7 @@ class SharedReviewEvidenceResolutionTest {
 
     val inLine =
       SharedReviewEvidenceProjection.project(
-        resolve(FeatureTaskRuntimeSharedEvidenceResolverPort.NONE, git, aggregate).sequence,
+        resolve(DERIVING_SHARED_EVIDENCE_RESOLVER, git, aggregate).sequence,
         parsed,
       )
     resolve(store, twoCommitGit().first, aggregate)

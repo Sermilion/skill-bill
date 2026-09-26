@@ -2,9 +2,7 @@ package skillbill.engine.featuretask.lifecycle.continuation
 
 import skillbill.engine.featuretask.runloop.observability.continuation
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -23,7 +21,7 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
   internal fun recordGoalContinuationState(request: GoalContinuationStateRecordRequest): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, request.workflowId)
           ?: return@transaction false
       val artifacts = record.artifacts
       val existingContinuation = continuationFromArtifacts(artifacts)
@@ -71,19 +69,19 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
             sessionId = record.sessionId.orEmpty(),
           ),
         )
-      WorkflowFamily.TASK_RUNTIME.save(unitOfWork.workflowStates, updated)
+      unitOfWork.workflowStates.save(WorkflowFamily.TASK_RUNTIME, updated)
       true
     }
 
   fun reviewState(workflowId: String): GoalSubtaskReviewState? =
     database.read { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@read null
       reviewStateFromArtifacts(record.artifacts)
     }
 
   fun continuation(workflowId: String): FeatureTaskRuntimeGoalContinuationArtifact? =
     database.read { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@read null
       continuationFromArtifacts(record.artifacts)
     }
 }

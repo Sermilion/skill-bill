@@ -18,6 +18,7 @@ import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeProjectionFailureClassification
@@ -140,7 +141,7 @@ class ApplicationPersistencePortWorkflowTest {
 
     val artifacts =
       decodeArtifactsForTest(
-        requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+        requireNotNull(workflowRepository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME)).artifactsJson,
       )
     val phaseRecords =
       requireNotNull(
@@ -175,7 +176,7 @@ class ApplicationPersistencePortWorkflowTest {
 
     val artifacts =
       decodeArtifactsForTest(
-        requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+        requireNotNull(workflowRepository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME)).artifactsJson,
       )
     assertTrue(artifacts.containsKey(FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY))
     val delivered = requireNotNull(recorder.loadDeliveredProjections(workflowId))["implement"]
@@ -186,7 +187,7 @@ class ApplicationPersistencePortWorkflowTest {
     assertEquals(2, requireNotNull(recorder.loadDeliveredProjections(workflowId))["implement"]?.iteration)
     val afterSecondDelivery =
       decodeArtifactsForTest(
-        requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+        requireNotNull(workflowRepository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME)).artifactsJson,
       )
     val deliveredHistory =
       requireNotNull(
@@ -524,8 +525,8 @@ class ApplicationPersistencePortWorkflowTest {
         }
       }
       """.trimIndent()
-    val record = requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId))
-    workflowRepository.saveFeatureTaskRuntimeWorkflow(record.copy(artifactsJson = malformedArtifactsJson))
+    val record = requireNotNull(workflowRepository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME))
+    workflowRepository.saveFeatureTaskWorkflow(record.copy(artifactsJson = malformedArtifactsJson), RUNTIME)
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       recorder.recordPhaseState(
@@ -566,8 +567,8 @@ class ApplicationPersistencePortWorkflowTest {
         ]
       }
       """.trimIndent()
-    val record = requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId))
-    workflowRepository.saveFeatureTaskRuntimeWorkflow(record.copy(artifactsJson = malformedArtifactsJson))
+    val record = requireNotNull(workflowRepository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME))
+    workflowRepository.saveFeatureTaskWorkflow(record.copy(artifactsJson = malformedArtifactsJson), RUNTIME)
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       recorder.appendPlanLedger(workflowId, FeatureTaskRuntimePhaseLedgerAction.RESUME)
@@ -592,8 +593,8 @@ class ApplicationPersistencePortWorkflowTest {
         "feature_task_runtime_phase_ledger": {"not": "a list"}
       }
       """.trimIndent()
-    val record = requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId))
-    workflowRepository.saveFeatureTaskRuntimeWorkflow(record.copy(artifactsJson = malformedArtifactsJson))
+    val record = requireNotNull(workflowRepository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME))
+    workflowRepository.saveFeatureTaskWorkflow(record.copy(artifactsJson = malformedArtifactsJson), RUNTIME)
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       recorder.appendPlanLedger(workflowId, FeatureTaskRuntimePhaseLedgerAction.RESUME)
@@ -619,7 +620,7 @@ class ApplicationPersistencePortWorkflowTest {
 
     val artifacts =
       decodeArtifactsForTest(
-        requireNotNull(workflowRepository.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
+        requireNotNull(workflowRepository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME)).artifactsJson,
       )
     val ledger =
       requireNotNull(

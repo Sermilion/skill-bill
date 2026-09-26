@@ -5,9 +5,7 @@ import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.encodeManifestWireMap
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.decomposition.withRetriedSubtask
@@ -28,7 +26,7 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
   val continuation = childArtifacts.goalContinuationArtifact() ?: return null
   val parentWorkflowId = continuation.parentWorkflowId ?: return null
   val parent =
-    WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
+    unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, parentWorkflowId)
       ?: invalidGoalRetryProjection(
         "Goal child '$childWorkflowId' references unknown parent workflow '$parentWorkflowId'.",
       )
@@ -70,8 +68,8 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
     )
   migrateLegacyGoalRunnerControls(unitOfWork, parent)
   val updatedParent = updateRecord(WorkflowFamily.TASK_RUNTIME.definition, parent, parentInput)
-  WorkflowFamily.TASK_RUNTIME.saveRecord(
-    unitOfWork.workflowStates,
+  unitOfWork.workflowStates.saveRecord(
+    WorkflowFamily.TASK_RUNTIME,
     updatedParent.toRecord().copy(issueKey = retriedManifest.issueKey),
   )
   return updatedParent.artifacts

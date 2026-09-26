@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.persist
 
-import skillbill.contracts.JsonCodec
 import skillbill.engine.goalrunner.InMemoryGoalManifestStore
 import skillbill.engine.goalrunner.RecordingOutcomeStore
 import skillbill.engine.goalrunner.RecordingPullRequestPort
@@ -22,6 +21,7 @@ import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.agentrun.model.AgentRunLivenessSnapshot
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import java.nio.file.Path
@@ -170,7 +170,7 @@ class GoalRunnerLedgerTest {
     assertEquals("wfl-1", recovered.workflowId)
     assertEquals(
       "F-001",
-      JsonCodec.anyToStringAnyMap(recovered.output)?.get("notes_for_review"),
+      recovered.output["notes_for_review"],
     )
   }
 
@@ -204,7 +204,7 @@ class GoalRunnerLedgerTest {
       RecordingSubtaskLauncher { request ->
         val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
         store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-        launchFacts(timedOut = true)
+        launchFacts(AgentRunTermination.TimedOut)
       }
     val runner = testGoalRunner(goalRunnerDeps(store, launcher, outcomes, RecordingPullRequestPort()))
 
@@ -223,7 +223,7 @@ class GoalRunnerLedgerTest {
       RecordingSubtaskLauncher { request ->
         val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
         store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-        launchFacts(interrupted = true)
+        launchFacts(AgentRunTermination.Interrupted)
       }
     val runner = testGoalRunner(goalRunnerDeps(store, launcher, outcomes, RecordingPullRequestPort()))
 
@@ -288,7 +288,7 @@ class GoalRunnerLedgerTest {
       RecordingSubtaskLauncher { request ->
         val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
         store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-        launchFacts(timedOut = true).copy(
+        launchFacts(AgentRunTermination.TimedOut).copy(
           liveness =
             AgentRunLivenessSnapshot(
               phase = "review",
@@ -319,7 +319,7 @@ class GoalRunnerLedgerTest {
       RecordingSubtaskLauncher { request ->
         val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
         store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-        launchFacts(timedOut = true).copy(
+        launchFacts(AgentRunTermination.TimedOut).copy(
           liveness =
             AgentRunLivenessSnapshot(
               phase = "implement",
@@ -350,7 +350,7 @@ class GoalRunnerLedgerTest {
       RecordingSubtaskLauncher { request ->
         val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
         store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
-        launchFacts(timedOut = true).copy(
+        launchFacts(AgentRunTermination.TimedOut).copy(
           liveness =
             AgentRunLivenessSnapshot(
               phase = "preplan",

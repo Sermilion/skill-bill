@@ -5,7 +5,6 @@ import skillbill.agentaddon.model.InvalidAgentAddonCatalogueEntry
 import skillbill.model.FileLocation
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.workflow.list
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.name

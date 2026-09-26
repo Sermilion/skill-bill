@@ -18,7 +18,6 @@ import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
 import skillbill.goalrunner.subtaskreview.recordedVerdicts
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -117,7 +116,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
     completion: GoalReviewPhaseCompletionRequest,
   ): GoalReviewCompletionWrite? {
     val record =
-      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
+      unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, request.workflowId)
         ?: return null
     val artifacts = record.artifacts
     val reviewArtifacts = GoalSubtaskReviewArtifactDecoder.decode(artifacts) ?: return null

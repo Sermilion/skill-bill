@@ -3,7 +3,7 @@ package skillbill.engine.experiment.observation
 import skillbill.contracts.experiment.EXPERIMENT_OBSERVATION_CONTRACT_VERSION
 import skillbill.contracts.experiment.ExperimentObservationPayloadKeys
 import skillbill.ports.experiment.pair.ExperimentPairOwnerPort
-import skillbill.ports.experiment.pair.ExperimentPairPayload
+import skillbill.ports.experiment.pair.model.ExperimentPairPayload
 import java.security.MessageDigest
 
 data class ExperimentObservationMeasurement(

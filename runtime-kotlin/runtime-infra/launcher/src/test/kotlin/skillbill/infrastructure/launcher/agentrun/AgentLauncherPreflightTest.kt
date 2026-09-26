@@ -2,6 +2,7 @@ package skillbill.infrastructure.launcher.agentrun
 
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.ExecutableLookup
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.SkillRunRequest
 import java.nio.file.Files
 import java.nio.file.Path
@@ -9,6 +10,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
@@ -44,7 +46,7 @@ class AgentLauncherPreflightTest {
 
     val facts = adapter.launch(request())
 
-    assertTrue(facts.spawnFailed)
+    assertEquals(AgentRunTermination.SpawnFailed, facts.termination)
     assertFalse(facts.processStarted)
     assertEquals(emptyList(), runner.requests.toList())
   }
@@ -72,7 +74,7 @@ class AgentLauncherPreflightTest {
 
     val facts = adapter.launch(request())
 
-    assertFalse(facts.spawnFailed)
+    assertNotEquals<AgentRunTermination>(AgentRunTermination.SpawnFailed, facts.termination)
     assertEquals("cursor-agent", runner.requests.single().launch.command.first())
     assertContains(runner.requests.single().launch.command, "--print")
   }

@@ -16,7 +16,6 @@ import skillbill.ports.taskruntime.validateDeclaration
 import skillbill.ports.taskruntime.validateEnvelope
 import skillbill.ports.taskruntime.validateMeasurement
 import skillbill.ports.taskruntime.validatePersistenceRecord
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.taskruntime.artifact.asTelemetryPayload
@@ -39,7 +38,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
   ): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction false
       wireArtifactValidator.validateEnvelope(briefing.handoffEnvelope.asWorkflowArtifactEntry(), workflowId)
       val artifacts = record.artifacts
@@ -116,7 +115,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
   fun loadPhaseBriefings(workflowId: String): Map<String, FeatureTaskRuntimePhaseLaunchBriefing>? =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       phaseBriefingsFrom(record.artifacts) { envelope ->
         wireArtifactValidator.validateEnvelope(envelope, workflowId)
@@ -126,7 +125,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
   fun loadDeliveredProjections(workflowId: String): Map<String, FeatureTaskRuntimeDeliveredProjectionRecord>? =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       deliveredProjectionsFrom(
         record.artifacts,
@@ -222,7 +221,7 @@ internal fun FeatureTaskRuntimePhaseBriefingRecorder.recordProjectionRejectionMe
   unitOfWork: UnitOfWork,
   rejection: FeatureTaskRuntimeProjectionRejection,
 ): Boolean {
-  if (WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, rejection.workflowId) == null) {
+  if (unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, rejection.workflowId) == null) {
     return false
   }
   val measurement =

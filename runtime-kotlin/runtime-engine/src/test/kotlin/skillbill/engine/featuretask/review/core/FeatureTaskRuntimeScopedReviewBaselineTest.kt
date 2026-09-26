@@ -1,22 +1,16 @@
 package skillbill.engine.featuretask.review.core
 
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
-import skillbill.ports.workflow.gitops.RepositoryOwnedPathsGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-private const val NUL: Char = '\u0000'
-
-private class OwnedPathsGitOperations(private val result: WorkflowGitOperationResult) :
+private class OwnedPathsGitOperations(private val result: WorkflowGitNameListResult) :
   WorkflowGitOperations by NoopWorkflowGitOperations {
-  override val repositoryOwnedPathsOperations: RepositoryOwnedPathsGitOperations =
-    object : RepositoryOwnedPathsGitOperations {
-      override fun ownedPaths(repoRoot: Path): WorkflowGitOperationResult = result
-    }
+  override fun repositoryOwnedPaths(repoRoot: Path): WorkflowGitNameListResult = result
 }
 
 class FeatureTaskRuntimeScopedReviewBaselineTest {
@@ -34,10 +28,8 @@ class FeatureTaskRuntimeScopedReviewBaselineTest {
   fun `scoped baseline carries the owned inventory and excludes foreign untracked paths`() {
     val git =
       OwnedPathsGitOperations(
-        WorkflowGitOperationResult.Ok(
-          value =
-            listOf("untracked/owned-new.kt", "foreign/sibling.kt", ".feature-specs/OTHER-1/spec.md")
-              .joinToString(NUL.toString()),
+        WorkflowGitNameListResult.Listed(
+          listOf("untracked/owned-new.kt", "foreign/sibling.kt", ".feature-specs/OTHER-1/spec.md"),
         ),
       )
 
@@ -52,7 +44,7 @@ class FeatureTaskRuntimeScopedReviewBaselineTest {
 
   @Test
   fun `an unreadable owned-path listing falls back to the durable baseline instead of widening`() {
-    val git = OwnedPathsGitOperations(WorkflowGitOperationResult.Failed(error = "git failed"))
+    val git = OwnedPathsGitOperations(WorkflowGitNameListResult.Failed(error = "git failed"))
 
     val baseline = FeatureTaskRuntimeScopedReviewBaseline.of(git, repoRoot, resolved(), baseSha)
 

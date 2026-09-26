@@ -22,7 +22,6 @@ import skillbill.application.updatecheck.SkillBillUpdateService
 import skillbill.application.updatecheck.UpdateCheckService
 import skillbill.application.work.WorkListService
 import skillbill.application.workflow.service.WorkflowService
-import skillbill.di.experiment.RuntimeExperimentGoalProvides
 import skillbill.di.experiment.RuntimeExperimentProvides
 import skillbill.di.experiment.RuntimeExperimentTelemetryProvides
 import skillbill.di.featurespec.RuntimeFeatureSpecProvides
@@ -51,7 +50,6 @@ import skillbill.engine.featuretask.runner.FeatureTaskRuntimeRunner
 import skillbill.engine.featuretask.runner.FeatureTaskRuntimeStatusService
 import skillbill.engine.goalrunner.GoalOperatorDecisionService
 import skillbill.engine.goalrunner.GoalRunner
-import skillbill.engine.goalrunner.experiment.ExperimentGoalRunnerPort
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.GoalPlanningLogService
 import skillbill.engine.goalrunner.preflight.GoalPreflightService
@@ -108,7 +106,6 @@ abstract class RuntimeComponent(
     RuntimeScaffoldValidationProvides,
     RuntimeInstallerProvides,
     RuntimeExperimentProvides,
-    RuntimeExperimentGoalProvides,
     RuntimeExperimentTelemetryProvides,
     RuntimeOptionalCallbackProvides,
     RuntimeDiagnosticsProvides {
@@ -118,25 +115,6 @@ abstract class RuntimeComponent(
 
   @Provides
   fun runtimeContext(): RuntimeContext = resolvedRuntimeContext
-
-  @Provides
-  fun experimentGoalRunnerPort(ctx: RuntimeContext): ExperimentGoalRunnerPort =
-    ExperimentGoalRunnerPort { request ->
-      val armContext =
-        if (request.experimentArmId == null) {
-          ctx
-        } else {
-          val armRoot = request.repoRoot.toAbsolutePath().normalize()
-          ctx.copy(
-            environment =
-              ctx.environment.copy(
-                dbPathOverride = armRoot.resolve(".skill-bill/runtime.db").toString(),
-                repositoryRoot = armRoot,
-              ),
-          )
-        }
-      RuntimeComponent::class.create(armContext).goalRunner.run(request)
-    }
 
   @Provides
   fun environmentContext(ctx: RuntimeContext): EnvironmentContext = ctx.environment

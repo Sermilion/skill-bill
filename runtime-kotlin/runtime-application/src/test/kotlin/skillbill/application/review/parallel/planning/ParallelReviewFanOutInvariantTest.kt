@@ -3,18 +3,12 @@ package skillbill.application.review.parallel.planning
 import skillbill.application.review.model.ReviewPreparationRequest
 import skillbill.application.review.model.ReviewPreparationResult
 import skillbill.application.review.preparation.ReviewPreparationService
+import skillbill.application.review.preparation.model.ReviewLaneSelection
+import skillbill.application.review.preparation.model.ReviewPreparationFacts
+import skillbill.application.review.preparation.model.ReviewScopeFacts
+import skillbill.application.review.preparation.model.ReviewStackRoutingFacts
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.ports.review.ReviewContextEnvelopeValidator
-import skillbill.ports.review.model.ReviewFactPorts
-import skillbill.ports.review.model.ReviewLaneSelection
-import skillbill.ports.review.model.ReviewScopeFacts
-import skillbill.ports.review.model.ReviewStackRoutingFacts
-import skillbill.ports.review.preparation.ReviewBuildTestFactsPort
-import skillbill.ports.review.preparation.ReviewGuidancePort
-import skillbill.ports.review.preparation.ReviewLaneSelectionPort
-import skillbill.ports.review.preparation.ReviewLearningsPort
-import skillbill.ports.review.preparation.ReviewScopeResolverPort
-import skillbill.ports.review.preparation.ReviewStackRoutingPort
 import skillbill.review.context.ReviewContextWireMap
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitLaneDecision
@@ -23,12 +17,9 @@ import skillbill.review.context.model.commit.ReviewCommitLaneRoutingMatrix
 import skillbill.review.context.model.commit.ReviewCommitSource
 import skillbill.review.context.model.commit.ReviewCommitUnit
 import skillbill.review.context.model.execution.ReviewLaneDecision
-import skillbill.review.context.model.hunk.ReviewBuildTestFact
 import skillbill.review.context.model.hunk.ReviewChangedHunk
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
-import skillbill.review.context.model.hunk.ReviewLearningsReference
 import skillbill.review.context.model.hunk.ReviewRevision
-import skillbill.review.context.model.hunk.ReviewRuleReference
 import skillbill.review.context.model.launch.GovernedReviewLaunch
 import skillbill.review.context.model.packet.ReviewLaneAssembledBundle
 import skillbill.review.context.model.packet.segmentAssembledBundle
@@ -70,38 +61,16 @@ class ParallelReviewFanOutInvariantTest {
     scope: ReviewScopeFacts,
     decisions: List<ReviewLaneDecision>,
   ): ReviewPreparationService {
-    val ports =
-      object :
-        ReviewScopeResolverPort,
-        ReviewStackRoutingPort,
-        ReviewGuidancePort,
-        ReviewLearningsPort,
-        ReviewBuildTestFactsPort,
-        ReviewLaneSelectionPort {
-        override fun resolveScope(reviewId: String) = scope
-
-        override fun resolveStackRouting(scope: ReviewScopeFacts) =
-          ReviewStackRoutingFacts("kotlin", "kotlin", emptyList(), listOf("kotlin"))
-
-        override fun resolveMatchedRules(
-          scope: ReviewScopeFacts,
-          routing: ReviewStackRoutingFacts,
-        ) = emptyList<ReviewRuleReference>()
-
-        override fun resolveLearnings(
-          scope: ReviewScopeFacts,
-          routing: ReviewStackRoutingFacts,
-        ) = emptyList<ReviewLearningsReference>()
-
-        override fun resolveBuildTestFacts(scope: ReviewScopeFacts) = emptyList<ReviewBuildTestFact>()
-
-        override fun decideLanes(
-          scope: ReviewScopeFacts,
-          routing: ReviewStackRoutingFacts,
-        ) = ReviewLaneSelection(decisions, focusedMatrix(scope, decisions.filter { it.included }.map { it.lane }))
-      }
     return ReviewPreparationService(
-      ReviewFactPorts(ports, ports, ports, ports, ports, ports),
+      ReviewPreparationFacts(
+        scope = scope,
+        stackRouting = ReviewStackRoutingFacts("kotlin", "kotlin", emptyList(), listOf("kotlin")),
+        laneSelection =
+          ReviewLaneSelection(
+            decisions,
+            focusedMatrix(scope, decisions.filter { it.included }.map { it.lane }),
+          ),
+      ),
       object : ReviewContextEnvelopeValidator {
         override fun validate(
           envelope: ReviewContextWireMap,

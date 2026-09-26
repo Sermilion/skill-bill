@@ -11,7 +11,6 @@ import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.goalrunner.subtaskreview.reviewRunIdOf
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -31,7 +30,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
   fun persistReviewGenerationInvalidation(workflowId: String): Int? =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction null
       val artifacts = record.artifacts
       val storedGeneration = reviewGenerationFrom(artifacts)
@@ -88,7 +87,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
   fun reconcileReviewGeneration(workflowId: String): Int =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction 0
       val artifacts = record.artifacts
       val storedGeneration = reviewGenerationFrom(artifacts)
@@ -112,7 +111,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
   ): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction false
       val artifacts = record.artifacts
       val existingRecords = decodePhaseRecords(artifacts)

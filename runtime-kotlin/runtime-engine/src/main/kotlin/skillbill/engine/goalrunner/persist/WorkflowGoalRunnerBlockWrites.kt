@@ -7,9 +7,7 @@ import skillbill.goalrunner.toPersistenceWire
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerBlockWrite
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.blockedStepId
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -42,7 +40,7 @@ internal class WorkflowGoalRunnerBlockWrites(
     workflowStates: WorkflowStateRepository,
   ): String? {
     val family = workflowFamilyFor(workflowStates, workflowId) ?: return null
-    val record = family.get(workflowStates, workflowId) ?: return null
+    val record = workflowStates.get(family, workflowId) ?: return null
     return markBlocked(
       GoalRunnerBlockWrite(
         family = family,
@@ -93,7 +91,7 @@ internal class WorkflowGoalRunnerBlockWrites(
           sessionId = write.record.sessionId.orEmpty(),
         ),
       )
-    write.family.save(write.workflowStates, updated)
+    write.workflowStates.save(write.family, updated)
     return stepId
   }
 
@@ -104,7 +102,7 @@ internal class WorkflowGoalRunnerBlockWrites(
     reason: String,
   ): Boolean {
     val family = WorkflowFamily.TASK_RUNTIME
-    val existing = family.get(unitOfWork.workflowStates, workflowId) ?: return false
+    val existing = unitOfWork.workflowStates.get(family, workflowId) ?: return false
     if (family.definition.isTerminalStatus(existing.workflowStatus)) {
       return false
     }
@@ -116,8 +114,8 @@ internal class WorkflowGoalRunnerBlockWrites(
         preferredPhaseId,
         existing.workflowStatus,
       ) ?: return true
-    family.save(
-      unitOfWork.workflowStates,
+    unitOfWork.workflowStates.save(
+      family,
       engine.updateRecord(
         family.definition,
         existing,

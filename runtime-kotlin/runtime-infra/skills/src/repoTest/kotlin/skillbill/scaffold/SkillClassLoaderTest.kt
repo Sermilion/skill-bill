@@ -11,7 +11,6 @@ import skillbill.infrastructure.skills.scaffold.rendering.renderCeremonySection
 import skillbill.infrastructure.skills.scaffold.runtime.service.contract.SHELL_CONTRACT_VERSION
 import skillbill.infrastructure.skills.scaffold.runtime.service.support.requiredSupportingFilesForSkill
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.workflow.list
 import skillbill.scaffold.model.SkillClassManifest
 import skillbill.scaffold.model.SkillClassMatcher
 import java.nio.file.Files

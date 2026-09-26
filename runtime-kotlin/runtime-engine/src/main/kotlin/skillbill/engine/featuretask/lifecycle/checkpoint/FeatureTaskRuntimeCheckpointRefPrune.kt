@@ -3,14 +3,11 @@ package skillbill.engine.featuretask.lifecycle.checkpoint
 import skillbill.engine.experiment.isolation.ExperimentCheckpointNamespace
 import skillbill.engine.featuretask.model.core.FeatureTaskRuntimeCheckpointRefPruneRequest
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.ports.workflow.gitops.deleteCheckpointRef
-import skillbill.ports.workflow.gitops.listCheckpointRefs
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
 import java.nio.file.Path
-
-private const val REF_LISTING_DELIMITER: Char = '\u0000'
 
 fun subtaskCommitReachableOnRemote(
   gitOperations: WorkflowGitOperations,
@@ -132,21 +129,24 @@ private fun WorkflowGitOperations.pruneListedCheckpointRefs(
   record: (String) -> Unit,
 ): FeatureTaskRuntimeCheckpointRefPruneResult {
   val prefix = "$namespace/${issueKey.trim()}/$subtaskId/"
-  val listed = listCheckpointRefs(repoRoot, prefix)
-  if (listed !is WorkflowGitOperationResult.Ok) {
-    record(
-      "seam=FeatureTaskRuntimeCheckpointRefPrune.pruneSubtaskCheckpointRefs " +
-        "value_used='ref listing failed for $prefix' " +
-        "value_expected=NUL-delimited refs under the subtask namespace " +
-        "cause=${listed.error}",
-    )
-    return FeatureTaskRuntimeCheckpointRefPruneResult(
-      attempted = true,
-      deletedRefCount = 0,
-      skippedReason = listed.error,
-    )
-  }
-  val refs = parseCheckpointRefListing(listed.value.orEmpty())
+  val names =
+    when (val listed = listCheckpointRefs(repoRoot, prefix)) {
+      is WorkflowGitNameListResult.Listed -> listed.names
+      is WorkflowGitNameListResult.Failed -> {
+        record(
+          "seam=FeatureTaskRuntimeCheckpointRefPrune.pruneSubtaskCheckpointRefs " +
+            "value_used='ref listing failed for $prefix' " +
+            "value_expected=the refs under the subtask namespace " +
+            "cause=${listed.error}",
+        )
+        return FeatureTaskRuntimeCheckpointRefPruneResult(
+          attempted = true,
+          deletedRefCount = 0,
+          skippedReason = listed.error,
+        )
+      }
+    }
+  val refs = names.distinct().sorted()
   if (refs.isEmpty()) {
     return FeatureTaskRuntimeCheckpointRefPruneResult(attempted = true, deletedRefCount = 0)
   }
@@ -181,16 +181,6 @@ private fun WorkflowGitOperations.deleteListedCheckpointRefs(
   return FeatureTaskRuntimeCheckpointRefPruneResult(attempted = true, deletedRefCount = deleted)
 }
 
-fun parseCheckpointRefListing(raw: String): List<String> =
-  raw.split(REF_LISTING_DELIMITER)
-    .filter(String::isNotBlank)
-    .chunked(2)
-    .mapNotNull { parts ->
-      parts.getOrNull(1)?.trim()?.takeIf(String::isNotBlank)
-    }
-    .distinct()
-    .sorted()
-
 internal fun pruneCompletedSubtaskCheckpointRefs(
   gitOperations: WorkflowGitOperations,
   repoRoot: Path,
@@ -209,19 +199,22 @@ fun pruneGoalPurgeCheckpointRefs(
   if (trimmedIssueKey.isBlank()) return 0
   val namespace = ExperimentCheckpointNamespace.forRepositoryRoot(repoRoot)
   val issuePrefix = "$namespace/$trimmedIssueKey/"
-  val listed = gitOperations.listCheckpointRefs(repoRoot, issuePrefix)
-  if (listed !is WorkflowGitOperationResult.Ok) {
-    record(
-      "seam=FeatureTaskRuntimeCheckpointRefPrune.pruneGoalPurgeCheckpointRefs " +
-        "value_used='ref listing failed for $issuePrefix' " +
-        "value_expected=NUL-delimited refs under the issue namespace " +
-        "cause=${listed.error}",
-    )
-    return 0
-  }
+  val names =
+    when (val listed = gitOperations.listCheckpointRefs(repoRoot, issuePrefix)) {
+      is WorkflowGitNameListResult.Listed -> listed.names
+      is WorkflowGitNameListResult.Failed -> {
+        record(
+          "seam=FeatureTaskRuntimeCheckpointRefPrune.pruneGoalPurgeCheckpointRefs " +
+            "value_used='ref listing failed for $issuePrefix' " +
+            "value_expected=the refs under the issue namespace " +
+            "cause=${listed.error}",
+        )
+        return 0
+      }
+    }
   val standaloneSegment = "/$FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID/"
   val refs =
-    parseCheckpointRefListing(listed.value.orEmpty()).filter { refName ->
+    names.distinct().sorted().filter { refName ->
       !skipStandaloneNamespace || !refName.contains(standaloneSegment)
     }
   return gitOperations.deleteListedCheckpointRefsForPurge(repoRoot, refs, record)

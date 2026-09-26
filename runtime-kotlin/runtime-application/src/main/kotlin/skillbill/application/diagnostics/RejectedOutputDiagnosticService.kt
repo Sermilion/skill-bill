@@ -12,6 +12,7 @@ import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticRecord
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import skillbill.ports.diagnostics.model.RejectedOutputLifecycle
+import skillbill.text.RECORD_FIELD_SEPARATOR
 import java.io.IOException
 import java.security.MessageDigest
 import java.time.Clock
@@ -130,8 +131,8 @@ class RejectedOutputDiagnosticService(
       attempt: Int,
       repairTurn: Int = 0,
     ): String {
-      val base = "$workflowId\u0000$phaseId\u0000$attempt"
-      val preimage = if (repairTurn == 0) base else "$base\u0000$repairTurn"
+      val base = "$workflowId$RECORD_FIELD_SEPARATOR$phaseId$RECORD_FIELD_SEPARATOR$attempt"
+      val preimage = if (repairTurn == 0) base else "$base$RECORD_FIELD_SEPARATOR$repairTurn"
       return "rod_${sha256(preimage.encodeToByteArray())}"
     }
 

@@ -9,6 +9,7 @@ import skillbill.application.review.snapshot.reviewHarness
 import skillbill.application.review.snapshot.reviewPack
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.application.runner
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.workflow.model.goalreview.toReviewAccountingBoundedJson
@@ -74,7 +75,7 @@ class ParallelCodeReviewRegressionTest {
       reviewHarness(
         config { request ->
           if (request.invokedAgentId == "codex") {
-            RecordedWorkerResponse(exitStatus = 1, stdout = "")
+            RecordedWorkerResponse(stdout = "", termination = AgentRunTermination.Exited(1))
           } else {
             RecordedWorkerResponse()
           }

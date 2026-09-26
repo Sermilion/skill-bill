@@ -14,8 +14,8 @@ import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.experiment.config.MachineExperimentConfigStore
 import skillbill.ports.experiment.descriptor.ExperimentDescriptorCatalog
 import skillbill.ports.experiment.descriptor.model.ExperimentDescriptorRecord
-import skillbill.ports.experiment.selection.ExperimentLaunchSelection
 import skillbill.ports.experiment.selection.ExperimentSelectionPort
+import skillbill.ports.experiment.selection.model.ExperimentLaunchSelection
 import java.nio.file.Path
 
 private const val MAX_DESCRIPTOR_VERSION_LENGTH = 32

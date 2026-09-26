@@ -2,6 +2,7 @@ package skillbill.infrastructure.workflow.git.standard
 
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.ports.workflow.gitops.WorkflowGitCommitHistoryOperations
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 
@@ -9,7 +10,7 @@ internal object GitStandardWorkflowGitCommitHistoryOperations : WorkflowGitCommi
   override fun createCommit(
     repoRoot: Path,
     message: String,
-  ): WorkflowGitOperationResult = gitCreateCommit(repoRoot, message)
+  ): WorkflowGitCommitResult = gitCreateCommit(repoRoot, message)
 
   override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult = runGitCommand(repoRoot, "rev-parse", "HEAD")
 

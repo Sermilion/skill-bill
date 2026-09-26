@@ -6,7 +6,6 @@ import skillbill.infrastructure.skills.nativeagent.composition.NATIVE_AGENT_BUND
 import skillbill.infrastructure.skills.nativeagent.composition.parseNativeAgentBundle
 import skillbill.infrastructure.skills.scaffold.platformpack.packRootsBySlug
 import skillbill.model.toPath
-import skillbill.ports.workflow.list
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
 import java.nio.file.Path

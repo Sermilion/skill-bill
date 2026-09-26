@@ -3,12 +3,10 @@ package skillbill.engine.featuretask.lifecycle.remediation
 import skillbill.engine.featuretask.lifecycle.continuation.reviewStateFromArtifacts
 import skillbill.engine.featuretask.model.subtask.PersistHealedRemediationBaseRequest
 import skillbill.engine.featuretask.model.subtask.ResolvedReviewFixCheckpoint
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRequest
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputFailureReason
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
-import skillbill.ports.workflow.gitops.recoverGoalSubtaskReviewBaseline
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
@@ -32,7 +30,7 @@ internal fun FeatureTaskRuntimeRemediationBaseReconciler.persistHealedRemediatio
   val headSha = request.gitOperations.headCommitSha(request.repoRoot).value.orEmpty().trim()
   return database.transaction { unitOfWork ->
     val record =
-      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
+      unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, request.workflowId)
         ?: return@transaction null
     val artifacts = record.artifacts
     val latest = reviewStateFromArtifacts(artifacts) ?: return@transaction null

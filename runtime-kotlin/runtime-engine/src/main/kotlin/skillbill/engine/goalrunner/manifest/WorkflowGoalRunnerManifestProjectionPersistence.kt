@@ -9,10 +9,8 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.WorkflowEngine
@@ -78,11 +76,11 @@ internal class WorkflowGoalRunnerManifestProjectionPersistence(
           replaceArtifacts = true,
         ),
       )
-    WorkflowFamily.TASK_RUNTIME.saveRecord(
-      unitOfWork.workflowStates,
+    unitOfWork.workflowStates.saveRecord(
+      WorkflowFamily.TASK_RUNTIME,
       updated.toRecord().copy(issueKey = normalizeRequiredIssueKey(manifest.issueKey)),
     )
-    val refreshed = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, updated.workflowId) ?: updated
+    val refreshed = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, updated.workflowId) ?: updated
     reconcileControlStateForManifest(unitOfWork, refreshed.workflowId)
     return SavedManifestProjection(
       state =

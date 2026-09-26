@@ -4,45 +4,23 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRequest
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineResult
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputResult
-import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import java.nio.file.Path
 
 interface GoalSubtaskReviewGitOperations {
-  fun captureBaseline(
+  fun captureGoalSubtaskReviewBaseline(
     repoRoot: Path,
     expectedBranch: String,
   ): GoalSubtaskReviewBaselineResult
 
-  fun buildInput(
+  fun buildGoalSubtaskReviewInput(
     repoRoot: Path,
     baseline: GoalSubtaskReviewBaseline,
     expectedBranch: String,
   ): GoalSubtaskReviewInputResult
 
-  fun recoverBaseline(
+  fun recoverGoalSubtaskReviewBaseline(
     repoRoot: Path,
     request: GoalSubtaskReviewBaselineRecoveryRequest,
     expectedBranch: String,
-  ): GoalSubtaskReviewBaselineResult =
-    GoalSubtaskReviewBaselineResult(
-      status = WorkflowGitOperationStatus.ERROR,
-      error = "Goal-subtask review baseline recovery is not supported by this git adapter.",
-    )
+  ): GoalSubtaskReviewBaselineResult
 }
-
-fun WorkflowGitOperations.captureGoalSubtaskReviewBaseline(
-  repoRoot: Path,
-  expectedBranch: String,
-): GoalSubtaskReviewBaselineResult = goalSubtaskReviewOperations.captureBaseline(repoRoot, expectedBranch)
-
-fun WorkflowGitOperations.buildGoalSubtaskReviewInput(
-  repoRoot: Path,
-  baseline: GoalSubtaskReviewBaseline,
-  expectedBranch: String,
-): GoalSubtaskReviewInputResult = goalSubtaskReviewOperations.buildInput(repoRoot, baseline, expectedBranch)
-
-fun WorkflowGitOperations.recoverGoalSubtaskReviewBaseline(
-  repoRoot: Path,
-  request: GoalSubtaskReviewBaselineRecoveryRequest,
-  expectedBranch: String,
-): GoalSubtaskReviewBaselineResult = goalSubtaskReviewOperations.recoverBaseline(repoRoot, request, expectedBranch)

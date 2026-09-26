@@ -10,7 +10,6 @@ import skillbill.infrastructure.skills.scaffold.platformpack.catalog.PlatformPac
 import skillbill.infrastructure.skills.scaffold.platformpack.selectedPlatformManifests
 import skillbill.install.model.InstallPlanSkill
 import skillbill.model.toPath
-import skillbill.ports.workflow.list
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
 import java.nio.file.LinkOption

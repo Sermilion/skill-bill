@@ -45,7 +45,7 @@ class ParallelCodeReviewRunnerPlanning(
   private val reviewContextEnvelopeValidator: ReviewContextEnvelopeValidator,
   private val reviewSpecialistContractProvider: ReviewSpecialistContractProvider,
   private val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort,
-  private val sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
+  private val sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort?,
   private val specIntentProjectionResolver: SpecIntentProjectionResolver,
   private val rubricPlanning: ParallelCodeReviewRunnerRubricPlanning,
   private val lanePlanRecording: ParallelCodeReviewRunnerLanePlanRecording,
@@ -153,7 +153,7 @@ class ParallelCodeReviewRunnerPlanning(
 
   private fun prepare(args: PlanningPrepareArgs): ParallelCodeReviewCompiledLaunches {
     if (
-      sharedEvidenceLocatorReader !== FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE &&
+      sharedEvidenceLocatorReader != null &&
       args.evidenceStorePath.isNullOrBlank()
     ) {
       throw ReviewHunkEvidenceLocatorMissingError(args.evidenceStorePath.orEmpty())

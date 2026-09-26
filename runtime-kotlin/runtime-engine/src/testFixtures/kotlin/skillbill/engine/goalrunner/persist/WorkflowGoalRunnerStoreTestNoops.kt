@@ -10,7 +10,9 @@ import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildWedgeDiagnosi
 import skillbill.ports.goalrunner.runner.model.GoalChildPlanningHydrationRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import java.nio.file.Path
 
 object NoopGoalChildPlanningHydrator : GoalChildPlanningHydratorPort {
@@ -21,8 +23,8 @@ object NoopGoalChildPlanningHydrator : GoalChildPlanningHydratorPort {
   ): GoalChildPlanningHydrationResult =
     GoalChildPlanningHydrationResult(
       currentStepId = setup.workflowId,
-      stepUpdates = emptyList(),
-      artifacts = emptyMap<String, Any?>(),
+      stepUpdates = WorkflowStepUpdates.EMPTY,
+      artifacts = WorkflowArtifactPatch.EMPTY,
     )
 
   override fun requireMatchingImport(

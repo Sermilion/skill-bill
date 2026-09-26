@@ -32,9 +32,8 @@ import skillbill.goalrunner.model.UnaddressedFindingsLedger
 import skillbill.ports.goalrunner.runner.model.GoalPullRequestResult
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.model.recordsNothingToCommit
-import skillbill.ports.workflow.gitops.stagePaths
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.SpecSource
@@ -277,14 +276,24 @@ internal fun GoalRunnerFinalization.stageCommitAndPushAll(
     return "Goal finalization commit-all could not stage remaining worktree changes: ${staged.error}"
   }
   val message = "chore(${manifest.issueKey}): goal finalization commit-all on '$featureBranch'"
-  val commit = gitOperations.createCommit(request.repoRoot, message)
-  val createdCommit = commit is WorkflowGitOperationResult.Ok && commit.value.isNotBlank()
-  if (!createdCommit) {
-    if (commit !is WorkflowGitOperationResult.Ok && !commit.recordsNothingToCommit()) {
-      return "Goal finalization commit-all could not commit remaining worktree changes: ${commit.error}"
-    }
-    return pushUnpushedFeatureBranchIfNeeded(featureBranch, request.repoRoot)
+  return when (val commit = gitOperations.createCommit(request.repoRoot, message)) {
+    is WorkflowGitCommitResult.Failed ->
+      "Goal finalization commit-all could not commit remaining worktree changes: ${commit.error}"
+    WorkflowGitCommitResult.NothingToCommit ->
+      pushUnpushedFeatureBranchIfNeeded(featureBranch, request.repoRoot)
+    is WorkflowGitCommitResult.Committed ->
+      if (commit.commitSha.isBlank()) {
+        pushUnpushedFeatureBranchIfNeeded(featureBranch, request.repoRoot)
+      } else {
+        pushCommittedFeatureBranch(request, featureBranch)
+      }
   }
+}
+
+private fun GoalRunnerFinalization.pushCommittedFeatureBranch(
+  request: GoalRunnerRunRequest,
+  featureBranch: String,
+): String? {
   val pushed = gitOperations.pushBranch(request.repoRoot, featureBranch)
   return if (pushed is WorkflowGitOperationResult.Ok) {
     null

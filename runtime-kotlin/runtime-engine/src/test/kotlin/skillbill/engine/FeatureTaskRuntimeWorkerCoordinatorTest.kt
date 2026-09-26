@@ -14,7 +14,7 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeHeartbeatTick
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessIdentity
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import java.time.Duration
 import java.time.Instant
@@ -29,7 +29,7 @@ class FeatureTaskRuntimeWorkerCoordinatorTest {
   @Test
   fun `unowned acquire still claims after a concurrent updated_at bump`() {
     val repository = InMemoryRuntimeWorkflowRepository()
-    repository.saveFeatureTaskRuntimeWorkflow(unownedRuntimeRow(updatedAt = "2026-08-15T20:57:11Z"))
+    repository.saveFeatureTaskWorkflow(unownedRuntimeRow(updatedAt = "2026-08-15T20:57:11Z"), RUNTIME)
     val coordinator =
       FeatureTaskRuntimeWorkerCoordinator(
         BumpUpdatedAtAfterReadDatabase(repository),
@@ -310,7 +310,7 @@ private fun unownedRuntimeRow(updatedAt: String) =
     startedAt = "2026-08-15T20:57:11Z",
     updatedAt = updatedAt,
     finishedAt = null,
-    mode = FeatureTaskWorkflowMode.RUNTIME,
+    mode = RUNTIME,
   )
 
 internal fun ownership(

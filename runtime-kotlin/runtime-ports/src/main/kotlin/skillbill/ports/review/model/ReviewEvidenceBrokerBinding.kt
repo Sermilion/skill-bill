@@ -16,8 +16,7 @@ data class ReviewEvidenceBrokerBinding(
   val namedDependencies: Set<String> = emptySet(),
   val trustedExpansionLedger: List<ReviewExpansionRecord> = emptyList(),
   val projectedHunks: List<ReviewChangedHunk> = emptyList(),
-  val locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort =
-    FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE,
+  val locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort? = null,
   val bodyExtractor: ReviewStoredHunkBodyExtractor = ReviewStoredHunkBodyExtractor.HUNK_CONTENT,
   val sources: List<ReviewEvidenceSource> = listOf(ReviewEvidenceSource(assignment, laneRubricId, namedDependencies)),
   val visibleHunkIds: Set<String> = assignment.assignedHunks.toSet(),

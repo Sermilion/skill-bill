@@ -1,12 +1,7 @@
 package skillbill.ports.experiment.isolation
 
-import skillbill.ports.experiment.isolation.model.ExperimentArmIsolationContext as ExperimentArmIsolationContextModel
-import skillbill.ports.experiment.isolation.model.ExperimentArmStatePaths as ExperimentArmStatePathsModel
-import skillbill.ports.experiment.isolation.model.ExperimentIsolationObservation as ExperimentIsolationObservationModel
-
-typealias ExperimentArmIsolationContext = ExperimentArmIsolationContextModel
-typealias ExperimentArmStatePaths = ExperimentArmStatePathsModel
-typealias ExperimentIsolationObservation = ExperimentIsolationObservationModel
+import skillbill.ports.experiment.isolation.model.ExperimentArmIsolationContext
+import skillbill.ports.experiment.isolation.model.ExperimentIsolationObservation
 
 interface ExperimentIsolationCapabilityPort {
   fun assertLaunchSupported(context: ExperimentArmIsolationContext)

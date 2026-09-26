@@ -6,7 +6,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import java.nio.file.Path
 
 interface GoalRunnerWorkflowOutcomeMutationStore {
-  fun authoritativeOutcomes(issueKey: String): Map<Int, GoalRunnerStoredOutcome> = emptyMap()
+  fun authoritativeOutcomes(issueKey: String): Map<Int, GoalRunnerStoredOutcome>
 
   fun reconcileAuthoritativeOutcomes(
     issueKey: String,

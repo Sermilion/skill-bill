@@ -11,16 +11,5 @@ interface RepositoryFingerprintGitOperations {
     baseCommit: String?,
     headCommit: String,
     ownedPaths: List<String>,
-  ): WorkflowGitOperationResult = repositoryFingerprint(repoRoot)
+  ): WorkflowGitOperationResult
 }
-
-fun WorkflowGitOperations.repositoryFingerprint(repoRoot: Path): WorkflowGitOperationResult =
-  repositoryFingerprintOperations.repositoryFingerprint(repoRoot)
-
-fun WorkflowGitOperations.repositoryCheckpointFingerprint(
-  repoRoot: Path,
-  baseCommit: String?,
-  headCommit: String,
-  ownedPaths: List<String>,
-): WorkflowGitOperationResult =
-  repositoryFingerprintOperations.repositoryCheckpointFingerprint(repoRoot, baseCommit, headCommit, ownedPaths)

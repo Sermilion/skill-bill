@@ -1,6 +1,7 @@
 package skillbill.engine.goalplanning
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
@@ -28,13 +29,21 @@ fun GoalPlanningPreparationRecord.toEnvelopeMap(): Map<String, Any?> =
 
 fun Map<String, Any?>.toGoalPlanningPreparationRecord(): GoalPlanningPreparationRecord {
   val provenanceMap = (this["provenance"] as? Map<*, *>).orEmpty()
+  val preparationStatusValue = stringValue("preparation_status")
+  val preparationStatus =
+    GoalPlanningPreparationState.fromWireValue(preparationStatusValue)
+      ?: throw InvalidGoalPlanningPreparationSchemaError(
+        sourceLabel = stringValue("governed_sub_spec_path"),
+        fieldPath = "preparation_status",
+        reason = "unsupported preparation status '$preparationStatusValue'",
+      )
   return GoalPlanningPreparationRecord(
     parentGoalWorkflowId = stringValue("parent_goal_workflow_id"),
     normalizedIssueKey = stringValue("normalized_issue_key"),
     repositoryIdentity = stringValue("repository_identity"),
     subtaskId = (this[SharedPayloadKeys.SUBTASK_ID] as Number).toInt(),
     governedSubSpecPath = stringValue("governed_sub_spec_path"),
-    preparationStatus = GoalPlanningPreparationState.fromWireValue(stringValue("preparation_status")),
+    preparationStatus = preparationStatus,
     provenance =
       GoalPlanningPreparationProvenance(
         parentSpecHash = provenanceMap.stringEntry("parent_spec_hash"),

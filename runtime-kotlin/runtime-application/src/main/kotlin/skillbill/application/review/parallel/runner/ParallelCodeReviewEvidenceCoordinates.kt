@@ -7,6 +7,7 @@ import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import skillbill.ports.review.model.ReviewEvidenceCoordinates
+import skillbill.text.GIT_NUL_RECORD_DELIMITER
 
 internal fun ParallelCodeReviewRunnerPlanning.evidenceCoordinates(
   request: ParallelCodeReviewRequest,
@@ -19,7 +20,7 @@ internal fun ParallelCodeReviewRunnerPlanning.evidenceCoordinates(
     runProcess(listOf("git", "ls-files", "--stage", "-z"), request.repoRoot)
       ?: throw DiffResolutionException("Cannot capture the reviewed index.")
   val entries =
-    index.split('\u0000').filter(String::isNotEmpty).associate { row ->
+    index.split(GIT_NUL_RECORD_DELIMITER).filter(String::isNotEmpty).associate { row ->
       val metadata = row.substringBefore('\t').split(' ')
       if (metadata.size != INDEX_ENTRY_METADATA_FIELDS || metadata[2] != "0" || '\t' !in row) {
         throw DiffResolutionException("Review checkpoint contains unresolved index entries.")

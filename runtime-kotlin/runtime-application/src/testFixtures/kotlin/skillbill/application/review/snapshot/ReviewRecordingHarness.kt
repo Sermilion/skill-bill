@@ -26,9 +26,10 @@ import skillbill.infrastructure.workflow.review.broker.FileSystemReviewEvidenceB
 import skillbill.infrastructure.workflow.review.specialists.ClasspathReviewSpecialistContractProvider
 import skillbill.install.model.SupportedAgent
 import skillbill.learnings.model.LearningRecord
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunLivenessSnapshot
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
@@ -47,6 +48,8 @@ import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.evidence.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.evidence.ReviewEvidenceBroker
 import skillbill.ports.review.evidence.ReviewEvidenceBrokerFactory
+import skillbill.ports.review.launch.NO_OP_REVIEW_LAUNCH_AGENT_STAGING
+import skillbill.ports.review.launch.NO_OP_REVIEW_NATIVE_AGENT_PREFLIGHT
 import skillbill.ports.review.launch.ReviewLaunchAgentStagingPort
 import skillbill.ports.review.launch.ReviewNativeAgentPreflightPort
 import skillbill.ports.review.model.ResolvedReviewRubric
@@ -63,6 +66,7 @@ import skillbill.ports.review.repository.ReviewSpecialistContractProvider
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.scaffold.model.PilotedPlatformPackProjection
+import skillbill.ports.taskruntime.DERIVING_SHARED_EVIDENCE_RESOLVER
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.telemetry.lifecycle.LifecycleTelemetryRepository
@@ -152,12 +156,9 @@ class ReviewRecorder {
 
 data class RecordedWorkerResponse(
   val stdout: String = "NO_FINDINGS",
-  val exitStatus: Int? = 0,
-  val timedOut: Boolean = false,
+  val termination: AgentRunTermination = AgentRunTermination.Exited(0),
   val processStarted: Boolean = true,
   val mcpStartupObserved: Boolean = false,
-  val spawnFailed: Boolean = false,
-  val interrupted: Boolean = false,
   val liveness: AgentRunLivenessSnapshot? = null,
 )
 
@@ -191,21 +192,13 @@ fun reviewHarness(
       if (config.simulateEvidenceReads) simulateGovernedEvidenceReads(request.skillRunRequest)
       config.parentLaunch?.invoke(request)?.let { return@GoalRunnerSubtaskLauncher it }
       val response = config.response(request)
-      AgentRunLaunchFacts(
+      agentRunLaunchFacts(
         agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-        exitStatus =
-          if (response.timedOut || response.spawnFailed || response.interrupted) {
-            null
-          } else {
-            response.exitStatus
-          },
+        termination = response.termination,
         stdout = response.stdout,
         stderr = "",
-        timedOut = response.timedOut,
-        interrupted = response.interrupted,
-        spawnFailed = response.spawnFailed,
         liveness = response.liveness,
-        processStarted = response.processStarted && !response.spawnFailed,
+        processStarted = response.processStarted && response.termination != AgentRunTermination.SpawnFailed,
         mcpStartupObserved = response.mcpStartupObserved,
       ) as AgentRunLaunchOutcome
     }
@@ -251,11 +244,10 @@ fun parallelCodeReviewRunnerOf(
   reviewEvidenceBrokerFactory: ReviewEvidenceBrokerFactory,
   governedEvidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder,
   sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
-    FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
-  sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort =
-    FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE,
-  nativeAgentPreflight: ReviewNativeAgentPreflightPort = ReviewNativeAgentPreflightPort.NONE,
-  reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort = ReviewLaunchAgentStagingPort.NONE,
+    DERIVING_SHARED_EVIDENCE_RESOLVER,
+  sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort? = null,
+  nativeAgentPreflight: ReviewNativeAgentPreflightPort = NO_OP_REVIEW_NATIVE_AGENT_PREFLIGHT,
+  reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort = NO_OP_REVIEW_LAUNCH_AGENT_STAGING,
   registerParse: (String) -> ParallelReviewParseResult = ParallelReviewFindingParser::parse,
   repositoryEnclosingRootPort: RepositoryEnclosingRootPort = CanonicalRepositoryRoot,
   originScopeKeyPort: RepositoryOriginScopeKeyPort = HARNESS_ORIGIN_UNAVAILABLE,

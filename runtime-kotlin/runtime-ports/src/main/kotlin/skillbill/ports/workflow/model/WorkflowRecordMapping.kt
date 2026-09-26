@@ -3,9 +3,6 @@ package skillbill.ports.workflow.model
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.payload.WorkflowWirePayloadKeys
-import skillbill.contracts.workflow.session.FeatureImplementSessionSummaryContract
-import skillbill.contracts.workflow.session.FeatureVerifySessionSummaryContract
-import skillbill.contracts.workflow.session.WorkflowContinueSessionSummary
 import skillbill.error.core.MalformedJsonTextError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
@@ -197,34 +194,3 @@ private fun Any?.toExactIntOrNull(): Int? =
     is String -> toIntOrNull()
     else -> null
   }
-
-fun FeatureImplementSessionSummary.toContract(): FeatureImplementSessionSummaryContract =
-  FeatureImplementSessionSummaryContract(
-    sessionId = sessionId,
-    issueKeyProvided = issueKeyProvided,
-    issueKeyType = issueKeyType,
-    specInputTypes = specInputTypes,
-    specWordCount = specWordCount,
-    featureSize = featureSize,
-    featureName = featureName,
-    rolloutNeeded = rolloutNeeded,
-    acceptanceCriteriaCount = acceptanceCriteriaCount,
-    openQuestionsCount = openQuestionsCount,
-    specSummary = specSummary,
-  )
-
-fun FeatureVerifySessionSummary.toContract(): FeatureVerifySessionSummaryContract =
-  FeatureVerifySessionSummaryContract(
-    sessionId = sessionId,
-    acceptanceCriteriaCount = acceptanceCriteriaCount,
-    rolloutRelevant = rolloutRelevant,
-    specSummary = specSummary,
-  )
-
-fun FeatureVerifySessionSummary.toContinueSessionSummary(): WorkflowContinueSessionSummary =
-  WorkflowContinueSessionSummary(
-    sessionId = sessionId,
-    acceptanceCriteriaCount = acceptanceCriteriaCount,
-    rolloutRelevant = rolloutRelevant,
-    specSummary = specSummary,
-  )

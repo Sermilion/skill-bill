@@ -17,19 +17,17 @@ import skillbill.engine.featuretask.phase.core.FeatureTaskRuntimePhaseGates
 import skillbill.engine.featuretask.runloop.core.CheckpointCommitMessageArgs
 import skillbill.engine.featuretask.runloop.core.CommitCheckpointArgs
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
-import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopLaunch
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopPlanningBranch
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopSession
-import skillbill.engine.featuretask.runloop.core.OWNED_PATH_DELIMITER
 import skillbill.engine.featuretask.runloop.core.PhaseRun
 import skillbill.engine.featuretask.runloop.core.RemediationCheckpointCommit
 import skillbill.engine.featuretask.runloop.output.FeatureTaskRuntimeRunLoopRepairReceipt
 import skillbill.engine.goalrunner.execution.support.protectedBranchName
-import skillbill.ports.workflow.gitops.captureIndexState
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshot
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshotResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.pathContentIdentities
-import skillbill.ports.workflow.gitops.repositoryOwnedPaths
-import skillbill.ports.workflow.gitops.stagePaths
+import skillbill.ports.workflow.gitops.model.WorkflowPathContentIdentitiesResult
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeWorkflowArtifactMap
@@ -47,8 +45,8 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
     val captured = session.phaseContentIdentitiesFor(phaseId)
     if (captured.isEmpty()) return emptyList()
     val current = phaseGates.gitOperations.pathContentIdentities(request.repoRoot, ownedPaths)
-    if (current !is WorkflowGitOperationResult.Ok) return emptyList()
-    val now = FeatureTaskRuntimeRunLoopLaunch.parseContentIdentities(current.value.orEmpty())
+    if (current !is WorkflowPathContentIdentitiesResult.Resolved) return emptyList()
+    val now = current.identities
     return captured.filter { (path, identity) -> path in now && now[path] != identity }.keys.sorted()
   }
 
@@ -76,10 +74,9 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
     baselineOwnedPaths: List<String>,
   ): List<String>? {
     val owned = phaseGates.gitOperations.repositoryOwnedPaths(request.repoRoot)
-    if (owned !is WorkflowGitOperationResult.Ok) return null
+    if (owned !is WorkflowGitNameListResult.Listed) return null
     val baseline = baselineOwnedPaths.toSet()
-    return owned.value.orEmpty()
-      .split(OWNED_PATH_DELIMITER)
+    return owned.names
       .map(String::trim)
       .filter(String::isNotBlank)
       .filterNot { it in baseline }
@@ -497,7 +494,7 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
     val branch: String,
     val loopId: String,
     val ownedPaths: List<String>,
-    val indexSnapshot: String,
+    val indexSnapshot: WorkflowGitIndexSnapshot,
     val parentSha: String?,
     val subtaskIdentity: FeatureTaskRuntimeSubtaskCommitIdentity,
     val message: String,
@@ -511,10 +508,17 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
     ownedPaths: List<String>,
   ): RemediationCommitPrepared? {
     with(context) {
-      val snapshot = phaseGates.gitOperations.captureIndexState(request.repoRoot, ownedPaths)
-      if (snapshot !is WorkflowGitOperationResult.Ok) {
-        return blockRemediationCommitPreparation(context, precedingPhaseId, branch, snapshot.error)
-      }
+      val indexSnapshot =
+        when (val snapshot = phaseGates.gitOperations.captureIndexState(request.repoRoot, ownedPaths)) {
+          is WorkflowGitIndexSnapshotResult.Captured -> snapshot.snapshot
+          is WorkflowGitIndexSnapshotResult.Failed ->
+            return blockRemediationCommitPreparation(
+              context,
+              precedingPhaseId,
+              branch,
+              snapshot.error,
+            )
+        }
       val parentSha =
         phaseGates.gitOperations.headCommitSha(request.repoRoot)
           .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.trim()?.takeIf(String::isNotBlank)
@@ -529,7 +533,7 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
             phaseGates,
             staged.error,
             ownedPaths,
-            snapshot.value.orEmpty(),
+            indexSnapshot,
           ),
         )
       }
@@ -552,7 +556,7 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
         branch = branch,
         loopId = loopId,
         ownedPaths = ownedPaths,
-        indexSnapshot = snapshot.value.orEmpty(),
+        indexSnapshot = indexSnapshot,
         parentSha = parentSha,
         subtaskIdentity = subtaskIdentity,
         message = message,

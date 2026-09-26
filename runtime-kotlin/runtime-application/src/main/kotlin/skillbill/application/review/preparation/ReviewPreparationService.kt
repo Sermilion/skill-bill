@@ -6,65 +6,31 @@ import skillbill.application.review.packet.ReviewHunkStoreIndexing
 import skillbill.application.review.packet.toAssignmentEnvelope
 import skillbill.application.review.packet.toParentPacketEnvelope
 import skillbill.application.review.parallel.planning.criteriaReferences
+import skillbill.application.review.preparation.model.ReviewPreparationFacts
 import skillbill.application.updatecheck.unknown
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.ports.review.ReviewContextEnvelopeValidator
-import skillbill.ports.review.model.ReviewFactPorts
-import skillbill.ports.review.model.ReviewScopeFacts
-import skillbill.ports.review.model.ReviewStackRoutingFacts
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.review.context.model.bundle.ReviewLaneBundle
 import skillbill.review.context.model.bundle.ReviewLaneBundleEntry
 import skillbill.review.context.model.commit.ReviewAssignment
-import skillbill.review.context.model.commit.ReviewCommitLaneRoutingMatrix
 import skillbill.review.context.model.execution.ResolvedReviewExecutionMode
 import skillbill.review.context.model.execution.ReviewLaneDecision
-import skillbill.review.context.model.hunk.ReviewBuildTestFact
 import skillbill.review.context.model.hunk.ReviewChangedHunk
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.hunk.ReviewEvidenceTarget
-import skillbill.review.context.model.hunk.ReviewLearningsReference
-import skillbill.review.context.model.hunk.ReviewRuleReference
 import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.context.model.packet.ReviewExpansionRecord
 import skillbill.review.context.model.packet.ReviewPacketConsumerContract
 
-private data class ResolvedReviewFacts(
-  val scope: ReviewScopeFacts,
-  val routing: ReviewStackRoutingFacts,
-  val matchedRules: List<ReviewRuleReference>,
-  val learningsReferences: List<ReviewLearningsReference>,
-  val buildTestFacts: List<ReviewBuildTestFact>,
-  val laneDecisions: List<ReviewLaneDecision>,
-  val routingMatrix: ReviewCommitLaneRoutingMatrix,
-)
-
 class ReviewPreparationService(
-  private val ports: ReviewFactPorts,
+  private val facts: ReviewPreparationFacts,
   private val envelopeValidator: ReviewContextEnvelopeValidator,
-  private val hunkLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort =
-    FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE,
+  private val hunkLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort? = null,
 ) {
   fun prepare(request: ReviewPreparationRequest): ReviewPreparationResult {
-    val scope = ports.scope.resolveScope(request.reviewId)
-    val routing = ports.stackRouting.resolveStackRouting(scope)
-    val matchedRules = ports.guidance.resolveMatchedRules(scope, routing)
-    val learningsReferences = ports.learnings.resolveLearnings(scope, routing)
-    val facts = ports.buildTestFacts.resolveBuildTestFacts(scope)
-    val selection = ports.laneSelection.decideLanes(scope, routing)
-    val laneDecisions = selection.decisions
-
-    val resolved =
-      ResolvedReviewFacts(
-        scope,
-        routing,
-        matchedRules,
-        learningsReferences,
-        facts,
-        laneDecisions,
-        selection.routingMatrix,
-      )
-    val packet = composePacket(request, resolved)
+    val laneDecisions = facts.laneSelection.decisions
+    val packet = composePacket(request, facts)
     val assignments = composeAssignments(request, packet, laneDecisions)
     validateAgainstPacket(packet, assignments)
 
@@ -118,9 +84,9 @@ class ReviewPreparationService(
 
   private fun composePacket(
     request: ReviewPreparationRequest,
-    resolved: ResolvedReviewFacts,
+    resolved: ReviewPreparationFacts,
   ): ReviewContextPacket {
-    val includedLanes = includedLanesForPacket(request.reviewId, resolved.laneDecisions)
+    val includedLanes = includedLanesForPacket(request.reviewId, resolved.laneSelection.decisions)
     val indexed =
       ReviewHunkStoreIndexing.index(
         hunks = resolved.scope.changedHunks,
@@ -136,17 +102,17 @@ class ReviewPreparationService(
         baseRevision = resolved.scope.baseRevision,
         headRevision = resolved.scope.headRevision,
         status = resolved.scope.status,
-        stack = resolved.routing.stack,
-        pack = resolved.routing.pack,
-        addOns = resolved.routing.addOns,
-        composedLayers = resolved.routing.composedLayers,
+        stack = resolved.stackRouting.stack,
+        pack = resolved.stackRouting.pack,
+        addOns = resolved.stackRouting.addOns,
+        composedLayers = resolved.stackRouting.composedLayers,
         selectedLanes = includedLanes,
         changedHunks = indexed.hunks,
         commitUnits = indexed.commitUnits,
         coverageFact = resolved.scope.coverageFact,
-        routingMatrix = resolved.routingMatrix,
+        routingMatrix = resolved.laneSelection.routingMatrix,
         reviewRevision = request.reviewRevision,
-        laneDecisions = resolved.laneDecisions,
+        laneDecisions = resolved.laneSelection.decisions,
         matchedRules = resolved.matchedRules,
         learningsReferences = resolved.learningsReferences,
         buildTestFacts = resolved.buildTestFacts,

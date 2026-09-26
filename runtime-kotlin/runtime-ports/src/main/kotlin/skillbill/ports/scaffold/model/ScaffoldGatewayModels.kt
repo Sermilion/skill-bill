@@ -7,15 +7,6 @@ data class GeneratedArtifactFile(
   val reason: String,
 )
 
-data class NativeAgentSourceProjection(
-  val name: String,
-  val description: String,
-  val body: String,
-  val compositionKindWireValue: String? = null,
-  val path: Path? = null,
-  val bundleEntryName: String? = null,
-)
-
 data class PilotedPlatformPackProjection(
   val slug: String,
   val displayName: String?,

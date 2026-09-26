@@ -32,7 +32,9 @@ import skillbill.ports.telemetry.transport.TelemetryReconciliationRepository
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.work.WorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.goalreview.GoalObservabilityFileDiffStat
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseLedgerAction
@@ -104,6 +106,11 @@ class GoalRunnerStatusProjectionDegradationTest {
           workflowId: String,
           mode: FeatureTaskWorkflowMode,
         ): WorkflowStateRecord? = error("ledger unavailable")
+
+        override fun get(
+          family: WorkflowFamily,
+          workflowId: String,
+        ): WorkflowStateSnapshot? = error("ledger unavailable")
       }
     val projection =
       requireNotNull(

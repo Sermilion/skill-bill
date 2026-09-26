@@ -3,7 +3,6 @@ package skillbill.ports.goalrunner
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
-import skillbill.ports.goalrunner.model.GoalPlanningPreparationStatus
 import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
@@ -67,26 +66,6 @@ abstract class GoalPlanningPreparationRepositoryDefaults : GoalPlanningPreparati
   ): List<GoalSubtaskPlanCheckpoint> = emptyList()
 
   open override fun markPrepared(record: GoalPlanningPreparationRecord) = Unit
-
-  open override fun findByGoalAndSubtask(
-    parentGoalWorkflowId: String,
-    subtaskId: Int,
-  ): GoalPlanningPreparationRecord? = null
-
-  open override fun listPreparedByGoalOrdered(parentGoalWorkflowId: String): List<GoalPlanningPreparationRecord> =
-    emptyList()
-
-  open override fun preparedCount(parentGoalWorkflowId: String): Int = 0
-
-  open override fun firstMissingOrIncompleteSubtask(
-    parentGoalWorkflowId: String,
-    orderedSubtaskIds: List<Int>,
-  ): Int? = orderedSubtaskIds.firstOrNull()
-
-  open override fun preparedStatus(
-    parentGoalWorkflowId: String,
-    subtaskId: Int,
-  ): GoalPlanningPreparationStatus? = null
 
   open override fun deleteByGoal(parentGoalWorkflowId: String): Int = 0
 }

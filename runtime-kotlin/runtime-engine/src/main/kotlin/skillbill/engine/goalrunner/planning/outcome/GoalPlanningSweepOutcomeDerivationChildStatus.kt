@@ -5,7 +5,9 @@ import skillbill.engine.goalrunner.planning.model.GoalPlanningEmptyTurnEvidence
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
+import skillbill.ports.agentrun.model.exitCode
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import java.nio.file.Path
@@ -68,12 +70,11 @@ fun emptyTurnEvidence(
   durationMs: Long,
 ): GoalPlanningEmptyTurnEvidence? {
   if (outcome !is AgentRunLaunchFacts) return null
-  val cleanExit = !outcome.spawnFailed && !outcome.timedOut && !outcome.interrupted && outcome.exitStatus == 0
-  if (!cleanExit) return null
+  if (outcome.termination != AgentRunTermination.Exited(0)) return null
   return GoalPlanningEmptyTurnEvidence(
     agentId = outcome.agent.id,
     durationMs = durationMs,
-    exitStatus = outcome.exitStatus,
+    exitStatus = outcome.termination.exitCode,
     assistantEventCount = outcome.assistantEventCount,
     rawOutputPreview = outcome.rawOutputPreview,
   )
@@ -89,11 +90,7 @@ fun stdoutFor(outcome: AgentRunLaunchOutcome): String? =
   when (outcome) {
     is AgentRunLaunchFacts ->
       outcome.stdout.takeIf { stdout ->
-        !outcome.spawnFailed &&
-          !outcome.timedOut &&
-          !outcome.interrupted &&
-          outcome.exitStatus == 0 &&
-          stdout.isNotBlank()
+        outcome.termination == AgentRunTermination.Exited(0) && stdout.isNotBlank()
       }
     is UnsupportedAgentRunLaunch -> null
   }

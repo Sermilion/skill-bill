@@ -11,6 +11,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import java.time.Instant
 import kotlin.test.Test
@@ -91,5 +92,5 @@ private fun seedWorkflow(
         sessionId = "ftr-provenance",
       ),
     ).toRecord()
-  repository.saveFeatureTaskRuntimeWorkflow(seeded)
+  repository.saveFeatureTaskWorkflow(seeded, FeatureTaskWorkflowMode.RUNTIME)
 }

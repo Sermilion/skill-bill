@@ -3,8 +3,11 @@ package skillbill.infrastructure.workflow.git.checkpoint
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.infrastructure.workflow.process.withValue
 import skillbill.ports.workflow.gitops.CheckpointHistoryGitOperations
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
+
+private const val REF_LISTING_PAIR_SIZE = 2
 
 internal object GitCheckpointHistoryOperations : CheckpointHistoryGitOperations {
   override fun amendHeadCommit(
@@ -37,7 +40,7 @@ internal object GitCheckpointHistoryOperations : CheckpointHistoryGitOperations 
     return WorkflowGitOperationResult.Ok(value = message.value.orEmpty())
   }
 
-  override fun updateRef(
+  override fun updateCheckpointRef(
     repoRoot: Path,
     namespacePrefix: String,
     refName: String,
@@ -53,7 +56,7 @@ internal object GitCheckpointHistoryOperations : CheckpointHistoryGitOperations 
     return runGitCommand(repoRoot, "update-ref", ref, target).withValue(ref)
   }
 
-  override fun resolveRef(
+  override fun resolveCheckpointRef(
     repoRoot: Path,
     namespacePrefix: String,
     refName: String,
@@ -70,23 +73,49 @@ internal object GitCheckpointHistoryOperations : CheckpointHistoryGitOperations 
     return WorkflowGitOperationResult.Ok(value = resolved.value.orEmpty().trim())
   }
 
-  override fun listRefs(
+  override fun listCheckpointRefs(
     repoRoot: Path,
     namespacePrefix: String,
-  ): WorkflowGitOperationResult {
+  ): WorkflowGitNameListResult {
     val prefix = namespacePrefix.trim()
     if (prefix.isBlank()) {
-      return WorkflowGitOperationResult.Failed(error = "A ref namespace prefix is required.")
+      return WorkflowGitNameListResult.Failed("A ref namespace prefix is required.")
     }
-    return runGitCommand(
-      repoRoot,
-      "for-each-ref",
-      "--format=%(objectname)%00%(refname)%00",
-      prefix,
+    val listed =
+      runGitCommand(
+        repoRoot,
+        "for-each-ref",
+        "--format=%(objectname)%00%(refname)%00",
+        prefix,
+      )
+    if (listed !is WorkflowGitOperationResult.Ok) return WorkflowGitNameListResult.Failed(listed.error)
+    return WorkflowGitNameListResult.Listed(
+      listed.value.orEmpty()
+        .split('\u0000')
+        .filter(String::isNotBlank)
+        .chunked(REF_LISTING_PAIR_SIZE)
+        .mapNotNull { pair -> pair.getOrNull(1)?.trim()?.takeIf(String::isNotBlank) },
     )
   }
 
-  override fun deleteRef(
+  override fun deleteCheckpointRefsUnderPrefix(
+    repoRoot: Path,
+    namespacePrefix: String,
+    subtaskRefPrefix: String,
+  ): WorkflowGitOperationResult {
+    val names =
+      when (val listed = listCheckpointRefs(repoRoot, subtaskRefPrefix)) {
+        is WorkflowGitNameListResult.Listed -> listed.names
+        is WorkflowGitNameListResult.Failed -> return WorkflowGitOperationResult.Failed(error = listed.error)
+      }
+    names.forEach { refName ->
+      val deleted = deleteCheckpointRef(repoRoot, namespacePrefix, refName)
+      if (deleted !is WorkflowGitOperationResult.Ok) return deleted
+    }
+    return WorkflowGitOperationResult.Ok(value = names.size.toString())
+  }
+
+  override fun deleteCheckpointRef(
     repoRoot: Path,
     namespacePrefix: String,
     refName: String,

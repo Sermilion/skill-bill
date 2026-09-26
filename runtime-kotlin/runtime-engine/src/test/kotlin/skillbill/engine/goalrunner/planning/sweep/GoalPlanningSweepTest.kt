@@ -45,11 +45,12 @@ import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.install.model.SupportedAgent
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.concurrency.BoundedWorkFanOutPort
 import skillbill.ports.concurrency.SequentialBoundedWorkFanOutPort
 import skillbill.ports.db.DatabaseSessionFactory
@@ -59,7 +60,6 @@ import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
-import skillbill.ports.goalrunner.model.GoalPlanningPreparationStatus
 import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
@@ -1443,7 +1443,7 @@ class GoalPlanningSweepPrepareAndResumeTest {
   fun `an exhausted planning budget names the budget and the flag that raises it`() {
     val harness =
       sweepHarness { _, _, _ ->
-        launchFacts(stdout = "").copy(timedOut = true, exitStatus = null)
+        launchFacts(AgentRunTermination.TimedOut, stdout = "")
       }
 
     val outcome =
@@ -1462,7 +1462,7 @@ class GoalPlanningSweepPrepareAndResumeTest {
   fun `failed launch cannot pass output gate with stale stdout`() {
     val harness =
       sweepHarness { phase, _, _ ->
-        launchFacts(stdout = phasePayload(phase)).copy(exitStatus = 1)
+        launchFacts(AgentRunTermination.Exited(1), stdout = phasePayload(phase))
       }
 
     val outcome = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
@@ -1696,14 +1696,11 @@ class GoalPlanningSweepRejectionTest {
   fun `a non-zero exit still blocks immediately rather than burning the retry budget`() {
     val harness =
       sweepHarness { _, _, _ ->
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = SupportedAgent.CLAUDE,
-          exitStatus = 2,
+          termination = AgentRunTermination.Exited(2),
           stdout = "",
           stderr = "boom",
-          timedOut = false,
-          interrupted = false,
-          spawnFailed = false,
         )
       }
 
@@ -2604,27 +2601,20 @@ private fun GoalPlanningPreparationRecord.preplanRoot(): Map<String, Any?> =
 private fun validPhaseOutcome(phase: String): AgentRunLaunchOutcome = launchFacts(stdout = phasePayload(phase))
 
 private fun emptyProviderTurnOutcome(): AgentRunLaunchOutcome =
-  AgentRunLaunchFacts(
+  agentRunLaunchFacts(
     agent = SupportedAgent.CLAUDE,
-    exitStatus = 0,
     stdout = "",
     stderr = "",
-    timedOut = false,
-    interrupted = false,
-    spawnFailed = false,
     assistantEventCount = 0,
     rawOutputPreview = "{\"type\":\"result\",\"result\":\"\"}",
   )
 
 private fun spawnBlockedOutcome(): AgentRunLaunchOutcome =
-  AgentRunLaunchFacts(
+  agentRunLaunchFacts(
     agent = SupportedAgent.CLAUDE,
-    exitStatus = null,
+    termination = AgentRunTermination.SpawnFailed,
     stdout = "",
     stderr = "planning agent could not start",
-    timedOut = false,
-    interrupted = false,
-    spawnFailed = true,
   )
 
 internal fun phasePayload(phaseId: String): String =
@@ -3159,28 +3149,7 @@ private class InMemoryPreparationRepository(
     }
   }
 
-  override fun findByGoalAndSubtask(
-    parentGoalWorkflowId: String,
-    subtaskId: Int,
-  ): GoalPlanningPreparationRecord? = records[subtaskId]
-
-  override fun listPreparedByGoalOrdered(parentGoalWorkflowId: String): List<GoalPlanningPreparationRecord> =
-    records.values.toList().sortedBy { it.subtaskId }
-
-  override fun preparedCount(parentGoalWorkflowId: String): Int = records.size
-
-  override fun firstMissingOrIncompleteSubtask(
-    parentGoalWorkflowId: String,
-    orderedSubtaskIds: List<Int>,
-  ): Int? = orderedSubtaskIds.firstOrNull { id -> id !in records }
-
-  override fun preparedStatus(
-    parentGoalWorkflowId: String,
-    subtaskId: Int,
-  ): GoalPlanningPreparationStatus? =
-    records[subtaskId]?.let { record ->
-      GoalPlanningPreparationStatus(parentGoalWorkflowId, subtaskId, record.preparationStatus, record.provenance)
-    }
+  fun findBySubtask(subtaskId: Int): GoalPlanningPreparationRecord? = records[subtaskId]
 
   override fun deleteByGoal(parentGoalWorkflowId: String): Int {
     val matchingIds =
@@ -3304,8 +3273,7 @@ private class SweepHarness(
       "repo-root-realpath-v1:${fixtures.repoRoot.toRealPath()}",
     )
 
-  fun recordFor(subtaskId: Int): GoalPlanningPreparationRecord? =
-    fixtures.database.repository.findByGoalAndSubtask("wfl-parent", subtaskId)
+  fun recordFor(subtaskId: Int): GoalPlanningPreparationRecord? = fixtures.database.repository.findBySubtask(subtaskId)
 
   val manifestFileStore: CountingManifestFileStore get() = fixtures.manifestFileStore
 }

@@ -29,6 +29,7 @@ import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
@@ -61,7 +62,7 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
   @Test
   fun `engine artifact patch rejects malformed payload before persistence`() {
     val harness = seedHarness(preContractContinuationMap())
-    val before = requireNotNull(harness.repository.getFeatureTaskRuntimeWorkflow(workflowId))
+    val before = requireNotNull(harness.repository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME))
     val persistence =
       FeatureTaskRuntimeWorkflowPersistence(
         RuntimeFakeDatabaseSessionFactory(harness.repository),
@@ -86,7 +87,7 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
       )
     }
 
-    assertEquals(before, harness.repository.getFeatureTaskRuntimeWorkflow(workflowId))
+    assertEquals(before, harness.repository.getFeatureTaskWorkflowAsMode(workflowId, RUNTIME))
   }
 
   @Test
@@ -314,7 +315,7 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
           sessionId = "fis-176",
         ),
       ).toRecord()
-    repository.saveFeatureTaskRuntimeWorkflow(seeded)
+    repository.saveFeatureTaskWorkflow(seeded, RUNTIME)
     val database = RuntimeFakeDatabaseSessionFactory(repository)
     val recorder =
       featureTaskRuntimePhaseRecorder(

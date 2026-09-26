@@ -17,8 +17,10 @@ import skillbill.ports.work.model.WorkItem
 import skillbill.ports.work.model.WorkItemKind
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Instant
@@ -30,7 +32,7 @@ class WorkListServiceTest {
   @Test
   fun `work list invokes the workflow snapshot validation read seam before returning a workflow row`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       WorkflowStateRecord(
         workflowId = "wftr-invalid-snapshot",
         sessionId = "ftr-117",
@@ -44,6 +46,7 @@ class WorkListServiceTest {
         updatedAt = "2026-05-01T12:00:00Z",
         finishedAt = null,
       ),
+      FeatureTaskWorkflowMode.RUNTIME,
     )
     val validator =
       object : WorkflowSnapshotValidator {
@@ -77,14 +80,14 @@ class WorkListServiceTest {
   }
 
   @Test
-  fun `work list batches workflow snapshot validation below SQLite bind limits`() {
+  fun `work list resolves every workflow snapshot through one family-keyed lookup`() {
     val delegate = InMemoryWorkflowStates()
     val workflows = BatchingWorkflowStates(delegate)
     val work =
       buildList {
         repeat(901) { index ->
           val workflowId = "wftr-batch-$index"
-          delegate.saveFeatureTaskRuntimeWorkflow(
+          delegate.saveFeatureTaskWorkflow(
             WorkflowStateRecord(
               workflowId = workflowId,
               sessionId = "ftr-batch-$index",
@@ -98,6 +101,7 @@ class WorkListServiceTest {
               updatedAt = "2026-05-01T12:00:00Z",
               finishedAt = null,
             ),
+            FeatureTaskWorkflowMode.RUNTIME,
           )
           add(
             WorkItem(
@@ -121,9 +125,7 @@ class WorkListServiceTest {
     val result = service.list()
 
     assertEquals(901, result.work.size)
-    assertEquals(901, workflows.snapshotBatchSizes.sum())
-    assertEquals(2, workflows.snapshotBatchSizes.size)
-    assertEquals(true, workflows.snapshotBatchSizes.all { it <= 900 })
+    assertEquals(listOf(901), workflows.snapshotLookupSizes)
   }
 }
 
@@ -167,11 +169,13 @@ private class WorkListDatabase(
 private class BatchingWorkflowStates(
   private val delegate: WorkflowStateRepository,
 ) : WorkflowStateRepository by delegate {
-  val snapshotBatchSizes = mutableListOf<Int>()
+  val snapshotLookupSizes = mutableListOf<Int>()
 
-  override fun getFeatureTaskRuntimeWorkflows(workflowIds: Set<String>): Map<String, WorkflowStateRecord> {
-    snapshotBatchSizes += workflowIds.size
-    require(workflowIds.size <= 900) { "Snapshot lookup exceeds SQLite's bind limit." }
-    return delegate.getFeatureTaskRuntimeWorkflows(workflowIds)
+  override fun getAll(
+    family: WorkflowFamily,
+    workflowIds: Set<String>,
+  ): Map<String, WorkflowStateSnapshot> {
+    snapshotLookupSizes += workflowIds.size
+    return delegate.getAll(family, workflowIds)
   }
 }

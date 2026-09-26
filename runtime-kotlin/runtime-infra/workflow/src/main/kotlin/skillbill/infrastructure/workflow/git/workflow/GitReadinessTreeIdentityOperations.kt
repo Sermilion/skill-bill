@@ -3,9 +3,10 @@ package skillbill.infrastructure.workflow.git.workflow
 import skillbill.infrastructure.host.jvm.requirePathContainedIn
 import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.ports.workflow.gitops.model.ReadinessTreeIdentity
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.model.WorkflowReadinessTreeIdentityResult
 import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
-import skillbill.ports.workflow.gitops.readiness.encodeReadinessTreeIdentityPayload
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
@@ -15,7 +16,7 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
     repoRoot: Path,
     baseBranch: String,
     workflowId: String,
-  ): WorkflowGitOperationResult =
+  ): WorkflowReadinessTreeIdentityResult =
     identityInputFailure(baseBranch, workflowId)
       ?: resolveIdentity(repoRoot, baseBranch, workflowId)
 
@@ -23,37 +24,49 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
     repoRoot: Path,
     baseBranch: String,
     workflowId: String,
-  ): WorkflowGitOperationResult {
+  ): WorkflowReadinessTreeIdentityResult {
     val head = resolveRequiredSha(repoRoot, "HEAD", "Readiness identity could not resolve HEAD.")
-    if (head !is WorkflowGitOperationResult.Ok) return head
+    if (head !is WorkflowGitOperationResult.Ok) return WorkflowReadinessTreeIdentityResult.Failed(head.error)
     val baseRef =
       resolveRequiredSha(
         repoRoot,
         "origin/$baseBranch",
         "Readiness identity could not resolve origin/$baseBranch.",
       )
-    if (baseRef !is WorkflowGitOperationResult.Ok) return baseRef
-    val tree = computeSourceTreeSha(repoRoot, workflowId)
-    if (tree !is WorkflowGitOperationResult.Ok) return tree
-    return WorkflowGitOperationResult.Ok(
-      value =
-        encodeReadinessTreeIdentityPayload(
-          ReadinessTreeIdentity(
-            sourceTreeSha = tree.value.orEmpty(),
-            baseRefSha = baseRef.value.orEmpty(),
-            headSha = head.value.orEmpty(),
-          ),
-        ),
+    if (baseRef !is WorkflowGitOperationResult.Ok) return WorkflowReadinessTreeIdentityResult.Failed(baseRef.error)
+    return resolveSourceTreeIdentity(
+      repoRoot,
+      workflowId,
+      baseRefSha = baseRef.value.orEmpty(),
+      headSha = head.value.orEmpty(),
     )
   }
 
-  override fun changedPathsAgainstBase(
+  private fun resolveSourceTreeIdentity(
+    repoRoot: Path,
+    workflowId: String,
+    baseRefSha: String,
+    headSha: String,
+  ): WorkflowReadinessTreeIdentityResult {
+    val tree = computeSourceTreeSha(repoRoot, workflowId)
+    if (tree !is WorkflowGitOperationResult.Ok) return WorkflowReadinessTreeIdentityResult.Failed(tree.error)
+    val sourceTreeSha = tree.value.orEmpty().trim()
+    return if (sourceTreeSha.isBlank()) {
+      WorkflowReadinessTreeIdentityResult.Failed("Readiness identity resolved a blank source tree sha.")
+    } else {
+      WorkflowReadinessTreeIdentityResult.Resolved(
+        ReadinessTreeIdentity(sourceTreeSha = sourceTreeSha, baseRefSha = baseRefSha, headSha = headSha),
+      )
+    }
+  }
+
+  override fun readinessChangedPathsAgainstBase(
     repoRoot: Path,
     baseBranch: String,
-  ): WorkflowGitOperationResult =
+  ): WorkflowGitNameListResult =
     if (baseBranch.isBlank()) {
-      WorkflowGitOperationResult.Failed(
-        error = "Readiness changed-path discovery requires a non-blank base branch.",
+      WorkflowGitNameListResult.Failed(
+        "Readiness changed-path discovery requires a non-blank base branch.",
       )
     } else {
       discoverChangedPaths(repoRoot, baseBranch)
@@ -62,26 +75,21 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
   private fun discoverChangedPaths(
     repoRoot: Path,
     baseBranch: String,
-  ): WorkflowGitOperationResult {
+  ): WorkflowGitNameListResult {
     val base = "origin/$baseBranch"
     val baseResolution = runGitCommand(repoRoot, "rev-parse", base)
     if (baseResolution !is WorkflowGitOperationResult.Ok) {
-      return WorkflowGitOperationResult.Failed(
-        error = "Readiness changed-path discovery could not resolve $base: ${baseResolution.error}",
+      return WorkflowGitNameListResult.Failed(
+        "Readiness changed-path discovery could not resolve $base: ${baseResolution.error}",
       )
     }
     val tracked = runGitCommand(repoRoot, "diff", "--name-only", "-z", base, "--")
-    if (tracked !is WorkflowGitOperationResult.Ok) return tracked
+    if (tracked !is WorkflowGitOperationResult.Ok) return WorkflowGitNameListResult.Failed(tracked.error)
     val untracked = runGitCommand(repoRoot, "ls-files", "--others", "--exclude-standard", "-z")
-    if (untracked !is WorkflowGitOperationResult.Ok) return untracked
+    if (untracked !is WorkflowGitOperationResult.Ok) return WorkflowGitNameListResult.Failed(untracked.error)
     val trackedPaths = tracked.value.orEmpty().split('\u0000').filter(String::isNotBlank)
     val untrackedPaths = untracked.value.orEmpty().split('\u0000').filter(String::isNotBlank)
-    return WorkflowGitOperationResult.Ok(
-      value =
-        (trackedPaths + untrackedPaths)
-          .distinct()
-          .joinToString("\u0000"),
-    )
+    return WorkflowGitNameListResult.Listed((trackedPaths + untrackedPaths).distinct())
   }
 
   internal fun computeSourceTreeSha(
@@ -153,12 +161,12 @@ internal object GitReadinessTreeIdentityOperations : ReadinessTreeIdentityGitOpe
   private fun identityInputFailure(
     baseBranch: String,
     workflowId: String,
-  ): WorkflowGitOperationResult? =
+  ): WorkflowReadinessTreeIdentityResult? =
     when {
       baseBranch.isBlank() ->
-        WorkflowGitOperationResult.Failed(error = "Readiness identity requires a non-blank base branch.")
+        WorkflowReadinessTreeIdentityResult.Failed("Readiness identity requires a non-blank base branch.")
       workflowId.isBlank() ->
-        WorkflowGitOperationResult.Failed(error = "Readiness identity requires a non-blank workflow id.")
+        WorkflowReadinessTreeIdentityResult.Failed("Readiness identity requires a non-blank workflow id.")
       else -> null
     }
 

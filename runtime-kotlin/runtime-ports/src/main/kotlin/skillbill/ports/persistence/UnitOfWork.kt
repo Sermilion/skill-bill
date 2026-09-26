@@ -33,8 +33,8 @@ interface UnitOfWork : GoalRunnerPersistenceSession {
   val unaddressedFindings: UnaddressedFindingsRepository
   val agentActivityStamps: AgentActivityStampRepository
   val worktreeEditJournal: WorktreeEditJournalRepository
-  val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository?
-  val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions?
+  val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository
+  val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions
   val featureTaskPhaseSettlements: FeatureTaskPhaseSettlementRepository
   val experimentPairs: ExperimentPairRepository
 

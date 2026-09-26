@@ -17,7 +17,6 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -118,7 +117,7 @@ internal class GoalRunnerControlCoordinator(
     overwriteExistingReason: Boolean,
   ): GoalRunnerControlState? =
     database.transaction { unitOfWork ->
-      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
+      unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, parentWorkflowId)
         ?: return@transaction null
       val existing = unitOfWork.goalRunnerControls.controlState(parentWorkflowId)
       if (existing.paused && !overwriteExistingReason) {
@@ -186,7 +185,7 @@ internal fun reconcileControlStateForManifest(
   unitOfWork: UnitOfWork,
   parentWorkflowId: String,
 ) {
-  val parent = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId) ?: return
+  val parent = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, parentWorkflowId) ?: return
   val manifest = parent.decompositionRuntime() ?: return
   val existing = unitOfWork.goalRunnerControls.controlState(parentWorkflowId)
   val reconciled = existing.reconciledForCurrentSubtask(manifest.currentSubtaskIntent.subtaskId)
@@ -199,7 +198,7 @@ internal fun GoalRunnerControlCoordinator.requireParent(
   unitOfWork: UnitOfWork,
   parentWorkflowId: String,
 ): WorkflowStateSnapshot =
-  WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
+  unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, parentWorkflowId)
     ?: error("Unknown decomposed parent workflow '$parentWorkflowId'.")
 
 internal fun GoalRunnerControlCoordinator.spawnAuthorization(
@@ -291,7 +290,7 @@ internal fun GoalRunnerControlCoordinator.persistStopAfterSubtask(
 internal fun GoalRunnerControlCoordinator.resume(parentWorkflowId: String): GoalRunnerManifestState? =
   database.transaction { unitOfWork ->
     val parent =
-      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
+      unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, parentWorkflowId)
         ?: return@transaction null
     val existing = unitOfWork.goalRunnerControls.controlState(parentWorkflowId)
     val resumed =
@@ -340,7 +339,7 @@ internal fun GoalRunnerControlCoordinator.persistPauseRequest(
 
 internal fun GoalRunnerControlCoordinator.requestPause(parentWorkflowId: String): GoalRunnerControlState? =
   database.transaction { unitOfWork ->
-    WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)?.let { _ ->
+    unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, parentWorkflowId)?.let { _ ->
       persistPauseRequest(unitOfWork, parentWorkflowId)
     }
   }

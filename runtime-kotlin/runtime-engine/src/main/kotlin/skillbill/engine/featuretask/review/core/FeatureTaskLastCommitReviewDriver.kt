@@ -4,6 +4,7 @@ import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
@@ -78,14 +79,16 @@ class FeatureTaskLastCommitReviewDriver(
   )
 
   private fun launchFailureReason(facts: AgentRunLaunchFacts): String? =
-    when {
-      facts.timedOut -> "agent timed out"
-      facts.spawnFailed -> "agent process failed to spawn"
-      facts.interrupted -> "agent was interrupted"
-      facts.exitStatus == null -> "agent exited with unknown status"
-      facts.exitStatus != 0 -> "agent exited with status ${facts.exitStatus}"
-      facts.stdoutTruncated -> "agent output exceeded the retention cap before completion"
-      else -> null
+    when (val termination = facts.termination) {
+      AgentRunTermination.TimedOut -> "agent timed out"
+      AgentRunTermination.SpawnFailed -> "agent process failed to spawn"
+      AgentRunTermination.Interrupted -> "agent was interrupted"
+      is AgentRunTermination.Exited ->
+        when {
+          termination.code != 0 -> "agent exited with status ${termination.code}"
+          facts.stdoutTruncated -> "agent output exceeded the retention cap before completion"
+          else -> null
+        }
     }
 
   private fun droppedCandidateDiagnostic(

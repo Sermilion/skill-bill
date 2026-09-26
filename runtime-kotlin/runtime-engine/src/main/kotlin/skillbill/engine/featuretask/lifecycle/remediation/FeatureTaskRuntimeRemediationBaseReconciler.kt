@@ -17,7 +17,6 @@ import skillbill.engine.featuretask.model.subtask.RemediationReconciliationHeal
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeCheckpointIdentityVersionError
 import skillbill.error.shellcontent.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -61,7 +60,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
   ) {
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction
       val artifacts = record.artifacts
       val rejected =
@@ -89,7 +88,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
 
   private fun readRemediationSnapshot(workflowId: String): RemediationReconcileSnapshot? =
     database.read { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@read null
       val artifacts = record.artifacts
       runCatching {
         val state = reviewStateFromArtifacts(artifacts) ?: return@read null
@@ -109,7 +108,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
     signal: RemediationDegradationSignal,
   ) {
     database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@transaction
       val artifacts = record.artifacts
       val goalBranch = continuationFromArtifacts(artifacts)?.goalBranch.orEmpty()
       val evidenceEntry =
@@ -387,7 +386,7 @@ internal fun FeatureTaskRuntimeRemediationBaseReconciler.appendRemediationBaseRe
   signal: RemediationDegradationSignal,
 ) {
   database.transaction { unitOfWork ->
-    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction
+    val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@transaction
     val artifacts = record.artifacts
     val evidenceEntry = remediationBaseRecoveryEvidenceEntry(recovery, signal)
     val priorEvidence =

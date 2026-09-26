@@ -8,9 +8,6 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
 
 data class CrashReconcileExpiredWorkerRequest(
   val workflowStates: WorkflowStateRepository,
@@ -28,12 +25,4 @@ data class StaleRunningCandidatesBlockRequest(
   val initialAuthoritative: Map<Int, GoalRunnerStoredOutcome>,
   val activeSet: Set<String>,
   val gate: GoalRunnerReconcileGate,
-)
-
-data class GoalRunnerChildRepairApplyStateInit(
-  val request: GoalRunnerChildRepairApplyRequest,
-  val record: WorkflowStateSnapshot,
-  val artifacts: Any,
-  val workingContinuation: FeatureTaskRuntimeGoalContinuationArtifact?,
-  val workingReview: GoalSubtaskReviewState?,
 )

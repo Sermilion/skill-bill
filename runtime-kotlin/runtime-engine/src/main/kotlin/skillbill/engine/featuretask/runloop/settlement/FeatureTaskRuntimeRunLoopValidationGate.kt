@@ -58,7 +58,6 @@ import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
 import skillbill.engine.goalrunner.status.completed
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.ports.taskruntime.validateBuildReceipt
-import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.taskruntime.artifact.envelopeWireMap
 import skillbill.workflow.taskruntime.artifact.toWorkflowArtifactMap

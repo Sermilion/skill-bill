@@ -5,18 +5,12 @@ import skillbill.application.review.model.ReviewPreparationRequest
 import skillbill.application.review.model.ReviewPreparationResult
 import skillbill.application.review.parallel.planning.criteriaReferences
 import skillbill.application.review.preparation.ReviewPreparationService
+import skillbill.application.review.preparation.model.ReviewLaneSelection
+import skillbill.application.review.preparation.model.ReviewPreparationFacts
+import skillbill.application.review.preparation.model.ReviewScopeFacts
+import skillbill.application.review.preparation.model.ReviewStackRoutingFacts
 import skillbill.application.runner
 import skillbill.ports.review.ReviewContextEnvelopeValidator
-import skillbill.ports.review.model.ReviewFactPorts
-import skillbill.ports.review.model.ReviewLaneSelection
-import skillbill.ports.review.model.ReviewScopeFacts
-import skillbill.ports.review.model.ReviewStackRoutingFacts
-import skillbill.ports.review.preparation.ReviewBuildTestFactsPort
-import skillbill.ports.review.preparation.ReviewGuidancePort
-import skillbill.ports.review.preparation.ReviewLaneSelectionPort
-import skillbill.ports.review.preparation.ReviewLearningsPort
-import skillbill.ports.review.preparation.ReviewScopeResolverPort
-import skillbill.ports.review.preparation.ReviewStackRoutingPort
 import skillbill.review.context.ReviewContextWireMap
 import skillbill.review.context.model.commit.ReviewCommitCoverageFact
 import skillbill.review.context.model.commit.ReviewCommitLaneDecision
@@ -25,12 +19,9 @@ import skillbill.review.context.model.commit.ReviewCommitLaneRoutingMatrix
 import skillbill.review.context.model.commit.ReviewCommitSource
 import skillbill.review.context.model.commit.ReviewCommitUnit
 import skillbill.review.context.model.execution.ReviewLaneDecision
-import skillbill.review.context.model.hunk.ReviewBuildTestFact
 import skillbill.review.context.model.hunk.ReviewChangedHunk
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
-import skillbill.review.context.model.hunk.ReviewLearningsReference
 import skillbill.review.context.model.hunk.ReviewRevision
-import skillbill.review.context.model.hunk.ReviewRuleReference
 import skillbill.review.context.model.launch.GovernedReviewLaunch
 import skillbill.review.parallel.ParallelReviewFindingParser
 import kotlin.test.Test
@@ -110,34 +101,11 @@ class ParallelCodeReviewBundledLaneReviewTest {
 
   private fun service() =
     ReviewPreparationService(
-      ReviewFactPorts(
-        object : ReviewScopeResolverPort {
-          override fun resolveScope(reviewId: String) = scope
-        },
-        object : ReviewStackRoutingPort {
-          override fun resolveStackRouting(scope: ReviewScopeFacts) =
-            ReviewStackRoutingFacts("kotlin", "kotlin", emptyList(), listOf("kotlin"))
-        },
-        object : ReviewGuidancePort {
-          override fun resolveMatchedRules(
-            scope: ReviewScopeFacts,
-            routing: ReviewStackRoutingFacts,
-          ) = emptyList<ReviewRuleReference>()
-        },
-        object : ReviewLearningsPort {
-          override fun resolveLearnings(
-            scope: ReviewScopeFacts,
-            routing: ReviewStackRoutingFacts,
-          ) = emptyList<ReviewLearningsReference>()
-        },
-        object : ReviewBuildTestFactsPort {
-          override fun resolveBuildTestFacts(scope: ReviewScopeFacts) = emptyList<ReviewBuildTestFact>()
-        },
-        object : ReviewLaneSelectionPort {
-          override fun decideLanes(
-            scope: ReviewScopeFacts,
-            routing: ReviewStackRoutingFacts,
-          ) = ReviewLaneSelection(
+      ReviewPreparationFacts(
+        scope = scope,
+        stackRouting = ReviewStackRoutingFacts("kotlin", "kotlin", emptyList(), listOf("kotlin")),
+        laneSelection =
+          ReviewLaneSelection(
             listOf(
               decision("ui", listOf("src/ui/View.kt")),
               decision("persistence", listOf("src/db/Repo.kt")),
@@ -145,8 +113,7 @@ class ParallelCodeReviewBundledLaneReviewTest {
               decision("testing", listOf("src/test/AppTest.kt")),
             ),
             sparseMatrix(focusedByLane),
-          )
-        },
+          ),
       ),
       object : ReviewContextEnvelopeValidator {
         override fun validate(
@@ -266,34 +233,11 @@ class ParallelCodeReviewBundledLaneReviewTest {
       )
     val syntheticPrepared =
       ReviewPreparationService(
-        ReviewFactPorts(
-          object : ReviewScopeResolverPort {
-            override fun resolveScope(reviewId: String) = syntheticScope
-          },
-          object : ReviewStackRoutingPort {
-            override fun resolveStackRouting(scope: ReviewScopeFacts) =
-              ReviewStackRoutingFacts("kotlin", "kotlin", emptyList(), listOf("kotlin"))
-          },
-          object : ReviewGuidancePort {
-            override fun resolveMatchedRules(
-              scope: ReviewScopeFacts,
-              routing: ReviewStackRoutingFacts,
-            ) = emptyList<ReviewRuleReference>()
-          },
-          object : ReviewLearningsPort {
-            override fun resolveLearnings(
-              scope: ReviewScopeFacts,
-              routing: ReviewStackRoutingFacts,
-            ) = emptyList<ReviewLearningsReference>()
-          },
-          object : ReviewBuildTestFactsPort {
-            override fun resolveBuildTestFacts(scope: ReviewScopeFacts) = emptyList<ReviewBuildTestFact>()
-          },
-          object : ReviewLaneSelectionPort {
-            override fun decideLanes(
-              scope: ReviewScopeFacts,
-              routing: ReviewStackRoutingFacts,
-            ) = ReviewLaneSelection(
+        ReviewPreparationFacts(
+          scope = syntheticScope,
+          stackRouting = ReviewStackRoutingFacts("kotlin", "kotlin", emptyList(), listOf("kotlin")),
+          laneSelection =
+            ReviewLaneSelection(
               listOf(decision("ui", listOf("src/ui/View.kt"))),
               ReviewCommitLaneRoutingMatrix(
                 listOf(syntheticScope.commitUnits.single().commitSha),
@@ -308,8 +252,7 @@ class ParallelCodeReviewBundledLaneReviewTest {
                   ),
                 ),
               ),
-            )
-          },
+            ),
         ),
         object : ReviewContextEnvelopeValidator {
           override fun validate(

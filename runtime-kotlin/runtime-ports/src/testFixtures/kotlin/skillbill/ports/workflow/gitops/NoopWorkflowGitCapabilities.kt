@@ -1,7 +1,12 @@
 package skillbill.ports.workflow.gitops
 
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshot
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshotResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
+import skillbill.ports.workflow.gitops.model.WorkflowPathContentIdentitiesResult
+import skillbill.ports.workflow.gitops.model.WorkflowReadinessTreeIdentityResult
 import skillbill.ports.workflow.gitops.model.WorkflowScopedPathContentsResult
 import skillbill.ports.workflow.gitops.readiness.ReadinessTreeIdentityGitOperations
 import java.nio.file.Path
@@ -29,39 +34,43 @@ object UnavailableScopedStagingGitOperations : ScopedStagingGitOperations {
   override fun captureIndexState(
     repoRoot: Path,
     paths: List<String>,
-  ): WorkflowGitOperationResult = unavailable("capture the pre-checkpoint index state")
+  ): WorkflowGitIndexSnapshotResult =
+    WorkflowGitIndexSnapshotResult.Failed(unavailableReason("capture the pre-checkpoint index state"))
 
   override fun restoreIndexState(
     repoRoot: Path,
     paths: List<String>,
-    snapshot: String,
+    snapshot: WorkflowGitIndexSnapshot,
   ): WorkflowGitOperationResult = unavailable("restore the pre-checkpoint index state")
 
-  override fun stagedPaths(repoRoot: Path): WorkflowGitOperationResult = unavailable("list staged paths")
+  override fun stagedPaths(repoRoot: Path): WorkflowGitNameListResult =
+    WorkflowGitNameListResult.Failed(unavailableReason("list staged paths"))
 
   override fun pathContentIdentities(
     repoRoot: Path,
     paths: List<String>,
-  ): WorkflowGitOperationResult = unavailable("read owned-path content identities")
+  ): WorkflowPathContentIdentitiesResult =
+    WorkflowPathContentIdentitiesResult.Failed(unavailableReason("read owned-path content identities"))
 
-  private fun unavailable(capability: String) =
-    WorkflowGitOperationResult.Failed(
-      error = "This git operations implementation cannot $capability; scoped checkpoints require a git adapter.",
-    )
+  private fun unavailable(capability: String) = WorkflowGitOperationResult.Failed(error = unavailableReason(capability))
+
+  private fun unavailableReason(capability: String) =
+    "This git operations implementation cannot $capability; scoped checkpoints require a git adapter."
 }
 
 object NoopRuntimePhaseFileManifestGitOperations : RuntimePhaseFileManifestGitOperations {
-  override fun headCommit(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+  override fun runtimePhaseHeadCommit(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult.Ok(value = "")
 
-  override fun changedPathsBetweenCommits(
+  override fun runtimePhaseChangedPathsBetweenCommits(
     repoRoot: Path,
     beforeCommit: String,
     afterCommit: String,
-  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+  ): WorkflowGitNameListResult = WorkflowGitNameListResult.Listed(emptyList())
 }
 
 object UnavailableRepositoryOwnedPathsGitOperations : RepositoryOwnedPathsGitOperations {
-  override fun ownedPaths(repoRoot: Path): WorkflowGitOperationResult =
+  override fun repositoryOwnedPaths(repoRoot: Path): WorkflowGitNameListResult =
     error("WorkflowGitOperations must provide a repository owned-paths implementation.")
 }
 
@@ -70,15 +79,14 @@ object UnavailableReadinessTreeIdentityGitOperations : ReadinessTreeIdentityGitO
     repoRoot: Path,
     baseBranch: String,
     workflowId: String,
-  ): WorkflowGitOperationResult = error("WorkflowGitOperations must provide a readiness tree identity implementation.")
+  ): WorkflowReadinessTreeIdentityResult =
+    error("WorkflowGitOperations must provide a readiness tree identity implementation.")
 
-  override fun changedPathsAgainstBase(
+  override fun readinessChangedPathsAgainstBase(
     repoRoot: Path,
     baseBranch: String,
-  ): WorkflowGitOperationResult =
-    WorkflowGitOperationResult.Failed(
-      error = "WorkflowGitOperations must provide readiness changed-path discovery.",
-    )
+  ): WorkflowGitNameListResult =
+    WorkflowGitNameListResult.Failed("WorkflowGitOperations must provide readiness changed-path discovery.")
 }
 
 object UnavailableRepositoryFingerprintGitOperations : RepositoryFingerprintGitOperations {

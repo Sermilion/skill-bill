@@ -18,6 +18,7 @@ import skillbill.goalrunner.model.FeatureTaskRuntimeGoalContinuationOutcome
 import skillbill.goalrunner.model.GoalRunnerLaunchFacts
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
@@ -169,26 +170,29 @@ fun infraFailureReason(
   phaseId: String,
   facts: AgentRunLaunchFacts,
 ): String? =
-  when {
-    facts.spawnFailed -> {
+  when (val termination = facts.termination) {
+    AgentRunTermination.SpawnFailed -> {
       val base = "Feature-task-runtime phase '$phaseId' failed to launch: the agent process could not be spawned."
       val excerpt = agentFailureExcerpt(facts.stderr, facts.stdout, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS)
       if (excerpt != null) "$base\n$excerpt" else base
     }
-    facts.timedOut -> "Feature-task-runtime phase '$phaseId' launch timed out before the agent produced an output."
-    facts.interrupted -> "Feature-task-runtime phase '$phaseId' launch was interrupted before completion."
-    facts.exitStatus != null && facts.exitStatus != 0 -> {
-      val base = "Feature-task-runtime phase '$phaseId' agent exited with non-zero status ${facts.exitStatus}."
-      val excerpt = agentFailureExcerpt(facts.stderr, facts.stdout, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS)
-      if (excerpt != null) "$base\n$excerpt" else base
-    }
-    else -> null
+    AgentRunTermination.TimedOut ->
+      "Feature-task-runtime phase '$phaseId' launch timed out before the agent produced an output."
+    AgentRunTermination.Interrupted ->
+      "Feature-task-runtime phase '$phaseId' launch was interrupted before completion."
+    is AgentRunTermination.Exited ->
+      if (termination.code == 0) {
+        null
+      } else {
+        val base = "Feature-task-runtime phase '$phaseId' agent exited with non-zero status ${termination.code}."
+        val excerpt = agentFailureExcerpt(facts.stderr, facts.stdout, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS)
+        if (excerpt != null) "$base\n$excerpt" else base
+      }
   }
 
 fun providerLimitSignal(facts: AgentRunLaunchFacts): FeatureTaskRuntimeProviderLimitSignal? {
-  val carriesProviderVerdict = !facts.spawnFailed && !facts.timedOut && !facts.interrupted
-  val failedExit = facts.exitStatus != null && facts.exitStatus != 0
-  if (!carriesProviderVerdict || !failedExit) return null
+  val exited = facts.termination as? AgentRunTermination.Exited ?: return null
+  if (exited.code == 0) return null
   return FeatureTaskRuntimeProviderLimitDetector.detect(facts.stderr, facts.stdout)
 }
 

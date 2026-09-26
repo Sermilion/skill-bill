@@ -11,6 +11,7 @@ import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.install.model.SupportedAgent
 import skillbill.review.plan.ReviewStackRouting
 import skillbill.review.plan.model.ReviewRoutingChangedFile
+import skillbill.text.GIT_NUL_RECORD_DELIMITER
 import java.nio.file.Path
 
 internal fun ParallelCodeReviewRunnerPlanning.resolveAgent(
@@ -81,7 +82,7 @@ internal fun ParallelCodeReviewRunnerPlanning.resolveWorktreeFromBaseDiff(
       listOf("git", "ls-files", "-o", "--exclude-standard", "-z"),
       request.repoRoot,
     ).orEmpty()
-      .split('\u0000')
+      .split(GIT_NUL_RECORD_DELIMITER)
       .map(String::trim)
       .filter(String::isNotBlank)
       .filterNot { it in excluded }

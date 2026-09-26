@@ -70,8 +70,9 @@ import skillbill.infrastructure.workflow.github.GitHubPullRequestCheckDiscovery
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningBoundaryBodyResolver
 import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningContextDiscovery
 import skillbill.install.model.SupportedAgent
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.config.model.ReadRepoLocalConfigResult
@@ -101,6 +102,7 @@ import skillbill.ports.persistence.UnitOfWorkDefaults
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.repository.ReviewRepository
+import skillbill.ports.taskruntime.DERIVING_SHARED_EVIDENCE_RESOLVER
 import skillbill.ports.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSpecStatusWriter
@@ -128,13 +130,13 @@ import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStateRepositoryDefaults
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.ports.workflow.gitops.buildGoalSubtaskReviewInput
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
-import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
-import skillbill.ports.workflow.model.FeatureVerifySessionSummary
+import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.specscratch.SpecScratchStore
+import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.accounting.ReviewBudgetKind
 import skillbill.review.context.model.hunk.ReviewContextBudgetExceeded
 import skillbill.review.context.model.hunk.ReviewContextBudgetExceededException
@@ -631,7 +633,7 @@ internal data class RuntimeHarnessConfig(
     AcceptingFeatureTaskRuntimeWireArtifactValidator,
   val codeReviewMode: CodeReviewExecutionMode = CodeReviewExecutionMode.DEFAULT,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
-    FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
+    DERIVING_SHARED_EVIDENCE_RESOLVER,
   val diffResolver: DiffResolverPort =
     object : DiffResolverPortDefaults() {
       override fun runProcess(
@@ -663,7 +665,7 @@ private data class RuntimePhaseGatesDeps(
   val buildReceiptValidator: FeatureTaskRuntimeWireArtifactValidator =
     AcceptingFeatureTaskRuntimeWireArtifactValidator,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
-    FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
+    DERIVING_SHARED_EVIDENCE_RESOLVER,
   val diffResolver: DiffResolverPort =
     object : DiffResolverPortDefaults() {
       override fun runProcess(
@@ -1189,13 +1191,10 @@ private fun testDecompositionPlanner(): FeatureTaskRuntimeDecompositionPlanner =
   )
 
 internal fun facts(stdout: String): AgentRunLaunchOutcome =
-  AgentRunLaunchFacts(
+  agentRunLaunchFacts(
     agent = SupportedAgent.CLAUDE,
-    exitStatus = 0,
     stdout = stdout,
     stderr = "",
-    timedOut = false,
-    spawnFailed = false,
   )
 
 private val PHASE_LINE = Regex("^Phase: ([a-z_-]+) ", setOf(RegexOption.MULTILINE))
@@ -1799,13 +1798,11 @@ internal val WRITER_INVALID_DECOMPOSE_PLAN_OUTPUT: String =
   """.trimIndent()
 
 internal fun spawnFailedFacts(): AgentRunLaunchOutcome =
-  AgentRunLaunchFacts(
+  agentRunLaunchFacts(
     agent = SupportedAgent.CLAUDE,
-    exitStatus = null,
+    termination = AgentRunTermination.SpawnFailed,
     stdout = "",
     stderr = "spawn failed",
-    timedOut = false,
-    spawnFailed = true,
   )
 
 internal class RuntimeRecordingLauncher(
@@ -1990,7 +1987,6 @@ internal class RuntimeFakeDatabaseSessionFactory(
   private val repository: InMemoryRuntimeWorkflowRepository,
   private val lifecycle: LifecycleTelemetryRepository = RecordingLifecycleTelemetryRepository(),
   private val knownIssue: Boolean = true,
-  private val rejectedOutputDiagnosticsAvailable: Boolean = true,
 ) : DatabaseSessionFactory {
   private val dbPath = Path.of("/fake/metrics.db")
   var transactionCount: Int = 0
@@ -2012,7 +2008,7 @@ internal class RuntimeFakeDatabaseSessionFactory(
   fun retainedProducerEvidence(): List<ProducerOutputEvidence> = producerEvidence.values.toList()
 
   fun retainProducerEvidence(evidence: ProducerOutputEvidence) {
-    unitOfWork().rejectedOutputDiagnostics!!.retainProducerOutput(evidence)
+    unitOfWork().rejectedOutputDiagnostics.retainProducerOutput(evidence)
   }
 
   fun producerEvidenceAt(key: ProducerEvidenceKey): ProducerOutputEvidence? = producerEvidence[key]
@@ -2106,7 +2102,7 @@ internal class RuntimeFakeDatabaseSessionFactory(
               .maxWithOrNull(compareBy({ it.key.generation }, { it.key.repairTurn }))
               ?.value
           }
-        }.takeIf { rejectedOutputDiagnosticsAvailable }
+        }
       override val unaddressedFindings =
         object : UnaddressedFindingsRepository {
           override fun replaceLedgerForPass(
@@ -2336,8 +2332,13 @@ internal class InMemoryRuntimeWorkflowRepository : WorkflowStateRepositoryDefaul
     mode: FeatureTaskWorkflowMode,
   ) {
     when (mode) {
-      FeatureTaskWorkflowMode.RUNTIME -> saveFeatureTaskRuntimeWorkflow(row)
-      FeatureTaskWorkflowMode.PROSE -> saveFeatureImplementWorkflow(row)
+      FeatureTaskWorkflowMode.RUNTIME -> {
+        if (failSaveWhen?.invoke(row) == true) {
+          error("simulated process kill during the feature-task-runtime save")
+        }
+        taskRuntimeRows[row.workflowId] = row
+      }
+      FeatureTaskWorkflowMode.PROSE -> implementRows[row.workflowId] = row
     }
   }
 
@@ -2357,9 +2358,9 @@ internal class InMemoryRuntimeWorkflowRepository : WorkflowStateRepositoryDefaul
     limit: Int,
   ): List<WorkflowStateRecord> =
     when (mode) {
-      FeatureTaskWorkflowMode.RUNTIME -> listFeatureTaskRuntimeWorkflows(limit)
-      FeatureTaskWorkflowMode.PROSE -> listFeatureImplementWorkflows(limit)
-    }
+      FeatureTaskWorkflowMode.RUNTIME -> taskRuntimeRows
+      FeatureTaskWorkflowMode.PROSE -> implementRows
+    }.values.toList().asReversed().take(limit)
 
   override fun latestFeatureTaskWorkflow(mode: FeatureTaskWorkflowMode): WorkflowStateRecord? =
     listFeatureTaskWorkflows(mode, Int.MAX_VALUE).firstOrNull()
@@ -2403,48 +2404,59 @@ internal class InMemoryRuntimeWorkflowRepository : WorkflowStateRepositoryDefaul
 
   var failSaveWhen: ((WorkflowStateRecord) -> Boolean)? = null
 
-  override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
-    if (failSaveWhen?.invoke(row) == true) {
-      error("simulated process kill during the feature-task-runtime save")
-    }
-    taskRuntimeRows[row.workflowId] = row
-  }
-
   fun bumpUpdatedAt(workflowId: String) {
     val row = taskRuntimeRows[workflowId] ?: return
     val current = Instant.parse(row.updatedAt ?: "2026-01-01T00:00:00Z")
     taskRuntimeRows[workflowId] = row.copy(updatedAt = current.plusSeconds(1).toString())
   }
 
-  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? = taskRuntimeRows[workflowId]
+  override fun save(
+    family: WorkflowFamily,
+    snapshot: WorkflowStateSnapshot,
+  ) = saveRecord(family, snapshot.toRecord(record(family, snapshot.workflowId)))
 
-  override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> =
-    taskRuntimeRows.values.toList().asReversed().take(limit)
-
-  override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? =
-    listFeatureTaskRuntimeWorkflows(1).firstOrNull()
-
-  override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) {
-    implementRows[row.workflowId] = row
+  override fun saveRecord(
+    family: WorkflowFamily,
+    record: WorkflowStateRecord,
+  ) {
+    when (family) {
+      WorkflowFamily.VERIFY -> verifyRows[record.workflowId] = record
+      WorkflowFamily.TASK_RUNTIME -> saveFeatureTaskWorkflow(record, FeatureTaskWorkflowMode.RUNTIME)
+    }
   }
 
-  override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) = Unit
+  override fun get(
+    family: WorkflowFamily,
+    workflowId: String,
+  ): WorkflowStateSnapshot? = record(family, workflowId)?.toSnapshot()
 
-  override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? = implementRows[workflowId]
+  override fun getAll(
+    family: WorkflowFamily,
+    workflowIds: Set<String>,
+  ): Map<String, WorkflowStateSnapshot> =
+    workflowIds.mapNotNull { id -> record(family, id)?.let { id to it.toSnapshot() } }.toMap()
 
-  override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? = null
+  override fun list(
+    family: WorkflowFamily,
+    limit: Int,
+  ): List<WorkflowStateSnapshot> =
+    when (family) {
+      WorkflowFamily.VERIFY -> verifyRows.values.toList().asReversed().take(limit)
+      WorkflowFamily.TASK_RUNTIME -> listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, limit)
+    }.map(WorkflowStateRecord::toSnapshot)
 
-  override fun listFeatureImplementWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
+  override fun latest(family: WorkflowFamily): WorkflowStateSnapshot? = list(family, 1).firstOrNull()
 
-  override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> = emptyList()
+  private val verifyRows = linkedMapOf<String, WorkflowStateRecord>()
 
-  override fun latestFeatureImplementWorkflow(): WorkflowStateRecord? = null
-
-  override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = null
-
-  override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? = null
-
-  override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? = null
+  private fun record(
+    family: WorkflowFamily,
+    workflowId: String,
+  ): WorkflowStateRecord? =
+    when (family) {
+      WorkflowFamily.VERIFY -> verifyRows[workflowId]
+      WorkflowFamily.TASK_RUNTIME -> taskRuntimeRows[workflowId]
+    }
 }
 
 internal object HarnessDeadProcessSupervisor : FeatureTaskRuntimeWorkerSupervisor {

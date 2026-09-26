@@ -8,7 +8,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowWorktreeNumstatResult
 import java.nio.file.Path
 
 interface WorkflowGitWorktreeOperations {
-  fun stageAll(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+  fun stageAll(repoRoot: Path): WorkflowGitOperationResult
 
   fun worktreeStatus(repoRoot: Path): WorkflowGitOperationResult
 

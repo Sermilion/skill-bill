@@ -1,6 +1,7 @@
 package skillbill.ports.experiment.descriptor
 
 import skillbill.experiment.model.ExperimentExecutionMode
+import skillbill.ports.experiment.descriptor.model.ExperimentDescriptorRecord
 
 object TestExperimentDescriptorCatalog {
   val goalPairFixture: ExperimentDescriptorRecord =

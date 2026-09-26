@@ -6,6 +6,7 @@ import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.engine.goalrunner.execution.core.testWorkflowGoalRunnerOutcomeStore
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Instant
@@ -19,7 +20,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
   fun `stored blocked outcome with standing durable cause is returned with reason text byte-identical`() {
     val reason = "Review requested changes that remain unresolved."
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       blockedContinuationRecord(
         BlockedContinuationRecordFixture(
           workflowId = "wftr-standing-block",
@@ -29,6 +30,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
           storedBlockedReason = reason,
         ),
       ),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -46,7 +48,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
   fun `standing blocked outcome with only goal_continuation_outcome reason stays authoritative`() {
     val reason = "Review requested changes that remain unresolved."
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       blockedContinuationRecord(
         BlockedContinuationRecordFixture(
           workflowId = "wftr-standing-nested-reason",
@@ -56,6 +58,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
           storedBlockedReason = reason,
         ),
       ),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -80,7 +83,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
     assertEquals(reason, recovered.blockedReason)
     val artifacts =
       decodeWorkflowArtifactsForTest(
-        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-standing-nested-reason")).artifactsJson,
+        requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-standing-nested-reason", RUNTIME)).artifactsJson,
       )
     assertNull(artifacts["goal_continuation_outcome_displacement"])
     assertEquals(reason, (artifacts["goal_continuation_outcome"] as Map<*, *>)["blocked_reason"])
@@ -91,7 +94,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
     val staleReason =
       "Owned paths already staged outside this workflow; run git restore --staged and retry."
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       blockedContinuationRecord(
         BlockedContinuationRecordFixture(
           workflowId = "wftr-20260808-175505-c5po",
@@ -101,6 +104,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
           storedBlockedReason = staleReason,
         ),
       ),
+      RUNTIME,
     )
     workflows.seedWorkerOwnership(expiredLeaseOwnership("wftr-20260808-175505-c5po"))
     val store =
@@ -130,7 +134,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
 
     val artifacts =
       decodeWorkflowArtifactsForTest(
-        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-20260808-175505-c5po")).artifactsJson,
+        requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-20260808-175505-c5po", RUNTIME)).artifactsJson,
       )
     val displacement = artifacts["goal_continuation_outcome_displacement"] as Map<*, *>
     assertEquals(staleReason, displacement["original_blocked_reason"])
@@ -142,7 +146,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
     val staleReason =
       "Owned paths already staged outside this workflow; run git restore --staged and retry."
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       blockedContinuationRecord(
         BlockedContinuationRecordFixture(
           workflowId = "wftr-stale-idempotent",
@@ -153,6 +157,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
           declaredProgressTimestamp = Instant.now(),
         ),
       ),
+      RUNTIME,
     )
     val store =
       testWorkflowGoalRunnerOutcomeStore(
@@ -168,7 +173,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
       )
     val artifactsAfterFirst =
       decodeWorkflowArtifactsForTest(
-        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).artifactsJson,
+        requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-stale-idempotent", RUNTIME)).artifactsJson,
       )
     assertEquals(
       staleReason,
@@ -177,7 +182,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
     assertNull(artifactsAfterFirst["goal_continuation_outcome"])
     assertEquals(
       "running",
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).workflowStatus,
+      requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-stale-idempotent", RUNTIME)).workflowStatus,
     )
 
     val second =
@@ -189,7 +194,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
     assertEquals(first, second)
     val artifactsAfterSecond =
       decodeWorkflowArtifactsForTest(
-        requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).artifactsJson,
+        requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-stale-idempotent", RUNTIME)).artifactsJson,
       )
     assertEquals(
       artifactsAfterFirst["goal_continuation_outcome_displacement"],
@@ -197,14 +202,14 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
     )
     assertEquals(
       "running",
-      requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).workflowStatus,
+      requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wftr-stale-idempotent", RUNTIME)).workflowStatus,
     )
   }
 
   @Test
   fun `COMPLETE without sha still falls through to the measure branch alongside corroboration`() {
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(completeWithoutShaContinuationRecord("wftr-complete-no-sha"))
+    workflows.saveFeatureTaskWorkflow(completeWithoutShaContinuationRecord("wftr-complete-no-sha"), RUNTIME)
     val store =
       testWorkflowGoalRunnerOutcomeStore(
         database = FakeDatabaseSessionFactory(workflows),

@@ -18,9 +18,9 @@ import skillbill.engine.featuretask.runloop.observability.paused
 import skillbill.engine.goalrunner.status.completed
 import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
+import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRequest
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineResult
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
@@ -31,6 +31,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairOutcome
 import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceipt
@@ -148,7 +149,7 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
           sessionId = "fis-001",
         ),
       ).toRecord()
-    repository.saveFeatureTaskRuntimeWorkflow(seeded)
+    repository.saveFeatureTaskWorkflow(seeded, FeatureTaskWorkflowMode.RUNTIME)
     return FeatureTaskRuntimeGoalContinuationRecorder(
       FeatureTaskGitIntegrationDatabase(repository),
       NoopRuntimeDiagnostics,
@@ -280,21 +281,28 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
 
   private fun gitOpsWithoutBaselineRecovery(): WorkflowGitOperations =
     object : WorkflowGitOperations by realGitOps() {
-      override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations =
-        object : GoalSubtaskReviewGitOperations {
-          override fun captureBaseline(
-            repoRoot: Path,
-            expectedBranch: String,
-          ): GoalSubtaskReviewBaselineResult =
-            GoalSubtaskReviewBaselineResult(status = WorkflowGitOperationStatus.ERROR, error = "unsupported")
+      override fun captureGoalSubtaskReviewBaseline(
+        repoRoot: Path,
+        expectedBranch: String,
+      ): GoalSubtaskReviewBaselineResult =
+        GoalSubtaskReviewBaselineResult(status = WorkflowGitOperationStatus.ERROR, error = "unsupported")
 
-          override fun buildInput(
-            repoRoot: Path,
-            baseline: GoalSubtaskReviewBaseline,
-            expectedBranch: String,
-          ): GoalSubtaskReviewInputResult =
-            GoalSubtaskReviewInputResult(status = WorkflowGitOperationStatus.ERROR, error = "unsupported")
-        }
+      override fun buildGoalSubtaskReviewInput(
+        repoRoot: Path,
+        baseline: GoalSubtaskReviewBaseline,
+        expectedBranch: String,
+      ): GoalSubtaskReviewInputResult =
+        GoalSubtaskReviewInputResult(status = WorkflowGitOperationStatus.ERROR, error = "unsupported")
+
+      override fun recoverGoalSubtaskReviewBaseline(
+        repoRoot: Path,
+        request: GoalSubtaskReviewBaselineRecoveryRequest,
+        expectedBranch: String,
+      ): GoalSubtaskReviewBaselineResult =
+        GoalSubtaskReviewBaselineResult(
+          status = WorkflowGitOperationStatus.ERROR,
+          error = "Goal-subtask review baseline recovery is not supported by this git adapter.",
+        )
     }
 
   private fun realGitOps(): WorkflowGitOperations = GitWorkflowGitOperations()

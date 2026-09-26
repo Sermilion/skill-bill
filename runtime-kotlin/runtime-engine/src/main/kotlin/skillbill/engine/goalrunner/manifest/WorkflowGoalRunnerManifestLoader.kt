@@ -13,10 +13,8 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.findDecomposedParentOrCorruptFallback
 import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.workflow.decomposition.resolveDecompositionManifest
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
@@ -135,11 +133,11 @@ internal class WorkflowGoalRunnerManifestLoader(
             replaceArtifacts = true,
           ),
         )
-      WorkflowFamily.TASK_RUNTIME.saveRecord(
-        unitOfWork.workflowStates,
+      unitOfWork.workflowStates.saveRecord(
+        WorkflowFamily.TASK_RUNTIME,
         imported.toRecord().copy(issueKey = normalizeRequiredIssueKey(manifest.issueKey)),
       )
-      val saved = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, imported.workflowId) ?: imported
+      val saved = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, imported.workflowId) ?: imported
       GoalRunnerManifestState(
         parentWorkflowId = saved.workflowId,
         dbPath = unitOfWork.dbPath.toString(),

@@ -124,14 +124,10 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
   }
 
   @Test
-  fun `a missing rejected-output port is Unreadable persistence rather than Absent`() {
+  fun `a failing producer-output read is Unreadable persistence rather than Absent`() {
     val lifecycle = RecordingLifecycleTelemetryRepository()
-    val database =
-      RuntimeFakeDatabaseSessionFactory(
-        InMemoryRuntimeWorkflowRepository(),
-        lifecycle,
-        rejectedOutputDiagnosticsAvailable = false,
-      )
+    val database = database(lifecycle)
+    database.producerOutputReadError = RejectedOutputDiagnosticError.Persistence("read-producer-output")
     val recorder = recorder(database)
     recorder.ensureWorkflowOpen(WORKFLOW_ID, "session-1")
 

@@ -15,7 +15,8 @@ import skillbill.ports.work.model.WorkItemKind
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.workflow.model.FeatureTaskRouteScope
-import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.time.Instant
@@ -133,14 +134,14 @@ class IdeStatusServiceTest {
   fun `repository isolation ignores work bound to another repository identity`() {
     val fixture = gitRepoFixture("ide-status-isolation")
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-foreign", "2026-08-06T11:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-foreign", "2026-08-06T11:00:00Z"), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(
       FeatureTaskExecutionIdentity(
         workflowId = "w-foreign",
         normalizedIssueKey = "SKILL-148",
         repositoryIdentity = "repo-root-realpath-v1:/other-repo",
         governedSpecPath = "spec.md",
-        mode = FeatureTaskWorkflowMode.RUNTIME,
+        mode = RUNTIME,
       ),
     )
     val database =
@@ -164,8 +165,11 @@ class IdeStatusServiceTest {
     val fixture = gitRepoFixture("ide-status-precedence")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-active", "2026-08-06T10:00:00Z", currentStep = "implement"))
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-terminal", "2026-08-06T11:00:00Z", currentStep = "pr"))
+    workflows.saveFeatureTaskWorkflow(
+      runtimeRecord("w-active", "2026-08-06T10:00:00Z", currentStep = "implement"),
+      PROSE,
+    )
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-terminal", "2026-08-06T11:00:00Z", currentStep = "pr"), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-active", identity))
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-terminal", identity))
     val database =
@@ -199,7 +203,7 @@ class IdeStatusServiceTest {
     val fixture = gitRepoFixture("ide-status-goal-child")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-child", "2026-08-06T11:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-child", "2026-08-06T11:00:00Z"), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(
       identityFor("w-child", identity).copy(routeScope = FeatureTaskRouteScope.GOAL_CHILD),
     )
@@ -235,7 +239,7 @@ class IdeStatusServiceTest {
     val fixture = gitRepoFixture("ide-status-current-model")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       runtimeRecord("w-model", "2026-08-06T10:00:00Z").copy(
         artifactsJson =
           phaseRecordsArtifactsJson(
@@ -250,6 +254,7 @@ class IdeStatusServiceTest {
               ),
           ),
       ),
+      PROSE,
     )
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-model", identity))
     val database =
@@ -273,7 +278,7 @@ class IdeStatusServiceTest {
     val fixture = gitRepoFixture("ide-status-current-model-absent")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(runtimeRecord("w-nomodel", "2026-08-06T10:00:00Z"))
+    workflows.saveFeatureTaskWorkflow(runtimeRecord("w-nomodel", "2026-08-06T10:00:00Z"), PROSE)
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-nomodel", identity))
     val database =
       TrackingDatabase(
@@ -332,9 +337,10 @@ class IdeStatusServiceTest {
       FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds.map { phaseId ->
         phaseId to phaseRecordWire(phaseId, "completed", "claude-opus-4-8".takeIf { phaseId == "pr" })
       }
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       runtimeRecord("w-settled", "2026-08-06T10:00:00Z", currentStep = "pr")
         .copy(artifactsJson = phaseRecordsArtifactsJson(*allCompleted.toTypedArray())),
+      PROSE,
     )
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-settled", identity))
     val database =
@@ -391,7 +397,7 @@ class IdeStatusServiceTest {
     val fixture = gitRepoFixture("ide-status-current-phase-execution")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       runtimeRecord("w-exec", "2026-08-06T10:00:00Z", currentStep = "validate").copy(
         artifactsJson =
           phaseRecordsArtifactsJson(
@@ -417,6 +423,7 @@ class IdeStatusServiceTest {
               ),
           ),
       ),
+      PROSE,
     )
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-exec", identity))
     val database =
@@ -444,7 +451,7 @@ class IdeStatusServiceTest {
     val fixture = gitRepoFixture("ide-status-review-pass")
     val identity = testGoalRepositoryIdentity(fixture)
     val workflows = IdeStatusWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       runtimeRecord("w-review", "2026-08-06T10:00:00Z", currentStep = "review").copy(
         artifactsJson =
           phaseRecordsArtifactsJson(
@@ -466,6 +473,7 @@ class IdeStatusServiceTest {
               ),
           ),
       ),
+      PROSE,
     )
     workflows.saveFeatureTaskExecutionIdentity(identityFor("w-review", identity))
     val database =

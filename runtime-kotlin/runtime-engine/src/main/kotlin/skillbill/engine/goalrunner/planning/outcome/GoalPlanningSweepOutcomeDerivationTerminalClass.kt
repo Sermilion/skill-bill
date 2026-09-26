@@ -8,23 +8,28 @@ import skillbill.engine.goalrunner.planning.sweep.GoalPlanningSweepConstants
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.model.GoalRunnerLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import kotlin.time.Duration
 
 fun exhaustedCause(
   facts: AgentRunLaunchFacts,
   planningBudget: Duration?,
 ): String =
-  when {
-    facts.spawnFailed ->
+  when (val termination = facts.termination) {
+    AgentRunTermination.SpawnFailed ->
       stderrExcerpt(facts.stderr, GoalRunnerLaunchFacts.STDERR_EXCERPT_MAX_CHARS)
         ?.let { excerpt -> "the planning agent failed to spawn — $excerpt" }
         ?: "the planning agent failed to spawn"
-    facts.timedOut ->
+    AgentRunTermination.TimedOut ->
       "the planning agent exhausted its $planningBudget planning budget; " +
         "raise or disable it with --planning-budget-minutes"
-    facts.interrupted -> "the planning agent was interrupted"
-    facts.exitStatus != null && facts.exitStatus != 0 -> "the planning agent exited with status ${facts.exitStatus}"
-    else -> "the planning agent produced no usable output"
+    AgentRunTermination.Interrupted -> "the planning agent was interrupted"
+    is AgentRunTermination.Exited ->
+      if (termination.code == 0) {
+        "the planning agent produced no usable output"
+      } else {
+        "the planning agent exited with status ${termination.code}"
+      }
   }
 
 fun exhaustedDeclineReason(

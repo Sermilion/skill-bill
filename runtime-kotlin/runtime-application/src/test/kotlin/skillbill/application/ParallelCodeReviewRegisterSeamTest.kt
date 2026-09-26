@@ -4,7 +4,7 @@ import skillbill.application.review.parallel.verification.parseLaneRegisterSeam
 import skillbill.application.review.snapshot.simulateGovernedEvidenceReads
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.install.model.SupportedAgent
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.review.context.model.hunk.ReviewRegisterParseSeamException
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
@@ -29,13 +29,10 @@ class ParallelCodeReviewRegisterSeamTest {
       """.trimIndent()
     val launcher =
       GoalRunnerSubtaskLauncher { request ->
-        AgentRunLaunchFacts(
+        agentRunLaunchFacts(
           agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-          exitStatus = 0,
           stdout = blocked,
           stderr = "",
-          timedOut = false,
-          spawnFailed = false,
         )
       }
     val runner = runner(launcher, diffResolver = RecordingDiffResolver(default = diffFor("A.kt")))
@@ -236,13 +233,10 @@ class ParallelCodeReviewRegisterSeamTest {
   private fun stdoutLauncher(stdout: String) =
     GoalRunnerSubtaskLauncher { request ->
       simulateGovernedEvidenceReads(request.skillRunRequest)
-      AgentRunLaunchFacts(
+      agentRunLaunchFacts(
         agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-        exitStatus = 0,
         stdout = stdout,
         stderr = "",
-        timedOut = false,
-        spawnFailed = false,
       )
     }
 }

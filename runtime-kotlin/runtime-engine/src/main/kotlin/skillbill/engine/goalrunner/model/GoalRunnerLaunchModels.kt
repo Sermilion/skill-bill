@@ -7,6 +7,7 @@ import skillbill.goalrunner.goalContinuationTerminalStatus
 import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
+import skillbill.goalrunner.model.GoalRunnerWirePayload
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
@@ -30,7 +31,7 @@ internal data class GoalRunnerMissingResultPrefixRecovery(
 )
 
 internal data class GoalRunnerMissingResultPrefixCandidate(
-  val output: Map<String, Any?>,
+  val output: GoalRunnerWirePayload,
   val lastResumableStep: String?,
   val workflowId: String?,
 )
@@ -57,7 +58,7 @@ internal fun missingPrefixRecoveryCandidate(
       (launchOutcome as? AgentRunLaunchFacts)?.let { facts ->
         terminalJsonObjectWithoutResultPrefix(facts.stdout, facts.stderr)?.let { output ->
           GoalRunnerMissingResultPrefixCandidate(
-            output = output,
+            output = GoalRunnerWirePayload.from(output),
             lastResumableStep = stop.lastResumableStep,
             workflowId = facts.liveness?.workflowId?.takeIf(String::isNotBlank),
           )

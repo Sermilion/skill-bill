@@ -1,8 +1,8 @@
 package skillbill.di.experiment
 
 import skillbill.error.shellcontent.ExperimentIsolationCapabilityRefusalError
-import skillbill.ports.experiment.isolation.ExperimentArmIsolationContext
 import skillbill.ports.experiment.isolation.ExperimentIsolationCapabilityPort
+import skillbill.ports.experiment.isolation.model.ExperimentArmIsolationContext
 
 internal object FilesystemExperimentIsolationCapability : ExperimentIsolationCapabilityPort {
   private const val REQUIRED_WRITABLE_PATH_COUNT = 6

@@ -6,7 +6,11 @@ import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.infrastructure.workflow.process.runGitCommandWithStdin
 import skillbill.infrastructure.workflow.process.runGitProcess
 import skillbill.ports.workflow.gitops.ScopedStagingGitOperations
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshot
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshotResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.model.WorkflowPathContentIdentitiesResult
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -28,7 +32,6 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
     if (resolved !is WorkflowGitOperationResult.Ok) return resolved
     val stageable = resolved.value.orEmpty().split(GIT_NUL).filter(String::isNotBlank)
     stageable.chunked(PATHSPEC_BATCH_SIZE).forEach { batch ->
-
       val staged = runGitCommand(repoRoot, listOf("add", "--all", "--") + batch)
       if (staged !is WorkflowGitOperationResult.Ok) return staged
     }
@@ -38,26 +41,28 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
   override fun captureIndexState(
     repoRoot: Path,
     paths: List<String>,
-  ): WorkflowGitOperationResult {
+  ): WorkflowGitIndexSnapshotResult {
     val normalized = paths.filter(String::isNotBlank).distinct()
-    if (normalized.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
+    if (normalized.isEmpty()) return WorkflowGitIndexSnapshotResult.Captured(WorkflowGitIndexSnapshot.EMPTY)
     val entries = mutableListOf<String>()
     normalized.chunked(PATHSPEC_BATCH_SIZE).forEach { batch ->
       val listed = runGitCommand(repoRoot, listOf("ls-files", "--stage", "-z", "--") + batch)
-      if (listed !is WorkflowGitOperationResult.Ok) return listed
+      if (listed !is WorkflowGitOperationResult.Ok) return WorkflowGitIndexSnapshotResult.Failed(listed.error)
       entries += listed.value.orEmpty().split(GIT_NUL).filter(String::isNotBlank)
     }
-    return WorkflowGitOperationResult.Ok(value = entries.joinToString(GIT_NUL.toString()))
+    return WorkflowGitIndexSnapshotResult.Captured(
+      WorkflowGitIndexSnapshot(entries.joinToString(GIT_NUL.toString())),
+    )
   }
 
   override fun restoreIndexState(
     repoRoot: Path,
     paths: List<String>,
-    snapshot: String,
+    snapshot: WorkflowGitIndexSnapshot,
   ): WorkflowGitOperationResult {
     val normalized = paths.filter(String::isNotBlank).distinct()
     if (normalized.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
-    val entries = snapshot.split(GIT_NUL).filter(String::isNotBlank)
+    val entries = snapshot.encoded.split(GIT_NUL).filter(String::isNotBlank)
     val snapshotPaths = entries.mapNotNull(::indexEntryPath).toSet()
 
     val removals =
@@ -69,31 +74,33 @@ internal object GitScopedStagingOperations : ScopedStagingGitOperations {
     return runGitCommandWithStdin(repoRoot, listOf("update-index", "-z", "--index-info"), stdin)
   }
 
-  override fun stagedPaths(repoRoot: Path): WorkflowGitOperationResult =
-    runGitCommand(repoRoot, "diff", "--cached", "--name-only", "-z")
+  override fun stagedPaths(repoRoot: Path): WorkflowGitNameListResult {
+    val staged = runGitCommand(repoRoot, "diff", "--cached", "--name-only", "-z")
+    if (staged !is WorkflowGitOperationResult.Ok) return WorkflowGitNameListResult.Failed(staged.error)
+    return WorkflowGitNameListResult.Listed(staged.value.orEmpty().split(GIT_NUL).filter(String::isNotEmpty))
+  }
 
   override fun pathContentIdentities(
     repoRoot: Path,
     paths: List<String>,
-  ): WorkflowGitOperationResult {
+  ): WorkflowPathContentIdentitiesResult {
     val present =
       paths.filter(String::isNotBlank).distinct().sorted()
         .filter { Files.isRegularFile(repoRoot.resolve(it)) }
-    if (present.isEmpty()) return WorkflowGitOperationResult.Ok(value = "")
-    val records = mutableListOf<String>()
+    if (present.isEmpty()) return WorkflowPathContentIdentitiesResult.Resolved(emptyMap())
+    val identities = linkedMapOf<String, String>()
     present.chunked(PATHSPEC_BATCH_SIZE).forEach { batch ->
       val hashed = runGitCommand(repoRoot, listOf("hash-object", "--") + batch)
-      if (hashed !is WorkflowGitOperationResult.Ok) return hashed
+      if (hashed !is WorkflowGitOperationResult.Ok) return WorkflowPathContentIdentitiesResult.Failed(hashed.error)
       val hashes = hashed.value.orEmpty().lineSequence().map(String::trim).filter(String::isNotBlank).toList()
-
       if (hashes.size != batch.size) {
-        return WorkflowGitOperationResult.Failed(
-          error = "git hash-object returned ${hashes.size} identities for ${batch.size} paths.",
+        return WorkflowPathContentIdentitiesResult.Failed(
+          "git hash-object returned ${hashes.size} identities for ${batch.size} paths.",
         )
       }
-      records += batch.indices.map { index -> "${hashes[index]}\t${batch[index]}" }
+      identities.putAll(batch.zip(hashes))
     }
-    return WorkflowGitOperationResult.Ok(value = records.joinToString(GIT_NUL.toString()))
+    return WorkflowPathContentIdentitiesResult.Resolved(identities)
   }
 
   private fun indexEntryPath(entry: String): String? =

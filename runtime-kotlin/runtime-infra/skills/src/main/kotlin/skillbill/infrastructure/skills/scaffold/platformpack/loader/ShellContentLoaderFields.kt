@@ -6,7 +6,6 @@ import skillbill.infrastructure.skills.scaffold.validation.shape.parseSkillFront
 import skillbill.infrastructure.skills.scaffold.validation.shape.validateAuthoredContent
 import skillbill.infrastructure.skills.scaffold.validation.shape.validateSkillMdShape
 import skillbill.model.toPath
-import skillbill.ports.workflow.list
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
 import java.nio.file.Path

@@ -14,7 +14,7 @@ import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.RejectedLearningSourceOutcome
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.ports.review.empty.EmptyReviewAttributionPort
+import skillbill.ports.review.EmptyReviewAttributionPort
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import java.nio.file.Files
 import java.time.Clock

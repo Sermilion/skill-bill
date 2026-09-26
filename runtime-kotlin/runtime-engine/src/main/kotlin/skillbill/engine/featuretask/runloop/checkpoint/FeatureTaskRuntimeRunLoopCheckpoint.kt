@@ -22,7 +22,6 @@ import skillbill.engine.featuretask.phase.record.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.runloop.core.CheckpointCommitMessageArgs
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopContext
 import skillbill.engine.featuretask.runloop.core.FeatureTaskRuntimeRunLoopPlanningBranch
-import skillbill.engine.featuretask.runloop.core.OWNED_PATH_DELIMITER
 import skillbill.engine.featuretask.runloop.core.RecordCheckpointIdentityArgs
 import skillbill.engine.featuretask.runloop.core.RemediationCheckpointCommit
 import skillbill.engine.featuretask.runloop.core.SubtaskCommitLedgerState
@@ -31,10 +30,9 @@ import skillbill.engine.featuretask.runloop.core.reconcileCheckpointPathInventor
 import skillbill.engine.featuretask.runloop.output.INVENTORY_EXTENDING_PHASES
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.workflow.gitops.headCommitMessage
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshot
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.restoreIndexState
-import skillbill.ports.workflow.gitops.stagedPaths
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
 import skillbill.workflow.taskruntime.model.persistence.task.runtime.checkpoint.FeatureTaskRuntimeCheckpointIdentity
@@ -183,20 +181,23 @@ object FeatureTaskRuntimeRunLoopCheckpoint {
     ) -> String,
   ): List<String>? {
     with(context) {
-      val staged = phaseGates.gitOperations.stagedPaths(request.repoRoot)
-      if (staged !is WorkflowGitOperationResult.Ok) {
-        with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
-          FeatureTaskRuntimeRunLoopCheckpointRemediation.blockCheckpointScope(
-            context,
-            precedingPhaseId,
-            branch,
-            staged.error,
-            blockedReason,
-          )
+      val names =
+        when (val staged = phaseGates.gitOperations.stagedPaths(request.repoRoot)) {
+          is WorkflowGitNameListResult.Listed -> staged.names
+          is WorkflowGitNameListResult.Failed -> {
+            with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
+              FeatureTaskRuntimeRunLoopCheckpointRemediation.blockCheckpointScope(
+                context,
+                precedingPhaseId,
+                branch,
+                staged.error,
+                blockedReason,
+              )
+            }
+            return null
+          }
         }
-        return null
-      }
-      return staged.value.orEmpty().split(OWNED_PATH_DELIMITER)
+      return names
         .map(String::trim)
         .filter(String::isNotBlank)
     }
@@ -569,7 +570,7 @@ object FeatureTaskRuntimeRunLoopCheckpoint {
     phaseGates: FeatureTaskRuntimePhaseGates,
     error: String,
     ownedPaths: List<String>,
-    snapshot: String,
+    snapshot: WorkflowGitIndexSnapshot,
   ): String {
     val restored = phaseGates.gitOperations.restoreIndexState(request.repoRoot, ownedPaths, snapshot)
     return if (restored is WorkflowGitOperationResult.Ok) {

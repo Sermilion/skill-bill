@@ -18,7 +18,6 @@ import skillbill.workflow.model.goalreview.GoalProgressEventKind
 import skillbill.workflow.model.goalreview.GoalProgressOutcome
 import skillbill.workflow.taskruntime.model.core.FeatureTaskRuntimeQualityGateSelection
 import java.nio.file.Path
-import java.security.MessageDigest
 import kotlin.time.Duration
 
 data class SkillRunRequest(
@@ -208,45 +207,59 @@ data class AgentRunLivenessSnapshot(
   val operationDeadline: String? = null,
 )
 
+/**
+ * How an agent process reached its end. A launch either exited with a status or ended without one
+ * for exactly one reason, so the status and the reason can never contradict each other.
+ */
+sealed interface AgentRunTermination {
+  data class Exited(val code: Int) : AgentRunTermination
+
+  data object TimedOut : AgentRunTermination
+
+  data object Interrupted : AgentRunTermination
+
+  data object SpawnFailed : AgentRunTermination
+}
+
+val AgentRunTermination.exitCode: Int?
+  get() =
+    when (this) {
+      is AgentRunTermination.Exited -> code
+      AgentRunTermination.TimedOut, AgentRunTermination.Interrupted, AgentRunTermination.SpawnFailed -> null
+    }
+
 data class AgentRunLaunchFacts(
   override val agent: SupportedAgent,
-  val exitStatus: Int?,
+  val termination: AgentRunTermination,
   val stdout: String,
   val stderr: String,
-  val timedOut: Boolean,
-  val interrupted: Boolean = false,
-  val spawnFailed: Boolean,
-  val stdoutBytes: ByteArray = stdout.encodeToByteArray(),
+  val stdoutByteSize: Long,
+  val stdoutSha256: String,
   val liveness: AgentRunLivenessSnapshot? = null,
-  val processStarted: Boolean = !spawnFailed,
+  val processStarted: Boolean = termination != AgentRunTermination.SpawnFailed,
   val mcpStartupObserved: Boolean = false,
   val childSessionPath: String? = null,
   val childSessionId: String? = null,
   val assistantEventCount: Int? = null,
   val rawOutputPreview: String? = null,
   val stdoutTruncated: Boolean = false,
-  val stdoutByteSize: Long = stdoutBytes.size.toLong(),
-  val stdoutSha256: String =
-    MessageDigest.getInstance("SHA-256")
-      .digest(stdoutBytes).joinToString("") { "%02x".format(it) },
 ) : AgentRunLaunchOutcome {
   init {
-    require(!timedOut || exitStatus == null) { "timedOut launch facts must not report an exitStatus." }
-    require(!interrupted || exitStatus == null) { "interrupted launch facts must not report an exitStatus." }
-    require(!spawnFailed || exitStatus == null) { "spawnFailed launch facts must not report an exitStatus." }
     assistantEventCount?.let { count -> require(count >= 0) { "assistantEventCount cannot be negative." } }
   }
 }
 
 fun AgentRunLaunchFacts.reviewProcessOutcome(): ReviewProcessOutcome =
-  when {
-    timedOut -> ReviewProcessOutcome.TIMED_OUT
-    interrupted -> ReviewProcessOutcome.INTERRUPTED
-    spawnFailed -> ReviewProcessOutcome.UNAVAILABLE
-    stdoutTruncated -> ReviewProcessOutcome.INVALID_OUTPUT
-    exitStatus == null -> ReviewProcessOutcome.NON_ZERO_EXIT
-    exitStatus != 0 -> ReviewProcessOutcome.NON_ZERO_EXIT
-    else -> ReviewProcessOutcome.ZERO_EXIT
+  when (termination) {
+    AgentRunTermination.TimedOut -> ReviewProcessOutcome.TIMED_OUT
+    AgentRunTermination.Interrupted -> ReviewProcessOutcome.INTERRUPTED
+    AgentRunTermination.SpawnFailed -> ReviewProcessOutcome.UNAVAILABLE
+    is AgentRunTermination.Exited ->
+      when {
+        stdoutTruncated -> ReviewProcessOutcome.INVALID_OUTPUT
+        termination.code != 0 -> ReviewProcessOutcome.NON_ZERO_EXIT
+        else -> ReviewProcessOutcome.ZERO_EXIT
+      }
   }
 
 data class UnsupportedAgentRunLaunch(

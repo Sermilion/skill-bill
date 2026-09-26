@@ -3,7 +3,6 @@ package skillbill.engine.featuretask.review.finding
 import skillbill.engine.featuretask.persist.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.persist.WorkflowRowAdvance
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
@@ -16,7 +15,7 @@ class FeatureTaskRuntimeFindingVerificationRecorder(
 ) {
   fun loadFindingVerificationCheckpoint(workflowId: String): List<FeatureTaskRuntimeFindingVerificationDisposition>? =
     database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@transaction null
       val artifacts = record.artifacts
       findingVerificationCheckpointFrom(
         DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT.value(artifacts),
@@ -27,7 +26,7 @@ class FeatureTaskRuntimeFindingVerificationRecorder(
     workflowId: String,
   ): Map<String, List<FeatureTaskRuntimeVerificationBoundaryHeadingProvenance>>? =
     database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@transaction null
       val artifacts = record.artifacts
       findingVerificationBoundarySelectionFrom(
         DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_BOUNDARY_SELECTION.value(artifacts),
@@ -40,7 +39,7 @@ class FeatureTaskRuntimeFindingVerificationRecorder(
   ): Boolean {
     if (selections.isEmpty()) return false
     return database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction false
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@transaction false
       val artifacts = record.artifacts
       workflowPersistence.persistArtifactsPatch(
         unitOfWork.workflowStates,
@@ -60,7 +59,7 @@ class FeatureTaskRuntimeFindingVerificationRecorder(
     workflowId: String,
   ): List<FeatureTaskRuntimeFindingVerificationDisposition>? =
     database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@transaction null
       val artifacts = record.artifacts
       findingVerificationCheckpointFrom(
         DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS.value(artifacts),
@@ -73,7 +72,7 @@ class FeatureTaskRuntimeFindingVerificationRecorder(
   ): Boolean {
     if (dispositions.isEmpty()) return false
     return database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction false
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@transaction false
       val serialized = dispositions.map { it.asWorkflowArtifactEntry() }
       workflowPersistence.persistArtifactsPatch(
         unitOfWork.workflowStates,
@@ -90,7 +89,7 @@ class FeatureTaskRuntimeFindingVerificationRecorder(
 
   fun clearFindingVerificationCheckpoint(workflowId: String): Boolean =
     database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction false
+      val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@transaction false
       val artifacts = record.artifacts
       if (
         DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT.value(artifacts) == null

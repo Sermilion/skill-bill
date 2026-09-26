@@ -4,7 +4,7 @@ import skillbill.application.review.governed.stubGovernedReviewEvidenceEndpointB
 import skillbill.application.review.snapshot.simulateGovernedEvidenceReads
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.install.model.SupportedAgent
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
@@ -246,14 +246,10 @@ private class RecordingSubtaskLauncher : GoalRunnerSubtaskLauncher {
   val requests = mutableListOf<GoalRunnerSubtaskLaunchRequest>()
 
   override fun launch(request: GoalRunnerSubtaskLaunchRequest) =
-    AgentRunLaunchFacts(
+    agentRunLaunchFacts(
       agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-      exitStatus = 0,
       stdout = "NO_FINDINGS",
       stderr = "",
-      timedOut = false,
-      interrupted = false,
-      spawnFailed = false,
       liveness = null,
       processStarted = true,
       mcpStartupObserved = false,

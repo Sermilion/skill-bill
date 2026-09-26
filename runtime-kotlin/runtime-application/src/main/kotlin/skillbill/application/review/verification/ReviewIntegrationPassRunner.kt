@@ -4,6 +4,7 @@ import skillbill.application.review.model.ReviewIntegrationPassRunRequest
 import skillbill.application.review.model.ReviewLaneIntegrationInput
 import skillbill.application.review.packet.toIntegrationLaunchEnvelope
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
@@ -195,11 +196,11 @@ internal class ReviewIntegrationPassRunner(
 
   private fun terminalOutcomeOf(facts: AgentRunLaunchFacts): ReviewIntegrationTerminalOutcome =
     when {
-      facts.timedOut -> ReviewIntegrationTerminalOutcome.TIMEOUT
-      facts.interrupted -> ReviewIntegrationTerminalOutcome.INTERRUPTED
-      facts.spawnFailed -> ReviewIntegrationTerminalOutcome.SPAWN_FAILURE
+      facts.termination == AgentRunTermination.TimedOut -> ReviewIntegrationTerminalOutcome.TIMEOUT
+      facts.termination == AgentRunTermination.Interrupted -> ReviewIntegrationTerminalOutcome.INTERRUPTED
+      facts.termination == AgentRunTermination.SpawnFailed -> ReviewIntegrationTerminalOutcome.SPAWN_FAILURE
       facts.stdoutTruncated -> ReviewIntegrationTerminalOutcome.PROCESS_FAILURE
-      facts.exitStatus != 0 -> ReviewIntegrationTerminalOutcome.PROCESS_FAILURE
+      facts.termination != AgentRunTermination.Exited(0) -> ReviewIntegrationTerminalOutcome.PROCESS_FAILURE
       else -> ReviewIntegrationTerminalOutcome.COMPLETED
     }
 

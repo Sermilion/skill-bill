@@ -1,18 +1,17 @@
 package skillbill.di.review
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.infrastructure.launcher.AgentRunReviewIsolationResolver
 import skillbill.infrastructure.launcher.FileSystemReviewLaunchAgentStaging
 import skillbill.infrastructure.workflow.review.specialists.ClasspathReviewSpecialistContractProvider
 import skillbill.infrastructure.workflow.review.specialists.FileSystemReviewAttribution
 import skillbill.infrastructure.workflow.review.specialists.FileSystemReviewNativeAgentPreflight
 import skillbill.infrastructure.workflow.review.specialists.FileSystemReviewRubricResolver
 import skillbill.ports.review.launch.ReviewLaunchAgentStagingPort
-import skillbill.ports.review.launch.ReviewLaunchIsolationResolver
 import skillbill.ports.review.launch.ReviewNativeAgentPreflightPort
 import skillbill.ports.review.preparation.ReviewAttributionPort
 import skillbill.ports.review.preparation.ReviewRubricResolver
 import skillbill.ports.review.repository.ReviewSpecialistContractProvider
+import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 
 internal interface RuntimeReviewLaunchProvides {
   @Provides
@@ -33,6 +32,9 @@ internal interface RuntimeReviewLaunchProvides {
   @Provides
   fun reviewLaunchAgentStagingPort(adapter: FileSystemReviewLaunchAgentStaging): ReviewLaunchAgentStagingPort = adapter
 
+  /** Review runners accept an absent reader; production always binds the filesystem store. */
   @Provides
-  fun reviewLaunchIsolationResolver(adapter: AgentRunReviewIsolationResolver): ReviewLaunchIsolationResolver = adapter
+  fun optionalSharedEvidenceLocatorReadPort(
+    port: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
+  ): FeatureTaskRuntimeSharedEvidenceLocatorReadPort? = port
 }

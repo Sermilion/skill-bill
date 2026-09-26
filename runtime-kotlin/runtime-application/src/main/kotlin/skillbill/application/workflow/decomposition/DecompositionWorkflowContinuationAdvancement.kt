@@ -12,6 +12,7 @@ import skillbill.contracts.workflow.identity.task.FeatureTaskRuntimeGoalContinua
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.encodeManifestWireMap
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
@@ -81,11 +82,13 @@ internal fun commitCompletedSubtask(
     CommitAdvanceResult(manifest, checkout.error.ifBlank { "Git branch checkout failed." })
   } else {
     val commitMessage = "${manifest.issueKey} subtask $subtaskId: $subtaskName"
-    val commit = gitOperations.createCommit(repoRootProvider(), commitMessage)
-    if (commit is WorkflowGitOperationResult.Ok) {
-      CommitAdvanceResult(manifest.withCommittedSubtask(subtaskId, commit.value))
-    } else {
-      CommitAdvanceResult(manifest, commit.error.ifBlank { "Git commit failed." })
+    when (val commit = gitOperations.createCommit(repoRootProvider(), commitMessage)) {
+      is WorkflowGitCommitResult.Committed ->
+        CommitAdvanceResult(manifest.withCommittedSubtask(subtaskId, commit.commitSha))
+      WorkflowGitCommitResult.NothingToCommit ->
+        CommitAdvanceResult(manifest.withCommittedSubtask(subtaskId, ""))
+      is WorkflowGitCommitResult.Failed ->
+        CommitAdvanceResult(manifest, commit.error.ifBlank { "Git commit failed." })
     }
   }
 }

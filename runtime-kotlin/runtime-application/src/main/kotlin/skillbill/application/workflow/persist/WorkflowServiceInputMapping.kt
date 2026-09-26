@@ -23,10 +23,8 @@ import skillbill.goalrunner.model.GoalObservabilityProgressInput
 import skillbill.goalrunner.model.GoalObservabilityWorktreeActivity
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.validateGoalObservabilityEvent
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
-import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -88,15 +86,15 @@ internal fun persistOpenedWorkflow(args: PersistOpenedWorkflowArgs): WorkflowOpe
         stepId,
       )
     args.workflowSnapshotValidator.validate(record, family.definition.workflowName)
-    family.saveRecord(
-      unitOfWork.workflowStates,
+    unitOfWork.workflowStates.saveRecord(
+      family,
       record.toRecord().copy(
         startedAt = null,
         issueKey = normalizeIssueKey(args.issueKey),
       ),
     )
     args.executionIdentity?.let(unitOfWork.workflowStates::saveFeatureTaskExecutionIdentity)
-    val saved = family.get(unitOfWork.workflowStates, workflowId) ?: record
+    val saved = unitOfWork.workflowStates.get(family, workflowId) ?: record
     val currentStep =
       engine.snapshotView(family.definition, saved).steps
         .firstOrNull { it.stepId == stepId }

@@ -32,9 +32,9 @@ import skillbill.engine.featuretask.runloop.phase.FeatureTaskRuntimeRunLoopPhase
 import skillbill.engine.featuretask.runloop.state.FeatureTaskRuntimeRunState
 import skillbill.goalrunner.model.UNADDRESSED_FINDING_REJECTED_DISPOSITION
 import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.workflow.gitops.captureIndexState
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshot
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshotResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.stagePaths
 import skillbill.workflow.model.goalreview.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
 import skillbill.workflow.model.goalreview.upsertRepairReceipt
@@ -321,7 +321,7 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     context: FeatureTaskRuntimeRunLoopContext,
     args: CommitCheckpointArgs,
     error: String,
-    indexSnapshot: String,
+    indexSnapshot: WorkflowGitIndexSnapshot,
   ): Boolean =
     with(FeatureTaskRuntimeRunLoopCheckpoint) {
       FeatureTaskRuntimeRunLoopCheckpoint.blockCheckpoint(
@@ -344,18 +344,20 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     args: CommitCheckpointArgs,
   ): Boolean {
     with(context) {
-      val snapshot = phaseGates.gitOperations.captureIndexState(request.repoRoot, args.ownedPaths)
-      if (snapshot !is WorkflowGitOperationResult.Ok) {
-        return with(FeatureTaskRuntimeRunLoopCheckpoint) {
-          FeatureTaskRuntimeRunLoopCheckpoint.blockCheckpoint(
-            context,
-            args.precedingPhaseId,
-            args.branch,
-            snapshot.error,
-            args.blockedReason,
-          )
+      val indexSnapshot =
+        when (val snapshot = phaseGates.gitOperations.captureIndexState(request.repoRoot, args.ownedPaths)) {
+          is WorkflowGitIndexSnapshotResult.Captured -> snapshot.snapshot
+          is WorkflowGitIndexSnapshotResult.Failed ->
+            return with(FeatureTaskRuntimeRunLoopCheckpoint) {
+              FeatureTaskRuntimeRunLoopCheckpoint.blockCheckpoint(
+                context,
+                args.precedingPhaseId,
+                args.branch,
+                snapshot.error,
+                args.blockedReason,
+              )
+            }
         }
-      }
       val parentSha =
         phaseGates.gitOperations.headCommitSha(request.repoRoot)
           .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.trim()?.takeIf(String::isNotBlank)
@@ -366,7 +368,7 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
             context,
             args,
             attempt.error,
-            snapshot.value.orEmpty(),
+            indexSnapshot,
           )
       return with(FeatureTaskRuntimeRunLoopCheckpoint) {
         FeatureTaskRuntimeRunLoopCheckpoint.recordCheckpointIdentity(

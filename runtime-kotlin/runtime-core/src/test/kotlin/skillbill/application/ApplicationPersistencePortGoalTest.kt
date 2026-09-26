@@ -10,7 +10,7 @@ import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.review.empty.EmptyReviewAttributionPort
+import skillbill.ports.review.EmptyReviewAttributionPort
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.WorkflowStatsRepository
 import skillbill.review.model.GoalBlockedSubtaskSummary
@@ -273,10 +273,10 @@ class ApplicationPersistencePortGoalTest {
     val goalPlanningMethodNames =
       listOf(
         "markPrepared",
-        "findByGoalAndSubtask",
-        "listPreparedByGoalOrdered",
-        "preparedCount",
-        "firstMissingOrIncompleteSubtask",
+        "deleteByGoal",
+        "checkpointSharedPreplan",
+        "checkpointSubtaskPlan",
+        "listSubtaskPlansOrdered",
       )
     goalPlanningMethodNames.forEach { methodName ->
       assertTrue(

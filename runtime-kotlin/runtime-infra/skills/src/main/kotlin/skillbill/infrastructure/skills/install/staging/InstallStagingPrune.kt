@@ -2,7 +2,6 @@ package skillbill.infrastructure.skills.install.staging
 
 import skillbill.infrastructure.skills.install.staging.content.INSTALL_CACHE_KEY_BYTES
 import skillbill.infrastructure.skills.install.staging.content.installedSkillSlug
-import skillbill.ports.workflow.list
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption

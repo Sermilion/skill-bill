@@ -6,9 +6,7 @@ import skillbill.application.workflow.persist.WorkflowPersistenceContext
 import skillbill.application.workflow.persist.buildUpdateOk
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -33,13 +31,13 @@ internal class WorkflowServiceFeatureTaskIdentityRepair(
     val normalizedIssueKey = args.normalizedIssueKey
     val family = WorkflowFamily.TASK_RUNTIME
     val workflowRow =
-      unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)
+      unitOfWork.workflowStates.getFeatureTaskWorkflowAsMode(workflowId, FeatureTaskWorkflowMode.RUNTIME)
         ?: return WorkflowUpdateResult.Error(
           workflowId,
           "Unknown runtime workflow_id '$workflowId'.",
           unitOfWork.dbPath.toString(),
         )
-    val existing = requireNotNull(family.get(unitOfWork.workflowStates, workflowId))
+    val existing = requireNotNull(unitOfWork.workflowStates.get(family, workflowId))
     if (family.definition.isTerminalStatus(existing.workflowStatus)) {
       return WorkflowUpdateResult.Error(
         workflowId,
@@ -59,7 +57,7 @@ internal class WorkflowServiceFeatureTaskIdentityRepair(
     persistIdentity(unitOfWork, args)
     val input = repairInput(existing, args)
     val updated = engine.updateRecord(family.definition, existing, input)
-    family.save(unitOfWork.workflowStates, updated)
+    unitOfWork.workflowStates.save(family, updated)
     return buildUpdateOk(
       engine,
       family.definition,

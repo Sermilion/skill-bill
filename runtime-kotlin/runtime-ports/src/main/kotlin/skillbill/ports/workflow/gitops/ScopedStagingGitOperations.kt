@@ -1,6 +1,10 @@
 package skillbill.ports.workflow.gitops
 
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshot
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshotResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.gitops.model.WorkflowPathContentIdentitiesResult
 import java.nio.file.Path
 
 interface ScopedStagingGitOperations {
@@ -12,42 +16,18 @@ interface ScopedStagingGitOperations {
   fun captureIndexState(
     repoRoot: Path,
     paths: List<String>,
-  ): WorkflowGitOperationResult
+  ): WorkflowGitIndexSnapshotResult
 
   fun restoreIndexState(
     repoRoot: Path,
     paths: List<String>,
-    snapshot: String,
+    snapshot: WorkflowGitIndexSnapshot,
   ): WorkflowGitOperationResult
 
-  fun stagedPaths(repoRoot: Path): WorkflowGitOperationResult
+  fun stagedPaths(repoRoot: Path): WorkflowGitNameListResult
 
   fun pathContentIdentities(
     repoRoot: Path,
     paths: List<String>,
-  ): WorkflowGitOperationResult
+  ): WorkflowPathContentIdentitiesResult
 }
-
-fun WorkflowGitOperations.stagePaths(
-  repoRoot: Path,
-  paths: List<String>,
-): WorkflowGitOperationResult = scopedStagingOperations.stagePaths(repoRoot, paths)
-
-fun WorkflowGitOperations.captureIndexState(
-  repoRoot: Path,
-  paths: List<String>,
-): WorkflowGitOperationResult = scopedStagingOperations.captureIndexState(repoRoot, paths)
-
-fun WorkflowGitOperations.restoreIndexState(
-  repoRoot: Path,
-  paths: List<String>,
-  snapshot: String,
-): WorkflowGitOperationResult = scopedStagingOperations.restoreIndexState(repoRoot, paths, snapshot)
-
-fun WorkflowGitOperations.stagedPaths(repoRoot: Path): WorkflowGitOperationResult =
-  scopedStagingOperations.stagedPaths(repoRoot)
-
-fun WorkflowGitOperations.pathContentIdentities(
-  repoRoot: Path,
-  paths: List<String>,
-): WorkflowGitOperationResult = scopedStagingOperations.pathContentIdentities(repoRoot, paths)

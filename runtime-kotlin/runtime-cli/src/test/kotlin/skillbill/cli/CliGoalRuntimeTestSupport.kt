@@ -9,7 +9,7 @@ import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.AgentRunOutputStream
@@ -19,17 +19,18 @@ import skillbill.ports.goalrunner.runner.model.GoalPullRequestRequest
 import skillbill.ports.goalrunner.runner.model.GoalPullRequestResult
 import skillbill.ports.telemetry.transport.RemoteTransportPort
 import skillbill.ports.time.NoopRuntimeTimingPort
-import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
-import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
-import skillbill.ports.workflow.gitops.RepositoryOwnedPathsGitOperations
-import skillbill.ports.workflow.gitops.ScopedStagingGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperationsTestBase
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRequest
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshot
+import skillbill.ports.workflow.gitops.model.WorkflowGitIndexSnapshotResult
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
+import skillbill.ports.workflow.gitops.model.WorkflowPathContentIdentitiesResult
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
@@ -434,13 +435,10 @@ internal class GoalFixtureAgentRunLauncher(
     } else {
       completeSubtaskWorkflow(workflowId, subtaskId, Path.of(selectedDbPath))
     }
-    return AgentRunLaunchFacts(
+    return agentRunLaunchFacts(
       agent = SupportedAgent.CODEX,
-      exitStatus = 0,
       stdout = "captured child $subtaskId",
       stderr = "",
-      timedOut = false,
-      spawnFailed = false,
     )
   }
 
@@ -450,13 +448,10 @@ internal class GoalFixtureAgentRunLauncher(
         .find(skillRequest.promptOverride.orEmpty())
         ?.groupValues?.get(1)
         ?: "preplan"
-    return AgentRunLaunchFacts(
+    return agentRunLaunchFacts(
       agent = SupportedAgent.CODEX,
-      exitStatus = 0,
       stdout = phasePlanningPayload(phaseId),
       stderr = "",
-      timedOut = false,
-      spawnFailed = false,
     )
   }
 
@@ -719,38 +714,42 @@ internal object NoopGoalTestAgentRunLauncher : AgentRunLauncher {
 }
 
 internal object GoalTestWorkflowGitOperations : WorkflowGitOperationsTestBase() {
-  override val repositoryOwnedPathsOperations: RepositoryOwnedPathsGitOperations = TestRepositoryOwnedPathsOperations
+  override fun repositoryOwnedPaths(repoRoot: Path): WorkflowGitNameListResult =
+    WorkflowGitNameListResult.Listed(emptyList())
 
-  override val repositoryFingerprintOperations: RepositoryFingerprintGitOperations = TestRepositoryFingerprintOperations
+  override fun repositoryFingerprint(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult.Ok(value = "test-repository-fingerprint")
 
-  override val scopedStagingOperations: ScopedStagingGitOperations =
-    object : ScopedStagingGitOperations {
-      override fun stagePaths(
-        repoRoot: Path,
-        paths: List<String>,
-      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+  override fun repositoryCheckpointFingerprint(
+    repoRoot: Path,
+    baseCommit: String?,
+    headCommit: String,
+    ownedPaths: List<String>,
+  ): WorkflowGitOperationResult = repositoryFingerprint(repoRoot)
 
-      override fun captureIndexState(
-        repoRoot: Path,
-        paths: List<String>,
-      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+  override fun stagePaths(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
-      override fun restoreIndexState(
-        repoRoot: Path,
-        paths: List<String>,
-        snapshot: String,
-      ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+  override fun captureIndexState(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowGitIndexSnapshotResult = WorkflowGitIndexSnapshotResult.Captured(WorkflowGitIndexSnapshot.EMPTY)
 
-      override fun stagedPaths(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
+  override fun restoreIndexState(
+    repoRoot: Path,
+    paths: List<String>,
+    snapshot: WorkflowGitIndexSnapshot,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
-      override fun pathContentIdentities(
-        repoRoot: Path,
-        paths: List<String>,
-      ): WorkflowGitOperationResult =
-        WorkflowGitOperationResult.Ok(
-          value = paths.joinToString(separator = "\u0000") { path -> "identity\t$path" },
-        )
-    }
+  override fun stagedPaths(repoRoot: Path): WorkflowGitNameListResult = WorkflowGitNameListResult.Listed(emptyList())
+
+  override fun pathContentIdentities(
+    repoRoot: Path,
+    paths: List<String>,
+  ): WorkflowPathContentIdentitiesResult =
+    WorkflowPathContentIdentitiesResult.Resolved(identities = paths.associateWith { "identity" })
 
   override fun checkoutBranch(
     repoRoot: Path,
@@ -765,38 +764,35 @@ internal object GoalTestWorkflowGitOperations : WorkflowGitOperationsTestBase() 
 
   override fun currentBranch(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 
-  override val goalSubtaskReviewOperations: GoalSubtaskReviewGitOperations =
-    object : GoalSubtaskReviewGitOperations {
-      override fun captureBaseline(
-        repoRoot: Path,
-        expectedBranch: String,
-      ): GoalSubtaskReviewBaselineResult =
-        GoalSubtaskReviewBaselineResult(
-          status = WorkflowGitOperationStatus.OK,
-          baseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
-        )
+  override fun captureGoalSubtaskReviewBaseline(
+    repoRoot: Path,
+    expectedBranch: String,
+  ): GoalSubtaskReviewBaselineResult =
+    GoalSubtaskReviewBaselineResult(
+      status = WorkflowGitOperationStatus.OK,
+      baseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
+    )
 
-      override fun buildInput(
-        repoRoot: Path,
-        baseline: GoalSubtaskReviewBaseline,
-        expectedBranch: String,
-      ): Nothing = error("Goal review input is not used by this goal CLI fixture.")
+  override fun buildGoalSubtaskReviewInput(
+    repoRoot: Path,
+    baseline: GoalSubtaskReviewBaseline,
+    expectedBranch: String,
+  ): Nothing = error("Goal review input is not used by this goal CLI fixture.")
 
-      override fun recoverBaseline(
-        repoRoot: Path,
-        request: GoalSubtaskReviewBaselineRecoveryRequest,
-        expectedBranch: String,
-      ): GoalSubtaskReviewBaselineResult =
-        GoalSubtaskReviewBaselineResult(
-          status = WorkflowGitOperationStatus.ERROR,
-          error = "Goal review baseline recovery is not used by this goal CLI fixture.",
-        )
-    }
+  override fun recoverGoalSubtaskReviewBaseline(
+    repoRoot: Path,
+    request: GoalSubtaskReviewBaselineRecoveryRequest,
+    expectedBranch: String,
+  ): GoalSubtaskReviewBaselineResult =
+    GoalSubtaskReviewBaselineResult(
+      status = WorkflowGitOperationStatus.ERROR,
+      error = "Goal review baseline recovery is not used by this goal CLI fixture.",
+    )
 
   override fun createCommit(
     repoRoot: Path,
     message: String,
-  ): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "test-commit")
+  ): WorkflowGitCommitResult = WorkflowGitCommitResult.Committed(commitSha = "test-commit")
 
   override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Ok(value = "test-commit")

@@ -4,7 +4,7 @@ import skillbill.application.agentrun.AgentRunService
 import skillbill.application.agentrun.model.AgentRunStartRequest
 import skillbill.install.model.SupportedAgent
 import skillbill.ports.agentrun.AgentRunLauncher
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import skillbill.ports.agentrun.model.SkillRunRequest
@@ -83,13 +83,10 @@ private class RecordingAgentRunLauncher : AgentRunLauncher {
 
   override fun launch(request: AgentRunLaunchRequest): AgentRunLaunchOutcome {
     requests += request
-    return AgentRunLaunchFacts(
+    return agentRunLaunchFacts(
       agent = SupportedAgent.fromId(request.agentId),
-      exitStatus = 0,
       stdout = "diagnostic",
       stderr = "",
-      timedOut = false,
-      spawnFailed = false,
     )
   }
 }

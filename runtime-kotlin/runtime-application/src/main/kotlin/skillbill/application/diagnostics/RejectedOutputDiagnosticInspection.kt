@@ -41,8 +41,8 @@ class RejectedOutputDiagnosticInspection(
 
   private fun UnitOfWork.diagnosticService(): RejectedOutputDiagnosticService =
     RejectedOutputDiagnosticService(
-      rejectedOutputDiagnostics ?: throw RejectedOutputDiagnosticError.Persistence("repository-unavailable"),
-      rejectedOutputDiagnosticPermissions ?: throw RejectedOutputDiagnosticError.Permission("permissions-unavailable"),
+      rejectedOutputDiagnostics,
+      rejectedOutputDiagnosticPermissions,
       metadataValidator,
       clock = clock,
     )

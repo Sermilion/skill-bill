@@ -18,4 +18,27 @@ object UnavailableExperimentPairRepository : ExperimentPairRepository {
 
   override fun deletePairsForWorkflowIds(workflowIds: List<String>) =
     error("ExperimentPairRepository is unavailable in this test harness.")
+
+  override fun saveReport(
+    pairId: String,
+    reportPayload: ExperimentPairPayload,
+  ) = error("ExperimentPairRepository is unavailable in this test harness.")
+
+  override fun loadReport(pairId: String): ExperimentPairPayload? =
+    error("ExperimentPairRepository is unavailable in this test harness.")
+
+  override fun listReports(): List<ExperimentPairPayload> =
+    error("ExperimentPairRepository is unavailable in this test harness.")
+
+  override fun acquireLease(
+    pairId: String,
+    ownerToken: String,
+    nowEpochMillis: Long,
+    leaseMillis: Long,
+  ): Boolean = error("ExperimentPairRepository is unavailable in this test harness.")
+
+  override fun releaseLease(
+    pairId: String,
+    ownerToken: String,
+  ) = error("ExperimentPairRepository is unavailable in this test harness.")
 }

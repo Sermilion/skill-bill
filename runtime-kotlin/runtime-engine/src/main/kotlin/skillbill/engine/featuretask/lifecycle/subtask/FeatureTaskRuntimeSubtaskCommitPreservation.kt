@@ -2,18 +2,19 @@ package skillbill.engine.featuretask.lifecycle.subtask
 
 import skillbill.engine.experiment.isolation.ExperimentCheckpointNamespace
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.ports.workflow.gitops.amendHeadCommit
-import skillbill.ports.workflow.gitops.deleteCheckpointRefsUnderPrefix
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.resolveCheckpointRef
-import skillbill.ports.workflow.gitops.updateCheckpointRef
 import java.nio.file.Path
 
 internal fun WorkflowGitOperations.writeSubtaskCommitPreservingHistory(
   request: SubtaskCommitPreservationRequest,
 ): WorkflowGitOperationResult {
   if (request.decision !is FeatureTaskRuntimeSubtaskCommitAmend) {
-    return createCommit(request.repoRoot, request.message)
+    return when (val commit = createCommit(request.repoRoot, request.message)) {
+      is WorkflowGitCommitResult.Committed -> WorkflowGitOperationResult.Ok(value = commit.commitSha)
+      WorkflowGitCommitResult.NothingToCommit -> WorkflowGitOperationResult.Ok(value = "")
+      is WorkflowGitCommitResult.Failed -> WorkflowGitOperationResult.Failed(error = commit.error)
+    }
   }
   return amendSubtaskCommitPreservingHistory(this, request, request.decision)
 }

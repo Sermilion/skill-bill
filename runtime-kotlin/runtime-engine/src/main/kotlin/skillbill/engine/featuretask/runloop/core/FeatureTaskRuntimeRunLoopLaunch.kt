@@ -32,16 +32,14 @@ import skillbill.goalrunner.subtaskreview.model.StructuredGoalReviewFinding
 import skillbill.goalrunner.subtaskreview.verificationBoundaryFindingPaths
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.pathContentIdentities
-import skillbill.ports.workflow.gitops.repositoryCheckpointFingerprint
-import skillbill.ports.workflow.gitops.repositoryOwnedPaths
-import skillbill.ports.workflow.gitops.runtimePhaseChangedPathsBetweenCommits
-import skillbill.ports.workflow.gitops.runtimePhaseHeadCommit
+import skillbill.ports.workflow.gitops.model.WorkflowPathContentIdentitiesResult
 import skillbill.review.context.model.execution.SpecIntentProjectionResolveRequest
 import skillbill.review.context.model.execution.SpecIntentResolution
 import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
@@ -186,26 +184,12 @@ object FeatureTaskRuntimeRunLoopLaunch {
     phaseId: String,
   ) {
     val owned = phaseGates.gitOperations.repositoryOwnedPaths(request.repoRoot)
-    if (owned !is WorkflowGitOperationResult.Ok) return
-    val paths = owned.value.orEmpty().split(OWNED_PATH_DELIMITER).map(String::trim).filter(String::isNotBlank)
+    if (owned !is WorkflowGitNameListResult.Listed) return
+    val paths = owned.names.map(String::trim).filter(String::isNotBlank)
     val identities = phaseGates.gitOperations.pathContentIdentities(request.repoRoot, paths)
-    if (identities !is WorkflowGitOperationResult.Ok) return
-    session.recordPhaseContentIdentities(
-      phaseId,
-      parseContentIdentities(identities.value.orEmpty()),
-    )
+    if (identities !is WorkflowPathContentIdentitiesResult.Resolved) return
+    session.recordPhaseContentIdentities(phaseId, identities.identities)
   }
-
-  internal fun parseContentIdentities(raw: String): Map<String, String> =
-    raw
-      .split(OWNED_PATH_DELIMITER)
-      .filter(String::isNotBlank)
-      .mapNotNull { record ->
-        val identity = record.substringBefore('\t', missingDelimiterValue = "")
-        val path = record.substringAfter('\t', missingDelimiterValue = "")
-        if (identity.isBlank() || path.isBlank()) null else path to identity
-      }
-      .toMap()
 
   internal fun prepareLaunchForCapture(
     context: FeatureTaskRuntimeRunLoopContext,
@@ -342,7 +326,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
         before.beforeCommit,
         afterCommit.value.orEmpty(),
       )
-    if (committedPaths !is WorkflowGitOperationResult.Ok) {
+    if (committedPaths !is WorkflowGitNameListResult.Listed) {
       return FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureAfterResult.Failed("committed file changes")
     }
     return FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureAfterResult.Ready(
@@ -350,8 +334,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
         before = FeatureTaskRuntimePhaseSafetyPolicy.changedPaths(before.beforeManifest),
         after =
           (
-            FeatureTaskRuntimePhaseSafetyPolicy.changedPaths(after.value) +
-              FeatureTaskRuntimePhaseSafetyPolicy.lineSeparatedPaths(committedPaths.value.orEmpty())
+            FeatureTaskRuntimePhaseSafetyPolicy.changedPaths(after.value) + committedPaths.names
           ).distinct().sorted(),
       ),
     )
@@ -489,14 +472,15 @@ object FeatureTaskRuntimeRunLoopLaunch {
               LaunchResult.infraFailure(
                 it,
                 fileManifest,
-                childNeverLaunched = outcome.spawnFailed || !outcome.processStarted,
+                childNeverLaunched =
+                  outcome.termination == AgentRunTermination.SpawnFailed || !outcome.processStarted,
                 childOutput = featureTaskRuntimeChildOutput(outcome),
               )
             }
           ?: LaunchResult.captured(
             CapturedPhaseOutput(
               text = outcome.stdout,
-              bytes = outcome.stdoutBytes,
+              bytes = outcome.stdout.encodeToByteArray(),
               truncated = outcome.stdoutTruncated,
               byteSize = outcome.stdoutByteSize,
               sha256 = outcome.stdoutSha256,
@@ -873,5 +857,3 @@ const val READ_ONLY_PHASE_PROGRESS_IDLE_TIMEOUT_MINUTES = 30L
 
 const val LEGACY_PLANNING_PROJECTION_LAUNCH_SEAM_REJECTION =
   "rejected an upstream bounded planning projection at the launch seam"
-
-const val OWNED_PATH_DELIMITER = '\u0000'

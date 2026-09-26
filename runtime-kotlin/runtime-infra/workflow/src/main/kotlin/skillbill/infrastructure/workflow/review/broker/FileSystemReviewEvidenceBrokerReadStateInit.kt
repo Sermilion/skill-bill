@@ -18,7 +18,7 @@ internal data class FileSystemReviewEvidenceBrokerReadStateInit(
   val policy: ReviewOperationPolicy,
   val authorizedExpansionLedger: List<ReviewExpansionRecord>,
   val projectedHunks: List<ReviewChangedHunk>,
-  val locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
+  val locatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort?,
   val bodyExtractor: ReviewStoredHunkBodyExtractor,
   val completeFileCheckpoint: Map<String, String?>,
   val hunkCommitById: Map<String, String>,

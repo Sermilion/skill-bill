@@ -19,9 +19,7 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
 import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -142,7 +140,7 @@ internal class WorkflowServiceBlockedPhaseRetry(
   ): BlockedPhaseRetryPersistence {
     val family = WorkflowFamily.TASK_RUNTIME
     val existing =
-      family.get(unitOfWork.workflowStates, request.workflowId)
+      unitOfWork.workflowStates.get(family, request.workflowId)
         ?: return BlockedPhaseRetryPersistence.error(
           WorkflowUpdateResult.Error(
             request.workflowId,
@@ -199,7 +197,7 @@ internal class WorkflowServiceBlockedPhaseRetry(
     val input = blockedPhaseRetryInput(request, state, clock)
     val family = WorkflowFamily.TASK_RUNTIME
     val updated = engine.updateRecord(family.definition, existing, input)
-    family.save(unitOfWork.workflowStates, updated)
+    unitOfWork.workflowStates.save(family, updated)
     val projectionArtifacts =
       engine.updateGoalParentForBlockedPhaseRetry(
         unitOfWork = unitOfWork,

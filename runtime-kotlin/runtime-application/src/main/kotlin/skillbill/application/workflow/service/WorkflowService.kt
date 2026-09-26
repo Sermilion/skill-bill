@@ -46,15 +46,10 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
 import skillbill.ports.workflow.decomposition.clearDecompositionManifestProjectionFailure
 import skillbill.ports.workflow.decomposition.persistDecompositionManifestProjectionFailure
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.repositoryFingerprint
-import skillbill.ports.workflow.latest
-import skillbill.ports.workflow.list
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
-import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.runtime.isGoalContinuationChildWorkflow
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
@@ -203,7 +198,7 @@ class WorkflowService(
     unitOfWork: UnitOfWork,
   ): WorkflowUpdatePersistence {
     val existing =
-      family.get(unitOfWork.workflowStates, request.workflowId)
+      unitOfWork.workflowStates.get(family, request.workflowId)
         ?: return WorkflowUpdatePersistence(
           WorkflowUpdateResult.Error(
             request.workflowId,
@@ -235,8 +230,8 @@ class WorkflowService(
       )
     val updatedRecord = engine.updateRecord(family.definition, existing, effectiveInput)
     workflowSnapshotValidator.validate(updatedRecord, family.definition.workflowName)
-    family.save(unitOfWork.workflowStates, updatedRecord)
-    val updated = family.get(unitOfWork.workflowStates, request.workflowId) ?: updatedRecord
+    unitOfWork.workflowStates.save(family, updatedRecord)
+    val updated = unitOfWork.workflowStates.get(family, request.workflowId) ?: updatedRecord
     if (runtimeInput.updated) {
       engine.syncDecompositionParentRuntime(
         family,
@@ -356,7 +351,7 @@ class WorkflowService(
     database.read { unitOfWork ->
       val family = kind.workflowFamily()
       val record =
-        family.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(family, workflowId)
           ?: return@read WorkflowGetResult.Error(
             workflowId,
             "Unknown workflow_id '$workflowId'.",
@@ -378,7 +373,7 @@ class WorkflowService(
   ): WorkflowListResult =
     database.read { unitOfWork ->
       val family = kind.workflowFamily()
-      val rows = family.list(unitOfWork.workflowStates, limit)
+      val rows = unitOfWork.workflowStates.list(family, limit)
       WorkflowListResult(
         dbPath = unitOfWork.dbPath.toString(),
         workflowCount = rows.size,
@@ -394,7 +389,7 @@ class WorkflowService(
     database.read { unitOfWork ->
       val family = kind.workflowFamily()
       val record =
-        family.latest(unitOfWork.workflowStates)
+        unitOfWork.workflowStates.latest(family)
           ?: return@read WorkflowLatestResult.Error(
             dbPath = unitOfWork.dbPath.toString(),
             error = "No ${family.humanName} workflows found.",
@@ -413,7 +408,7 @@ class WorkflowService(
     database.read { unitOfWork ->
       val family = kind.workflowFamily()
       val record =
-        family.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(family, workflowId)
           ?: return@read WorkflowResumeResult.Error(
             workflowId,
             "Unknown workflow_id '$workflowId'.",
@@ -436,7 +431,7 @@ class WorkflowService(
     val result =
       database.transaction { unitOfWork ->
         val family = kind.workflowFamily()
-        var record = family.get(unitOfWork.workflowStates, workflowId)
+        var record = unitOfWork.workflowStates.get(family, workflowId)
         if (record == null && family == WorkflowFamily.TASK_RUNTIME) {
           val resolved =
             DecompositionWorkflowContinuation(
@@ -508,7 +503,7 @@ class WorkflowService(
       )
       return null
     }
-    val ownerRecord = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, ownerWorkflowId)
+    val ownerRecord = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, ownerWorkflowId)
     if (ownerRecord == null) {
       runtimeDiagnostics.warning(
         "seam=decomposition_projection_settlement value_expected=workflow_row " +

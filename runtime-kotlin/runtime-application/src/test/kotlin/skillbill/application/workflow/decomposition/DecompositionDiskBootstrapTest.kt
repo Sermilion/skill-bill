@@ -30,6 +30,8 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
@@ -88,7 +90,7 @@ private fun encodeDecompositionManifestYaml(
 ): String = encodeValidatedDecompositionManifestYaml(manifest, validator, fileStore, "<in-memory>").yamlText
 
 private fun InMemoryWorkflowStates.decomposedParentRows(issueKey: String): List<WorkflowStateRecord> =
-  listFeatureTaskRuntimeWorkflows(Int.MAX_VALUE).filter { row ->
+  listFeatureTaskWorkflows(RUNTIME, Int.MAX_VALUE).filter { row ->
     val snapshot = row.toSnapshot()
     row.issueKey == issueKey &&
       !snapshot.isGoalContinuationChildWorkflow() &&
@@ -120,7 +122,7 @@ class DecompositionDiskBootstrapTest {
           ),
       )
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-invalid-issue-key",
         artifactsPatch =
@@ -132,6 +134,7 @@ class DecompositionDiskBootstrapTest {
             ),
           ),
       ),
+      RUNTIME,
     )
     val gitOperations = CheckoutRecordingGitOperations()
     val continuation =
@@ -207,7 +210,7 @@ class DecompositionDiskBootstrapTest {
       "Expected disk bootstrap to resolve the manifest; got UnknownWorkflow instead",
     )
     assertTrue(
-      workflows.listFeatureTaskRuntimeWorkflows(Int.MAX_VALUE).size >= 2,
+      workflows.listFeatureTaskWorkflows(RUNTIME, Int.MAX_VALUE).size >= 2,
       "Expected parent bootstrap row and child subtask row in DB",
     )
   }
@@ -260,7 +263,7 @@ class DecompositionDiskBootstrapTest {
       }
 
     assertTrue(result.result is WorkflowContinueResult.UnknownWorkflow)
-    assertTrue(workflows.listFeatureTaskRuntimeWorkflows(Int.MAX_VALUE).isEmpty())
+    assertTrue(workflows.listFeatureTaskWorkflows(RUNTIME, Int.MAX_VALUE).isEmpty())
   }
 
   @Test
@@ -329,7 +332,7 @@ class DecompositionDiskBootstrapTest {
     db.transaction { unitOfWork ->
       continuation.continueDecomposedParentByIssueKey("SKILL-TEST", unitOfWork)
     }
-    val parentRow = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wfl-corrupt-parent"))
+    val parentRow = requireNotNull(workflows.getFeatureTaskWorkflowAsMode("wfl-corrupt-parent", RUNTIME))
     assertEquals("paused", parentRow.workflowStatus)
 
     val parentRows = workflows.decomposedParentRows("SKILL-TEST")
@@ -370,7 +373,7 @@ class DecompositionDiskBootstrapTest {
       encodeDecompositionManifestYaml(manifest, testDecompositionManifestValidator, TestDecompositionManifestStore),
     )
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-corrupt-parent",
         artifactsPatch =
@@ -381,6 +384,7 @@ class DecompositionDiskBootstrapTest {
             ),
           ),
       ).copy(issueKey = "SKILL-TEST"),
+      RUNTIME,
     )
     return workflows to
       DecompositionWorkflowContinuation(
@@ -488,7 +492,7 @@ class DecompositionDiskBootstrapTest {
       encodeDecompositionManifestYaml(manifest, testDecompositionManifestValidator, TestDecompositionManifestStore),
     )
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureTaskRuntimeWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-corrupt-idempotent",
         artifactsPatch =
@@ -499,6 +503,7 @@ class DecompositionDiskBootstrapTest {
             ),
           ),
       ).copy(issueKey = "SKILL-TEST"),
+      RUNTIME,
     )
     val db = FakeDatabaseSessionFactory(workflows)
     val continuation =
@@ -554,7 +559,7 @@ class DecompositionDiskBootstrapTest {
       encodeDecompositionManifestYaml(manifest, testDecompositionManifestValidator, TestDecompositionManifestStore),
     )
     val workflows = InMemoryWorkflowStates()
-    workflows.saveFeatureImplementWorkflow(
+    workflows.saveFeatureTaskWorkflow(
       workflowRecord(
         workflowId = "wfl-abandoned-corrupt",
         workflowStatus = WorkflowStatus.ABANDONED,
@@ -566,6 +571,7 @@ class DecompositionDiskBootstrapTest {
             ),
           ),
       ).copy(issueKey = "SKILL-TEST"),
+      PROSE,
     )
     val db = FakeDatabaseSessionFactory(workflows)
     val continuation =

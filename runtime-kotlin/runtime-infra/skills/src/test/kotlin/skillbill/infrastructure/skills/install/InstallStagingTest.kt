@@ -23,7 +23,6 @@ import skillbill.install.model.AgentTarget
 import skillbill.install.model.RenderedSkill
 import skillbill.model.toPath
 import skillbill.ports.repository.toFileLocation
-import skillbill.ports.workflow.list
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import skillbill.testsupport.SkillClassFixtures

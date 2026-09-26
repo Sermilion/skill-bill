@@ -17,7 +17,7 @@ import java.nio.file.Path
 internal const val GOAL_SUBTASK_REVIEW_INPUT_MAX_BYTES: Int = 1_000_000
 
 internal object GitGoalSubtaskReviewOperations : GoalSubtaskReviewGitOperations {
-  override fun captureBaseline(
+  override fun captureGoalSubtaskReviewBaseline(
     repoRoot: Path,
     expectedBranch: String,
   ): GoalSubtaskReviewBaselineResult {
@@ -33,7 +33,7 @@ internal object GitGoalSubtaskReviewOperations : GoalSubtaskReviewGitOperations 
     }
   }
 
-  override fun buildInput(
+  override fun buildGoalSubtaskReviewInput(
     repoRoot: Path,
     baseline: GoalSubtaskReviewBaseline,
     expectedBranch: String,
@@ -63,7 +63,7 @@ internal object GitGoalSubtaskReviewOperations : GoalSubtaskReviewGitOperations 
     }
   }
 
-  override fun recoverBaseline(
+  override fun recoverGoalSubtaskReviewBaseline(
     repoRoot: Path,
     request: GoalSubtaskReviewBaselineRecoveryRequest,
     expectedBranch: String,

@@ -11,13 +11,21 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.validation.PrCheckProcessRunner
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.ReadinessTreeIdentity
-import skillbill.ports.workflow.gitops.readiness.resolveReadinessTreeIdentity
+import skillbill.ports.workflow.gitops.model.WorkflowReadinessTreeIdentityResult
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessCheckResult
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessCheckStatus
 import skillbill.workflow.taskruntime.model.validation.FeatureTaskRuntimeReadinessEvidence
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
+
+private fun WorkflowGitOperations.readinessTreeIdentityOrNull(
+  repoRoot: Path,
+  baseBranch: String,
+  workflowId: String,
+): ReadinessTreeIdentity? =
+  (resolveReadinessTreeIdentity(repoRoot, baseBranch, workflowId) as? WorkflowReadinessTreeIdentityResult.Resolved)
+    ?.identity
 
 data class ReadinessPostValidateCaptureRequest(
   val workflowId: String,
@@ -76,7 +84,7 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
 ) {
   fun capturePostValidateFragment(request: ReadinessPostValidateCaptureRequest) {
     val identity =
-      request.gitOperations.resolveReadinessTreeIdentity(
+      request.gitOperations.readinessTreeIdentityOrNull(
         request.repoRoot,
         request.baseBranch,
         request.workflowId,
@@ -134,7 +142,7 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
 
   private fun prepareAfterPathDiscovery(request: ReadinessCommitPushSettleRequest): CommitPushPreparation {
     val identity =
-      request.gitOperations.resolveReadinessTreeIdentity(
+      request.gitOperations.readinessTreeIdentityOrNull(
         request.repoRoot,
         request.baseBranch,
         request.workflowId,
@@ -315,7 +323,7 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     commitSha: String,
   ): ReadinessCommitPushSettleResult {
     val current =
-      gitOperations.resolveReadinessTreeIdentity(repoRoot, baseBranch, workflowId)
+      gitOperations.readinessTreeIdentityOrNull(repoRoot, baseBranch, workflowId)
         ?: return identityAfterCommitBlocked()
     return bindCommittedHeadWithIdentity(workflowId, current, commitSha)
   }
@@ -392,7 +400,7 @@ class FeatureTaskRuntimeReadinessGateCoordinator(
     gitOperations: WorkflowGitOperations,
   ): ReadinessCommitPushSettleResult {
     val identity =
-      gitOperations.resolveReadinessTreeIdentity(repoRoot, baseBranch, workflowId)
+      gitOperations.readinessTreeIdentityOrNull(repoRoot, baseBranch, workflowId)
         ?: run {
           recordDegradation("readiness-pr-identity", "Readiness identity is unavailable for PR entry.")
           return blocked("Readiness identity is unavailable for PR entry.")

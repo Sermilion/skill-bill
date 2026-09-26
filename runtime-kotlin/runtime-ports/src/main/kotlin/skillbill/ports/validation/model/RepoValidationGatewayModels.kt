@@ -9,7 +9,7 @@ data class RepoValidationReport(
   val addonCount: Int,
   val platformPackCount: Int,
   val nativeAgentCount: Int,
-  val structuredIssues: List<RepoValidationIssue> = issues.map(RepoValidationIssue::fromRawIssue),
+  val structuredIssues: List<RepoValidationIssue>,
 ) {
   val passed: Boolean = issues.isEmpty()
 
@@ -31,28 +31,7 @@ data class RepoValidationIssue(
   val code: String? = null,
   val name: String? = null,
   val exceptionName: String? = null,
-) {
-  companion object {
-    fun fromRawIssue(raw: String): RepoValidationIssue {
-      val separator = raw.indexOf(": ")
-      return if (separator > 0 && raw.substring(0, separator).isNotBlank() &&
-        !raw.substring(0, separator).contains(' ')
-      ) {
-        RepoValidationIssue(
-          severity = RepoValidationIssueSeverity.ERROR,
-          sourcePath = raw.substring(0, separator),
-          message = raw.substring(separator + 2),
-        )
-      } else {
-        RepoValidationIssue(
-          severity = RepoValidationIssueSeverity.ERROR,
-          sourcePath = null,
-          message = raw,
-        )
-      }
-    }
-  }
-}
+)
 
 enum class RepoValidationIssueSeverity {
   ERROR,

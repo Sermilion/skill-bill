@@ -6,7 +6,9 @@ import skillbill.application.review.parallel.runner.finding
 import skillbill.application.runner
 import skillbill.application.testHarnessClock
 import skillbill.install.model.SupportedAgent
+import skillbill.ports.agentrun.agentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.review.ReviewContextEnvelopeValidator
@@ -83,8 +85,8 @@ class ReviewClaimVerificationRunnerTest {
     val responses =
       ArrayDeque(
         listOf(
-          factsFor { copy(spawnFailed = true, exitStatus = null, stdout = "") },
-          factsFor { copy(timedOut = true, exitStatus = null, stdout = "") },
+          factsFor { copy(termination = AgentRunTermination.SpawnFailed, stdout = "") },
+          factsFor { copy(termination = AgentRunTermination.TimedOut, stdout = "") },
           factsFor { copy(stdout = "not a verdict") },
         ),
       )
@@ -197,13 +199,9 @@ class ReviewClaimVerificationRunnerTest {
   private fun facts(
     request: GoalRunnerSubtaskLaunchRequest,
     stdout: String,
-  ) = AgentRunLaunchFacts(
+  ) = agentRunLaunchFacts(
     agent = SupportedAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-    exitStatus = 0,
     stdout = stdout,
-    stderr = "",
-    timedOut = false,
-    spawnFailed = false,
   )
 
   private fun factsFor(

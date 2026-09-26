@@ -19,7 +19,6 @@ import skillbill.engine.featuretask.review.core.FeatureTaskRuntimeOutputVerifica
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.ports.taskruntime.validateImplementationAttemptRecord
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.model.WorkflowStepStatus
@@ -53,7 +52,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
   fun recordPhaseState(request: FeatureTaskRuntimePhaseStateRequest): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, request.workflowId)
           ?: return@transaction false
       val artifacts = record.artifacts
       val existingRecords = decodePhaseRecords(artifacts)
@@ -90,7 +89,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
   fun recordIncompleteImplementationAttempt(request: FeatureTaskRuntimePhaseStateRequest): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, request.workflowId)
           ?: return@transaction false
       val patch =
         implementationAttemptPatch(
@@ -106,7 +105,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
   fun loadImplementationAttempts(workflowId: String): List<FeatureTaskRuntimeImplementationAttempt>? =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       implementationAttemptsFrom(record.artifacts)
     }
@@ -117,7 +116,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
   ): Boolean =
     database.transaction { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@transaction false
       val existingRecords = decodePhaseRecords(record.artifacts)
       val cleared = LinkedHashMap(existingRecords)
@@ -146,7 +145,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
   fun loadPhaseRecords(workflowId: String): Map<String, FeatureTaskRuntimePhaseRecord>? =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       decodePhaseRecords(record.artifacts)
     }
@@ -154,7 +153,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
   fun loadOperatorBlockRetry(workflowId: String): FeatureTaskRuntimeOperatorBlockRetry? =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       val artifacts = record.artifacts
       val retry = operatorBlockRetryFromWorkflowArtifacts(artifacts) ?: return@read null
@@ -177,7 +176,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
   fun loadPhaseLedger(workflowId: String): List<FeatureTaskRuntimePhaseLedgerEntry>? =
     database.read { unitOfWork ->
       val record =
-        WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId)
           ?: return@read null
       decodePhaseLedger(record.artifacts)
     }
@@ -324,7 +323,7 @@ fun FeatureTaskRuntimePhaseStateRecorder.recordCompletedPhaseWrite(
     expected = "runtime-owned completed phase state",
   ) { unitOfWork ->
     val record =
-      WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
+      unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, request.workflowId)
         ?: return@requiredWrite false
     val artifacts = record.artifacts
     val existingRecords = decodePhaseRecords(artifacts)

@@ -1,7 +1,5 @@
 package skillbill.infrastructure.workflow.git.workflow
 
-import skillbill.ports.workflow.gitops.buildGoalSubtaskReviewInput
-import skillbill.ports.workflow.gitops.captureGoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.workflow.model.goalreview.GoalObservabilityDiffStat

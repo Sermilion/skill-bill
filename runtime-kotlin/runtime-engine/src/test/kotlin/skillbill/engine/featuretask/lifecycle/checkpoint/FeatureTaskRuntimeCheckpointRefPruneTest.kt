@@ -7,10 +7,8 @@ import skillbill.engine.goalrunner.manifest
 import skillbill.engine.goalrunner.manifest.pruneEligibleCheckpointRefsForManifest
 import skillbill.infrastructure.workflow.git.workflow.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
-import skillbill.ports.workflow.gitops.deleteCheckpointRef
-import skillbill.ports.workflow.gitops.listCheckpointRefs
+import skillbill.ports.workflow.gitops.model.WorkflowGitNameListResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.updateCheckpointRef
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
@@ -268,9 +266,13 @@ class FeatureTaskRuntimeCheckpointRefPruneTest {
     issueKey: String,
     subtaskId: String,
   ): Int =
-    parseCheckpointRefListing(
-      git.listCheckpointRefs(repo, featureTaskRuntimeSubtaskCheckpointRefPrefix(issueKey, subtaskId)).value.orEmpty(),
-    ).size
+    when (
+      val listed =
+        git.listCheckpointRefs(repo, featureTaskRuntimeSubtaskCheckpointRefPrefix(issueKey, subtaskId))
+    ) {
+      is WorkflowGitNameListResult.Listed -> listed.names.size
+      is WorkflowGitNameListResult.Failed -> error("checkpoint ref listing failed: ${listed.error}")
+    }
 
   private fun head(): String = gitCommand("rev-parse", "HEAD")
 

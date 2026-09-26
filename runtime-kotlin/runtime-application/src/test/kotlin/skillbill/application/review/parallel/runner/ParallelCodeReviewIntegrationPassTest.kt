@@ -11,6 +11,7 @@ import skillbill.application.review.snapshot.reviewHarness
 import skillbill.application.review.snapshot.sparseReviewPack
 import skillbill.application.review.verification.ReviewIntegrationPassRunner
 import skillbill.application.runner
+import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.review.context.model.launch.ReviewIntegrationTerminalOutcome
@@ -180,7 +181,7 @@ class ParallelCodeReviewIntegrationPassTest {
 
     reviewHarness(
       delegatedConfig(sixCommitPaths) { request ->
-        RecordedWorkerResponse(spawnFailed = request.skillRunRequest.issueKey == INTEGRATION_ISSUE_KEY)
+        integrationWorkerResponse(request, AgentRunTermination.SpawnFailed)
       },
       recorder,
     ).run(delegatedRequest(reviewRunId = RUN_ID))
@@ -214,7 +215,7 @@ class ParallelCodeReviewIntegrationPassTest {
     val narrow = listOf("src/api/Auth.kt")
 
     reviewHarness(
-      delegatedConfig(narrow) { RecordedWorkerResponse(timedOut = true) },
+      delegatedConfig(narrow) { RecordedWorkerResponse(termination = AgentRunTermination.TimedOut) },
       recorder,
     ).run(delegatedRequest(reviewRunId = RUN_ID))
     val afterFirst = recorder.specialistLaunches.size
@@ -237,7 +238,7 @@ class ParallelCodeReviewIntegrationPassTest {
     val result =
       reviewHarness(
         delegatedConfig(sixCommitPaths) { request ->
-          RecordedWorkerResponse(timedOut = request.skillRunRequest.issueKey == INTEGRATION_ISSUE_KEY)
+          integrationWorkerResponse(request, AgentRunTermination.TimedOut)
         },
         recorder,
       ).run(delegatedRequest(reviewRunId = RUN_ID))
@@ -277,6 +278,16 @@ class ParallelCodeReviewIntegrationPassTest {
     const val INTEGRATION_ISSUE_KEY = "code-review-integration"
   }
 }
+
+private fun integrationWorkerResponse(
+  request: GoalRunnerSubtaskLaunchRequest,
+  termination: AgentRunTermination,
+): RecordedWorkerResponse =
+  if (request.skillRunRequest.issueKey == "code-review-integration") {
+    RecordedWorkerResponse(termination = termination)
+  } else {
+    RecordedWorkerResponse()
+  }
 
 private val ReviewRecorder.integrationLaunches: List<GoalRunnerSubtaskLaunchRequest>
   get() = parentLaunches.filter { it.skillRunRequest.issueKey == "code-review-integration" }

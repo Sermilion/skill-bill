@@ -27,7 +27,6 @@ import skillbill.goalrunner.model.GoalRunnerStatusProjection
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.WorkflowSnapshotValidator
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.model.WorkflowStepStatus
@@ -246,7 +245,7 @@ class IdeStatusProjector(
     context: IdeStatusProjectionContext,
   ): IdeStatusSnapshot {
     val snapshot =
-      WorkflowFamily.TASK_RUNTIME.get(context.unitOfWork.workflowStates, candidate.workflowId)
+      context.unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, candidate.workflowId)
         ?: return incompatible(candidate, context, "Runtime workflow snapshot is missing.")
     val status =
       featureTaskRuntimeStatusService.status(
@@ -304,7 +303,7 @@ class IdeStatusProjector(
     family: WorkflowFamily,
   ): IdeStatusSnapshot {
     val snapshot =
-      family.get(context.unitOfWork.workflowStates, candidate.workflowId)
+      context.unitOfWork.workflowStates.get(family, candidate.workflowId)
         ?: return incompatible(
           candidate,
           context,

@@ -5,8 +5,8 @@ import skillbill.infrastructure.workflow.process.runGitCommand
 import skillbill.infrastructure.workflow.process.runGitProcess
 import skillbill.infrastructure.workflow.process.withValue
 import skillbill.ports.workflow.gitops.WorkflowGitRemoteOperations
+import skillbill.ports.workflow.gitops.model.WorkflowGitCommitResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.model.recordsNothingToCommit
 import skillbill.workflow.gitops.ProtectedBranches
 import java.nio.file.Path
 
@@ -41,14 +41,33 @@ internal fun gitBranchExists(
 internal fun gitCreateCommit(
   repoRoot: Path,
   message: String,
-): WorkflowGitOperationResult {
+): WorkflowGitCommitResult {
   val commit = runGitCommand(repoRoot, "commit", "-m", message)
   return when {
-    commit is WorkflowGitOperationResult.Ok -> runGitCommand(repoRoot, "rev-parse", "HEAD")
-    commit.recordsNothingToCommit() -> WorkflowGitOperationResult.Ok(value = "")
-    else -> commit
+    commit is WorkflowGitOperationResult.Ok -> {
+      val head = runGitCommand(repoRoot, "rev-parse", "HEAD")
+      if (head is WorkflowGitOperationResult.Ok) {
+        WorkflowGitCommitResult.Committed(head.value)
+      } else {
+        WorkflowGitCommitResult.Failed(head.error)
+      }
+    }
+    commit.reportsGitNothingStaged() -> WorkflowGitCommitResult.NothingToCommit
+    else -> WorkflowGitCommitResult.Failed(commit.error)
   }
 }
+
+private fun WorkflowGitOperationResult.reportsGitNothingStaged(): Boolean {
+  val text = "$error $value"
+  return NOTHING_TO_COMMIT_MARKERS.any { marker -> marker in text }
+}
+
+private val NOTHING_TO_COMMIT_MARKERS =
+  listOf(
+    "no changes added to commit",
+    "nothing to commit",
+    "nothing added to commit",
+  )
 
 internal fun gitPushBranch(
   repoRoot: Path,

@@ -5,6 +5,7 @@ import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
+import skillbill.goalrunner.model.GoalRunnerWirePayload
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.goalrunner.runner.model.GoalPullRequestRequest
@@ -211,7 +212,7 @@ interface GoalRunnerTerminalOutcomeStore {
     workflowId: String,
     issueKey: String,
     subtaskId: Int,
-    output: Any,
+    output: GoalRunnerWirePayload,
   ): GoalRunnerStoredOutcome?
 }
 

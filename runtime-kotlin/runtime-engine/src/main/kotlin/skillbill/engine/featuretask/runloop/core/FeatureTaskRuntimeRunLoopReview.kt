@@ -42,7 +42,6 @@ import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
-import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.review.context.model.hunk.ReviewContextBudgetExceededException
 import skillbill.workflow.model.goalreview.FeatureTaskRuntimeReviewPassSequence
 import skillbill.workflow.model.goalreview.GoalSubtaskBlockerDisposition

@@ -11,10 +11,7 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
-import skillbill.ports.workflow.save
-import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -76,7 +73,8 @@ class FeatureTaskRuntimeWorkflowPersistence
     ): Boolean =
       database.transaction { unitOfWork ->
         val normalizedIssueKey = normalizeIssueKey(issueKey)
-        val existing = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)
+        val existing =
+          unitOfWork.workflowStates.getFeatureTaskWorkflowAsMode(workflowId, FeatureTaskWorkflowMode.RUNTIME)
         if (existing != null) {
           val persistedIssueKey =
             existing.issueKey
@@ -91,11 +89,15 @@ class FeatureTaskRuntimeWorkflowPersistence
             throw WorkflowIssueKeyConflictError(workflowId, persistedIssueKey, normalizedIssueKey)
           }
           if (persistedIssueKey == null && normalizedIssueKey != null) {
-            unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(
+            unitOfWork.workflowStates.saveFeatureTaskWorkflow(
               existing.copy(issueKey = normalizedIssueKey, sessionId = existing.sessionId.ifBlank { sessionId }),
+              FeatureTaskWorkflowMode.RUNTIME,
             )
           } else if (existing.sessionId.isBlank()) {
-            unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(existing.copy(sessionId = sessionId))
+            unitOfWork.workflowStates.saveFeatureTaskWorkflow(
+              existing.copy(sessionId = sessionId),
+              FeatureTaskWorkflowMode.RUNTIME,
+            )
           }
           return@transaction true
         }
@@ -106,8 +108,8 @@ class FeatureTaskRuntimeWorkflowPersistence
             sessionId,
             WorkflowFamily.TASK_RUNTIME.definition.defaultInitialStepId,
           )
-        WorkflowFamily.TASK_RUNTIME.saveRecord(
-          unitOfWork.workflowStates,
+        unitOfWork.workflowStates.saveRecord(
+          WorkflowFamily.TASK_RUNTIME,
           opened.toRecord().copy(issueKey = normalizedIssueKey),
         )
         true
@@ -115,7 +117,7 @@ class FeatureTaskRuntimeWorkflowPersistence
 
     fun readArtifacts(workflowId: String): DurableWorkflowArtifacts? =
       database.read { unitOfWork ->
-        val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
+        val record = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, workflowId) ?: return@read null
         workflowSnapshotValidator.validate(record, record.workflowName)
         record.artifacts
       }
@@ -147,7 +149,7 @@ class FeatureTaskRuntimeWorkflowPersistence
           ),
         )
       workflowSnapshotValidator.validate(updated, updated.workflowName)
-      WorkflowFamily.TASK_RUNTIME.save(workflowStates, updated)
+      workflowStates.save(WorkflowFamily.TASK_RUNTIME, updated)
     }
 
     internal fun persistRunInvariantsPatch(

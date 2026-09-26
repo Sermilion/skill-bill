@@ -3,7 +3,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.error.shellcontent.InvalidScaffoldPayloadError
 import skillbill.infrastructure.skills.scaffold.platformpack.manifest.declaredSkillRelativeDirs
 import skillbill.model.toPath
-import skillbill.ports.scaffold.source.ScaffoldSourceLoaderPort
 import skillbill.ports.scaffold.source.model.ScaffoldPlatformPackLoadRequest
 import skillbill.ports.scaffold.source.model.ScaffoldPlatformPackLoadResult
 import skillbill.scaffold.model.PlatformManifest
@@ -14,8 +13,8 @@ import java.nio.file.Path
 import skillbill.infrastructure.skills.scaffold.platformpack.loader.loadPlatformPack as fsLoadPlatformPack
 
 @Inject
-class FileSystemScaffoldSourceLoader : ScaffoldSourceLoaderPort {
-  override fun loadPlatformPack(request: ScaffoldPlatformPackLoadRequest): ScaffoldPlatformPackLoadResult =
+class FileSystemScaffoldSourceLoader {
+  fun loadPlatformPack(request: ScaffoldPlatformPackLoadRequest): ScaffoldPlatformPackLoadResult =
     ScaffoldPlatformPackLoadResult(
       packRoot = request.packRoot,
       manifest = fsLoadPlatformPack(request.packRoot),

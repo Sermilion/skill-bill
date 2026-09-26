@@ -37,7 +37,8 @@ import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.FeatureTaskRouteScope
-import skillbill.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.FeatureTaskWorkflowMode.PROSE
+import skillbill.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.phase.task.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.time.Clock
@@ -60,7 +61,7 @@ class FeatureTaskContinuationLookupServiceTest {
     assertIs<FeatureTaskContinuationLookupResult.NoMatch>(
       fixture.lookup.lookup("SKILL-120", REPOSITORY_A),
     )
-    assertEquals(emptyList(), fixture.states.listFeatureTaskRuntimeWorkflows())
+    assertEquals(emptyList(), fixture.states.listFeatureTaskWorkflows(RUNTIME))
   }
 
   @Test
@@ -154,7 +155,7 @@ class FeatureTaskContinuationLookupServiceTest {
       )
     }
 
-    assertEquals(emptyList(), fixture.states.listFeatureTaskRuntimeWorkflows())
+    assertEquals(emptyList(), fixture.states.listFeatureTaskWorkflows(RUNTIME))
   }
 
   @Test
@@ -201,10 +202,10 @@ class FeatureTaskContinuationLookupServiceTest {
     val fixture = fixture()
     val opened = fixture.open(REPOSITORY_A)
     val identity = requireNotNull(fixture.states.executionIdentity(opened.workflowId))
-    fixture.states.overwriteExecutionIdentity(identity.copy(mode = FeatureTaskWorkflowMode.PROSE))
+    fixture.states.overwriteExecutionIdentity(identity.copy(mode = PROSE))
 
     val row = requireNotNull(fixture.states.getFeatureTaskWorkflow(opened.workflowId))
-    fixture.states.saveFeatureTaskRuntimeWorkflow(row.copy(mode = FeatureTaskWorkflowMode.PROSE))
+    fixture.states.saveFeatureTaskWorkflow(row.copy(mode = PROSE), RUNTIME)
 
     assertFailsWith<LegacyProseWorkflowError> {
       fixture.lookup.lookup("SKILL-120", REPOSITORY_A)
@@ -286,7 +287,7 @@ class FeatureTaskContinuationLookupServiceTest {
     assertEquals(1, goal.candidate.pendingCount)
     assertEquals(0, goal.candidate.blockedCount)
     val stored = requireNotNull(fixture.states.getFeatureTaskWorkflow("wfl-prose-goal-parent"))
-    assertEquals(FeatureTaskWorkflowMode.PROSE, stored.mode)
+    assertEquals(PROSE, stored.mode)
   }
 
   @Test
@@ -394,7 +395,7 @@ class FeatureTaskContinuationLookupServiceTest {
       val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
       val engine = WorkflowEngine()
       val opened = engine.openRecord(definition, "wfl-goal-parent", "ftr-goal", "preplan")
-      states.saveFeatureTaskRuntimeWorkflow(
+      states.saveFeatureTaskWorkflow(
         engine.updateRecord(
           definition,
           opened,
@@ -416,6 +417,7 @@ class FeatureTaskContinuationLookupServiceTest {
             sessionId = "ftr-goal",
           ),
         ).toRecord().copy(issueKey = "SKILL-120"),
+        RUNTIME,
       )
     }
 
@@ -459,11 +461,11 @@ class FeatureTaskContinuationLookupServiceTest {
           startedAt = null,
           updatedAt = null,
           finishedAt = null,
-          mode = FeatureTaskWorkflowMode.PROSE,
+          mode = PROSE,
           implementationSkill = "bill-feature-task-" + "prose",
           issueKey = "SKILL-120",
         ),
-        FeatureTaskWorkflowMode.PROSE,
+        PROSE,
       )
     }
 

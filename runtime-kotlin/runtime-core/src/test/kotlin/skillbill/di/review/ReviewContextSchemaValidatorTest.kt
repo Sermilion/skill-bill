@@ -6,20 +6,14 @@ import skillbill.application.review.packet.toIntegrationLaunchEnvelope
 import skillbill.application.review.packet.toLaunchEnvelope
 import skillbill.application.review.packet.toParentPacketEnvelope
 import skillbill.application.review.preparation.ReviewPreparationService
+import skillbill.application.review.preparation.model.ReviewLaneSelection
+import skillbill.application.review.preparation.model.ReviewPreparationFacts
+import skillbill.application.review.preparation.model.ReviewScopeFacts
+import skillbill.application.review.preparation.model.ReviewStackRoutingFacts
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.error.shellcontent.InvalidReviewContextSchemaError
 import skillbill.infrastructure.contracts.review.ReviewContextSchemaValidator
-import skillbill.ports.review.model.ReviewFactPorts
-import skillbill.ports.review.model.ReviewLaneSelection
-import skillbill.ports.review.model.ReviewScopeFacts
-import skillbill.ports.review.model.ReviewStackRoutingFacts
-import skillbill.ports.review.preparation.ReviewBuildTestFactsPort
-import skillbill.ports.review.preparation.ReviewGuidancePort
-import skillbill.ports.review.preparation.ReviewLaneSelectionPort
-import skillbill.ports.review.preparation.ReviewLearningsPort
-import skillbill.ports.review.preparation.ReviewScopeResolverPort
-import skillbill.ports.review.preparation.ReviewStackRoutingPort
 import skillbill.review.context.model.bundle.ReviewLaneBundle
 import skillbill.review.context.model.bundle.ReviewLaneBundleEntry
 import skillbill.review.context.model.commit.ReviewAssignment
@@ -597,7 +591,7 @@ class ReviewContextSchemaValidatorTest {
   @Test fun `the real service validates its own projections against the canonical schema`() {
     val prepared =
       ReviewPreparationService(
-        ReviewFactPorts(facts, facts, facts, facts, facts, facts),
+        facts,
         ReviewContextSchemaValidator(),
       ).prepare(
         ReviewPreparationRequest(
@@ -612,51 +606,30 @@ class ReviewContextSchemaValidatorTest {
   }
 
   private val facts =
-    object :
-      ReviewScopeResolverPort,
-      ReviewStackRoutingPort,
-      ReviewGuidancePort,
-      ReviewLearningsPort,
-      ReviewBuildTestFactsPort,
-      ReviewLaneSelectionPort {
-      override fun resolveScope(reviewId: String) =
-        ReviewScopeFacts("acme/repo", "base", "head", "clean", listOf(hunkA, hunkB), listOf(commitUnit), coverageFact)
-
-      override fun resolveStackRouting(scope: ReviewScopeFacts) =
-        ReviewStackRoutingFacts("kotlin", "kotlin", listOf("addon-a"), listOf("kotlin"))
-
-      override fun resolveMatchedRules(
-        scope: ReviewScopeFacts,
-        routing: ReviewStackRoutingFacts,
-      ) = listOf(rule)
-
-      override fun resolveLearnings(
-        scope: ReviewScopeFacts,
-        routing: ReviewStackRoutingFacts,
-      ) = listOf(FIXTURE_LEARNING)
-
-      override fun resolveBuildTestFacts(scope: ReviewScopeFacts) =
-        listOf(ReviewBuildTestFact("test", "gradle test", "passed"))
-
-      override fun decideLanes(
-        scope: ReviewScopeFacts,
-        routing: ReviewStackRoutingFacts,
-      ) = ReviewLaneSelection(
-        listOf(
-          ReviewLaneDecision(
-            "security",
-            true,
-            "auth surface changed",
-            ownedPaths = listOf("src/A.kt"),
-            originLayerChains = listOf(listOf("kotlin")),
-            owningPack = "kotlin",
-            specialistSkillName = "bill-kotlin-code-review-security",
+    ReviewPreparationFacts(
+      scope =
+        ReviewScopeFacts("acme/repo", "base", "head", "clean", listOf(hunkA, hunkB), listOf(commitUnit), coverageFact),
+      stackRouting = ReviewStackRoutingFacts("kotlin", "kotlin", listOf("addon-a"), listOf("kotlin")),
+      laneSelection =
+        ReviewLaneSelection(
+          listOf(
+            ReviewLaneDecision(
+              "security",
+              true,
+              "auth surface changed",
+              ownedPaths = listOf("src/A.kt"),
+              originLayerChains = listOf(listOf("kotlin")),
+              owningPack = "kotlin",
+              specialistSkillName = "bill-kotlin-code-review-security",
+            ),
+            ReviewLaneDecision("ui", false, "no UI files changed"),
           ),
-          ReviewLaneDecision("ui", false, "no UI files changed"),
+          securityRouting,
         ),
-        securityRouting,
-      )
-    }
+      matchedRules = listOf(rule),
+      learningsReferences = listOf(FIXTURE_LEARNING),
+      buildTestFacts = listOf(ReviewBuildTestFact("test", "gradle test", "passed")),
+    )
 
   private fun verificationLaunch(): Map<String, Any?> =
     mapOf(

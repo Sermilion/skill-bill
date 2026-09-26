@@ -291,7 +291,7 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
     workflowId: String,
   ) {
     database.transaction { unitOfWork ->
-      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(
+      unitOfWork.workflowStates.saveFeatureTaskWorkflow(
         WorkflowStateRecord(
           workflowId = workflowId,
           sessionId = "ftr-sqlite-resume",
@@ -306,6 +306,7 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
           finishedAt = null,
           mode = FeatureTaskWorkflowMode.RUNTIME,
         ),
+        FeatureTaskWorkflowMode.RUNTIME,
       )
     }
   }
