@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.execution.core
 
+import me.tatarka.inject.annotations.Inject
 import skillbill.engine.goalrunner.execution.support.CompletedIterationArgs
 import skillbill.engine.goalrunner.execution.support.GoalRunnerIterationPendingState
 import skillbill.engine.goalrunner.execution.support.GoalRunnerIterationResult
@@ -11,22 +12,32 @@ import skillbill.engine.goalrunner.execution.support.StoppedIterationArgs
 import skillbill.engine.goalrunner.execution.support.recordLaunchObservabilityAndLedger
 import skillbill.engine.goalrunner.launch.GoalRunnerLaunchReconciler
 import skillbill.engine.goalrunner.launch.GoalRunnerSubtaskLaunchPrepare
+import skillbill.engine.goalrunner.manifest.GoalRunnerManifestStore
 import skillbill.engine.goalrunner.model.GoalRunnerLaunchReconciliation
+import skillbill.engine.goalrunner.model.GoalRunnerManifestState
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.engine.goalrunner.telemetry.GoalRunnerTelemetryEmitter
-import skillbill.error.goalrunner.GoalRunnerLaunchAuthorizationDeniedException
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerSelection
-import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
+import skillbill.ports.agentrun.model.AgentRunLaunchDenied
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
-import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import java.time.Clock
 
-internal class GoalRunnerSelectedSubtaskLoop(
+private sealed interface SubtaskLaunchResult {
+  data class Launched(
+    val reconciliation: GoalRunnerLaunchReconciliation,
+    val workerRequestResult: GoalRunnerWorkerRequestHandlingResult,
+  ) : SubtaskLaunchResult
+
+  data object Denied : SubtaskLaunchResult
+}
+
+@Inject
+class GoalRunnerSelectedSubtaskLoop(
   private val manifestStore: GoalRunnerManifestStore,
   private val subtaskLauncher: GoalRunnerSubtaskLauncher,
   private val reconciler: GoalRunnerLaunchReconciler,
@@ -35,11 +46,12 @@ internal class GoalRunnerSelectedSubtaskLoop(
   private val pauseBoundary: GoalRunnerPauseBoundary,
   private val launchPrepare: GoalRunnerSubtaskLaunchPrepare,
   private val clock: Clock,
-  pendingState: GoalRunnerIterationPendingState,
 ) {
-  private val validationQualityState = pendingState.validationQualityState
-
-  internal fun runSelectedSubtask(args: RunSelectedSubtaskArgs): GoalRunnerIterationResult {
+  internal fun runSelectedSubtask(
+    args: RunSelectedSubtaskArgs,
+    pendingState: GoalRunnerIterationPendingState,
+  ): GoalRunnerIterationResult {
+    val validationQualityState = pendingState.validationQualityState
     val state = args.state
     val selection = args.selection
     val request = args.request
@@ -96,6 +108,7 @@ internal class GoalRunnerSelectedSubtaskLoop(
         ledger = ledger,
         attemptStartMillis = launch.attemptStartMillis,
       ),
+      pendingState,
     )
   }
 
@@ -171,29 +184,32 @@ internal class GoalRunnerSelectedSubtaskLoop(
     recordAttempt(subtaskId)
     emitSubtaskStarted(prepared.attemptedState, subtaskId, selection, request, telemetryEmitter)
     val attemptStartMillis = clock.millis()
-    val (launchReconciliation, workerRequestResult) =
-      try {
-        launchSubtaskWithWorkerResult(
-          LaunchSubtaskWithWorkerResultArgs(
-            state = prepared.attemptedState,
-            subtaskId = subtaskId,
-            request = request,
-            assignedWorkflowId = prepared.openWithAssignedId,
-            reviewBaseline = prepared.reviewBaseline,
-            spawnAuthorization = launchAuthorization.spawnAuthorization,
-          ),
-        )
-      } catch (_: GoalRunnerLaunchAuthorizationDeniedException) {
-        return SelectedSubtaskLaunch.Stopped(
-          deniedLaunchPause(
-            prepared,
-            manifestStore.controlState(prepared.attemptedState.parentWorkflowId),
-          ),
-        )
+    val launched =
+      when (
+        val result =
+          launchSubtaskWithWorkerResult(
+            LaunchSubtaskWithWorkerResultArgs(
+              state = prepared.attemptedState,
+              subtaskId = subtaskId,
+              request = request,
+              assignedWorkflowId = prepared.openWithAssignedId,
+              reviewBaseline = prepared.reviewBaseline,
+              spawnAuthorization = launchAuthorization.spawnAuthorization,
+            ),
+          )
+      ) {
+        is SubtaskLaunchResult.Denied ->
+          return SelectedSubtaskLaunch.Stopped(
+            deniedLaunchPause(
+              prepared,
+              manifestStore.controlState(prepared.attemptedState.parentWorkflowId),
+            ),
+          )
+        is SubtaskLaunchResult.Launched -> result
       }
     return SelectedSubtaskLaunch.Completed(
-      reconciliation = launchReconciliation,
-      workerRequestResult = workerRequestResult,
+      reconciliation = launched.reconciliation,
+      workerRequestResult = launched.workerRequestResult,
       attemptStartMillis = attemptStartMillis,
     )
   }
@@ -216,7 +232,10 @@ internal class GoalRunnerSelectedSubtaskLoop(
       )
   }
 
-  private fun dispatchWorkerResult(args: DispatchWorkerResultArgs): GoalRunnerIterationResult {
+  private fun dispatchWorkerResult(
+    args: DispatchWorkerResultArgs,
+    pendingState: GoalRunnerIterationPendingState,
+  ): GoalRunnerIterationResult {
     val session =
       GoalRunnerIterationSession(
         request = args.request,
@@ -234,6 +253,7 @@ internal class GoalRunnerSelectedSubtaskLoop(
           reconciled = stop,
           session = session,
         ),
+        pendingState,
       )
     } ?: when (val reconciled = args.reconciled) {
       is GoalRunnerReconciledOutcome.Complete ->
@@ -254,6 +274,7 @@ internal class GoalRunnerSelectedSubtaskLoop(
             session = session,
             launchDiagnostics = args.launchReconciliation.diagnostics,
           ),
+          pendingState,
         )
     }
   }
@@ -287,9 +308,7 @@ internal class GoalRunnerSelectedSubtaskLoop(
     }
   }
 
-  private fun launchSubtaskWithWorkerResult(
-    args: LaunchSubtaskWithWorkerResultArgs,
-  ): Pair<GoalRunnerLaunchReconciliation, GoalRunnerWorkerRequestHandlingResult> {
+  private fun launchSubtaskWithWorkerResult(args: LaunchSubtaskWithWorkerResultArgs): SubtaskLaunchResult {
     val launchReconciliation =
       launchAndReconcileSubtask(
         LaunchAndReconcileSubtaskArgs(
@@ -300,17 +319,17 @@ internal class GoalRunnerSelectedSubtaskLoop(
           reviewBaseline = args.reviewBaseline,
           spawnAuthorization = args.spawnAuthorization,
         ),
-      )
+      ) ?: return SubtaskLaunchResult.Denied
     val workerRequestResult =
       workerRequestHandler.handle(
         state = launchReconciliation.refreshed,
         launchOutcome = launchReconciliation.launchOutcome,
         subtaskId = args.subtaskId,
       )
-    return Pair(launchReconciliation, workerRequestResult)
+    return SubtaskLaunchResult.Launched(launchReconciliation, workerRequestResult)
   }
 
-  private fun launchAndReconcileSubtask(args: LaunchAndReconcileSubtaskArgs): GoalRunnerLaunchReconciliation {
+  private fun launchAndReconcileSubtask(args: LaunchAndReconcileSubtaskArgs): GoalRunnerLaunchReconciliation? {
     val state = args.state
     val subtaskId = args.subtaskId
     val request = args.request
@@ -327,6 +346,7 @@ internal class GoalRunnerSelectedSubtaskLoop(
           ),
         ),
       )
+    if (launchOutcome is AgentRunLaunchDenied) return null
     return reconciler.reconcileLaunchOutcome(state, launchOutcome, subtaskId, request)
   }
 

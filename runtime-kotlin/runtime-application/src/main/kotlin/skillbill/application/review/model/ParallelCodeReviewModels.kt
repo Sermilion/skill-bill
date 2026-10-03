@@ -5,9 +5,9 @@ import skillbill.ports.agentrun.model.READ_ONLY_PHASE_PROGRESS_IDLE_TIMEOUT_MINU
 import skillbill.ports.review.model.ReviewIntegrationPassOutcome
 import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.review.context.model.accounting.ReviewAccountingSummary
+import skillbill.review.context.model.accounting.ReviewBudgetOutcome
+import skillbill.review.context.model.execution.CodeReviewExecutionMode
 import skillbill.review.context.model.hunk.ReviewBaselineUntrackedPolicy
-import skillbill.review.context.model.hunk.ReviewBudgetOutcome
-import skillbill.review.context.model.launch.CodeReviewExecutionMode
 import skillbill.review.context.model.packet.ReviewLaneCompletionState
 import skillbill.review.model.ParallelReviewMergeResult
 import skillbill.review.model.ReviewCoverageReport
@@ -128,9 +128,27 @@ data class ParallelReviewLaneStatus(
   val reviewDisposition: ReviewLaneReviewDisposition = ReviewLaneReviewDisposition.INCOMPLETE,
 )
 
-class UsageValidationException(message: String) : RuntimeException(message)
+sealed interface ParallelCodeReviewPlanningFailure {
+  val message: String
 
-class StackDetectionException(message: String, cause: Throwable) : RuntimeException(message, cause)
+  data class UsageInvalid(override val message: String) : ParallelCodeReviewPlanningFailure
+
+  data class StackUndetected(override val message: String) : ParallelCodeReviewPlanningFailure
+
+  data class DiffUnresolved(override val message: String) : ParallelCodeReviewPlanningFailure
+}
+
+sealed interface ParallelCodeReviewPlanned<out T> {
+  data class Ready<T>(val value: T) : ParallelCodeReviewPlanned<T>
+
+  data class Failed(val failure: ParallelCodeReviewPlanningFailure) : ParallelCodeReviewPlanned<Nothing>
+}
+
+sealed interface ParallelCodeReviewRunOutcome {
+  data class Reviewed(val result: ParallelCodeReviewResult) : ParallelCodeReviewRunOutcome
+
+  data class PlanningFailed(val failure: ParallelCodeReviewPlanningFailure) : ParallelCodeReviewRunOutcome
+}
 
 internal data class ReviewLaneIntegrationInput(
   val launch: ReviewSpecialistLaunchRequest,

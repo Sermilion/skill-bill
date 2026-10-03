@@ -7,21 +7,23 @@ import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.config.ConfigResolutionService
 import skillbill.application.review.service.RequestedReviewMode
-import skillbill.cli.codereview.namedStandaloneScope
-import skillbill.cli.codereview.usageError
 import skillbill.cli.kernel.agent.invokingAgentResolutionHelp
 import skillbill.cli.kernel.agent.requireInvokingAgentId
 import skillbill.cli.kernel.cli.CliRunState
 import skillbill.cli.kernel.cli.DocumentedCliCommand
+import skillbill.cli.kernel.cli.namedStandaloneScope
 import skillbill.cli.kernel.cli.resolveCliRepositoryRoot
+import skillbill.cli.kernel.cli.usageError
 import skillbill.cli.model.CliRunInputs
 import skillbill.engine.featuretask.model.review.ReviewInvocation
 import skillbill.engine.featuretask.model.review.ReviewTarget
 import skillbill.engine.featuretask.phaserun.PhaseRunEntry
 import skillbill.engine.featuretask.phaserun.PhaseRunRequest
 import skillbill.engine.featuretask.phaserun.PhaseRunResult
-import skillbill.error.core.ShellContentContractException
+import skillbill.error.core.SkillBillRuntimeException
+import skillbill.error.core.rethrowUnless
 import skillbill.error.featuretask.UnknownPhaseReviewTargetError
+import skillbill.error.shellcontent.isShellContentContractFailure
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.taskruntime.model.skeleton.PhaseIntakeRequirement
 import skillbill.workflow.taskruntime.model.skeleton.SkeletonDefinition
@@ -92,7 +94,8 @@ internal fun runPhase(
     run()
   } catch (error: UnknownPhaseReviewTargetError) {
     usageError(error)
-  } catch (error: ShellContentContractException) {
+  } catch (error: SkillBillRuntimeException) {
+    error.rethrowUnless(error.isShellContentContractFailure())
     state.completeText(error.message.orEmpty(), emptyMap(), exitCode = 1)
     null
   }

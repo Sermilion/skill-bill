@@ -4,15 +4,14 @@ import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimeBriefingProjectionInputs
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.phase.prompt.compose.FeatureTaskRuntimePhasePromptComposer
-import skillbill.ports.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.handoff.FeatureTaskRuntimeHandoffProjectionValidator
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.handoff.PhaseHandoffProjectionShape
+import skillbill.workflow.taskruntime.model.handoff.assembly.FeatureTaskRuntimePhaseHandoff
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffProjectionBudget
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffPromptVisibility
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeHandoffSourceRef
-import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimePhaseHandoff
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeHandoffPromptVisibility
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.run.FeatureTaskRuntimeRunInvariantPromptField
+import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariantPromptField
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimeSharedReviewEvidenceReference
 
 object FeatureTaskRuntimeRunInvariantPromptAllowlist {
@@ -41,7 +40,6 @@ object FeatureTaskRuntimePhaseBriefingAssembler {
   fun assemble(
     handoff: FeatureTaskRuntimePhaseHandoff,
     workflowId: String? = null,
-    planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
     agentAddonSelection: HydratedAgentAddonSelection = HydratedAgentAddonSelection(),
     scope: FeatureTaskRuntimeBriefingScope = FeatureTaskRuntimeBriefingScope(),
   ): FeatureTaskRuntimePhaseLaunchBriefing {
@@ -76,7 +74,6 @@ object FeatureTaskRuntimePhaseBriefingAssembler {
             handoff = handoff,
             declarations = promptDeclarations,
             workflowId = workflowId,
-            planningProjectionValidator = planningProjectionValidator,
             sharedReviewEvidence = scope.sharedReviewEvidence,
             addonContentBySlug = boundedAddonSelection.entries.associate { it.persisted.slug to it.content },
           ),

@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.workflow.goalrunner.shared
+import skillbill.contracts.workflow.goal.GOAL_SHARED_PREPLAN_DISCARDED_PAYLOAD
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
@@ -15,6 +16,7 @@ import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.repairEviden
 import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.requireColumn
 import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.requireParentGoalWorkflowId
 import skillbill.infrastructure.sqlite.workflow.goalrunner.planning.translateSqlFailure
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
@@ -23,7 +25,7 @@ import java.security.MessageDigest
 import java.sql.Connection
 import java.sql.ResultSet
 
-internal const val INVALIDATED_SHARED_PREPLAN_PAYLOAD = "shared-preplan-discarded"
+internal const val INVALIDATED_SHARED_PREPLAN_PAYLOAD = GOAL_SHARED_PREPLAN_DISCARDED_PAYLOAD
 
 internal val INVALIDATED_SHARED_PREPLAN_PAYLOAD_SHA256: String =
   MessageDigest.getInstance("SHA-256")
@@ -32,10 +34,11 @@ internal val INVALIDATED_SHARED_PREPLAN_PAYLOAD_SHA256: String =
 
 internal class GoalSharedPreplanSql(
   private val connection: Connection,
+  private val diagnostics: RuntimeDiagnostics,
 ) {
   fun checkpointSharedPreplan(checkpoint: SharedGoalPreplanCheckpoint) {
     requireNormalizedSharedPreplan(checkpoint)
-    connection.inNestedWriteTransaction {
+    connection.inNestedWriteTransaction(diagnostics) {
       val inserted = connection.insertSharedPreplanRow(checkpoint)
       if (!inserted) {
         val stored =
@@ -60,7 +63,7 @@ internal class GoalSharedPreplanSql(
   ) {
     requireNormalizedSharedPreplan(checkpoint)
     require(expectedPayloadSha256.isNotBlank()) { "expectedPayloadSha256 is required." }
-    connection.inNestedWriteTransaction {
+    connection.inNestedWriteTransaction(diagnostics) {
       val updated =
         connection.prepareStatement(
           """UPDATE goal_shared_preplans SET normalized_issue_key = ?, repository_identity = ?,
@@ -110,7 +113,7 @@ internal class GoalSharedPreplanSql(
     normalizedIdentityFailure(identity)?.let { (field, reason) ->
       throw InvalidGoalPlanningPreparationSchemaError(identity.parentGoalWorkflowId, field, reason)
     }
-    connection.inNestedWriteTransaction {
+    connection.inNestedWriteTransaction(diagnostics) {
       val updated =
         connection.prepareStatement(
           """UPDATE goal_shared_preplans SET parent_spec_hash = ?, decomposition_manifest_hash = ?,

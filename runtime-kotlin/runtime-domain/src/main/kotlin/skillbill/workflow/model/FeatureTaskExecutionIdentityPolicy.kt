@@ -41,8 +41,30 @@ object FeatureTaskExecutionIdentityPolicy {
         issueKeyFailure("issue_key", issueKey),
       )
     }
-    return issueKey.trim().uppercase()
+    return canonicalIssueKey(issueKey)
   }
+
+  fun canonicalIssueKey(issueKey: String): String = issueKey.trim().uppercase()
+
+  fun canonicalGovernedSpecPath(
+    specPath: String,
+    repositoryIdentity: String,
+  ): String {
+    val repositoryRoot = repositoryIdentity.removePrefix(REPOSITORY_IDENTITY_PREFIX).trimEnd('/')
+    val normalized = specPath.replace('\\', '/')
+    return if (normalized.startsWith("$repositoryRoot/")) {
+      normalized.removePrefix("$repositoryRoot/")
+    } else {
+      normalized
+    }
+  }
+
+  fun sameGovernedSpecPath(
+    left: String,
+    right: String,
+    repositoryIdentity: String,
+  ): Boolean =
+    canonicalGovernedSpecPath(left, repositoryIdentity) == canonicalGovernedSpecPath(right, repositoryIdentity)
 
   fun validateLookupRequest(
     issueKey: String,

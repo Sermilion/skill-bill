@@ -2,6 +2,7 @@ package skillbill.error.shellcontent
 
 import skillbill.error.core.ShellContentContractException
 import skillbill.error.featuretask.FeatureTaskRuntimeHandoffProjectionFailureKind
+import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.featuretask.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.error.featuretask.InvalidFeatureTaskRuntimeHandoffProjectionContext
 import skillbill.error.featuretask.coarseFailureKindForPhaseOutputWireCode
@@ -26,7 +27,7 @@ class InvalidFeatureTaskRuntimePhaseOutputSchemaError(
   val reason: String,
   cause: Throwable? = null,
   val payloadFreeReason: String? = null,
-  val failureCode: String = "schema_invalid",
+  val failureCode: String = FeatureTaskRuntimePhaseOutputFailureCode.SCHEMA_INVALID.wireValue,
   val structuralRepair: FeatureTaskRuntimePhaseOutputStructuralRepair? = null,
 ) : ShellContentContractException(
     "Feature-task-runtime phase output '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation: $reason",
@@ -99,17 +100,6 @@ class InvalidFeatureTaskRuntimeFindingVerificationRecordError(
   cause: Throwable? = null,
 ) : ShellContentContractException(
     "Feature-task-runtime finding verification record is invalid: $reason",
-    cause,
-  )
-
-class InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
-  val sourceLabel: String,
-  val reason: String,
-  val projectionName: String? = null,
-  cause: Throwable? = null,
-) : ShellContentContractException(
-    "Feature-task-runtime planning projection '${sourceLabel.ifBlank { "<unknown>" }}' " +
-      "fails schema validation: $reason",
     cause,
   )
 

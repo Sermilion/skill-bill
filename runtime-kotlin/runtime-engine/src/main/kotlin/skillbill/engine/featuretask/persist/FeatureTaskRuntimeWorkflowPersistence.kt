@@ -1,16 +1,20 @@
 package skillbill.engine.featuretask.persist
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.phase.FeatureTaskRuntimePhaseStepWireUpdate
-import skillbill.engine.goalrunner.repair.GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY
+import skillbill.error.featuretask.FeatureTaskRuntimeExecutionPlanConflictError
+import skillbill.error.featuretask.MissingFeatureTaskRuntimeExecutionPlanError
 import skillbill.error.shellcontent.InvalidWorkflowStateSchemaError
 import skillbill.error.shellcontent.WorkflowIssueKeyConflictError
 import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.taskruntime.model.ValidatedFeatureTaskRuntimeExecutionPlan
 import skillbill.ports.workflow.WorkflowSnapshotValidator
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowFamily
+import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
@@ -25,15 +29,17 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.artifact.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.handoff.task.FeatureTaskRuntimeRunInvariants
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.implementation.FeatureTaskRuntimeImplementationAttemptStatus
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_STATUS_BLOCKED
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.store.FEATURE_TASK_RUNTIME_PHASE_STATUS_PENDING
+import skillbill.workflow.taskruntime.model.persistence.FEATURE_TASK_RUNTIME_PHASE_STATUS_BLOCKED
+import skillbill.workflow.taskruntime.model.persistence.FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED
+import skillbill.workflow.taskruntime.model.persistence.FEATURE_TASK_RUNTIME_PHASE_STATUS_PENDING
+import skillbill.workflow.taskruntime.model.persistence.FeatureTaskRuntimeImplementationAttemptStatus
 import skillbill.workflow.taskruntime.model.phase.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.skeleton.PhaseSlot
 import java.security.MessageDigest
 import java.time.Duration
 import java.time.Instant
+
+const val GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY: String = "goal_child_repair_evidence"
 
 internal data class WorkflowRowAdvance(
   val currentStepId: String,
@@ -59,12 +65,25 @@ class FeatureTaskRuntimeWorkflowPersistence
       workflowId: String,
       sessionId: String,
       issueKey: String? = null,
+      executionPlan: ValidatedFeatureTaskRuntimeExecutionPlan? = null,
     ): Boolean =
       database.transaction { unitOfWork ->
         val normalizedIssueKey = normalizeIssueKey(issueKey)
         val existing =
           unitOfWork.workflowStates.getFeatureTaskWorkflowAsMode(workflowId, FeatureTaskWorkflowMode.RUNTIME)
         if (existing != null) {
+          val storedPlan =
+            DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_EXECUTION_PLAN.value(
+              existing.toSnapshot().artifacts,
+            )
+          if (storedPlan == null) throw MissingFeatureTaskRuntimeExecutionPlanError()
+          if (executionPlan != null && storedPlan !=
+            JsonCodec.parseValue(
+              executionPlan.encoded().toString(Charsets.UTF_8),
+            )
+          ) {
+            throw FeatureTaskRuntimeExecutionPlanConflictError()
+          }
           val persistedIssueKey =
             existing.issueKey
               ?.trim()
@@ -90,6 +109,7 @@ class FeatureTaskRuntimeWorkflowPersistence
           }
           return@transaction true
         }
+        if (executionPlan == null) throw MissingFeatureTaskRuntimeExecutionPlanError()
         val opened =
           engine.openRecord(
             WorkflowFamily.TASK_RUNTIME.definition,
@@ -99,7 +119,16 @@ class FeatureTaskRuntimeWorkflowPersistence
           )
         unitOfWork.workflowStates.saveRecord(
           WorkflowFamily.TASK_RUNTIME,
-          opened.toRecord().copy(issueKey = normalizedIssueKey),
+          opened.copy(
+            artifacts =
+              DurableWorkflowArtifacts.fromMap(
+                mapOf(
+                  DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_EXECUTION_PLAN.entry(
+                    JsonCodec.parseValue(executionPlan.encoded().toString(Charsets.UTF_8)),
+                  ),
+                ),
+              ),
+          ).toRecord().copy(issueKey = normalizedIssueKey),
         )
         true
       }

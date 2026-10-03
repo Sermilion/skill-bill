@@ -14,6 +14,7 @@ import skillbill.application.review.parallel.verification.parallelCodeReviewCapt
 import skillbill.application.review.parallel.verification.parallelCodeReviewInlineTerminalStatus
 import skillbill.application.review.parallel.verification.parallelCodeReviewNoOpResumeOutcome
 import skillbill.goalrunner.terminalStatus
+import skillbill.ports.agentrun.model.AgentRunLaunchDenied
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.SkillRunRequest
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
@@ -30,13 +31,12 @@ import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.ports.review.model.ReviewLaunchAgentStagingRequest
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceLocatorReadPort
 import skillbill.review.context.model.accounting.ReviewAccountingTerminalOutcome
+import skillbill.review.context.model.accounting.ReviewBudgetEvaluator
+import skillbill.review.context.model.accounting.ReviewContextBudgetPolicy
+import skillbill.review.context.model.accounting.ReviewLaneIdentity
 import skillbill.review.context.model.bundle.ReviewLaneBundle
 import skillbill.review.context.model.bundle.ReviewLaneBundleEntry
-import skillbill.review.context.model.hunk.ReviewBudgetEvaluator
-import skillbill.review.context.model.hunk.ReviewContextBudgetExceededException
-import skillbill.review.context.model.hunk.ReviewContextBudgetPolicy
 import skillbill.review.context.model.hunk.ReviewDependencyAllowlist
-import skillbill.review.context.model.hunk.ReviewLaneIdentity
 import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.context.model.packet.ReviewLaneCompletionState
 import skillbill.review.context.model.packet.asFailedLaneRun
@@ -138,6 +138,7 @@ class ParallelCodeReviewRunnerLaneLaunch(
         )
       when (outcome) {
         is UnsupportedAgentRunLaunch -> unsupportedParentOutcome(args.launch, outcome)
+        is AgentRunLaunchDenied -> error("Parallel code review lane launch never carries a spawn authorization.")
         is AgentRunLaunchFacts -> launchedParentOutcome(args.launch, outcome, args.budget, args.bound.broker)
       }
     }
@@ -219,7 +220,7 @@ class ParallelCodeReviewRunnerLaneLaunch(
       evidenceAccounting.authorizedReadCount == 0 &&
         launch.selected.any { parallelCodeReviewGovernedLaunchFor(it).assembledBundle.entries.isNotEmpty() }
     val launchReason =
-      budgetOutcome?.let { ReviewContextBudgetExceededException(it).message }
+      budgetOutcome?.let { "${it.type}: ${it.budgetKind.wireValue} ${it.observedValue} > ${it.configuredLimit}" }
         ?: failureAdmission.laneFailureReason(outcome)
         ?: "Review worker returned without reading assigned evidence.".takeIf { noEvidenceRead }
     val evidenceCompletion = parallelCodeReviewBrokerEvidenceCompletionState(bundleState, evidenceAccounting)

@@ -1,6 +1,7 @@
 package skillbill.application.workflow.decomposition
 
 import skillbill.application.decomposition.DecompositionManifestWriter
+import skillbill.application.decomposition.resolveDecompositionManifest
 import skillbill.application.workflow.model.AdvanceCompletedSubtasksRequest
 import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
 import skillbill.application.workflow.model.ContinueExistingWorkflowArgs
@@ -22,8 +23,6 @@ import skillbill.goalrunner.commitPushResultArtifact
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.DecompositionManifestValidator
-import skillbill.ports.workflow.decomposition.findDecomposedParentOrCorruptFallback
-import skillbill.ports.workflow.decomposition.resolveDecompositionManifest
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.model.WorkflowFamily
@@ -36,6 +35,7 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.runtime.decompositionRuntime
 import skillbill.workflow.decomposition.runtime.normalizedBlockedReason
 import skillbill.workflow.decomposition.withParentStatus
+import skillbill.workflow.decomposition.withStartedSubtask
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifactFamily
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
@@ -144,12 +144,12 @@ class DecompositionWorkflowContinuation(
                 listOf(
                   mapOf(
                     SharedPayloadKeys.STEP_ID to "preplan",
-                    SharedPayloadKeys.STATUS to "completed",
+                    SharedPayloadKeys.STATUS to WorkflowStepStatus.COMPLETED.wireValue,
                     "attempt_count" to 1,
                   ),
                   mapOf(
                     SharedPayloadKeys.STEP_ID to "plan",
-                    SharedPayloadKeys.STATUS to "completed",
+                    SharedPayloadKeys.STATUS to WorkflowStepStatus.COMPLETED.wireValue,
                     "attempt_count" to 1,
                   ),
                 ),
@@ -393,7 +393,7 @@ class DecompositionWorkflowContinuation(
               listOf(
                 mapOf(
                   SharedPayloadKeys.STEP_ID to "preplan",
-                  SharedPayloadKeys.STATUS to "running",
+                  SharedPayloadKeys.STATUS to WorkflowStepStatus.RUNNING.wireValue,
                   "attempt_count" to 1,
                 ),
               ),

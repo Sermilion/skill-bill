@@ -4,6 +4,7 @@ import skillbill.application.review.model.ReviewIntegrationPassRunRequest
 import skillbill.application.review.model.ReviewLaneIntegrationInput
 import skillbill.application.review.model.boundedReviewLane
 import skillbill.application.review.packet.toIntegrationLaunchEnvelope
+import skillbill.ports.agentrun.model.AgentRunLaunchDenied
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunTermination
 import skillbill.ports.agentrun.model.SkillRunRequest
@@ -12,10 +13,10 @@ import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.review.ReviewContextEnvelopeValidator
 import skillbill.ports.review.model.ReviewIntegrationPassOutcome
+import skillbill.review.context.model.accounting.ReviewIntegrationTerminalOutcome
 import skillbill.review.context.model.execution.ReviewSpecialistSummaryCoverage
-import skillbill.review.context.model.execution.structuredString
+import skillbill.review.context.model.hunk.structuredString
 import skillbill.review.context.model.launch.GovernedReviewIntegrationLaunch
-import skillbill.review.context.model.launch.ReviewIntegrationTerminalOutcome
 import skillbill.review.context.model.launch.ReviewSpecialistSummary
 import skillbill.review.context.model.packet.ReviewContextPacket
 import skillbill.review.context.model.packet.ReviewPacketConsumerContract
@@ -69,6 +70,7 @@ internal class ReviewIntegrationPassRunner(
           launchBytes = launchBytes,
           failureReason = "unsupported agent: ${outcome.reason}",
         )
+      is AgentRunLaunchDenied -> error("Review integration pass never launches with a spawn authorization.")
       is AgentRunLaunchFacts -> completedOutcome(integration, outcome, launchBytes)
     }
   }

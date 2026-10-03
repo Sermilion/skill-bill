@@ -16,9 +16,13 @@ import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.engine.decomposition.encodeDecompositionManifestYaml
 import skillbill.engine.featuretask.lifecycle.continuation.FeatureTaskContinuationLookupService
+import skillbill.engine.featuretask.lifecycle.execution.ExecutionPlanAdmissionFixture
+import skillbill.engine.goalrunner.manifest.GoalRunnerManifestStoreDefaults
 import skillbill.engine.goalrunner.model.GoalPreflightRequest
+import skillbill.engine.goalrunner.model.GoalRunnerManifestState
 import skillbill.engine.goalrunner.preflight.GoalPreflightService
-import skillbill.error.shellcontent.InvalidAgentAddonSelectionError
+import skillbill.error.core.SkillBillRuntimeException
+import skillbill.error.shellcontent.AgentAddonFailureCode
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
 import skillbill.error.shellcontent.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
@@ -27,12 +31,11 @@ import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigResult
-import skillbill.ports.goalrunner.runner.GoalRunnerManifestStoreDefaults
-import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
+import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.review.context.model.launch.CodeReviewExecutionMode
+import skillbill.review.context.model.execution.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionManifest
@@ -252,13 +255,15 @@ class GoalPreflightServiceTest {
   fun `requested add-ons cannot bypass an empty durable selection on goal resume`() {
     val root = Files.createTempDirectory("goal-preflight-addon-mismatch")
 
-    assertFailsWith<InvalidAgentAddonSelectionError> {
-      service(
-        database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
-        manifestState = GoalRunnerManifestState("parent-1", "/fake/metrics.db", manifest()),
-        persistedReviewPolicy = GoalRunnerReviewPolicy(CodeReviewExecutionMode.DEFAULT),
-      ).preflight(request(root, addons = listOf("new-addon")))
-    }
+    val error =
+      assertFailsWith<SkillBillRuntimeException> {
+        service(
+          database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+          manifestState = GoalRunnerManifestState("parent-1", "/fake/metrics.db", manifest()),
+          persistedReviewPolicy = GoalRunnerReviewPolicy(CodeReviewExecutionMode.DEFAULT),
+        ).preflight(request(root, addons = listOf("new-addon")))
+      }
+    assertEquals(AgentAddonFailureCode.INVALID_SELECTION, error.code)
   }
 
   @Test
@@ -291,6 +296,8 @@ class GoalPreflightServiceTest {
         FeatureTaskContinuationLookupService(
           database,
           testWorkflowSnapshotValidator,
+          ExecutionPlanAdmissionFixture().compatibility,
+          NoopRuntimeDiagnostics,
         ),
       manifestStore = TestManifestStore(manifestState, persistedReviewPolicy),
       agentAddonSelectionPort = TestAgentAddonSelectionPort,

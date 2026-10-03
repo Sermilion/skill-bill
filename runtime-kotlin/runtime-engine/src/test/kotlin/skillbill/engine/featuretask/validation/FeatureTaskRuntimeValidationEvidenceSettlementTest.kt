@@ -3,8 +3,8 @@ package skillbill.engine.featuretask.validation
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.identity.evidence.ValidationEvidencePayloadKeys
-import skillbill.engine.envelope
 import skillbill.engine.featuretask.runloop.state.validationEvidenceFromEnvelope
 import skillbill.error.shellcontent.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.workflow.model.validation.FeatureTaskRuntimeVerdict
@@ -25,6 +25,24 @@ class FeatureTaskRuntimeValidationEvidenceSettlementTest {
         validateEnvelope(
           command = "./gradlew check",
           exitCode = 1,
+        ),
+      )
+    val evidence =
+      requireNotNull(
+        validationEvidenceFromEnvelope(envelope, FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE),
+      )
+    assertFailsWith<InvalidFeatureTaskRuntimeValidationEvidenceSchemaError> {
+      evidence.requireSuccessfulCommand("./gradlew check", FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
+    }
+  }
+
+  @Test
+  fun `prose passed status cannot satisfy validate settlement when the required command is absent from evidence`() {
+    val envelope =
+      topLevelValidateEnvelope(
+        validateEnvelope(
+          command = "./gradlew compileKotlin",
+          exitCode = 0,
         ),
       )
     val evidence =
@@ -69,6 +87,7 @@ class FeatureTaskRuntimeValidationEvidenceSettlementTest {
               executedChecks = listOf("runtime-engine|compileKotlin"),
               command = "./gradlew check",
               exitCode = 1,
+              repositoryCheckpoint = "checkpoint-before",
             ),
             FeatureTaskRuntimeValidationGateRunRecord(
               durationMs = 2,
@@ -78,6 +97,7 @@ class FeatureTaskRuntimeValidationEvidenceSettlementTest {
               executedChecks = listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
               command = "./gradlew check --offline",
               exitCode = 0,
+              repositoryCheckpoint = "checkpoint",
             ),
           ),
         requiredCommand = "./gradlew check --offline",
@@ -140,7 +160,7 @@ class FeatureTaskRuntimeValidationEvidenceSettlementTest {
       "repository_checkpoint" to mapOf("fingerprint" to "fixture-checkpoint-1"),
       ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to
         mapOf(
-          ValidationEvidencePayloadKeys.CONTRACT_VERSION to "0.1",
+          ValidationEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
           ValidationEvidencePayloadKeys.RESULTS to
             listOf(
               buildMap {

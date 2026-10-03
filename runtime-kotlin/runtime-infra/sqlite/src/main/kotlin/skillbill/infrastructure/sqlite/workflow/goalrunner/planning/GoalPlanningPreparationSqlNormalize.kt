@@ -4,6 +4,8 @@ import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_CONTRACT_VE
 import skillbill.contracts.workflow.featuretask.FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_ID
 import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
 import skillbill.contracts.workflow.goal.GOAL_PLANNING_PREPARATION_SCHEMA_ID
+import skillbill.error.core.SkillBillRuntimeException
+import skillbill.error.featuretask.FeatureTaskRuntimeMigrationFailureCode
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.shellcontent.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.sqlite.core.ops.bindAll
@@ -38,10 +40,10 @@ internal fun Connection.rejectLegacy(workflowId: String) {
     s.bindAll(workflowId)
     s.executeQuery().use {
       if (it.next()) {
-        throw IncompatibleGoalPlanningPreparationRecoveryError(
-          workflowId,
-          0,
-          "legacy 0.1 pair requires hard reset or operator migration",
+        throw SkillBillRuntimeException(
+          FeatureTaskRuntimeMigrationFailureCode.SOURCE_UNSUPPORTED,
+          "Legacy 0.1 paired planning has no supported automatic conversion. Preserve the original records and " +
+            "use a compatible runtime or an explicitly reviewed migration.",
         )
       }
     }
@@ -94,8 +96,7 @@ internal fun normalizedProvenanceFailure(provenance: GoalPlanningContractProvena
       "provenance.phase_output_contract_id" to "phase_output_contract_id is incompatible"
     provenance.phaseOutputContractVersion != FEATURE_TASK_RUNTIME_CONTRACT_VERSION ->
       "provenance.phase_output_contract_version" to
-        "phase_output_contract_version is incompatible; hard-reset the workflow with " +
-        "'skill-bill goal reset <issue-key> --hard --yes'"
+        "phase_output_contract_version requires supported migration before checkpointing; preserve durable state"
     else -> null
   }
 

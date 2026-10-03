@@ -2,9 +2,10 @@ package skillbill.workflow.decomposition.model
 
 import skillbill.contracts.workflow.featuretask.DECOMPOSITION_MANIFEST_VALIDATION_CONTRACT_VERSION
 import skillbill.error.core.FailureWireCode
+import skillbill.error.core.RuntimeFailureCode
 import skillbill.error.core.failureWireByValue
 import skillbill.error.shellcontent.InvalidDecompositionManifestSchemaError
-import skillbill.review.context.model.execution.SHA256_HEX
+import skillbill.review.context.model.hunk.SHA256_HEX
 
 private const val DECOMPOSITION_MANIFEST_VALIDATION_VERSION: String =
   DECOMPOSITION_MANIFEST_VALIDATION_CONTRACT_VERSION
@@ -21,7 +22,7 @@ enum class DecompositionManifestRepairOperation(val wireValue: String) {
 
 enum class DecompositionManifestValidationFailureCode(
   override val wireValue: String,
-) : FailureWireCode {
+) : FailureWireCode, RuntimeFailureCode {
   MALFORMED("malformed"),
   ROOT_NOT_OBJECT("root_not_object"),
   DUPLICATE_KEY("duplicate_key"),

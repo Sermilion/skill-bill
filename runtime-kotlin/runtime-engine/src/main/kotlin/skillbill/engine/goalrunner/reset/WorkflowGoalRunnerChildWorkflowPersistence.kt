@@ -1,17 +1,22 @@
 package skillbill.engine.goalrunner.reset
 
+import skillbill.application.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.application.workflow.decomposition.requireRuntimeModeForEngineWrite
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
+import skillbill.engine.featuretask.lifecycle.execution.FeatureTaskRuntimeExecutionAdmission
+import skillbill.engine.goalrunner.manifest.GoalParentProjectionWriter
 import skillbill.engine.goalrunner.manifest.mergeConcurrentGoalProgress
+import skillbill.engine.goalrunner.model.GoalRunnerChildWorkflowSetup
+import skillbill.engine.goalrunner.model.GoalRunnerManifestState
+import skillbill.engine.goalrunner.persist.WorkflowGoalRunnerBlockWrites
+import skillbill.engine.goalrunner.planning.hydration.GoalChildPlanningHydratorPort
+import skillbill.error.featuretask.FeatureTaskRuntimeExecutionPlanConflictError
+import skillbill.error.featuretask.MissingFeatureTaskRuntimeExecutionPlanError
 import skillbill.error.shellcontent.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.GoalRunnerQualityGateSelectionResolver
-import skillbill.ports.goalrunner.GoalParentProjectionWriter
-import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
-import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
-import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.workflow.decomposition.findDecomposedParentWorkflow
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.toRecord
@@ -28,9 +33,10 @@ import skillbill.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.model.ValidationDepth
 import skillbill.workflow.model.goalreview.GoalSubtaskReviewState
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.persistence.task.runtime.goal.goalContinuationArtifact
+import skillbill.workflow.taskruntime.model.persistence.FeatureTaskRuntimeGoalContinuationArtifact
+import skillbill.workflow.taskruntime.model.persistence.goalContinuationArtifact
 import java.nio.file.Path
+import java.time.Clock
 
 internal data class SavedGoalChildWorkflow(
   internal val state: GoalRunnerManifestState,
@@ -41,7 +47,11 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
   private val engine: WorkflowEngine,
   private val planningHydrator: GoalChildPlanningHydratorPort,
   private val parentProjection: GoalParentProjectionWriter,
+  private val executionAdmission: FeatureTaskRuntimeExecutionAdmission,
+  private val clock: Clock,
 ) {
+  private val blockWrites = WorkflowGoalRunnerBlockWrites(engine, clock)
+
   fun saveInTransaction(
     unitOfWork: UnitOfWork,
     state: GoalRunnerManifestState,
@@ -49,9 +59,13 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
   ): SavedGoalChildWorkflow {
     requireConsistentChildSetup(state, setup)
     val expectedIdentity = expectedChildIdentity(setup)
-    val parentUpdated = updateParentForChildWorkflow(unitOfWork, state)
     val existingChild = unitOfWork.workflowStates.get(WorkflowFamily.TASK_RUNTIME, setup.workflowId)
+    if (existingChild == null && setup.executionPlan == null) {
+      missingPlan()
+    }
     if (existingChild != null) {
+      if (setup.executionPlan == null) throw FeatureTaskRuntimeExecutionPlanConflictError()
+      executionAdmission.requireCompatibleDescriptor(unitOfWork.workflowStates, setup.workflowId, setup.executionPlan)
       val persistedIdentity = unitOfWork.workflowStates.getFeatureTaskExecutionIdentity(setup.workflowId)
       if (persistedIdentity != expectedIdentity) {
         throw IncompatibleGoalPlanningPreparationRecoveryError(
@@ -62,7 +76,19 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
       }
       requireMatchingGoalContinuation(existingChild, state, setup)
       planningHydrator.requireMatchingImport(unitOfWork, existingChild, setup)
+      setup.operatorResumePhaseId?.let { phaseId ->
+        check(
+          blockWrites.reopenBlockedPhaseForOperatorResume(
+            unitOfWork,
+            phaseId,
+            requireNotNull(setup.operatorResumeReason),
+            expectedIdentity,
+            requireNotNull(setup.executionPlan),
+          ),
+        ) { "Goal child '${setup.workflowId}' could not be reopened for operator resume." }
+      }
     }
+    val parentUpdated = updateParentForChildWorkflow(unitOfWork, state)
     val childUpdated =
       if (existingChild == null) {
         openGoalChildWorkflow(unitOfWork, state, setup, parentUpdated.workflowId)
@@ -186,14 +212,12 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
           currentStepId = existingParent.currentStepId,
           stepUpdates = null,
           artifactsPatch =
-            WorkflowArtifactPatch.from(
-              parentProjection.artifacts(
-                mergeConcurrentGoalProgress(
-                  existingParent.decompositionRuntime() ?: state.manifest,
-                  state.manifest,
-                ),
-                existingParent.artifacts,
+            parentProjection.artifacts(
+              mergeConcurrentGoalProgress(
+                existingParent.decompositionRuntime() ?: state.manifest,
+                state.manifest,
               ),
+              existingParent.artifacts,
             ),
           sessionId = existingParent.sessionId.orEmpty(),
           replaceArtifacts = true,
@@ -251,6 +275,12 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
     parentWorkflowId: String,
   ): Map<String, Any?> =
     linkedMapOf<String, Any?>().apply {
+      setup.executionPlan?.let { descriptor ->
+        DurableWorkflowArtifactFamily.FEATURE_TASK_RUNTIME_EXECUTION_PLAN.putInto(
+          this,
+          JsonCodec.parseValue(descriptor.encoded().toString(Charsets.UTF_8)),
+        )
+      }
       putAll(
         FeatureTaskRuntimeGoalContinuationArtifact(
           issueKey = state.manifest.issueKey,
@@ -288,4 +318,6 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
         ),
       )
     }
+
+  private fun missingPlan(): Nothing = throw MissingFeatureTaskRuntimeExecutionPlanError()
 }
